@@ -1,0 +1,33 @@
+# System files
+.DS_Store
+Thumbs.db
+
+# Raw event photo/video dumps (not needed for website)
+Ruchi's
+Krupa's
+Veer's
+Abeer
+Spy
+Kshitija's
+Barkha
+Rima
+Niyara
+Parmi's
+Prisha's
+Kids
+Samkit
+Parmi
+Sarth
+Revised
+WSR
+Invite
+20260624
+Event
+
+# PDFs (internal docs)
+*.pdf
+
+# Old prototypes & internal files
+wondershop_v2 html mock.html
+homepage mock chatgpt.jpg
+agents/

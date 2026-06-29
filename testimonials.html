@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Stories — Wondershop Experiences</title>
+<meta name="description" content="Read what Mumbai parents say about Wondershop Experiences — 500+ happy families, 5★ Google rating.">
+<link rel="icon" type="image/png" href="logo-square.png">
+<link rel="apple-touch-icon" href="logo-square.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --li:#B59DDE;--li2:#EDE6FA;--li3:#F5F0FF;
+  --pk:#E65A96;--yl:#FFC200;
+  --bk:#191919;--gy:#6B7280;--lgy:#F5F2FA;--wh:#FAFAFA;
+  --r:14px;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif;
+  --max:1200px;--nav-h:96px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);color:var(--bk);background:var(--wh);overflow-x:hidden}
+h1,h2,h3{font-family:var(--fd);line-height:1.2}
+p{line-height:1.7;color:var(--gy)}
+img{display:block;max-width:100%}
+a{text-decoration:none}
+button{cursor:pointer;font-family:var(--fb)}
+.container{max-width:var(--max);margin:0 auto;padding:0 24px}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--nav-h);background:rgba(250,250,250,.97);backdrop-filter:blur(10px);border-bottom:1px solid rgba(181,157,222,.18);transition:box-shadow .2s}
+.nav.scrolled{box-shadow:0 2px 20px rgba(181,157,222,.18)}
+.nav-inner{max-width:1200px;margin:0 auto;padding:0 24px;height:100%;display:flex;flex-direction:column;align-items:stretch;justify-content:center}
+.nav-row1{display:flex;align-items:center;justify-content:space-between;width:100%;padding:6px 0 4px}
+.nav-row2{display:flex;align-items:center;justify-content:center;gap:28px;padding:2px 0 4px;border-top:1px solid rgba(181,157,222,.12);width:100%}
+.nav-row2 a{font-size:14px;color:var(--gy);font-weight:500;transition:color .15s}
+.nav-row2 a:hover,.nav-row2 a.active{color:var(--bk)}
+.nav-logo{display:flex;flex-direction:column;align-items:flex-start}
+.nav-logo-tagline{font-family:var(--fb);font-size:10px;color:var(--gy);margin-top:3px}
+.nav-cta-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.nav-cta{background:var(--li);color:#fff;border:none;border-radius:24px;padding:10px 22px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;transition:opacity .15s}
+.nav-cta:hover{opacity:.88}
+.nav-cta-sub{font-family:var(--fb);font-size:10px;color:var(--gy);text-align:right}
+.nav-search-btn{background:none;border:none;cursor:pointer;color:var(--gy);padding:6px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:color .15s}
+.nav-search-btn:hover{color:var(--bk)}
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="main-nav">
+  <div class="nav-inner">
+    <div class="nav-row1">
+      <a href="index.html" class="nav-logo">
+        <img src="logo-horizontal.png" alt="Wondershop Experiences" style="height:46px;width:auto;display:block">
+        <div class="nav-logo-tagline">Curated Birthday Experiences · Mumbai | Pune</div>
+      </a>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="nav-search-btn" id="nav-search-btn" onclick="openSearch()" aria-label="Search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <div class="nav-cta-wrap nav-cta-desk">
+          <a href="builder.html?start=1" class="nav-cta">Build a Birthday ✦</a>
+          <span class="nav-cta-sub">Plan your birthday in 10 mins</span>
+        </div>
+        <button class="nav-ham" id="nav-ham" aria-label="Open menu"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+    <div class="nav-row2">
+      <a href="index.html">Home</a>
+          <a href="gallery.html">Gallery</a>
+          <a href="testimonials.html" class="active">Testimonials</a>
+          <a href="blogs.html">Blog</a>
+          <a href="about-us.html">About Us</a>
+          <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</nav>
+
+<div class="nav-mobile" id="nav-mob">
+  <a href="index.html" class="nav-mob-lnk">Home</a>
+  <a href="gallery.html" class="nav-mob-lnk">Gallery</a>
+  <a href="testimonials.html" class="nav-mob-lnk active">Testimonials</a>
+  <a href="blogs.html" class="nav-mob-lnk">Blog</a>
+  <a href="about-us.html" class="nav-mob-lnk">About Us</a>
+  <a href="contact.html" class="nav-mob-lnk">Contact</a>
+  <a href="builder.html?start=1" class="nav-cta">Build a Birthday ✦</a>
+</div>
+
+<!-- HERO SPLIT -->
+<div class="hero-split">
+  <div class="hero-split-text">
+    <div class="sec-tag">Wondershop Families</div>
+    <h1 class="hero-h1">Straight from <em>the parents</em></h1>
+    <p class="hero-p">Every word below is from a real Wondershop family — unedited, unfiltered.</p>
+  </div>
+  <div class="hero-split-img">
+    <img src="1-hero.jpg" alt="A parent celebrating with their child at a Wondershop birthday party">
+  </div>
+</div>
+
+<!-- REVIEWS -->
+<section class="sec" id="reviews">
+  <div class="container">
+<div class="review-grid" id="review-grid">
+
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <div class="review-text">We had our son's birthday party organised at our club house last Friday. The theme was super hero. Wanted to highlight the efforts from Wondershop as they took charge of decor, kids activity, engaging the children through tattoo stations — everything was perfect.</div>
+        <div class="review-author">
+          <div class="review-av">J</div>
+          <div>
+            <div class="review-name">Janani Kamakshi</div>
+            <div class="review-meta">5 months ago</div>
+            <div class="review-source">★ Google Review</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <div class="review-text">We celebrated our daughter's birthday party at Wondershop, and it was truly a memorable experience. Shruti did a wonderful job with the setup — everything was well organised and right on time. The decorations were lovely, and the activities kept the kids engaged throughout.</div>
+        <div class="review-author">
+          <div class="review-av">D</div>
+          <div>
+            <div class="review-name">Divya Arun</div>
+            <div class="review-meta">5 months ago</div>
+            <div class="review-source">★ Google Review</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <div class="review-text">We had a fantastic experience celebrating my son's birthday at Wondershop with a canvas painting activity. Even though it was a last-minute plan and Shruti wasn't able to be there in person, the event was incredibly well-organized.</div>
+        <div class="review-author">
+          <div class="review-av">S</div>
+          <div>
+            <div class="review-name">Sonam Gupta</div>
+            <div class="review-meta">9 months ago</div>
+            <div class="review-source">★ Google Review</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <div class="review-text">My child and her friends had a blast. The party was really organised very well and with a lot of patience. There is a certain warmth that you and your husband have — always going the extra mile for the children.</div>
+        <div class="review-author">
+          <div class="review-av">S</div>
+          <div>
+            <div class="review-name">Sheethala Mahesh</div>
+            <div class="review-meta">8 months ago</div>
+            <div class="review-source">★ Google Review</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <div class="review-text">The love and attention with which my daughter's special day was curated was heartwarming. The core sentiment of the theme was understood directly from the birthday girl herself! Needless to say she was on the seventh heaven of delight.</div>
+        <div class="review-author">
+          <div class="review-av">P</div>
+          <div>
+            <div class="review-name">Preeti Narayan</div>
+            <div class="review-meta">6 months ago</div>
+            <div class="review-source">★ Google Review</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <div class="review-text">The kids had a great time canvas painting. I was really glad my daughter and her friends had such a great experience. The whole experience made her birthday absolutely fantastic.</div>
+        <div class="review-author">
+          <div class="review-av">N</div>
+          <div>
+            <div class="review-name">Natasha Joseph</div>
+            <div class="review-meta">a year ago</div>
+            <div class="review-source">★ Google Review</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="g-note">
+      <p class="g-note-text">Reviews refreshed weekly from Google. <a href="https://www.google.com/search?q=wondershop+experiences" target="_blank">See all reviews on Google →</a></p>
+      <a href="https://g.page/r/Cd_2yrVLQcN4EAE/review" target="_blank" class="btn-g">⭐ Leave a Google Review</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- GOOGLE RATING STRIP -->
+<div class="g-strip">
+  <div class="container">
+    <div class="g-strip-inner">
+      <span class="g-strip-score">5.0</span>
+      <span class="g-strip-stars">★★★★★</span>
+      <span class="g-strip-text">on Google</span>
+      <a href="https://www.google.com/search?q=wondershop+experiences" target="_blank" class="g-strip-link">See all reviews →</a>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<section class="fcta">
+  <div class="container">
+    <div class="fcta-h">Ready to create your own<br><em style="font-style:italic">unforgettable moment?</em></div>
+    <div class="fcta-sub">Join 500+ families who trusted Wondershop with their child's most special day.</div>
+    <div class="fcta-btns">
+      <a href="builder.html?start=1" class="btn-wh">Build a Birthday ✦</a>
+      <a href="builder.html?lead=1" class="btn-owh">📞 Call Me to Plan</a>
+      <a href="https://wa.me/919004435362" target="_blank" class="btn-owh">💬 WhatsApp Us</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <img src="logo-horizontal-dark.png" alt="Wondershop Experiences" style="height:48px;width:auto;margin-bottom:14px">
+        <div class="ft-tagline">Think Birthdays, Think Wondershop. Story-led celebrations for children aged 1–12 across Mumbai and Pune.</div>
+        <div class="ft-soc">
+          <a href="https://www.instagram.com/wondershop.experiences/" target="_blank" class="ft-soc-a">📸</a>
+          <a href="https://wa.me/919004435362" target="_blank" class="ft-soc-a">💬</a>
+          <a href="tel:+919004435362" class="ft-soc-a">📞</a>
+        </div>
+      </div>
+      <div>
+        <div class="ft-col-h">Quick Links</div>
+        <ul class="ft-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="gallery.html">Gallery</a></li>
+          <li><a href="testimonials.html">Testimonials</a></li>
+          <li><a href="about-us.html">About Us</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="ft-col-h">Services</div>
+        <ul class="ft-links">
+          <li><a href="builder.html?start=1">Decor &amp; Themes</a></li>
+          <li><a href="builder.html?start=1">Activities</a></li>
+          <li><a href="builder.html?start=1">Host &amp; DJ</a></li>
+          <li><a href="builder.html?start=1">Return Gifts</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="ft-col-h">Contact</div>
+        <ul class="ft-links">
+          <li><a href="tel:+919004435362">+91 90044 35362</a></li>
+          <li><a href="tel:+919742240477">+91 97422 40477</a></li>
+          <li><a href="mailto:contact@wondershopexperiences.com">contact@wondershopexperiences.com</a></li>
+          <li>Vikhroli East, Mumbai</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ft-bottom">
+      <div class="ft-copy">© 2025 Wondershop Experiences. All rights reserved.</div>
+      <div class="ft-cities">Mumbai · Pune · Growing!</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+window.addEventListener('scroll',()=>{
+  document.getElementById('main-nav').classList.toggle('scrolled',window.scrollY>10);
+});
+</script>
+
+<!-- WhatsApp FAB -->
+<a href="https://wa.me/919004435362" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+</a>
+<style>
+.wa-fab{position:fixed;bottom:24px;left:24px;z-index:9999;width:52px;height:52px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;text-decoration:none}
+.wa-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(37,211,102,.6)}
+.wa-fab svg{width:26px;height:26px}
+</style>
+
+<script>
+// Mobile menu
+(function(){
+  const ham=document.getElementById('nav-ham');
+  const mob=document.getElementById('nav-mob');
+  if(ham&&mob){
+    ham.onclick=()=>{const o=mob.classList.toggle('open');ham.setAttribute('aria-expanded',o)};
+    document.querySelectorAll('.nav-mob-lnk').forEach(a=>a.addEventListener('click',()=>mob.classList.remove('open')));
+  }
+})();
+</script>
+
+<!-- SEARCH OVERLAY -->
+<div id="search-overlay" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(25,25,25,.6);backdrop-filter:blur(4px)" onclick="closeSearch()"></div>
+<div id="search-modal" style="display:none;position:fixed;top:120px;left:50%;transform:translateX(-50%);z-index:501;width:min(560px,92vw);background:#fff;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.18);overflow:hidden">
+  <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--li2)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gy)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="search-input" type="text" placeholder="Search themes, packages, activities…" style="flex:1;border:none;outline:none;font-size:16px;font-family:var(--fb);color:var(--bk);background:transparent" oninput="doSearch(this.value)">
+    <button onclick="closeSearch()" style="background:none;border:none;cursor:pointer;color:var(--gy);font-size:20px;line-height:1;padding:0 4px">&times;</button>
+  </div>
+  <div id="search-results" style="max-height:340px;overflow-y:auto;padding:8px 0"></div>
+</div>
+<script>
+const searchItems=[
+  {t:"Spy Theme Birthday",u:"builder.html?theme=spy&start=1",d:"Secret agent decor, missions & activities"},
+  {t:"Build a Birthday",u:"builder.html?start=1",d:"Plan your birthday in 10 mins"},
+  {t:"Gallery",u:"gallery.html",d:"Real birthday photos"},
+  {t:"Testimonials",u:"testimonials.html",d:"What parents say"},
+  {t:"Blog",u:"blogs.html",d:"Tips & party guides"},
+  {t:"Contact Us",u:"contact.html",d:"Get in touch"},
+  {t:"About Us",u:"about-us.html",d:"Meet Shruti & Sidhant"},
+  {t:"Spy Guide",u:"blogs.html#spy-guide",d:"Plan the perfect spy birthday"},
+  {t:"Return Gifts",u:"blogs.html#return-gifts",d:"Best return gift ideas"},
+  {t:"Planning Checklist",u:"blogs.html#planning-checklist",d:"10-minute birthday checklist"},
+];
+function openSearch(){document.getElementById('search-overlay').style.display='block';document.getElementById('search-modal').style.display='block';setTimeout(()=>document.getElementById('search-input').focus(),50);doSearch('');}
+function closeSearch(){document.getElementById('search-overlay').style.display='none';document.getElementById('search-modal').style.display='none';}
+function doSearch(q){const r=document.getElementById('search-results');const hits=q?searchItems.filter(i=>i.t.toLowerCase().includes(q.toLowerCase())||i.d.toLowerCase().includes(q.toLowerCase())):searchItems;r.innerHTML=hits.length?hits.map(i=>`<a href="${i.u}" style="display:flex;flex-direction:column;gap:2px;padding:12px 20px;text-decoration:none;transition:background .1s" onmouseover="this.style.background='var(--li3)'" onmouseout="this.style.background=''""><span style="font-size:14px;font-weight:600;color:var(--bk)">${i.t}</span><span style="font-size:12px;color:var(--gy)">${i.d}</span></a>`).join(''):'<p style="text-align:center;padding:24px;color:var(--gy);font-size:14px">No results found</p>';}
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openSearch();}if(e.key==='Escape')closeSearch();});
+</script>
+</body>
+</html>

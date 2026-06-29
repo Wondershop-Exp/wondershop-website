@@ -1,0 +1,2412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wondershop Experiences — Plan Your Child's Dream Birthday</title>
+<link rel="icon" type="image/png" href="logo-square.png">
+<link rel="apple-touch-icon" href="logo-square.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --li:#B59DDE;--li2:#EDE6FA;--li3:#F5F0FF;
+  --pk:#E65A96;--spk:#F5C3D7;
+  --yl:#FFC200;--syl:#FFFBDC;
+  --bl:#5B8EDD;--sbl:#BCD8E8;
+  --gr:#52C470;--sgr:#B7E0B8;
+  --or:#F57A1A;
+  --bk:#191919;--gy:#6B7280;--lgy:#F5F2FA;--wh:#FAFAFA;
+  --r:14px;--rs:10px;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif;
+  --max:1200px;--nav-h:68px;
+  --bb-h:68px;/* builder bottom bar */
+  --bh-h:60px;/* builder header */
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);color:var(--bk);background:var(--wh);overflow-x:hidden}
+h1,h2,h3{font-family:var(--fd);line-height:1.2}
+p{line-height:1.7;color:var(--gy)}
+img{display:block;max-width:100%}
+a{text-decoration:none}
+button{cursor:pointer;font-family:var(--fb)}
+input,textarea,select{font-family:var(--fb)}
+.container{max-width:var(--max);margin:0 auto;padding:0 24px}
+
+/* ── PAGE SWITCHER ── */
+#pg-home{display:block}
+#pg-builder{display:none;height:100vh;flex-direction:column;overflow:hidden}
+#pg-builder.active{display:flex}
+
+/* ══════════════════════════════════════
+   HOMEPAGE STYLES
+══════════════════════════════════════ */
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--nav-h);background:rgba(250,250,250,.97);backdrop-filter:blur(10px);border-bottom:1px solid rgba(181,157,222,.18);transition:box-shadow .2s}
+.nav.scrolled{box-shadow:0 2px 20px rgba(181,157,222,.18)}
+.nav-inner{max-width:var(--max);margin:0 auto;padding:0 24px;height:100%;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nav-logo-icon{width:38px;height:38px;flex-shrink:0}
+.nav-logo-text{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--bk);line-height:1.1}
+.nav-logo-text span{display:block;font-family:var(--fb);font-size:9px;font-weight:500;color:var(--gy);letter-spacing:1.4px;text-transform:uppercase}
+.nav-links{display:flex;align-items:center;gap:28px;list-style:none}
+.nav-links a{font-size:14px;font-weight:500;color:var(--bk);transition:color .15s}
+.nav-links a:hover{color:var(--li)}
+.nav-cta{background:var(--li);color:#fff;border:none;border-radius:24px;padding:10px 22px;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;transition:background .15s,transform .1s}
+.nav-cta:hover{background:#9d84cc;transform:translateY(-1px)}
+.nav-ham{display:none;background:none;border:none;padding:6px;flex-direction:column;gap:5px}
+.nav-ham span{display:block;width:22px;height:2px;background:var(--bk);border-radius:2px;transition:all .2s}
+.nav-mobile{display:none;position:fixed;top:var(--nav-h);left:0;right:0;z-index:199;background:var(--wh);border-bottom:1px solid var(--li2);padding:8px 24px 24px}
+.nav-mobile.open{display:block}
+.nav-mobile a{display:block;font-size:15px;font-weight:500;color:var(--bk);padding:13px 0;border-bottom:1px solid var(--li2)}
+.nav-mobile .nav-cta{margin-top:16px;justify-content:center}
+@media(max-width:860px){.nav-links,.nav-cta-desk{display:none}.nav-ham{display:flex}}
+
+/* HERO */
+.hero{background:#FDF8FF;padding:calc(var(--nav-h) + 60px) 0 80px;min-height:100vh;display:flex;align-items:center}
+.hero-inner{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.hero-tag{font-size:11px;font-weight:700;color:var(--pk);letter-spacing:1.4px;text-transform:uppercase;margin-bottom:16px}
+.hero-h1{font-family:var(--fd);font-weight:700;color:var(--bk);font-size:clamp(36px,4.5vw,58px);line-height:1.12;margin-bottom:18px}
+.hero-h1 em{color:var(--li);font-style:normal}
+.hero-sub{font-size:16px;color:var(--gy);line-height:1.7;max-width:420px;margin-bottom:32px}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px}
+.btn-p{background:var(--li);color:#fff;border:none;border-radius:28px;padding:14px 28px;font-size:15px;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:background .15s,transform .1s}
+.btn-p:hover{background:#9d84cc;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--bk);border:2px solid var(--li);border-radius:28px;padding:12px 24px;font-size:15px;font-weight:500;display:inline-flex;align-items:center;gap:8px;transition:all .15s}
+.btn-ghost:hover{background:var(--li2)}
+.hero-stats{display:flex;gap:0;flex-wrap:wrap;margin-bottom:20px;border:1.5px solid var(--li2);border-radius:14px;overflow:hidden;width:fit-content}
+.hs{padding:12px 20px;text-align:center;border-right:1.5px solid var(--li2)}
+.hs:last-child{border-right:none}
+.hs-n{font-family:var(--fd);font-size:18px;font-weight:700;color:var(--bk);display:block;line-height:1.1}
+.hs-l{font-size:10px;color:var(--gy);font-weight:500;display:block;margin-top:2px}
+.hero-note{font-size:12px;color:#9CA3AF}
+.hero-cards{position:relative;height:520px}
+.hero-card-back{position:absolute;left:0;top:40px;width:66%;height:calc(100% - 60px);border-radius:20px;overflow:hidden;background:var(--li2);transform:rotate(-3deg);z-index:1}
+.hero-card-front{position:absolute;right:0;top:0;width:76%;height:calc(100% - 50px);border-radius:20px;overflow:hidden;background:var(--spk);box-shadow:0 24px 64px rgba(181,157,222,.28);z-index:2}
+.hero-card-back img,.hero-card-front img{width:100%;height:100%;object-fit:cover;transition:opacity .6s ease}
+.hero-card-badge{position:absolute;bottom:16px;left:16px;z-index:3;background:rgba(255,255,255,.93);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:8px;backdrop-filter:blur(4px)}
+.hcb-dot{width:8px;height:8px;border-radius:50%;background:var(--gr);flex-shrink:0}
+.hcb-txt{font-size:11px;font-weight:600;color:var(--bk)}
+.hero-cdots{position:absolute;bottom:-28px;right:4px;display:flex;gap:7px}
+.hero-cdot{width:7px;height:7px;border-radius:50%;background:var(--li2);border:none;transition:background .2s,transform .2s}
+.hero-cdot.active{background:var(--li);transform:scale(1.4)}
+.hero-deco-circle{position:absolute;border-radius:50%;pointer-events:none}
+@media(max-width:960px){.hero-inner{grid-template-columns:1fr;gap:48px}.hero-cards{height:320px}.hero{padding:calc(var(--nav-h)+40px) 0 56px;min-height:auto}.hero-sub{max-width:100%}}
+@media(max-width:580px){.hero-cards{height:260px}}
+
+/* SECTIONS */
+.sec{padding:64px 0}
+.sec-alt{background:var(--li3)}
+.sec-tag{font-size:11px;font-weight:700;color:var(--pk);letter-spacing:1.4px;text-transform:uppercase;margin-bottom:10px}
+.sec-h2{font-family:var(--fd);font-size:clamp(26px,3.5vw,40px);font-weight:700;color:var(--bk);margin-bottom:14px}
+.sec-h2 em{color:var(--li);font-style:normal}
+.sec-sub{font-size:16px;color:var(--gy);max-width:500px;margin:0 auto 36px;line-height:1.65}
+.sec-head{text-align:center}
+@media(max-width:600px){.sec{padding:44px 0}}
+
+/* HOW IT WORKS */
+.hiw-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative}
+.hiw-grid::before{content:'';position:absolute;top:31px;left:calc(12.5% + 8px);right:calc(12.5% + 8px);height:2px;background:var(--li2);z-index:0}
+.hiw-step{text-align:center;padding:0 16px;position:relative;z-index:1}
+.hiw-icon{width:64px;height:64px;border-radius:50%;background:var(--li2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;border:3px solid var(--wh)}
+.hiw-n{font-family:var(--fd);font-size:13px;font-weight:700;color:var(--li);margin-bottom:6px}
+.hiw-t{font-family:var(--fd);font-size:16px;font-weight:600;color:var(--bk);margin-bottom:8px}
+.hiw-d{font-size:13px;color:var(--gy);line-height:1.6}
+.hiw-cta{text-align:center;margin-top:52px}
+.hiw-pills{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.hiw-pill{font-size:12px;font-weight:600;color:#7B5EA7;background:var(--li2);border-radius:20px;padding:6px 14px}
+@media(max-width:720px){.hiw-grid{grid-template-columns:1fr 1fr;gap:36px}.hiw-grid::before{display:none}}
+
+/* SERVICES */
+.svc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.svc-card{background:#fff;border:1.5px solid var(--li2);border-radius:16px;padding:26px 18px;text-align:center;transition:border-color .2s,transform .15s,box-shadow .15s}
+.svc-card:hover{border-color:var(--li);transform:translateY(-3px);box-shadow:0 8px 24px rgba(181,157,222,.18)}
+.svc-ic{font-size:32px;margin-bottom:12px;display:block}
+.svc-n{font-family:var(--fd);font-size:15px;font-weight:600;color:var(--bk);margin-bottom:7px}
+.svc-d{font-size:12px;color:var(--gy);line-height:1.6}
+@media(max-width:800px){.svc-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* WHY WS */
+.why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.why-card{background:#fff;border-radius:16px;padding:28px 24px;border:1.5px solid var(--li2)}
+.why-ic{width:48px;height:48px;border-radius:12px;background:var(--li2);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px}
+.why-t{font-family:var(--fd);font-size:17px;font-weight:600;color:var(--bk);margin-bottom:8px}
+.why-d{font-size:13px;color:var(--gy);line-height:1.65}
+@media(max-width:800px){.why-grid{grid-template-columns:1fr 1fr}}
+/* FOUNDERS */
+.founders-intro{font-size:16px;color:#374151;line-height:1.75;max-width:720px;margin:0 auto 40px;text-align:center}
+.founders-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:16px}
+.founder-card{background:#fff;border-radius:20px;padding:32px 28px;border:1.5px solid var(--li2);display:flex;flex-direction:column;gap:16px}
+.founder-avatar{width:72px;height:72px;border-radius:50%;background:var(--li2);overflow:hidden;flex-shrink:0;border:3px solid var(--li2)}
+.founder-avatar img{width:100%;height:100%;object-fit:cover;object-position:top}
+.founder-name{font-family:var(--fd);font-size:18px;font-weight:700;color:var(--bk);margin-bottom:2px}
+.founder-title{font-size:12px;color:var(--li);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.founder-bio{font-size:14px;color:var(--gy);line-height:1.7}
+@media(max-width:700px){.founders-grid{grid-template-columns:1fr}}
+
+/* TESTIMONIALS */
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.testi-card{background:#fff;border:1.5px solid var(--li2);border-radius:16px;padding:28px 24px}
+.testi-q{font-size:42px;color:var(--li2);font-family:Georgia,serif;line-height:.7;margin-bottom:12px}
+.testi-txt{font-size:14px;color:var(--bk);line-height:1.75;margin-bottom:20px;font-style:italic}
+.testi-author{display:flex;align-items:center;gap:12px}
+.testi-av{width:42px;height:42px;border-radius:50%;background:var(--li2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:14px;font-weight:700;color:#7B5EA7}
+.testi-nm{font-size:14px;font-weight:700;color:var(--bk)}
+.testi-ct{font-size:12px;color:var(--gy)}
+.testi-st{color:var(--yl);font-size:13px;margin-top:2px}
+@media(max-width:800px){.testi-grid{grid-template-columns:1fr;max-width:480px;margin:0 auto}}
+
+/* INSTAGRAM */
+.insta-wrap{display:grid;grid-template-columns:260px 1fr;gap:40px;align-items:start}
+.insta-profile{background:var(--li3);border-radius:20px;padding:28px 24px;text-align:center;position:sticky;top:calc(var(--nav-h) + 20px)}
+.insta-avatar{width:72px;height:72px;border-radius:50%;overflow:hidden;margin:0 auto 12px;background:var(--li2);border:3px solid #fff;box-shadow:0 0 0 2px var(--li)}
+.insta-avatar img{width:100%;height:100%;object-fit:cover}
+.insta-handle{font-weight:700;font-size:15px;color:var(--bk);margin-bottom:4px}
+.insta-bio{font-size:12px;color:var(--gy);line-height:1.5;margin-bottom:16px}
+.insta-counts{display:flex;justify-content:center;gap:0;border-top:1px solid var(--li2);padding-top:16px;margin-bottom:20px}
+.ic{flex:1;text-align:center}
+.ic+.ic{border-left:1px solid var(--li2)}
+.ic-n{font-family:var(--fd);font-size:17px;font-weight:700;color:var(--bk);display:block}
+.ic-l{font-size:10px;color:var(--gy);display:block;margin-top:2px}
+.insta-follow-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#F77737,#E1306C,#833AB4);color:#fff;border:none;border-radius:24px;padding:10px 20px;font-size:13px;font-weight:700;width:100%;transition:opacity .15s}
+.insta-follow-btn:hover{opacity:.88}
+.insta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.insta-item{aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--li2);position:relative;cursor:pointer}
+.insta-item img{width:100%;height:100%;object-fit:cover;transition:transform .3s ease}
+.insta-item:hover img{transform:scale(1.06)}
+.insta-over{position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(25,25,25,.72) 100%);opacity:0;transition:opacity .22s;display:flex;flex-direction:column;justify-content:flex-end;padding:12px}
+.insta-item:hover .insta-over{opacity:1}
+.insta-cap{font-size:11px;color:#fff;line-height:1.4}
+@media(max-width:860px){.insta-wrap{grid-template-columns:1fr}.insta-profile{position:static}}
+
+/* FINAL CTA */
+.fcta{background:var(--li);padding:88px 0;text-align:center}
+.fcta-h{font-family:var(--fd);font-size:clamp(28px,4vw,46px);font-weight:700;color:#fff;margin-bottom:14px}
+.fcta-sub{font-size:16px;color:rgba(255,255,255,.85);margin-bottom:38px;max-width:460px;margin-left:auto;margin-right:auto;line-height:1.65}
+.fcta-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn-wh{background:#fff;color:var(--li);border:none;border-radius:28px;padding:14px 28px;font-size:15px;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:transform .1s}
+.btn-wh:hover{transform:translateY(-1px)}
+.btn-owh{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.55);border-radius:28px;padding:12px 24px;font-size:15px;font-weight:500;display:inline-flex;align-items:center;gap:8px;transition:all .15s}
+.btn-owh:hover{border-color:#fff;background:rgba(255,255,255,.1)}
+
+/* FOOTER */
+.footer{background:var(--bk);padding:60px 0 32px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:48px}
+.ft-brand-n{font-family:var(--fd);font-size:20px;font-weight:700;color:#fff;margin-bottom:2px}
+.ft-brand-s{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:1.4px;text-transform:uppercase;margin-bottom:14px}
+.ft-tagline{font-size:13px;color:rgba(255,255,255,.5);line-height:1.7;max-width:240px;margin-bottom:20px}
+.ft-soc{display:flex;gap:10px}
+.ft-soc-a{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);font-size:15px;transition:background .15s,color .15s}
+.ft-soc-a:hover{background:rgba(181,157,222,.3);color:#fff}
+.ft-col-h{font-size:11px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:1.1px;text-transform:uppercase;margin-bottom:16px}
+.ft-links{list-style:none;display:flex;flex-direction:column;gap:10px}
+.ft-links a{font-size:14px;color:rgba(255,255,255,.6);transition:color .15s}
+.ft-links a:hover{color:var(--li)}
+.ft-bottom{border-top:1px solid rgba(255,255,255,.07);padding-top:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.ft-copy,.ft-cities{font-size:12px;color:rgba(255,255,255,.3)}
+@media(max-width:800px){.footer-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.footer-grid{grid-template-columns:1fr}.ft-bottom{flex-direction:column;text-align:center}}
+
+.lb{display:none;position:fixed;inset:0;z-index:999;background:rgba(25,25,25,.92);align-items:center;justify-content:center}
+.lb.open{display:flex}
+.lb img{max-width:90vw;max-height:90vh;border-radius:8px;object-fit:contain}
+.lb-close{position:absolute;top:20px;right:24px;background:none;border:none;color:#fff;font-size:32px;line-height:1}
+
+/* ══════════════════════════════════════
+   BUILDER STYLES (DESKTOP)
+══════════════════════════════════════ */
+/* Builder header */
+.bld-hdr{height:var(--bh-h);background:#fff;border-bottom:1px solid var(--li2);display:flex;align-items:center;justify-content:space-between;padding:0 28px;flex-shrink:0;position:relative;z-index:10}
+.bld-hdr-logo{display:flex;align-items:center;gap:8px;cursor:pointer}
+.bld-hdr-logo-icon{width:32px;height:32px}
+.bld-hdr-brand{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk)}
+.bld-progress{display:flex;align-items:center;gap:4px;position:absolute;left:50%;transform:translateX(-50%)}
+.bp-item{display:flex;align-items:center;gap:4px;cursor:default}
+.bp-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--li2);background:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--gy);transition:all .2s;flex-shrink:0}
+.bp-dot.done{background:var(--gr);border-color:var(--gr);color:#fff;cursor:pointer}
+.bp-dot.cur{background:var(--li);border-color:var(--li);color:#fff}
+.bp-label{font-size:9px;font-weight:600;color:var(--gy);white-space:nowrap;display:none}
+.bp-line{width:18px;height:2px;background:var(--li2);border-radius:1px}
+.bp-line.done{background:var(--gr)}
+.bld-hdr-right{display:flex;align-items:center;gap:10px}
+.bld-cart-btn{background:var(--li3);border:1.5px solid var(--li2);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--bk);display:flex;align-items:center;gap:6px}
+.bld-cart-btn:hover{background:var(--li2)}
+.bld-back-btn{background:none;border:none;font-size:13px;color:var(--gy);display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px}
+.bld-back-btn:hover{background:var(--li3)}
+.bld-back-btn.hidden{visibility:hidden}
+
+/* Builder main scrollable area */
+.bld-main{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--lgy);padding-bottom:calc(var(--bb-h) + 16px)}
+.bld-wrap{max-width:860px;margin:0 auto;padding:24px 20px}
+
+/* Builder bottom bar */
+.bld-bb{height:var(--bb-h);background:#fff;border-top:1.5px solid var(--li2);display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;gap:16px}
+.bld-bb.hidden{display:none}
+.bb-left{display:flex;align-items:center;gap:16px}
+.bb-skip{font-size:13px;color:var(--gy);background:none;border:none;padding:6px 12px;border-radius:8px}
+.bb-skip:hover{background:var(--li3)}
+.bb-total-wrap{display:flex;flex-direction:column;align-items:flex-end;min-width:120px}
+.bb-total{font-family:var(--fd);font-size:20px;font-weight:700;color:var(--bk)}
+.bb-adv{font-size:11px;color:var(--gy);display:none}
+.bb-disc{font-size:11px;color:var(--gr);font-weight:600}
+.bb-disc-wrap{display:flex;align-items:center;gap:12px}
+.bb-savings-pill{background:var(--sgr);color:#1a6630;font-size:11px;font-weight:700;border-radius:12px;padding:3px 8px}
+.bb-right{display:flex;align-items:center;gap:10px}
+.bb-continue{background:linear-gradient(90deg,var(--li),var(--pk));color:#fff;border:none;border-radius:24px;padding:10px 28px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px}
+.bb-continue:hover{opacity:.92;transform:translateY(-1px)}
+.bb-rev-back{background:var(--li2);color:#7B5EA7;border:none;border-radius:24px;padding:10px 20px;font-size:14px;font-weight:700}
+
+/* Step common */
+.step{display:none;animation:stepIn .25s ease}
+.step.active{display:block}
+@keyframes stepIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Hero section in steps */
+.s-hero{margin-bottom:20px}
+.s-hero h1{font-family:var(--fd);font-size:28px;font-weight:700;color:var(--bk);margin-bottom:6px;line-height:1.2}
+.s-hero p{font-size:14px;color:var(--gy)}
+.hl{color:var(--li)}
+.slbl{font-size:11px;font-weight:700;color:var(--pk);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:8px}
+
+/* Section blocks within steps */
+.sec-blk{background:#fff;border-radius:var(--r);padding:20px;margin-bottom:14px;border:1.5px solid var(--li2)}
+.sec-lbl{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--bk);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.sec-lbl .dot{width:8px;height:8px;border-radius:50%;background:var(--li);flex-shrink:0}
+
+/* Banner carousel */
+.step-banner{border-radius:var(--r);overflow:hidden;margin-bottom:14px;position:relative;height:140px}
+.sb-slide{position:absolute;inset:0;opacity:0;transition:opacity .7s ease;display:flex;align-items:center;padding:24px;border-radius:var(--r)}
+.sb-slide.active{opacity:1}
+.sb-content h3{font-family:var(--fd);font-size:20px;font-weight:700;color:#fff;margin-bottom:6px}
+.sb-content p{font-size:13px;color:rgba(255,255,255,.85)}
+.sb-dots{position:absolute;bottom:10px;right:14px;display:flex;gap:5px}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.45);border:none}
+.sb-dot.active{background:#fff;width:18px;border-radius:3px}
+
+/* Cards grid (desktop: 3 cols) */
+.cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.cards-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:660px){.cards-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* Product card */
+.pcard{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);overflow:hidden;position:relative;transition:border-color .2s,transform .15s,box-shadow .15s;cursor:pointer}
+.pcard:hover{border-color:var(--li);transform:translateY(-2px);box-shadow:0 6px 20px rgba(181,157,222,.2)}
+.pcard.sel{border-color:var(--li);box-shadow:0 0 0 2px var(--li)}
+.pcard.sel .sel-badge{display:block}
+.sel-badge{display:none;position:absolute;top:8px;right:8px;background:var(--li);color:#fff;font-size:10px;font-weight:700;border-radius:8px;padding:3px 8px;z-index:3}
+.caro{position:relative;overflow:hidden;background:var(--li2);flex-shrink:0;aspect-ratio:4/3}.caro img{width:100%;height:100%;display:block;object-fit:cover;object-position:center top}
+.cs{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;position:absolute;inset:0;transition:opacity .4s}
+.cs:not(:first-child){opacity:0}
+.card-body{padding:10px 12px 12px}
+.card-name{font-family:var(--fd);font-size:13px;font-weight:700;color:var(--bk);margin-bottom:6px;line-height:1.3}
+.ctags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.tag{font-size:9px;font-weight:700;border-radius:6px;padding:2px 7px;background:var(--li2);color:#7B5EA7}
+.tag.pk{background:var(--spk);color:#c0346c}
+.tag.gr{background:var(--sgr);color:#1a6630}
+.tag.or{background:#FFF0E6;color:#b35500}
+.tag.bl{background:var(--sbl);color:#2563b0}
+.tag.new{background:#FFFBDC;color:#92680a;border:1px solid #FFC200}
+.tag.pop{background:var(--spk);color:#c0346c;border:1px solid var(--pk)}
+.tag.trend{background:var(--sbl);color:#2563b0;border:1px solid var(--bl)}
+.tag.rec{background:var(--sgr);color:#1a6630;border:1px solid var(--gr)}
+.card-detail{font-size:10px;color:var(--gy);line-height:1.6;margin-bottom:8px}
+.card-pr-row{display:flex;align-items:center;justify-content:space-between}
+.card-price{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--bk)}
+.card-ppc{font-size:9px;color:var(--gy)}
+.card-btn{background:var(--li);color:#fff;border:none;border-radius:12px;padding:6px 14px;font-size:12px;font-weight:700;transition:background .15s}
+.card-btn:hover{background:#9d84cc}
+.card-btn.added{background:var(--gr)}
+.card-btn.rmv{background:#fee2e2;color:#dc2626}
+
+/* Tier cards (Host, DJ, Photographer) */
+.tier-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.tier-card{background:#fff;border:2px solid var(--li2);border-radius:var(--r);padding:20px 16px;transition:all .2s;position:relative;overflow:hidden}
+.tier-card:hover{border-color:var(--li);transform:translateY(-2px)}
+.tier-card.sel{border-color:var(--li);box-shadow:0 0 0 2px var(--li)}
+.tier-card.sel .tc-check{display:flex}
+.tc-check{display:none;position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;background:var(--li);align-items:center;justify-content:center;color:#fff;font-size:10px}
+.tc-icon{width:48px;height:48px;border-radius:12px;background:var(--li2);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px}
+.tc-img{display:block;width:calc(100% + 32px);height:200px;object-fit:cover;object-position:center top;border-radius:calc(var(--r) - 2px) calc(var(--r) - 2px) 0 0;margin:-20px -16px 14px}
+.tc-name{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--bk);margin-bottom:4px}
+.tc-sub{font-size:12px;color:var(--gy);margin-bottom:12px;line-height:1.5}
+.tc-price{font-family:var(--fd);font-size:20px;font-weight:700;color:var(--li)}
+.tc-pnote{font-size:10px;color:var(--gy)}
+.tc-feats{margin-top:12px;display:flex;flex-direction:column;gap:5px}
+.tc-feat{font-size:11px;color:var(--gy);display:flex;align-items:flex-start;gap:5px}
+.tc-feat::before{content:'✓';color:var(--gr);font-weight:700;flex-shrink:0}
+@media(max-width:660px){.tier-cards{grid-template-columns:1fr}}
+
+/* Form inputs */
+.ig{margin-bottom:12px}
+.ig label{display:block;font-size:12px;font-weight:700;color:var(--bk);margin-bottom:5px;letter-spacing:.3px}
+.ig input,.ig textarea,.ig select{width:100%;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px;color:var(--bk);background:#fff;transition:border-color .15s;outline:none}
+.ig input:focus,.ig textarea:focus,.ig select:focus{border-color:var(--li)}
+.ig input.err{border-color:var(--pk)}
+.ig textarea{resize:vertical;min-height:80px}
+.pfx-wrap{display:flex;align-items:center;border:1.5px solid #E5E7EB;border-radius:10px;overflow:hidden;background:#fff;transition:border-color .15s}
+.pfx-wrap:focus-within{border-color:var(--li)}
+.pfx{padding:10px 10px 10px 12px;font-size:14px;font-weight:600;color:var(--gy);background:#F9FAFB;border-right:1.5px solid #E5E7EB;white-space:nowrap;flex-shrink:0}
+.pi{border:none!important;border-radius:0!important;flex:1}
+.pi:focus{outline:none}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hint{font-size:11px;color:var(--gy);margin-top:4px}
+.opt{font-size:11px;font-weight:400;color:var(--gy)}
+.req{color:var(--pk);font-weight:700;margin-left:2px}
+.err-msg{font-size:11px;color:var(--pk);font-weight:600;display:none;margin-top:3px}
+.err-msg.show{display:block}
+.info-banner{display:flex;align-items:flex-start;gap:8px;background:var(--li3);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--bk);line-height:1.5}
+.info-banner .ico{flex-shrink:0}
+
+/* Toggle buttons */
+.dt-tog,.tog-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.dt-btn,.tog-btn{background:var(--li3);border:1.5px solid var(--li2);border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;color:var(--gy);transition:all .15s}
+.dt-btn:hover,.tog-btn:hover{border-color:var(--li)}
+.dt-btn.on,.tog-btn.on{background:var(--li);border-color:var(--li);color:#fff}
+
+/* Kids count stepper */
+.stepper{display:flex;align-items:center;gap:0;border:1.5px solid var(--li2);border-radius:12px;overflow:hidden;width:fit-content}
+.step-btn{width:38px;height:38px;border:none;background:#fff;font-size:18px;color:var(--bk);display:flex;align-items:center;justify-content:center}
+.step-btn:hover{background:var(--li3)}
+.step-val{width:52px;text-align:center;font-family:var(--fd);font-size:16px;font-weight:700;color:var(--bk);border-left:1.5px solid var(--li2);border-right:1.5px solid var(--li2);padding:8px 0}
+
+/* Category chips */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{background:var(--li3);border:1.5px solid var(--li2);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;color:var(--gy);transition:all .15s}
+.chip:hover{border-color:var(--li)}
+.chip.on{background:var(--li);border-color:var(--li);color:#fff}
+
+/* Sort bar */
+.sort-bar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sort-bar label{font-size:12px;font-weight:600;color:var(--gy)}
+.sort-bar select{border:1.5px solid var(--li2);border-radius:10px;padding:6px 10px;font-size:12px;color:var(--bk);background:#fff;cursor:pointer;outline:none}
+.sort-bar select:focus{border-color:var(--li)}
+
+/* Selected activities */
+.sel-acts{background:var(--li3);border:1.5px solid var(--li2);border-radius:var(--r);padding:14px;margin-top:12px}
+.sel-acts-h{font-size:12px;font-weight:700;color:#7B5EA7;margin-bottom:8px}
+.sai{display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--li2)}
+.sai:last-child{border-bottom:none}
+.saip{font-weight:700;color:var(--bk)}
+.sarm{background:none;border:none;font-size:14px;color:var(--gy)}
+.sarm:hover{color:var(--pk)}
+
+/* Gift cards */
+.gift-card{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);padding:14px;transition:border-color .15s}
+.gift-card.added{border-color:var(--gr)}
+.gift-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.g-emoji{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.g-name{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:2px}
+.g-meta{font-size:11px;color:var(--gy)}
+.gift-bottom{display:flex;align-items:center;justify-content:space-between}
+.gift-total{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--bk)}
+.qty-ctrl{display:flex;align-items:center;gap:0;border:1.5px solid var(--li2);border-radius:8px;overflow:hidden}
+.qty-btn{width:28px;height:28px;border:none;background:#fff;font-size:14px;display:flex;align-items:center;justify-content:center}
+.qty-btn:hover{background:var(--li3)}
+.qty-val{width:32px;text-align:center;font-size:13px;font-weight:700;border-left:1px solid var(--li2);border-right:1px solid var(--li2);padding:4px 0}
+
+/* Packaging / tag buttons */
+.pkg-btn,.tag-opt-btn{background:var(--li3);border:1.5px solid var(--li2);border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--gy);transition:all .15s;text-align:left}
+.pkg-btn:hover,.tag-opt-btn:hover{border-color:var(--li)}
+.pkg-btn.on,.tag-opt-btn.on{background:var(--li2);border-color:var(--li);color:#7B5EA7}
+
+/* Payment options */
+.pay-opts{display:flex;flex-direction:column;gap:10px}
+.pay-opt{display:flex;align-items:flex-start;gap:12px;border:1.5px solid var(--li2);border-radius:var(--r);padding:14px;transition:border-color .15s;cursor:pointer}
+.pay-opt.on{border-color:var(--li)}
+.pay-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--li2);flex-shrink:0;margin-top:2px;transition:all .15s}
+.pay-opt.on .pay-radio{border-color:var(--li);background:var(--li);box-shadow:inset 0 0 0 3px #fff}
+.pay-name{font-size:14px;font-weight:700;color:var(--bk);margin-bottom:3px}
+.pay-desc{font-size:12px;color:var(--gy)}
+
+/* T&C */
+.tnc-wrap{border:1.5px solid var(--li2);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.tnc-hdr{padding:12px 14px;font-size:13px;font-weight:600;color:var(--bk);cursor:pointer;background:var(--li3)}
+.tnc-body{padding:0 14px;max-height:0;overflow:hidden;transition:max-height .3s ease}
+.tnc-body.show{max-height:300px;padding:12px 14px}
+.tnc-item{font-size:12px;color:var(--gy);padding:5px 0;border-bottom:1px solid var(--li2)}
+.tnc-item:last-child{border-bottom:none}
+.tnc-agree{display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 0}
+.tnc-cb{width:20px;height:20px;border-radius:5px;border:2px solid var(--li2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.tnc-cb.checked{background:var(--li);border-color:var(--li);color:#fff;font-size:12px}
+.tnc-lbl{font-size:13px;color:var(--bk)}
+
+/* Amount box */
+.amt-box{background:var(--li3);border-radius:var(--r);padding:16px}
+.amt-row{display:flex;align-items:center;justify-content:space-between;font-size:14px;color:var(--bk);padding:6px 0;border-bottom:1px solid var(--li2)}
+.amt-row:last-child{border-bottom:none}
+.amt-row.tot{font-weight:700;font-family:var(--fd);font-size:16px}
+.amt-row.adv{color:var(--li);font-weight:700}
+
+/* Trust markers */
+.trust-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.trust-item{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--gy);line-height:1.5}
+.trust-ic{font-size:16px;flex-shrink:0;margin-top:1px}
+
+/* Review */
+.rv-sec{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
+.rv-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--li2);background:var(--li3)}
+.rv-cat{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk)}
+.edit-link{font-size:12px;font-weight:700;color:var(--li);cursor:pointer}
+.rv-items{padding:10px 16px}
+.rv-item{display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--li2)}
+.rv-item:last-child{border-bottom:none}
+.rv-item-price{font-weight:700;color:var(--bk)}
+.rv-empty{font-size:13px;color:var(--gy);font-style:italic;padding:4px 0}
+.rv-total{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);padding:16px;margin-top:4px}
+.disc-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--gr);font-weight:600;margin-bottom:8px}
+.total-row{display:flex;align-items:center;justify-content:space-between;font-family:var(--fd);font-size:20px;font-weight:700;color:var(--bk);margin-bottom:6px}
+.adv-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--li);font-weight:600}
+
+/* Checkout directly btn */
+.co-direct-btn{background:var(--li3);border:1.5px dashed var(--li);border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;color:#7B5EA7;width:100%;text-align:center;margin-top:12px}
+.co-direct-btn:hover{background:var(--li2)}
+
+/* Home screen (builder landing) */
+#shome .home-hero{background:linear-gradient(135deg,var(--li3) 0%,#FFF0F7 100%);border-radius:var(--r);padding:36px 32px;margin-bottom:16px;position:relative;overflow:hidden}
+#shome .home-hero h1{font-family:var(--fd);font-size:32px;font-weight:700;color:var(--bk);margin-bottom:10px;line-height:1.2}
+#shome .home-hero p{font-size:15px;color:var(--gy);max-width:480px;margin-bottom:22px;line-height:1.65}
+#shome .home-hero-btns{display:flex;gap:10px;flex-wrap:wrap}
+.hh-deco{position:absolute;right:-20px;top:-20px;font-size:120px;opacity:.07;transform:rotate(-15deg)}
+.home-stats-row{display:flex;gap:12px;margin-bottom:16px}
+.home-stat{background:#fff;border:1.5px solid var(--li2);border-radius:12px;padding:14px 18px;text-align:center;flex:1}
+.home-stat .hs-n{font-family:var(--fd);font-size:20px;font-weight:700;color:var(--bk);display:block}
+.home-stat .hs-l{font-size:11px;color:var(--gy);display:block;margin-top:2px}
+.home-svc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.home-svc-chip{background:#fff;border:1.5px solid var(--li2);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:600;color:var(--bk);display:flex;align-items:center;gap:5px}
+.svc-icon-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.svc-icon-item{display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 6px;background:#fff;border:1.5px solid var(--li2);border-radius:14px;transition:border-color .15s,transform .1s}
+.svc-icon-item:hover{border-color:var(--li);transform:translateY(-2px)}
+.svc-icon-item svg{width:36px;height:36px;color:var(--li);flex-shrink:0}
+.svc-icon-item span{font-size:11px;font-weight:700;color:var(--bk);text-align:center;line-height:1.2}
+.home-cta-lead{display:flex;align-items:center;justify-content:space-between;background:var(--spk);border-radius:12px;padding:14px 18px}
+.home-cta-lead-txt{font-size:13px;font-weight:600;color:var(--bk)}
+.home-cta-lead-txt span{display:block;font-size:11px;font-weight:400;color:var(--gy);margin-top:2px}
+.btn-wa{background:#25D366;color:#fff;border:none;border-radius:20px;padding:9px 18px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+
+/* Venue buttons */
+.v-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.v-btn{background:#fff;border:1.5px solid var(--li2);border-radius:10px;padding:12px 10px;font-size:12px;font-weight:600;color:var(--bk);text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all .15s}
+.v-btn:hover{border-color:var(--li)}
+.v-btn.on{background:var(--li2);border-color:var(--li);color:#7B5EA7}
+.v-ic{font-size:20px}
+
+/* Gender buttons */
+.g-sel{display:flex;gap:8px}
+.g-btn{flex:1;background:#fff;border:1.5px solid var(--li2);border-radius:10px;padding:10px 8px;font-size:12px;font-weight:600;color:var(--gy);display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .15s}
+.g-btn:hover{border-color:var(--li)}
+.g-btn.on{background:var(--li2);border-color:var(--li);color:#7B5EA7}
+.gi{font-size:16px}
+
+/* Child cards */
+.child-card{background:var(--li3);border:1.5px solid var(--li2);border-radius:var(--r);padding:16px;margin-bottom:10px}
+.child-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.child-title{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk)}
+.rm-btn{background:none;border:none;font-size:18px;color:var(--gy)}
+.rm-btn:hover{color:var(--pk)}
+.add-child-btn{background:none;border:2px dashed var(--li);border-radius:10px;padding:10px;font-size:13px;font-weight:600;color:var(--li);width:100%;margin-top:4px}
+
+/* Confetti */
+.confetti-container{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;overflow:hidden}
+.confetto{position:absolute;width:10px;height:10px;top:-20px;animation:confettifall linear forwards}
+@keyframes confettifall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+/* Confirmation screen */
+.conf-hero{text-align:center;padding:32px 0 20px}
+.conf-icon{font-size:72px;margin-bottom:12px}
+.conf-hero h1{font-family:var(--fd);font-size:28px;font-weight:700;color:var(--bk);margin-bottom:10px}
+.conf-hero p{color:var(--gy);font-size:15px;max-width:400px;margin:0 auto}
+.cal-note{background:var(--sbl);border-radius:10px;padding:10px 14px;font-size:13px;color:#1a3a6b;text-align:center;margin-bottom:16px}
+.next-steps{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);padding:20px;margin-bottom:14px}
+.next-steps h3{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--bk);margin-bottom:14px}
+.ns-item{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px}
+.ns-num{width:28px;height:28px;border-radius:50%;background:var(--li);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ns-txt{font-size:14px;color:var(--bk);font-weight:600}
+.ns-txt span{display:block;font-size:12px;font-weight:400;color:var(--gy);margin-top:2px}
+.conf-share-btns{display:flex;gap:10px;margin-bottom:14px}
+.conf-share-btn{flex:1;border:none;border-radius:12px;padding:12px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
+.conf-wa{background:#25D366;color:#fff}
+.conf-ref{background:var(--li2);color:#7B5EA7}
+.cbox{background:var(--li3);border-radius:var(--r);padding:16px;text-align:center}
+.cb-row{font-size:13px;color:var(--gy);margin-bottom:6px}
+.cb-val{font-size:13px;color:var(--bk)}
+
+/* Lead form & sent */
+.ls-body{text-align:center;padding:32px 0}
+.ls-icon{font-size:64px;margin-bottom:16px}
+.ls-body h1{font-family:var(--fd);font-size:26px;font-weight:700;color:var(--bk);margin-bottom:10px}
+.ls-body p{font-size:15px;color:var(--gy);max-width:380px;margin:0 auto 20px}
+.ls-contact{background:var(--li3);border-radius:12px;padding:16px;margin-bottom:20px;text-align:center}
+.lsc-t{font-size:12px;color:var(--gy);margin-bottom:4px}
+.lsc-n{font-size:18px;font-weight:700;color:var(--bk)}
+.lsc-e{font-size:13px;color:var(--gy);margin-top:4px}
+.wa-btn{background:#25D366;color:#fff;border:none;border-radius:24px;padding:12px 28px;font-size:15px;font-weight:700}
+
+/* Cart overlay */
+.cart-overlay{display:none;position:fixed;inset:0;background:rgba(25,25,25,.5);z-index:300;align-items:flex-start;justify-content:flex-end}
+.cart-overlay.show{display:flex}
+.cart-drawer{width:380px;max-width:100vw;background:#fff;height:100%;overflow-y:auto;box-shadow:-4px 0 24px rgba(0,0,0,.12)}
+.cart-drawer-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1.5px solid var(--li2);position:sticky;top:0;background:#fff;z-index:1}
+.cart-drawer-hdr h2{font-family:var(--fd);font-size:18px;font-weight:700}
+.close-cart{background:none;border:none;font-size:22px;color:var(--gy)}
+#cartC{padding:16px 20px}
+.cart-cat{font-size:10px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.8px;margin:10px 0 5px}
+.cart-item{display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--li2)}
+.cart-ip{font-weight:700;color:var(--bk)}
+.cart-empty{text-align:center;color:var(--gy);font-size:13px;padding:24px 0;line-height:1.6}
+.cart-total-row{display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:700;margin-top:12px;padding-top:10px;border-top:2px solid var(--li2)}
+.disc-notice{background:var(--sgr);color:#1a6630;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;margin-top:8px}
+.disc-unlock{background:var(--syl);color:#92680a;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;margin-top:8px}
+
+/* Coupon */
+.coupon-row{display:flex;gap:8px;margin-bottom:8px}
+.coupon-row input{flex:1;border:1.5px solid var(--li2);border-radius:10px;padding:9px 12px;font-size:14px;outline:none}
+.coupon-row input:focus{border-color:var(--li)}
+.coupon-btn{background:var(--li);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700}
+.coupon-ok{font-size:12px;color:var(--gr);font-weight:600;display:none}
+.coupon-ok.show{display:block}
+
+/* Float call */
+.float-call{position:fixed;bottom:calc(var(--bb-h) + 14px);right:20px;width:48px;height:48px;border-radius:50%;background:#25D366;border:none;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.4);z-index:200;transition:transform .15s}
+.float-call:hover{transform:scale(1.1)}
+#pg-home .float-call{bottom:20px}
+
+/* Checkout trust message */
+.trust-msg{background:var(--li3);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--bk);line-height:1.6;border-left:3px solid var(--li)}
+
+/* V-grid for venue */
+.v-grid-2{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+
+/* Pinata custom card */
+#pn-custom{background:#fff;border:1.5px dashed var(--li2);border-radius:var(--r);padding:14px;display:flex;align-items:center;justify-content:space-between;margin-top:10px;cursor:pointer;transition:all .15s}
+#pn-custom:hover{border-color:var(--li)}
+#pn-custom.sel{border-color:var(--li);background:var(--li3)}
+
+/* E-invite custom */
+#inv-custom{border:1.5px dashed var(--li2);border-radius:var(--r);padding:16px;cursor:pointer;transition:all .15s;margin-top:10px}
+#inv-custom:hover{border-color:var(--li)}
+#inv-custom.sel{border-color:var(--li);background:var(--li3)}
+.tier-price{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--li)}
+
+/* Reel toggle */
+.reel-row{display:flex;align-items:center;justify-content:space-between;background:var(--li3);border-radius:var(--r);padding:12px 14px;margin-top:12px;border:1.5px solid var(--li2)}
+.reel-info{font-size:13px;font-weight:600;color:var(--bk)}
+.reel-price{font-size:11px;color:var(--gy)}
+.reel-tog{width:44px;height:24px;border-radius:12px;border:none;background:#D1D5DB;position:relative;transition:background .2s;flex-shrink:0}
+.reel-tog::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.reel-tog.on{background:var(--li)}
+.reel-tog.on::after{transform:translateX(20px)}
+
+/* E-invite detail form */
+#eiDetail{margin-top:14px;background:var(--li3);border-radius:var(--r);padding:14px;border:1.5px solid var(--li2)}
+#eiDetail .sec-lbl{font-size:13px;margin-bottom:10px}
+.free-badge{background:var(--sgr);color:#1a6630;font-size:11px;font-weight:700;border-radius:8px;padding:4px 10px;display:inline-block;margin-bottom:10px}
+.charge-note{background:var(--syl);color:#92680a;font-size:12px;font-weight:600;border-radius:8px;padding:6px 10px;margin-bottom:10px;display:inline-flex;align-items:center;gap:5px}
+
+/* Step 0 form specific */
+.s0-form{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);padding:20px;margin-bottom:14px}
+.s0-section-title{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--bk);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--li2);display:flex;align-items:center;gap:7px}
+
+/* Discount callout pill */
+.disc-callout{background:linear-gradient(90deg,var(--sgr),var(--sbl));border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--bk);display:flex;align-items:center;gap:8px}
+.disc-callout strong{font-weight:700}
+
+/* Budget field */
+.budget-chips{display:flex;gap:8px;flex-wrap:wrap}
+.budget-chip{background:#fff;border:1.5px solid var(--li2);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;color:var(--gy);transition:all .15s}
+.budget-chip:hover{border-color:var(--li)}
+.budget-chip.on{background:var(--li);border-color:var(--li);color:#fff}
+
+/* Star rating display */
+.rating-row{display:flex;align-items:center;gap:4px;margin-top:3px}
+.star{color:var(--yl);font-size:10px}
+.rating-cnt{font-size:9px;color:var(--gy)}
+</style>
+<script src="https://elfsightcdn.com/platform.js" async></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     HOMEPAGE
+═══════════════════════════════════════════════════════ -->
+<div id="pg-home">
+
+<nav class="nav" id="main-nav">
+  <div class="nav-inner">
+    <a href="#home" class="nav-logo">
+      <img src="logo-horizontal.png" alt="Wondershop Experiences" style="height:40px;width:auto;display:block">
+    </a>
+    <ul class="nav-links">
+      <li><a href="#home">Home</a></li>
+      <li><a href="#gallery">Gallery</a></li>
+      <li><a href="testimonials.html">Testimonials</a></li>
+      <li><a href="about-us.html">About Us</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+    <button class="nav-cta nav-cta-desk" onclick="showBuilder()">Build a Birthday ✦</button>
+    <button class="nav-ham" id="nav-ham"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div class="nav-mobile" id="nav-mob">
+  <a href="#home">Home</a><a href="#gallery">Gallery</a>
+  <a href="testimonials.html">Testimonials</a><a href="about-us.html">About Us</a><a href="contact.html">Contact</a>
+  <button class="nav-cta" onclick="showBuilder()" style="border:none;display:flex;justify-content:center;margin-top:16px">Build a Birthday ✦</button>
+</div>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="container">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-tag">Curated Birthday Experiences · Mumbai &amp; Pune</div>
+        <h1 class="hero-h1">Think Birthdays,<br>Think <em>Wondershop.</em></h1>
+        <p class="hero-sub">A birthday is never just a party. It's a pause — a chance to look at the little person in front of you and feel the full weight of how far you've both come. At Wondershop, we know that behind every celebration is a parent who has shown up, every single day, with more love than they knew they had. Our job is to make sure that on this one day, you get to simply breathe it all in.</p>
+        <div class="hero-btns">
+          <button class="btn-p" onclick="showBuilder()">Build a Birthday ✦</button>
+          <button class="btn-ghost" onclick="goLead()" style="border:none;cursor:pointer">Call Me to Plan</button>
+        </div>
+        <div class="hero-stats">
+          <div class="hs"><span class="hs-n">500+</span><span class="hs-l">Magical Events</span></div>
+          <div class="hs"><span class="hs-n">1,000+</span><span class="hs-l">Happy Families</span></div>
+          <div class="hs"><span class="hs-n">5.0 ★</span><span class="hs-l">Google Rating</span></div>
+          <div class="hs"><span class="hs-n" style="font-size:13px">Mumbai · Pune</span><span class="hs-l">We celebrate here</span></div>
+        </div>
+        <div class="hero-note">No payment needed yet &nbsp;·&nbsp; Takes under 10 minutes</div>
+      </div>
+      <div class="hero-right">
+        <div class="hero-cards">
+          <div class="hero-deco-circle" style="width:180px;height:180px;background:var(--spk);opacity:.35;top:-30px;right:-20px;"></div>
+          <div class="hero-deco-circle" style="width:100px;height:100px;background:var(--li2);opacity:.6;bottom:40px;left:-16px;"></div>
+          <div class="hero-card-back" id="hc-back">
+            <img src="4.jpg" alt="Wondershop birthday" id="hc-back-img" onerror="this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#EDE6FA,#F5C3D7)'">
+          </div>
+          <div class="hero-card-front" id="hc-front">
+            <img src="1.jpg" alt="Wondershop party" id="hc-front-img" onerror="this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#F5C3D7,#B59DDE)'">
+            <div class="hero-card-badge"><div class="hcb-dot"></div><div class="hcb-txt" id="hcb-txt">Live event · Mumbai</div></div>
+          </div>
+          <div class="hero-cdots" id="hero-cdots"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="sec" id="how-it-works">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-tag">The Wondershop Way</div>
+      <h2 class="sec-h2">Your perfect birthday, built in <em>10 minutes</em></h2>
+      <p class="sec-sub">Pick your services, personalise every detail, and we handle everything else. No calls needed until you're ready.</p>
+    </div>
+    <div class="hiw-grid">
+      <div class="hiw-step"><div class="hiw-icon">🎂</div><div class="hiw-n">Step 1</div><div class="hiw-t">Tell us about the birthday star</div><div class="hiw-d">Your child's name, age, and what they love — we personalise everything from here.</div></div>
+      <div class="hiw-step"><div class="hiw-icon">🎨</div><div class="hiw-n">Step 2</div><div class="hiw-t">Pick your services</div><div class="hiw-d">Decor, activities, host, DJ, pinata, e-invite, photographer, return gifts — choose what you need.</div></div>
+      <div class="hiw-step"><div class="hiw-icon">✨</div><div class="hiw-n">Step 3</div><div class="hiw-t">Review &amp; personalise</div><div class="hiw-d">See your full plan with live pricing. Edit anything. Your Account Manager is always available.</div></div>
+      <div class="hiw-step"><div class="hiw-icon">🎉</div><div class="hiw-n">Step 4</div><div class="hiw-t">We bring the magic</div><div class="hiw-d">50% advance to confirm. We handle setup, execution, cleanup. You enjoy every moment.</div></div>
+    </div>
+    <div class="hiw-cta">
+      <button class="btn-p" onclick="showBuilder()">Start Building Now →</button>
+      <div class="hiw-pills">
+        <span class="hiw-pill">Under 10 minutes</span><span class="hiw-pill">No payment needed yet</span>
+        <span class="hiw-pill">All services in one place</span><span class="hiw-pill">Premium yet personalised</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="sec sec-alt">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-tag">What We Do</div>
+      <h2 class="sec-h2">Everything for the <em>perfect party</em></h2>
+      <p class="sec-sub">Eight services. One platform. All curated for children aged 1–12 across Mumbai and Pune.</p>
+    </div>
+    <div class="svc-grid">
+      <div class="svc-card"><span class="svc-ic">🎨</span><div class="svc-n">Decor</div><div class="svc-d">Themed setups or classic balloon arrangements — tailored to your child's favourite universe.</div></div>
+      <div class="svc-card"><span class="svc-ic">🎯</span><div class="svc-n">Activities</div><div class="svc-d">From treasure hunts to science magic — engaging experiences that keep kids buzzing.</div></div>
+      <div class="svc-card"><span class="svc-ic">🎤</span><div class="svc-n">Host / Anchor</div><div class="svc-d">Energetic, child-friendly hosts who bring the room alive and manage the programme.</div></div>
+      <div class="svc-card"><span class="svc-ic">🎵</span><div class="svc-n">DJ &amp; Music</div><div class="svc-d">Age-appropriate DJ sets with the right energy, timing, and equipment for your venue.</div></div>
+      <div class="svc-card"><span class="svc-ic">🎊</span><div class="svc-n">Pinata</div><div class="svc-d">Hand-crafted themed pinatas — the highlight every kid looks forward to.</div></div>
+      <div class="svc-card"><span class="svc-ic">✉️</span><div class="svc-n">E-Invite</div><div class="svc-d">Beautifully designed digital invitations with RSVP tracking built in.</div></div>
+      <div class="svc-card"><span class="svc-ic">📸</span><div class="svc-n">Photographer</div><div class="svc-d">Professional photographers who capture every magical moment in vivid detail.</div></div>
+      <div class="svc-card"><span class="svc-ic">🎁</span><div class="svc-n">Return Gifts</div><div class="svc-d">Curated, age-appropriate gift sets with personalised packaging and tags.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY WONDERSHOP -->
+<section class="sec">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-tag">Why Wondershop</div>
+      <h2 class="sec-h2">We make magic <em>happen</em></h2>
+      <p class="sec-sub">A dedicated team that treats every birthday like it's their own child's celebration.</p>
+    </div>
+    <div class="why-grid">
+      <div class="why-card"><div class="why-ic">✨</div><div class="why-t">Story-led experiences</div><div class="why-d">Every birthday has a narrative — we design activities, decor, and flow around a central theme your child will remember for years.</div></div>
+      <div class="why-card"><div class="why-ic">👩‍💼</div><div class="why-t">Dedicated Account Manager</div><div class="why-d">From booking to execution, one person owns your event. They know every detail and are on WhatsApp whenever you need them.</div></div>
+      <div class="why-card"><div class="why-ic">🔒</div><div class="why-t">Hassle-free booking</div><div class="why-d">Build your plan online in 10 minutes. Pay 50% to confirm. We handle the rest — no chasing vendors, no coordination stress.</div></div>
+      <div class="why-card"><div class="why-ic">⭐</div><div class="why-t">5.0 Google Rating</div><div class="why-d">500+ events across Mumbai and Pune. Parents trust us to deliver — and our ratings reflect every celebration we've crafted.</div></div>
+      <div class="why-card"><div class="why-ic">🌿</div><div class="why-t">Thoughtfully curated</div><div class="why-d">Every vendor, every gift, every activity is selected for quality, safety, and the joy it brings to children aged 1–12.</div></div>
+      <div class="why-card"><div class="why-ic">📞</div><div class="why-t">Always reachable</div><div class="why-d">Questions at midnight? Last-minute changes? We're on call. Because birthdays don't wait, and neither should you.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="sec sec-alt" id="testimonials">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-tag">Parent Stories</div>
+      <h2 class="sec-h2">Families who <em>loved</em> it</h2>
+    </div>
+    <div class="testi-grid">
+      <div class="testi-card"><div class="testi-q">"</div><div class="testi-txt">The Spy theme for Adiva's 10th birthday was absolutely incredible. Wondershop transformed Oberoi Splendor into a mystery adventure — the kids were completely immersed. Shruti and team thought of every detail.</div><div class="testi-author"><div class="testi-av">A</div><div><div class="testi-nm">Adiva's Mom</div><div class="testi-ct">Oberoi Splendor, Mumbai</div><div class="testi-st">★★★★★</div></div></div></div>
+      <div class="testi-card"><div class="testi-q">"</div><div class="testi-txt">We had twins celebrating their birthday together — Wondershop handled the sibling logistics seamlessly. The Unicorn and Superhero combo decor was a dream, and both kids felt equally celebrated. Outstanding!</div><div class="testi-author"><div class="testi-av">P</div><div><div class="testi-nm">Preeti S.</div><div class="testi-ct">GP Club, Mumbai</div><div class="testi-st">★★★★★</div></div></div></div>
+      <div class="testi-card"><div class="testi-q">"</div><div class="testi-txt">Rian's F1 birthday at La Flame was beyond our imagination. Host, DJ, tattoo station, art activities and an actual mascot — Wondershop delivered all of it flawlessly. Parents were more excited than the kids!</div><div class="testi-author"><div class="testi-av">R</div><div><div class="testi-nm">Rian's Dad</div><div class="testi-ct">La Flame, Mulund</div><div class="testi-st">★★★★★</div></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section class="sec" id="gallery">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-tag">Gallery</div>
+      <h2 class="sec-h2">Moments we've <em>created</em></h2>
+    </div>
+    <div class="gallery-wrap" id="gallery-wrap">
+      <!-- Gallery images will be placeholder colored tiles if images not found -->
+      <img src="1.jpg" alt="Birthday celebration" style="border-radius:10px;width:100%;margin-bottom:12px" onerror="this.style.cssText='border-radius:10px;width:100%;margin-bottom:12px;height:160px;background:linear-gradient(135deg,#EDE6FA,#F5C3D7)'">
+      <img src="4.jpg" alt="Birthday" style="border-radius:10px;width:100%;margin-bottom:12px" onerror="this.style.cssText='border-radius:10px;width:100%;margin-bottom:12px;height:200px;background:linear-gradient(135deg,#B7E0B8,#52C470)'">
+      <img src="7.jpg" alt="Party" style="border-radius:10px;width:100%;margin-bottom:12px" onerror="this.style.cssText='border-radius:10px;width:100%;margin-bottom:12px;height:140px;background:linear-gradient(135deg,#BCD8E8,#5B8EDD)'">
+      <img src="2.jpg" alt="Birthday" style="border-radius:10px;width:100%;margin-bottom:12px" onerror="this.style.cssText='border-radius:10px;width:100%;margin-bottom:12px;height:180px;background:linear-gradient(135deg,#F5C3D7,#E65A96)'">
+      <img src="5.jpg" alt="Party" style="border-radius:10px;width:100%;margin-bottom:12px" onerror="this.style.cssText='border-radius:10px;width:100%;margin-bottom:12px;height:160px;background:linear-gradient(135deg,#F2D147,#F57A1A)'">
+      <img src="8.jpg" alt="Celebration" style="border-radius:10px;width:100%;margin-bottom:12px" onerror="this.style.cssText='border-radius:10px;width:100%;margin-bottom:12px;height:200px;background:linear-gradient(135deg,#B59DDE,#BCD8E8)'">
+      <img src="3.jpg" alt="Birthday" style="border-radius:10px;width:100%;margin-bottom:12px" onerror="this.style.cssText='border-radius:10px;width:100%;margin-bottom:12px;height:170px;background:linear-gradient(135deg,#52C470,#B7E0B8)'">
+      <img src="6.jpg" alt="Party" style="border-radius:10px;width:100%;margin-bottom:12px" onerror="this.style.cssText='border-radius:10px;width:100%;margin-bottom:12px;height:140px;background:linear-gradient(135deg,#374151,#6B7280)'">
+    </div>
+    <style>.gallery-wrap{columns:4;column-gap:12px}@media(max-width:900px){.gallery-wrap{columns:3}}@media(max-width:580px){.gallery-wrap{columns:2}}</style>
+  </div>
+</section>
+
+<!-- INSTAGRAM -->
+<section class="sec sec-alt" id="instagram">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-tag">Follow Along</div>
+      <h2 class="sec-h2">We're on <em>Instagram</em></h2>
+    </div>
+    <div class="insta-wrap">
+      <div class="insta-profile">
+        <div class="insta-avatar"><div style="width:100%;height:100%;background:linear-gradient(135deg,var(--li),var(--pk));display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px">🎉</div></div>
+        <div class="insta-handle">@wondershop.experiences</div>
+        <div class="insta-bio">Mumbai &amp; Pune's most loved birthday experience studio. Story-led celebrations for kids 1–12.</div>
+        <div class="insta-counts"><div class="ic"><span class="ic-n">498</span><span class="ic-l">Posts</span></div><div class="ic"><span class="ic-n">1,078</span><span class="ic-l">Followers</span></div><div class="ic"><span class="ic-n">5.0★</span><span class="ic-l">Rating</span></div></div>
+        <button class="insta-follow-btn" onclick="window.open('https://www.instagram.com/wondershop.experiences/')">Follow on Instagram</button>
+        <div style="font-size:10px;color:var(--gy);margin-top:10px">New posts every week ✨</div>
+      </div>
+      <div class="elfsight-app-69966a9c-01bb-4c3d-a07f-b440ae760b63" data-elfsight-app-lazy></div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="sec" id="about">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-tag">About Us</div>
+      <h2 class="sec-h2">Where every birthday becomes a <em>memory worth keeping</em></h2>
+      <p class="sec-sub" style="max-width:640px">Wondershop was born from a simple belief: children deserve celebrations that spark their imagination, not just fill a room. We build end-to-end birthday experiences that are joyful, thoughtful, and completely stress-free for parents.</p>
+    </div>
+    <div class="why-grid" style="margin-top:32px">
+      <div class="why-card"><div class="why-ic">🗺️</div><div class="why-t">Mumbai &amp; Pune</div><div class="why-d">Two cities, one standard of magic. Whether you're in the heart of Mumbai or across to Pune, your child's celebration gets the same care, creativity, and attention to detail.</div></div>
+      <div class="why-card"><div class="why-ic">🌱</div><div class="why-t">Born in 2023</div><div class="why-d">Young, intentional, and built for today's parents. In just over two years, we've grown from a spark of an idea into Mumbai's most-loved children's birthday experience — 200+ events and counting.</div></div>
+      <div class="why-card"><div class="why-ic">🎂</div><div class="why-t">Specialists in Ages 1–12</div><div class="why-d">From a baby's first birthday to a ten-year-old's themed extravaganza — no cookie-cutter packages, just experiences designed to fit your child perfectly.</div></div>
+    </div>
+
+    <p class="founders-intro" style="margin-top:48px">Shruti and Sidhant didn't set out to start an events company — they set out to solve a problem they felt firsthand as parents. Shruti's years of analytical thinking from BITS Pilani and Sidhant's business instincts sharpened at ISB Hyderabad gave them the tools, but it was their shared love for childhood wonder that gave them the reason. In 2023, they built Wondershop from the ground up in Mumbai — not as vendors, but as fellow parents who know exactly how much a birthday morning matters to a child. Every event they design carries that feeling forward.</p>
+
+    <div class="founders-grid">
+      <div class="founder-card">
+        <div class="founder-avatar"><img src="shruti.jpg" alt="Shruti Garg"></div>
+        <div>
+          <div class="founder-name">Shruti Garg</div>
+          <div class="founder-title">Co-founder · Experience &amp; Client Journey</div>
+        </div>
+        <div class="founder-bio">Shruti brings warmth, precision, and a genuine love for childhood creativity to everything Wondershop does. A BITS Pilani alumna, she leads experience design and the client journey — making sure every family feels heard, every detail is considered, and every birthday feels like it was made just for their child.</div>
+      </div>
+      <div class="founder-card">
+        <div class="founder-avatar"><img src="sidhant.jpg" alt="Sidhant Sharma"></div>
+        <div>
+          <div class="founder-name">Sidhant Sharma</div>
+          <div class="founder-title">Co-founder · Operations &amp; Growth</div>
+        </div>
+        <div class="founder-bio">Sidhant is the strategic force and creative energy that keeps Wondershop growing without losing its heart. An ISB Hyderabad alumnus, he oversees operations and partnerships across Mumbai and Pune — always asking how to make the next event more magical, more seamless, and more meaningful than the last.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT / FINAL CTA -->
+<section class="fcta" id="contact">
+  <div class="container">
+    <div class="fcta-h">Ready to plan something <em style="font-style:italic">magical?</em></div>
+    <div class="fcta-sub">Build your birthday plan online in 10 minutes, or call us — we'd love to hear about your child's dream celebration.</div>
+    <div class="fcta-btns">
+      <button class="btn-wh" onclick="showBuilder()">Build a Birthday ✦</button>
+      <button class="btn-owh" onclick="goLead()" style="border:2px solid rgba(255,255,255,.5);background:transparent;color:#fff;cursor:pointer">Call Me to Plan</button>
+      <a href="https://wa.me/919004435362" target="_blank" class="btn-owh">💬 WhatsApp Us</a>
+    </div>
+    <div style="margin-top:28px;font-size:13px;color:rgba(255,255,255,.6)">contact@wondershopexperiences.com &nbsp;·&nbsp; Godrej Platinum, Vikhroli East, Mumbai</div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <img src="logo-horizontal-dark.png" alt="Wondershop Experiences" style="height:48px;width:auto;margin-bottom:14px">
+        <div class="ft-tagline">Think Birthdays, Think Wondershop. Story-led celebrations for children aged 1–12 across Mumbai and Pune.</div>
+        <div class="ft-soc">
+          <a href="https://www.instagram.com/wondershop.experiences/" target="_blank" class="ft-soc-a">📸</a>
+          <a href="https://wa.me/919004435362" target="_blank" class="ft-soc-a">💬</a>
+          <a href="tel:+919004435362" class="ft-soc-a">📞</a>
+        </div>
+      </div>
+      <div>
+        <div class="ft-col-h">Quick Links</div>
+        <ul class="ft-links">
+          <li><a href="#home">Home</a></li>
+          <li><a href="#gallery">Gallery</a></li>
+          <li><a href="testimonials.html">Testimonials</a></li>
+          <li><a href="about-us.html">About Us</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="ft-col-h">Services</div>
+        <ul class="ft-links">
+          <li><a href="#" onclick="showBuilder()">Decor &amp; Themes</a></li>
+          <li><a href="#" onclick="showBuilder()">Activities</a></li>
+          <li><a href="#" onclick="showBuilder()">Host &amp; DJ</a></li>
+          <li><a href="#" onclick="showBuilder()">Return Gifts</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="ft-col-h">Contact</div>
+        <ul class="ft-links">
+          <li><a href="tel:+919004435362">+91 90044 35362</a></li>
+          <li><a href="tel:+919742240477">+91 97422 40477</a></li>
+          <li><a href="mailto:contact@wondershopexperiences.com">contact@wondershopexperiences.com</a></li>
+          <li><a href="#">Vikhroli East, Mumbai</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="ft-bottom">
+      <div class="ft-copy">© 2025 Wondershop Experiences. All rights reserved.</div>
+      <div class="ft-cities">Mumbai · Pune · Growing!</div>
+    </div>
+  </div>
+</footer>
+
+<button class="float-call" onclick="goLead()" title="Call to plan" style="position:fixed;bottom:20px;right:20px">💬</button>
+
+</div><!-- /pg-home -->
+
+<!-- ═══════════════════════════════════════════════════════
+     BUILDER PAGE
+═══════════════════════════════════════════════════════ -->
+<div id="pg-builder">
+
+<!-- Builder Header -->
+<header class="bld-hdr">
+  <div style="display:flex;align-items:center;gap:8px">
+    <button class="bld-back-btn" id="backBtn" onclick="goBack()">← Back</button>
+    <div class="bld-hdr-logo" onclick="goHome()">
+      <img src="logo-horizontal.png" alt="Wondershop Experiences" style="height:34px;width:auto;display:block">
+    </div>
+  </div>
+  <!-- Step progress breadcrumbs -->
+  <div class="bld-progress" id="bldProgress">
+    <div class="bp-item" id="bpi0"><div class="bp-dot" id="bpd0">0</div></div>
+    <div class="bp-line" id="bpl0"></div>
+    <div class="bp-item" id="bpi1"><div class="bp-dot" id="bpd1">1</div></div>
+    <div class="bp-line" id="bpl1"></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd2">2</div></div>
+    <div class="bp-line" id="bpl2"></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd3">3</div></div>
+    <div class="bp-line" id="bpl3"></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd4">4</div></div>
+    <div class="bp-line" id="bpl4"></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd5">5</div></div>
+    <div class="bp-line" id="bpl5"></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd6">6</div></div>
+    <div class="bp-line" id="bpl6"></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd7">7</div></div>
+    <div class="bp-line" id="bpl7"></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd8">8</div></div>
+    <div class="bp-line" id="bpl8"></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd9">✓</div></div>
+  </div>
+  <div class="bld-hdr-right">
+    <button class="bld-cart-btn" id="cartBtn" onclick="openCart()" style="display:none">🛒 <span id="cartTH">₹0</span></button>
+  </div>
+</header>
+
+<!-- Steps container -->
+<main class="bld-main" id="bldMain">
+  <div class="bld-wrap">
+
+<!-- ─── HOME SCREEN ─── -->
+<div class="step active" id="shome">
+  <div id="shome-banner" style="border-radius:var(--r);overflow:hidden;margin-bottom:16px;position:relative;height:200px">
+    <div class="sb-slide active" style="background:linear-gradient(rgba(0,0,0,0.40),rgba(0,0,0,0.35)),url('https://images.pexels.com/photos/34593866/pexels-photo-34593866.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center top">
+      <div class="sb-content"><h3>Build Your Dream Birthday</h3><p>Decor · Activities · Host · DJ · Pinata · E-Invite · Photographer · Return Gifts</p></div>
+    </div>
+    <div class="sb-slide" style="background:linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.40)),url('https://images.pexels.com/photos/7099945/pexels-photo-7099945.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center">
+      <div class="sb-content"><h3>Spy Mystery · Magic · Science</h3><p>Immersive experiences your child will talk about forever</p></div>
+    </div>
+    <div class="sb-slide" style="background:linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.40)),url('https://images.pexels.com/photos/7221139/pexels-photo-7221139.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center">
+      <div class="sb-content"><h3>500+ Magical Birthdays</h3><p>Trusted by 1,000+ families across Mumbai & Pune · 5.0 ★</p></div>
+    </div>
+    <div class="sb-slide" style="background:linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.40)),url('https://images.pexels.com/photos/10037061/pexels-photo-10037061.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center">
+      <div class="sb-content"><h3>All in 10 Minutes</h3><p>Build your plan, review pricing, and confirm — no calls needed</p></div>
+    </div>
+    <div class="sb-dots" id="homeBannerDots"></div>
+  </div>
+
+  <div class="home-stats-row">
+    <div class="home-stat"><span class="hs-n">500+</span><span class="hs-l">Events</span></div>
+    <div class="home-stat"><span class="hs-n">1,000+</span><span class="hs-l">Happy Families</span></div>
+    <div class="home-stat"><span class="hs-n">5.0 ★</span><span class="hs-l">Google Rating</span></div>
+    <div class="home-stat"><span class="hs-n" style="font-size:15px">MUM · PNQ</span><span class="hs-l">Cities we serve</span></div>
+  </div>
+
+  <div style="background:#fff;border-radius:var(--r);padding:20px;border:1.5px solid var(--li2);margin-bottom:14px">
+    <div style="font-family:var(--fd);font-size:18px;font-weight:700;color:var(--bk);margin-bottom:6px">Build a Birthday ✦</div>
+    <p style="font-size:14px;margin-bottom:16px">Decor, activities, host, DJ, pinata, e-invite, photographer and return gifts — curated in one seamless plan.</p>
+    <div class="svc-icon-grid">
+      <div class="svc-icon-item">
+        <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="18" cy="13" rx="6" ry="9"/><path d="M18 22v10"/><path d="M14 25q4-4 8 0"/><circle cx="26" cy="10" r="4"/><circle cx="10" cy="10" r="4"/></svg>
+        <span>Decor</span>
+      </div>
+      <div class="svc-icon-item">
+        <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="26" height="26" rx="6"/><path d="M15 13h6M18 10v6"/><path d="M11 21h3M22 21h3"/></svg>
+        <span>Activities</span>
+      </div>
+      <div class="svc-icon-item">
+        <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="12" y="4" width="12" height="16" rx="6"/><path d="M7 18a11 11 0 0022 0"/><path d="M18 29v4"/><path d="M13 33h10"/></svg>
+        <span>Host</span>
+      </div>
+      <div class="svc-icon-item">
+        <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 18C6 11.4 11.4 6 18 6s12 5.4 12 12"/><rect x="3" y="18" width="7" height="10" rx="3"/><rect x="26" y="18" width="7" height="10" rx="3"/></svg>
+        <span>DJ</span>
+      </div>
+      <div class="svc-icon-item">
+        <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="18,4 21.5,13.5 32,14 24,21 26.5,31.5 18,26 9.5,31.5 12,21 4,14 14.5,13.5"/></svg>
+        <span>Pinata</span>
+      </div>
+      <div class="svc-icon-item">
+        <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="28" height="20" rx="3"/><path d="M4 12l14 9 14-9"/></svg>
+        <span>E-Invite</span>
+      </div>
+      <div class="svc-icon-item">
+        <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h4l3-5h18l3 5h4a2 2 0 012 2v14a2 2 0 01-2 2H4a2 2 0 01-2-2V14a2 2 0 012-2z"/><circle cx="18" cy="19" r="5"/></svg>
+        <span>Photographer</span>
+      </div>
+      <div class="svc-icon-item">
+        <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="14" width="30" height="18" rx="2"/><path d="M3 19h30"/><path d="M18 14v18"/><path d="M18 14c0-4 2-8 5-7s3 7 0 7"/><path d="M18 14c0-4-2-8-5-7s-3 7 0 7"/></svg>
+        <span>Return Gifts</span>
+      </div>
+    </div>
+    <button class="btn-p" style="width:100%;justify-content:center;margin-top:4px;border-radius:12px;font-size:16px;padding:14px" onclick="goTo('s0')">Start Building →</button>
+  </div>
+
+  <div class="home-cta-lead">
+    <div class="home-cta-lead-txt">Prefer to plan with us?<span>Our team will design a fully personalised celebration</span></div>
+    <button class="btn-wa" onclick="goTo('slead')">💬 Call to Customise</button>
+  </div>
+</div>
+
+<!-- ─── STEP 0: YOUR DETAILS ─── -->
+<div class="step" id="s0">
+  <div class="s-hero"><div class="slbl">Your Details</div>
+    <h1>Tell us about the <span class="hl">birthday star</span> ⭐</h1>
+    <p>Takes just 15 seconds — and every answer helps us curate the perfect decor, activities, and experience for your child.</p>
+    <div style="display:inline-flex;align-items:center;gap:10px;background:var(--li2);border-radius:12px;padding:10px 18px;margin-top:12px;font-family:var(--fb);font-size:13px;color:#5B3FA6">
+      <span style="font-size:18px">⏱️</span>
+      <span><strong>~15 seconds</strong> &nbsp;·&nbsp; No payment now &nbsp;·&nbsp; We personalise everything from your answers</span>
+    </div>
+  </div>
+
+  <!-- Child info -->
+  <div class="s0-form">
+    <div class="s0-section-title"><span>👶</span> About the Birthday Child</div>
+    <div id="cWrap"></div>
+    <div id="cTog" class="tog-row" style="margin-bottom:10px">
+      <button class="tog-btn on" onclick="setCM(1,this)">Single Child</button>
+      <button class="tog-btn" onclick="setCM(2,this)">Twins / Siblings</button>
+      <button class="tog-btn" onclick="setCM(3,this)">Triplets</button>
+    </div>
+    <button class="add-child-btn" id="addCBtn" style="display:none" onclick="addCC()">+ Add another child</button>
+  </div>
+
+  <!-- Event details -->
+  <div class="s0-form">
+    <div class="s0-section-title"><span>🎂</span> Event Details</div>
+    <div class="row2">
+      <div class="ig"><label>Event Date</label><input type="date" id="f-date"></div>
+      <div class="ig"><label>Start Time</label><input type="time" id="f-time" value="11:00"></div>
+    </div>
+    <div class="ig"><label>Theme Preference</label>
+      <select id="f-theme" style="width:100%;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--fb);color:var(--bk);background:#fff;appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer">
+        <option value="">Surprise Me 🎉</option>
+        <option value="Art & Paint Party">Art &amp; Paint Party</option>
+        <option value="Science Party">Science Party</option>
+        <option value="Cooking / Baking Party">Cooking / Baking Party</option>
+        <option value="Spy / Detective / Mystery">Spy / Detective / Mystery (Sherlock-style)</option>
+        <option value="Jungle">Jungle</option>
+        <option value="Diary of a Wimpy Kid">Diary of a Wimpy Kid</option>
+        <option value="Harry Potter">Harry Potter</option>
+        <option value="Frozen">Frozen</option>
+        <option value="Peppa Pig">Peppa Pig</option>
+        <option value="Princess / Disney Princess">Princess / Disney Princess</option>
+        <option value="Unicorn & Rainbow">Unicorn &amp; Rainbow</option>
+        <option value="Fairytale Castle">Fairytale Castle</option>
+        <option value="Barbie Theme">Barbie Theme</option>
+        <option value="Football Party">Football Party</option>
+        <option value="Disco">Disco</option>
+        <option value="Picnic">Picnic</option>
+        <option value="Carnival / Funfair">Carnival / Funfair</option>
+        <option value="Space / Astronaut">Space / Astronaut</option>
+        <option value="K Pop">K Pop</option>
+        <option value="Bollywood">Bollywood</option>
+        <option value="Robotics">Robotics</option>
+        <option value="Race Track / Cars (F1 style)">Race Track / Cars (F1 style)</option>
+        <option value="Spider-Man">Spider-Man</option>
+        <option value="Cricket Party">Cricket Party</option>
+        <option value="Ninja Warrior">Ninja Warrior</option>
+        <option value="Cars / Racing">Cars / Racing</option>
+        <option value="Construction / Trucks">Construction / Trucks</option>
+        <option value="Superheroes Mix">Superheroes Mix</option>
+        <option value="Something Else">Something Else</option>
+      </select>
+    </div>
+    <div class="ig">
+      <label>Budget Range</label>
+      <div class="budget-chips" id="budgetChips">
+        <button class="budget-chip" onclick="selBudget(this,'under30k')">Under ₹30k</button>
+        <button class="budget-chip" onclick="selBudget(this,'30-50k')">₹30k–50k</button>
+        <button class="budget-chip" onclick="selBudget(this,'50-80k')">₹50k–80k</button>
+        <button class="budget-chip" onclick="selBudget(this,'80kplus')">₹80k+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Venue -->
+  <div class="s0-form">
+    <div class="s0-section-title"><span>📍</span> Venue Type</div>
+    <div class="v-grid" id="venueGrid">
+      <button class="v-btn" onclick="selV(this,'Home')"><span class="v-ic">🏠</span>Home</button>
+      <button class="v-btn" onclick="selV(this,'Society Banquet')"><span class="v-ic">🏛️</span>Banquet Hall</button>
+      <button class="v-btn" onclick="selV(this,'Club')"><span class="v-ic">🎯</span>Club / Resort</button>
+      <button class="v-btn" onclick="selV(this,'Restaurant')"><span class="v-ic">🍽️</span>Restaurant</button>
+      <button class="v-btn" onclick="selV(this,'Outdoor')"><span class="v-ic">🌳</span>Outdoor</button>
+      <button class="v-btn" onclick="selV(this,'Other')"><span class="v-ic">📌</span>Other</button>
+    </div>
+    <div class="err-msg" id="e-ven" style="margin-top:6px">Please select a venue type</div>
+    <div id="v-other-wrap" style="display:none;margin-top:12px">
+      <div class="ig" style="margin-bottom:0"><label>Venue Details</label><input type="text" id="f-venue-other" placeholder="e.g. Rooftop at our apartment complex"></div>
+    </div>
+    <div class="ig" style="margin-top:12px"><label>No. of Kids (guests)</label>
+      <input type="number" id="f-kids" value="15" min="1" style="width:120px;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px">
+    </div>
+  </div>
+
+  <!-- Pincode (for service availability) -->
+  <div class="s0-form">
+    <div class="s0-section-title">Your Area</div>
+    <div class="ig" style="margin-bottom:0"><label>Pincode</label>
+      <input type="text" id="f-pincode" placeholder="e.g. 400001" maxlength="6" inputmode="numeric" style="max-width:160px;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--fb)">
+      <div style="font-size:11px;color:var(--gy);margin-top:4px">Helps us match a local team for your area</div>
+    </div>
+  </div>
+
+  <!-- Start Building Button + errors -->
+  <button class="btn-p" style="width:100%;justify-content:center;font-size:16px;padding:16px;border-radius:14px" onclick="doS0()">Start Building →</button>
+  <div id="s0-err-all" style="display:none;background:#FEF2F2;border:1.5px solid #FECACA;border-radius:10px;padding:12px;margin-top:10px;font-size:13px;color:#DC2626;font-weight:600">
+    ⚠️ Please fill in all required fields above to continue.
+  </div>
+</div>
+
+<!-- ─── STEP 1: DECOR ─── -->
+<div class="step" id="s1">
+  <div class="step-banner" id="s1-banner">
+    <div class="sb-slide active" style="background:linear-gradient(rgba(0,0,0,0.40),rgba(0,0,0,0.35)),url('https://images.pexels.com/photos/7548036/pexels-photo-7548036.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center"><div class="sb-content"><h3>Set the Scene 🎨</h3><p>Themed decor or classic balloons — tailored for your child's universe</p></div></div>
+    <div class="sb-slide" style="background:linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.40)),url('https://images.pexels.com/photos/7548036/pexels-photo-7548036.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center right"><div class="sb-content"><h3>150–200 balloons</h3><p>Arches, panels, flex prints — every element hand-crafted</p></div></div>
+  </div>
+
+  <div class="s-hero"><div class="slbl">Step 1 of 9</div>
+    <h1>Set the <span class="hl">scene</span></h1>
+    <p>Choose a themed decor setup or a classic balloon arrangement. Your Account Manager will personalise every detail after booking.</p>
+  </div>
+
+  <div class="sec-blk">
+    <div class="dt-tog">
+      <button class="dt-btn on" onclick="setDT('themed',this)">🎭 Themed Decor</button>
+      <button class="dt-btn" onclick="setDT('standard',this)">🎈 Standard Balloons</button>
+    </div>
+
+    <!-- Themed -->
+    <div id="thSec">
+      <div class="disc-callout">🎉 <span>Add 2+ services → <strong>5% off</strong> · 4+ → <strong>8% off</strong> · 6+ → <strong>10% off</strong></span></div>
+      <div id="fNote" style="background:var(--li3);border-radius:10px;padding:10px 14px;font-size:12px;color:#7B5EA7;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+        <span>Showing themes based on your preferences</span>
+        <button style="background:none;border:none;font-size:12px;font-weight:700;color:var(--li);cursor:pointer" onclick="showAllT()">Show All</button>
+      </div>
+      <div class="cards-grid" id="thCards"></div>
+    </div>
+    <!-- Standard -->
+    <div id="stdSec" style="display:none">
+      <div class="cards-grid" id="stdCards"></div>
+    </div>
+  </div>
+  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
+</div>
+
+<!-- ─── STEP 2: ACTIVITIES ─── -->
+<div class="step" id="s2">
+  <div class="step-banner">
+    <div class="sb-slide active" style="background:linear-gradient(rgba(0,0,0,0.40),rgba(0,0,0,0.35)),url('https://images.pexels.com/photos/7099945/pexels-photo-7099945.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center"><div class="sb-content"><h3>Engagement Activities 🎯</h3><p>Science · Magic · Art · Dance · Mystery · DIY — choose what your child loves</p></div></div>
+    <div class="sb-slide" style="background:linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.40)),url('https://images.pexels.com/photos/6299290/pexels-photo-6299290.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center top"><div class="sb-content"><h3>Tried by 500+ kids</h3><p>Each activity led by a trained facilitator — safe, fun, memorable</p></div></div>
+  </div>
+
+  <div class="s-hero"><div class="slbl">Step 2 of 9</div>
+    <h1>Pick <span class="hl">activities</span></h1>
+    <p>Select one or more activities for your guests. Pricing adjusts based on the number of kids.</p>
+  </div>
+
+  <div class="sec-blk">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:13px;font-weight:600;color:var(--bk)">Kids:</span>
+        <div class="stepper"><button class="step-btn" onclick="chgK(-1)">−</button><div class="step-val" id="kDisp2">15</div><button class="step-btn" onclick="chgK(1)">+</button></div>
+      </div>
+      <div class="sort-bar">
+        <label>Sort:</label>
+        <select id="actSort" onchange="sortActs()">
+          <option value="default">Default</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="chips" id="aChips">
+      <button class="chip on" onclick="fActs('all',this)">All</button>
+      <button class="chip" onclick="fActs('art',this)">🎨 Art</button>
+      <button class="chip" onclick="fActs('craft',this)">🔧 Craft</button>
+      <button class="chip" onclick="fActs('experience',this)">✨ Experiences</button>
+    </div>
+    <div class="cards-grid" id="aCards"></div>
+    <div id="selActs" style="display:none">
+      <div class="sel-acts"><div class="sel-acts-h">Selected Activities</div><div id="selAList"></div></div>
+    </div>
+  </div>
+  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
+</div>
+
+<!-- ─── STEP 3: HOST ─── -->
+<div class="step" id="s3">
+  <div class="step-banner">
+    <div class="sb-slide active" style="background:linear-gradient(rgba(0,0,0,0.42),rgba(0,0,0,0.38)),url('https://images.pexels.com/photos/7221139/pexels-photo-7221139.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center top"><div class="sb-content"><h3>Your Party Captain 🎤</h3><p>An energetic, child-friendly host who brings the room alive</p></div></div>
+  </div>
+
+  <div class="s-hero"><div class="slbl">Step 3 of 9</div>
+    <h1>Choose your <span class="hl">host tier</span></h1>
+    <p>Your Party Lead will personally match you with the perfect host and share the details post-booking.</p>
+  </div>
+
+  <div class="sec-blk">
+    <div class="tier-cards" id="hostCards">
+      <div class="tier-card" onclick="selTier(this,'host','Starter',10000)">
+        <img class="tc-img" src="img/host-starter.jpg" alt="Starter Host" loading="lazy">
+        <div class="tc-check">✓</div>
+        <div class="tc-icon">🎤</div>
+        <div class="tc-name">Starter Host</div>
+        <div class="tc-sub">Energetic anchor who manages games, activities and programme flow</div>
+        <div class="tc-price">₹10,000 <span style="font-size:11px;color:var(--gy);font-weight:400">/ ₹8,000 bundled</span></div>
+        <div class="tc-feats">
+          <div class="tc-feat">60 mins engagement</div>
+          <div class="tc-feat">Games + prizes management</div>
+          <div class="tc-feat">Mic + speaker included</div>
+        </div>
+      </div>
+      <div class="tier-card" onclick="selTier(this,'host','Premium',12000)">
+        <img class="tc-img" src="img/host-premium.jpg" alt="Premium Host" loading="lazy">
+        <div class="tc-check">✓</div>
+        <div class="tc-icon" style="background:var(--spk)">🌟</div>
+        <div class="tc-name">Premium Host</div>
+        <div class="tc-sub">Experienced host with interactive storytelling and theme integration</div>
+        <div class="tc-price">₹12,000 <span style="font-size:11px;color:var(--gy);font-weight:400">/ ₹10,000 bundled</span></div>
+        <div class="tc-feats">
+          <div class="tc-feat">85 mins engagement</div>
+          <div class="tc-feat">Theme-integrated programme</div>
+          <div class="tc-feat">Interactive storytelling</div>
+        </div>
+      </div>
+      <div class="tier-card" onclick="selTier(this,'host','Signature',15000)">
+        <img class="tc-img" src="img/host-signature.jpg" alt="Signature Host" loading="lazy">
+        <div class="tc-check">✓</div>
+        <div class="tc-icon" style="background:var(--syl)">👑</div>
+        <div class="tc-name">Signature Host</div>
+        <div class="tc-sub">Our top performer — premium props, signature-category host, fully immersive experience</div>
+        <div class="tc-price">₹15,000 <span style="font-size:11px;color:var(--gy);font-weight:400">/ ₹13,000 bundled</span></div>
+        <div class="tc-feats">
+          <div class="tc-feat">90 mins engagement</div>
+          <div class="tc-feat">Premium props included</div>
+          <div class="tc-feat">Signature-category host</div>
+        </div>
+      </div>
+    </div>
+    <div style="background:var(--li3);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:13px;color:#7B5EA7">
+      💡 Your Party Lead will personally match you with the perfect host and share curated profiles post-booking.
+    </div>
+  </div>
+  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
+</div>
+
+<!-- ─── STEP 4: DJ ─── -->
+<div class="step" id="s4">
+  <div class="step-banner">
+    <div class="sb-slide active" style="background:linear-gradient(rgba(0,0,0,0.50),rgba(0,0,0,0.45)),url('https://images.pexels.com/photos/9005510/pexels-photo-9005510.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center"><div class="sb-content"><h3>Music &amp; Vibes 🎵</h3><p>Age-appropriate DJ sets with the perfect energy for your venue</p></div></div>
+  </div>
+
+  <div class="s-hero"><div class="slbl">Step 4 of 9</div>
+    <h1>Add <span class="hl">DJ &amp; music</span></h1>
+    <p>Professional DJ with the right equipment and playlist for children's birthdays. Skip if your venue has its own sound system.</p>
+  </div>
+
+  <div class="sec-blk">
+    <div class="tier-cards" id="djCards">
+      <div class="tier-card" onclick="selTier(this,'dj','DJ Lite',7000)">
+        <img class="tc-img" src="img/dj-lite.jpg" alt="DJ Lite" loading="lazy">
+        <div class="tc-check">✓</div>
+        <div class="tc-icon" style="background:var(--sbl)">🎵</div>
+        <div class="tc-name">DJ Lite</div>
+        <div class="tc-sub">Essential sound for homes and small spaces</div>
+        <div class="tc-price">₹7,000 <span style="font-size:11px;color:var(--gy);font-weight:400">/ ₹6,500 bundled</span></div>
+        <div class="tc-feats">
+          <div class="tc-feat">1 speaker · 1 cordless mic</div>
+          <div class="tc-feat">DJ mixer + 1 DJ</div>
+          <div class="tc-feat">Ideal for homes &amp; small venues</div>
+        </div>
+      </div>
+      <div class="tier-card" onclick="selTier(this,'dj','DJ Standard',11000)">
+        <img class="tc-img" src="img/dj-standard.jpg" alt="DJ Standard" loading="lazy">
+        <div class="tc-check">✓</div>
+        <div class="tc-icon" style="background:var(--sgr)">🎧</div>
+        <div class="tc-name">DJ Standard</div>
+        <div class="tc-sub">Full DJ setup for banquet halls and larger venues</div>
+        <div class="tc-price">₹11,000 <span style="font-size:11px;color:var(--gy);font-weight:400">/ ₹10,000 bundled</span></div>
+        <div class="tc-feats">
+          <div class="tc-feat">2 speakers · 2 cordless mics</div>
+          <div class="tc-feat">DJ mixer + 1 pro DJ player</div>
+          <div class="tc-feat">Full venue sound coverage</div>
+        </div>
+      </div>
+      <div class="tier-card" onclick="selTier(this,'dj','DJ Pro',15000)">
+        <img class="tc-img" src="img/dj-pro.jpg" alt="DJ Pro" loading="lazy">
+        <div class="tc-check">✓</div>
+        <div class="tc-icon" style="background:var(--syl)">🏆</div>
+        <div class="tc-name">DJ Pro</div>
+        <div class="tc-sub">Premium DJ experience with expert DJ player and full light show</div>
+        <div class="tc-price">₹15,000 <span style="font-size:11px;color:var(--gy);font-weight:400">/ ₹12,000 bundled</span></div>
+        <div class="tc-feats">
+          <div class="tc-feat">2 speakers · 2 cordless mics</div>
+          <div class="tc-feat">DJ mixer + expert DJ + DJ lights</div>
+          <div class="tc-feat">Full professional light show</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
+</div>
+
+<!-- ─── STEP 5: PINATA ─── -->
+<div class="step" id="s5">
+  <div class="step-banner">
+    <div class="sb-slide active" style="background:linear-gradient(rgba(0,0,0,0.42),rgba(0,0,0,0.38)),url('https://images.pexels.com/photos/10037061/pexels-photo-10037061.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center"><div class="sb-content"><h3>The Highlight of Every Party 🎊</h3><p>Hand-crafted themed pinatas — the moment every child looks forward to</p></div></div>
+  </div>
+
+  <div class="s-hero"><div class="slbl">Step 5 of 9</div>
+    <h1>Pick a <span class="hl">pinata</span></h1>
+    <p>Hand-crafted and filled with goodies. The moment every child at the party looks forward to.</p>
+  </div>
+
+  <div class="sec-blk">
+    <div id="freePinataBadge" class="free-badge" style="display:none">🎉 Your pinata is FREE — cart qualifies (order above ₹50,000)!</div>
+    <div class="cards-grid" id="pinCards"></div>
+    <div id="pn-custom" onclick="selPinataC(this)">
+      <div>
+        <div style="font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk)">Custom Design</div>
+        <div style="font-size:12px;color:var(--gy);margin-top:3px">Your child's favourite character or a unique concept</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:12px;color:var(--gy)">Price on request</div>
+        <div style="font-size:12px;font-weight:700;color:var(--li)">Our team will confirm →</div>
+      </div>
+    </div>
+  </div>
+  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
+</div>
+
+<!-- ─── STEP 6: E-INVITE ─── -->
+<div class="step" id="s6">
+  <div class="step-banner">
+    <div class="sb-slide active" style="background:linear-gradient(rgba(0,0,0,0.42),rgba(0,0,0,0.38)),url('https://images.pexels.com/photos/6299290/pexels-photo-6299290.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center top"><div class="sb-content"><h3>Set the Anticipation</h3><p>Beautifully designed digital invitations with RSVP tracking</p></div></div>
+  </div>
+
+  <div class="s-hero"><div class="slbl">Step 6 of 9</div>
+    <h1>Send an <span class="hl">e-invite</span></h1>
+    <p>A beautiful digital invitation to build anticipation. Includes RSVP tracking and custom details.</p>
+  </div>
+
+  <div class="sec-blk">
+    <div id="freeInvBadge" class="free-badge" style="display:none">🎉 FREE with your order — your cart qualifies!</div>
+    <div id="chargeInvNote" class="charge-note" style="display:none">⚡ ₹500 charge applies (orders under ₹30,000). Free on orders ₹30,000+.</div>
+    <div class="cards-grid" id="invCards"></div>
+
+    <div id="inv-custom" onclick="selInvC(this)">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-family:var(--fd);font-size:15px;font-weight:700;color:var(--bk)">Custom Design</div>
+          <div style="font-size:12px;color:var(--gy);margin-top:3px">Fully bespoke invite designed to match your theme</div>
+        </div>
+        <div style="text-align:right">
+          <div class="tier-price" id="invCustomPrice">₹1,500</div>
+          <div style="font-size:10px;color:var(--gy)">final design shared in 48 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- E-invite detail form -->
+    <div id="eiDetail" style="display:none">
+      <div class="sec-lbl"><span class="dot"></span>Invite Details</div>
+      <div class="row2">
+        <div class="ig"><label>Child Name(s) on Invite</label><input type="text" id="ei-names" placeholder="e.g. Aarav or Aarav &amp; Aanya"></div>
+        <div class="ig"><label>Child Age</label><input type="text" id="ei-age" placeholder="e.g. 7th"></div>
+      </div>
+      <div class="row2">
+        <div class="ig"><label>Event Date</label><input type="date" id="ei-date"></div>
+        <div class="ig"><label>Start Time</label><input type="time" id="ei-start" value="11:00"></div>
+      </div>
+      <div class="ig"><label>Venue / Address</label><input type="text" id="ei-venue" placeholder="Venue name and address"></div>
+      <div class="row2">
+        <div class="ig"><label>RSVP Name</label><input type="text" id="ei-rsvpname" placeholder="Name for RSVP replies"></div>
+        <div class="ig"><label>RSVP Mobile</label>
+          <div class="pfx-wrap"><span class="pfx">+91</span><input type="tel" id="ei-rsvp" class="pi" placeholder="Mobile" maxlength="10"></div>
+        </div>
+      </div>
+      <div class="ig"><label>Any special instruction <span class="opt">optional</span></label><input type="text" id="ei-inst" placeholder="e.g. No nut products please"></div>
+    </div>
+  </div>
+  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
+</div>
+
+<!-- ─── STEP 7: PHOTOGRAPHER ─── -->
+<div class="step" id="s7">
+  <div class="step-banner">
+    <div class="sb-slide active" style="background:linear-gradient(rgba(0,0,0,0.42),rgba(0,0,0,0.38)),url('https://images.pexels.com/photos/7221139/pexels-photo-7221139.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center top"><div class="sb-content"><h3>Capture Every Moment</h3><p>Professional photographers who preserve the magic forever</p></div></div>
+  </div>
+
+  <div class="s-hero"><div class="slbl">Step 7 of 9</div>
+    <h1>Add a <span class="hl">photographer</span></h1>
+    <p>Professional photographers who capture every magical moment. Edited photos delivered within 5–7 days.</p>
+  </div>
+
+  <div class="sec-blk">
+    <div class="tier-cards" id="photoCards">
+      <div class="tier-card" onclick="selTier(this,'photo','Starter',6000)">
+        <img class="tc-img" src="img/photo-starter.jpg" alt="Starter Package" loading="lazy">
+        <div class="tc-check">✓</div>
+        <div class="tc-icon">📷</div>
+        <div class="tc-name">Starter Package</div>
+        <div class="tc-sub">Essential coverage for intimate celebrations</div>
+        <div class="tc-price">₹6,000</div>
+        <div class="tc-feats">
+          <div class="tc-feat">2 hours · 1 photographer</div>
+          <div class="tc-feat">50+ edited photos</div>
+          <div class="tc-feat">Delivered in 5 days</div>
+        </div>
+      </div>
+      <div class="tier-card" onclick="selTier(this,'photo','Premium',9000)">
+        <img class="tc-img" src="img/photo-premium.jpg" alt="Premium Package" loading="lazy">
+        <div class="tc-check">✓</div>
+        <div class="tc-icon" style="background:var(--spk)">📸</div>
+        <div class="tc-name">Premium Package</div>
+        <div class="tc-sub">Full coverage with candid and portrait shots</div>
+        <div class="tc-price">₹9,000</div>
+        <div class="tc-feats">
+          <div class="tc-feat">3 hours · 1 photographer</div>
+          <div class="tc-feat">100+ edited photos</div>
+          <div class="tc-feat">Candid + portrait shots</div>
+        </div>
+      </div>
+      <div class="tier-card" onclick="selTier(this,'photo','Signature',14000)">
+        <img class="tc-img" src="img/photo-signature.jpg" alt="Signature Package" loading="lazy">
+        <div class="tc-check">✓</div>
+        <div class="tc-icon" style="background:var(--syl)">🎬</div>
+        <div class="tc-name">Signature Package</div>
+        <div class="tc-sub">Premium photography + videography combo</div>
+        <div class="tc-price">₹14,000</div>
+        <div class="tc-feats">
+          <div class="tc-feat">Full event · Photo + Video</div>
+          <div class="tc-feat">200+ photos + highlights reel</div>
+          <div class="tc-feat">Same-day teaser clip</div>
+        </div>
+      </div>
+    </div>
+    <div class="reel-row" id="reelRow" style="display:none">
+      <div>
+        <div class="reel-info">Add 30-second Instagram Reel</div>
+        <div class="reel-price">Edited highlights reel · ₹999 add-on</div>
+      </div>
+      <button class="reel-tog" id="reelTog" onclick="togReel()"></button>
+    </div>
+  </div>
+  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
+</div>
+
+<!-- ─── STEP 8: RETURN GIFTS ─── -->
+<div class="step" id="s8">
+  <div class="step-banner">
+    <div class="sb-slide active" style="background:linear-gradient(rgba(0,0,0,0.42),rgba(0,0,0,0.38)),url('https://images.pexels.com/photos/7099945/pexels-photo-7099945.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center top"><div class="sb-content"><h3>Thoughtful Return Gifts 🎁</h3><p>Curated, age-appropriate gifts your young guests will love</p></div></div>
+  </div>
+
+  <div class="s-hero"><div class="slbl">Step 8 of 9</div>
+    <h1>Return <span class="hl">gifts</span></h1>
+    <p>Curated, age-appropriate gift sets with personalised packaging and tags. Add for any number of kids.</p>
+  </div>
+
+  <div class="sec-blk">
+    <!-- Filters -->
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--gy);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Filter by Type</div>
+      <div class="chips" id="gTChips">
+        <button class="chip on" onclick="fGifts('type','all',this)">All</button>
+        <button class="chip" onclick="fGifts('type','art',this)">Art</button>
+        <button class="chip" onclick="fGifts('type','science',this)">Science</button>
+        <button class="chip" onclick="fGifts('type','reading',this)">Reading</button>
+        <button class="chip" onclick="fGifts('type','stationery',this)">Stationery</button>
+        <button class="chip" onclick="fGifts('type','diy',this)">DIY</button>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--gy);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Budget per Child</div>
+      <div class="chips" id="gBChips">
+        <button class="chip on" onclick="fGifts('budget','all',this)">All</button>
+        <button class="chip" onclick="fGifts('budget','low',this)">Under ₹200</button>
+        <button class="chip" onclick="fGifts('budget','mid',this)">₹200–₹300</button>
+        <button class="chip" onclick="fGifts('budget','high',this)">₹300+</button>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--gy);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Theme</div>
+      <div class="chips" id="gThChips">
+        <button class="chip on" onclick="fGifts('gtheme','all',this)">All</button>
+        <button class="chip" onclick="fGifts('gtheme','generic',this)">Generic</button>
+        <button class="chip" onclick="fGifts('gtheme','space',this)">Space</button>
+        <button class="chip" onclick="fGifts('gtheme','dino',this)">Dino</button>
+        <button class="chip" onclick="fGifts('gtheme','unicorn',this)">Unicorn</button>
+      </div>
+    </div>
+    <div class="cards-grid" id="gCards"></div>
+
+    <!-- Packaging -->
+    <div style="margin-top:14px">
+      <div class="sec-lbl" style="font-size:13px;margin-bottom:8px"><span class="dot"></span>Packaging Options</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="pkg-btn" onclick="selPkg(this,'kraft-bag')">🛍️ Kraft Paper Bag<div style="font-size:10px;color:var(--gy)">₹20/bag</div></button>
+        <button class="pkg-btn" onclick="selPkg(this,'box')">📦 Gift Box<div style="font-size:10px;color:var(--gy)">₹45/box</div></button>
+        <button class="pkg-btn" onclick="selPkg(this,'jute')">🌿 Jute Bag<div style="font-size:10px;color:var(--gy)">₹35/bag</div></button>
+      </div>
+    </div>
+
+    <!-- Gift tags -->
+    <div style="margin-top:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="sec-lbl" style="font-size:13px;margin-bottom:0"><span class="dot"></span>Personalised Gift Tags</div>
+        <div id="freeTagBadge" style="display:none;background:var(--sgr);color:#1a6630;font-size:11px;font-weight:700;border-radius:8px;padding:3px 8px">🎉 FREE!</div>
+      </div>
+      <div style="font-size:12px;color:var(--gy);margin-bottom:8px">Add a personalised tag to each gift — with the child's name and a message from the birthday star.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="tag-opt-btn" id="tagEx" onclick="selTag(this,'existing')">
+          Existing Design<div style="font-size:11px;color:var(--gy);margin-top:3px" id="tagExP">₹250 / tag</div>
+        </button>
+        <button class="tag-opt-btn" id="tagCust" onclick="selTag(this,'custom')">
+          Custom Design<div style="font-size:11px;color:var(--gy);margin-top:3px" id="tagCuP">₹500 / tag</div>
+        </button>
+      </div>
+      <div style="font-size:11px;color:var(--gy);margin-top:6px" id="tagPN">Personalisation available · ₹15/gift extra</div>
+    </div>
+
+    <!-- Delivery -->
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">
+      <div class="sec-lbl" style="font-size:13px;margin-bottom:10px"><span class="dot"></span>Delivery Details</div>
+      <div class="ig"><label>Delivery Address <span class="opt">defaults to event venue</span></label><input type="text" id="f-gaddr" placeholder="Delivery address for return gifts"></div>
+      <div class="ig" style="margin-bottom:0"><label>Required By Date</label><input type="date" id="f-gdate"><div class="hint">Must be on or before your event date</div></div>
+    </div>
+  </div>
+  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
+</div>
+
+<!-- ─── STEP 9: REVIEW ─── -->
+<div class="step" id="s9">
+  <div class="s-hero"><div class="slbl">Step 9 of 9 · Review</div>
+    <h1>Your birthday <span class="hl">looks wonderful</span> 🌟</h1>
+    <p>Review everything below. Edit any section before you book.</p>
+  </div>
+  <div id="rvBody"></div>
+  <div class="rv-total" id="rvTotal">
+    <div class="disc-row" id="rvDiscRow" style="display:none">🎉 Multi-service discount <span id="rvDiscAmt"></span></div>
+    <div class="total-row"><span>Total</span><span id="rvTotal2">₹0</span></div>
+    <div class="adv-row" id="rvAdvRow"><span>50% Advance payable now</span><span id="rvAdv">₹0</span></div>
+  </div>
+  <div style="background:var(--spk);border-radius:14px;padding:16px 18px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:13px;font-weight:700;color:var(--bk)">Prefer to customise with our team?</div>
+      <div style="font-size:11px;color:var(--gy);margin-top:2px">We'll save your selections and reach out personally</div>
+    </div>
+    <button class="btn-wa" style="flex-shrink:0" onclick="sendToTeamAndLead()">💬 Call to Customise</button>
+  </div>
+</div>
+
+<!-- ─── CHECKOUT ─── -->
+<div class="step" id="sco">
+  <div class="s-hero"><div class="slbl">Checkout</div>
+    <h1>Lock your <span class="hl">date</span> 🔒</h1>
+    <p>Confirm details and pay 50% advance to secure the booking.</p>
+  </div>
+
+  <div class="sec-blk">
+    <div class="sec-lbl"><span class="dot"></span>Your Details</div>
+    <div class="row2">
+      <div class="ig"><label>Parent Name</label><input type="text" id="co-name" placeholder="Your full name"></div>
+      <div class="ig"><label>Email</label><input type="email" id="co-email" placeholder="your@email.com"></div>
+    </div>
+    <div class="row2">
+      <div class="ig"><label>Primary Mobile</label><div class="pfx-wrap"><span class="pfx">+91</span><input type="tel" id="co-mob" class="pi" placeholder="Mobile"></div></div>
+      <div class="ig"><label>Secondary Mobile <span class="opt">opt.</span></label><div class="pfx-wrap"><span class="pfx">+91</span><input type="tel" id="co-mob2" class="pi" placeholder="Alt. no."></div></div>
+    </div>
+    <div class="row2">
+      <div class="ig"><label>Event Date</label><input type="date" id="co-date"></div>
+      <div class="ig"><label>Start Time</label><input type="time" id="co-time"></div>
+    </div>
+    <div class="ig"><label>Venue Address</label><input type="text" id="co-addr" placeholder="Full venue address"></div>
+    <div class="row2">
+      <div class="ig"><label>Guest Kids Count</label><input type="number" id="co-kids" placeholder="No. of kids" onchange="coKidsChanged(this.value)"></div>
+      <div class="ig"><label>Child Name(s)</label><input type="text" id="co-child" placeholder="Child's name"></div>
+    </div>
+    <div id="co-kids-popup" style="display:none;background:var(--syl);border-radius:10px;padding:10px 14px;font-size:13px;color:#92680a;margin-top:-6px">
+      ⚡ Kids count changed — activity and gift prices have been updated accordingly.
+    </div>
+  </div>
+
+  <div class="sec-blk">
+    <div class="sec-lbl"><span class="dot"></span>Coupon / Referral Code</div>
+    <div class="coupon-row"><input type="text" id="co-coupon" placeholder="Enter coupon code" style="text-transform:uppercase"><button class="coupon-btn" onclick="applyCoupon()">Apply</button></div>
+    <div class="coupon-ok" id="couponOk"></div>
+  </div>
+
+  <div class="sec-blk">
+    <div class="sec-lbl"><span class="dot"></span>Payment Method</div>
+    <div class="pay-opts">
+      <div class="pay-opt on" onclick="selPay(this,'online')"><div class="pay-radio"></div><div><div class="pay-name">💳 Pay Online (Recommended)</div><div class="pay-desc">Secure payment via Razorpay. Cards, UPI, netbanking &amp; wallets accepted.</div></div></div>
+      <div class="pay-opt" onclick="selPay(this,'branch')"><div class="pay-radio"></div><div><div class="pay-name">🏦 Cash Deposit at Branch</div><div class="pay-desc">Wondershop Experiences, B1-Podium, Godrej Platinum, Vikhroli East, Mumbai – 400079.</div></div></div>
+      <div class="pay-opt" onclick="selPay(this,'collect')"><div class="pay-radio"></div><div><div class="pay-name">💵 Cash Collection at Venue</div><div class="pay-desc">Our team collects at your event venue. Additional charge of ₹100 applies.</div></div></div>
+    </div>
+  </div>
+
+  <div class="sec-blk">
+    <div class="sec-lbl"><span class="dot"></span>Order Summary</div>
+    <div class="amt-box">
+      <div class="amt-row"><span>Grand Total</span><span id="co-gt">₹0</span></div>
+      <div class="amt-row" id="co-dr" style="display:none"><span>Discount</span><span id="co-disc" style="color:var(--gr)"></span></div>
+      <div class="amt-row tot"><span>Payable Total</span><span id="co-pt">₹0</span></div>
+      <div class="amt-row adv"><span>⚡ 50% Advance</span><span id="co-adv">₹0</span></div>
+      <div class="amt-row"><span style="font-size:11px;color:var(--gy)">Balance due before event</span><span id="co-bal" style="font-size:12px;color:var(--gy)">₹0</span></div>
+    </div>
+  </div>
+
+  <!-- Trust markers -->
+  <div class="trust-msg" style="margin-bottom:14px">
+    <div style="font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:8px">What happens after you book?</div>
+    <div class="trust-list">
+      <div class="trust-item"><span class="trust-ic">👩‍💼</span>An Account Manager will call you within 60 minutes to discuss your vision, references, and special requirements.</div>
+      <div class="trust-item"><span class="trust-ic">💬</span>A WhatsApp group is created so you can share inspiration images and ideas at any time.</div>
+      <div class="trust-item"><span class="trust-ic">📍</span>Our team visits the venue for a recce and shares a layout plan for your approval.</div>
+      <div class="trust-item"><span class="trust-ic">🎉</span>Don't worry if you missed something — your AM is here to make the day exactly as you imagined.</div>
+    </div>
+  </div>
+
+  <div class="sec-blk">
+    <div class="sec-lbl"><span class="dot"></span>Terms &amp; Conditions</div>
+    <div class="tnc-wrap">
+      <div class="tnc-hdr" onclick="this.nextElementSibling.classList.toggle('show')">Read Terms &amp; Conditions ▾</div>
+      <div class="tnc-body">
+        <div class="tnc-item">50% advance required to reserve the event date.</div>
+        <div class="tnc-item">Remaining 40% due before event; 10% on event day.</div>
+        <div class="tnc-item">Additional transport charges may apply based on location.</div>
+        <div class="tnc-item">Guest count changes must be communicated in advance.</div>
+        <div class="tnc-item">No cancellation or refund on the day of the event.</div>
+        <div class="tnc-item">Wondershop team not responsible for furniture movement or cleanup.</div>
+      </div>
+    </div>
+    <div class="tnc-agree" onclick="togTNC()">
+      <div class="tnc-cb" id="tncCb"></div>
+      <div class="tnc-lbl">I have read and agree to the Terms &amp; Conditions</div>
+    </div>
+    <div class="err-msg" id="e-tnc" style="margin-top:6px">Please accept the terms to continue</div>
+  </div>
+</div>
+
+<!-- ─── CONFIRMATION ─── -->
+<div class="step" id="sconf">
+  <div class="confetti-container" id="confettiContainer"></div>
+  <div class="conf-hero">
+    <div class="conf-icon">🎉</div>
+    <h1>Booking Confirmed!</h1>
+    <p>We're thrilled to celebrate with you. A confirmation has been sent to your email and WhatsApp.</p>
+  </div>
+  <div class="cal-note">📅 Calendar invite sent to your email &amp; Wondershop team — your date is blocked!</div>
+  <div class="conf-share-btns">
+    <button class="conf-share-btn conf-wa" onclick="shareWA()">💬 Share on WhatsApp</button>
+    <button class="conf-share-btn conf-ref" onclick="referWS()">🎁 Refer &amp; Earn</button>
+  </div>
+  <div class="next-steps">
+    <h3>What happens next</h3>
+    <div class="ns-item"><div class="ns-num">1</div><div class="ns-txt">Account Manager assigned<span>They'll discuss your vision, decor references, and all the details</span></div></div>
+    <div class="ns-item"><div class="ns-num">2</div><div class="ns-txt">WhatsApp group created<span>Share inspiration images &amp; ideas with your AM at any time</span></div></div>
+    <div class="ns-item"><div class="ns-num">3</div><div class="ns-txt">Venue recce &amp; floor plan<span>Our team visits the venue and shares a layout for your approval</span></div></div>
+    <div class="ns-item"><div class="ns-num">4</div><div class="ns-txt">Execution day — we bring the magic ✨<span>Sit back and enjoy watching your child's face light up</span></div></div>
+  </div>
+  <div class="cbox"><div class="cb-row">Need anything? We're here:</div><div class="cb-val" style="font-size:14px;font-weight:700;color:var(--pk);margin-top:4px">+91 90044 35362 · +91 97422 40477</div><div class="cb-val">contact@wondershopexperiences.com</div></div>
+</div>
+
+<!-- ─── LEAD FORM ─── -->
+<div class="step" id="slead">
+  <div class="s-hero"><div class="slbl">Custom Planning</div>
+    <h1>Let's plan <span class="hl">together</span> 💬</h1>
+    <p>Share your details and our team will design a fully personalised celebration for your child.</p>
+  </div>
+  <div class="sec-blk">
+    <div class="row2">
+      <div class="ig"><label>Parent Name</label><input type="text" id="ld-name" placeholder="Your full name"></div>
+      <div class="ig"><label>Child Name(s)</label><input type="text" id="ld-child" placeholder="Your child's name"></div>
+    </div>
+    <div class="row2">
+      <div class="ig"><label>WhatsApp Number</label><div class="pfx-wrap"><span class="pfx">+91</span><input type="tel" id="ld-phone" class="pi" placeholder="Mobile"></div></div>
+      <div class="ig"><label>Email</label><input type="email" id="ld-email" placeholder="your@email.com"></div>
+    </div>
+    <div class="row2">
+      <div class="ig"><label>Event Date</label><input type="date" id="ld-date"></div>
+      <div class="ig"><label>No. of Kids</label><input type="number" id="ld-kids" placeholder="e.g. 20"></div>
+    </div>
+    <div class="ig"><label>Venue</label><input type="text" id="ld-venue" placeholder="Venue name or address"></div>
+    <div class="ig"><label>Theme Preference <span class="opt">optional</span></label><input type="text" id="ld-theme" placeholder="e.g. Dinosaur, Unicorn..."></div>
+    <div class="ig"><label>Budget Range <span class="opt">optional</span></label><input type="text" id="ld-budget" placeholder="e.g. ₹40,000–₹60,000"></div>
+    <div class="ig" style="margin-bottom:0"><label>Anything else? <span class="opt">optional</span></label><textarea id="ld-msg" placeholder="Tell us your vision for the perfect celebration..."></textarea></div>
+    <div class="info-banner" style="margin-top:12px"><span class="ico">📱</span><span>We'll reach out on <b>WhatsApp &amp; call</b> within 60 minutes.</span></div>
+  </div>
+</div>
+
+<!-- ─── LEAD SENT ─── -->
+<div class="step" id="sleadsent">
+  <div class="ls-body">
+    <div class="ls-icon">✅</div>
+    <h1>We'll be in touch soon!</h1>
+    <p>Your request has been received. Our team will personally reach out to craft a celebration your child will never forget.</p>
+    <div class="ls-contact">
+      <div class="lsc-t">For anything urgent, call us</div>
+      <div class="lsc-n">+91 90044 35362</div>
+      <div class="lsc-n">+91 97422 40477</div>
+      <div class="lsc-e">contact@wondershopexperiences.com</div>
+    </div>
+    <button class="wa-btn" onclick="window.open('https://wa.me/919004435362')">💬 Chat on WhatsApp</button>
+  </div>
+</div>
+
+  </div><!-- /bld-wrap -->
+</main>
+
+<!-- Bottom Bar -->
+<div class="bld-bb hidden" id="bldBB">
+  <div class="bb-left">
+    <button class="bb-skip" id="bbSkip" onclick="doSkip()">Skip →</button>
+  </div>
+  <div class="bb-disc-wrap">
+    <div class="bb-savings-pill" id="bbSavings" style="display:none"></div>
+    <div class="bb-total-wrap">
+      <div class="bb-total" id="bbTotal">₹0</div>
+      <div class="bb-adv" id="bbAdv">50% advance: <span id="bbAdvAmt">₹0</span></div>
+      <div class="bb-disc" id="bbDisc"></div>
+    </div>
+  </div>
+  <div class="bb-right">
+    <button class="bb-rev-back" id="bbRevBack" style="display:none" onclick="S.fromReview=false;goTo('s9')">← Back to Review</button>
+    <button class="bb-continue" id="bbCont" onclick="bbAction()">Continue →</button>
+  </div>
+</div>
+
+</div><!-- /pg-builder -->
+
+<!-- Cart overlay -->
+<div class="cart-overlay" id="cartO" onclick="if(event.target===this)closeCart()">
+  <div class="cart-drawer"><div class="cart-drawer-hdr"><h2>🛒 Your Birthday</h2><button class="close-cart" onclick="closeCart()">✕</button></div><div id="cartC"></div></div>
+</div>
+
+<button class="float-call" id="floatCall" onclick="goLead()" title="Call to plan" style="display:none">💬</button>
+
+<script>
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,pinata:null,einvite:null,photo:null,addReel:false,gifts:[],packaging:'',tagType:'',couponPct:0,payMethod:'online',tncOk:false,FIT:30000,FGT:40000,FPT:50000};
+
+// ── DATA ──
+const THEMES=[
+  {id:'dino',n:'Dinosaur Adventure',e:'🦕',bg:'linear-gradient(135deg,#B7E0B8,#F7F296)',age:'3-5',gn:'Boy',p:8500,b:'150 (Green, Yellow, Brown)',panels:'1 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'pop'},
+  {id:'uni',n:'Unicorn Magic',e:'🦄',bg:'linear-gradient(135deg,#F5C3D7,#EDE6FA)',age:'3-5',gn:'Girl',p:8000,b:'150 (Pink, Purple, White)',panels:'1 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'pop'},
+  {id:'jungle',n:'Jungle Safari',e:'🌴',bg:'linear-gradient(135deg,#52C470,#B7E0B8)',age:'3-8',gn:'Both',p:9000,b:'200 (Green, Yellow, Orange)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Tables, chairs, props',tag:'trend'},
+  {id:'princess',n:'Princess',e:'👸',bg:'linear-gradient(135deg,#F5C3D7,#F7F296)',age:'3-5',gn:'Girl',p:8000,b:'150 (Pink, Gold, White)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'pop'},
+  {id:'hero',n:'Superhero',e:'🦸',bg:'linear-gradient(135deg,#5B8EDD,#BCD8E8)',age:'6-8',gn:'Both',p:8500,b:'150 (Red, Blue, Yellow)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'rec'},
+  {id:'space',n:'Space Explorer',e:'🚀',bg:'linear-gradient(135deg,#B59DDE,#BCD8E8)',age:'6-12',gn:'Both',p:9500,b:'180 (Blue, Purple, Silver)',panels:'2 flex + 1 arch + LED',s:'4 hrs',ni:'Tables, chairs',tag:'new'},
+  {id:'spy',n:'Mystery & Spy',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',p:9000,b:'120 (Black, Gold, Red)',panels:'2 flex + arch',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend'},
+  {id:'gaming',n:'Gaming Zone',e:'🎮',bg:'linear-gradient(135deg,#F57A1A,#F2D147)',age:'7-12',gn:'Both',p:8500,b:'150 (Orange, Yellow, Green)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'new'}
+];
+const STD=[
+  {id:'std1',n:'Home Balloon Arch',e:'🎈',img:'std-home',bg:'linear-gradient(135deg,#F5C3D7,#FAFAFA)',p:5000,d:'200 balloons · 1 arch · Ideal for homes · Setup 2 hrs'},
+  {id:'std2',n:'Banquet Arch + Bunches',e:'🎊',img:'std-banquet',bg:'linear-gradient(135deg,#BCD8E8,#FAFAFA)',p:7500,d:'300 balloons · 1 arch + bunches · Setup 2.5 hrs'},
+  {id:'std3',n:'1 Flex + Arch',e:'✨',img:'std-flex1',bg:'linear-gradient(135deg,#B7E0B8,#FAFAFA)',p:6000,d:'1 printed flex + arch · Setup 3 hrs'},
+  {id:'std4',n:'3 Flex + Arch',e:'🌟',img:'std-flex3',bg:'linear-gradient(135deg,#EDE6FA,#FAFAFA)',p:9000,d:'3 printed flex panels + arch · Grand setup · 4 hrs'}
+];
+// actPrice: r1=<12 kids, r2=13-25 kids, r3=>25 kids. flat=true → rate is total, false → rate × kids
+function actPrice(a,kids){const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;}
+const ACTS=[
+  // ── Art (per child) ──
+  {id:'a1',n:'Canvas Painting',e:'🖼️',img:'act-art',cat:'art',age:'4-12',dur:'45 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'pop',pers:true,rating:4.8,cnt:95},
+  {id:'a2',n:'Tote Bag Painting',e:'👜',img:'act-art',cat:'art',age:'5-12',dur:'45 min',req:'Tables & chairs',r1:750,r2:700,r3:650,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#B59DDE)','linear-gradient(135deg,#F5C3D7,#E65A96)'],tag:'',pers:true,rating:4.7,cnt:70},
+  {id:'a3',n:'Pot Painting',e:'🪴',img:'act-art',cat:'art',age:'4-12',dur:'45 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)','linear-gradient(135deg,#52C470,#F2D147)'],tag:'',pers:true,rating:4.6,cnt:55},
+  {id:'a4',n:'Texture Art',e:'🎨',img:'act-art',cat:'art',age:'5-12',dur:'45 min',req:'Tables & chairs',r1:900,r2:850,r3:800,flat:false,bgs:['linear-gradient(135deg,#F2D147,#F57A1A)','linear-gradient(135deg,#F57A1A,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:40},
+  {id:'a5',n:'Mosaic Art',e:'🔷',img:'act-art',cat:'art',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:950,r2:900,r3:850,flat:false,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)','linear-gradient(135deg,#5B8EDD,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:35},
+  {id:'a6',n:'Tie & Dye',e:'👕',img:'act-diy',cat:'art',age:'6-12',dur:'60 min',req:'Tables & aprons',r1:950,r2:900,r3:850,flat:false,bgs:['linear-gradient(135deg,#E65A96,#F57A1A)','linear-gradient(135deg,#F2D147,#52C470)'],tag:'trend',pers:true,rating:4.8,cnt:50},
+  {id:'a7',n:'Mandala Art',e:'🌸',img:'act-art',cat:'art',age:'7-12',dur:'60 min',req:'Tables & chairs',r1:650,r2:600,r3:550,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#B59DDE)','linear-gradient(135deg,#B59DDE,#E65A96)'],tag:'',pers:false,rating:4.5,cnt:30},
+  {id:'a8',n:'Cupcake Decoration',e:'🧁',img:'act-art',cat:'art',age:'4-10',dur:'45 min',req:'Tables & chairs',r1:90,r2:85,r3:80,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#F57A1A)','linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'pop',pers:false,rating:4.9,cnt:80},
+  // ── Craft (per child) ──
+  {id:'a9',n:'Cap Decoration',e:'🧢',img:'act-diy',cat:'craft',age:'5-12',dur:'45 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#F2D147,#F57A1A)','linear-gradient(135deg,#F57A1A,#E65A96)'],tag:'pop',pers:true,rating:4.9,cnt:120},
+  {id:'a10',n:'Soft Toy Making',e:'🧸',img:'act-diy',cat:'craft',age:'4-10',dur:'60 min',req:'Tables & chairs',r1:1000,r2:950,r3:900,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#EDE6FA)','linear-gradient(135deg,#EDE6FA,#B59DDE)'],tag:'rec',pers:true,rating:4.9,cnt:90},
+  {id:'a11',n:'Jacket Decoration',e:'🧥',img:'act-diy',cat:'craft',age:'7-12',dur:'60 min',req:'Tables & chairs',r1:1150,r2:1100,r3:1050,flat:false,bgs:['linear-gradient(135deg,#374151,#6B7280)','linear-gradient(135deg,#6B7280,#B59DDE)'],tag:'trend',pers:true,rating:4.8,cnt:45},
+  {id:'a12',n:'Dreamcatcher',e:'🌙',img:'act-diy',cat:'craft',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)','linear-gradient(135deg,#BCD8E8,#B59DDE)'],tag:'',pers:true,rating:4.7,cnt:35},
+  {id:'a13',n:'DIY Clock',e:'⏰',img:'act-diy',cat:'craft',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#F2D147,#B7E0B8)','linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:40},
+  {id:'a14',n:'Journaling',e:'📔',img:'act-yoga',cat:'craft',age:'7-12',dur:'45 min',req:'Tables & chairs',r1:850,r2:850,r3:850,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)','linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:true,rating:4.6,cnt:25},
+  // ── Experiences (flat rate) ──
+  {id:'a15',n:'Tattoo Station',e:'🖊️',img:'act-mystery',cat:'experience',age:'5-12',dur:'Up to 3 hrs',req:'Any space',r1:2500,r2:2500,r3:2500,flat:true,bgs:['linear-gradient(135deg,#374151,#6B7280)'],tag:'pop',pers:false,rating:4.8,cnt:75},
+  {id:'a16',n:'Mini Art Station',e:'🖌️',img:'act-art',cat:'experience',age:'4-12',dur:'Session',req:'Tables & chairs',r1:3500,r2:4000,r3:5000,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'',pers:false,rating:4.7,cnt:50},
+  {id:'a17',n:'Mascot Visit',e:'🦸',img:'act-immersive',cat:'experience',age:'3-12',dur:'2 hrs',req:'Any space',r1:4000,r2:4000,r3:4000,flat:true,bgs:['linear-gradient(135deg,#E65A96,#F57A1A)','linear-gradient(135deg,#F57A1A,#F2D147)'],tag:'pop',pers:false,rating:4.9,cnt:60},
+  {id:'a18',n:'Pottery Station',e:'🏺',img:'act-science',cat:'experience',age:'5-12',dur:'3 hrs',req:'Tables & aprons',r1:5000,r2:5000,r3:5000,flat:true,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)','linear-gradient(135deg,#52C470,#BCD8E8)'],tag:'new',pers:false,rating:4.7,cnt:30},
+  {id:'a19',n:'Storytelling',e:'📖',img:'act-magic',cat:'experience',age:'3-10',dur:'Up to 2 hrs',req:'Seated space',r1:11000,r2:12500,r3:15000,flat:true,bgs:['linear-gradient(135deg,#191919,#374151)','linear-gradient(135deg,#B59DDE,#EDE6FA)'],tag:'rec',pers:false,rating:4.9,cnt:85},
+  {id:'a20',n:'Makeover Station',e:'💅',img:'act-dance',cat:'experience',age:'6-12',dur:'3 hrs',req:'Any space',r1:6000,r2:6500,r3:7000,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#E65A96,#B59DDE)'],tag:'trend',pers:false,rating:4.8,cnt:55},
+  {id:'a21',n:'Nail Art Station',e:'💅',img:'act-dance',cat:'experience',age:'6-12',dur:'3 hrs',req:'Any space',r1:3500,r2:3500,r3:3500,flat:true,bgs:['linear-gradient(135deg,#EDE6FA,#F5C3D7)'],tag:'',pers:false,rating:4.7,cnt:40}
+];
+const PINATAS=[
+  {id:'p1',n:'Dinosaur',e:'🦕',img:'pin-dino',d:'2ft × 1ft × 1.5ft',p:2000,bg:'linear-gradient(135deg,#B7E0B8,#F7F296)'},
+  {id:'p2',n:'Unicorn',e:'🦄',img:'pin-uni',d:'2ft × 1ft × 1.5ft',p:2000,bg:'linear-gradient(135deg,#F5C3D7,#EDE6FA)'},
+  {id:'p3',n:'Star',e:'⭐',img:'pin-star',d:'1.5ft × 1.5ft × 0.5ft',p:2000,bg:'linear-gradient(135deg,#F2D147,#F57A1A)'},
+  {id:'p4',n:'Superhero',e:'🦸',img:'pin-hero',d:'2ft × 1ft × 1.5ft',p:2000,bg:'linear-gradient(135deg,#BCD8E8,#5B8EDD)'},
+  {id:'p5',n:'Jungle Animal',e:'🐯',img:'pin-jungle',d:'2ft × 1.5ft × 1.5ft',p:2000,bg:'linear-gradient(135deg,#52C470,#B7E0B8)'},
+  {id:'p6',n:'Space Rocket',e:'🚀',img:'pin-space',d:'2ft × 1ft × 2ft',p:2000,bg:'linear-gradient(135deg,#B59DDE,#BCD8E8)'},
+  {id:'p7',n:'Rainbow',e:'🌈',img:'pin-rainbow',d:'2ft × 2ft × 0.5ft',p:2000,bg:'linear-gradient(135deg,#F5C3D7,#BCD8E8)'},
+  {id:'p8',n:'Elephant',e:'🐘',img:'pin-elephant',d:'2ft × 1.5ft × 2ft',p:2000,bg:'linear-gradient(135deg,#BCD8E8,#EDE6FA)'}
+];
+const INVITES=[
+  {id:'i1',n:'Art Party',p:500,file:'art-party.jpg'},
+  {id:'i2',n:'Frozen',p:500,file:'frozen-1.jpg'},
+  {id:'i3',n:'Frozen (Anna)',p:500,file:'frozen-anna.jpg'},
+  {id:'i4',n:'K-Pop',p:500,file:'kpop-1.jpg'},
+  {id:'i5',n:'Little Singham',p:500,file:'little-singham.png'},
+  {id:'i6',n:'Ramayana',p:500,file:'ramayana.jpg'},
+  {id:'i7',n:'Spy × K-Pop',p:500,file:'spy-kpop.jpg'},
+  {id:'i8',n:'Spy Party',p:500,file:'spy-party-1.jpg'},
+  {id:'i9',n:'Spy Party (Alt)',p:500,file:'spy-party-3.jpg'},
+  {id:'i10',n:'Unicorn',p:500,file:'unicorn.jpg'}
+];
+const GIFTS=[
+  {id:'g1',n:'DIY Art Kit',e:'🎨',type:'art',gtheme:'generic',age:'4-10',unit:300,bg:'#FFF0F7',tag:'pop'},
+  {id:'g2',n:'Science Explorer Kit',e:'🔬',type:'science',gtheme:'space',age:'6-12',unit:350,bg:'#F0F7FF',tag:'rec'},
+  {id:'g3',n:'Puzzle Master',e:'🧩',type:'reading',gtheme:'generic',age:'4-8',unit:250,bg:'#FFFBDC',tag:''},
+  {id:'g4',n:'Stationery Set',e:'✏️',type:'stationery',gtheme:'generic',age:'5-12',unit:200,bg:'#F0FDF4',tag:'pop'},
+  {id:'g5',n:'Story Book Bundle',e:'📚',type:'reading',gtheme:'generic',age:'3-8',unit:280,bg:'#FFF5E6',tag:''},
+  {id:'g6',n:'Dino DIY Kit',e:'🦕',type:'diy',gtheme:'dino',age:'4-9',unit:320,bg:'#F0FDF4',tag:'new'},
+  {id:'g7',n:'Space Science Kit',e:'🚀',type:'science',gtheme:'space',age:'6-12',unit:380,bg:'#F0F7FF',tag:'new'},
+  {id:'g8',n:'Unicorn Craft Set',e:'🦄',type:'art',gtheme:'unicorn',age:'3-8',unit:290,bg:'#FFF0F7',tag:'trend'}
+];
+let gF={type:'all',budget:'all',gtheme:'all'};
+let actFilter='all';
+
+// ── PRICING ──
+function cItems(){
+  const items=[];
+  if(S.decor)items.push({cat:'Decor',n:S.decor.n,p:S.decor.p});
+  S.activities.forEach(a=>items.push({cat:'Activities',n:a.n,p:actPrice(a,S.kidsCount)}));
+  if(S.host)items.push({cat:'Host',n:S.host.tier+' Host',p:S.host.p});
+  if(S.dj)items.push({cat:'DJ',n:S.dj.tier,p:S.dj.p});
+  if(S.pinata){const pt=rawNoInv();const fp=pt>=S.FPT?0:S.pinata.p;items.push({cat:'Pinata',n:S.pinata.n+(pt>=S.FPT?' (FREE)':''),p:fp});}
+  if(S.einvite){const gt=rawNoInv();const ep=gt>=S.FIT?0:S.einvite.p;items.push({cat:'E-Invite',n:S.einvite.n+(gt>=S.FIT?' (FREE)':''),p:ep});}
+  if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p});if(S.addReel)items.push({cat:'Photographer',n:'30-sec Reel',p:999});}
+  S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty}));
+  return items;
+}
+function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p+(S.addReel?999:0);S.gifts.forEach(g=>t+=g.unit*g.qty);return t;}
+function rawT(){return cItems().reduce((s,i)=>s+i.p,0)}
+function svcC(){let c=0;if(S.decor)c++;if(S.activities.length)c++;if(S.host)c++;if(S.dj)c++;if(S.pinata)c++;if(S.einvite)c++;if(S.photo)c++;if(S.gifts.length)c++;return c}
+function autoDp(){const c=svcC();if(c>=6)return 10;if(c>=4)return 8;if(c>=2)return 5;return 0}
+function dp(){return Math.max(S.couponPct,autoDp())}
+function tp(){const gt=rawT();return Math.round(gt*(1-dp()/100))}
+function adv(){return Math.round(tp()*0.5)}
+
+// ── NAVIGATION ──
+const SIDS=['s0','s1','s2','s3','s4','s5','s6','s7','s8','s9'];
+const SNAMES=['Your Details','Decor','Activities','Host','DJ','Pinata','E-Invite','Photographer','Return Gifts','Review'];
+
+function showBuilder(){
+  document.getElementById('pg-home').style.display='none';
+  document.getElementById('pg-builder').classList.add('active');
+  document.getElementById('floatCall').style.display='flex';
+  goTo('shome');
+}
+function goHome(){
+  document.getElementById('pg-builder').classList.remove('active');
+  document.getElementById('pg-home').style.display='block';
+  document.getElementById('floatCall').style.display='none';
+  window.scrollTo(0,0);
+}
+function goTo(id){
+  document.querySelectorAll('#pg-builder .step').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById(id);if(!el)return;
+  el.classList.add('active');
+  document.getElementById('bldMain').scrollTop=0;
+  S.screen=id;updHdr(id);updBB(id);
+  if(id==='s9')buildRev();
+  if(id==='s6'){chkFreeInv();buildInvs();}
+  if(id==='s8')chkFreeTag();
+  if(id==='s7')document.getElementById('reelRow').style.display=S.photo?'flex':'none';
+}
+function goBack(){
+  const prev={s0:'shome',s1:'s0',s2:'s1',s3:'s2',s4:'s3',s5:'s4',s6:'s5',s7:'s6',s8:'s7',s9:'s8',sco:'s9',slead:'s9',sleadsent:'slead',sconf:'shome'};
+  if(S.fromReview&&['s1','s2','s3','s4','s5','s6','s7','s8'].includes(S.screen)){S.fromReview=false;goTo('s9');return;}
+  const p=prev[S.screen];if(p)goTo(p);
+}
+function doNext(){if(S.fromReview){S.fromReview=false;goTo('s9');return;}const i=SIDS.indexOf(S.screen);if(i>=0&&i<SIDS.length-1)goTo(SIDS[i+1]);}
+function doSkip(){if(S.fromReview){S.fromReview=false;goTo('s9');return;}const i=SIDS.indexOf(S.screen);if(i>=0&&i<SIDS.length-1)goTo(SIDS[i+1]);}
+function goDirectCO(){goTo('s9');}
+function bbAction(){
+  if(S.screen==='s0'){doS0();return;}
+  if(S.screen==='s9'){goTo('sco');fillCo();return;}
+  if(S.screen==='sco'){doCo();return;}
+  if(S.screen==='slead'){doLead();return;}
+  doNext();
+}
+
+// ── HEADER ──
+function updHdr(id){
+  const bb=document.getElementById('backBtn');
+  const noBack=['shome','sconf','sleadsent'];
+  bb.classList.toggle('hidden',noBack.includes(id));
+  const showCart=['s1','s2','s3','s4','s5','s6','s7','s8','s9','sco'].includes(id);
+  document.getElementById('cartBtn').style.display=showCart?'flex':'none';
+  document.getElementById('cartTH').textContent='₹'+tp().toLocaleString('en-IN');
+  const prog=document.getElementById('bldProgress');
+  prog.style.display=['shome','sconf','sleadsent','slead'].includes(id)?'none':'flex';
+  // update dots
+  const si=SIDS.indexOf(id);
+  for(let i=0;i<=9;i++){
+    const d=document.getElementById('bpd'+i);if(!d)continue;
+    const l=document.getElementById('bpl'+i);
+    d.className='bp-dot';
+    if(i<si){d.classList.add('done');d.onclick=()=>{S.fromReview=(S.screen==='s9');goTo(SIDS[i]);};d.style.cursor='pointer';}
+    else if(i===si){d.classList.add('cur');d.onclick=null;d.style.cursor='default';}
+    else{d.onclick=null;d.style.cursor='default';}
+    if(l){l.className='bp-line';if(i<si)l.classList.add('done');}
+  }
+}
+
+// ── BOTTOM BAR ──
+function updBB(id){
+  const bb=document.getElementById('bldBB');
+  const hideOn=['shome','sconf','sleadsent'];
+  bb.classList.toggle('hidden',hideOn.includes(id));
+  if(hideOn.includes(id))return;
+  const gt=rawT();const tpv=tp();const dpv=dp();const sc=svcC();
+  document.getElementById('bbTotal').textContent='₹'+tpv.toLocaleString('en-IN');
+  // Show 50% advance only on review page
+  const advEl=document.getElementById('bbAdv');
+  advEl.style.display=['s9','sco'].includes(id)?'block':'none';
+  document.getElementById('bbAdvAmt').textContent='₹'+adv().toLocaleString('en-IN');
+  const discEl=document.getElementById('bbDisc');
+  const savEl=document.getElementById('bbSavings');
+  if(dpv>0){discEl.textContent=dpv+'% off applied';savEl.style.display='block';savEl.textContent='Saving ₹'+(gt-tpv).toLocaleString('en-IN');}
+  else{discEl.textContent=sc>=1?'Add '+(sc<2?1:sc<4?2:sc<6?2:0)+' more → unlock discount!':'';savEl.style.display='none';}
+  // skip vs continue
+  const skipBtn=document.getElementById('bbSkip');
+  const contBtn=document.getElementById('bbCont');
+  const revBackBtn=document.getElementById('bbRevBack');
+  const noSkip=['s0','s9','sco','slead'];
+  skipBtn.style.display=noSkip.includes(id)?'none':'block';
+  if(id==='s0')contBtn.textContent='Start Building →';
+  else if(id==='s9')contBtn.textContent='Checkout →';
+  else if(id==='sco')contBtn.textContent='Confirm & Pay 50% →';
+  else if(id==='slead')contBtn.textContent='Send My Details →';
+  else if(S.fromReview)contBtn.textContent='Save Changes ✓';
+  else contBtn.textContent='Continue →';
+  revBackBtn.style.display=S.fromReview&&['s1','s2','s3','s4','s5','s6','s7','s8'].includes(id)?'block':'none';
+}
+
+// ── STEP 0 ──
+let cMode=1;
+function setCM(n,btn){cMode=n;document.querySelectorAll('#cTog .tog-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderC(n);document.getElementById('addCBtn').style.display=(n>1&&n<4)?'flex':'none';}
+function renderC(n){const w=document.getElementById('cWrap');w.innerHTML='';for(let i=0;i<n;i++)appendC(i);}
+function addCC(){const w=document.getElementById('cWrap');if(w.children.length<4)appendC(w.children.length);if(w.children.length>=4)document.getElementById('addCBtn').style.display='none';}
+function appendC(i){
+  const ords=['First','Second','Third','Fourth'];
+  const w=document.getElementById('cWrap');
+  const d=document.createElement('div');d.className='child-card';
+  d.innerHTML='<div class="child-hdr"><div class="child-title">'+ords[i]+' Child</div>'+(i>0?'<button class="rm-btn" onclick="rmC(this)">×</button>':'')+'</div><div class="ig"><label>Child\'s Name</label><input type="text" class="c-name" placeholder="e.g. Aarav" oninput="syncC()"></div><div class="row2"><div class="ig" style="margin-bottom:0"><label>Date of Birth</label><input type="date" class="c-dob" onchange="syncC()"></div><div class="ig" style="margin-bottom:0"><label>Gender</label><div class="g-sel"><button class="g-btn" onclick="selG(this,\'Boy\')"><span class="gi">👦</span>Boy</button><button class="g-btn" onclick="selG(this,\'Girl\')"><span class="gi">👧</span>Girl</button><button class="g-btn" onclick="selG(this,\'Either\')"><span class="gi">🌈</span>Others</button></div></div></div>';
+  w.appendChild(d);
+}
+function rmC(btn){btn.closest('.child-card').remove();reIdxC();syncC();}
+function reIdxC(){const ords=['First','Second','Third','Fourth'];document.querySelectorAll('.child-card').forEach((c,i)=>{c.querySelector('.child-title').textContent=ords[i]+' Child';if(i===0&&c.querySelector('.rm-btn'))c.querySelector('.rm-btn').remove();});}
+function selG(btn,val){btn.closest('.g-sel').querySelectorAll('.g-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');syncC();}
+function syncC(){S.children=[];document.querySelectorAll('.child-card').forEach(c=>{const gBtn=c.querySelector('.g-btn.on');S.children.push({name:c.querySelector('.c-name')?.value||'',dob:c.querySelector('.c-dob')?.value||'',gender:gBtn?gBtn.textContent.trim().replace(/./,'').trim():''});});}
+function selV(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('.v-btn').forEach(b=>b.classList.remove('on'));if(wasSel){S.venue='';document.getElementById('v-other-wrap').style.display='none';}else{btn.classList.add('on');S.venue=val;document.getElementById('e-ven').classList.remove('show');document.getElementById('v-other-wrap').style.display=val==='Other'?'block':'none';}}
+function selBudget(btn,val){document.querySelectorAll('.budget-chip').forEach(b=>b.classList.remove('on'));btn.classList.add('on');S.budget=val;}
+function doS0(){
+  const dt=document.getElementById('f-date').value;
+  if(S.venue==='Other'){const ov=document.getElementById('f-venue-other').value.trim();if(ov)S.venueOther=ov;}
+  document.getElementById('s0-err-all').style.display='none';
+  S.pincode=document.getElementById('f-pincode').value.trim();S.eventDate=dt;S.eventTime=document.getElementById('f-time').value;
+  S.theme=document.getElementById('f-theme').value;S.kidsCount=parseInt(document.getElementById('f-kids').value)||15;
+  syncC();buildDec();buildActs();buildPins();buildInvs();buildGifts();
+  document.getElementById('f-gaddr').value='';
+  try{if(dt){document.getElementById('f-gdate').value=dt;document.getElementById('f-gdate').max=dt;}}catch(e){}
+  goTo('s1');
+}
+
+// ── DECOR ──
+const TAG_MAP={pop:'<span class="tag pop">Most Popular</span>',new:'<span class="tag new">New Launch</span>',trend:'<span class="tag trend">Trending</span>',rec:'<span class="tag rec">WS Recommends</span>'};
+function makeTC(t){
+  const tagHtml=t.tag?TAG_MAP[t.tag]:'';
+  return '<div class="pcard" id="dc-'+t.id+'" onclick="selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="img/theme-'+t.id+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'"></div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tagHtml+'<span class="tag pk">'+t.gn+'</span><span class="tag gr">'+t.s+'</span></div><div class="card-detail">🎈 '+t.b+'<br>🖼 '+t.panels+'<br>⚠️ Excl: '+t.ni+'</div><div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div></div></div></div>';
+}
+function buildDec(){
+  const tc=document.getElementById('thCards');tc.innerHTML='';
+  let fl=THEMES;
+  if(S.theme){fl=THEMES.filter(t=>t.id.toLowerCase().includes(S.theme.toLowerCase())||t.n.toLowerCase().includes(S.theme.toLowerCase()));}
+  else if(S.children.length){const gs=S.children.map(c=>c.gender).filter(Boolean);if(gs.length)fl=THEMES.filter(t=>t.gn==='Both'||gs.some(g=>t.gn===g||g==='Either'));}
+  if(!fl.length)fl=THEMES;
+  fl.forEach(t=>tc.innerHTML+=makeTC(t));
+  const sc=document.getElementById('stdCards');sc.innerHTML='';
+  STD.forEach(t=>sc.innerHTML+='<div class="pcard" id="dc-'+t.id+'" onclick="selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="img/'+t.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'"></div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="card-detail">'+t.d+'</div><div class="card-pr-row"><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div></div></div>');
+  if(S.decor)document.getElementById('dc-'+S.decor.id)?.classList.add('sel');
+  const dtBtns=document.querySelectorAll('#s1 .dt-tog .dt-btn');
+  if(dtBtns.length===2){if(S.decorType==='standard'){dtBtns[0].classList.remove('on');dtBtns[1].classList.add('on');document.getElementById('thSec').style.display='none';document.getElementById('stdSec').style.display='block';}else{dtBtns[0].classList.add('on');dtBtns[1].classList.remove('on');document.getElementById('thSec').style.display='block';document.getElementById('stdSec').style.display='none';}}
+}
+function showAllT(){document.getElementById('fNote').style.display='none';const tc=document.getElementById('thCards');tc.innerHTML='';THEMES.forEach(t=>tc.innerHTML+=makeTC(t));if(S.decor)document.querySelector('#dc-'+S.decor.id)?.classList.add('sel');}
+function setDT(type,btn){S.decorType=type;document.querySelectorAll('#s1 .dt-tog .dt-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.getElementById('thSec').style.display=type==='themed'?'block':'none';document.getElementById('stdSec').style.display=type==='standard'?'block':'none';}
+function selDec(card,id,n,p){const wasSel=card.classList.contains('sel');document.querySelectorAll('#thCards .pcard,#stdCards .pcard').forEach(c=>c.classList.remove('sel'));if(wasSel){S.decor=null;}else{card.classList.add('sel');S.decor={id,n,p};}updBB(S.screen);}
+
+// ── ACTIVITIES ──
+function buildActs(){actFilter='all';document.querySelectorAll('#aChips .chip').forEach((c,i)=>{if(i===0)c.classList.add('on');else c.classList.remove('on');});renderActs(ACTS);updSelActs();}
+function renderActs(list){
+  const w=document.getElementById('aCards');w.innerHTML='';
+  list.forEach(a=>{
+    const tot=actPrice(a,S.kidsCount);const k=S.kidsCount;const added=!!S.activities.find(x=>x.id===a.id);
+    const tagHtml=a.tag?TAG_MAP[a.tag]:'';
+    const persHtml=a.pers?'<span class="tag" style="background:#F0FDF4;color:#1a6630">✦ Take-home</span>':'';
+    const flatTag=a.flat?'<span class="tag" style="background:#FEF9C3;color:#92400E">Flat rate</span>':'';
+    const starsHtml='<div class="rating-row"><span class="star">★</span><span style="font-size:10px;font-weight:700;color:var(--bk)">'+a.rating+'</span><span class="rating-cnt">('+a.cnt+' events)</span></div>';
+    const priceNote=a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child';
+    w.innerHTML+='<div class="pcard" id="ac-'+a.id+'"><div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+a.n+'"></div><div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span><span class="tag">Ages '+a.age+'</span>'+persHtml+'</div>'+starsHtml+'<div class="card-detail">📍 '+a.req+'</div><div class="card-pr-row"><div><div class="card-price">₹'+tot.toLocaleString('en-IN')+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+  });
+}
+function sortActs(){
+  const val=document.getElementById('actSort').value;
+  let list=actFilter==='all'?[...ACTS]:ACTS.filter(a=>a.cat===actFilter);
+  if(val==='price-asc')list.sort((a,b)=>actPrice(a,S.kidsCount)-actPrice(b,S.kidsCount));
+  else if(val==='price-desc')list.sort((a,b)=>actPrice(b,S.kidsCount)-actPrice(a,S.kidsCount));
+  renderActs(list);
+}
+function fActs(cat,btn){document.querySelectorAll('#aChips .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');actFilter=cat;renderActs(cat==='all'?ACTS:ACTS.filter(a=>a.cat===cat));}
+function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.activities.splice(idx,1);else{const a=ACTS.find(x=>x.id===id);if(a)S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat});}const cur=actFilter==='all'?ACTS:ACTS.filter(a=>a.cat===actFilter);renderActs(cur);updSelActs();updBB(S.screen);}
+function updSelActs(){const w=document.getElementById('selActs');const l=document.getElementById('selAList');if(!S.activities.length){w.style.display='none';return;}w.style.display='block';l.innerHTML='';S.activities.forEach(a=>{const tot=actPrice(a,S.kidsCount);l.innerHTML+='<div class="sai"><span>'+a.n+'</span><span style="display:flex;align-items:center;gap:5px"><span class="saip">₹'+tot.toLocaleString('en-IN')+'</span><button class="sarm" onclick="togAct(\''+a.id+'\')">✕</button></span></div>';});}
+function chgK(d){S.kidsCount=Math.max(1,Math.min(100,S.kidsCount+d));document.getElementById('kDisp2').textContent=S.kidsCount;try{document.getElementById('f-kids').value=S.kidsCount;}catch(e){}renderActs(actFilter==='all'?ACTS:ACTS.filter(a=>a.cat===actFilter));updSelActs();S.gifts.forEach(g=>{if(!g.userQty)g.qty=S.kidsCount;});renderGifts();updBB(S.screen);}
+
+// ── HOST & DJ ──
+function selTier(card,type,tier,p){const wasSel=card.classList.contains('sel');document.querySelectorAll('#'+type+'Cards .tier-card').forEach(c=>c.classList.remove('sel'));if(wasSel){S[type]=null;}else{card.classList.add('sel');S[type]={tier,p};}updBB(S.screen);if(type==='photo')document.getElementById('reelRow').style.display=S.photo?'flex':'none';}
+
+// ── PINATA ──
+function chkFreePinata(){const isFree=rawNoInv()>=S.FPT;document.getElementById('freePinataBadge').style.display=isFree?'block':'none';}
+function buildPins(){
+  chkFreePinata();
+  const isFree=rawNoInv()>=S.FPT;
+  const w=document.getElementById('pinCards');w.innerHTML='';
+  PINATAS.forEach(p=>{const priceLabel=isFree?'<span style="color:#1a6630;font-weight:700">FREE!</span>':'₹'+p.p.toLocaleString('en-IN');w.innerHTML+='<div class="pcard psm" id="pn-'+p.id+'" onclick="selPin(this,\''+p.id+'\','+p.p+',\''+p.n+'\')"><div class="sel-badge">✓</div><div class="caro" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+p.n+'"></div><div class="card-body"><div class="card-name" style="font-size:12px">'+p.n+'</div><div class="card-detail">'+p.d+'</div><div class="card-price" style="font-size:13px">'+priceLabel+'</div></div></div>';});
+  if(S.pinata)document.getElementById('pn-'+S.pinata.id)?.classList.add('sel');
+}
+function selPin(card,id,p,n){const wasSel=card.classList.contains('sel');document.querySelectorAll('#pinCards .pcard,#pn-custom').forEach(c=>c.classList.remove('sel'));if(wasSel){S.pinata=null;}else{card.classList.add('sel');S.pinata={id,n,p};}updBB(S.screen);}
+function selPinataC(card){const wasSel=card.classList.contains('sel');document.querySelectorAll('#pinCards .pcard,#pn-custom').forEach(c=>c.classList.remove('sel'));if(wasSel){S.pinata=null;}else{card.classList.add('sel');S.pinata={id:'custom',n:'Custom Design',p:0};}updBB(S.screen);}
+
+// ── E-INVITE ──
+function chkFreeInv(){
+  const gt=rawNoInv();const isFree=gt>=S.FIT;
+  document.getElementById('freeInvBadge').style.display=isFree?'block':'none';
+  document.getElementById('chargeInvNote').style.display=(!isFree&&S.einvite)?'block':'none';
+}
+function buildInvs(){
+  const w=document.getElementById('invCards');w.innerHTML='';
+  const isFree=rawNoInv()>=S.FIT;
+  INVITES.forEach(inv=>{
+    const priceText=isFree?'FREE':'₹'+inv.p;
+    w.innerHTML+='<div class="pcard psm" id="inv-'+inv.id+'" onclick="selInv(this,\''+inv.id+'\','+inv.p+',\''+inv.n+'\')"><div class="sel-badge">✓</div><div style="position:relative;overflow:hidden;border-radius:var(--r) var(--r) 0 0;background:var(--li2)"><img src="einvites/'+inv.file+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+inv.n+'"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.58);padding:12px 10px;text-align:center;backdrop-filter:blur(2px)"><div style="font-family:var(--fd);font-size:15px;font-weight:700;color:#fff;line-height:1.2">'+inv.n+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:600;margin-top:3px">'+priceText+'</div></div></div></div>';
+  });
+  const cp=document.getElementById('invCustomPrice');if(cp)cp.textContent=isFree?'FREE':'₹1,500';
+  if(S.einvite){
+    document.getElementById('inv-'+S.einvite.id)?.classList.add('sel');
+    if(S.einvite.id!=='custom'){
+      const cn=S.children.map(c=>c.name||'').filter(Boolean).join(' & ');
+      document.getElementById('ei-names').value=cn;
+      document.getElementById('ei-date').value=S.eventDate||'';
+      document.getElementById('ei-start').value=S.eventTime||'11:00';
+      document.getElementById('ei-venue').value=S.venue||'';
+      // auto-fill age from first child's dob
+      if(S.children[0]?.dob){const bd=new Date(S.children[0].dob);const ev=new Date(S.eventDate||Date.now());const age=Math.floor((ev-bd)/(365.25*24*3600*1000));document.getElementById('ei-age').value=age+'th';}
+      document.getElementById('eiDetail').style.display='block';
+    }else document.getElementById('eiDetail').style.display='none';
+  }else document.getElementById('eiDetail').style.display='none';
+}
+function selInv(card,id,p,n){
+  const wasSel=card.classList.contains('sel');
+  document.querySelectorAll('#invCards .pcard,#inv-custom').forEach(c=>c.classList.remove('sel'));
+  if(wasSel){S.einvite=null;document.getElementById('eiDetail').style.display='none';}
+  else{card.classList.add('sel');S.einvite={id,n,p};
+    const cn=S.children.map(c=>c.name||'').filter(Boolean).join(' & ');
+    document.getElementById('ei-names').value=cn;
+    document.getElementById('ei-date').value=S.eventDate||'';
+    document.getElementById('ei-start').value=S.eventTime||'11:00';
+    document.getElementById('ei-venue').value=S.venue||'';
+    if(S.mobile&&!document.getElementById('ei-rsvp').value)document.getElementById('ei-rsvp').value=S.mobile;
+    if(S.children[0]?.dob){const bd=new Date(S.children[0].dob);const ev=new Date(S.eventDate||Date.now());const age=Math.floor((ev-bd)/(365.25*24*3600*1000));document.getElementById('ei-age').value=age+'th';}
+    document.getElementById('eiDetail').style.display='block';
+  }
+  chkFreeInv();document.getElementById('chargeInvNote').style.display=(rawNoInv()<S.FIT&&S.einvite)?'block':'none';
+  updBB(S.screen);
+}
+function selInvC(card){const wasSel=card.classList.contains('sel');document.querySelectorAll('#invCards .pcard,#inv-custom').forEach(c=>c.classList.remove('sel'));if(wasSel){S.einvite=null;}else{card.classList.add('sel');S.einvite={id:'custom',n:'Custom Design',p:rawNoInv()>=S.FIT?0:1500};}document.getElementById('eiDetail').style.display='none';updBB(S.screen);}
+
+// ── PHOTOGRAPHER ──
+function togReel(){S.addReel=!S.addReel;document.getElementById('reelTog').classList.toggle('on',S.addReel);updBB(S.screen);document.getElementById('cartTH').textContent='₹'+tp().toLocaleString('en-IN');}
+
+// ── GIFTS ──
+function buildGifts(){gF={type:'all',budget:'all',gtheme:'all'};['gTChips','gBChips','gThChips'].forEach(id=>{document.querySelectorAll('#'+id+' .chip').forEach((c,i)=>{if(i===0)c.classList.add('on');else c.classList.remove('on');});});renderGifts();}
+function renderGifts(){
+  const list=GIFTS.filter(g=>{
+    if(gF.type!=='all'&&g.type!==gF.type)return false;
+    if(gF.budget!=='all'){if(gF.budget==='low'&&g.unit>=200)return false;if(gF.budget==='mid'&&(g.unit<200||g.unit>300))return false;if(gF.budget==='high'&&g.unit<=300)return false;}
+    if(gF.gtheme!=='all'&&g.gtheme!==gF.gtheme)return false;
+    return true;
+  });
+  const w=document.getElementById('gCards');w.innerHTML='';
+  list.forEach(g=>{const ex=S.gifts.find(x=>x.id===g.id);const qty=ex?ex.qty:S.kidsCount;const added=!!ex;
+    const tagHtml=g.tag?TAG_MAP[g.tag]:'';
+    w.innerHTML+='<div class="gift-card'+(added?' added':'')+'" id="gc-'+g.id+'"><div class="gift-top"><div class="g-emoji" style="background:'+g.bg+'">'+g.e+'</div><div><div class="g-name">'+g.n+'</div><div class="g-meta">Ages '+g.age+' · ₹'+g.unit+'/child</div>'+tagHtml+'</div></div><div class="gift-bottom"><div><div style="font-size:10px;color:var(--gy)">₹'+g.unit+' × <span id="qty-'+g.id+'">'+qty+'</span> kids</div><div class="gift-total">₹<span id="qtot-'+g.id+'">'+(qty*g.unit).toLocaleString('en-IN')+'</span></div></div><div style="display:flex;align-items:center;gap:6px">'+(added?'<div class="qty-ctrl"><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',-1)">−</button><span class="qty-val" id="qv-'+g.id+'">'+qty+'</span><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',1)">+</button></div><button class="card-btn rmv" onclick="rmGift(\''+g.id+'\')">Remove</button>':'<button class="card-btn" onclick="addGift(\''+g.id+'\',\''+g.n+'\','+g.unit+')">Add</button>')+'</div></div></div>';
+  });
+  if(!list.length)w.innerHTML='<div style="text-align:center;padding:24px;color:var(--gy);font-size:13px">No gifts match. Try clearing a filter.</div>';
+}
+function fGifts(f,val,btn){const mp={type:'gTChips',budget:'gBChips',gtheme:'gThChips'};document.querySelectorAll('#'+mp[f]+' .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');gF[f]=val;renderGifts();}
+function addGift(id,n,unit){if(!S.gifts.find(g=>g.id===id))S.gifts.push({id,n,unit,qty:S.kidsCount});renderGifts();updBB(S.screen);chkFreeTag();}
+function rmGift(id){S.gifts=S.gifts.filter(g=>g.id!==id);renderGifts();updBB(S.screen);}
+function chgQty(id,unit,d){const g=S.gifts.find(g=>g.id===id);if(!g)return;g.qty=Math.max(1,g.qty+d);g.userQty=true;document.getElementById('qty-'+id).textContent=g.qty;document.getElementById('qv-'+id).textContent=g.qty;document.getElementById('qtot-'+id).textContent=(g.qty*unit).toLocaleString('en-IN');updBB(S.screen);}
+function chkFreeTag(){const gt=rawNoInv();const f=gt>=S.FGT;document.getElementById('freeTagBadge').style.display=f?'block':'none';document.getElementById('tagPN').textContent=f?'Gift tags are FREE with your order!':'Personalisation available · ₹15/gift extra';document.getElementById('tagExP').textContent=f?'FREE!':'₹250 / tag';document.getElementById('tagCuP').textContent=f?'FREE!':'₹500 / tag';}
+function selPkg(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('.pkg-btn').forEach(b=>b.classList.remove('on'));if(wasSel){S.packaging='';}else{btn.classList.add('on');S.packaging=val;}}
+function selTag(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('#tagEx,#tagCust').forEach(b=>b.classList.remove('on'));if(wasSel){S.tagType='';}else{btn.classList.add('on');S.tagType=val;}}
+
+// ── REVIEW ──
+function buildRev(){
+  const body=document.getElementById('rvBody');
+  const items=cItems();const cats={};items.forEach(i=>{if(!cats[i.cat])cats[i.cat]=[];cats[i.cat].push(i);});
+  const sm={Decor:1,Activities:2,Host:3,DJ:4,Pinata:5,'E-Invite':6,Photographer:7,'Return Gifts':8};
+  const ord=['Decor','Activities','Host','DJ','Pinata','E-Invite','Photographer','Return Gifts'];
+  let html='';
+  ord.forEach(cat=>{
+    const its=cats[cat];
+    html+='<div class="rv-sec"><div class="rv-hdr"><div class="rv-cat">'+cat+'</div><span class="edit-link" onclick="editFR('+sm[cat]+')">Edit</span></div><div class="rv-items">';
+    if(!its)html+='<div class="rv-empty">Not added — skipped</div>';
+    else its.forEach(i=>{html+='<div class="rv-item"><span>'+i.n+'</span><span class="rv-item-price">₹'+i.p.toLocaleString('en-IN')+'</span></div>';});
+    html+='</div></div>';
+  });
+  body.innerHTML=html;
+  const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();
+  if(dpv>0){document.getElementById('rvDiscRow').style.display='flex';document.getElementById('rvDiscAmt').textContent='-₹'+(gt-tpv).toLocaleString('en-IN')+' ('+dpv+'% off)';}
+  else document.getElementById('rvDiscRow').style.display='none';
+  document.getElementById('rvTotal2').textContent='₹'+tpv.toLocaleString('en-IN');
+  document.getElementById('rvAdv').textContent='₹'+advv.toLocaleString('en-IN');
+}
+function editFR(sn){S.fromReview=true;goTo(SIDS[sn]);}
+
+// ── CHECKOUT ──
+function fillCo(){
+  document.getElementById('co-mob').value=S.mobile||'';
+  document.getElementById('co-date').value=S.eventDate||'';
+  document.getElementById('co-time').value=S.eventTime||'11:00';
+  document.getElementById('co-child').value=S.children.map(c=>c.name||'').filter(Boolean).join(', ');
+  document.getElementById('co-kids').value=S.kidsCount||'';
+  updCoAmt();
+}
+function updCoAmt(){
+  const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();
+  document.getElementById('co-gt').textContent='₹'+gt.toLocaleString('en-IN');
+  if(dpv>0){document.getElementById('co-dr').style.display='flex';document.getElementById('co-disc').textContent='-₹'+(gt-tpv).toLocaleString('en-IN')+' ('+dpv+'%)';}
+  else document.getElementById('co-dr').style.display='none';
+  document.getElementById('co-pt').textContent='₹'+tpv.toLocaleString('en-IN');
+  document.getElementById('co-adv').textContent='₹'+advv.toLocaleString('en-IN');
+  document.getElementById('co-bal').textContent='₹'+(tpv-advv).toLocaleString('en-IN');
+}
+function coKidsChanged(val){
+  const newK=parseInt(val);if(!newK||newK===S.kidsCount)return;
+  S.kidsCount=newK;document.getElementById('kDisp').textContent=S.kidsCount;document.getElementById('kDisp2').textContent=S.kidsCount;
+  S.gifts.forEach(g=>{if(!g.userQty)g.qty=S.kidsCount;});
+  document.getElementById('co-kids-popup').style.display='block';
+  setTimeout(()=>{document.getElementById('co-kids-popup').style.display='none';},4000);
+  updCoAmt();
+}
+function applyCoupon(){
+  const code=document.getElementById('co-coupon').value.toUpperCase().trim();
+  const ok=document.getElementById('couponOk');
+  const codes={WONDER10:10,BIRTHDAY5:5,FIRST15:15};
+  if(codes[code]){S.couponPct=codes[code];ok.textContent='🎉 '+code+' applied — '+codes[code]+'% off!';ok.classList.add('show');}
+  else{S.couponPct=0;ok.textContent='Invalid code. Try WONDER10';ok.classList.add('show');}
+  updCoAmt();
+}
+function selPay(el,method){document.querySelectorAll('.pay-opt').forEach(p=>p.classList.remove('on'));el.classList.add('on');S.payMethod=method;}
+function togTNC(){S.tncOk=!S.tncOk;const cb=document.getElementById('tncCb');cb.classList.toggle('checked',S.tncOk);cb.textContent=S.tncOk?'✓':'';}
+function doCo(){
+  if(!S.tncOk){document.getElementById('e-tnc').classList.add('show');return;}
+  document.getElementById('e-tnc').classList.remove('show');
+  S.mobile=document.getElementById('co-mob').value;S.eventDate=document.getElementById('co-date').value;S.eventTime=document.getElementById('co-time').value;
+  S.kidsCount=parseInt(document.getElementById('co-kids').value)||S.kidsCount;
+  S.parentName=document.getElementById('co-name').value;S.email=document.getElementById('co-email').value;S.address=document.getElementById('co-addr').value;
+  goTo('sconf');launchConfetti();
+}
+
+// ── LEAD ──
+function goLead(){
+  // Ensure builder is visible (needed when arriving from external #lead links)
+  if(!document.getElementById('pg-builder').classList.contains('active')){showBuilder();}
+  document.getElementById('ld-phone').value=S.mobile||'';
+  document.getElementById('ld-date').value=S.eventDate||'';
+  document.getElementById('ld-kids').value=S.kidsCount||'';
+  document.getElementById('ld-theme').value=S.theme||'';
+  document.getElementById('ld-child').value=S.children.map(c=>c.name||'').filter(Boolean).join(', ');
+  goTo('slead');
+}
+
+function buildSummaryText(){
+  const lines=[];
+  lines.push('=== WONDERSHOP CUSTOM REQUEST ===');
+  lines.push('Parent: '+(document.getElementById('ld-name')?.value||'—'));
+  lines.push('Child: '+(document.getElementById('ld-child')?.value||'—'));
+  lines.push('WhatsApp: +91'+(document.getElementById('ld-phone')?.value||'—'));
+  lines.push('Email: '+(document.getElementById('ld-email')?.value||'—'));
+  lines.push('Event Date: '+(document.getElementById('ld-date')?.value||S.eventDate||'—'));
+  lines.push('Kids Count: '+(document.getElementById('ld-kids')?.value||S.kidsCount||'—'));
+  lines.push('Venue: '+(document.getElementById('ld-venue')?.value||S.venue||'—'));
+  if(S.pincode)lines.push('Pincode: '+S.pincode);
+  lines.push('Theme Preference: '+(document.getElementById('ld-theme')?.value||S.theme||'—'));
+  lines.push('Budget: '+(document.getElementById('ld-budget')?.value||'—'));
+  lines.push('');
+  lines.push('--- Builder Selections ---');
+  if(S.decor)lines.push('Decor: '+S.decor.n+' (₹'+S.decor.p.toLocaleString('en-IN')+')');
+  if(S.activities.length)lines.push('Activities: '+S.activities.map(a=>a.n).join(', '));
+  if(S.host)lines.push('Host: '+S.host.tier+' (₹'+S.host.p.toLocaleString('en-IN')+')');
+  if(S.dj)lines.push('DJ: '+S.dj.tier+' (₹'+S.dj.p.toLocaleString('en-IN')+')');
+  if(S.pinata)lines.push('Pinata: '+S.pinata.n+' (₹'+S.pinata.p.toLocaleString('en-IN')+')');
+  if(S.einvite)lines.push('E-Invite: '+S.einvite.n);
+  if(S.photo)lines.push('Photographer: '+S.photo.tier+' (₹'+S.photo.p.toLocaleString('en-IN')+')');
+  if(S.gifts.length)lines.push('Return Gifts: '+S.gifts.map(g=>g.n+' ×'+g.qty).join(', '));
+  lines.push('Estimated Total: ₹'+rawT().toLocaleString('en-IN'));
+  const msg=document.getElementById('ld-msg')?.value;
+  if(msg)lines.push('','Notes: '+msg);
+  return lines.join('\n');
+}
+
+function doLead(){
+  const body=buildSummaryText();
+  const sub='Custom Birthday Request — Wondershop Experiences';
+  window.open('mailto:contact@wondershopexperiences.com?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body),'_blank');
+  goTo('sleadsent');
+}
+
+function sendToTeamAndLead(){
+  // Pre-fill lead form with builder data, then send email
+  document.getElementById('ld-date').value=S.eventDate||'';
+  document.getElementById('ld-kids').value=S.kidsCount||'';
+  document.getElementById('ld-theme').value=S.theme||'';
+  document.getElementById('ld-child').value=S.children.map(c=>c.name||'').filter(Boolean).join(', ');
+  document.getElementById('ld-phone').value=S.mobile||'';
+  const body=buildSummaryText();
+  const sub='Custom Birthday Request (from Review) — Wondershop Experiences';
+  window.open('mailto:contact@wondershopexperiences.com?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body),'_blank');
+  goTo('slead');
+}
+
+// ── CONFETTI ──
+function launchConfetti(){
+  const c=document.getElementById('confettiContainer');c.innerHTML='';
+  const colors=['#B59DDE','#E65A96','#FFC200','#52C470','#5B8EDD','#F57A1A'];
+  for(let i=0;i<80;i++){
+    const el=document.createElement('div');el.className='confetto';
+    el.style.cssText='left:'+(Math.random()*100)+'%;background:'+colors[Math.floor(Math.random()*colors.length)]+';width:'+(6+Math.random()*8)+'px;height:'+(6+Math.random()*8)+'px;border-radius:'+(Math.random()>0.5?'50%':'2px')+';animation-duration:'+(2+Math.random()*2)+'s;animation-delay:'+(Math.random()*1.5)+'s';
+    c.appendChild(el);
+  }
+}
+
+// ── SHARE ──
+function shareWA(){const msg=encodeURIComponent("🎉 I just booked a birthday with Wondershop Experiences! They're amazing — check them out at wondershopexperiences.com");window.open('https://wa.me/?text='+msg);}
+function referWS(){const msg=encodeURIComponent("Hey! You should plan your child's birthday with Wondershop Experiences. Story-led celebrations for kids 1-12 across Mumbai & Pune. wondershopexperiences.com — use my name to get priority booking!");window.open('https://wa.me/?text='+msg);}
+
+// ── CART ──
+function openCart(){
+  const overlay=document.getElementById('cartO');const cc=document.getElementById('cartC');
+  const items=cItems();
+  if(!items.length){cc.innerHTML='<div class="cart-empty">🛒 No items yet.<br>Start adding to your birthday!</div>';overlay.classList.add('show');return;}
+  const cats={};items.forEach(i=>{if(!cats[i.cat])cats[i.cat]=[];cats[i.cat].push(i);});
+  let html='';
+  Object.entries(cats).forEach(([cat,its])=>{html+='<div class="cart-cat">'+cat+'</div>';its.forEach(i=>{html+='<div class="cart-item"><span>'+i.n+'</span><span class="cart-ip">₹'+i.p.toLocaleString('en-IN')+'</span></div>';});});
+  const dpv=dp();const gt=rawT();const tpv=tp();const sc=svcC();
+  if(dpv>0)html+='<div class="disc-notice">🎉 '+dpv+'% off! Saving ₹'+(gt-tpv).toLocaleString('en-IN')+'</div>';
+  else if(sc>=1)html+='<div class="disc-unlock">+ Add '+(sc<2?1:sc<4?2:2)+' more service'+(1!==1?'s':'')+' → unlock discount!</div>';
+  html+='<div class="cart-total-row"><span>Total</span><span style="color:var(--pk)">₹'+tpv.toLocaleString('en-IN')+'</span></div>';
+  cc.innerHTML=html;overlay.classList.add('show');
+}
+function closeCart(){document.getElementById('cartO').classList.remove('show');}
+
+// ══════════════════════════════════════════════════════
+// HOMEPAGE JS
+// ══════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  // Nav scroll
+  const nav=document.getElementById('main-nav');
+  window.addEventListener('scroll',()=>nav?.classList.toggle('scrolled',window.scrollY>30));
+  // Nav hamburger
+  const ham=document.getElementById('nav-ham');const mob=document.getElementById('nav-mob');
+  ham?.addEventListener('click',()=>mob?.classList.toggle('open'));
+  document.querySelectorAll('.nav-mob-lnk,#nav-mob .nav-cta').forEach(a=>a.addEventListener('click',()=>mob?.classList.remove('open')));
+
+  // Hero image carousel
+  const hcFront=document.getElementById('hc-front-img');const hcBack=document.getElementById('hc-back-img');
+  const hcTxt=document.getElementById('hcb-txt');
+  const heroSlides=[{f:'1.jpg',b:'4.jpg',txt:'Live event · Mumbai'},{f:'7.jpg',b:'2.jpg',txt:'Spy birthday · Pune'},{f:'3.jpg',b:'5.jpg',txt:'GP Club · Mumbai'},{f:'6.jpg',b:'8.jpg',txt:'Unicorn theme · Mumbai'}];
+  const heroDotsW=document.getElementById('hero-cdots');let heroCur=0,heroTimer;
+  heroSlides.forEach((_,i)=>{const d=document.createElement('button');d.className='hero-cdot'+(i===0?' active':'');d.onclick=()=>{heroGo(i);heroReset();};heroDotsW?.appendChild(d);});
+  function heroGo(n){heroCur=(n+heroSlides.length)%heroSlides.length;const s=heroSlides[heroCur];if(hcFront)hcFront.src=s.f;if(hcBack)hcBack.src=s.b;if(hcTxt)hcTxt.textContent=s.txt;document.querySelectorAll('.hero-cdot').forEach((d,i)=>d.classList.toggle('active',i===heroCur));}
+  function heroReset(){clearInterval(heroTimer);heroTimer=setInterval(()=>heroGo(heroCur+1),3500);}
+  heroReset();
+
+  // Builder init
+  renderC(1);
+  try{const td=new Date();td.setDate(td.getDate()+1);document.getElementById('f-date').min=td.toISOString().split('T')[0];}catch(e){}
+  document.getElementById('f-kids')?.addEventListener('input',function(){S.kidsCount=parseInt(this.value)||15;document.getElementById('kDisp').textContent=S.kidsCount;document.getElementById('kDisp2').textContent=S.kidsCount;});
+
+  // Home banner carousel
+  const hbSlides=document.querySelectorAll('#shome-banner .sb-slide');
+  const hbDotsW=document.getElementById('homeBannerDots');
+  let hbCur=0,hbTimer;
+  hbSlides.forEach((_,i)=>{const d=document.createElement('button');d.className='sb-dot'+(i===0?' active':'');d.onclick=()=>{hbGo(i);hbReset();};hbDotsW?.appendChild(d);});
+  function hbGo(n){hbSlides[hbCur].classList.remove('active');hbDotsW.children[hbCur]?.classList.remove('active');hbCur=(n+hbSlides.length)%hbSlides.length;hbSlides[hbCur].classList.add('active');hbDotsW.children[hbCur]?.classList.add('active');}
+  function hbReset(){clearInterval(hbTimer);hbTimer=setInterval(()=>hbGo(hbCur+1),3500);}
+  hbReset();
+
+  // Step banners (s1 etc)
+  document.querySelectorAll('.step-banner').forEach(banner=>{
+    const slides=banner.querySelectorAll('.sb-slide');if(slides.length<2)return;
+    let cur=0,timer;
+    const dotsW=document.createElement('div');dotsW.className='sb-dots';
+    slides.forEach((_,i)=>{const d=document.createElement('button');d.className='sb-dot'+(i===0?' active':'');dotsW.appendChild(d);});
+    banner.appendChild(dotsW);
+    function go(n){slides[cur].classList.remove('active');dotsW.children[cur]?.classList.remove('active');cur=(n+slides.length)%slides.length;slides[cur].classList.add('active');dotsW.children[cur]?.classList.add('active');}
+    clearInterval(timer);timer=setInterval(()=>go(cur+1),3500);
+  });
+
+  // Lightbox
+  document.querySelectorAll('.gallery-wrap img').forEach(img=>{
+    img.addEventListener('click',()=>{
+      let lb=document.getElementById('glb');
+      if(!lb){lb=document.createElement('div');lb.id='glb';lb.className='lb';lb.innerHTML='<img id="glb-img"><button class="lb-close" onclick="document.getElementById(\'glb\').classList.remove(\'open\')">×</button>';document.body.appendChild(lb);lb.addEventListener('click',e=>{if(e.target===lb)lb.classList.remove('open');});}
+      document.getElementById('glb-img').src=img.src;lb.classList.add('open');
+    });
+  });
+
+  // Smooth nav links
+  document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',e=>{const t=document.querySelector(a.getAttribute('href'));if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'});}});});
+
+  // Hash-based deep linking: #lead opens the lead form, #builder opens builder
+  const hash=window.location.hash;
+  if(hash==='#lead'){setTimeout(()=>goLead(),100);}
+  else if(hash==='#builder'){setTimeout(()=>{goTo('s0');window.scrollTo(0,0);},100);}
+
+  // ?start=1 — skip shome, go directly to builder (from homepage CTAs)
+  const urlParams=new URLSearchParams(window.location.search);
+  if(urlParams.get('start')==='1' && !urlParams.get('theme')){
+    setTimeout(()=>{goTo('s0');window.scrollTo(0,0);},100);
+  }
+
+  // ?lead=1 — go directly to lead form (from "Call Me to Plan" buttons)
+  if(urlParams.get('lead')==='1'){
+    setTimeout(()=>{goLead();window.scrollTo(0,0);},150);
+  }
+
+  // ?theme= pre-selection from homepage package cards
+  const urlTheme=urlParams.get('theme');
+  if(urlTheme){
+    const match=THEMES.find(t=>t.id===urlTheme);
+    if(match){
+      // Pre-select theme in S state and skip to decor step
+      S.theme=match.id;S.themeName=match.n;S.themeEmoji=match.e;S.themePrice=match.p;
+      setTimeout(()=>{
+        goTo('s1');
+        window.scrollTo({top:0,behavior:'smooth'});
+        // Highlight the matching decor card once rendered
+        setTimeout(()=>{
+          const card=document.getElementById('dc-'+match.id);
+          if(card){card.scrollIntoView({behavior:'smooth',block:'center'});}
+        },200);
+      },150);
+    } else {
+      // Theme id not found (e.g. 'turf') — just open builder at step 0
+      setTimeout(()=>{goTo('s0');window.scrollTo(0,0);},100);
+    }
+  }
+});
+</script>
+
+<!-- WhatsApp FAB -->
+<a href="https://wa.me/919004435362" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+</a>
+<style>
+.wa-fab{position:fixed;bottom:24px;left:24px;z-index:9999;width:52px;height:52px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;text-decoration:none}
+.wa-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(37,211,102,.6)}
+.wa-fab svg{width:26px;height:26px}
+</style>
+
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact Us — Wondershop Experiences</title>
+<link rel="icon" type="image/png" href="logo-square.png">
+<link rel="apple-touch-icon" href="logo-square.png">
+<meta name="description" content="Reach out to Wondershop Experiences — WhatsApp, call, email, Instagram, YouTube. We'd love to plan your child's birthday.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --li:#B59DDE;--li2:#EDE6FA;--li3:#F5F0FF;
+  --pk:#E65A96;--spk:#F5C3D7;
+  --yl:#FFC200;--syl:#FFF8D6;
+  --bk:#191919;--gy:#6B7280;--wh:#FAFAFA;
+  --gr:#22C55E;--sgr:#DCFCE7;
+  --r:14px;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif;
+  --max:960px;--nav-h:96px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);color:var(--bk);background:var(--wh);overflow-x:hidden}
+h1,h2,h3{font-family:var(--fd);line-height:1.2}
+p{line-height:1.7;color:var(--gy)}
+img{display:block;max-width:100%}
+a{text-decoration:none}
+button{cursor:pointer;font-family:var(--fb)}
+.container{max-width:var(--max);margin:0 auto;padding:0 24px}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--nav-h);background:rgba(250,250,250,.97);backdrop-filter:blur(10px);border-bottom:1px solid rgba(181,157,222,.18);transition:box-shadow .2s}
+.nav.scrolled{box-shadow:0 2px 20px rgba(181,157,222,.18)}
+.nav-inner{max-width:1200px;margin:0 auto;padding:0 24px;height:100%;display:flex;flex-direction:column;align-items:stretch;justify-content:center}
+.nav-row1{display:flex;align-items:center;justify-content:space-between;width:100%;padding:6px 0 4px}
+.nav-row2{display:flex;align-items:center;justify-content:center;gap:28px;padding:2px 0 4px;border-top:1px solid rgba(181,157,222,.12);width:100%}
+.nav-row2 a{font-size:14px;color:var(--gy);font-weight:500;transition:color .15s}
+.nav-row2 a:hover,.nav-row2 a.active{color:var(--bk)}
+.nav-logo{display:flex;flex-direction:column;align-items:flex-start}
+.nav-logo-tagline{font-family:var(--fb);font-size:10px;color:var(--gy);margin-top:3px}
+.nav-cta-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.nav-cta{background:var(--li);color:#fff;border:none;border-radius:24px;padding:10px 22px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;transition:opacity .15s}
+.nav-cta:hover{opacity:.88}
+.nav-cta-sub{font-family:var(--fb);font-size:10px;color:var(--gy);text-align:right}
+.nav-search-btn{background:none;border:none;cursor:pointer;color:var(--gy);padding:6px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:color .15s}
+.nav-search-btn:hover{color:var(--bk)}
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="main-nav">
+  <div class="nav-inner">
+    <div class="nav-row1">
+      <a href="index.html" class="nav-logo">
+        <img src="logo-horizontal.png" alt="Wondershop Experiences" style="height:46px;width:auto;display:block">
+        <div class="nav-logo-tagline">Curated Birthday Experiences · Mumbai | Pune</div>
+      </a>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="nav-search-btn" id="nav-search-btn" onclick="openSearch()" aria-label="Search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <div class="nav-cta-wrap nav-cta-desk">
+          <a href="builder.html?start=1" class="nav-cta">Build a Birthday ✦</a>
+          <span class="nav-cta-sub">Plan your birthday in 10 mins</span>
+        </div>
+        <button class="nav-ham" id="nav-ham" aria-label="Open menu"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+    <div class="nav-row2">
+      <a href="index.html">Home</a>
+          <a href="gallery.html">Gallery</a>
+          <a href="testimonials.html">Testimonials</a>
+          <a href="blogs.html">Blog</a>
+          <a href="about-us.html">About Us</a>
+          <a href="contact.html" class="active">Contact</a>
+    </div>
+  </div>
+</nav>
+
+<div class="nav-mobile" id="nav-mob">
+  <a href="index.html" class="nav-mob-lnk">Home</a>
+  <a href="gallery.html" class="nav-mob-lnk">Gallery</a>
+  <a href="testimonials.html" class="nav-mob-lnk">Testimonials</a>
+  <a href="blogs.html" class="nav-mob-lnk">Blog</a>
+  <a href="about-us.html" class="nav-mob-lnk">About Us</a>
+  <a href="contact.html" class="nav-mob-lnk active">Contact</a>
+  <a href="builder.html?start=1" class="nav-cta">Build a Birthday ✦</a>
+</div>
+
+<!-- HERO -->
+<section class="ct-hero">
+  <div class="container">
+    <div class="ct-hero-tag">Get in Touch</div>
+    <h1>We'd love to hear<br>about your child's <em>birthday</em></h1>
+    <p>Whether you're ready to plan or just exploring ideas, reach out — we're always happy to chat.</p>
+  </div>
+</section>
+
+<!-- CONTACT CARDS -->
+<section class="sec">
+  <div class="container">
+    <div class="ct-grid">
+
+      <!-- WhatsApp -->
+      <a href="https://wa.me/919004435362?text=Hi%2C%20I%27d%20like%20to%20plan%20a%20birthday%20with%20Wondershop%21" target="_blank" rel="noopener" class="ct-card wa">
+        <div class="ct-ic" style="background:#DCFCE7">
+          <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2C7.4 2 2 7.4 2 14c0 2.1.55 4.1 1.6 5.85L2 26l6.3-1.55A11.9 11.9 0 0014 26c6.6 0 12-5.4 12-12S20.6 2 14 2z" fill="#25D366"/>
+            <path d="M10.3 8.5c-.25-.6-.5-.62-.73-.63H8.8c-.2 0-.52.07-.8.37C7.72 8.54 7 9.32 7 10.9c0 1.6 1.17 3.14 1.33 3.35.17.2 2.26 3.6 5.55 4.9 2.74 1.08 3.3.87 3.9.82.6-.06 1.92-.79 2.2-1.55.27-.76.27-1.41.19-1.55-.08-.14-.3-.21-.62-.36s-1.92-.95-2.22-1.06c-.3-.1-.52-.16-.73.16-.2.32-.8 1.06-.98 1.28-.18.21-.37.24-.69.08-.32-.16-1.34-.49-2.56-1.57-.94-.84-1.58-1.88-1.77-2.2-.18-.32-.02-.5.14-.66.14-.14.32-.37.48-.55.16-.18.22-.32.32-.53.1-.2.05-.4-.02-.55-.08-.16-.73-1.77-1.02-2.43z" fill="#fff"/>
+          </svg>
+        </div>
+        <div class="ct-label">WhatsApp</div>
+        <div class="ct-title">+91 90044 35362</div>
+        <div class="ct-desc">Chat with us instantly. Share your ideas, ask questions, or start planning right away.</div>
+        <div class="ct-action" style="color:#25D366">Open WhatsApp →</div>
+      </a>
+
+      <!-- Phone -->
+      <a href="tel:+919004435362" class="ct-card">
+        <div class="ct-ic" style="background:var(--li2)">
+          <svg viewBox="0 0 28 28" fill="none" stroke="#B59DDE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 4h5l2.5 6.5-3 1.8a16 16 0 006.2 6.2l1.8-3L24 18v5a2 2 0 01-2.1 2C8.8 24.1 3.9 19.2 3 11A2 2 0 015 4z"/>
+          </svg>
+        </div>
+        <div class="ct-label">Call Us</div>
+        <div class="ct-title">+91 90044 35362</div>
+        <div class="ct-desc">Mon–Sat 10am–7pm, Sun 11am–5pm. Our team is happy to answer any questions.</div>
+        <div class="ct-action" style="color:var(--li)">Call Now →</div>
+      </a>
+
+      <!-- Email -->
+      <a href="mailto:contact@wondershopexperiences.com" class="ct-card">
+        <div class="ct-ic" style="background:var(--syl)">
+          <svg viewBox="0 0 28 28" fill="none" stroke="#F57A1A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="6" width="22" height="16" rx="2"/>
+            <path d="M3 8l11 8 11-8"/>
+          </svg>
+        </div>
+        <div class="ct-label">Email</div>
+        <div class="ct-title">contact@wondershopexperiences.com</div>
+        <div class="ct-desc">Send us a detailed note about your dream birthday. We'll get back within a few hours.</div>
+        <div class="ct-action" style="color:#F57A1A">Send Email →</div>
+      </a>
+
+      <!-- Instagram -->
+      <a href="https://instagram.com/wondershop.experiences" target="_blank" rel="noopener" class="ct-card ig">
+        <div class="ct-ic" style="background:var(--spk)">
+          <svg viewBox="0 0 28 28" fill="none" stroke="#E65A96" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="22" height="22" rx="6"/>
+            <circle cx="14" cy="14" r="5"/>
+            <circle cx="20.5" cy="7.5" r="1" fill="#E65A96" stroke="none"/>
+          </svg>
+        </div>
+        <div class="ct-label">Instagram</div>
+        <div class="ct-title">@wondershop.experiences</div>
+        <div class="ct-desc">See our work, get inspired, and DM us. We post real birthdays from Mumbai & Pune every day.</div>
+        <div class="ct-action" style="color:var(--pk)">Follow Us →</div>
+      </a>
+
+      <!-- YouTube -->
+      <a href="https://youtube.com/@wondershopexperiences" target="_blank" rel="noopener" class="ct-card yt">
+        <div class="ct-ic" style="background:#FFE4E4">
+          <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M25.5 8.1s-.25-1.8-1.03-2.6c-.99-1.04-2.1-1.04-2.6-1.1C18.96 4.2 14 4.2 14 4.2s-4.96 0-7.87.2c-.5.06-1.61.06-2.6 1.1C2.75 6.3 2.5 8.1 2.5 8.1S2.25 10.2 2.25 12.3v1.96c0 2.1.25 4.2.25 4.2s.25 1.8 1.03 2.6c.99 1.04 2.28.99 2.86 1.1C8.4 22.4 14 22.5 14 22.5s4.96 0 7.87-.2c.5-.06 1.61-.06 2.6-1.1.78-.8 1.03-2.6 1.03-2.6s.25-2.1.25-4.2V12.3c0-2.1-.25-4.2-.25-4.2z" fill="#FF0000"/>
+            <polygon points="11.5,17.5 18.5,14 11.5,10.5" fill="#fff"/>
+          </svg>
+        </div>
+        <div class="ct-label">YouTube</div>
+        <div class="ct-title">@wondershopexperiences</div>
+        <div class="ct-desc">Watch highlight reels, theme reveals, and behind-the-scenes moments from our events.</div>
+        <div class="ct-action" style="color:#FF0000">Watch Now →</div>
+      </a>
+
+      <!-- Plan with us CTA -->
+      <a href="builder.html?lead=1" class="ct-card" style="background:linear-gradient(135deg,var(--li3),#FFF0F7);border-color:var(--li);justify-content:center;text-align:center">
+        <div style="font-size:40px;margin-bottom:10px">🎂</div>
+        <div class="ct-label" style="justify-content:center">Start Planning</div>
+        <div class="ct-title" style="font-size:22px">Call Me to Plan</div>
+        <div class="ct-desc" style="margin-top:6px">Our team will design a personalised birthday around your child's world.</div>
+        <div class="ct-action" style="color:var(--li);justify-content:center;padding-top:16px">Get in Touch →</div>
+      </a>
+
+    </div>
+
+    <div class="info-row">
+      <div class="info-card">
+        <div class="info-h">Office Hours</div>
+        <div class="info-body">
+          Monday – Saturday &nbsp;·&nbsp; 10am – 7pm<br>
+          Sunday &nbsp;·&nbsp; 11am – 5pm<br><br>
+          <span style="color:var(--gr);font-weight:700">Typically reply within 60 minutes</span>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-h">Our Studio</div>
+        <div class="info-body">
+          B1-Podium, Godrej Platinum<br>
+          Vikhroli East, Mumbai – 400079<br><br>
+          Serving Mumbai &amp; Pune
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="fcta">
+  <div class="container">
+    <div class="fcta-h">Ready to plan something <em style="font-style:italic">magical?</em></div>
+    <div class="fcta-sub">Build your birthday plan online in 10 minutes, or let our team design it for you.</div>
+    <div class="fcta-btns">
+      <a href="builder.html?start=1" class="btn-wh">Build a Birthday ✦</a>
+      <a href="https://wa.me/919004435362" target="_blank" rel="noopener" class="btn-owh">💬 WhatsApp Us</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <img src="logo-horizontal-dark.png" alt="Wondershop Experiences" style="height:48px;width:auto;margin-bottom:14px">
+        <div class="ft-tagline">Think Birthdays, Think Wondershop. Story-led celebrations for children aged 1–12 across Mumbai and Pune.</div>
+        <div class="ft-soc">
+          <a href="https://instagram.com/wondershop.experiences" target="_blank" rel="noopener" class="ft-soc-a">📸</a>
+          <a href="https://wa.me/919004435362" target="_blank" rel="noopener" class="ft-soc-a">💬</a>
+          <a href="tel:+919004435362" class="ft-soc-a">📞</a>
+          <a href="https://youtube.com/@wondershopexperiences" target="_blank" rel="noopener" class="ft-soc-a">▶</a>
+        </div>
+      </div>
+      <div>
+        <div class="ft-col-h">Quick Links</div>
+        <ul class="ft-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about-us.html">About Us</a></li>
+          <li><a href="testimonials.html">Testimonials</a></li>
+          <li><a href="contact.html">Contact</a></li>
+          <li><a href="builder.html?start=1">Build a Birthday</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="ft-col-h">Contact</div>
+        <ul class="ft-links">
+          <li><a href="tel:+919004435362">+91 90044 35362</a></li>
+          <li><a href="tel:+919742240477">+91 97422 40477</a></li>
+          <li><a href="mailto:contact@wondershopexperiences.com">contact@wondershopexperiences.com</a></li>
+          <li style="color:rgba(255,255,255,.45)">Vikhroli East, Mumbai</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ft-bottom">
+      <div class="ft-copy">© 2025 Wondershop Experiences. All rights reserved.</div>
+      <div class="ft-cities">Mumbai · Pune · Crafted with ♥</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+window.addEventListener('scroll',()=>{
+  document.getElementById('main-nav').classList.toggle('scrolled', window.scrollY > 10);
+});
+</script>
+
+<!-- WhatsApp FAB -->
+<a href="https://wa.me/919004435362" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+</a>
+<style>
+.wa-fab{position:fixed;bottom:24px;left:24px;z-index:9999;width:52px;height:52px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;text-decoration:none}
+.wa-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(37,211,102,.6)}
+.wa-fab svg{width:26px;height:26px}
+</style>
+
+<script>
+// Mobile menu
+(function(){
+  const ham=document.getElementById('nav-ham');
+  const mob=document.getElementById('nav-mob');
+  if(ham&&mob){
+    ham.onclick=()=>{const o=mob.classList.toggle('open');ham.setAttribute('aria-expanded',o)};
+    document.querySelectorAll('.nav-mob-lnk').forEach(a=>a.addEventListener('click',()=>mob.classList.remove('open')));
+  }
+})();
+</script>
+
+<!-- SEARCH OVERLAY -->
+<div id="search-overlay" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(25,25,25,.6);backdrop-filter:blur(4px)" onclick="closeSearch()"></div>
+<div id="search-modal" style="display:none;position:fixed;top:120px;left:50%;transform:translateX(-50%);z-index:501;width:min(560px,92vw);background:#fff;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.18);overflow:hidden">
+  <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--li2)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gy)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="search-input" type="text" placeholder="Search themes, packages, activities…" style="flex:1;border:none;outline:none;font-size:16px;font-family:var(--fb);color:var(--bk);background:transparent" oninput="doSearch(this.value)">
+    <button onclick="closeSearch()" style="background:none;border:none;cursor:pointer;color:var(--gy);font-size:20px;line-height:1;padding:0 4px">&times;</button>
+  </div>
+  <div id="search-results" style="max-height:340px;overflow-y:auto;padding:8px 0"></div>
+</div>
+<script>
+const searchItems=[
+  {t:"Spy Theme Birthday",u:"builder.html?theme=spy&start=1",d:"Secret agent decor, missions & activities"},
+  {t:"Build a Birthday",u:"builder.html?start=1",d:"Plan your birthday in 10 mins"},
+  {t:"Gallery",u:"gallery.html",d:"Real birthday photos"},
+  {t:"Testimonials",u:"testimonials.html",d:"What parents say"},
+  {t:"Blog",u:"blogs.html",d:"Tips & party guides"},
+  {t:"Contact Us",u:"contact.html",d:"Get in touch"},
+  {t:"About Us",u:"about-us.html",d:"Meet Shruti & Sidhant"},
+  {t:"Spy Guide",u:"blogs.html#spy-guide",d:"Plan the perfect spy birthday"},
+  {t:"Return Gifts",u:"blogs.html#return-gifts",d:"Best return gift ideas"},
+  {t:"Planning Checklist",u:"blogs.html#planning-checklist",d:"10-minute birthday checklist"},
+];
+function openSearch(){document.getElementById('search-overlay').style.display='block';document.getElementById('search-modal').style.display='block';setTimeout(()=>document.getElementById('search-input').focus(),50);doSearch('');}
+function closeSearch(){document.getElementById('search-overlay').style.display='none';document.getElementById('search-modal').style.display='none';}
+function doSearch(q){const r=document.getElementById('search-results');const hits=q?searchItems.filter(i=>i.t.toLowerCase().includes(q.toLowerCase())||i.d.toLowerCase().includes(q.toLowerCase())):searchItems;r.innerHTML=hits.length?hits.map(i=>`<a href="${i.u}" style="display:flex;flex-direction:column;gap:2px;padding:12px 20px;text-decoration:none;transition:background .1s" onmouseover="this.style.background='var(--li3)'" onmouseout="this.style.background=''""><span style="font-size:14px;font-weight:600;color:var(--bk)">${i.t}</span><span style="font-size:12px;color:var(--gy)">${i.d}</span></a>`).join(''):'<p style="text-align:center;padding:24px;color:var(--gy);font-size:14px">No results found</p>';}
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openSearch();}if(e.key==='Escape')closeSearch();});
+</script>
+</body>
+</html>

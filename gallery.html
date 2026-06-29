@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gallery — Wondershop Experiences</title>
+<link rel="icon" type="image/png" href="logo-square.png">
+<link rel="apple-touch-icon" href="logo-square.png">
+<meta name="description" content="Browse Wondershop Experiences' gallery — real birthday celebrations across Mumbai and Pune. Decor, spy themes, house parties, turf parties, DIY activities and more.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --li:#B59DDE;--li2:#EDE6FA;--li3:#F5F0FF;
+  --pk:#E65A96;--spk:#F5C3D7;
+  --yl:#FFC200;
+  --bk:#191919;--gy:#6B7280;--wh:#FAFAFA;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif;
+  --max:1200px;--nav-h:96px;--r:14px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);color:var(--bk);background:var(--wh);overflow-x:hidden}
+h1,h2,h3{font-family:var(--fd);line-height:1.2}
+p{line-height:1.7;color:var(--gy)}
+img{display:block;max-width:100%}
+a{text-decoration:none}
+button{cursor:pointer;font-family:var(--fb)}
+.container{max-width:var(--max);margin:0 auto;padding:0 24px}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--nav-h);background:rgba(250,250,250,.97);backdrop-filter:blur(10px);border-bottom:1px solid rgba(181,157,222,.18);transition:box-shadow .2s}
+.nav.scrolled{box-shadow:0 2px 20px rgba(181,157,222,.18)}
+.nav-inner{max-width:1200px;margin:0 auto;padding:0 24px;height:100%;display:flex;flex-direction:column;align-items:stretch;justify-content:center}
+.nav-row1{display:flex;align-items:center;justify-content:space-between;width:100%;padding:6px 0 4px}
+.nav-row2{display:flex;align-items:center;justify-content:center;gap:28px;padding:2px 0 4px;border-top:1px solid rgba(181,157,222,.12);width:100%}
+.nav-row2 a{font-size:14px;color:var(--gy);font-weight:500;transition:color .15s}
+.nav-row2 a:hover,.nav-row2 a.active{color:var(--bk)}
+.nav-logo{display:flex;flex-direction:column;align-items:flex-start}
+.nav-logo-tagline{font-family:var(--fb);font-size:10px;color:var(--gy);margin-top:3px}
+.nav-cta-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.nav-cta{background:var(--li);color:#fff;border:none;border-radius:24px;padding:10px 22px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;transition:opacity .15s}
+.nav-cta:hover{opacity:.88}
+.nav-cta-sub{font-family:var(--fb);font-size:10px;color:var(--gy);text-align:right}
+.nav-search-btn{background:none;border:none;cursor:pointer;color:var(--gy);padding:6px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:color .15s}
+.nav-search-btn:hover{color:var(--bk)}
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="main-nav">
+  <div class="nav-inner">
+    <div class="nav-row1">
+      <a href="index.html" class="nav-logo">
+        <img src="logo-horizontal.png" alt="Wondershop Experiences" style="height:46px;width:auto;display:block">
+        <div class="nav-logo-tagline">Curated Birthday Experiences · Mumbai | Pune</div>
+      </a>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="nav-search-btn" id="nav-search-btn" onclick="openSearch()" aria-label="Search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <div class="nav-cta-wrap nav-cta-desk">
+          <a href="builder.html?start=1" class="nav-cta">Build a Birthday ✦</a>
+          <span class="nav-cta-sub">Plan your birthday in 10 mins</span>
+        </div>
+        <button class="nav-ham" id="nav-ham" aria-label="Open menu"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+    <div class="nav-row2">
+      <a href="index.html">Home</a>
+          <a href="gallery.html" class="active">Gallery</a>
+          <a href="testimonials.html">Testimonials</a>
+          <a href="blogs.html">Blog</a>
+          <a href="about-us.html">About Us</a>
+          <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</nav>
+
+<div class="nav-mobile" id="nav-mob">
+  <a href="index.html" class="nav-mob-lnk">Home</a>
+  <a href="gallery.html" class="nav-mob-lnk active">Gallery</a>
+  <a href="testimonials.html" class="nav-mob-lnk">Testimonials</a>
+  <a href="blogs.html" class="nav-mob-lnk">Blog</a>
+  <a href="about-us.html" class="nav-mob-lnk">About Us</a>
+  <a href="contact.html" class="nav-mob-lnk">Contact</a>
+  <a href="builder.html?start=1" class="nav-cta">Build a Birthday ✦</a>
+</div>
+
+<!-- HERO -->
+<section class="gal-hero">
+  <div class="container">
+    <div class="gal-hero-tag">Real Events · Real Joy</div>
+    <h1 class="gal-hero-h1">Every birthday is<br>a <em>memory we made</em></h1>
+    <p class="gal-hero-sub">500+ celebrations across Mumbai and Pune — browse by theme, venue, or activity. This is what we do.</p>
+    <div class="gal-hero-btns">
+      <a href="builder.html?start=1" class="btn-p">Build a Birthday ✦</a>
+      <a href="builder.html?lead=1" class="btn-ghost">Call Me to Plan</a>
+    </div>
+  </div>
+</section>
+
+<!-- GALLERY SECTIONS -->
+<section class="gal-sections">
+  <div class="container">
+
+    <!-- DECOR -->
+    <div class="gal-sec open" id="sec-decor">
+      <div class="gal-sec-hdr" onclick="toggleSec('sec-decor')">
+        <div class="gal-sec-left">
+          <div class="gal-sec-icon">🎨</div>
+          <div>
+            <div class="gal-sec-title">Decor</div>
+            <div class="gal-sec-count">Themed setups, balloon arches &amp; panel backdrops</div>
+          </div>
+        </div>
+        <div class="gal-sec-arrow">▼</div>
+      </div>
+      <div class="gal-sec-body">
+        <div class="gal-grid">
+          <img src="img/std-banquet.jpg"  alt="Spy birthday decor" loading="lazy" onclick="openLb(this)">
+          <img src="img/std-flex3.jpg"    alt="Agent Veer 3-panel decor" loading="lazy" onclick="openLb(this)">
+          <img src="img/std-flex1.jpg"    alt="Single panel decor setup" loading="lazy" onclick="openLb(this)">
+          <img src="img/std-home.jpg"     alt="KPop balloon arch" loading="lazy" onclick="openLb(this)">
+          <img src="img/theme-spy.jpg"    alt="Spy theme decor" loading="lazy" onclick="openLb(this)">
+          <img src="img/theme-dino.jpg"   alt="Party decor with arch" loading="lazy" onclick="openLb(this)">
+          <img src="img/theme-uni.jpg"    alt="Floral panel decor" loading="lazy" onclick="openLb(this)">
+          <img src="img/theme-jungle.jpg" alt="Outdoor panel setup" loading="lazy" onclick="openLb(this)">
+          <img src="sana decor pic google v2.jpg" alt="Wondershop decor" loading="lazy" onclick="openLb(this)">
+          <img src="yuwan spy decor.jpg"  alt="Yuwan spy decor" loading="lazy" onclick="openLb(this)">
+          <img src="2.jpg"  alt="Birthday decor" loading="lazy" onclick="openLb(this)">
+          <img src="11.jpg" alt="Beautiful birthday decor" loading="lazy" onclick="openLb(this)">
+        </div>
+      </div>
+    </div>
+
+    <!-- SPY MYSTERY -->
+    <div class="gal-sec" id="sec-spy">
+      <div class="gal-sec-hdr" onclick="toggleSec('sec-spy')">
+        <div class="gal-sec-left">
+          <div class="gal-sec-icon">🕵️</div>
+          <div>
+            <div class="gal-sec-title">Spy Mystery</div>
+            <div class="gal-sec-count">Secret missions, spy decor &amp; agent briefings</div>
+          </div>
+        </div>
+        <div class="gal-sec-arrow">▼</div>
+      </div>
+      <div class="gal-sec-body">
+        <div class="gal-grid">
+          <img src="img/std-banquet.jpg"   alt="Spy birthday agent Kian" loading="lazy" onclick="openLb(this)">
+          <img src="img/std-flex3.jpg"     alt="Agent Veer spy party" loading="lazy" onclick="openLb(this)">
+          <img src="img/theme-spy.jpg"     alt="Spy theme setup" loading="lazy" onclick="openLb(this)">
+          <img src="yuwan spy decor.jpg"   alt="Yuwan spy mission decor" loading="lazy" onclick="openLb(this)">
+          <img src="img/act-mystery.jpg"   alt="Mystery activity" loading="lazy" onclick="openLb(this)">
+          <img src="7.jpg"   alt="Spy adventure party" loading="lazy" onclick="openLb(this)">
+          <img src="16.jpg"  alt="Spy birthday reel" loading="lazy" onclick="openLb(this)">
+        </div>
+      </div>
+    </div>
+
+    <!-- HOUSE PARTY -->
+    <div class="gal-sec" id="sec-house">
+      <div class="gal-sec-hdr" onclick="toggleSec('sec-house')">
+        <div class="gal-sec-left">
+          <div class="gal-sec-icon">🏠</div>
+          <div>
+            <div class="gal-sec-title">House Party</div>
+            <div class="gal-sec-count">Intimate home celebrations done beautifully</div>
+          </div>
+        </div>
+        <div class="gal-sec-arrow">▼</div>
+      </div>
+      <div class="gal-sec-body">
+        <div class="gal-grid">
+          <img src="img/std-home.jpg"  alt="Home balloon arch" loading="lazy" onclick="openLb(this)">
+          <img src="img/std-flex1.jpg" alt="Home panel decor" loading="lazy" onclick="openLb(this)">
+          <img src="1.jpg"  alt="Home birthday party" loading="lazy" onclick="openLb(this)">
+          <img src="4.jpg"  alt="Kids enjoying home party" loading="lazy" onclick="openLb(this)">
+          <img src="9.jpg"  alt="Joyful birthday moment" loading="lazy" onclick="openLb(this)">
+          <img src="10.jpg" alt="Party host at home event" loading="lazy" onclick="openLb(this)">
+          <img src="12.jpg" alt="Birthday celebration at home" loading="lazy" onclick="openLb(this)">
+          <img src="13.jpg" alt="Children at home party" loading="lazy" onclick="openLb(this)">
+        </div>
+      </div>
+    </div>
+
+    <!-- RESTAURANT PARTY -->
+    <div class="gal-sec" id="sec-restaurant">
+      <div class="gal-sec-hdr" onclick="toggleSec('sec-restaurant')">
+        <div class="gal-sec-left">
+          <div class="gal-sec-icon">🍽️</div>
+          <div>
+            <div class="gal-sec-title">Restaurant Party</div>
+            <div class="gal-sec-count">Stylish dining venue celebrations</div>
+          </div>
+        </div>
+        <div class="gal-sec-arrow">▼</div>
+      </div>
+      <div class="gal-sec-body">
+        <div class="gal-grid">
+          <img src="14.jpg" alt="Restaurant birthday celebration" loading="lazy" onclick="openLb(this)">
+          <img src="15.jpg" alt="Party setup at restaurant" loading="lazy" onclick="openLb(this)">
+          <img src="17.jpg" alt="Happy family at restaurant birthday" loading="lazy" onclick="openLb(this)">
+          <img src="19.jpg" alt="F1 theme restaurant party" loading="lazy" onclick="openLb(this)">
+          <img src="20.jpg" alt="Princess birthday at restaurant" loading="lazy" onclick="openLb(this)">
+        </div>
+      </div>
+    </div>
+
+    <!-- BANQUET PARTY -->
+    <div class="gal-sec" id="sec-banquet">
+      <div class="gal-sec-hdr" onclick="toggleSec('sec-banquet')">
+        <div class="gal-sec-left">
+          <div class="gal-sec-icon">🏛️</div>
+          <div>
+            <div class="gal-sec-title">Banquet Party</div>
+            <div class="gal-sec-count">Grand celebrations in banquet halls</div>
+          </div>
+        </div>
+        <div class="gal-sec-arrow">▼</div>
+      </div>
+      <div class="gal-sec-body">
+        <div class="gal-grid">
+          <img src="img/std-banquet.jpg"  alt="Banquet spy birthday setup" loading="lazy" onclick="openLb(this)">
+          <img src="img/std-flex3.jpg"    alt="3-panel banquet decor" loading="lazy" onclick="openLb(this)">
+          <img src="img/std-home.jpg"     alt="Grand balloon arch" loading="lazy" onclick="openLb(this)">
+          <img src="21.jpg" alt="Banquet birthday party" loading="lazy" onclick="openLb(this)">
+          <img src="22.jpg" alt="Grand celebration" loading="lazy" onclick="openLb(this)">
+          <img src="23.jpg" alt="Birthday banquet" loading="lazy" onclick="openLb(this)">
+        </div>
+      </div>
+    </div>
+
+    <!-- TURF PARTY -->
+    <div class="gal-sec" id="sec-turf">
+      <div class="gal-sec-hdr" onclick="toggleSec('sec-turf')">
+        <div class="gal-sec-left">
+          <div class="gal-sec-icon">⛳</div>
+          <div>
+            <div class="gal-sec-title">Turf Party</div>
+            <div class="gal-sec-count">Outdoor turf &amp; open-air celebrations</div>
+          </div>
+        </div>
+        <div class="gal-sec-arrow">▼</div>
+      </div>
+      <div class="gal-sec-body">
+        <div class="gal-grid">
+          <img src="img/theme-jungle.jpg" alt="Outdoor decor on turf" loading="lazy" onclick="openLb(this)">
+          <img src="img/std-flex1.jpg"    alt="Panel decor on turf" loading="lazy" onclick="openLb(this)">
+          <img src="3.jpg"  alt="Outdoor turf birthday party" loading="lazy" onclick="openLb(this)">
+          <img src="5.jpg"  alt="Kids on turf" loading="lazy" onclick="openLb(this)">
+          <img src="6.jpg"  alt="Turf party activities" loading="lazy" onclick="openLb(this)">
+          <img src="8.jpg"  alt="Outdoor celebration" loading="lazy" onclick="openLb(this)">
+          <img src="24.jpg" alt="Pool and turf birthday" loading="lazy" onclick="openLb(this)">
+        </div>
+      </div>
+    </div>
+
+    <!-- DIY ACTIVITIES -->
+    <div class="gal-sec" id="sec-diy">
+      <div class="gal-sec-hdr" onclick="toggleSec('sec-diy')">
+        <div class="gal-sec-left">
+          <div class="gal-sec-icon">🎨</div>
+          <div>
+            <div class="gal-sec-title">DIY Activities</div>
+            <div class="gal-sec-count">Crafts, keychains, bracelets, tote bags &amp; more</div>
+          </div>
+        </div>
+        <div class="gal-sec-arrow">▼</div>
+      </div>
+      <div class="gal-sec-body">
+        <div class="gal-grid">
+          <img src="img/act-art.jpg"       alt="Bracelet making activity" loading="lazy" onclick="openLb(this)">
+          <img src="img/act-diy.jpg"       alt="Cap decoration activity" loading="lazy" onclick="openLb(this)">
+          <img src="img/act-immersive.jpg" alt="DIY keychain workshop" loading="lazy" onclick="openLb(this)">
+          <img src="img/act-treasure.jpg"  alt="Personalised keychain" loading="lazy" onclick="openLb(this)">
+          <img src="img/act-science.jpg"   alt="Sunglasses decoration" loading="lazy" onclick="openLb(this)">
+          <img src="img/act-slime.jpg"     alt="Tote bag painting" loading="lazy" onclick="openLb(this)">
+          <img src="img/act-mystery.jpg"   alt="Mystery activity" loading="lazy" onclick="openLb(this)">
+          <img src="img/act-dance.jpg"     alt="Dance party activity" loading="lazy" onclick="openLb(this)">
+          <img src="img/act-magic.jpg"     alt="Magic show activity" loading="lazy" onclick="openLb(this)">
+        </div>
+      </div>
+    </div>
+
+    <!-- PARENT TESTIMONIALS -->
+    <div class="gal-sec" id="sec-testimonials">
+      <div class="gal-sec-hdr" onclick="toggleSec('sec-testimonials')">
+        <div class="gal-sec-left">
+          <div class="gal-sec-icon">💛</div>
+          <div>
+            <div class="gal-sec-title">Parent Testimonials</div>
+            <div class="gal-sec-count">Real moments from real families</div>
+          </div>
+        </div>
+        <div class="gal-sec-arrow">▼</div>
+      </div>
+      <div class="gal-sec-body">
+        <div class="gal-grid">
+          <img src="1.jpg"  alt="Happy family at birthday" loading="lazy" onclick="openLb(this)">
+          <img src="9.jpg"  alt="Child's joyful birthday moment" loading="lazy" onclick="openLb(this)">
+          <img src="17.jpg" alt="Parent and child celebration" loading="lazy" onclick="openLb(this)">
+          <img src="18.jpg" alt="Art party family moment" loading="lazy" onclick="openLb(this)">
+          <img src="20.jpg" alt="Princess party family" loading="lazy" onclick="openLb(this)">
+          <img src="24.jpg" alt="Pool party family moment" loading="lazy" onclick="openLb(this)">
+        </div>
+        <!-- Testimonial cards -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:24px">
+          <div style="background:var(--li3);border-radius:16px;padding:24px;border:1.5px solid var(--li2)">
+            <div style="font-size:32px;color:var(--li2);font-family:Georgia,serif;line-height:.7;margin-bottom:10px">"</div>
+            <p style="font-size:14px;color:var(--bk);line-height:1.75;font-style:italic;margin-bottom:16px">Wondershop turned my daughter's birthday into a beautiful adventure. The attention to detail, the storytelling and the way every child was engaged was just exceptional!</p>
+            <div style="font-size:13px;font-weight:700;color:var(--bk)">Niyara's Parents</div>
+            <div style="font-size:12px;color:var(--gy)">Mumbai · Spy Adventure · ★★★★★</div>
+          </div>
+          <div style="background:var(--li3);border-radius:16px;padding:24px;border:1.5px solid var(--li2)">
+            <div style="font-size:32px;color:var(--li2);font-family:Georgia,serif;line-height:.7;margin-bottom:10px">"</div>
+            <p style="font-size:14px;color:var(--bk);line-height:1.75;font-style:italic;margin-bottom:16px">It was super creative, so well organised and completely screen-free! The kids had so much fun and we as parents could actually enjoy the celebration too.</p>
+            <div style="font-size:13px;font-weight:700;color:var(--bk)">Parmi's Family</div>
+            <div style="font-size:12px;color:var(--gy)">Mumbai · Football Theme · ★★★★★</div>
+          </div>
+          <div style="background:var(--li3);border-radius:16px;padding:24px;border:1.5px solid var(--li2)">
+            <div style="font-size:32px;color:var(--li2);font-family:Georgia,serif;line-height:.7;margin-bottom:10px">"</div>
+            <p style="font-size:14px;color:var(--bk);line-height:1.75;font-style:italic;margin-bottom:16px">From the decor to the activities, everything was magical. My son still talks about his 'spy mission' birthday three months later. Worth every rupee.</p>
+            <div style="font-size:13px;font-weight:700;color:var(--bk)">Sarth's Family</div>
+            <div style="font-size:12px;color:var(--gy)">Mumbai · Harry Potter · ★★★★★</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- LIGHTBOX -->
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Image viewer">
+  <div class="lb-img-wrap">
+    <button class="lb-close" onclick="closeLb()" aria-label="Close">&times;</button>
+    <button class="lb-nav lb-prev" onclick="navLb(-1)" aria-label="Previous">‹</button>
+    <img id="lb-img" src="" alt="">
+    <button class="lb-nav lb-next" onclick="navLb(1)" aria-label="Next">›</button>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <img src="logo-horizontal-dark.png" alt="Wondershop Experiences" style="height:48px;width:auto;margin-bottom:14px">
+        <p class="ft-tagline">Think Birthdays, Think Wondershop. Story-led celebrations for children aged 1–12 across Mumbai and Pune.</p>
+        <div class="ft-soc">
+          <a href="https://www.instagram.com/wondershop.experiences/" target="_blank" class="ft-soc-a">📸</a>
+          <a href="https://wa.me/919004435362" target="_blank" class="ft-soc-a">💬</a>
+          <a href="tel:+919004435362" class="ft-soc-a">📞</a>
+        </div>
+      </div>
+      <div>
+        <div class="ft-col-h">Quick Links</div>
+        <ul class="ft-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="gallery.html">Gallery</a></li>
+          <li><a href="about-us.html">About Us</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="ft-col-h">Gallery</div>
+        <ul class="ft-links">
+          <li><a href="#sec-decor" onclick="toggleSec('sec-decor')">Decor</a></li>
+          <li><a href="#sec-spy" onclick="toggleSec('sec-spy')">Spy Mystery</a></li>
+          <li><a href="#sec-house" onclick="toggleSec('sec-house')">House Party</a></li>
+          <li><a href="#sec-banquet" onclick="toggleSec('sec-banquet')">Banquet Party</a></li>
+          <li><a href="#sec-diy" onclick="toggleSec('sec-diy')">DIY Activities</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="ft-col-h">Contact</div>
+        <ul class="ft-links">
+          <li><a href="tel:+919004435362">+91 90044 35362</a></li>
+          <li><a href="mailto:contact@wondershopexperiences.com">contact@wondershopexperiences.com</a></li>
+          <li>Vikhroli East, Mumbai</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ft-bottom">
+      <div class="ft-copy">© 2025 Wondershop Experiences. All rights reserved.</div>
+      <div class="ft-cities">Mumbai · Pune · Crafted with ♥</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── NAV scroll shadow ──
+window.addEventListener('scroll',()=>{
+  document.getElementById('main-nav').classList.toggle('scrolled', window.scrollY > 10);
+},{passive:true});
+
+// ── Collapsible sections ──
+function toggleSec(id) {
+  const sec = document.getElementById(id);
+  sec.classList.toggle('open');
+}
+
+// ── Lightbox ──
+let lbImgs = [], lbIdx = 0;
+
+function buildImgList() {
+  lbImgs = Array.from(document.querySelectorAll('.gal-grid img'));
+}
+
+function openLb(imgEl) {
+  buildImgList();
+  lbIdx = lbImgs.indexOf(imgEl);
+  showLbImg();
+  document.getElementById('lb').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function showLbImg() {
+  const img = lbImgs[lbIdx];
+  document.getElementById('lb-img').src = img.src;
+  document.getElementById('lb-img').alt = img.alt;
+}
+
+function navLb(dir) {
+  lbIdx = (lbIdx + dir + lbImgs.length) % lbImgs.length;
+  showLbImg();
+}
+
+function closeLb() {
+  document.getElementById('lb').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('lb').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeLb();
+});
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lb').classList.contains('open')) return;
+  if (e.key === 'Escape')     closeLb();
+  if (e.key === 'ArrowRight') navLb(1);
+  if (e.key === 'ArrowLeft')  navLb(-1);
+});
+</script>
+
+
+<!-- WhatsApp FAB -->
+<a href="https://wa.me/919004435362" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+</a>
+<style>
+.wa-fab{position:fixed;bottom:24px;left:24px;z-index:9999;width:52px;height:52px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;text-decoration:none}
+.wa-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(37,211,102,.6)}
+.wa-fab svg{width:26px;height:26px}
+</style>
+
+<script>
+// Mobile menu
+(function(){
+  const ham=document.getElementById('nav-ham');
+  const mob=document.getElementById('nav-mob');
+  if(ham&&mob){
+    ham.onclick=()=>{const o=mob.classList.toggle('open');ham.setAttribute('aria-expanded',o)};
+    document.querySelectorAll('.nav-mob-lnk').forEach(a=>a.addEventListener('click',()=>mob.classList.remove('open')));
+  }
+})();
+</script>
+
+<!-- SEARCH OVERLAY -->
+<div id="search-overlay" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(25,25,25,.6);backdrop-filter:blur(4px)" onclick="closeSearch()"></div>
+<div id="search-modal" style="display:none;position:fixed;top:120px;left:50%;transform:translateX(-50%);z-index:501;width:min(560px,92vw);background:#fff;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.18);overflow:hidden">
+  <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--li2)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gy)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="search-input" type="text" placeholder="Search themes, packages, activities…" style="flex:1;border:none;outline:none;font-size:16px;font-family:var(--fb);color:var(--bk);background:transparent" oninput="doSearch(this.value)">
+    <button onclick="closeSearch()" style="background:none;border:none;cursor:pointer;color:var(--gy);font-size:20px;line-height:1;padding:0 4px">&times;</button>
+  </div>
+  <div id="search-results" style="max-height:340px;overflow-y:auto;padding:8px 0"></div>
+</div>
+<script>
+const searchItems=[
+  {t:"Spy Theme Birthday",u:"builder.html?theme=spy&start=1",d:"Secret agent decor, missions & activities"},
+  {t:"Build a Birthday",u:"builder.html?start=1",d:"Plan your birthday in 10 mins"},
+  {t:"Gallery",u:"gallery.html",d:"Real birthday photos"},
+  {t:"Testimonials",u:"testimonials.html",d:"What parents say"},
+  {t:"Blog",u:"blogs.html",d:"Tips & party guides"},
+  {t:"Contact Us",u:"contact.html",d:"Get in touch"},
+  {t:"About Us",u:"about-us.html",d:"Meet Shruti & Sidhant"},
+  {t:"Spy Guide",u:"blogs.html#spy-guide",d:"Plan the perfect spy birthday"},
+  {t:"Return Gifts",u:"blogs.html#return-gifts",d:"Best return gift ideas"},
+  {t:"Planning Checklist",u:"blogs.html#planning-checklist",d:"10-minute birthday checklist"},
+];
+function openSearch(){document.getElementById('search-overlay').style.display='block';document.getElementById('search-modal').style.display='block';setTimeout(()=>document.getElementById('search-input').focus(),50);doSearch('');}
+function closeSearch(){document.getElementById('search-overlay').style.display='none';document.getElementById('search-modal').style.display='none';}
+function doSearch(q){const r=document.getElementById('search-results');const hits=q?searchItems.filter(i=>i.t.toLowerCase().includes(q.toLowerCase())||i.d.toLowerCase().includes(q.toLowerCase())):searchItems;r.innerHTML=hits.length?hits.map(i=>`<a href="${i.u}" style="display:flex;flex-direction:column;gap:2px;padding:12px 20px;text-decoration:none;transition:background .1s" onmouseover="this.style.background='var(--li3)'" onmouseout="this.style.background=''""><span style="font-size:14px;font-weight:600;color:var(--bk)">${i.t}</span><span style="font-size:12px;color:var(--gy)">${i.d}</span></a>`).join(''):'<p style="text-align:center;padding:24px;color:var(--gy);font-size:14px">No results found</p>';}
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openSearch();}if(e.key==='Escape')closeSearch();});
+</script>
+</body>
+</html>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Birthday Planning Blog — Wondershop Experiences</title>
+<link rel="icon" type="image/png" href="logo-square.png">
+<link rel="apple-touch-icon" href="logo-square.png">
+<meta name="description" content="Birthday planning tips, theme guides, and return gift ideas from Wondershop Experiences — Mumbai and Pune's most loved children's birthday studio.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --li:#B59DDE;--li2:#EDE6FA;--li3:#F5F0FF;
+  --pk:#E65A96;--spk:#F5C3D7;
+  --yl:#FFC200;--syl:#FFF8D6;
+  --bk:#191919;--gy:#6B7280;--wh:#FAFAFA;
+  --gr:#22C55E;--sgr:#DCFCE7;
+  --r:14px;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif;
+  --max:960px;--nav-h:96px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);color:var(--bk);background:var(--wh);overflow-x:hidden}
+h1,h2,h3{font-family:var(--fd);line-height:1.2}
+p{line-height:1.7;color:var(--gy)}
+img{display:block;max-width:100%}
+a{text-decoration:none}
+button{cursor:pointer;font-family:var(--fb)}
+.container{max-width:var(--max);margin:0 auto;padding:0 24px}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--nav-h);background:rgba(250,250,250,.97);backdrop-filter:blur(10px);border-bottom:1px solid rgba(181,157,222,.18);transition:box-shadow .2s}
+.nav.scrolled{box-shadow:0 2px 20px rgba(181,157,222,.18)}
+.nav-inner{max-width:1200px;margin:0 auto;padding:0 24px;height:100%;display:flex;flex-direction:column;align-items:stretch;justify-content:center}
+.nav-row1{display:flex;align-items:center;justify-content:space-between;width:100%;padding:6px 0 4px}
+.nav-row2{display:flex;align-items:center;justify-content:center;gap:28px;padding:2px 0 4px;border-top:1px solid rgba(181,157,222,.12);width:100%}
+.nav-row2 a{font-size:14px;color:var(--gy);font-weight:500;transition:color .15s}
+.nav-row2 a:hover,.nav-row2 a.active{color:var(--bk)}
+.nav-logo{display:flex;flex-direction:column;align-items:flex-start}
+.nav-logo-tagline{font-family:var(--fb);font-size:10px;color:var(--gy);margin-top:3px}
+.nav-cta-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.nav-cta{background:var(--li);color:#fff;border:none;border-radius:24px;padding:10px 22px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;transition:opacity .15s}
+.nav-cta:hover{opacity:.88}
+.nav-cta-sub{font-family:var(--fb);font-size:10px;color:var(--gy);text-align:right}
+.nav-search-btn{background:none;border:none;cursor:pointer;color:var(--gy);padding:6px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:color .15s}
+.nav-search-btn:hover{color:var(--bk)}
+.nav-ham{display:none;background:none;border:none;cursor:pointer;padding:6px;flex-direction:column;gap:5px}
+.nav-ham span{display:block;width:22px;height:2px;background:var(--bk);border-radius:2px;transition:all .2s}
+.nav-mobile{display:none;position:fixed;top:var(--nav-h);left:0;right:0;z-index:199;background:var(--wh);border-bottom:1px solid var(--li2);padding:8px 24px 24px}
+.nav-mobile.open{display:block}
+.nav-mobile a{display:block;font-size:15px;font-weight:500;color:var(--bk);padding:13px 0;border-bottom:1px solid var(--li2)}
+.nav-mobile .nav-cta{margin-top:16px;display:flex;justify-content:center}
+@media(max-width:860px){.nav-row2,.nav-cta-desk{display:none}.nav-ham{display:flex}.nav{height:72px}.nav-mobile{top:72px}}
+
+/* HERO */
+.blog-hero{padding:calc(var(--nav-h) + 52px) 0 48px;background:linear-gradient(160deg,var(--li3) 0%,#fff 70%)}
+.blog-hero-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--li);background:var(--li2);border-radius:20px;padding:5px 14px;margin-bottom:16px}
+.blog-hero h1{font-family:var(--fd);font-size:clamp(28px,5vw,44px);font-weight:700;color:var(--bk);margin-bottom:14px;line-height:1.15}
+.blog-hero h1 em{color:var(--li);font-style:italic}
+.blog-hero-sub{font-size:16px;color:var(--gy);max-width:560px;line-height:1.65}
+
+/* ARTICLES */
+.sec{padding:48px 0}
+.articles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:28px;margin-top:36px}
+.article-card{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);overflow:hidden;transition:box-shadow .2s,transform .2s}
+.article-card:hover{box-shadow:0 8px 32px rgba(181,157,222,.2);transform:translateY(-3px)}
+.article-img{height:200px;overflow:hidden;background:var(--li3)}
+.article-img img{width:100%;height:100%;object-fit:cover;object-position:center}
+.article-body{padding:20px}
+.article-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--li);background:var(--li2);border-radius:20px;padding:4px 12px;margin-bottom:12px}
+.article-title{font-family:var(--fd);font-size:18px;font-weight:700;color:var(--bk);line-height:1.35;margin-bottom:10px}
+.article-excerpt{font-size:13px;color:var(--gy);line-height:1.65;margin-bottom:16px}
+.article-meta{font-size:12px;color:var(--gy);border-top:1px solid var(--li2);padding-top:12px}
+.article-content{margin-top:16px;padding:20px;border-radius:10px;font-size:13px;color:var(--gy);line-height:1.7}
+.article-content strong{color:var(--bk);display:block;margin-bottom:6px}
+.article-link{display:inline-flex;align-items:center;gap:6px;margin-top:16px;font-size:13px;font-weight:700;color:var(--li);transition:gap .15s}
+.article-link:hover{gap:9px}
+
+/* SECTION HEADER */
+.sec-head{text-align:center;margin-bottom:8px}
+.sec-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--li);background:var(--li2);border-radius:20px;padding:5px 14px;margin-bottom:12px}
+.sec-h2{font-family:var(--fd);font-size:clamp(24px,4vw,34px);font-weight:700;color:var(--bk);margin-bottom:10px}
+.sec-h2 em{color:var(--li);font-style:italic}
+.sec-sub{font-size:15px;color:var(--gy);max-width:560px;margin:0 auto;line-height:1.65}
+
+/* FINAL CTA */
+.fcta{background:linear-gradient(135deg,var(--li) 0%,var(--pk) 100%);padding:60px 0;text-align:center}
+.fcta-h{font-family:var(--fd);font-size:clamp(22px,4vw,34px);font-weight:700;color:#fff;margin-bottom:12px}
+.fcta-sub{font-size:15px;color:rgba(255,255,255,.85);margin-bottom:28px;line-height:1.6}
+.fcta-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn-wh{background:#fff;color:var(--li);border:none;border-radius:28px;padding:14px 30px;font-size:15px;font-weight:700;font-family:var(--fb);cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:opacity .15s}
+.btn-wh:hover{opacity:.9}
+.btn-owh{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.5);border-radius:28px;padding:12px 26px;font-size:14px;font-weight:600;font-family:var(--fb);display:inline-flex;align-items:center;gap:7px;transition:border-color .15s}
+.btn-owh:hover{border-color:#fff}
+
+/* FOOTER */
+.footer{background:var(--bk);padding:48px 0 28px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:40px;margin-bottom:36px}
+.ft-tagline{font-size:13px;color:rgba(255,255,255,.45);line-height:1.65;margin-bottom:16px;margin-top:6px}
+.ft-soc{display:flex;gap:10px}
+.ft-soc-a{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:16px;transition:background .15s}
+.ft-soc-a:hover{background:rgba(255,255,255,.16)}
+.ft-col-h{font-family:var(--fd);font-size:13px;font-weight:700;color:#fff;margin-bottom:14px;letter-spacing:.3px}
+.ft-links{list-style:none}
+.ft-links li{margin-bottom:9px}
+.ft-links a{font-size:13px;color:rgba(255,255,255,.45);transition:color .15s}
+.ft-links a:hover{color:#fff}
+.ft-links li:not(:has(a)){font-size:13px;color:rgba(255,255,255,.3)}
+.ft-bottom{border-top:1px solid rgba(255,255,255,.08);padding-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.ft-copy{font-size:12px;color:rgba(255,255,255,.3)}
+.ft-cities{font-size:12px;color:rgba(255,255,255,.3)}
+@media(max-width:700px){.footer-grid{grid-template-columns:1fr}.ft-bottom{flex-direction:column;text-align:center}}
+
+/* WhatsApp FAB */
+.wa-fab{position:fixed;bottom:24px;left:24px;z-index:500;width:52px;height:52px;background:#25D366;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 20px rgba(37,211,102,.4);transition:transform .2s,box-shadow .2s}
+.wa-fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(37,211,102,.5)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="main-nav">
+  <div class="nav-inner">
+    <div class="nav-row1">
+      <a href="index.html" class="nav-logo">
+        <img src="logo-horizontal.png" alt="Wondershop Experiences" style="height:46px;width:auto;display:block">
+        <div class="nav-logo-tagline">Curated Birthday Experiences · Mumbai | Pune</div>
+      </a>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="nav-search-btn" id="nav-search-btn" onclick="openSearch()" aria-label="Search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <div class="nav-cta-wrap nav-cta-desk">
+          <a href="builder.html?start=1" class="nav-cta">Build a Birthday ✦</a>
+          <span class="nav-cta-sub">Plan your birthday in 10 mins</span>
+        </div>
+        <button class="nav-ham" id="nav-ham" aria-label="Open menu"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+    <div class="nav-row2">
+      <a href="index.html">Home</a>
+          <a href="gallery.html">Gallery</a>
+          <a href="testimonials.html">Testimonials</a>
+          <a href="blogs.html" class="active">Blog</a>
+          <a href="about-us.html">About Us</a>
+          <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</nav>
+
+<div class="nav-mobile" id="nav-mob">
+  <a href="index.html" class="nav-mob-lnk">Home</a>
+  <a href="gallery.html" class="nav-mob-lnk">Gallery</a>
+  <a href="testimonials.html" class="nav-mob-lnk">Testimonials</a>
+  <a href="blogs.html" class="nav-mob-lnk active">Blog</a>
+  <a href="about-us.html" class="nav-mob-lnk">About Us</a>
+  <a href="contact.html" class="nav-mob-lnk">Contact</a>
+  <a href="builder.html?start=1" class="nav-cta">Build a Birthday ✦</a>
+</div>
+
+<!-- HERO -->
+<section class="blog-hero">
+  <div class="container">
+    <div class="blog-hero-tag">Birthday Planning Tips</div>
+    <h1>Guides from<br><em>real party planners</em></h1>
+    <p class="blog-hero-sub">Everything you need to plan a birthday your child will talk about for years — themes, activities, gifts, timelines, and more.</p>
+  </div>
+</section>
+
+<!-- ARTICLES -->
+<section class="sec" id="articles">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-tag">Our Guides</div>
+      <h2 class="sec-h2">Birthday planning, <em>simplified</em></h2>
+      <p class="sec-sub">Practical advice from the team that has planned 500+ celebrations across Mumbai and Pune.</p>
+    </div>
+    <div class="articles-grid">
+
+      <!-- Article 1 -->
+      <div class="article-card" id="spy-guide">
+        <div class="article-img">
+          <img src="yuwan spy decor.jpg" alt="Spy themed birthday party" loading="lazy" onerror="this.style.background='var(--li3)'">
+        </div>
+        <div class="article-body">
+          <div class="article-tag">Theme Guide</div>
+          <div class="article-title">How to plan the perfect Spy Adventure birthday for your child</div>
+          <div class="article-excerpt">Secret missions, hidden clues, decoded invitations — the Spy theme is one of the most immersive we do. Here's everything you need to pull it off brilliantly.</div>
+          <div class="article-meta">🕵️ Theme Guide &nbsp;·&nbsp; 5 min read</div>
+          <div class="article-content" style="background:var(--li3);border-left:3px solid var(--li)">
+            <strong>What makes the Spy theme special:</strong>
+            The Spy Adventure theme works because it gives every child a role — they're agents on a mission. Activities like the laser maze, fingerprint station, code-cracking puzzles, and the Spy briefing keep kids engaged for 2–3 hours without a dull moment.
+            <br><br>
+            <strong>Decor essentials:</strong>
+            Dark panels with neon green accents, classified files, mission dossiers as name tags, a "spy HQ" entrance arch. Our standard Spy package includes 150–200 balloons, 1 feature wall, and 2 side panels — all in mission black + lime green.
+            <br><br>
+            <strong>Best for:</strong>
+            Boys aged 6–12. Works beautifully at home, a community hall, or a banquet. Minimum 15 kids recommended for the activity flow to feel exciting.
+            <br><br>
+            <strong>Pro tip:</strong>
+            Send e-invitations designed as "classified mission briefings" 10 days in advance — kids arrive already in character.
+            <a href="builder.html?theme=spy&start=1" class="article-link">Plan a Spy Birthday →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Article 2 -->
+      <div class="article-card" id="return-gifts">
+        <div class="article-img">
+          <img src="sana decor pic google v2.jpg" alt="Return gift ideas" loading="lazy" onerror="this.style.background='var(--spk)'">
+        </div>
+        <div class="article-body">
+          <div class="article-tag">Gift Ideas</div>
+          <div class="article-title">Top 10 return gift ideas kids actually love in 2025</div>
+          <div class="article-excerpt">Return gifts are the last impression your party leaves. Skip the generic stationery — here are ideas that make kids' eyes light up when they reach home.</div>
+          <div class="article-meta">🎁 Gift Guide &nbsp;·&nbsp; 4 min read</div>
+          <div class="article-content" style="background:#FFF0F7;border-left:3px solid var(--pk)">
+            <strong>The rule: personalise, don't genericise</strong>
+            The best return gifts feel curated. A good gift should be usable, edible, or memorable. Our top 10:
+            <br><br>
+            1. <b>Theme-matched activity kits</b> — spy decoder, art kit, science experiment<br>
+            2. <b>Personalised mini notebooks</b> with the birthday child's name + theme<br>
+            3. <b>Seed bomb sets</b> — eco, unique, great for ages 4+<br>
+            4. <b>Chocolate bark boxes</b> — custom designed with the party theme<br>
+            5. <b>Slime-making kits</b> — universally loved by ages 5–10<br>
+            6. <b>Custom tattoo sets</b> — themed temporary tattoos are a hit<br>
+            7. <b>Mini Lego sets</b> — small, premium, always wanted<br>
+            8. <b>Sensory play bags</b> — great for toddler parties (ages 1–4)<br>
+            9. <b>Personalized water bottles</b> — practical and used long after the party<br>
+            10. <b>DIY cookie decorating kits</b> — kids love a creative project to take home<br>
+            <br>
+            <strong>Budget sweet spot:</strong> ₹200–₹400 per gift bag. Going above ₹600 per bag rarely adds more joy — invest the extra in an activity instead.
+          </div>
+        </div>
+      </div>
+
+      <!-- Article 3 -->
+      <div class="article-card" id="planning-checklist">
+        <div class="article-img">
+          <img src="22.jpg" alt="Birthday planning checklist" loading="lazy" onerror="this.style.background='var(--syl)'">
+        </div>
+        <div class="article-body">
+          <div class="article-tag">Checklist</div>
+          <div class="article-title">The complete birthday planning checklist — 8 weeks to party day</div>
+          <div class="article-excerpt">Whether you're DIY-ing it or working with a team like ours, this timeline keeps you ahead of every deadline and stress-free on the day.</div>
+          <div class="article-meta">📋 Planning Guide &nbsp;·&nbsp; 6 min read</div>
+          <div class="article-content" style="background:#FFFBEA;border-left:3px solid var(--yl)">
+            <strong>8 weeks out:</strong> Fix the date, shortlist venues, decide on a rough theme and budget. Book your venue as soon as possible — popular spots fill up fast on weekends in Mumbai and Pune.
+            <br><br>
+            <strong>6 weeks out:</strong> Confirm the venue, finalise your theme, and book your main vendors. If you're using Wondershop, build your plan in the builder — takes under 10 minutes.
+            <br><br>
+            <strong>4 weeks out:</strong> Send invitations. Finalise guest list. Order the cake — give your baker at least 3 weeks for a custom design.
+            <br><br>
+            <strong>2 weeks out:</strong> Confirm RSVPs, finalise headcount with your vendor, plan the day-of timeline (arrival, setup, party start, cake, activities, food, return gifts).
+            <br><br>
+            <strong>1 week out:</strong> Pack a party kit — sellotape, scissors, safety pins, a printed copy of every vendor's number. Confirm setup time. Brief the birthday child on what to expect.
+            <br><br>
+            <strong>Day before:</strong> Charge your phone. Prep the birthday outfit. Rest.
+            <br><br>
+            <strong>Party day:</strong> Arrive 30 minutes before guests. Let your team handle the rest. Your only job is to be present and enjoy it.
+            <a href="builder.html?start=1" class="article-link">Build your birthday plan →</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="fcta">
+  <div class="container">
+    <div class="fcta-h">Ready to plan something <em style="font-style:italic">magical?</em></div>
+    <div class="fcta-sub">Build your birthday plan online in 10 minutes, or call us — we'd love to hear about your child's dream celebration.</div>
+    <div class="fcta-btns">
+      <a href="builder.html?start=1" class="btn-wh">Build a Birthday ✦</a>
+      <a href="builder.html?lead=1" class="btn-owh">📞 Call Me to Plan</a>
+    </div>
+    <div style="margin-top:28px;font-size:13px;color:rgba(255,255,255,.6)">contact@wondershopexperiences.com &nbsp;·&nbsp; Godrej Platinum, Vikhroli East, Mumbai</div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <img src="logo-horizontal-dark.png" alt="Wondershop Experiences" style="height:48px;width:auto;margin-bottom:14px">
+        <div class="ft-tagline">Think Birthdays, Think Wondershop. Story-led celebrations for children aged 1–12 across Mumbai and Pune.</div>
+        <div class="ft-soc">
+          <a href="https://www.instagram.com/wondershop.experiences/" target="_blank" class="ft-soc-a">📸</a>
+          <a href="https://wa.me/919004435362" target="_blank" class="ft-soc-a">💬</a>
+          <a href="tel:+919004435362" class="ft-soc-a">📞</a>
+        </div>
+      </div>
+      <div>
+        <div class="ft-col-h">Quick Links</div>
+        <ul class="ft-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="gallery.html">Gallery</a></li>
+          <li><a href="testimonials.html">Testimonials</a></li>
+          <li><a href="blogs.html">Blog</a></li>
+          <li><a href="about-us.html">About Us</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="ft-col-h">Contact</div>
+        <ul class="ft-links">
+          <li><a href="tel:+919004435362">+91 90044 35362</a></li>
+          <li><a href="tel:+919742240477">+91 97422 40477</a></li>
+          <li><a href="mailto:contact@wondershopexperiences.com">contact@wondershopexperiences.com</a></li>
+          <li>Vikhroli East, Mumbai</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ft-bottom">
+      <div class="ft-copy">© 2025 Wondershop Experiences. All rights reserved.</div>
+      <div class="ft-cities">Mumbai · Pune · Crafted with ♥</div>
+    </div>
+  </div>
+</footer>
+
+<!-- WhatsApp FAB -->
+<a href="https://wa.me/919004435362" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">💬</a>
+
+<script>
+window.addEventListener('scroll',()=>{
+  document.getElementById('main-nav').classList.toggle('scrolled', window.scrollY > 10);
+});
+const ham=document.getElementById('nav-ham');
+const mob=document.getElementById('nav-mob');
+if(ham&&mob){
+  ham.addEventListener('click',()=>mob.classList.toggle('open'));
+  document.querySelectorAll('.nav-mob-lnk').forEach(a=>a.addEventListener('click',()=>mob.classList.remove('open')));
+}
+</script>
+
+<!-- SEARCH OVERLAY -->
+<div id="search-overlay" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(25,25,25,.6);backdrop-filter:blur(4px)" onclick="closeSearch()"></div>
+<div id="search-modal" style="display:none;position:fixed;top:120px;left:50%;transform:translateX(-50%);z-index:501;width:min(560px,92vw);background:#fff;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.18);overflow:hidden">
+  <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--li2)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gy)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="search-input" type="text" placeholder="Search themes, packages, activities…" style="flex:1;border:none;outline:none;font-size:16px;font-family:var(--fb);color:var(--bk);background:transparent" oninput="doSearch(this.value)">
+    <button onclick="closeSearch()" style="background:none;border:none;cursor:pointer;color:var(--gy);font-size:20px;line-height:1;padding:0 4px">&times;</button>
+  </div>
+  <div id="search-results" style="max-height:340px;overflow-y:auto;padding:8px 0"></div>
+</div>
+<script>
+const searchItems=[
+  {t:"Spy Theme Birthday",u:"builder.html?theme=spy&start=1",d:"Secret agent decor, missions & activities"},
+  {t:"Build a Birthday",u:"builder.html?start=1",d:"Plan your birthday in 10 mins"},
+  {t:"Gallery",u:"gallery.html",d:"Real birthday photos"},
+  {t:"Testimonials",u:"testimonials.html",d:"What parents say"},
+  {t:"Blog",u:"blogs.html",d:"Tips & party guides"},
+  {t:"Contact Us",u:"contact.html",d:"Get in touch"},
+  {t:"About Us",u:"about-us.html",d:"Meet Shruti & Sidhant"},
+  {t:"Spy Guide",u:"blogs.html#spy-guide",d:"Plan the perfect spy birthday"},
+  {t:"Return Gifts",u:"blogs.html#return-gifts",d:"Best return gift ideas"},
+  {t:"Planning Checklist",u:"blogs.html#planning-checklist",d:"10-minute birthday checklist"},
+];
+function openSearch(){document.getElementById('search-overlay').style.display='block';document.getElementById('search-modal').style.display='block';setTimeout(()=>document.getElementById('search-input').focus(),50);doSearch('');}
+function closeSearch(){document.getElementById('search-overlay').style.display='none';document.getElementById('search-modal').style.display='none';}
+function doSearch(q){const r=document.getElementById('search-results');const hits=q?searchItems.filter(i=>i.t.toLowerCase().includes(q.toLowerCase())||i.d.toLowerCase().includes(q.toLowerCase())):searchItems;r.innerHTML=hits.length?hits.map(i=>`<a href="${i.u}" style="display:flex;flex-direction:column;gap:2px;padding:12px 20px;text-decoration:none;transition:background .1s" onmouseover="this.style.background='var(--li3)'" onmouseout="this.style.background=''""><span style="font-size:14px;font-weight:600;color:var(--bk)">${i.t}</span><span style="font-size:12px;color:var(--gy)">${i.d}</span></a>`).join(''):'<p style="text-align:center;padding:24px;color:var(--gy);font-size:14px">No results found</p>';}
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openSearch();}if(e.key==='Escape')closeSearch();});
+</script>
+</body>
+</html>
