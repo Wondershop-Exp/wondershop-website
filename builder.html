@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Wondershop Experiences — Plan Your Child's Dream Birthday</title>
+<!-- ── Google Analytics 4 ────────────────────────────────────────
+     Replace G-XXXXXXXXXX with your real GA4 Measurement ID
+     (GA4 property → Admin → Data Streams → your web stream).
+     Until replaced this loads harmlessly and sends no usable data. ── -->
+<script>window.WS_GA_ID = 'G-XXXXXXXXXX';</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', window.WS_GA_ID);
+</script>
 <link rel="icon" type="image/png" href="logo-square.png">
 <link rel="apple-touch-icon" href="logo-square.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -539,6 +551,20 @@ input,textarea,select{font-family:var(--fb)}
 .ls-body p{font-size:15px;color:var(--gy);max-width:380px;margin:0 auto 20px}
 .ls-contact{background:var(--li3);border-radius:12px;padding:16px;margin-bottom:20px;text-align:center}
 .lsc-t{font-size:12px;color:var(--gy);margin-bottom:4px}
+/* QR payment box */
+.ls-pay-box{background:#fff;border:2px solid var(--li2);border-radius:16px;padding:20px;margin:0 auto 24px;max-width:360px;text-align:center}
+.ls-pay-hdr{margin-bottom:16px}
+.ls-pay-badge{display:inline-block;background:var(--li3);color:var(--pk);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+.ls-pay-hdr h3{font-family:var(--fd);font-size:17px;font-weight:700;color:var(--bk);margin:0 0 6px}
+.ls-pay-hdr p{font-size:13px;color:var(--gy);margin:0;max-width:none}
+.ls-qr-wrap{margin:0 auto 14px;width:180px;height:180px;border-radius:12px;overflow:hidden;border:1.5px solid #eee;background:#fff}
+.ls-qr-img{width:100%;height:100%;object-fit:contain}
+.ls-upi-id{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--li3);border-radius:10px;padding:10px 14px;margin-bottom:6px}
+.ls-upi-label{font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.ls-upi-val{font-size:14px;font-weight:700;color:var(--bk);font-family:monospace}
+.ls-copy-btn{background:var(--pk);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.ls-upi-name{font-size:11px;color:var(--gy);margin-bottom:12px}
+.ls-pay-note{font-size:12px;color:var(--gy);margin:0;line-height:1.5}
 .lsc-n{font-size:18px;font-weight:700;color:var(--bk)}
 .lsc-e{font-size:13px;color:var(--gy);margin-top:4px}
 .wa-btn{background:#25D366;color:#fff;border:none;border-radius:24px;padding:12px 28px;font-size:15px;font-weight:700}
@@ -1701,11 +1727,11 @@ input,textarea,select{font-family:var(--fb)}
   </div>
   <div class="sec-blk">
     <div class="row2">
-      <div class="ig"><label>Parent Name</label><input type="text" id="ld-name" placeholder="Your full name"></div>
+      <div class="ig"><label>Parent Name<span class="req">*</span></label><input type="text" id="ld-name" placeholder="Your full name"></div>
       <div class="ig"><label>Child Name(s)</label><input type="text" id="ld-child" placeholder="Your child's name"></div>
     </div>
     <div class="row2">
-      <div class="ig"><label>WhatsApp Number</label><div class="pfx-wrap"><span class="pfx">+91</span><input type="tel" id="ld-phone" class="pi" placeholder="Mobile"></div></div>
+      <div class="ig"><label>WhatsApp Number<span class="req">*</span></label><div class="pfx-wrap"><span class="pfx">+91</span><input type="tel" id="ld-phone" class="pi" placeholder="Mobile"></div></div>
       <div class="ig"><label>Email</label><input type="email" id="ld-email" placeholder="your@email.com"></div>
     </div>
     <div class="row2">
@@ -1724,8 +1750,28 @@ input,textarea,select{font-family:var(--fb)}
 <div class="step" id="sleadsent">
   <div class="ls-body">
     <div class="ls-icon">✅</div>
-    <h1>We'll be in touch soon!</h1>
-    <p>Your request has been received. Our team will personally reach out to craft a celebration your child will never forget.</p>
+    <h1>Request received! 🎉</h1>
+    <p>Our team will call you within a few hours to finalise your celebration details.</p>
+
+    <!-- QR PAYMENT SECTION -->
+    <div class="ls-pay-box">
+      <div class="ls-pay-hdr">
+        <span class="ls-pay-badge">Optional</span>
+        <h3>Lock your date with a token advance</h3>
+        <p>Transfer ₹5,000 now via UPI to hold your date. Your balance is payable after we confirm all details with you.</p>
+      </div>
+      <div class="ls-qr-wrap">
+        <img src="upi_qr.png" alt="Wondershop UPI QR Code" class="ls-qr-img">
+      </div>
+      <div class="ls-upi-id">
+        <span class="ls-upi-label">UPI ID</span>
+        <span class="ls-upi-val" id="upiIdVal">wondershopcol26qr@fbl</span>
+        <button class="ls-copy-btn" onclick="copyUPI()" title="Copy UPI ID">📋 Copy</button>
+      </div>
+      <div class="ls-upi-name">WONDERSHOP COLLECTIVE LLP · Federal Bank</div>
+      <p class="ls-pay-note">After paying, WhatsApp your screenshot to <b>+91 90044 35362</b> and we'll confirm your booking.</p>
+    </div>
+
     <div class="ls-contact">
       <div class="lsc-t">For anything urgent, call us</div>
       <div class="lsc-n">+91 90044 35362</div>
@@ -1771,7 +1817,45 @@ input,textarea,select{font-family:var(--fb)}
 // ══════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════
+// ── API config — set this once Railway backend is live ──
+window.WS_API_BASE = 'http://127.0.0.1:8000';  // local dev — change to Railway URL for production
+
+// ── Google Sheet lead/booking capture — works today, no backend needed ──
+// Set up: see Google_Sheet_Lead_Capture_Setup.txt in this folder.
+// Logs to the "Website Orders and Leads" Google Sheet.
+window.WS_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyVQ_8aZQS2hE5t9-1ceC5ttHeD7DSr0NQmKzYAdxkyRK4eqwgWAG_UnM_iZZmyxY8z4Q/exec';
+
 const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,pinata:null,einvite:null,photo:null,addReel:false,gifts:[],packaging:'',tagType:'',couponPct:0,payMethod:'online',tncOk:false,FIT:30000,FGT:40000,FPT:50000};
+
+// ── Sends a lead or booking row to the Google Sheet, fire-and-forget. ──
+// Uses mode:'no-cors' + text/plain so the browser never sends a CORS
+// preflight (Apps Script Web Apps don't handle OPTIONS well) — this means
+// we can't read the response, so we just log locally and move on; the
+// mailto/WhatsApp fallbacks already in place still guarantee nothing is lost.
+function wsSendToSheet(type, payload){
+  try{
+    const url = window.WS_SHEET_URL || '';
+    if(!url) return;
+    fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify(Object.assign({type, page_url: location.href}, payload)),
+    }).catch(err => console.warn('[Sheet capture] send failed:', err));
+  }catch(e){console.warn('[Sheet capture] error:', e);}
+}
+function wsBuilderSnapshotForSheet(){
+  return {
+    decor:       S.decor       ? S.decor.n + ' (Rs ' + S.decor.p + ')'   : '',
+    activities:  S.activities.length ? S.activities.map(a=>a.n).join(', ') : '',
+    host:        S.host        ? S.host.tier + ' (Rs ' + S.host.p + ')'  : '',
+    dj:          S.dj          ? S.dj.tier + ' (Rs ' + S.dj.p + ')'      : '',
+    pinata:      S.pinata      ? S.pinata.n + ' (Rs ' + S.pinata.p + ')' : '',
+    einvite:     S.einvite     ? S.einvite.n : '',
+    photographer:S.photo       ? S.photo.tier + ' (Rs ' + S.photo.p + ')': '',
+    return_gifts:S.gifts.length ? S.gifts.map(g=>g.n+' x'+g.qty).join(', ') : '',
+  };
+}
 
 // ── DATA ──
 const THEMES=[
@@ -1878,6 +1962,37 @@ function adv(){return Math.round(tp()*0.5)}
 const SIDS=['s0','s1','s2','s3','s4','s5','s6','s7','s8','s9'];
 const SNAMES=['Your Details','Decor','Activities','Host','DJ','Pinata','E-Invite','Photographer','Return Gifts','Review'];
 
+// ── ANALYTICS: funnel event tracking (GA4) ──
+// Fires the events the CGO's revenue equation needs: Traffic (automatic page_view)
+// × Builder Start Rate × Completion Rate (per-step) × Checkout Rate × AOV (value=).
+// Safe no-op if gtag isn't loaded (e.g. ad-blockers) — never breaks the builder.
+let __wsBuilderStarted = false;
+function wsTrack(name, params){
+  try{
+    if(typeof gtag === 'function') gtag('event', name, params || {});
+  }catch(e){/* never let analytics break the UX */}
+}
+function wsTrackScreen(id){
+  const i = SIDS.indexOf(id);
+  const stepName = i > -1 ? SNAMES[i] : id;
+  if(id === 's0' && !__wsBuilderStarted){
+    __wsBuilderStarted = true;
+    wsTrack('builder_start', {theme: S.theme || null});
+  }
+  if(i > -1){
+    wsTrack('builder_step_view', {step_id:id, step_name:stepName, step_number:i, value:tp(), currency:'INR'});
+  } else if(id === 'sco'){
+    wsTrack('begin_checkout', {value:tp(), currency:'INR'});
+  } else if(id === 'sconf'){
+    // Advance is requested here, not yet a verified payment (no gateway webhook) — named accordingly.
+    wsTrack('booking_request_submitted', {value:tp(), advance:adv(), currency:'INR'});
+  } else if(id === 'slead'){
+    wsTrack('lead_form_view', {theme: S.theme || null});
+  } else if(id === 'sleadsent'){
+    wsTrack('generate_lead', {value:tp(), currency:'INR'});
+  }
+}
+
 function showBuilder(){
   document.getElementById('pg-home').style.display='none';
   document.getElementById('pg-builder').classList.add('active');
@@ -1896,6 +2011,7 @@ function goTo(id){
   el.classList.add('active');
   document.getElementById('bldMain').scrollTop=0;
   S.screen=id;updHdr(id);updBB(id);
+  wsTrackScreen(id);
   if(id==='s9')buildRev();
   if(id==='s6'){chkFreeInv();buildInvs();}
   if(id==='s8')chkFreeTag();
@@ -1907,8 +2023,8 @@ function goBack(){
   const p=prev[S.screen];if(p)goTo(p);
 }
 function doNext(){if(S.fromReview){S.fromReview=false;goTo('s9');return;}const i=SIDS.indexOf(S.screen);if(i>=0&&i<SIDS.length-1)goTo(SIDS[i+1]);}
-function doSkip(){if(S.fromReview){S.fromReview=false;goTo('s9');return;}const i=SIDS.indexOf(S.screen);if(i>=0&&i<SIDS.length-1)goTo(SIDS[i+1]);}
-function goDirectCO(){goTo('s9');}
+function doSkip(){wsTrack('builder_step_skip',{step_id:S.screen,step_name:SNAMES[SIDS.indexOf(S.screen)]||S.screen});if(S.fromReview){S.fromReview=false;goTo('s9');return;}const i=SIDS.indexOf(S.screen);if(i>=0&&i<SIDS.length-1)goTo(SIDS[i+1]);}
+function goDirectCO(){wsTrack('builder_skip_to_review',{step_id:S.screen});goTo('s9');}
 function bbAction(){
   if(S.screen==='s0'){doS0();return;}
   if(S.screen==='s9'){goTo('sco');fillCo();return;}
@@ -1946,6 +2062,14 @@ function updBB(id){
   const hideOn=['shome','sconf','sleadsent'];
   bb.classList.toggle('hidden',hideOn.includes(id));
   if(hideOn.includes(id))return;
+  // Lead form: hide the running price total — this screen isn't about the cart amount
+  const priceWrap=document.querySelector('#bldBB .bb-disc-wrap');
+  if(priceWrap)priceWrap.style.display=(id==='slead')?'none':'';
+  if(id==='slead'){
+    const skipBtn=document.getElementById('bbSkip');const contBtn=document.getElementById('bbCont');const revBackBtn=document.getElementById('bbRevBack');
+    skipBtn.style.display='none';contBtn.textContent='Send My Details →';revBackBtn.style.display='none';
+    return;
+  }
   const gt=rawT();const tpv=tp();const dpv=dp();const sc=svcC();
   document.getElementById('bbTotal').textContent='₹'+tpv.toLocaleString('en-IN');
   // Show 50% advance only on review page
@@ -2204,6 +2328,13 @@ function doCo(){
   S.mobile=document.getElementById('co-mob').value;S.eventDate=document.getElementById('co-date').value;S.eventTime=document.getElementById('co-time').value;
   S.kidsCount=parseInt(document.getElementById('co-kids').value)||S.kidsCount;
   S.parentName=document.getElementById('co-name').value;S.email=document.getElementById('co-email').value;S.address=document.getElementById('co-addr').value;
+  wsSendToSheet('booking', Object.assign({
+    name: S.parentName, phone: S.mobile, email: S.email,
+    child: S.children.map(c=>c.name||'').filter(Boolean).join(', '),
+    event_date: S.eventDate, event_time: S.eventTime, kids_count: S.kidsCount,
+    venue: S.address || S.venue, pincode: S.pincode, theme: S.theme,
+    estimated_total: tp(), advance: adv(), lead_source: 'Website - Checkout',
+  }, wsBuilderSnapshotForSheet()));
   goTo('sconf');launchConfetti();
 }
 
@@ -2248,23 +2379,119 @@ function buildSummaryText(){
   return lines.join('\n');
 }
 
-function doLead(){
-  const body=buildSummaryText();
-  const sub='Custom Birthday Request — Wondershop Experiences';
-  window.open('mailto:contact@wondershopexperiences.com?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body),'_blank');
-  goTo('sleadsent');
+async function doLead(){
+  // Collect fields
+  const name   = (document.getElementById('ld-name')?.value  || '').trim();
+  const phone  = (document.getElementById('ld-phone')?.value || '').trim().replace(/\D/g,'');
+  const child  = (document.getElementById('ld-child')?.value || '').trim();
+  const email  = (document.getElementById('ld-email')?.value || '').trim();
+  const date   = document.getElementById('ld-date')?.value || S.eventDate || '';
+  const kids   = parseInt(document.getElementById('ld-kids')?.value || S.kidsCount) || null;
+  const venue  = (document.getElementById('ld-venue')?.value || S.venue || '').trim();
+  const theme  = (document.getElementById('ld-theme')?.value || S.theme || '').trim();
+  const budget = (document.getElementById('ld-budget')?.value || '').trim();
+
+  // Validate required
+  if(!name){
+    const el=document.getElementById('ld-name');
+    el.style.borderColor='#E65A96';el.focus();
+    return;
+  }
+  if(phone.length!==10){
+    const el=document.getElementById('ld-phone');
+    el.style.borderColor='#E65A96';el.focus();
+    return;
+  }
+
+  // Disable the continue button to prevent double-submit
+  const btn=document.getElementById('bbCont');
+  if(btn){btn.disabled=true;btn.textContent='Sending…';}
+
+  // Build payload
+  const payload={
+    parent_name:        name,
+    phone:              phone,
+    child_names:        child   || null,
+    email:              email   || null,
+    event_date:         date    || null,
+    kids_count:         kids,
+    theme:              theme   || null,
+    venue:              venue   || null,
+    client_budget:      budget ? parseFloat(budget.replace(/[^\d.]/g,'')) || null : null,
+    builder_snapshot:   buildSnapshot(),
+    lead_source:        'Website',
+    lead_source_detail: new URLSearchParams(location.search).get('utm_source')||null,
+  };
+
+  // Google Sheet capture — fires independently of the Railway API below,
+  // so leads land in the Sheet even before the backend is live.
+  wsSendToSheet('lead', Object.assign({
+    name: name, phone: phone, email: email, child: child,
+    event_date: date, kids_count: kids, venue: venue, theme: theme,
+    budget: budget, estimated_total: rawT(),
+    lead_source: 'Website - Custom Request',
+    utm_source: new URLSearchParams(location.search).get('utm_source') || '',
+  }, wsBuilderSnapshotForSheet()));
+
+  try{
+    const API=window.WS_API_BASE||'';
+    if(API){
+      const r=await fetch(API+'/api/leads/submit',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload),
+      });
+      const data=await r.json();
+      if(!r.ok) throw new Error(data.detail||'Server error');
+    }
+    // Success (or no API configured — form still reaches team via email notification)
+    goTo('sleadsent');
+  }catch(err){
+    console.error('Lead submit error:',err);
+    // Lead was already captured to the Sheet above (fire-and-forget), so still
+    // show the confirmation — never redirect the user out to a mail app.
+    goTo('sleadsent');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Send My Details →';}
+  }
+}
+
+/** Snapshot of current builder state to save alongside the lead */
+function buildSnapshot(){
+  try{
+    return {
+      decor:       S.decor    ? {id:S.decor.id, n:S.decor.n, p:S.decor.p}    : null,
+      host:        S.host     ? {tier:S.host.tier, p:S.host.p}                : null,
+      dj:          S.dj       ? {tier:S.dj.tier, p:S.dj.p}                   : null,
+      pinata:      S.pinata   ? {n:S.pinata.n, p:S.pinata.p}                 : null,
+      einvite:     S.einvite  ? {n:S.einvite.n}                               : null,
+      photo:       S.photo    ? {tier:S.photo.tier, p:S.photo.p}             : null,
+      activities:  S.activities.map(a=>({id:a.id,n:a.n,p:a.p})),
+      gifts:       S.gifts.map(g=>({id:g.id,n:g.n,qty:g.qty,p:g.p})),
+      estimated_total: rawT(),
+      pincode:     S.pincode,
+      kids_count:  S.kidsCount,
+      event_date:  S.eventDate,
+      theme:       S.theme,
+    };
+  }catch(e){return null;}
+}
+
+function copyUPI(){
+  navigator.clipboard.writeText('wondershopcol26qr@fbl').then(()=>{
+    const btn=document.querySelector('.ls-copy-btn');
+    if(btn){btn.textContent='✅ Copied';setTimeout(()=>{btn.textContent='📋 Copy';},2000);}
+  });
 }
 
 function sendToTeamAndLead(){
-  // Pre-fill lead form with builder data, then send email
+  // Pre-fill lead form with builder data, then take the user to the form
+  // (submitting it — doLead() — is what actually captures and confirms the lead)
   document.getElementById('ld-date').value=S.eventDate||'';
   document.getElementById('ld-kids').value=S.kidsCount||'';
   document.getElementById('ld-theme').value=S.theme||'';
   document.getElementById('ld-child').value=S.children.map(c=>c.name||'').filter(Boolean).join(', ');
   document.getElementById('ld-phone').value=S.mobile||'';
-  const body=buildSummaryText();
-  const sub='Custom Birthday Request (from Review) — Wondershop Experiences';
-  window.open('mailto:contact@wondershopexperiences.com?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body),'_blank');
   goTo('slead');
 }
 
