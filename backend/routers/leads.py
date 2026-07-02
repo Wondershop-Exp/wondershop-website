@@ -58,10 +58,10 @@ async def _smtp_send(msg: MIMEMultipart) -> None:
     await aiosmtplib.send(
         msg,
         hostname=settings.SMTP_HOST,
-        port=settings.SMTP_PORT,
+        port=465,
         username=settings.SMTP_USER,
         password=settings.SMTP_PASSWORD,
-        start_tls=True,
+        use_tls=True,
     )
 
 
