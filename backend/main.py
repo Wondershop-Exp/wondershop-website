@@ -17,7 +17,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"WhatsApp API URL         : {settings.WHATSAPP_API_URL}")
     logger.info(f"WS_PHONE_1               : {settings.WS_PHONE_1}")
     logger.info(f"WS_PHONE_2               : {settings.WS_PHONE_2}")
-    logger.info(f"SMTP_USER                : {settings.SMTP_USER}")
+    logger.info(f"Gmail API configured     : {bool(settings.GMAIL_CLIENT_ID)}")
     await connect_db()
     yield
     await disconnect_db()
