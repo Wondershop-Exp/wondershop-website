@@ -2322,12 +2322,14 @@ function applyCoupon(){
 }
 function selPay(el,method){document.querySelectorAll('.pay-opt').forEach(p=>p.classList.remove('on'));el.classList.add('on');S.payMethod=method;}
 function togTNC(){S.tncOk=!S.tncOk;const cb=document.getElementById('tncCb');cb.classList.toggle('checked',S.tncOk);cb.textContent=S.tncOk?'✓':'';}
-function doCo(){
+async function doCo(){
   if(!S.tncOk){document.getElementById('e-tnc').classList.add('show');return;}
   document.getElementById('e-tnc').classList.remove('show');
   S.mobile=document.getElementById('co-mob').value;S.eventDate=document.getElementById('co-date').value;S.eventTime=document.getElementById('co-time').value;
   S.kidsCount=parseInt(document.getElementById('co-kids').value)||S.kidsCount;
   S.parentName=document.getElementById('co-name').value;S.email=document.getElementById('co-email').value;S.address=document.getElementById('co-addr').value;
+
+  // Google Sheet — fire-and-forget
   wsSendToSheet('booking', Object.assign({
     name: S.parentName, phone: S.mobile, email: S.email,
     child: S.children.map(c=>c.name||'').filter(Boolean).join(', '),
@@ -2335,6 +2337,30 @@ function doCo(){
     venue: S.address || S.venue, pincode: S.pincode, theme: S.theme,
     estimated_total: tp(), advance: adv(), lead_source: 'Website - Checkout',
   }, wsBuilderSnapshotForSheet()));
+
+  // Railway — WhatsApp + email + DB (fire-and-forget, never blocks confirmation)
+  if(window.WS_API_BASE){
+    const phone = (S.mobile||'').replace(/\D/g,'');
+    fetch(window.WS_API_BASE+'/api/leads/submit', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        parent_name:        S.parentName,
+        phone:              phone.length===10 ? '+91'+phone : '+'+phone,
+        email:              S.email || null,
+        event_date:         S.eventDate || null,
+        kids_count:         S.kidsCount || null,
+        child_names:        S.children.map(c=>c.name||'').filter(Boolean).join(', ') || null,
+        theme:              S.theme || null,
+        venue:              S.address || S.venue || null,
+        pincode:            S.pincode || null,
+        client_budget:      tp() || null,
+        builder_snapshot:   buildSnapshot ? buildSnapshot() : null,
+        lead_source:        'Website - Checkout',
+      }),
+    }).catch(e=>console.error('Booking notify error:',e));
+  }
+
   goTo('sconf');launchConfetti();
 }
 
