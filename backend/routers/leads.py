@@ -11,10 +11,7 @@ On every new lead submission, four things fire in parallel (fire-and-forget):
 import json
 import asyncio
 import logging
-import aiosmtplib
 import httpx
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from datetime import datetime, date
 
 from fastapi import APIRouter
@@ -51,18 +48,44 @@ class LeadSubmitRequest(BaseModel):
     referred_by:        Optional[str]   = None
 
 
-# ─── SMTP HELPER ─────────────────────────────────────────────────────────────
+# ─── GMAIL API EMAIL HELPER ──────────────────────────────────────────────────
 
-async def _smtp_send(msg: MIMEMultipart) -> None:
-    """Shared SMTP sender. Raises on failure (caller must catch)."""
-    await aiosmtplib.send(
-        msg,
-        hostname=settings.SMTP_HOST,
-        port=465,
-        username=settings.SMTP_USER,
-        password=settings.SMTP_PASSWORD,
-        use_tls=True,
+async def _get_gmail_access_token() -> str:
+    """Exchange refresh token for a short-lived access token."""
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "client_id":     settings.GMAIL_CLIENT_ID,
+                "client_secret": settings.GMAIL_CLIENT_SECRET,
+                "refresh_token": settings.GMAIL_REFRESH_TOKEN,
+                "grant_type":    "refresh_token",
+            },
+        )
+    r.raise_for_status()
+    return r.json()["access_token"]
+
+async def _gmail_send(to_email: str, subject: str, body: str) -> None:
+    """Send email via Gmail API (HTTPS — no SMTP port issues)."""
+    import base64
+    raw = (
+        f"From: Wondershop Experiences <{settings.EMAIL_FROM}>\r\n"
+        f"To: {to_email}\r\n"
+        f"Subject: {subject}\r\n"
+        f"Content-Type: text/plain; charset=utf-8\r\n"
+        f"\r\n"
+        f"{body}"
     )
+    encoded = base64.urlsafe_b64encode(raw.encode("utf-8")).decode("utf-8")
+    token = await _get_gmail_access_token()
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(
+            "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"raw": encoded},
+        )
+    if r.status_code not in (200, 201):
+        raise Exception(f"Gmail API error {r.status_code}: {r.text}")
 
 
 # ─── 1. USER ACK EMAIL ───────────────────────────────────────────────────────
@@ -71,7 +94,7 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest) -> None:
     """Confirmation email to the parent who submitted the form."""
     if not req.email or "@" not in req.email or "." not in req.email.split("@")[-1]:
         return   # skip if no email or obviously invalid (e.g. test placeholder "string")
-    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+    if not settings.GMAIL_CLIENT_ID:
         return
 
     try:
@@ -92,12 +115,11 @@ Warmly,
 Team Wondershop 🎈
 wondershopexperiences.com
 """
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"We got your enquiry, {req.parent_name.split()[0]}! 🎈"
-        msg["From"]    = settings.EMAIL_FROM
-        msg["To"]      = req.email
-        msg.attach(MIMEText(body, "plain"))
-        await _smtp_send(msg)
+        await _gmail_send(
+            to_email=req.email,
+            subject=f"We got your enquiry, {req.parent_name.split()[0]}! 🎈",
+            body=body,
+        )
         logger.info(f"Lead #{lead_id}: user ACK sent to {req.email}")
     except Exception as exc:
         logger.error(f"Lead #{lead_id}: user ACK email failed — {exc}")
@@ -107,12 +129,12 @@ wondershopexperiences.com
 
 async def _send_team_email(lead_id: int, req: LeadSubmitRequest) -> None:
     """Alert email to the Wondershop team."""
-    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        logger.warning("SMTP not configured — skipping team email")
+    if not settings.GMAIL_CLIENT_ID:
+        logger.warning("GMAIL credentials not configured — skipping team email")
         return
 
     try:
-        budget_str = f"₹{req.client_budget:,.0f}" if req.client_budget else "—"
+        budget_str = f"Rs.{req.client_budget:,.0f}" if req.client_budget else "—"
         body = f"""New lead #{lead_id} received on Wondershop website.
 
 PARENT
@@ -139,12 +161,11 @@ SOURCE
 
 — Wondershop Lead System
 """
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"🎉 Lead #{lead_id} — {req.parent_name} ({req.phone})"
-        msg["From"]    = settings.EMAIL_FROM
-        msg["To"]      = settings.EMAIL_TEAM
-        msg.attach(MIMEText(body, "plain"))
-        await _smtp_send(msg)
+        await _gmail_send(
+            to_email=settings.EMAIL_TEAM,
+            subject=f"New Lead #{lead_id} — {req.parent_name} ({req.phone})",
+            body=body,
+        )
         logger.info(f"Lead #{lead_id}: team email sent to {settings.EMAIL_TEAM}")
     except Exception as exc:
         logger.error(f"Lead #{lead_id}: team email failed — {exc}")

@@ -7,10 +7,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "dev-secret-change-in-prod"
     ALLOWED_ORIGINS: str = "http://localhost:3000"
 
-    SMTP_HOST: str = "smtp.gmail.com"
-    SMTP_PORT: int = 587
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
+    GMAIL_CLIENT_ID: str = ""
+    GMAIL_CLIENT_SECRET: str = ""
+    GMAIL_REFRESH_TOKEN: str = ""
     EMAIL_FROM: str = "contact@wondershopexperiences.com"
     EMAIL_TEAM: str = "contact@wondershopexperiences.com"
 
