@@ -71,30 +71,17 @@ button{cursor:pointer;font-family:var(--fb)}
   .nav-cta-desk{display:none}
 }
 
-/* ── HERO SPLIT ─────────────────────────────────────────────────── */
-.hero-split{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  min-height:520px;
-  margin-top:var(--nav-h);
-}
-@media(max-width:768px){.hero-split{grid-template-columns:1fr;min-height:auto}}
-
-.hero-split-text{
-  display:flex;flex-direction:column;justify-content:center;
-  padding:64px 48px 64px 24px;
-  max-width:600px;
-  margin-left:auto;
-}
-@media(max-width:768px){.hero-split-text{padding:48px 24px 32px;max-width:100%;margin-left:0}}
-
-.hero-h1{font-size:clamp(32px,4vw,52px);font-weight:700;color:var(--bk);margin-bottom:16px}
+/* ── HERO BANNER ─────────────────────────────────────────────────── */
+.hero-banner{position:relative;margin-top:var(--nav-h);height:320px;overflow:hidden}
+@media(max-width:600px){.hero-banner{height:240px}}
+.hero-banner-img{width:100%;height:100%;object-fit:cover;object-position:center 40%}
+.hero-banner-overlay{position:absolute;inset:0;background:linear-gradient(to right,rgba(25,25,25,.62) 0%,rgba(25,25,25,.28) 100%)}
+.hero-banner-content{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 48px;max-width:640px}
+@media(max-width:600px){.hero-banner-content{padding:0 24px}}
+.hero-banner-content .sec-tag{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3)}
+.hero-h1{font-size:clamp(28px,4vw,48px);font-weight:700;color:#fff;margin-bottom:12px;line-height:1.15}
 .hero-h1 em{color:var(--li);font-style:italic}
-.hero-p{font-size:17px;color:var(--gy);max-width:440px;line-height:1.7}
-
-.hero-split-img{overflow:hidden;background:var(--li2)}
-.hero-split-img img{width:100%;height:100%;object-fit:cover}
-@media(max-width:768px){.hero-split-img{height:260px}}
+.hero-p{font-size:16px;color:rgba(255,255,255,.78);max-width:420px;line-height:1.65}
 
 .sec-tag{
   display:inline-block;background:var(--li2);color:var(--li);
@@ -267,15 +254,14 @@ button{cursor:pointer;font-family:var(--fb)}
   <a href="builder.html?start=1" class="nav-cta">Build a Birthday ✦</a>
 </div>
 
-<!-- HERO SPLIT -->
-<div class="hero-split">
-  <div class="hero-split-text">
+<!-- HERO BANNER -->
+<div class="hero-banner">
+  <img src="testimonials-hero.jpg" alt="Wondershop Experiences birthday party" class="hero-banner-img">
+  <div class="hero-banner-overlay"></div>
+  <div class="hero-banner-content">
     <div class="sec-tag">Wondershop Families</div>
     <h1 class="hero-h1">Straight from <em>the parents</em></h1>
     <p class="hero-p">Every word below is from a real Wondershop family — unedited, unfiltered.</p>
-  </div>
-  <div class="hero-split-img">
-    <img src="testimonials-hero.jpg" alt="A parent celebrating with their child at a Wondershop birthday party">
   </div>
 </div>
 
