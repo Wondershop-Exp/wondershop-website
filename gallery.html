@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gallery — Wondershop Experiences</title>
+<!-- ── Google Analytics 4 ────────────────────────────────────────
+     Replace G-XXXXXXXXXX with your real GA4 Measurement ID
+     (GA4 property → Admin → Data Streams → your web stream).
+     Until replaced this loads harmlessly and sends no usable data. ── -->
+<script>window.WS_GA_ID = 'G-XXXXXXXXXX';</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', window.WS_GA_ID);
+</script>
 <link rel="icon" type="image/png" href="logo-square.png">
 <link rel="apple-touch-icon" href="logo-square.png">
 <meta name="description" content="Browse Wondershop Experiences' gallery — real birthday celebrations across Mumbai and Pune. Decor, spy themes, house parties, turf parties, DIY activities and more.">
@@ -45,7 +57,166 @@ button{cursor:pointer;font-family:var(--fb)}
 .nav-cta-sub{font-family:var(--fb);font-size:10px;color:var(--gy);text-align:right}
 .nav-search-btn{background:none;border:none;cursor:pointer;color:var(--gy);padding:6px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:color .15s}
 .nav-search-btn:hover{color:var(--bk)}
-    </style>
+.nav-ham{display:none;flex-direction:column;gap:5px;background:none;border:none;padding:6px;cursor:pointer}
+.nav-ham span{display:block;width:22px;height:2px;background:var(--bk);border-radius:2px;transition:.2s}
+.nav-mobile{display:none;position:fixed;top:var(--nav-h);left:0;right:0;z-index:199;background:#fff;border-bottom:2px solid var(--li2);padding:16px 24px 20px;flex-direction:column;gap:8px;box-shadow:0 8px 32px rgba(0,0,0,.08)}
+.nav-mobile.open{display:flex}
+.nav-mob-lnk{font-size:15px;font-weight:500;color:var(--bk);padding:8px 0;border-bottom:1px solid var(--li2)}
+.nav-mob-lnk.active{color:var(--li);font-weight:700}
+.nav-mobile .nav-cta{margin-top:8px;justify-content:center}
+
+@media(max-width:700px){
+  .nav-ham{display:flex}
+  .nav-row2{display:none}
+  .nav-cta-desk{display:none}
+}
+
+/* ── HERO ───────────────────────────────────────────────────────── */
+.gal-hero{
+  padding:calc(var(--nav-h) + 60px) 0 56px;
+  background:linear-gradient(160deg,var(--li3) 0%,#fff8f0 60%,var(--wh) 100%);
+  text-align:center;
+}
+.gal-hero-tag{
+  display:inline-block;
+  background:var(--li2);color:var(--li);
+  font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  border-radius:20px;padding:5px 14px;margin-bottom:18px;
+}
+.gal-hero-h1{
+  font-size:clamp(32px,5vw,52px);font-weight:700;color:var(--bk);margin-bottom:16px;
+}
+.gal-hero-h1 em{color:var(--li);font-style:italic}
+.gal-hero-sub{font-size:17px;color:var(--gy);max-width:560px;margin:0 auto 28px}
+.gal-hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn-p{
+  background:var(--li);color:#fff;border-radius:24px;
+  padding:13px 28px;font-size:15px;font-weight:700;font-family:var(--fb);
+  transition:opacity .15s;
+}
+.btn-p:hover{opacity:.88}
+.btn-ghost{
+  background:transparent;color:var(--bk);
+  border:2px solid var(--li2);border-radius:24px;
+  padding:13px 28px;font-size:15px;font-weight:700;font-family:var(--fb);
+  transition:border-color .15s;
+}
+.btn-ghost:hover{border-color:var(--li)}
+
+/* ── GALLERY SECTIONS ───────────────────────────────────────────── */
+.gal-sections{padding:48px 0 80px}
+
+.gal-sec{
+  border:1.5px solid var(--li2);border-radius:18px;
+  overflow:hidden;margin-bottom:16px;background:#fff;
+}
+.gal-sec-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px;cursor:pointer;user-select:none;
+  transition:background .15s;
+}
+.gal-sec-hdr:hover{background:var(--li3)}
+.gal-sec-left{display:flex;align-items:center;gap:14px}
+.gal-sec-icon{font-size:26px;line-height:1}
+.gal-sec-title{font-family:var(--fd);font-size:18px;font-weight:700;color:var(--bk)}
+.gal-sec-count{font-size:13px;color:var(--gy);margin-top:2px}
+.gal-sec-arrow{
+  font-size:14px;color:var(--gy);
+  transition:transform .25s;
+  flex-shrink:0;
+}
+.gal-sec.open .gal-sec-arrow{transform:rotate(180deg)}
+.gal-sec-body{
+  display:none;
+  padding:0 24px 24px;
+  border-top:1px solid var(--li2);
+}
+.gal-sec.open .gal-sec-body{display:block}
+
+/* ── PHOTO GRID ─────────────────────────────────────────────────── */
+.gal-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin-top:20px;
+}
+@media(max-width:900px){.gal-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.gal-grid{grid-template-columns:repeat(2,1fr)}}
+
+.gal-grid img{
+  width:100%;aspect-ratio:1;object-fit:cover;
+  border-radius:10px;cursor:zoom-in;
+  transition:transform .2s,box-shadow .2s;
+}
+.gal-grid img:hover{transform:scale(1.03);box-shadow:0 8px 24px rgba(0,0,0,.15)}
+
+/* ── LIGHTBOX ───────────────────────────────────────────────────── */
+.lb{
+  display:none;position:fixed;inset:0;z-index:1000;
+  background:rgba(15,15,15,.92);
+  align-items:center;justify-content:center;
+}
+.lb.open{display:flex}
+.lb-img-wrap{
+  position:relative;max-width:90vw;max-height:90vh;
+  display:flex;align-items:center;justify-content:center;
+}
+#lb-img{
+  max-width:90vw;max-height:85vh;
+  object-fit:contain;border-radius:12px;
+  box-shadow:0 24px 64px rgba(0,0,0,.5);
+}
+.lb-close{
+  position:fixed;top:20px;right:24px;
+  background:rgba(255,255,255,.12);border:none;color:#fff;
+  font-size:28px;line-height:1;width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:background .15s;
+}
+.lb-close:hover{background:rgba(255,255,255,.22)}
+.lb-nav{
+  position:fixed;top:50%;transform:translateY(-50%);
+  background:rgba(255,255,255,.12);border:none;color:#fff;
+  font-size:32px;width:48px;height:48px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:background .15s;
+}
+.lb-nav:hover{background:rgba(255,255,255,.22)}
+.lb-prev{left:20px}
+.lb-next{right:20px}
+
+/* ── FOOTER ─────────────────────────────────────────────────────── */
+.footer{background:var(--bk);color:rgba(255,255,255,.75);padding:56px 0 28px}
+.footer-grid{
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr 1fr;
+  gap:32px;margin-bottom:40px;
+}
+@media(max-width:800px){.footer-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.footer-grid{grid-template-columns:1fr}}
+.ft-tagline{font-size:13.5px;line-height:1.7;color:rgba(255,255,255,.5);margin-bottom:20px;max-width:280px}
+.ft-soc{display:flex;gap:10px}
+.ft-soc-a{
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;transition:background .15s;color:#fff;
+}
+.ft-soc-a:hover{background:rgba(255,255,255,.18)}
+.ft-col-h{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:14px}
+.ft-links{list-style:none;display:flex;flex-direction:column;gap:10px}
+.ft-links li a{font-size:14px;color:rgba(255,255,255,.65);transition:color .15s}
+.ft-links li a:hover{color:#fff}
+.ft-links li{font-size:14px;color:rgba(255,255,255,.45)}
+.ft-bottom{border-top:1px solid rgba(255,255,255,.08);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.ft-copy{font-size:12px;color:rgba(255,255,255,.35)}
+.ft-cities{font-size:12px;color:rgba(255,255,255,.35)}
+
+/* ── WhatsApp FAB ────────────────────────────────────────────────── */
+.wa-fab{position:fixed;bottom:24px;left:24px;z-index:9999;width:52px;height:52px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;text-decoration:none}
+.wa-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(37,211,102,.6)}
+.wa-fab svg{width:26px;height:26px}
+</style>
 </head>
 <body>
 
@@ -353,8 +524,9 @@ button{cursor:pointer;font-family:var(--fb)}
         <p class="ft-tagline">Think Birthdays, Think Wondershop. Story-led celebrations for children aged 1–12 across Mumbai and Pune.</p>
         <div class="ft-soc">
           <a href="https://www.instagram.com/wondershop.experiences/" target="_blank" class="ft-soc-a">📸</a>
-          <a href="https://wa.me/919004435362" target="_blank" class="ft-soc-a">💬</a>
-          <a href="tel:+919004435362" class="ft-soc-a">📞</a>
+          <a href="https://wa.me/919742240477" target="_blank" class="ft-soc-a">💬</a>
+          <a href="tel:+919742240477" class="ft-soc-a">📞</a>
+          <a href="https://www.youtube.com/@wondershop_experiences/videos" target="_blank" class="ft-soc-a">▶</a>
         </div>
       </div>
       <div>
@@ -379,7 +551,7 @@ button{cursor:pointer;font-family:var(--fb)}
       <div>
         <div class="ft-col-h">Contact</div>
         <ul class="ft-links">
-          <li><a href="tel:+919004435362">+91 90044 35362</a></li>
+          <li><a href="tel:+919742240477">+91 97422 40477</a></li>
           <li><a href="mailto:contact@wondershopexperiences.com">contact@wondershopexperiences.com</a></li>
           <li>Vikhroli East, Mumbai</li>
         </ul>
@@ -449,14 +621,9 @@ document.addEventListener('keydown', e => {
 
 
 <!-- WhatsApp FAB -->
-<a href="https://wa.me/919004435362" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
+<a href="https://wa.me/919742240477" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
   <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
 </a>
-<style>
-.wa-fab{position:fixed;bottom:24px;left:24px;z-index:9999;width:52px;height:52px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;text-decoration:none}
-.wa-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(37,211,102,.6)}
-.wa-fab svg{width:26px;height:26px}
-</style>
 
 <script>
 // Mobile menu

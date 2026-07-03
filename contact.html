@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Contact Us — Wondershop Experiences</title>
+<script>window.WS_GA_ID = 'G-XXXXXXXXXX';</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', window.WS_GA_ID);
+</script>
 <link rel="icon" type="image/png" href="logo-square.png">
 <link rel="apple-touch-icon" href="logo-square.png">
 <meta name="description" content="Reach out to Wondershop Experiences — WhatsApp, call, email, Instagram, YouTube. We'd love to plan your child's birthday.">
@@ -31,7 +39,7 @@ a{text-decoration:none}
 button{cursor:pointer;font-family:var(--fb)}
 .container{max-width:var(--max);margin:0 auto;padding:0 24px}
 
-/* NAV */
+/* ── NAV ─────────────────────────────────────────────────────────── */
 .nav{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--nav-h);background:rgba(250,250,250,.97);backdrop-filter:blur(10px);border-bottom:1px solid rgba(181,157,222,.18);transition:box-shadow .2s}
 .nav.scrolled{box-shadow:0 2px 20px rgba(181,157,222,.18)}
 .nav-inner{max-width:1200px;margin:0 auto;padding:0 24px;height:100%;display:flex;flex-direction:column;align-items:stretch;justify-content:center}
@@ -47,7 +55,194 @@ button{cursor:pointer;font-family:var(--fb)}
 .nav-cta-sub{font-family:var(--fb);font-size:10px;color:var(--gy);text-align:right}
 .nav-search-btn{background:none;border:none;cursor:pointer;color:var(--gy);padding:6px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:color .15s}
 .nav-search-btn:hover{color:var(--bk)}
-    </style>
+.nav-ham{display:none;flex-direction:column;gap:5px;background:none;border:none;padding:6px;cursor:pointer}
+.nav-ham span{display:block;width:22px;height:2px;background:var(--bk);border-radius:2px;transition:.2s}
+.nav-mobile{display:none;position:fixed;top:var(--nav-h);left:0;right:0;z-index:199;background:#fff;border-bottom:2px solid var(--li2);padding:16px 24px 20px;flex-direction:column;gap:8px;box-shadow:0 8px 32px rgba(0,0,0,.08)}
+.nav-mobile.open{display:flex}
+.nav-mob-lnk{font-size:15px;font-weight:500;color:var(--bk);padding:8px 0;border-bottom:1px solid var(--li2)}
+.nav-mob-lnk.active{color:var(--li);font-weight:700}
+.nav-mobile .nav-cta{margin-top:8px;justify-content:center}
+
+@media(max-width:700px){
+  .nav-ham{display:flex}
+  .nav-row2{display:none}
+  .nav-cta-desk{display:none}
+}
+
+/* ── HERO ────────────────────────────────────────────────────────── */
+.ct-hero{
+  padding:calc(var(--nav-h) + 60px) 0 56px;
+  background:linear-gradient(160deg,var(--li3) 0%,#fff8f0 60%,var(--wh) 100%);
+  text-align:center;
+}
+.ct-hero-tag{
+  display:inline-block;
+  background:var(--li2);
+  color:var(--li);
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  border-radius:20px;
+  padding:5px 14px;
+  margin-bottom:18px;
+}
+.ct-hero h1{
+  font-size:clamp(32px,5vw,52px);
+  font-weight:700;
+  color:var(--bk);
+  margin-bottom:16px;
+}
+.ct-hero h1 em{color:var(--li);font-style:italic}
+.ct-hero p{
+  font-size:17px;
+  color:var(--gy);
+  max-width:520px;
+  margin:0 auto;
+}
+
+/* ── SECTION ─────────────────────────────────────────────────────── */
+.sec{padding:64px 0 80px}
+
+/* ── CONTACT GRID ────────────────────────────────────────────────── */
+.ct-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:20px;
+  margin-bottom:40px;
+}
+@media(max-width:860px){.ct-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:540px){.ct-grid{grid-template-columns:1fr}}
+
+.ct-card{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:28px 24px 24px;
+  background:#fff;
+  border:1.5px solid var(--li2);
+  border-radius:18px;
+  transition:transform .18s,box-shadow .18s,border-color .18s;
+  color:inherit;
+}
+.ct-card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 12px 36px rgba(181,157,222,.18);
+  border-color:var(--li);
+}
+.ct-ic{
+  width:52px;height:52px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:4px;flex-shrink:0;
+}
+.ct-ic svg{width:28px;height:28px}
+.ct-label{
+  font-size:11px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--gy);
+  display:flex;align-items:center;gap:6px;
+}
+.ct-title{font-size:17px;font-weight:700;color:var(--bk);font-family:var(--fd);line-height:1.3}
+.ct-desc{font-size:13.5px;color:var(--gy);line-height:1.6;flex:1}
+.ct-action{font-size:13px;font-weight:700;margin-top:4px}
+
+/* ── INFO ROW ────────────────────────────────────────────────────── */
+.info-row{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:20px;
+}
+@media(max-width:600px){.info-row{grid-template-columns:1fr}}
+
+.info-card{
+  padding:28px 24px;
+  background:#fff;
+  border:1.5px solid var(--li2);
+  border-radius:18px;
+}
+.info-h{
+  font-family:var(--fd);
+  font-size:18px;
+  font-weight:700;
+  color:var(--bk);
+  margin-bottom:12px;
+}
+.info-body{
+  font-size:14.5px;
+  color:var(--gy);
+  line-height:1.8;
+}
+
+/* ── FOOTER CTA ──────────────────────────────────────────────────── */
+.fcta{
+  background:linear-gradient(135deg,var(--bk) 0%,#2d1a4e 100%);
+  padding:72px 24px;
+  text-align:center;
+}
+.fcta-h{
+  font-family:var(--fd);
+  font-size:clamp(26px,4vw,42px);
+  font-weight:700;
+  color:#fff;
+  margin-bottom:14px;
+}
+.fcta-sub{
+  font-size:16px;
+  color:rgba(255,255,255,.65);
+  margin-bottom:32px;
+  max-width:480px;
+  margin-left:auto;
+  margin-right:auto;
+}
+.fcta-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn-wh{
+  background:#fff;color:var(--bk);
+  border-radius:24px;padding:13px 28px;
+  font-size:15px;font-weight:700;
+  transition:opacity .15s;
+}
+.btn-wh:hover{opacity:.9}
+.btn-owh{
+  background:transparent;
+  color:#fff;
+  border:2px solid rgba(255,255,255,.35);
+  border-radius:24px;padding:13px 28px;
+  font-size:15px;font-weight:700;
+  transition:border-color .15s;
+}
+.btn-owh:hover{border-color:#fff}
+
+/* ── FOOTER ──────────────────────────────────────────────────────── */
+.footer{background:var(--bk);color:rgba(255,255,255,.75);padding:56px 0 28px}
+.footer-grid{
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr;
+  gap:40px;
+  margin-bottom:40px;
+}
+@media(max-width:700px){.footer-grid{grid-template-columns:1fr}}
+.ft-tagline{font-size:13.5px;line-height:1.7;color:rgba(255,255,255,.5);margin-bottom:20px;max-width:280px}
+.ft-soc{display:flex;gap:10px}
+.ft-soc-a{
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;transition:background .15s;
+  color:#fff;
+}
+.ft-soc-a:hover{background:rgba(255,255,255,.18)}
+.ft-col-h{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:14px}
+.ft-links{list-style:none;display:flex;flex-direction:column;gap:10px}
+.ft-links li a{font-size:14px;color:rgba(255,255,255,.65);transition:color .15s}
+.ft-links li a:hover{color:#fff}
+.ft-bottom{border-top:1px solid rgba(255,255,255,.08);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.ft-copy{font-size:12px;color:rgba(255,255,255,.35)}
+.ft-cities{font-size:12px;color:rgba(255,255,255,.35)}
+
+/* ── WhatsApp FAB ────────────────────────────────────────────────── */
+.wa-fab{position:fixed;bottom:24px;left:24px;z-index:9999;width:52px;height:52px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;text-decoration:none}
+.wa-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(37,211,102,.6)}
+.wa-fab svg{width:26px;height:26px}
+</style>
 </head>
 <body>
 
@@ -72,11 +267,11 @@ button{cursor:pointer;font-family:var(--fb)}
     </div>
     <div class="nav-row2">
       <a href="index.html">Home</a>
-          <a href="gallery.html">Gallery</a>
-          <a href="testimonials.html">Testimonials</a>
-          <a href="blogs.html">Blog</a>
-          <a href="about-us.html">About Us</a>
-          <a href="contact.html" class="active">Contact</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="testimonials.html">Testimonials</a>
+      <a href="blogs.html">Blog</a>
+      <a href="about-us.html">About Us</a>
+      <a href="contact.html" class="active">Contact</a>
     </div>
   </div>
 </nav>
@@ -106,7 +301,7 @@ button{cursor:pointer;font-family:var(--fb)}
     <div class="ct-grid">
 
       <!-- WhatsApp -->
-      <a href="https://wa.me/919004435362?text=Hi%2C%20I%27d%20like%20to%20plan%20a%20birthday%20with%20Wondershop%21" target="_blank" rel="noopener" class="ct-card wa">
+      <a href="https://wa.me/919742240477?text=Hi%2C%20I%27d%20like%20to%20plan%20a%20birthday%20with%20Wondershop%21" target="_blank" rel="noopener" class="ct-card">
         <div class="ct-ic" style="background:#DCFCE7">
           <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M14 2C7.4 2 2 7.4 2 14c0 2.1.55 4.1 1.6 5.85L2 26l6.3-1.55A11.9 11.9 0 0014 26c6.6 0 12-5.4 12-12S20.6 2 14 2z" fill="#25D366"/>
@@ -114,20 +309,20 @@ button{cursor:pointer;font-family:var(--fb)}
           </svg>
         </div>
         <div class="ct-label">WhatsApp</div>
-        <div class="ct-title">+91 90044 35362</div>
+        <div class="ct-title">+91 97422 40477</div>
         <div class="ct-desc">Chat with us instantly. Share your ideas, ask questions, or start planning right away.</div>
         <div class="ct-action" style="color:#25D366">Open WhatsApp →</div>
       </a>
 
       <!-- Phone -->
-      <a href="tel:+919004435362" class="ct-card">
+      <a href="tel:+919742240477" class="ct-card">
         <div class="ct-ic" style="background:var(--li2)">
           <svg viewBox="0 0 28 28" fill="none" stroke="#B59DDE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 4h5l2.5 6.5-3 1.8a16 16 0 006.2 6.2l1.8-3L24 18v5a2 2 0 01-2.1 2C8.8 24.1 3.9 19.2 3 11A2 2 0 015 4z"/>
           </svg>
         </div>
         <div class="ct-label">Call Us</div>
-        <div class="ct-title">+91 90044 35362</div>
+        <div class="ct-title">+91 97422 40477</div>
         <div class="ct-desc">Mon–Sat 10am–7pm, Sun 11am–5pm. Our team is happy to answer any questions.</div>
         <div class="ct-action" style="color:var(--li)">Call Now →</div>
       </a>
@@ -147,7 +342,7 @@ button{cursor:pointer;font-family:var(--fb)}
       </a>
 
       <!-- Instagram -->
-      <a href="https://instagram.com/wondershop.experiences" target="_blank" rel="noopener" class="ct-card ig">
+      <a href="https://www.instagram.com/wondershop.experiences/" target="_blank" rel="noopener" class="ct-card">
         <div class="ct-ic" style="background:var(--spk)">
           <svg viewBox="0 0 28 28" fill="none" stroke="#E65A96" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="22" height="22" rx="6"/>
@@ -162,7 +357,7 @@ button{cursor:pointer;font-family:var(--fb)}
       </a>
 
       <!-- YouTube -->
-      <a href="https://youtube.com/@wondershopexperiences" target="_blank" rel="noopener" class="ct-card yt">
+      <a href="https://www.youtube.com/@wondershop_experiences/videos" target="_blank" rel="noopener" class="ct-card">
         <div class="ct-ic" style="background:#FFE4E4">
           <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M25.5 8.1s-.25-1.8-1.03-2.6c-.99-1.04-2.1-1.04-2.6-1.1C18.96 4.2 14 4.2 14 4.2s-4.96 0-7.87.2c-.5.06-1.61.06-2.6 1.1C2.75 6.3 2.5 8.1 2.5 8.1S2.25 10.2 2.25 12.3v1.96c0 2.1.25 4.2.25 4.2s.25 1.8 1.03 2.6c.99 1.04 2.28.99 2.86 1.1C8.4 22.4 14 22.5 14 22.5s4.96 0 7.87-.2c.5-.06 1.61-.06 2.6-1.1.78-.8 1.03-2.6 1.03-2.6s.25-2.1.25-4.2V12.3c0-2.1-.25-4.2-.25-4.2z" fill="#FF0000"/>
@@ -170,7 +365,7 @@ button{cursor:pointer;font-family:var(--fb)}
           </svg>
         </div>
         <div class="ct-label">YouTube</div>
-        <div class="ct-title">@wondershopexperiences</div>
+        <div class="ct-title">@wondershop_experiences</div>
         <div class="ct-desc">Watch highlight reels, theme reveals, and behind-the-scenes moments from our events.</div>
         <div class="ct-action" style="color:#FF0000">Watch Now →</div>
       </a>
@@ -214,7 +409,7 @@ button{cursor:pointer;font-family:var(--fb)}
     <div class="fcta-sub">Build your birthday plan online in 10 minutes, or let our team design it for you.</div>
     <div class="fcta-btns">
       <a href="builder.html?start=1" class="btn-wh">Build a Birthday ✦</a>
-      <a href="https://wa.me/919004435362" target="_blank" rel="noopener" class="btn-owh">💬 WhatsApp Us</a>
+      <a href="https://wa.me/919742240477" target="_blank" rel="noopener" class="btn-owh">💬 WhatsApp Us</a>
     </div>
   </div>
 </section>
@@ -227,10 +422,10 @@ button{cursor:pointer;font-family:var(--fb)}
         <img src="logo-horizontal-dark.png" alt="Wondershop Experiences" style="height:48px;width:auto;margin-bottom:14px">
         <div class="ft-tagline">Think Birthdays, Think Wondershop. Story-led celebrations for children aged 1–12 across Mumbai and Pune.</div>
         <div class="ft-soc">
-          <a href="https://instagram.com/wondershop.experiences" target="_blank" rel="noopener" class="ft-soc-a">📸</a>
-          <a href="https://wa.me/919004435362" target="_blank" rel="noopener" class="ft-soc-a">💬</a>
-          <a href="tel:+919004435362" class="ft-soc-a">📞</a>
-          <a href="https://youtube.com/@wondershopexperiences" target="_blank" rel="noopener" class="ft-soc-a">▶</a>
+          <a href="https://www.instagram.com/wondershop.experiences/" target="_blank" rel="noopener" class="ft-soc-a">📸</a>
+          <a href="https://wa.me/919742240477" target="_blank" rel="noopener" class="ft-soc-a">💬</a>
+          <a href="tel:+919742240477" class="ft-soc-a">📞</a>
+          <a href="https://www.youtube.com/@wondershop_experiences/videos" target="_blank" rel="noopener" class="ft-soc-a">▶</a>
         </div>
       </div>
       <div>
@@ -246,7 +441,6 @@ button{cursor:pointer;font-family:var(--fb)}
       <div>
         <div class="ft-col-h">Contact</div>
         <ul class="ft-links">
-          <li><a href="tel:+919004435362">+91 90044 35362</a></li>
           <li><a href="tel:+919742240477">+91 97422 40477</a></li>
           <li><a href="mailto:contact@wondershopexperiences.com">contact@wondershopexperiences.com</a></li>
           <li style="color:rgba(255,255,255,.45)">Vikhroli East, Mumbai</li>
@@ -260,23 +454,17 @@ button{cursor:pointer;font-family:var(--fb)}
   </div>
 </footer>
 
+<!-- WhatsApp FAB -->
+<a href="https://wa.me/919742240477" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+</a>
+
 <script>
+// Scroll nav shadow
 window.addEventListener('scroll',()=>{
   document.getElementById('main-nav').classList.toggle('scrolled', window.scrollY > 10);
 });
-</script>
 
-<!-- WhatsApp FAB -->
-<a href="https://wa.me/919004435362" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
-  <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-</a>
-<style>
-.wa-fab{position:fixed;bottom:24px;left:24px;z-index:9999;width:52px;height:52px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;text-decoration:none}
-.wa-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(37,211,102,.6)}
-.wa-fab svg{width:26px;height:26px}
-</style>
-
-<script>
 // Mobile menu
 (function(){
   const ham=document.getElementById('nav-ham');
@@ -306,15 +494,16 @@ const searchItems=[
   {t:"Testimonials",u:"testimonials.html",d:"What parents say"},
   {t:"Blog",u:"blogs.html",d:"Tips & party guides"},
   {t:"Contact Us",u:"contact.html",d:"Get in touch"},
-  {t:"About Us",u:"about-us.html",d:"Meet Shruti & Sidhant"},
+  {t:"About Us",u:"about-us.html",d:"Meet the Wondershop team"},
   {t:"Spy Guide",u:"blogs.html#spy-guide",d:"Plan the perfect spy birthday"},
   {t:"Return Gifts",u:"blogs.html#return-gifts",d:"Best return gift ideas"},
   {t:"Planning Checklist",u:"blogs.html#planning-checklist",d:"10-minute birthday checklist"},
 ];
 function openSearch(){document.getElementById('search-overlay').style.display='block';document.getElementById('search-modal').style.display='block';setTimeout(()=>document.getElementById('search-input').focus(),50);doSearch('');}
 function closeSearch(){document.getElementById('search-overlay').style.display='none';document.getElementById('search-modal').style.display='none';}
-function doSearch(q){const r=document.getElementById('search-results');const hits=q?searchItems.filter(i=>i.t.toLowerCase().includes(q.toLowerCase())||i.d.toLowerCase().includes(q.toLowerCase())):searchItems;r.innerHTML=hits.length?hits.map(i=>`<a href="${i.u}" style="display:flex;flex-direction:column;gap:2px;padding:12px 20px;text-decoration:none;transition:background .1s" onmouseover="this.style.background='var(--li3)'" onmouseout="this.style.background=''""><span style="font-size:14px;font-weight:600;color:var(--bk)">${i.t}</span><span style="font-size:12px;color:var(--gy)">${i.d}</span></a>`).join(''):'<p style="text-align:center;padding:24px;color:var(--gy);font-size:14px">No results found</p>';}
+function doSearch(q){const r=document.getElementById('search-results');const hits=q?searchItems.filter(i=>i.t.toLowerCase().includes(q.toLowerCase())||i.d.toLowerCase().includes(q.toLowerCase())):searchItems;r.innerHTML=hits.length?hits.map(i=>`<a href="${i.u}" style="display:flex;flex-direction:column;gap:2px;padding:12px 20px;text-decoration:none;transition:background .1s" onmouseover="this.style.background='var(--li3)'" onmouseout="this.style.background=''"><span style="font-size:14px;font-weight:600;color:var(--bk)">${i.t}</span><span style="font-size:12px;color:var(--gy)">${i.d}</span></a>`).join(''):'<p style="text-align:center;padding:24px;color:var(--gy);font-size:14px">No results found</p>';}
 document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openSearch();}if(e.key==='Escape')closeSearch();});
 </script>
+
 </body>
 </html>
