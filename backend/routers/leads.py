@@ -68,15 +68,13 @@ async def _get_gmail_access_token() -> str:
 async def _gmail_send(to_email: str, subject: str, body: str) -> None:
     """Send email via Gmail API (HTTPS — no SMTP port issues)."""
     import base64
-    raw = (
-        f"From: Wondershop Experiences <{settings.EMAIL_FROM}>\r\n"
-        f"To: {to_email}\r\n"
-        f"Subject: {subject}\r\n"
-        f"Content-Type: text/plain; charset=utf-8\r\n"
-        f"\r\n"
-        f"{body}"
-    )
-    encoded = base64.urlsafe_b64encode(raw.encode("utf-8")).decode("utf-8")
+    from email.message import EmailMessage
+    msg = EmailMessage()
+    msg["From"] = f"Wondershop Experiences <{settings.EMAIL_FROM}>"
+    msg["To"] = to_email
+    msg["Subject"] = subject
+    msg.set_content(body)
+    encoded = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
     token = await _get_gmail_access_token()
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.post(
