@@ -1,0 +1,188 @@
+/**
+ * Wondershop Experiences — Lead & Booking capture into Google Sheets
+ * ─────────────────────────────────────────────────────────────────
+ * ALREADY DEPLOYED, JUST ADDING EMAIL CONFIRMATIONS?
+ *  Paste this whole file over your existing script (select all, delete,
+ *  paste this in), then: Deploy → Manage deployments → pencil icon →
+ *  "New version" → Deploy. The Web app URL stays exactly the same —
+ *  nothing to change on the website side. Apps Script may ask you to
+ *  re-authorize (it now also sends email as you) — that's expected,
+ *  just click Allow.
+ *
+ * FIRST-TIME SETUP (~10 minutes):
+ *  1. Go to sheets.google.com → create a new blank spreadsheet.
+ *     Name it something like "Wondershop Leads & Bookings".
+ *  2. In that Sheet: Extensions → Apps Script. Delete any placeholder
+ *     code in the editor, and paste this whole file in its place.
+ *  3. Click Deploy → New deployment.
+ *     - Click the gear icon next to "Select type" → choose "Web app".
+ *     - Description: "Lead capture" (anything you like).
+ *     - Execute as: Me (your Google account).
+ *     - Who has access: Anyone.
+ *     - Click Deploy. Authorize the permissions it asks for (it's your
+ *       own script, talking to your own sheet AND sending email as you —
+ *       safe to allow, both are your own account).
+ *  4. Copy the "Web app URL" it gives you (ends in /exec).
+ *  5. Send that URL back — it gets pasted into builder.html as
+ *     WS_SHEET_URL, and every lead + booking will start landing in
+ *     this Sheet automatically, in real time.
+ *
+ * WHAT'S NEW IN THIS VERSION — email confirmations:
+ *  - Customer gets a confirmation email (only if they entered one) —
+ *    "We got your enquiry" with a reference number and their details.
+ *  - Your team (contact@wondershopexperiences.com) gets an alert email
+ *    for every lead/booking, every time, with full details.
+ *  - Sent via MailApp, using your own Google account — no SMTP setup,
+ *    no new credentials. Free Google accounts get ~100 emails/day
+ *    (Workspace accounts get more) — plenty for lead volume at this stage.
+ *  - If email sending fails for any reason, the Sheet row still saves —
+ *    email is best-effort and never blocks the core capture.
+ *
+ * WhatsApp confirmations are NOT included here — that needs a verified
+ * Meta WhatsApp Business API account with an approved message template,
+ * which is a separate, bigger setup. Tracked as a backlog item.
+ */
+
+const SHEET_NAME = 'Leads & Bookings';
+const TEAM_EMAIL = 'contact@wondershopexperiences.com';
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const sheet = getOrCreateSheet_();
+
+    // Reference number = which data row this will be (header is row 1)
+    const refNum = sheet.getLastRow();
+
+    sheet.appendRow([
+      new Date(),                 // Timestamp (when it hit the Sheet)
+      data.type || '',            // 'lead' or 'booking'
+      data.name || '',
+      data.phone || '',
+      data.email || '',
+      data.child || '',
+      data.event_date || '',
+      data.event_time || '',
+      data.kids_count || '',
+      data.venue || '',
+      data.pincode || '',
+      data.theme || '',
+      data.budget || '',
+      data.estimated_total || '',
+      data.advance || '',
+      data.decor || '',
+      data.activities || '',
+      data.host || '',
+      data.dj || '',
+      data.pinata || '',
+      data.einvite || '',
+      data.photographer || '',
+      data.return_gifts || '',
+      data.notes || '',
+      data.lead_source || 'Website',
+      data.utm_source || '',
+      data.page_url || '',
+    ]);
+
+    sendNotificationEmails_(data, refNum);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  // Lets you sanity-check the deployed URL in a browser — should say "live".
+  return ContentService.createTextOutput('Wondershop lead capture endpoint is live.');
+}
+
+function sendNotificationEmails_(data, refNum) {
+  // Email is best-effort — never let a failure here break the Sheet capture,
+  // which has already succeeded by the time this runs.
+  try {
+    const email = (data.email || '').trim();
+    const name  = (data.name || 'there').trim();
+    const firstName = name.split(' ')[0] || 'there';
+    const kindLabel = data.type === 'booking' ? 'booking' : 'enquiry';
+
+    // 1. Customer confirmation — only if a usable email was given
+    if (email && email.indexOf('@') > -1 && email.indexOf('.') > -1) {
+      const custBody =
+        'Hi ' + firstName + '! 🎉\n\n' +
+        'Thank you for reaching out to Wondershop Experiences.\n\n' +
+        'We\'ve received your ' + kindLabel + ' (Ref #' + refNum + ') and our team ' +
+        'will call you within a few hours to discuss your child\'s birthday party.\n\n' +
+        'Your details:\n' +
+        '  Event Date : ' + (data.event_date || '—') + '\n' +
+        '  Theme      : ' + (data.theme || '—') + '\n\n' +
+        'If you have any questions in the meantime, WhatsApp us at +91 90044 35362.\n\n' +
+        'Warmly,\n' +
+        'Team Wondershop 🎈\n' +
+        'wondershopexperiences.com';
+
+      MailApp.sendEmail({
+        to: email,
+        subject: 'We got your ' + kindLabel + ', ' + firstName + '! 🎈',
+        body: custBody,
+      });
+    }
+
+    // 2. Team alert — always sent, regardless of whether customer email exists
+    const teamBody =
+      'New ' + kindLabel + ' received on the Wondershop website. (Ref #' + refNum + ')\n\n' +
+      'PARENT\n' +
+      '  Name   : ' + (data.name || '—') + '\n' +
+      '  Mobile : ' + (data.phone || '—') + '\n' +
+      '  Email  : ' + (email || '—') + '\n\n' +
+      'CHILD\n' +
+      '  Name(s): ' + (data.child || '—') + '\n\n' +
+      'EVENT\n' +
+      '  Date       : ' + (data.event_date || '—') + '\n' +
+      '  Time       : ' + (data.event_time || '—') + '\n' +
+      '  Kids Count : ' + (data.kids_count || '—') + '\n' +
+      '  Venue      : ' + (data.venue || '—') + '\n' +
+      '  Pincode    : ' + (data.pincode || '—') + '\n' +
+      '  Theme      : ' + (data.theme || '—') + '\n' +
+      '  Budget     : ' + (data.budget || '—') + '\n\n' +
+      'PRICING\n' +
+      '  Estimated Total: ₹' + (data.estimated_total || '—') + '\n' +
+      '  Advance        : ₹' + (data.advance || '—') + '\n\n' +
+      'SOURCE\n' +
+      '  ' + (data.lead_source || '—') + ' / ' + (data.utm_source || '—') + '\n\n' +
+      '— Wondershop Lead System';
+
+    MailApp.sendEmail({
+      to: TEAM_EMAIL,
+      subject: '🎉 New ' + (data.type === 'booking' ? 'Booking' : 'Lead') + ' — ' +
+                (data.name || '—') + ' (' + (data.phone || '—') + ')',
+      body: teamBody,
+    });
+
+  } catch (err) {
+    Logger.log('Email notification failed: ' + err);
+  }
+}
+
+function getOrCreateSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+    sheet.appendRow([
+      'Timestamp', 'Type', 'Parent Name', 'Phone', 'Email', 'Child Name(s)',
+      'Event Date', 'Event Time', 'Kids Count', 'Venue', 'Pincode',
+      'Theme', 'Budget', 'Estimated Total (Rs)', 'Advance (Rs)',
+      'Decor', 'Activities', 'Host', 'DJ', 'Pinata', 'E-Invite',
+      'Photographer', 'Return Gifts', 'Notes', 'Lead Source', 'UTM Source', 'Page URL',
+    ]);
+    sheet.setFrozenRows(1);
+    sheet.getRange(1, 1, 1, 27).setFontWeight('bold');
+  }
+  return sheet;
+}

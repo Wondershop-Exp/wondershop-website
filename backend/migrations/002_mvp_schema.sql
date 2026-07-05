@@ -17,7 +17,7 @@ BEGIN NEW.updated_on = NOW(); RETURN NEW; END; $$;
 CREATE TABLE IF NOT EXISTS leads (
     lead_id                INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     parent_name            VARCHAR(255) NOT NULL,
-    phone                  VARCHAR(10)  NOT NULL,
+    phone                  VARCHAR(20)  NOT NULL,
     child_names            VARCHAR(500),
     email                  VARCHAR(255),
     event_date             DATE,

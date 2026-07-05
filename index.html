@@ -5,6 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Wondershop Experiences — Mumbai & Pune's premier children's birthday planning service. Decor, activities, host, DJ, pinata, e-invite, photographer and return gifts — all in one place. Plan in 10 minutes.">
   <title>Wondershop Experiences — Plan Your Child's Dream Birthday</title>
+  <!-- ── Google Analytics 4 ────────────────────────────────────────
+       Replace G-XXXXXXXXXX with your real GA4 Measurement ID
+       (GA4 property → Admin → Data Streams → your web stream).
+       Until replaced this loads harmlessly and sends no usable data. ── -->
+  <script>window.WS_GA_ID = 'G-XXXXXXXXXX';</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', window.WS_GA_ID);
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
@@ -80,8 +92,8 @@
       transition: background .15s, transform .1s; text-decoration: none;
     }
     .nav-cta:hover { background: #9d84cc; transform: translateY(-1px); }
-    .nav-cta-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-    .nav-cta-sub { font-family: var(--fb); font-size: 10px; color: var(--gy); text-align: right; }
+    .nav-cta-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .nav-cta-sub { font-family: var(--fb); font-size: 10px; color: var(--gy); text-align: center; }
     .nav-ham { display: none; background: none; border: none; cursor: pointer; padding: 6px; flex-direction: column; gap: 5px; }
     .nav-ham span { display: block; width: 22px; height: 2px; background: var(--bk); border-radius: 2px; transition: all .2s; }
     .nav-mobile {
@@ -97,14 +109,14 @@
       .nav-ham { display: flex; }
       .nav { height: 72px; }
       .nav-mobile { top: 72px; }
-      .hero { padding: calc(72px + 50px) 0 56px; }
+      .hero { padding: calc(72px + 32px) 0 36px; }
     }
 
     /* ── HERO ── */
     .hero {
       background: #FDF8FF;
-      padding: calc(var(--nav-h) + 40px) 0 56px;
-      min-height: 90vh;
+      padding: calc(var(--nav-h) + 20px) 0 40px;
+      min-height: 85vh;
       display: flex; align-items: center;
     }
     .hero-inner {
@@ -153,6 +165,11 @@
     .hs-n { font-family: var(--fd); font-size: 18px; font-weight: 700; color: var(--bk); display: block; line-height: 1.1; }
     .hs-l { font-family: var(--fb); font-size: 10px; color: var(--gy); font-weight: 500; display: block; margin-top: 2px; }
     .hero-note { font-family: var(--fb); font-size: 12px; color: #9CA3AF; }
+    .hero-svcs { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 16px; }
+    .hero-svc { display: inline-flex; align-items: center; gap: 5px; font-family: var(--fb); font-size: 12px; font-weight: 600; color: #7B5EA7; background: var(--li2); border-radius: 20px; padding: 5px 13px; }
+    .hero-bullets { display: flex; flex-direction: column; gap: 7px; margin-bottom: 24px; }
+    .hero-bullet { display: flex; align-items: center; gap: 8px; font-family: var(--fb); font-size: 14px; color: var(--gy); }
+    .hero-bullet::before { content: '✓'; color: var(--gr); font-weight: 700; font-size: 15px; flex-shrink: 0; }
 
     /* ── Hero right: stacked image cards ── */
     .hero-cards { position: relative; height: 520px; }
@@ -212,7 +229,7 @@
     }
 
     /* ── SECTION COMMONS ── */
-    .sec { padding: 48px 0; }
+    .sec { padding: 32px 0; }
     .sec-alt { background: var(--li3); }
     .sec-tag {
       font-family: var(--fb); font-size: 11px; font-weight: 700; color: var(--pk);
@@ -229,7 +246,7 @@
     }
     .sec-head { text-align: center; }
 
-    @media (max-width: 600px) { .sec { padding: 32px 0; } }
+    @media (max-width: 600px) { .sec { padding: 24px 0; } }
 
     /* ── HOW IT WORKS ── */
     .hiw-grid {
@@ -237,15 +254,17 @@
       gap: 0; position: relative;
     }
     .hiw-grid::before {
-      content: ''; position: absolute; top: 31px;
+      content: ''; position: absolute; top: 44px;
       left: calc(12.5% + 8px); right: calc(12.5% + 8px);
       height: 2px; background: var(--li2); z-index: 0;
     }
     .hiw-step { text-align: center; padding: 0 16px; position: relative; z-index: 1; }
     .hiw-icon {
-      width: 64px; height: 64px; border-radius: 50%;
-      background: var(--li2); display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 16px; font-size: 26px; border: 3px solid var(--wh);
+      width: 88px; height: 88px; border-radius: 22px;
+      background: linear-gradient(135deg, var(--li2) 0%, var(--li3) 100%);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px; font-size: 40px;
+      box-shadow: 0 6px 20px rgba(181,157,222,.2);
     }
     .hiw-n { font-family: var(--fd); font-size: 13px; font-weight: 700; color: var(--li); margin-bottom: 6px; }
     .hiw-t { font-family: var(--fd); font-size: 16px; font-weight: 600; color: var(--bk); margin-bottom: 8px; }
@@ -282,8 +301,11 @@
       border: 1.5px solid var(--li2); text-align: center;
     }
     .why-ic {
-      width: 72px; height: 72px; border-radius: 20px; background: var(--li2);
-      display: flex; align-items: center; justify-content: center; font-size: 34px; margin: 0 auto 16px;
+      width: 88px; height: 88px; border-radius: 24px;
+      background: linear-gradient(135deg, var(--li2) 0%, var(--li3) 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 42px; margin: 0 auto 20px;
+      box-shadow: 0 6px 20px rgba(181,157,222,.18);
     }
     .why-t { font-family: var(--fd); font-size: 17px; font-weight: 600; color: var(--bk); margin-bottom: 8px; }
     .why-d { font-family: var(--fb); font-size: 13px; color: var(--gy); line-height: 1.65; }
@@ -346,15 +368,17 @@
     .testi-trust-item:last-child { border-right: none; }
     .tti-n { font-family: var(--fd); font-size: 22px; font-weight: 700; color: var(--bk); }
     .tti-l { font-family: var(--fb); font-size: 11px; color: var(--gy); margin-top: 2px; }
-    .testi-carousel { position: relative; max-width: 680px; margin: 0 auto; }
+    .testi-carousel { position: relative; max-width: 860px; margin: 0 auto; }
     .testi-track { overflow: hidden; }
     .testi-slides { display: flex; transition: transform .4s ease; }
     .testi-card {
       min-width: 100%; background: #fff; border: 1.5px solid var(--li2);
-      border-radius: 20px; padding: 36px 40px; box-sizing: border-box;
+      border-radius: 20px; padding: 0; box-sizing: border-box; overflow: hidden;
     }
+    .testi-card-photo { width: 100%; height: 200px; object-fit: cover; object-position: center; display: block; }
+    .testi-card-body { padding: 36px 44px 40px; }
     .testi-q { font-size: 48px; color: var(--li2); font-family: Georgia,serif; line-height: .7; margin-bottom: 16px; }
-    .testi-txt { font-family: var(--fb); font-size: 16px; color: var(--bk); line-height: 1.8; margin-bottom: 24px; font-style: italic; }
+    .testi-txt { font-family: var(--fb); font-size: 17px; color: var(--bk); line-height: 1.8; margin-bottom: 24px; font-style: italic; }
     .testi-author { display: flex; align-items: center; gap: 12px; }
     .testi-av {
       width: 44px; height: 44px; border-radius: 50%; background: var(--li2); flex-shrink: 0;
@@ -378,7 +402,7 @@
     }
     .testi-dot.active { background: var(--li); transform: scale(1.4); }
 
-    @media (max-width: 600px) { .testi-card { padding: 28px 24px; } .testi-trust-item { padding: 10px 16px; } }
+    @media (max-width: 600px) { .testi-card-body { padding: 24px 24px 28px; } .testi-trust-item { padding: 10px 16px; } .testi-card-photo { height: 150px; } }
 
     /* ── BLOG ── */
     .blog-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
@@ -657,9 +681,6 @@
     <div class="nav-row1">
       <a href="index.html" class="nav-logo">
         <img src="logo-horizontal.png" alt="Wondershop Experiences" style="height:46px;width:auto;display:block">
-        <div>
-          <div class="nav-logo-tagline">Curated Birthday Experiences · Mumbai | Pune</div>
-        </div>
       </a>
       <div style="display:flex;align-items:center;gap:10px">
         <button class="nav-search-btn" id="nav-search-btn" onclick="openSearch()" aria-label="Search" title="Search">
@@ -706,20 +727,34 @@
 
       <!-- LEFT: headline + CTAs + inline stats -->
       <div class="hero-left">
-        <div class="hero-tag">Curated Birthday Experiences · Mumbai &amp; Pune</div>
+        <div class="hero-tag">One Stop Platform for all your Birthday Needs</div>
         <h1 class="hero-h1">Think Birthdays,<br>Think <em>Wondershop.</em></h1>
-        <p class="hero-sub">Decor · Activities · Host · DJ · Photography · E-Invites & more — all curated for children aged 1–12. Story-led, stress-free, and simply magical.</p>
+        <div class="hero-svcs">
+          <span class="hero-svc">🎈 Decor</span>
+          <span class="hero-svc">🎪 Activities</span>
+          <span class="hero-svc">🙌 Host</span>
+          <span class="hero-svc">🎵 DJ</span>
+          <span class="hero-svc">🎉 Pinata</span>
+          <span class="hero-svc">📲 E-Invite</span>
+          <span class="hero-svc">📸 Photographer</span>
+          <span class="hero-svc">🎁 Return Gifts</span>
+          <span class="hero-svc">🧸 Mascot</span>
+        </div>
+        <div class="hero-bullets">
+          <div class="hero-bullet">Celebrations personalized around the family</div>
+          <div class="hero-bullet">Seamless execution driven by experts</div>
+        </div>
         <div class="hero-btns">
           <a href="builder.html?start=1" class="btn-p">Build a Birthday ✦</a>
           <a href="builder.html?lead=1" class="btn-ghost">Call Me to Plan</a>
         </div>
-        <div style="font-family:var(--fb);font-size:12px;color:var(--gy);margin-top:-16px;margin-bottom:8px">We handle everything — decor, host, activities &amp; more.</div>
+        <div style="font-family:var(--fb);font-size:12px;color:var(--gy);margin-top:-16px;margin-bottom:8px">Curated Birthday Experiences · Mumbai | Pune</div>
         <div class="hero-stats">
-          <div class="hs"><span class="hs-n">500+</span><span class="hs-l">Magical Events</span></div>
-          <div class="hs"><span class="hs-n">1,000+</span><span class="hs-l">Happy Children</span></div>
-          <div class="hs"><span class="hs-n">5.0 ★</span><span class="hs-l">Google Rating</span></div>
+          <div class="hs"><span class="hs-n">200+</span><span class="hs-l">Magical Events</span></div>
+          <div class="hs"><span class="hs-n">5,000+</span><span class="hs-l">Happy Kids</span></div>
+          <div class="hs"><span class="hs-n">500+</span><span class="hs-l">Satisfied Parents</span></div>
+          <div class="hs"><span class="hs-n">5 ★</span><span class="hs-l">Google Rating</span></div>
         </div>
-        <div class="hero-note">No payment needed yet &nbsp;·&nbsp; Takes under 10 minutes</div>
       </div>
 
       <!-- RIGHT: hero image -->
@@ -728,7 +763,7 @@
           <div class="hero-deco-circle" style="width:180px;height:180px;background:var(--spk);opacity:.35;top:-30px;right:-20px;"></div>
           <div class="hero-deco-circle" style="width:100px;height:100px;background:var(--li2);opacity:.6;bottom:40px;left:-16px;"></div>
           <div style="position:relative;border-radius:24px;overflow:hidden;box-shadow:0 24px 64px rgba(181,157,222,.28)">
-            <img src="1.jpg" alt="Wondershop birthday celebration" id="hc-front-img" loading="eager" style="width:100%;height:480px;object-fit:cover;display:block;transition:opacity .6s ease">
+            <img src="1.jpg" alt="Wondershop birthday celebration" id="hc-front-img" loading="eager" style="width:100%;height:380px;object-fit:cover;display:block;transition:opacity .6s ease">
             <div class="hero-card-badge" style="position:absolute;bottom:16px;left:16px">
               <div class="hcb-dot"></div>
               <div class="hcb-txt" id="hcb-txt">Live event · Mumbai</div>
@@ -756,100 +791,45 @@
 
     <div class="hiw-grid">
       <div class="hiw-step">
-        <div class="hiw-icon">🎂</div>
+        <div class="hiw-icon">🎈</div>
         <div class="hiw-n">Step 1</div>
         <div class="hiw-t">Tell us about the birthday star</div>
-        <div class="hiw-d">Your child's name, age, and what they love. We personalise everything from here.</div>
+        <div class="hiw-d">Your child's age, gender and likings. We personalise everything from here.</div>
       </div>
       <div class="hiw-step">
-        <div class="hiw-icon">🎨</div>
+        <div class="hiw-icon">🛍️</div>
         <div class="hiw-n">Step 2</div>
         <div class="hiw-t">Pick your services</div>
         <div class="hiw-d">Decor, activities, host, DJ, pinata, e-invite, photographer, return gifts — choose what you need.</div>
       </div>
       <div class="hiw-step">
-        <div class="hiw-icon">✨</div>
+        <div class="hiw-icon">💡</div>
         <div class="hiw-n">Step 3</div>
         <div class="hiw-t">Review &amp; personalise</div>
-        <div class="hiw-d">See your full plan with live pricing. Edit anything. Your Account Manager is with you.</div>
+        <div class="hiw-d">See your full plan with live pricing. Edit anything.</div>
       </div>
       <div class="hiw-step">
-        <div class="hiw-icon">🎉</div>
+        <div class="hiw-icon">🚀</div>
         <div class="hiw-n">Step 4</div>
         <div class="hiw-t">We bring the magic</div>
-        <div class="hiw-d">50% advance to confirm. We handle setup, execution, cleanup. You enjoy every moment.</div>
+        <div class="hiw-d">Confirm and let us handle everything from setup to execution. Prepare yourself to enjoy the moment.</div>
       </div>
     </div>
 
     <div class="hiw-cta">
       <a href="builder.html?start=1" class="btn-p">Start Building Now →</a>
       <div class="hiw-pills">
-        <span class="hiw-pill">Under 10 mins</span>
+        <span class="hiw-pill">Takes Under 10 mins</span>
         <span class="hiw-pill">Hassle free planning</span>
-        <span class="hiw-pill">Customized to your need</span>
+        <span class="hiw-pill">Personalized to your need</span>
         <span class="hiw-pill">Trusted by Parents</span>
-        <span class="hiw-pill">Built for you</span>
+        <span class="hiw-pill">Loved by Kids</span>
       </div>
     </div>
   </div>
 </section>
 
 
-<!-- ════════════════════════════════════════
-     OUR SERVICES
-═════════════════════════════════════════ -->
-<section class="sec sec-alt">
-  <div class="container">
-    <div class="sec-head">
-      <div class="sec-tag">What We Do</div>
-      <h2 class="sec-h2">Everything for the <em>perfect party</em></h2>
-      <p class="sec-sub">Eight services. One platform. All curated for children aged 1–12 across Mumbai and Pune.</p>
-    </div>
-
-    <div class="svc-grid">
-      <div class="svc-card">
-        <span class="svc-ic">🎈</span>
-        <div class="svc-n">Decor</div>
-        <div class="svc-d">Themed setups or classic balloon arrangements — tailored to your child's favourite universe.</div>
-      </div>
-      <div class="svc-card">
-        <span class="svc-ic">🎪</span>
-        <div class="svc-n">Activities</div>
-        <div class="svc-d">Spy missions, art stations, sports, treasure hunts and more — engaging for every age.</div>
-      </div>
-      <div class="svc-card">
-        <span class="svc-ic">🙌</span>
-        <div class="svc-n">Host</div>
-        <div class="svc-d">Trained, energetic hosts who keep kids fully engaged and parents completely relaxed.</div>
-      </div>
-      <div class="svc-card">
-        <span class="svc-ic">🎵</span>
-        <div class="svc-n">DJ</div>
-        <div class="svc-d">Age-appropriate music, party starters, and games. The energy never drops.</div>
-      </div>
-      <div class="svc-card">
-        <span class="svc-ic">🎉</span>
-        <div class="svc-n">Pinata</div>
-        <div class="svc-d">Custom-shaped pinatas filled with treats. Always the highlight of the party.</div>
-      </div>
-      <div class="svc-card">
-        <span class="svc-ic">📲</span>
-        <div class="svc-n">E-Invite</div>
-        <div class="svc-d">Beautiful, shareable digital invitations that build the excitement before the day. Free at ₹25k+.</div>
-      </div>
-      <div class="svc-card">
-        <span class="svc-ic">📸</span>
-        <div class="svc-n">Photographer</div>
-        <div class="svc-d">Candid and posed shots capturing the joy. Delivered within 48 hours of the party.</div>
-      </div>
-      <div class="svc-card">
-        <span class="svc-ic">🎁</span>
-        <div class="svc-n">Return Gifts</div>
-        <div class="svc-d">Curated, age-appropriate gifts with personalised tags. Kids love them, parents appreciate them.</div>
-      </div>
-    </div>
-  </div>
-</section>
 
 
 
@@ -863,37 +843,37 @@
   <div class="container">
     <div class="sec-head">
       <div class="sec-tag">Why Wondershop</div>
-      <h2 class="sec-h2">The difference you'll <em>feel</em></h2>
-      <p class="sec-sub">Premium birthday experiences that speak to parents who want more than just a party.</p>
+      <h2 class="sec-h2">Designed by parents <em>for parents</em></h2>
+      <p class="sec-sub">Because we understand how important these milestones are</p>
     </div>
     <div class="why-grid">
       <div class="why-card">
-        <div class="why-ic">🌟</div>
-        <div class="why-t">Premium yet personalised</div>
-        <div class="why-d">Every detail reflects your child's world. No two Wondershop parties look or feel the same.</div>
+        <div class="why-ic">💎</div>
+        <div class="why-t">Premium &amp; Personalised</div>
+        <div class="why-d">Every detail centered around your child. No two Wondershop parties look or feel the same.</div>
       </div>
       <div class="why-card">
         <div class="why-ic">🥂</div>
-        <div class="why-t">You enjoy the party too</div>
-        <div class="why-d">We handle setup, execution, and cleanup. You show up, celebrate, and go home happy.</div>
+        <div class="why-t">You enjoy the party</div>
+        <div class="why-d">We handle setup and execution. You show up, celebrate, and enjoy every moment.</div>
       </div>
       <div class="why-card">
-        <div class="why-ic">👑</div>
-        <div class="why-t">End-to-end by experts</div>
+        <div class="why-ic">🎯</div>
+        <div class="why-t">Managed by Experts</div>
         <div class="why-d">A dedicated Account Manager coordinates every vendor. One point of contact, not ten.</div>
       </div>
       <div class="why-card">
-        <div class="why-ic">🏠</div>
+        <div class="why-ic">📍</div>
         <div class="why-t">We come to you</div>
         <div class="why-d">Home, banquet hall, turf, restaurant, outdoor — we set up anywhere in Mumbai or Pune.</div>
       </div>
       <div class="why-card">
-        <div class="why-ic">🪄</div>
+        <div class="why-ic">✨</div>
         <div class="why-t">Story-led experiences</div>
         <div class="why-d">Immersive themes that fire children's imaginations — not just decorations, but real adventures.</div>
       </div>
       <div class="why-card">
-        <div class="why-ic">✅</div>
+        <div class="why-ic">💰</div>
         <div class="why-t">Transparent pricing</div>
         <div class="why-d">Live price tracker as you build. No hidden charges. What you see is exactly what you pay.</div>
       </div>
@@ -1076,40 +1056,49 @@
         <div class="testi-slides" id="testiSlides">
 
           <div class="testi-card">
-            <div class="testi-q">"</div>
-            <p class="testi-txt">Wondershop turned my daughter's birthday into a beautiful adventure. The attention to detail, the storytelling and the way every child was engaged was just exceptional!</p>
-            <div class="testi-author">
-              <div class="testi-av">NP</div>
-              <div>
-                <div class="testi-nm">Niyara's Parents</div>
-                <div class="testi-ct">Mumbai · Spy Adventure</div>
-                <div class="testi-st">★★★★★</div>
+            <img src="yuwan spy decor.jpg" alt="Spy Adventure Birthday Party" class="testi-card-photo">
+            <div class="testi-card-body">
+              <div class="testi-q">"</div>
+              <p class="testi-txt">Wondershop turned my daughter's birthday into a beautiful adventure. The attention to detail, the storytelling and the way every child was engaged was just exceptional!</p>
+              <div class="testi-author">
+                <div class="testi-av">NP</div>
+                <div>
+                  <div class="testi-nm">Niyara's Parents</div>
+                  <div class="testi-ct">Mumbai · Spy Adventure</div>
+                  <div class="testi-st">★★★★★</div>
+                </div>
               </div>
             </div>
           </div>
 
           <div class="testi-card">
-            <div class="testi-q">"</div>
-            <p class="testi-txt">It was super creative, so well organised and completely screen-free! The kids had so much fun and we as parents could actually enjoy the celebration too.</p>
-            <div class="testi-author">
-              <div class="testi-av">PF</div>
-              <div>
-                <div class="testi-nm">Parmi's Family</div>
-                <div class="testi-ct">Mumbai · Football Theme</div>
-                <div class="testi-st">★★★★★</div>
+            <img src="16.jpg" alt="Birthday Party Celebration" class="testi-card-photo">
+            <div class="testi-card-body">
+              <div class="testi-q">"</div>
+              <p class="testi-txt">It was super creative, so well organised and completely screen-free! The kids had so much fun and we as parents could actually enjoy the celebration too.</p>
+              <div class="testi-author">
+                <div class="testi-av">PF</div>
+                <div>
+                  <div class="testi-nm">Parmi's Family</div>
+                  <div class="testi-ct">Mumbai · Football Theme</div>
+                  <div class="testi-st">★★★★★</div>
+                </div>
               </div>
             </div>
           </div>
 
           <div class="testi-card">
-            <div class="testi-q">"</div>
-            <p class="testi-txt">From the decor to the activities, everything was magical. My son still talks about his 'spy mission' birthday three months later. Worth every rupee.</p>
-            <div class="testi-author">
-              <div class="testi-av">SF</div>
-              <div>
-                <div class="testi-nm">Sarth's Family</div>
-                <div class="testi-ct">Mumbai · Harry Potter</div>
-                <div class="testi-st">★★★★★</div>
+            <img src="sana decor pic google v2.jpg" alt="Birthday Party Decor" class="testi-card-photo">
+            <div class="testi-card-body">
+              <div class="testi-q">"</div>
+              <p class="testi-txt">From the decor to the activities, everything was magical. My son still talks about his 'spy mission' birthday three months later. Worth every rupee.</p>
+              <div class="testi-author">
+                <div class="testi-av">SF</div>
+                <div>
+                  <div class="testi-nm">Sarth's Family</div>
+                  <div class="testi-ct">Mumbai · Harry Potter</div>
+                  <div class="testi-st">★★★★★</div>
+                </div>
               </div>
             </div>
           </div>
@@ -1130,38 +1119,6 @@
 </section>
 
 
-<!-- ════════════════════════════════════════
-     GALLERY
-═════════════════════════════════════════ -->
-<section class="sec" id="gallery">
-  <div class="container">
-    <div class="sec-head">
-      <div class="sec-tag">Our Work</div>
-      <h2 class="sec-h2">500+ parties.<br><em>Every one</em> a memory.</h2>
-      <p class="sec-sub">Real events. Real families. Real joy — across Mumbai and Pune.</p>
-    </div>
-
-    <div class="gallery-wrap" id="galleryWrap">
-      <img src="2.jpg"  alt="Wondershop birthday decor setup" loading="lazy" onclick="openLb(0)" class="lb-thumb">
-      <img src="4.jpg"  alt="Kids enjoying birthday activities" loading="lazy" onclick="openLb(1)" class="lb-thumb">
-      <img src="7.jpg"  alt="Themed birthday celebration" loading="lazy" onclick="openLb(2)" class="lb-thumb">
-      <img src="9.jpg"  alt="Birthday child moment of joy" loading="lazy" onclick="openLb(3)" class="lb-thumb">
-      <img src="10.jpg" alt="Party host engaging with children" loading="lazy" onclick="openLb(4)" class="lb-thumb">
-      <img src="11.jpg" alt="Beautiful birthday decor" loading="lazy" onclick="openLb(5)" class="lb-thumb">
-      <img src="13.jpg" alt="Children at a Wondershop party" loading="lazy" onclick="openLb(6)" class="lb-thumb">
-      <img src="14.jpg" alt="Candid birthday moment" loading="lazy" onclick="openLb(7)" class="lb-thumb">
-      <img src="15.jpg" alt="Party setup and decor" loading="lazy" onclick="openLb(8)" class="lb-thumb">
-      <img src="17.jpg" alt="Happy family at birthday celebration" loading="lazy" onclick="openLb(9)" class="lb-thumb">
-      <img src="20.jpg" alt="Group photo at birthday" loading="lazy" onclick="openLb(10)" class="lb-thumb">
-      <img src="sana decor pic google v2.jpg" alt="Wondershop event decor" loading="lazy" onclick="openLb(11)" class="lb-thumb">
-    </div>
-
-    <div class="gallery-cta" style="display:flex;gap:16px;justify-content:center;align-items:center;flex-wrap:wrap">
-      <a href="gallery.html" class="btn-p" style="font-size:14px;padding:12px 24px">View All Photos →</a>
-      <a href="https://instagram.com/wondershop.experiences" class="btn-lnk" target="_blank" rel="noopener">See more on Instagram →</a>
-    </div>
-  </div>
-</section>
 
 
 
@@ -1314,7 +1271,7 @@
     <p class="fcta-sub">Build your child's perfect birthday in 10 minutes — or just say hello. We'd love to chat.</p>
     <div class="fcta-btns">
       <a href="builder.html?start=1" class="btn-wh">Build a Birthday →</a>
-      <a href="https://wa.me/919004435362" class="btn-owh" target="_blank" rel="noopener">WhatsApp Us</a>
+      <a href="https://wa.me/919742240477" class="btn-owh" target="_blank" rel="noopener">WhatsApp Us</a>
     </div>
   </div>
 </section>
@@ -1329,10 +1286,10 @@
       <div>
         <div class="ft-brand-n">WONDERSHOP</div>
         <div class="ft-brand-s">Experiences</div>
-        <p class="ft-tagline">Premium birthday experiences for children aged 1–12 across Mumbai and Pune. Story-led. Personalised. Stress-free.</p>
+        <p class="ft-tagline">Pick your services, personalise every detail, and we handle everything else. No calls needed until you're ready.</p>
         <div class="ft-soc">
           <a href="https://instagram.com/wondershop.experiences" class="ft-soc-a" aria-label="Instagram" target="_blank" rel="noopener">📷</a>
-          <a href="https://wa.me/919004435362" class="ft-soc-a" aria-label="WhatsApp" target="_blank" rel="noopener">💬</a>
+          <a href="https://wa.me/919742240477" class="ft-soc-a" aria-label="WhatsApp" target="_blank" rel="noopener">💬</a>
           <a href="https://youtube.com/@wondershopexperiences" class="ft-soc-a" aria-label="YouTube" target="_blank" rel="noopener">▶</a>
         </div>
       </div>
@@ -1364,16 +1321,8 @@
         <div class="ft-col-h">Contact</div>
         <ul class="ft-links">
           <li><a href="mailto:contact@wondershopexperiences.com">contact@wondershopexperiences.com</a></li>
-          <li><a href="https://wa.me/919004435362" target="_blank" rel="noopener">WhatsApp Us</a></li>
-          <li><a href="#">Mumbai</a></li>
-          <li><a href="#">Pune</a></li>
+          <li><a href="https://wa.me/919742240477" target="_blank" rel="noopener">WhatsApp Us</a></li>
         </ul>
-        <div style="margin-top:20px">
-          <div class="ft-col-h">Hours</div>
-          <div style="font-family:var(--fb);font-size:13px;color:rgba(255,255,255,.45);line-height:1.75">
-            Mon – Sat: 10am – 7pm<br>Sun: 11am – 5pm
-          </div>
-        </div>
       </div>
     </div>
     <div class="ft-bottom">
@@ -1661,7 +1610,7 @@ document.addEventListener('keydown', e => {
 
 
 <!-- WhatsApp FAB -->
-<a href="https://wa.me/919004435362" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
+<a href="https://wa.me/919742240477" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
   <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
 </a>
 <style>
