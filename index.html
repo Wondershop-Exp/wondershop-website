@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Wondershop Experiences — Mumbai & Pune's premier children's birthday planning service. Decor, activities, host, DJ, pinata, e-invite, photographer and return gifts — all in one place. Plan in 10 minutes.">
+  <meta name="description" content="Wondershop Experiences — Mumbai's premier children's birthday planning service. Decor, activities, host, DJ, pinata, e-invite, photographer and return gifts — all in one place. Plan in 10 minutes.">
   <title>Wondershop Experiences — Plan Your Child's Dream Birthday</title>
   <!-- ── Google Analytics 4 ────────────────────────────────────────
        Replace G-XXXXXXXXXX with your real GA4 Measurement ID
@@ -112,10 +112,72 @@
       .hero { padding: calc(72px + 32px) 0 36px; }
     }
 
+    /* ── LOCATION SELECTOR ── */
+    .nav-loc-wrap { position: relative; }
+    .nav-loc-btn {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--li2); border: 1.5px solid rgba(181,157,222,.45);
+      border-radius: 20px; padding: 4px 11px 4px 9px;
+      font-family: var(--fb); font-size: 12px; font-weight: 600;
+      color: var(--li); cursor: pointer; transition: background .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .nav-loc-btn:hover { background: #e0d5f5; border-color: var(--li); }
+    .nav-loc-btn.has-loc { color: #5b3fa6; }
+    .loc-dd {
+      display: none; position: absolute; top: calc(100% + 10px); left: 0;
+      background: #fff; border: 1.5px solid var(--li2);
+      border-radius: 16px; padding: 18px 16px 14px;
+      min-width: 268px; box-shadow: 0 8px 32px rgba(181,157,222,.22); z-index: 300;
+    }
+    .loc-dd.open { display: block; }
+    .loc-dd-h { font-family: var(--fd); font-size: 14px; font-weight: 700; color: var(--bk); margin-bottom: 8px; }
+    .loc-dd-cur { font-size: 12px; color: var(--gy); margin-bottom: 8px; display: none; }
+    .loc-dd-cur.show { display: block; }
+    .loc-inp-row { display: flex; gap: 6px; }
+    .loc-inp {
+      flex: 1; padding: 9px 12px; border: 1.5px solid var(--li2); border-radius: 10px;
+      font-family: var(--fb); font-size: 14px; color: var(--bk); outline: none;
+      transition: border-color .15s;
+    }
+    .loc-inp:focus { border-color: var(--li); }
+    .loc-inp-btn {
+      padding: 9px 14px; background: var(--li); color: #fff; border: none;
+      border-radius: 10px; font-family: var(--fb); font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: background .15s; flex-shrink: 0;
+    }
+    .loc-inp-btn:hover { background: #9d84cc; }
+    .loc-err { font-size: 11px; color: #e53e3e; margin-top: 6px; min-height: 14px; line-height: 1.4; }
+    .loc-dd-note { font-size: 11px; color: var(--gy); margin-top: 6px; }
+
+    /* Location modal */
+    .loc-mov {
+      display: none; position: fixed; inset: 0;
+      background: rgba(25,25,25,.55); z-index: 600;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .loc-mov.open { display: flex; }
+    .loc-modal {
+      background: #fff; border-radius: 24px; padding: 36px 32px 28px;
+      max-width: 400px; width: 100%; text-align: center;
+      animation: locIn .25s ease;
+    }
+    @keyframes locIn { from { opacity:0; transform:translateY(14px) scale(.97); } to { opacity:1; transform:none; } }
+    .loc-modal-icon { font-size: 40px; margin-bottom: 10px; }
+    .loc-modal-h { font-family: var(--fd); font-size: 22px; font-weight: 700; color: var(--bk); margin-bottom: 8px; }
+    .loc-modal-sub { font-size: 14px; color: var(--gy); line-height: 1.65; margin-bottom: 20px; }
+    .loc-modal-note { font-size: 11px; color: var(--gy); margin-top: 12px; }
+    .loc-modal-skip {
+      background: none; border: none; font-family: var(--fb); font-size: 13px;
+      color: var(--gy); cursor: pointer; margin-top: 10px; text-decoration: underline;
+      display: block; margin-left: auto; margin-right: auto;
+    }
+    .loc-modal-skip:hover { color: var(--bk); }
+
     /* ── HERO ── */
     .hero {
       background: #FDF8FF;
-      padding: calc(var(--nav-h) + 48px) 0 48px;
+      padding: calc(var(--nav-h) + 18px) 0 48px;
       min-height: 85vh;
       display: flex; align-items: center;
     }
@@ -154,21 +216,23 @@
     }
     .btn-ghost:hover { background: var(--li2); }
     .hero-stats {
-      display: flex; gap: 0; flex-wrap: wrap;
-      margin-bottom: 20px;
+      display: flex; gap: 0;
+      margin-bottom: 12px;
       border: 1.5px solid var(--li2); border-radius: 14px;
-      overflow: hidden; width: fit-content;
+      overflow: hidden; width: 100%;
     }
     .hs {
-      padding: 12px 20px; text-align: center;
+      flex: 1; padding: 16px 12px; text-align: center;
       border-right: 1.5px solid var(--li2);
     }
     .hs:last-child { border-right: none; }
-    .hs-n { font-family: var(--fd); font-size: 18px; font-weight: 700; color: var(--bk); display: block; line-height: 1.1; }
-    .hs-l { font-family: var(--fb); font-size: 10px; color: var(--gy); font-weight: 500; display: block; margin-top: 2px; }
+    .hs-n { font-family: var(--fd); font-size: 22px; font-weight: 700; color: var(--bk); display: block; line-height: 1.1; }
+    .hs-l { font-family: var(--fb); font-size: 11px; color: var(--gy); font-weight: 500; display: block; margin-top: 3px; }
+    .hero-curated { font-family: var(--fb); font-size: 12px; color: var(--gy); text-align: center; margin-bottom: 4px; }
     .hero-note { font-family: var(--fb); font-size: 12px; color: #9CA3AF; }
-    .hero-svcs { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 16px; }
-    .hero-svc { display: inline-flex; align-items: center; gap: 5px; font-family: var(--fb); font-size: 12px; font-weight: 600; color: #7B5EA7; background: var(--li2); border-radius: 20px; padding: 5px 13px; }
+    .hero-svcs { display: flex; flex-direction: column; gap: 8px; margin: 18px 0 16px; }
+    .hero-svcs-row { display: flex; gap: 8px; }
+    .hero-svc { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; font-family: var(--fb); font-size: 14px; font-weight: 600; color: #7B5EA7; background: var(--li2); border-radius: 20px; padding: 6px 8px; white-space: nowrap; }
     .hero-bullets { display: flex; flex-direction: column; gap: 7px; margin-bottom: 24px; }
     .hero-bullet { display: flex; align-items: center; gap: 8px; font-family: var(--fb); font-size: 14px; color: var(--gy); }
     .hero-bullet::before { content: '✓'; color: var(--gr); font-weight: 700; font-size: 15px; flex-shrink: 0; }
@@ -544,6 +608,10 @@
       color: rgba(255,255,255,.55); font-size: 15px; transition: background .15s, color .15s;
     }
     .ft-soc-a:hover { background: rgba(181,157,222,.3); color: #fff; }
+    .ft-soc-a svg { display: block; }
+    .ft-soc-ig:hover { background: #c13584; color: #fff; border-color: #c13584; }
+    .ft-soc-wa:hover { background: #25D366; color: #fff; border-color: #25D366; }
+    .ft-soc-yt:hover { background: #FF0000; color: #fff; border-color: #FF0000; }
     .ft-col-h { font-family: var(--fb); font-size: 11px; font-weight: 700; color: rgba(255,255,255,.35); letter-spacing: 1.1px; text-transform: uppercase; margin-bottom: 16px; }
     .ft-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
     .ft-links a { font-family: var(--fb); font-size: 14px; color: rgba(255,255,255,.6); transition: color .15s; }
@@ -701,6 +769,23 @@
     </div>
     <!-- Row 2: Nav links -->
     <div class="nav-row2">
+      <div class="nav-loc-wrap">
+        <button class="nav-loc-btn" id="navLocBtn" onclick="toggleLocDd(event)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span id="navLocTxt">Select Area</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="loc-dd" id="locDd">
+          <div class="loc-dd-h">📍 Your area in Mumbai</div>
+          <div class="loc-dd-cur" id="locDdCur"></div>
+          <div class="loc-inp-row">
+            <input class="loc-inp" id="locDdInp" type="text" inputmode="numeric" maxlength="6" placeholder="Enter pincode…" oninput="this.value=this.value.replace(/\D/g,'')">
+            <button class="loc-inp-btn" onclick="submitPin('dd')">→</button>
+          </div>
+          <div class="loc-err" id="locDdErr"></div>
+          <div class="loc-dd-note">e.g. 400050 · Bandra &nbsp;|&nbsp; 400068 · Powai</div>
+        </div>
+      </div>
       <a href="#home">Home</a>
       <a href="gallery.html">Gallery</a>
       <a href="testimonials.html">Testimonials</a>
@@ -712,6 +797,10 @@
 </nav>
 
 <div class="nav-mobile" id="nav-mob">
+  <button class="nav-loc-btn" style="width:100%;justify-content:center;border-radius:10px;padding:10px 14px;margin-bottom:6px;font-size:13px" onclick="showLocModal()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    <span id="mobLocTxt">📍 Select Your Area</span>
+  </button>
   <a href="#home" class="nav-mob-lnk">Home</a>
   <a href="gallery.html" class="nav-mob-lnk">Gallery</a>
   <a href="testimonials.html" class="nav-mob-lnk">Testimonials</a>
@@ -734,15 +823,19 @@
         <div class="hero-tag">One Stop Platform for all your Birthday Needs</div>
         <h1 class="hero-h1">Think Birthdays,<br>Think <em>Wondershop.</em></h1>
         <div class="hero-svcs">
-          <span class="hero-svc">🎈 Decor</span>
-          <span class="hero-svc">🎪 Activities</span>
-          <span class="hero-svc">🙌 Host</span>
-          <span class="hero-svc">🎵 DJ</span>
-          <span class="hero-svc">🎉 Pinata</span>
-          <span class="hero-svc">📲 E-Invite</span>
-          <span class="hero-svc">📸 Photographer</span>
-          <span class="hero-svc">🎁 Return Gifts</span>
-          <span class="hero-svc">🧸 Mascot</span>
+          <div class="hero-svcs-row">
+            <span class="hero-svc">🎈 Decor</span>
+            <span class="hero-svc">🎪 Activities</span>
+            <span class="hero-svc">🙌 Host</span>
+            <span class="hero-svc">🎵 DJ</span>
+            <span class="hero-svc">🎉 Pinata</span>
+          </div>
+          <div class="hero-svcs-row">
+            <span class="hero-svc">📲 E-Invite</span>
+            <span class="hero-svc">📸 Photographer</span>
+            <span class="hero-svc">🎁 Return Gifts</span>
+            <span class="hero-svc">🧸 Mascot</span>
+          </div>
         </div>
         <div class="hero-bullets">
           <div class="hero-bullet">Celebrations personalized around the family</div>
@@ -752,13 +845,13 @@
           <a href="builder.html?start=1" class="btn-p">Build a Birthday ✦</a>
           <a href="builder.html?lead=1" class="btn-ghost">Call Me to Plan</a>
         </div>
-        <div style="font-family:var(--fb);font-size:12px;color:var(--gy);margin-top:-16px;margin-bottom:8px">Curated Birthday Experiences · Mumbai | Pune</div>
         <div class="hero-stats">
           <div class="hs"><span class="hs-n">200+</span><span class="hs-l">Magical Events</span></div>
           <div class="hs"><span class="hs-n">5,000+</span><span class="hs-l">Happy Kids</span></div>
           <div class="hs"><span class="hs-n">500+</span><span class="hs-l">Satisfied Parents</span></div>
           <div class="hs"><span class="hs-n">5 ★</span><span class="hs-l">Google Rating</span></div>
         </div>
+        <div class="hero-curated">Curated Birthday Experiences · Mumbai</div>
       </div>
 
       <!-- RIGHT: hero image -->
@@ -869,7 +962,7 @@
       <div class="why-card">
         <div class="why-ic">📍</div>
         <div class="why-t">We come to you</div>
-        <div class="why-d">Home, banquet hall, turf, restaurant, outdoor — we set up anywhere in Mumbai or Pune.</div>
+        <div class="why-d">Home, banquet hall, turf, restaurant, outdoor — we set up anywhere across Mumbai.</div>
       </div>
       <div class="why-card">
         <div class="why-ic">✨</div>
@@ -921,6 +1014,29 @@
           <div class="pkg-btns">
             <a href="builder.html?theme=spy&start=1" class="pkg-btn-build">Build This Package →</a>
             <button class="pkg-btn-cart" onclick="addToCart(this,'Spy Adventure','₹32,000',34000,['Spy Decor','Host','DJ','Mystery Escape','DIY Craft','E-Invite'])">+ Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- UNICORN BASIC PACKAGE -->
+      <div class="pkg-card">
+        <img src="img/theme-uni.jpg" alt="Unicorn Basic Birthday Package" class="pkg-img">
+        <span class="pkg-badge" style="background:var(--li)">New</span>
+        <span class="pkg-save">Bundle · ₹20,000</span>
+        <div class="pkg-body">
+          <div class="pkg-name">Unicorn Basic</div>
+          <div class="pkg-age">Best for ages 3–8 · Girls · Up to 25 kids</div>
+          <div class="pkg-includes">
+            <span class="pkg-tag">🎈 Balloon Arch &amp; Decor</span>
+            <span class="pkg-tag">🎤 Host</span>
+            <span class="pkg-tag">🎉 1 Activity (your pick)</span>
+            <span class="pkg-tag">💌 E-Invite</span>
+          </div>
+          <div class="pkg-price-row">
+            <div><span class="pkg-price">₹20,000</span><span style="font-size:12px;color:var(--gy);margin-left:6px">flat · up to 25 kids</span></div>
+          </div>
+          <div class="pkg-btns">
+            <a href="unicorn-basic.html" class="pkg-btn-build" style="flex:1">View Package →</a>
           </div>
         </div>
       </div>
@@ -1183,7 +1299,7 @@
     <div class="sec-head">
       <div class="sec-tag">Find Us on Instagram</div>
       <h2 class="sec-h2">Follow the <em>magic</em></h2>
-      <p class="sec-sub">Behind-the-scenes moments, real parties, and daily inspiration from Mumbai &amp; Pune.</p>
+      <p class="sec-sub">Behind-the-scenes moments, real parties, and daily inspiration from Mumbai.</p>
     </div>
 
     <div class="insta-wrap">
@@ -1194,7 +1310,7 @@
           <img src="1.jpg" alt="Wondershop Experiences on Instagram" loading="lazy">
         </div>
         <div class="insta-handle">@wondershop.experiences</div>
-        <div class="insta-bio">Premium birthday experiences for children 1–12 ✨<br>Mumbai · Pune<br>🎂 Story-led &amp; stress-free</div>
+        <div class="insta-bio">Premium birthday experiences for children 1–12 ✨<br>Mumbai<br>🎂 Story-led &amp; stress-free</div>
         <div class="insta-counts">
           <div class="ic"><span class="ic-n">498</span><span class="ic-l">Posts</span></div>
           <div class="ic"><span class="ic-n">1,078</span><span class="ic-l">Followers</span></div>
@@ -1292,9 +1408,15 @@
         <div class="ft-brand-s">Experiences</div>
         <p class="ft-tagline">Pick your services, personalise every detail, and we handle everything else. No calls needed until you're ready.</p>
         <div class="ft-soc">
-          <a href="https://instagram.com/wondershop.experiences" class="ft-soc-a" aria-label="Instagram" target="_blank" rel="noopener">📷</a>
-          <a href="https://wa.me/919742240477" class="ft-soc-a" aria-label="WhatsApp" target="_blank" rel="noopener">💬</a>
-          <a href="https://youtube.com/@wondershopexperiences" class="ft-soc-a" aria-label="YouTube" target="_blank" rel="noopener">▶</a>
+          <a href="https://instagram.com/wondershop.experiences" class="ft-soc-a ft-soc-ig" aria-label="Instagram" target="_blank" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+          </a>
+          <a href="https://wa.me/919742240477" class="ft-soc-a ft-soc-wa" aria-label="WhatsApp" target="_blank" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          </a>
+          <a href="https://youtube.com/@wondershopexperiences" class="ft-soc-a ft-soc-yt" aria-label="YouTube" target="_blank" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          </a>
         </div>
       </div>
       <div>
@@ -1331,7 +1453,7 @@
     </div>
     <div class="ft-bottom">
       <div class="ft-copy">&copy; 2025 Wondershop Experiences. All rights reserved.</div>
-      <div class="ft-cities">Mumbai &nbsp;&middot;&nbsp; Pune &nbsp;&middot;&nbsp; Crafted with ♥</div>
+      <div class="ft-cities">Mumbai &nbsp;&middot;&nbsp; Crafted with ♥</div>
     </div>
   </div>
 </footer>
@@ -1492,10 +1614,10 @@ function proceedFromCart(){
 // ── HERO IMAGE CAROUSEL ──
 const FRAMES = [
   { src: '1.jpg',  badge: 'Live event · Mumbai' },
-  { src: '7.jpg',  badge: 'Just celebrated · Pune' },
+  { src: '7.jpg',  badge: 'Just celebrated' },
   { src: '12.jpg', badge: 'Spy Adventure · Mumbai' },
   { src: '18.jpg', badge: 'Art Party · Mumbai' },
-  { src: '24.jpg', badge: 'Unicorn Magic · Pune' },
+  { src: '24.jpg', badge: 'Unicorn Magic' },
 ];
 let cCur = 0, cTimer;
 const frontImg = document.getElementById('hc-front-img');
@@ -1606,12 +1728,115 @@ document.getElementById('lb').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeLb();
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeLb();
+  if (e.key === 'Escape') { closeLb(); document.getElementById('locDd')?.classList.remove('open'); }
   if (e.key === 'ArrowRight') lbNav(1);
   if (e.key === 'ArrowLeft') lbNav(-1);
+  if (e.key === 'Enter') {
+    if (document.activeElement?.id === 'locMdInp') submitPin('modal');
+    if (document.activeElement?.id === 'locDdInp') submitPin('dd');
+  }
 });
+
+// ── LOCATION SELECTOR ──
+const WS_LOC = 'ws_loc_v1';
+let wsLoc = { pin: '', area: '' };
+
+function getMumbaiArea(pin) {
+  const p = parseInt(pin);
+  if (p >= 400001 && p <= 400007) return 'South Mumbai';
+  if (p >= 400008 && p <= 400022) return 'Central Mumbai';
+  if (p >= 400023 && p <= 400055) return 'Bandra / Andheri';
+  if (p >= 400056 && p <= 400075) return 'Malad / Borivali';
+  if (p >= 400076 && p <= 400099) return 'Eastern Suburbs';
+  if (p >= 400600 && p <= 400616) return 'Thane';
+  if (p >= 400700 && p <= 400710) return 'Navi Mumbai';
+  return 'Mumbai';
+}
+
+function initLoc() {
+  try { const s = localStorage.getItem(WS_LOC); if (s) wsLoc = JSON.parse(s); } catch(e) {}
+  updateLocUI();
+  if (!wsLoc.pin) setTimeout(showLocModal, 1800);
+}
+
+function updateLocUI() {
+  const label = wsLoc.area || wsLoc.pin || null;
+  const t = document.getElementById('navLocTxt');
+  const m = document.getElementById('mobLocTxt');
+  const cur = document.getElementById('locDdCur');
+  const btn = document.getElementById('navLocBtn');
+  if (t) t.textContent = label || 'Select Area';
+  if (m) m.textContent = label ? '📍 ' + label : '📍 Select Your Area';
+  if (btn) btn.classList.toggle('has-loc', !!wsLoc.pin);
+  if (cur) {
+    if (wsLoc.pin) { cur.textContent = 'Current: ' + wsLoc.area + ' (' + wsLoc.pin + ')'; cur.classList.add('show'); }
+    else cur.classList.remove('show');
+  }
+}
+
+function toggleLocDd(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('locDd');
+  if (dd.classList.contains('open')) { dd.classList.remove('open'); return; }
+  dd.classList.add('open');
+  const inp = document.getElementById('locDdInp');
+  if (inp) { if (wsLoc.pin) inp.value = wsLoc.pin; inp.focus(); }
+}
+
+function showLocModal() {
+  document.getElementById('locMov').classList.add('open');
+  setTimeout(() => document.getElementById('locMdInp')?.focus(), 150);
+}
+
+function hideLocModal() { document.getElementById('locMov').classList.remove('open'); }
+
+function handleLocBgClick(e) { if (e.target === e.currentTarget) hideLocModal(); }
+
+function submitPin(src) {
+  const inpId = src === 'modal' ? 'locMdInp' : 'locDdInp';
+  const errId = src === 'modal' ? 'locMdErr' : 'locDdErr';
+  const pin = (document.getElementById(inpId)?.value || '').trim();
+  const errEl = document.getElementById(errId);
+  if (errEl) errEl.textContent = '';
+  if (!/^\d{6}$/.test(pin)) {
+    if (errEl) errEl.textContent = 'Please enter a valid 6-digit pincode.';
+    return;
+  }
+  if (!pin.startsWith('400')) {
+    if (errEl) errEl.textContent = 'We serve Mumbai only — try a 400xxx pincode.';
+    return;
+  }
+  wsLoc = { pin, area: getMumbaiArea(pin) };
+  localStorage.setItem(WS_LOC, JSON.stringify(wsLoc));
+  updateLocUI();
+  if (src === 'modal') hideLocModal();
+  else document.getElementById('locDd')?.classList.remove('open');
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#navLocBtn') && !e.target.closest('#locDd'))
+    document.getElementById('locDd')?.classList.remove('open');
+});
+
+initLoc();
 </script>
 
+
+<!-- LOCATION MODAL -->
+<div class="loc-mov" id="locMov" onclick="handleLocBgClick(event)">
+  <div class="loc-modal">
+    <div class="loc-modal-icon">🎂</div>
+    <h3 class="loc-modal-h">Where's the birthday?</h3>
+    <p class="loc-modal-sub">Enter your Mumbai pincode so we can show accurate pricing for your neighbourhood.</p>
+    <div class="loc-inp-row">
+      <input class="loc-inp" id="locMdInp" type="text" inputmode="numeric" maxlength="6" placeholder="Enter pincode…" oninput="this.value=this.value.replace(/\D/g,'')">
+      <button class="loc-inp-btn" onclick="submitPin('modal')">Let's Go →</button>
+    </div>
+    <div class="loc-err" id="locMdErr"></div>
+    <p class="loc-modal-note">We currently serve Mumbai only &nbsp;·&nbsp; 400xxx pincodes</p>
+    <button class="loc-modal-skip" onclick="hideLocModal()">Skip for now</button>
+  </div>
+</div>
 
 <!-- WhatsApp FAB -->
 <a href="https://wa.me/919742240477" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
