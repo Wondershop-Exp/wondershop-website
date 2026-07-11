@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ritika Karia — Wondershop Experiences</title>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     HOST PROFILE PAGE — Ritika Karia (built from host-template.html)
+     ══════════════════════════════════════════════════════════════════
+     INTERNAL / SHARE-ONLY: not linked from nav/footer/sitemap, noindex
+     below. Share the direct file link with a client as needed.
+
+     STILL NEEDS (marked inline with an HTML comment where they go):
+       1. Caricature is wired up (img/Host/ritika-nobg-dark.png).
+       2. Signature Move + Catchphrase facts — left blank in the brief.
+       3. Real event photos for the film strip — currently using generic
+          science/theme stock shots from img/ since her specialty is
+          science shows & theme-based events.
+       4. Video is wired up (img/Host/ritika-video.mp4, compressed to ~26MB
+          from the original 145MB raw file — that raw file is gitignored so
+          it won't block the push). Backstory headline and parent
+          testimonials still placeholders below.
+     ══════════════════════════════════════════════════════════════════ -->
+
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo-square.png">
+<link rel="apple-touch-icon" href="logo-square.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Lora:ital,wght@0,400;0,600;0,700;0,900;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --li:#B59DDE;--li2:#EDE6FA;--li3:#F5F0FF;
+  --pk:#E65A96;--spk:#F5C3D7;
+  --am:#C98A00;--am2:#FFF3D6;
+  --bk:#191919;--gy:#6B7280;--lgy:#F5F2FA;--wh:#FAFAFA;
+  --cream:#F7ECE0;
+  --cov-a:#2A1030;--cov-b:#5C1332;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif;--fs:'Pinyon Script',cursive;
+  --max:1160px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);color:var(--bk);background:var(--wh);overflow-x:hidden}
+h1,h2,h3{font-family:var(--fd);line-height:1.15}
+p{line-height:1.7;color:var(--gy)}
+img{display:block;max-width:100%}
+a{text-decoration:none}
+.container{max-width:var(--max);margin:0 auto;padding:0 24px}
+
+/* ═══════════════ SCROLL 1 — COVER ═══════════════ */
+.cover{min-height:100vh;background:linear-gradient(160deg,var(--cov-a) 0%,var(--cov-b) 100%);display:flex;flex-direction:column;position:relative}
+
+.cover-hdr{max-width:var(--max);margin:0 auto;width:100%;padding:12px 24px 0;display:flex;align-items:center;justify-content:space-between}
+.cover-hdr img{height:38px;width:auto}
+.cover-tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:rgba(255,255,255,.14);padding:5px 13px;border-radius:20px}
+
+.cover-title-wrap{display:flex;flex-direction:column;align-items:center;padding:4px 20px 0}
+.cover-script{font-family:var(--fs);font-size:clamp(30px,6vw,54px);color:var(--spk);transform:rotate(-6deg);margin-bottom:2px;text-shadow:0 4px 12px rgba(0,0,0,.35)}
+.cover-title{font-family:var(--fd);font-weight:900;font-size:clamp(30px,7.8vw,70px);letter-spacing:-.01em;color:var(--cream);text-transform:uppercase;line-height:1;white-space:nowrap;text-align:center}
+
+.cover-mid{position:relative;max-width:var(--max);margin:0 auto;width:100%;flex:1;display:flex;align-items:center;justify-content:center;padding:2px 24px;min-height:0}
+@media(max-width:880px){.cover-mid{flex-direction:column;gap:10px;padding:2px 24px}}
+
+.cover-photo-col{position:relative;z-index:1;width:380px;max-height:46vh;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+@media(max-width:880px){.cover-photo-col{width:min(320px,58vw)}}
+.cover-photo-glow{position:absolute;width:135%;aspect-ratio:1;left:50%;top:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(229,150,190,.35),transparent 70%);filter:blur(44px);z-index:0}
+.cover-photo{position:relative;z-index:1;width:auto;max-width:100%;height:auto;max-height:46vh;object-fit:contain;filter:drop-shadow(0 18px 30px rgba(0,0,0,.5))}
+/* Fallback shown until a real photo exists at img/Host/ritika-nobg-dark.png */
+.cover-photo-avatar{position:relative;z-index:1;width:100%;aspect-ratio:3/4;border-radius:20px;background:linear-gradient(160deg,var(--li) 0%,var(--pk) 100%);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:700;font-size:64px;color:#fff;filter:drop-shadow(0 18px 30px rgba(0,0,0,.5))}
+
+.cover-facts-left{position:absolute;left:50%;top:50%;width:175px;transform:translate(calc(-100% - 130px),-50%);z-index:2;display:flex;flex-direction:column;gap:16px;align-items:flex-end;text-align:right}
+@media(max-width:880px){.cover-facts-left{position:static;transform:none;width:auto;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;text-align:center;order:2;gap:8px 14px}}
+
+.cover-facts-right{position:absolute;left:50%;top:50%;width:175px;transform:translate(130px,-50%);z-index:2;display:flex;flex-direction:column;gap:16px;align-items:flex-start;text-align:left}
+@media(max-width:880px){.cover-facts-right{position:static;transform:none;width:auto;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;text-align:center;order:3;gap:8px 14px}}
+
+.cf-num{font-family:var(--fd);font-weight:700;font-size:19px;color:var(--cream);line-height:1.25}
+.cf-lbl{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-top:3px}
+
+.cover-loves{max-width:640px;margin:4px auto 0;text-align:center;padding:0 20px}
+.cq-label{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--spk)}
+.cq-text{font-family:var(--fd);font-style:italic;font-size:17px;color:rgba(255,255,255,.9);line-height:1.4;white-space:nowrap}
+@media(max-width:700px){.cq-text{white-space:normal}}
+
+.film-strip{margin-top:6px;flex-shrink:0}
+.film-band{height:7px;background:#000;background-image:radial-gradient(circle,rgba(255,255,255,.55) 1.8px,transparent 2.2px);background-size:18px 7px;background-position:center}
+.film-strip-outer{width:100%;overflow:hidden;background:#000}
+.film-strip-track{display:flex;width:max-content;animation:filmScroll 34s linear infinite}
+.film-strip-track:hover{animation-play-state:paused}
+.ps-item{width:100px;height:100px;flex-shrink:0;border-right:2px solid rgba(0,0,0,.6)}
+.ps-item img{width:100%;height:100%;object-fit:cover;display:block;opacity:.94}
+@keyframes filmScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(max-width:600px){.ps-item{width:74px;height:74px}}
+
+/* ═══════════════ SCROLL 2 — ABOUT ═══════════════ */
+.about{padding:72px 0 8px;background:var(--wh)}
+.about-head{max-width:640px;margin:0 auto 44px;text-align:center}
+.about-kicker{display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--li);margin-bottom:12px}
+.about-title{font-family:var(--fb);font-weight:900;font-size:clamp(42px,8.5vw,84px);letter-spacing:-.02em;line-height:.92;text-transform:uppercase;color:var(--bk)}
+.about-title em{font-style:normal;color:var(--pk)}
+.about-intro{font-size:15.5px;color:var(--gy);margin-top:18px;line-height:1.75}
+
+.about-body{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:40px;padding:0 24px 56px}
+
+.kicker{display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--li);margin-bottom:10px}
+.blk-h{font-size:clamp(21px,2.6vw,27px);font-weight:700;color:var(--bk);margin-bottom:16px}
+.blk-h em{color:var(--pk);font-style:italic}
+
+.backstory{border-left:4px solid var(--pk);background:var(--li3);border-radius:0 16px 16px 0;padding:22px 24px;display:flex;flex-direction:column;gap:13px}
+.backstory p{font-size:14.5px;color:var(--bk);opacity:.78}
+.backstory p:first-of-type::first-letter{font-family:var(--fd);font-weight:700;font-size:44px;line-height:.7;float:left;padding:4px 6px 0 0;color:var(--pk)}
+
+.host-video{width:100%;border-radius:16px;overflow:hidden;background:var(--bk)}
+.host-video video{width:100%;max-height:460px;display:block;background:#000}
+.host-video-note{font-size:12.5px;color:var(--gy);margin-top:10px}
+
+.host-testi-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.host-testi-grid{grid-template-columns:1fr}}
+.host-testi{background:#fff;border:1.5px solid var(--li2);border-radius:16px;padding:18px}
+.host-testi-q{font-family:var(--fd);font-style:italic;font-size:14.5px;color:var(--bk);line-height:1.65;margin-bottom:10px}
+.host-testi-a{font-size:12px;font-weight:700;color:var(--li)}
+
+/* ── CTA ── */
+.host-cta{background:linear-gradient(135deg,var(--bk) 0%,#2d1a4e 100%);padding:48px 24px;text-align:center}
+.hcta-h{font-family:var(--fd);font-size:clamp(20px,3vw,26px);font-weight:700;color:#fff;margin-bottom:10px}
+.hcta-sub{font-size:14px;color:rgba(255,255,255,.65);margin-bottom:22px}
+.hcta-btn{background:#25D366;color:#fff;border-radius:24px;padding:12px 26px;font-size:14.5px;font-weight:700;display:inline-flex;align-items:center;gap:8px}
+
+/* ── MICRO FOOTER ── */
+.mf{padding:24px;text-align:center;font-size:12px;color:var(--gy)}
+.mf a{color:var(--li);font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════ SCROLL 1 — COVER ═══════════════════════ -->
+<section class="cover">
+
+  <header class="cover-hdr">
+    <a href="index.html"><img src="logo-horizontal-dark.png" alt="Wondershop Experiences"></a>
+    <span class="cover-tag">Host Profile</span>
+  </header>
+
+  <div class="cover-title-wrap">
+    <div class="cover-script">Meet</div>
+    <h1 class="cover-title">Ritika Karia</h1>
+  </div>
+
+  <div class="cover-mid">
+    <div class="cover-facts-left">
+      <div class="cf-item"><div class="cf-num">7+ yrs</div><div class="cf-lbl">Experience</div></div>
+      <div class="cf-item"><div class="cf-num">Science Shows &amp; Theme Events</div><div class="cf-lbl">Specialty</div></div>
+      <div class="cf-item"><div class="cf-num">Mumbai · South Bombay</div><div class="cf-lbl">Location</div></div>
+      <div class="cf-item"><div class="cf-num">Gujarat</div><div class="cf-lbl">Home Town</div></div>
+    </div>
+
+    <div class="cover-photo-col">
+      <div class="cover-photo-glow"></div>
+      <!-- No photo supplied yet — swap this src for a real background-removed
+           image (img/Host/ritika-nobg-dark.png) and the fallback below will
+           stop being used automatically. -->
+      <img class="cover-photo" src="img/Host/ritika-nobg-dark.png" alt="Ritika Karia" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div class=cover-photo-avatar>RK</div>')">
+    </div>
+
+    <div class="cover-facts-right">
+      <div class="cf-item"><div class="cf-num">English · Hindi · Gujarati · Marathi (basic)</div><div class="cf-lbl">Languages</div></div>
+      <div class="cf-item"><div class="cf-num">Theatre, Travelling &amp; Films</div><div class="cf-lbl">Passion</div></div>
+      <div class="cf-item"><div class="cf-num">[Add]</div><div class="cf-lbl">Signature Move</div></div>
+      <div class="cf-item"><div class="cf-num">[Add]</div><div class="cf-lbl">Catchphrase</div></div>
+    </div>
+  </div>
+
+  <div class="cover-loves">
+    <div class="cq-label">What She Loves About Hosting</div>
+    <p class="cq-text">"I love how I need to be on my toes and so present with children."</p>
+  </div>
+
+  <!-- FILM STRIP — Ritika's own real photos (img/Host/ritika-carousel-1..8.jpeg).
+       Second half exactly mirrors the first for the seamless loop. -->
+  <div class="film-strip">
+    <div class="film-band"></div>
+    <div class="film-strip-outer">
+      <div class="film-strip-track">
+        <div class="ps-item"><img src="img/Host/ritika-carousel-1.jpeg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/ritika-carousel-2.jpeg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/ritika-carousel-3.jpeg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/ritika-carousel-4.jpeg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/ritika-carousel-5.jpeg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/ritika-carousel-6.jpeg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/ritika-carousel-7.jpeg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/ritika-carousel-8.jpeg" alt=""></div>
+        <!-- second half — must exactly mirror the first for the seamless loop -->
+        <div class="ps-item"><img src="img/Host/ritika-carousel-1.jpeg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/ritika-carousel-2.jpeg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/ritika-carousel-3.jpeg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/ritika-carousel-4.jpeg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/ritika-carousel-5.jpeg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/ritika-carousel-6.jpeg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/ritika-carousel-7.jpeg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/ritika-carousel-8.jpeg" alt=""></div>
+      </div>
+    </div>
+    <div class="film-band"></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ SCROLL 2 — ABOUT ═══════════════════════ -->
+<section class="about">
+  <div class="about-head">
+    <div class="about-kicker">Scroll On</div>
+    <h2 class="about-title">About <em>Ritika</em></h2>
+    <p class="about-intro">A theatre artist at heart, Ritika brings the same energy and presence to every science show and themed birthday she hosts — turning curiosity into the main event.</p>
+  </div>
+
+  <div class="about-body">
+
+    <!-- BACKSTORY -->
+    <div>
+      <div class="kicker">The Story</div>
+      <div class="backstory">
+        <p>I am a theatre artist and an associate producer for Sunlife Films. I love travelling and exploring.</p>
+        <p>Over the past few years I've realised I'm good with kids, and they connect well with me in return — the ability to engage them spontaneously is something I love about myself.</p>
+        <p>I don't shy away from working hard, and I make sure it's smart work too.</p>
+      </div>
+    </div>
+
+    <!-- VIDEO (self-hosted) -->
+    <div>
+      <h2 class="blk-h">Ritika in <em>action</em></h2>
+      <div class="host-video">
+        <video controls preload="metadata">
+          <source src="img/Host/ritika-video.mp4" type="video/mp4">
+          Your browser doesn't support embedded video.
+        </video>
+      </div>
+    </div>
+
+    <!-- TESTIMONIALS — stays on this second scroll -->
+    <div>
+      <h2 class="blk-h">What <em>Parents Say</em></h2>
+      <div class="host-testi-grid">
+        <div class="host-testi">
+          <div class="host-testi-q">"[Quote from a parent about Ritika's energy, warmth, or how the kids responded.]"</div>
+          <div class="host-testi-a">— [Parent name / party details]</div>
+        </div>
+        <div class="host-testi">
+          <div class="host-testi-q">"[Another quote — could focus on a specific moment from a science show or themed party she led.]"</div>
+          <div class="host-testi-a">— [Parent name / party details]</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="host-cta">
+  <div class="hcta-h">Want Ritika at your party?</div>
+  <div class="hcta-sub">Message your Party Lead and we'll pencil her in for your date.</div>
+  <a href="https://wa.me/919742240477?text=Hi!%20I'd%20love%20to%20book%20Ritika%20Karia%20for%20my%20child's%20birthday." target="_blank" class="hcta-btn">💬 WhatsApp Your Party Lead</a>
+</div>
+
+<!-- MICRO FOOTER -->
+<div class="mf">
+  This is an internal profile page, shared privately — not indexed or listed publicly. &nbsp;·&nbsp;
+  <a href="mailto:contact@wondershopexperiences.com">contact@wondershopexperiences.com</a>
+</div>
+
+</body>
+</html>

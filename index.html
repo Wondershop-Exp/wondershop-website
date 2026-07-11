@@ -363,20 +363,26 @@
     @media (max-width: 380px) { .svc-grid { grid-template-columns: 1fr; } }
 
     /* ── WHY WS ── */
-    .why-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+    /* Card style now matches the reference: icon floating free on a plain
+       white card (no colour box behind it), soft drop-shadow instead of a
+       border, bigger bold two-line-capable title. */
+    .why-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
     .why-card {
-      background: #fff; border-radius: 16px; padding: 28px 24px;
-      border: 1.5px solid var(--li2); text-align: center;
+      background: #fff; border-radius: 20px; padding: 36px 28px 32px;
+      border: none; text-align: center;
+      box-shadow: 0 4px 20px rgba(17,17,17,.06);
+      transition: transform .15s, box-shadow .15s;
     }
+    .why-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(17,17,17,.1); }
     .why-ic {
-      width: 88px; height: 88px; border-radius: 24px;
-      background: linear-gradient(135deg, var(--li2) 0%, var(--li3) 100%);
+      width: 84px; height: 84px; border-radius: 0;
+      background: none; box-shadow: none;
       display: flex; align-items: center; justify-content: center;
-      font-size: 42px; margin: 0 auto 20px;
-      box-shadow: 0 6px 20px rgba(181,157,222,.18);
+      margin: 0 auto 22px;
     }
-    .why-t { font-family: var(--fd); font-size: 17px; font-weight: 600; color: var(--bk); margin-bottom: 8px; }
-    .why-d { font-family: var(--fb); font-size: 13px; color: var(--gy); line-height: 1.65; }
+    .why-ic svg { width: 100%; height: 100%; }
+    .why-t { font-family: var(--fd); font-size: 19px; font-weight: 700; color: var(--bk); margin-bottom: 12px; line-height: 1.3; }
+    .why-d { font-family: var(--fb); font-size: 13.5px; color: var(--gy); line-height: 1.65; }
 
     @media (max-width: 800px) { .why-grid { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 480px) { .why-grid { grid-template-columns: 1fr; } }
@@ -957,32 +963,66 @@
     </div>
     <div class="why-grid">
       <div class="why-card">
-        <div class="why-ic">💎</div>
+        <div class="why-ic">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 24 L32 9 L46 24 L32 55 Z" fill="var(--li2)" stroke="var(--li)" stroke-width="2.5" stroke-linejoin="round"/>
+            <path d="M18 24 H46 M25 24 L32 55 M39 24 L32 55" stroke="var(--li)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+            <path d="M32 9 L25 24 L32 20 L39 24 Z" fill="var(--pk)"/>
+          </svg>
+        </div>
         <div class="why-t">Premium &amp; Personalised</div>
         <div class="why-d">Every detail centered around your child. No two Wondershop parties look or feel the same.</div>
       </div>
       <div class="why-card">
-        <div class="why-ic">🥂</div>
+        <div class="why-ic">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 12h20l-3 20a7 7 0 0 1-14 0z" fill="var(--li2)" stroke="var(--li)" stroke-width="2.5" stroke-linejoin="round"/>
+            <path d="M32 32v14M24 50h16" stroke="var(--li)" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="26" cy="19" r="2.2" fill="var(--pk)"/>
+            <circle cx="34.5" cy="24" r="1.8" fill="var(--pk)"/>
+            <circle cx="30" cy="15" r="1.3" fill="var(--pk)"/>
+          </svg>
+        </div>
         <div class="why-t">You enjoy the party</div>
         <div class="why-d">We handle setup and execution. You show up, celebrate, and enjoy every moment.</div>
       </div>
       <div class="why-card">
-        <div class="why-ic">🎯</div>
+        <div class="why-ic">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M32 8l6.5 4 7.6-.9 2.6 7.2 6 5-3.4 6.9 3.4 6.9-6 5-2.6 7.2-7.6-.9L32 56l-6.5-4-7.6.9-2.6-7.2-6-5 3.4-6.9-3.4-6.9-6-5 2.6-7.2 7.6.9z" fill="var(--li2)" stroke="var(--li)" stroke-width="2.2" stroke-linejoin="round"/>
+            <path d="M24 32l6 6 12-13" stroke="var(--pk)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="why-t">Managed by Experts</div>
         <div class="why-d">A dedicated Account Manager coordinates every vendor. One point of contact, not ten.</div>
       </div>
       <div class="why-card">
-        <div class="why-ic">📍</div>
+        <div class="why-ic">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M32 8c-9.4 0-17 7.4-17 16.6C15 37 32 56 32 56s17-19 17-31.4C49 15.4 41.4 8 32 8z" fill="var(--li2)" stroke="var(--li)" stroke-width="2.5" stroke-linejoin="round"/>
+            <circle cx="32" cy="24" r="7" fill="var(--pk)"/>
+          </svg>
+        </div>
         <div class="why-t">We come to you</div>
         <div class="why-d">Home, banquet hall, turf, restaurant, outdoor — we set up anywhere across Mumbai.</div>
       </div>
       <div class="why-card">
-        <div class="why-ic">✨</div>
+        <div class="why-ic">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M32 6l4.5 16.5L53 27l-16.5 4.5L32 48l-4.5-16.5L11 27l16.5-4.5z" fill="var(--li2)" stroke="var(--li)" stroke-width="2.2" stroke-linejoin="round"/>
+            <path d="M48 39l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="var(--pk)"/>
+          </svg>
+        </div>
         <div class="why-t">Story-led experiences</div>
         <div class="why-d">Immersive themes that fire children's imaginations — not just decorations, but real adventures.</div>
       </div>
       <div class="why-card">
-        <div class="why-ic">💰</div>
+        <div class="why-ic">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 12h20l24 24-20 20-24-24z" fill="var(--li2)" stroke="var(--li)" stroke-width="2.5" stroke-linejoin="round"/>
+            <circle cx="20" cy="22" r="4" fill="var(--pk)"/>
+          </svg>
+        </div>
         <div class="why-t">Transparent pricing</div>
         <div class="why-d">Live price tracker as you build. No hidden charges. What you see is exactly what you pay.</div>
       </div>
