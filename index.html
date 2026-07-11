@@ -428,23 +428,35 @@
     @media (max-width: 580px) { .gallery-wrap { columns: 2; } }
 
     /* ── TESTIMONIALS ── */
-    .testi-trust { display: flex; gap: 0; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
+    /* Same bordered-box treatment as .hero-stats/.hs in the hero section,
+       so the trust markers look identical wherever they appear on the page. */
+    .testi-trust {
+      display: flex; gap: 0; justify-content: center; flex-wrap: wrap; margin: 0 auto 32px;
+      max-width: 620px; border: 1.5px solid var(--li2); border-radius: 14px; overflow: hidden;
+    }
     .testi-trust-item {
-      display: flex; flex-direction: column; align-items: center; padding: 12px 28px;
-      border-right: 1.5px solid var(--li2);
+      flex: 1; display: flex; flex-direction: column; align-items: center; padding: 16px 12px;
+      border-right: 1.5px solid var(--li2); text-align: center;
     }
     .testi-trust-item:last-child { border-right: none; }
-    .tti-n { font-family: var(--fd); font-size: 22px; font-weight: 700; color: var(--bk); }
-    .tti-l { font-family: var(--fb); font-size: 11px; color: var(--gy); margin-top: 2px; }
+    .tti-n { font-family: var(--fd); font-size: 22px; font-weight: 700; color: var(--bk); line-height: 1.1; }
+    .tti-l { font-family: var(--fb); font-size: 11px; color: var(--gy); font-weight: 500; margin-top: 3px; }
     .testi-carousel { position: relative; max-width: 860px; margin: 0 auto; }
     .testi-track { overflow: hidden; }
     .testi-slides { display: flex; transition: transform .4s ease; }
     .testi-card {
       min-width: 100%; background: #fff; border: 1.5px solid var(--li2);
       border-radius: 20px; padding: 0; box-sizing: border-box; overflow: hidden;
+      display: flex; align-items: stretch;
     }
-    .testi-card-photo { width: 100%; height: 200px; object-fit: cover; object-position: center; display: block; }
-    .testi-card-body { padding: 36px 44px 40px; }
+    /* Square box on the left (was a short full-width rectangle on top) —
+       sized up and given room to breathe against the text. */
+    .testi-card-photo { width: 300px; flex-shrink: 0; aspect-ratio: 1; object-fit: cover; object-position: center; display: block; }
+    .testi-card-body { padding: 36px 44px 40px; display: flex; flex-direction: column; justify-content: center; }
+    @media (max-width: 700px) {
+      .testi-card { flex-direction: column; }
+      .testi-card-photo { width: 100%; aspect-ratio: auto; height: 200px; }
+    }
     .testi-q { font-size: 48px; color: var(--li2); font-family: Georgia,serif; line-height: .7; margin-bottom: 16px; }
     .testi-txt { font-family: var(--fb); font-size: 17px; color: var(--bk); line-height: 1.8; margin-bottom: 24px; font-style: italic; }
     .testi-author { display: flex; align-items: center; gap: 12px; }
@@ -824,14 +836,14 @@
         <h1 class="hero-h1">Think Birthdays,<br>Think <em>Wondershop.</em></h1>
         <div class="hero-svcs">
           <div class="hero-svcs-row">
-            <span class="hero-svc">🎈 Decor</span>
-            <span class="hero-svc">🎪 Activities</span>
-            <span class="hero-svc">🙌 Host</span>
+            <span class="hero-svc">🎨 Decor</span>
+            <span class="hero-svc">🎯 Activities</span>
+            <span class="hero-svc">🎤 Host</span>
             <span class="hero-svc">🎵 DJ</span>
-            <span class="hero-svc">🎉 Pinata</span>
+            <span class="hero-svc">🎊 Pinata</span>
           </div>
           <div class="hero-svcs-row">
-            <span class="hero-svc">📲 E-Invite</span>
+            <span class="hero-svc">✉️ E-Invite</span>
             <span class="hero-svc">📸 Photographer</span>
             <span class="hero-svc">🎁 Return Gifts</span>
             <span class="hero-svc">🧸 Mascot</span>
@@ -940,7 +952,7 @@
   <div class="container">
     <div class="sec-head">
       <div class="sec-tag">Why Wondershop</div>
-      <h2 class="sec-h2">Designed by parents <em>for parents</em></h2>
+      <h2 class="sec-h2">Designed by parents, <em>for parents</em></h2>
       <p class="sec-sub">Because we understand how important these milestones are</p>
     </div>
     <div class="why-grid">
@@ -1251,7 +1263,7 @@
   <div class="container">
     <div class="sec-head">
       <div class="sec-tag">Birthday Planning Tips</div>
-      <h2 class="sec-h2">New to planning?<br><em>We've got you.</em></h2>
+      <h2 class="sec-h2">New to planning or a seasoned planner?<br><em>We've got you covered!</em></h2>
       <p class="sec-sub">From themes to timelines — our guides make birthday planning simple and stress-free.</p>
     </div>
 
