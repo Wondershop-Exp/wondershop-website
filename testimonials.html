@@ -72,12 +72,40 @@ button{cursor:pointer;font-family:var(--fb)}
 }
 
 /* ── HERO BANNER ─────────────────────────────────────────────────── */
-.hero-banner{position:relative;margin-top:var(--nav-h);height:320px;overflow:hidden}
-@media(max-width:600px){.hero-banner{height:240px}}
-.hero-banner-img{width:100%;height:100%;object-fit:cover;object-position:center 40%}
+.hero-banner{position:relative;margin-top:var(--nav-h);height:480px;overflow:hidden}
+@media(max-width:600px){.hero-banner{height:340px}}
+
+/* Crossfade carousel — 5 stacked slides, each visible for its own slot of a
+   shared 25s loop (5s each). animation-delay staggers them so exactly one is
+   ever opaque at a time; opacity:0 base state keeps the rest hidden before
+   their delay kicks in. Add/remove <img class="hero-banner-slide"> entries
+   and update the delay list + N in the comment below if the count changes. */
+.hero-banner-carousel{position:absolute;inset:0}
+.hero-banner-slide{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:center 40%;
+  opacity:0;
+  animation:heroSlideFade 25s infinite;
+}
+.hero-banner-slide:nth-child(1){animation-delay:0s}
+.hero-banner-slide:nth-child(2){animation-delay:5s}
+.hero-banner-slide:nth-child(3){animation-delay:10s}
+.hero-banner-slide:nth-child(4){animation-delay:15s}
+.hero-banner-slide:nth-child(5){animation-delay:20s}
+@keyframes heroSlideFade{
+  0%{opacity:0}
+  2%{opacity:1}
+  18%{opacity:1}
+  20%{opacity:0}
+  100%{opacity:0}
+}
 .hero-banner-overlay{position:absolute;inset:0;background:linear-gradient(to right,rgba(25,25,25,.62) 0%,rgba(25,25,25,.28) 100%)}
-.hero-banner-content{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 48px;max-width:640px}
-@media(max-width:600px){.hero-banner-content{padding:0 24px}}
+/* Content now sits inside the shared .container (same max-width:var(--max),
+   centered) instead of being pinned to the viewport's left edge — this is
+   what makes the text start at the same horizontal position as the blogs
+   page banner on wide screens, instead of hugging the left side. */
+.hero-banner-content{position:absolute;inset:0;display:flex;align-items:center}
+.hero-banner-inner{max-width:640px}
 .hero-banner-content .sec-tag{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3)}
 .hero-h1{font-size:clamp(28px,4vw,48px);font-weight:700;color:#fff;margin-bottom:12px;line-height:1.15}
 .hero-h1 em{color:var(--li);font-style:italic}
@@ -256,12 +284,22 @@ button{cursor:pointer;font-family:var(--fb)}
 
 <!-- HERO BANNER -->
 <div class="hero-banner">
-  <img src="testimonials-hero.jpg" alt="Wondershop Experiences birthday party" class="hero-banner-img">
+  <div class="hero-banner-carousel">
+    <img src="testimonials-hero.jpg" alt="Wondershop Experiences birthday party" class="hero-banner-slide">
+    <img src="1.jpg" alt="Wondershop family celebration" class="hero-banner-slide">
+    <img src="9.jpg" alt="Wondershop family celebration" class="hero-banner-slide">
+    <img src="17.jpg" alt="Wondershop family celebration" class="hero-banner-slide">
+    <img src="20.jpg" alt="Wondershop family celebration" class="hero-banner-slide">
+  </div>
   <div class="hero-banner-overlay"></div>
   <div class="hero-banner-content">
-    <div class="sec-tag">Wondershop Families</div>
-    <h1 class="hero-h1">Straight from <em>the parents</em></h1>
-    <p class="hero-p">Every word below is from a real Wondershop family — unedited, unfiltered.</p>
+    <div class="container">
+      <div class="hero-banner-inner">
+        <div class="sec-tag">Wondershop Families</div>
+        <h1 class="hero-h1">Straight from <em>the parents</em></h1>
+        <p class="hero-p">Every word below is from a real Wondershop family — unedited, unfiltered.</p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -428,7 +466,7 @@ button{cursor:pointer;font-family:var(--fb)}
     <div class="footer-grid">
       <div>
         <img src="logo-horizontal-dark.png" alt="Wondershop Experiences" style="height:48px;width:auto;margin-bottom:14px">
-        <div class="ft-tagline">Think Birthdays, Think Wondershop. Story-led celebrations for children aged 1–12 across Mumbai.</div>
+        <div class="ft-tagline">Pick your services, personalise every detail, and we handle everything else. No calls needed until you're ready.</div>
         <div class="ft-soc">
           <a href="https://www.instagram.com/wondershop.experiences/" target="_blank" class="ft-soc-a">📸</a>
           <a href="https://www.youtube.com/@wondershop_experiences/videos" target="_blank" class="ft-soc-a">▶</a>

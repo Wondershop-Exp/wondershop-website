@@ -80,26 +80,47 @@ button{cursor:pointer;font-family:var(--fb)}
 .sec-h2 em{color:var(--li);font-style:italic}
 .sec-sub{font-size:16px;color:var(--gy);max-width:580px;margin:0 auto;line-height:1.75}
 
-/* ── STORY ──────────────────────────────────────────────────────── */
-.story-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
-@media(max-width:768px){.story-grid{grid-template-columns:1fr}}
-.story-text{display:flex;flex-direction:column;gap:16px}
-.story-text p{font-size:15px;color:var(--gy);line-height:1.8}
-.story-visual{border-radius:20px;overflow:hidden;background:var(--li2);min-height:280px;display:flex;align-items:center;justify-content:center;font-size:64px}
-.story-visual img{width:100%;height:100%;object-fit:cover}
+/* ── KIDS ROW (brand-book character illustrations, replacing the old
+   text+yellow-banner block — sits between the "Who We Are" intro and the
+   vision grid) ─────────────────────────────────────────────────────── */
+.kids-row{display:flex;justify-content:center;align-items:flex-end;gap:40px;flex-wrap:wrap;margin-bottom:20px}
+.kid-item{flex:0 1 120px;max-width:120px;text-align:center}
+.kid-item img{width:100%;height:auto;display:block;margin:0 auto}
+.kids-lead{text-align:center;font-family:var(--fb);font-size:16px;font-weight:600;color:var(--bk);margin-bottom:48px}
+@media(max-width:700px){.kids-row{gap:22px}.kid-item{flex:0 1 92px;max-width:92px}}
 
 /* ── FOUNDERS ───────────────────────────────────────────────────── */
-.founders-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:40px}
-@media(max-width:768px){.founders-grid{grid-template-columns:1fr}}
-.founder-card{background:#fff;border:1.5px solid var(--li2);border-radius:20px;overflow:hidden;display:flex;flex-direction:column}
-.founder-photo{width:100%;height:220px;object-fit:cover;object-position:top}
-.founder-avatar{width:100%;height:220px;background:var(--li2);display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:700;color:var(--li);font-family:var(--fd)}
-.founder-body{padding:24px}
-.founder-name{font-family:var(--fd);font-size:22px;font-weight:700;color:var(--bk);margin-bottom:4px}
-.founder-title{font-size:13px;font-weight:600;color:var(--li);margin-bottom:6px}
-.founder-edu{font-size:12px;color:var(--gy);margin-bottom:16px}
-.founder-bio{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
-.founder-bio p{font-size:14px;color:var(--gy);line-height:1.75}
+/* Stacked, full-width, alternating rows (Shruti: photo left / text right,
+   Sidhant: photo right / text left — .reverse flips it) with a cutout photo
+   on a soft colour panel and hand-drawn-style arrow accents pointing from
+   the text toward the photo, echoing the annotated-poster reference. */
+.founders-stack{display:flex;flex-direction:column;gap:28px;margin-top:40px}
+.founder-card{position:relative;background:#fff;border:1.5px solid var(--li2);border-radius:20px;overflow:hidden;display:flex;align-items:stretch}
+.founder-card.reverse{flex-direction:row-reverse}
+@media(max-width:700px){.founder-card,.founder-card.reverse{flex-direction:column}}
+.founder-photo-panel{flex:0 0 40%;min-height:420px;background:linear-gradient(160deg,var(--li3) 0%,var(--li2) 100%);display:flex;align-items:flex-end;justify-content:center;padding:24px 16px 0;position:relative}
+@media(max-width:700px){.founder-photo-panel{flex:0 0 auto;min-height:340px;padding:24px 24px 0}}
+.founder-photo{width:100%;height:auto;max-height:440px;object-fit:contain;display:block}
+/* Plain (non-cutout) photo — fills the panel edge-to-edge instead of
+   sitting contained on the colour background, since there's no transparency
+   to frame. */
+.founder-photo-panel.fill{padding:0;align-items:stretch}
+.founder-photo-panel.fill .founder-photo{position:absolute;inset:0;width:100%;height:100%;max-height:none;object-fit:cover;object-position:top}
+.founder-avatar{width:100%;height:320px;background:var(--li2);display:flex;align-items:center;justify-content:center;font-size:56px;font-weight:700;color:var(--li);font-family:var(--fd)}
+.founder-info{flex:1;padding:32px 40px;display:flex;flex-direction:column;justify-content:center;min-width:0;position:relative;z-index:2}
+.founder-name{font-family:var(--fd);font-size:23px;font-weight:700;color:var(--bk);margin-bottom:2px}
+.founder-title{font-size:13px;font-weight:600;color:var(--li);margin-bottom:10px}
+.founder-edu{font-size:12px;color:var(--gy);margin-bottom:14px}
+.founder-quote{background:var(--li3);border-left:4px solid var(--li);border-radius:0 10px 10px 0;padding:12px 14px;margin-bottom:14px;font-family:var(--fd);font-style:italic;font-size:13.5px;color:var(--bk);line-height:1.6}
+.founder-facts{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:14px}
+.founder-facts li{font-size:13px;color:var(--gy);line-height:1.5}
+/* Decorative arrow accents — absolutely positioned over the card, curving
+   from roughly where the text sits toward the photo panel. Approximate by
+   design (poster-doodle style, not meant to point at exact photo features).
+   .founder-arrows flips horizontally on .reverse cards via the arrows-r
+   variant markup below. */
+.founder-arrows{position:absolute;inset:0;pointer-events:none;z-index:1}
+.founder-arrows svg{position:absolute}
 .founder-links{display:flex;gap:10px;flex-wrap:wrap}
 .founder-link{font-size:13px;font-weight:600;color:var(--li);background:var(--li2);padding:6px 14px;border-radius:20px;transition:background .15s}
 .founder-link:hover{background:var(--li);color:#fff}
@@ -181,13 +202,33 @@ button{cursor:pointer;font-family:var(--fb)}
 </div>
 
 <!-- VISION, MISSION & VALUES combined -->
-<section class="sec sec-alt" style="padding-top:calc(var(--nav-h) + 48px)">
+<section class="sec sec-alt" style="padding-top:calc(var(--nav-h) + 48px);padding-bottom:24px">
   <div class="container">
     <div class="sec-head" style="margin-bottom:32px">
       <div class="sec-tag">Who We Are</div>
       <h2 class="sec-h2">Built by parents, <em>for parents</em></h2>
       <p class="sec-sub" style="margin-top:8px">Wondershop was born from a simple belief: children deserve celebrations that spark their imagination, not just fill a room.</p>
     </div>
+
+    <!-- Kids row: brand-book characters -->
+    <div class="kids-row">
+      <div class="kid-item">
+        <img src="img/kid-joy.png" alt="Illustrated child laughing with arms open wide" loading="lazy">
+      </div>
+      <div class="kid-item">
+        <img src="img/kid-energy.png" alt="Illustrated child mid-flip, full of energy" loading="lazy">
+      </div>
+      <div class="kid-item">
+        <img src="img/kid-excitement.png" alt="Illustrated child jumping joyfully" loading="lazy">
+      </div>
+      <div class="kid-item">
+        <img src="img/kid-curious.png" alt="Illustrated child with glasses, mid-jump" loading="lazy">
+      </div>
+      <div class="kid-item">
+        <img src="img/kid-adventure.png" alt="Illustrated child running, arms open" loading="lazy">
+      </div>
+    </div>
+    <p class="kids-lead">Every child is different. Every Wondershop celebration is too.</p>
 
     <!-- Vision, Mission, Values in compact grid -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:48px">
@@ -232,57 +273,78 @@ button{cursor:pointer;font-family:var(--fb)}
       </div>
     </div>
 
-    <!-- Story with image -->
-    <div class="story-grid">
-      <div class="story-text">
-        <p>Wondershop Experiences is Mumbai's most-loved children's birthday studio. We don't just organise parties — we design end-to-end experiences that feel personal, joyful, and completely stress-free for parents.</p>
-        <p>From picking the theme to coordinating decor, activities, host, DJ, pinata, e-invites, photographers, and return gifts — we handle every detail so you can be fully present on your child's special day.</p>
-        <p>We've built a carefully curated network of hosts, decorators, photographers, and gift suppliers — all vetted for quality and reliability. Every vendor we recommend is someone we'd trust with our own children's birthday.</p>
-      </div>
-      <div class="story-visual">
-        <img src="google profile cover.png" alt="Wondershop Experiences" onerror="this.parentElement.innerHTML='🎉'">
-      </div>
-    </div>
   </div>
 </section>
 
 <!-- FOUNDERS -->
-<section class="sec sec-alt">
+<section class="sec sec-alt" style="padding-top:24px">
   <div class="container">
     <div class="sec-head">
       <div class="sec-tag">Meet the Founders</div>
       <h2 class="sec-h2">The people behind <em>every celebration</em></h2>
-      <p class="sec-sub" style="margin-top:8px;margin:8px auto 0">Shruti and Sidhant didn't set out to start an events company — they set out to solve a problem they felt firsthand as parents. Shruti's analytical thinking from BITS Pilani and Sidhant's business instincts from ISB Hyderabad gave them the tools, but it was their shared love for childhood wonder that gave them the reason. In 2023, they built Wondershop from the ground up in Mumbai — not as vendors, but as fellow parents who know exactly how much a birthday morning matters to a child.</p>
+      <p class="sec-sub" style="margin-top:8px;margin:8px auto 0">Shruti and Sidhant didn't set out to start an events company — they set out to solve a problem they felt firsthand as parents. Shruti's engineering precision (GGSIPU) and MBA (BITS Pilani), and Sidhant's engineering roots (GGSIPU) and MBA (ISB Hyderabad), gave them the tools, but it was their shared love for childhood wonder that gave them the reason. In 2023, they built Wondershop from the ground up in Mumbai — not as vendors, but as fellow parents who know exactly how much a birthday morning matters to a child.</p>
     </div>
-    <div class="founders-grid">
+    <div class="founders-stack">
+      <!-- Shruti: photo left, text right -->
       <div class="founder-card">
-        <img src="shruti.jpg" alt="Shruti Garg" class="founder-photo" onerror="this.style.display='none';this.nextElementSibling.insertAdjacentHTML('afterbegin','<div class=founder-avatar>SG</div>')">
-        <div class="founder-body">
+        <div class="founder-arrows">
+          <svg width="90" height="46" viewBox="0 0 90 46" style="top:22%;left:34%">
+            <path d="M85 8 Q 40 4 8 38" stroke="var(--li)" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="1 7"/>
+            <path d="M16 30 L6 39 L18 42" stroke="var(--li)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg width="80" height="40" viewBox="0 0 80 40" style="top:62%;left:35%">
+            <path d="M75 34 Q 35 38 6 6" stroke="var(--pk)" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="1 7"/>
+            <path d="M14 15 L4 5 L17 4" stroke="var(--pk)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="founder-photo-panel fill">
+          <img src="img/shruti-photo.jpg" alt="Shruti Garg" class="founder-photo" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div class=founder-avatar>SG</div>')">
+        </div>
+        <div class="founder-info">
           <div class="founder-name">Shruti Garg</div>
           <div class="founder-title">Co-founder · Experience &amp; Client Journey</div>
-          <div class="founder-edu">🎓 B.E. – BITS Pilani</div>
-          <div class="founder-bio">
-            <p>Shruti graduated from BITS Pilani with a degree in engineering and spent nearly a decade in the corporate world — working across product management and strategy roles at some of India's leading companies. She was good at her work, but always felt most alive when she was designing experiences for the people she loved.</p>
-            <p>When her own child's birthday came around and she couldn't find a single service that combined quality, creativity, and warmth under one roof, she decided to build it herself. That conviction became Wondershop.</p>
-            <p>Today, Shruti leads everything that touches the guest experience — from how a theme is visualised to how a parent feels on the morning of the party. Her attention to detail, warmth, and genuine love for children make every Wondershop celebration feel like it was made just for one family.</p>
-          </div>
+          <div class="founder-edu">🎓 B.E. Computer Science – GGSIPU &nbsp;·&nbsp; MBA – BITS Pilani</div>
+          <div class="founder-quote">"I started Wondershop with one dream — to make creativity accessible to everyone and help families create memories they'll cherish forever."</div>
+          <ul class="founder-facts">
+            <li>🎯 Perfectionist — 2cm off and she'll notice</li>
+            <li>👩‍👧 Mom of a 5-year-old, from a big family</li>
+            <li>🏊 Swims to unwind, learning Kathak</li>
+            <li>💼 10 years building products at top startups</li>
+            <li>♻️ Wondershop's sustainability champion</li>
+          </ul>
           <div class="founder-links">
             <a href="https://www.linkedin.com/in/shruti-garg-8607b660/" target="_blank" class="founder-link">🔗 LinkedIn</a>
             <a href="https://www.instagram.com/wondershop.experiences/" target="_blank" class="founder-link">📸 Instagram</a>
           </div>
         </div>
       </div>
-      <div class="founder-card">
-        <img src="sidhant.jpg" alt="Sidhant Sharma" class="founder-photo" onerror="this.style.display='none';this.nextElementSibling.insertAdjacentHTML('afterbegin','<div class=founder-avatar>SS</div>')">
-        <div class="founder-body">
+
+      <!-- Sidhant: photo right, text left -->
+      <div class="founder-card reverse">
+        <div class="founder-arrows">
+          <svg width="90" height="46" viewBox="0 0 90 46" style="top:22%;right:34%">
+            <path d="M5 8 Q 50 4 82 38" stroke="var(--li)" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="1 7"/>
+            <path d="M74 30 L84 39 L72 42" stroke="var(--li)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg width="80" height="40" viewBox="0 0 80 40" style="top:62%;right:35%">
+            <path d="M5 34 Q 45 38 74 6" stroke="var(--pk)" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="1 7"/>
+            <path d="M66 15 L76 5 L63 4" stroke="var(--pk)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="founder-photo-panel">
+          <img src="img/sidhant-cutout.png" alt="Sidhant Sharma" class="founder-photo" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div class=founder-avatar>SS</div>')">
+        </div>
+        <div class="founder-info">
           <div class="founder-name">Sidhant Sharma</div>
           <div class="founder-title">Co-founder · Operations &amp; Growth</div>
-          <div class="founder-edu">🎓 MBA – ISB Hyderabad</div>
-          <div class="founder-bio">
-            <p>Sidhant holds an MBA from ISB Hyderabad and built his career in high-growth environments — leading business development and operations at companies that demanded precision, speed, and creative problem-solving. He knew how to scale things. What he was missing was something worth scaling.</p>
-            <p>Watching Shruti pour herself into building the early version of Wondershop — and seeing how deeply parents responded — was enough. He joined as co-founder and has since been the strategic force that ensures Wondershop grows without losing its soul.</p>
-            <p>Sidhant oversees vendor relationships, city expansion, and the operational backbone that makes every event run seamlessly. His instinct for building systems with heart is what allows the team to deliver a premium, personalised experience at scale.</p>
-          </div>
+          <div class="founder-edu">🎓 B.E. – GGSIPU, Delhi &nbsp;·&nbsp; MBA – ISB Hyderabad</div>
+          <ul class="founder-facts">
+            <li>🏋️ Fitness is a lifestyle, never skips a workout</li>
+            <li>👨‍👧 Dad to a 5-year-old powerhouse</li>
+            <li>⚽ Sports lover — football, badminton, swimming</li>
+            <li>💼 10+ years building products, teams &amp; businesses</li>
+            <li>❤️ Customer-first in every decision</li>
+          </ul>
           <div class="founder-links">
             <a href="https://www.linkedin.com/in/sidhant-sharma10/" target="_blank" class="founder-link">🔗 LinkedIn</a>
             <a href="https://www.instagram.com/wondershop.experiences/" target="_blank" class="founder-link">📸 Instagram</a>
@@ -313,7 +375,7 @@ button{cursor:pointer;font-family:var(--fb)}
     <div class="footer-grid">
       <div>
         <img src="logo-horizontal-dark.png" alt="Wondershop Experiences" style="height:48px;width:auto;margin-bottom:14px">
-        <div class="ft-tagline">Think Birthdays, Think Wondershop. Story-led celebrations for children aged 1–12 across Mumbai.</div>
+        <div class="ft-tagline">Pick your services, personalise every detail, and we handle everything else. No calls needed until you're ready.</div>
         <div class="ft-soc">
           <a href="https://www.instagram.com/wondershop.experiences/" target="_blank" class="ft-soc-a">📸</a>
           <a href="https://www.youtube.com/@wondershop_experiences/videos" target="_blank" class="ft-soc-a">▶</a>

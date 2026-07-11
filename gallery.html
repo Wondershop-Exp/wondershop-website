@@ -73,7 +73,9 @@ button{cursor:pointer;font-family:var(--fb)}
 
 /* ── HERO ───────────────────────────────────────────────────────── */
 .gal-hero{
-  padding:calc(var(--nav-h) + 60px) 0 56px;
+  /* Now placed at the bottom of the page (below the gallery sections) rather
+     than as a top banner, so it no longer needs clearance for the fixed nav. */
+  padding:64px 0;
   background:linear-gradient(160deg,var(--li3) 0%,#fff8f0 60%,var(--wh) 100%);
   text-align:center;
 }
@@ -104,7 +106,9 @@ button{cursor:pointer;font-family:var(--fb)}
 .btn-ghost:hover{border-color:var(--li)}
 
 /* ── GALLERY SECTIONS ───────────────────────────────────────────── */
-.gal-sections{padding:48px 0 80px}
+/* Top padding now clears the fixed nav directly — the hero banner that
+   used to provide this clearance was removed. */
+.gal-sections{padding:calc(var(--nav-h) + 40px) 0 80px}
 
 .gal-sec{
   border:1.5px solid var(--li2);border-radius:18px;
@@ -149,6 +153,25 @@ button{cursor:pointer;font-family:var(--fb)}
   transition:transform .2s,box-shadow .2s;
 }
 .gal-grid img:hover{transform:scale(1.03);box-shadow:0 8px 24px rgba(0,0,0,.15)}
+
+/* ── TESTIMONIAL VIDEOS ─────────────────────────────────────────── */
+.gal-video-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:16px;
+  margin-top:24px;
+}
+.gal-video-card{
+  background:var(--li3);border:1.5px solid var(--li2);border-radius:16px;
+  overflow:hidden;
+}
+.gal-video-card video{
+  width:100%;aspect-ratio:9/16;object-fit:cover;
+  display:block;background:#000;
+}
+.gal-video-meta{padding:14px 16px 16px}
+.gal-video-name{font-size:13px;font-weight:700;color:var(--bk)}
+.gal-video-sub{font-size:12px;color:var(--gy);margin-top:2px}
 
 /* ── LIGHTBOX ───────────────────────────────────────────────────── */
 .lb{
@@ -259,19 +282,6 @@ button{cursor:pointer;font-family:var(--fb)}
   <a href="contact.html" class="nav-mob-lnk">Contact</a>
   <a href="builder.html?start=1" class="nav-cta">Build a Birthday ✦</a>
 </div>
-
-<!-- HERO -->
-<section class="gal-hero">
-  <div class="container">
-    <div class="gal-hero-tag">Real Events · Real Joy</div>
-    <h1 class="gal-hero-h1">Every birthday is<br>a <em>memory we made</em></h1>
-    <p class="gal-hero-sub">500+ celebrations across Mumbai — browse by theme, venue, or activity. This is what we do.</p>
-    <div class="gal-hero-btns">
-      <a href="builder.html?start=1" class="btn-p">Build a Birthday ✦</a>
-      <a href="builder.html?lead=1" class="btn-ghost">Call Me to Plan</a>
-    </div>
-  </div>
-</section>
 
 <!-- GALLERY SECTIONS -->
 <section class="gal-sections">
@@ -478,30 +488,53 @@ button{cursor:pointer;font-family:var(--fb)}
           <img src="20.jpg" alt="Princess party family" loading="lazy" onclick="openLb(this)">
           <img src="24.jpg" alt="Pool party family moment" loading="lazy" onclick="openLb(this)">
         </div>
-        <!-- Testimonial cards -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:24px">
-          <div style="background:var(--li3);border-radius:16px;padding:24px;border:1.5px solid var(--li2)">
-            <div style="font-size:32px;color:var(--li2);font-family:Georgia,serif;line-height:.7;margin-bottom:10px">"</div>
-            <p style="font-size:14px;color:var(--bk);line-height:1.75;font-style:italic;margin-bottom:16px">Wondershop turned my daughter's birthday into a beautiful adventure. The attention to detail, the storytelling and the way every child was engaged was just exceptional!</p>
-            <div style="font-size:13px;font-weight:700;color:var(--bk)">Niyara's Parents</div>
-            <div style="font-size:12px;color:var(--gy)">Mumbai · Spy Adventure · ★★★★★</div>
+        <!-- Testimonial videos — swap each PLACEHOLDER src for the real video
+             file/link when ready. poster= is the thumbnail shown before play. -->
+        <div class="gal-video-grid">
+          <div class="gal-video-card">
+            <video controls preload="none" poster="1.jpg">
+              <source src="videos/PLACEHOLDER-niyara.mp4" type="video/mp4">
+            </video>
+            <div class="gal-video-meta">
+              <div class="gal-video-name">Niyara's Parents</div>
+              <div class="gal-video-sub">Mumbai · Spy Adventure · ★★★★★</div>
+            </div>
           </div>
-          <div style="background:var(--li3);border-radius:16px;padding:24px;border:1.5px solid var(--li2)">
-            <div style="font-size:32px;color:var(--li2);font-family:Georgia,serif;line-height:.7;margin-bottom:10px">"</div>
-            <p style="font-size:14px;color:var(--bk);line-height:1.75;font-style:italic;margin-bottom:16px">It was super creative, so well organised and completely screen-free! The kids had so much fun and we as parents could actually enjoy the celebration too.</p>
-            <div style="font-size:13px;font-weight:700;color:var(--bk)">Parmi's Family</div>
-            <div style="font-size:12px;color:var(--gy)">Mumbai · Football Theme · ★★★★★</div>
+          <div class="gal-video-card">
+            <video controls preload="none" poster="9.jpg">
+              <source src="videos/PLACEHOLDER-parmi.mp4" type="video/mp4">
+            </video>
+            <div class="gal-video-meta">
+              <div class="gal-video-name">Parmi's Family</div>
+              <div class="gal-video-sub">Mumbai · Football Theme · ★★★★★</div>
+            </div>
           </div>
-          <div style="background:var(--li3);border-radius:16px;padding:24px;border:1.5px solid var(--li2)">
-            <div style="font-size:32px;color:var(--li2);font-family:Georgia,serif;line-height:.7;margin-bottom:10px">"</div>
-            <p style="font-size:14px;color:var(--bk);line-height:1.75;font-style:italic;margin-bottom:16px">From the decor to the activities, everything was magical. My son still talks about his 'spy mission' birthday three months later. Worth every rupee.</p>
-            <div style="font-size:13px;font-weight:700;color:var(--bk)">Sarth's Family</div>
-            <div style="font-size:12px;color:var(--gy)">Mumbai · Harry Potter · ★★★★★</div>
+          <div class="gal-video-card">
+            <video controls preload="none" poster="17.jpg">
+              <source src="videos/PLACEHOLDER-sarth.mp4" type="video/mp4">
+            </video>
+            <div class="gal-video-meta">
+              <div class="gal-video-name">Sarth's Family</div>
+              <div class="gal-video-sub">Mumbai · Harry Potter · ★★★★★</div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
+  </div>
+</section>
+
+<!-- HERO (moved to bottom as closing banner) -->
+<section class="gal-hero">
+  <div class="container">
+    <div class="gal-hero-tag">Real Events · Real Joy</div>
+    <h1 class="gal-hero-h1">Every birthday is<br>a <em>memory we made</em></h1>
+    <p class="gal-hero-sub">500+ celebrations across Mumbai — browse by theme, venue, or activity. This is what we do.</p>
+    <div class="gal-hero-btns">
+      <a href="builder.html?start=1" class="btn-p">Build a Birthday ✦</a>
+      <a href="builder.html?lead=1" class="btn-ghost">Call Me to Plan</a>
+    </div>
   </div>
 </section>
 
@@ -521,7 +554,7 @@ button{cursor:pointer;font-family:var(--fb)}
     <div class="footer-grid">
       <div>
         <img src="logo-horizontal-dark.png" alt="Wondershop Experiences" style="height:48px;width:auto;margin-bottom:14px">
-        <p class="ft-tagline">Think Birthdays, Think Wondershop. Story-led celebrations for children aged 1–12 across Mumbai.</p>
+        <p class="ft-tagline">Pick your services, personalise every detail, and we handle everything else. No calls needed until you're ready.</p>
         <div class="ft-soc">
           <a href="https://www.instagram.com/wondershop.experiences/" target="_blank" class="ft-soc-a">📸</a>
           <a href="https://wa.me/919742240477" target="_blank" class="ft-soc-a">💬</a>
