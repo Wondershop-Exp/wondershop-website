@@ -234,15 +234,15 @@ input,textarea,select{font-family:var(--fb)}
 .bld-hdr-logo{display:flex;align-items:center;gap:8px;cursor:pointer}
 .bld-hdr-logo-icon{width:32px;height:32px}
 .bld-hdr-brand{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk)}
-.bld-progress{display:flex;align-items:flex-start;gap:10px;position:absolute;left:50%;transform:translateX(-50%)}
-.bp-item{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:default}
-.bp-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--li2);background:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--gy);transition:all .2s;flex-shrink:0}
+.bld-progress{display:flex;align-items:flex-start;gap:9px;position:absolute;left:50%;transform:translateX(-50%)}
+.bp-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:default}
+.bp-dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--li2);background:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--gy);transition:all .2s;flex-shrink:0}
 .bp-dot.done{background:var(--gr);border-color:var(--gr);color:#fff;cursor:pointer}
 .bp-dot.cur{background:var(--li);border-color:var(--li);color:#fff}
-.bp-label{font-size:9px;font-weight:600;color:var(--gy);white-space:nowrap;text-transform:uppercase;letter-spacing:.02em}
+.bp-label{font-size:7.5px;font-weight:600;color:var(--gy);white-space:nowrap;text-transform:uppercase;letter-spacing:.02em}
 .bp-dot.cur + .bp-label{color:var(--li);font-weight:700}
 .bp-dot.done + .bp-label{color:var(--gr)}
-.bp-line{width:24px;height:2px;background:var(--li2);border-radius:1px;margin-top:13px}
+.bp-line{width:20px;height:2px;background:var(--li2);border-radius:1px;margin-top:10px}
 .bp-line.done{background:var(--gr)}
 @media(max-width:900px){.bp-label{display:none}.bld-progress{gap:4px}.bp-line{width:16px;margin-top:13px}}
 .bld-hdr-right{display:flex;align-items:center;gap:10px}
@@ -256,21 +256,24 @@ input,textarea,select{font-family:var(--fb)}
 .bld-main{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--lgy);padding-bottom:calc(var(--bb-h) + 16px)}
 .bld-wrap{max-width:860px;margin:0 auto;padding:24px 20px}
 
-/* Builder bottom bar */
-.bld-bb{height:var(--bb-h);background:#fff;border-top:1.5px solid var(--li2);display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;gap:16px}
+/* Builder bottom bar — 3-column grid (not flex space-between) so the amount
+   in the middle column is genuinely centered regardless of how wide the
+   left (skip) / right (continue) content is. */
+.bld-bb{height:var(--bb-h);background:#fff;border-top:1.5px solid var(--li2);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 24px;flex-shrink:0;gap:16px}
 .bld-bb.hidden{display:none}
-.bb-left{display:flex;align-items:center;gap:16px}
+.bb-left{display:flex;align-items:center;gap:16px;justify-self:start}
 .bb-skip{font-size:13px;color:var(--gy);background:none;border:none;padding:6px 12px;border-radius:8px}
 .bb-skip:hover{background:var(--li3)}
-.bb-total-wrap{display:flex;flex-direction:column;align-items:flex-end;min-width:120px}
+.bb-total-wrap{display:flex;flex-direction:column;align-items:center;min-width:120px}
 .bb-total{font-family:var(--fd);font-size:20px;font-weight:700;color:var(--bk)}
 .bb-adv{font-size:11px;color:var(--gy);display:none}
 .bb-disc{font-size:11px;color:var(--gr);font-weight:600}
-.bb-disc-wrap{display:flex;align-items:center;gap:12px}
+.bb-disc-wrap{display:flex;align-items:center;gap:12px;justify-self:center}
 .bb-savings-pill{background:var(--sgr);color:#1a6630;font-size:11px;font-weight:700;border-radius:12px;padding:3px 8px}
-.bb-right{display:flex;align-items:center;gap:10px}
-.bb-continue{background:linear-gradient(90deg,var(--li),var(--pk));color:#fff;border:none;border-radius:24px;padding:10px 28px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px}
+.bb-right{display:flex;align-items:center;gap:10px;justify-self:end}
+.bb-continue{background:linear-gradient(90deg,var(--li),var(--pk));color:#fff;border:none;border-radius:24px;padding:10px 28px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .bb-continue:hover{opacity:.92;transform:translateY(-1px)}
+.bb-cont-sub{font-size:.78em;font-weight:600;opacity:.92}
 .bb-rev-back{background:var(--li2);color:#7B5EA7;border:none;border-radius:24px;padding:10px 20px;font-size:14px;font-weight:700}
 
 /* Step common */
@@ -332,6 +335,34 @@ input,textarea,select{font-family:var(--fb)}
 .card-ppc{font-size:9px;color:var(--gy)}
 .card-btn{background:var(--li);color:#fff;border:none;border-radius:12px;padding:6px 14px;font-size:12px;font-weight:700;transition:background .15s}
 .card-btn:hover{background:#9d84cc}
+
+/* Per-step remarks box */
+.rmk-box{margin-top:18px;padding-top:14px;border-top:1px dashed var(--li2)}
+.rmk-ta{width:100%;border:1.5px solid var(--li2);border-radius:var(--rs);padding:10px 12px;font-family:inherit;font-size:13px;color:var(--bk);resize:vertical;min-height:56px}
+.rmk-ta:focus{outline:none;border-color:var(--li)}
+.rmk-note{font-size:11px;color:var(--gy);margin-top:5px;line-height:1.5}
+
+/* Gallery view trigger — small overlay button on card images */
+.gal-trig{position:absolute;bottom:8px;right:8px;z-index:3;background:rgba(25,25,25,.62);color:#fff;border:none;border-radius:20px;padding:5px 10px 5px 8px;font-size:10px;font-weight:700;display:flex;align-items:center;gap:4px;backdrop-filter:blur(2px);transition:background .15s,transform .15s}
+.gal-trig:hover{background:rgba(25,25,25,.85);transform:translateY(-1px)}
+
+/* Gallery modal — full-screen lightbox for theme/activity photos & videos */
+.gal-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,12,20,.88);align-items:center;justify-content:center;padding:24px}
+.gal-modal.show{display:flex}
+.gal-box{background:#fff;border-radius:18px;overflow:hidden;max-width:520px;width:100%;max-height:88vh;display:flex;flex-direction:column}
+.gal-stage{position:relative;background:#111;aspect-ratio:4/3;flex-shrink:0}
+.gal-stage img,.gal-stage video{width:100%;height:100%;object-fit:cover;display:block}
+.gal-close{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:16px;line-height:1;z-index:2}
+.gal-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.4);color:#fff;border:none;border-radius:50%;width:34px;height:34px;font-size:16px;z-index:2}
+.gal-prev{left:10px}.gal-next{right:10px}
+.gal-count{position:absolute;bottom:10px;right:12px;background:rgba(0,0,0,.5);color:#fff;font-size:11px;font-weight:600;border-radius:10px;padding:2px 9px;z-index:2}
+.gal-info{padding:14px 16px 16px}
+.gal-name{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--bk);margin-bottom:4px}
+.gal-desc{font-size:12px;color:var(--gy);line-height:1.6}
+.gal-thumbs{display:flex;gap:6px;padding:0 16px 14px;overflow-x:auto}
+.gal-thumb{width:52px;height:52px;border-radius:8px;overflow:hidden;flex-shrink:0;border:2px solid transparent;cursor:pointer;opacity:.6}
+.gal-thumb.on{border-color:var(--li);opacity:1}
+.gal-thumb img,.gal-thumb video{width:100%;height:100%;object-fit:cover}
 .card-btn.added{background:var(--gr)}
 .card-btn.rmv{background:#fee2e2;color:#dc2626}
 
@@ -345,6 +376,10 @@ input,textarea,select{font-family:var(--fb)}
 .tc-icon{width:48px;height:48px;border-radius:12px;background:var(--li2);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px}
 .tc-img{display:block;width:calc(100% + 32px);height:200px;object-fit:cover;object-position:center top;border-radius:calc(var(--r) - 2px) calc(var(--r) - 2px) 0 0;margin:-20px -16px 14px}
 .tc-name{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--bk);margin-bottom:4px}
+/* Photographer cards: package name overlaid on the image instead of as text below */
+.tc-img-wrap{position:relative;width:calc(100% + 32px);margin:-20px -16px 14px}
+.tc-img-wrap .tc-img{margin:0;width:100%}
+.tc-img-wrap .tc-name{position:absolute;left:0;right:0;bottom:0;margin:0;padding:22px 16px 12px;background:linear-gradient(transparent,rgba(0,0,0,.68));color:#fff}
 .tc-sub{font-size:12px;color:var(--gy);margin-bottom:12px;line-height:1.5}
 .tc-price{font-family:var(--fd);font-size:20px;font-weight:700;color:var(--li)}
 .tc-pnote{font-size:10px;color:var(--gy)}
@@ -411,7 +446,9 @@ input,textarea,select{font-family:var(--fb)}
 .gift-card{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);padding:14px;transition:border-color .15s}
 .gift-card.added{border-color:var(--gr)}
 .gift-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.g-emoji{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.g-emoji{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden}
+.g-emoji.has-img{background:var(--li2)}
+.g-emoji img{width:100%;height:100%;object-fit:cover;display:block}
 .g-name{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:2px}
 .g-meta{font-size:11px;color:var(--gy)}
 .gift-bottom{display:flex;align-items:center;justify-content:space-between}
@@ -465,18 +502,19 @@ input,textarea,select{font-family:var(--fb)}
 .rv-cat{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk)}
 .edit-link{font-size:12px;font-weight:700;color:var(--li);cursor:pointer}
 .rv-items{padding:10px 16px}
-.rv-item{display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--li2)}
+.rv-item{display:flex;align-items:center;gap:10px;font-size:13px;padding:7px 0;border-bottom:1px solid var(--li2)}
 .rv-item:last-child{border-bottom:none}
-.rv-item-price{font-weight:700;color:var(--bk)}
+.rv-item-name{flex:1}
+.rv-item-price{font-weight:700;color:var(--bk);flex-shrink:0}
+.rv-thumb{width:44px;height:34px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--li2)}
+.rv-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.rv-thumb-e{display:flex;align-items:center;justify-content:center;font-size:16px}
 .rv-empty{font-size:13px;color:var(--gy);font-style:italic;padding:4px 0}
 .rv-total{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);padding:16px;margin-top:4px}
 .disc-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--gr);font-weight:600;margin-bottom:8px}
 .total-row{display:flex;align-items:center;justify-content:space-between;font-family:var(--fd);font-size:20px;font-weight:700;color:var(--bk);margin-bottom:6px}
 .adv-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--li);font-weight:600}
 
-/* Checkout directly btn */
-.co-direct-btn{background:var(--li3);border:1.5px dashed var(--li);border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;color:#7B5EA7;width:100%;text-align:center;margin-top:12px}
-.co-direct-btn:hover{background:var(--li2)}
 
 /* Home screen (builder landing) */
 #shome .home-hero{background:linear-gradient(135deg,var(--li3) 0%,#FFF0F7 100%);border-radius:var(--r);padding:36px 32px;margin-bottom:16px;position:relative;overflow:hidden}
@@ -525,9 +563,13 @@ input,textarea,select{font-family:var(--fb)}
 .add-child-btn{background:none;border:2px dashed var(--li);border-radius:10px;padding:10px;font-size:13px;font-weight:600;color:var(--li);width:100%;margin-top:4px}
 
 /* Confetti */
-.confetti-container{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;overflow:hidden}
+.confetti-container{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9998;overflow:hidden}
 .confetto{position:absolute;width:10px;height:10px;top:-20px;animation:confettifall linear forwards}
 @keyframes confettifall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+/* Free E-Invite celebration toast — pops in alongside the confetti burst */
+.free-inv-toast{position:fixed;top:calc(var(--bh-h, 60px) + 16px);left:50%;transform:translateX(-50%) translateY(-8px) scale(.92);background:linear-gradient(90deg,var(--li),var(--pk));color:#fff;font-family:var(--fd);font-weight:700;font-size:15px;padding:13px 26px;border-radius:30px;box-shadow:0 10px 30px rgba(0,0,0,.28);z-index:9999;opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease;white-space:nowrap}
+.free-inv-toast.show{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
 
 /* Confirmation screen */
 .conf-hero{text-align:center;padding:32px 0 20px}
@@ -1081,12 +1123,13 @@ input,textarea,select{font-family:var(--fb)}
   <!-- Child info -->
   <div class="s0-form">
     <div class="s0-section-title"><span>👶</span> About the Birthday Child</div>
-    <div id="cWrap"></div>
-    <div id="cTog" class="tog-row" style="margin-bottom:10px">
+    <div style="font-size:13px;color:var(--gy);margin-bottom:10px">Is this for one child, twins/siblings celebrating together, or triplets?</div>
+    <div id="cTog" class="tog-row" style="margin-bottom:16px">
       <button class="tog-btn on" onclick="setCM(1,this)">Single Child</button>
       <button class="tog-btn" onclick="setCM(2,this)">Twins / Siblings</button>
       <button class="tog-btn" onclick="setCM(3,this)">Triplets</button>
     </div>
+    <div id="cWrap"></div>
     <button class="add-child-btn" id="addCBtn" style="display:none" onclick="addCC()">+ Add another child</button>
   </div>
 
@@ -1157,7 +1200,7 @@ input,textarea,select{font-family:var(--fb)}
     <div id="v-other-wrap" style="display:none;margin-top:12px">
       <div class="ig" style="margin-bottom:0"><label>Venue Details</label><input type="text" id="f-venue-other" placeholder="e.g. Rooftop at our apartment complex"></div>
     </div>
-    <div class="ig" style="margin-top:12px"><label>No. of Kids (guests)</label>
+    <div class="ig" style="margin-top:12px"><label>No. of Kids</label>
       <input type="number" id="f-kids" value="15" min="1" style="width:120px;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px">
     </div>
   </div>
@@ -1167,7 +1210,6 @@ input,textarea,select{font-family:var(--fb)}
     <div class="s0-section-title">Your Area</div>
     <div class="ig" style="margin-bottom:0"><label>Pincode</label>
       <input type="text" id="f-pincode" placeholder="e.g. 400001" maxlength="6" inputmode="numeric" style="max-width:160px;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--fb)">
-      <div style="font-size:11px;color:var(--gy);margin-top:4px">Helps us match a local team for your area</div>
     </div>
   </div>
 
@@ -1210,7 +1252,6 @@ input,textarea,select{font-family:var(--fb)}
       <div class="cards-grid" id="stdCards"></div>
     </div>
   </div>
-  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
 </div>
 
 <!-- ─── STEP 2: ACTIVITIES ─── -->
@@ -1251,7 +1292,6 @@ input,textarea,select{font-family:var(--fb)}
       <div class="sel-acts"><div class="sel-acts-h">Selected Activities</div><div id="selAList"></div></div>
     </div>
   </div>
-  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
 </div>
 
 <!-- ─── STEP 3: HOST ─── -->
@@ -1270,10 +1310,9 @@ input,textarea,select{font-family:var(--fb)}
       <div class="tier-card" onclick="selTier(this,'host','Starter',10000)">
         <img class="tc-img" src="img/host-starter.jpg" alt="Starter Host" loading="lazy">
         <div class="tc-check">✓</div>
-        <div class="tc-icon">🎤</div>
         <div class="tc-name">Starter Host</div>
         <div class="tc-sub">Energetic anchor who manages games, activities and programme flow</div>
-        <div class="tc-price">₹10,000 <span style="font-size:11px;color:var(--gy);font-weight:400">/ ₹8,000 bundled</span></div>
+        <div class="tc-price">₹10,000</div>
         <div class="tc-feats">
           <div class="tc-feat">60 mins engagement</div>
           <div class="tc-feat">Games + prizes management</div>
@@ -1283,10 +1322,9 @@ input,textarea,select{font-family:var(--fb)}
       <div class="tier-card" onclick="selTier(this,'host','Premium',12000)">
         <img class="tc-img" src="img/host-premium.jpg" alt="Premium Host" loading="lazy">
         <div class="tc-check">✓</div>
-        <div class="tc-icon" style="background:var(--spk)">🌟</div>
         <div class="tc-name">Premium Host</div>
         <div class="tc-sub">Experienced host with interactive storytelling and theme integration</div>
-        <div class="tc-price">₹12,000 <span style="font-size:11px;color:var(--gy);font-weight:400">/ ₹10,000 bundled</span></div>
+        <div class="tc-price">₹12,000</div>
         <div class="tc-feats">
           <div class="tc-feat">85 mins engagement</div>
           <div class="tc-feat">Theme-integrated programme</div>
@@ -1296,10 +1334,9 @@ input,textarea,select{font-family:var(--fb)}
       <div class="tier-card" onclick="selTier(this,'host','Signature',15000)">
         <img class="tc-img" src="img/host-signature.jpg" alt="Signature Host" loading="lazy">
         <div class="tc-check">✓</div>
-        <div class="tc-icon" style="background:var(--syl)">👑</div>
         <div class="tc-name">Signature Host</div>
         <div class="tc-sub">Our top performer — premium props, signature-category host, fully immersive experience</div>
-        <div class="tc-price">₹15,000 <span style="font-size:11px;color:var(--gy);font-weight:400">/ ₹13,000 bundled</span></div>
+        <div class="tc-price">₹15,000</div>
         <div class="tc-feats">
           <div class="tc-feat">90 mins engagement</div>
           <div class="tc-feat">Premium props included</div>
@@ -1308,10 +1345,9 @@ input,textarea,select{font-family:var(--fb)}
       </div>
     </div>
     <div style="background:var(--li3);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:13px;color:#7B5EA7">
-      💡 Your Party Lead will personally match you with the perfect host and share curated profiles post-booking.
+      💡 Your party lead will find a host based on your requirements and share the details post-checkout.
     </div>
   </div>
-  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
 </div>
 
 <!-- ─── STEP 4: DJ ─── -->
@@ -1321,7 +1357,7 @@ input,textarea,select{font-family:var(--fb)}
   </div>
 
   <div class="s-hero"><div class="slbl">Step 4 of 9</div>
-    <h1>Add <span class="hl">DJ &amp; music</span></h1>
+    <h1>Add Music to the <span class="hl">Party</span> 🎶</h1>
     <p>Professional DJ with the right equipment and playlist for children's birthdays. Skip if your venue has its own sound system.</p>
   </div>
 
@@ -1330,10 +1366,9 @@ input,textarea,select{font-family:var(--fb)}
       <div class="tier-card" onclick="selTier(this,'dj','DJ Lite',7000)">
         <img class="tc-img" src="img/dj-lite.jpg" alt="DJ Lite" loading="lazy">
         <div class="tc-check">✓</div>
-        <div class="tc-icon" style="background:var(--sbl)">🎵</div>
         <div class="tc-name">DJ Lite</div>
         <div class="tc-sub">Essential sound for homes and small spaces</div>
-        <div class="tc-price">₹7,000 <span style="font-size:11px;color:var(--gy);font-weight:400">/ ₹6,500 bundled</span></div>
+        <div class="tc-price">₹7,000</div>
         <div class="tc-feats">
           <div class="tc-feat">1 speaker · 1 cordless mic</div>
           <div class="tc-feat">DJ mixer + 1 DJ</div>
@@ -1343,10 +1378,9 @@ input,textarea,select{font-family:var(--fb)}
       <div class="tier-card" onclick="selTier(this,'dj','DJ Standard',11000)">
         <img class="tc-img" src="img/dj-standard.jpg" alt="DJ Standard" loading="lazy">
         <div class="tc-check">✓</div>
-        <div class="tc-icon" style="background:var(--sgr)">🎧</div>
         <div class="tc-name">DJ Standard</div>
         <div class="tc-sub">Full DJ setup for banquet halls and larger venues</div>
-        <div class="tc-price">₹11,000 <span style="font-size:11px;color:var(--gy);font-weight:400">/ ₹10,000 bundled</span></div>
+        <div class="tc-price">₹11,000</div>
         <div class="tc-feats">
           <div class="tc-feat">2 speakers · 2 cordless mics</div>
           <div class="tc-feat">DJ mixer + 1 pro DJ player</div>
@@ -1356,10 +1390,9 @@ input,textarea,select{font-family:var(--fb)}
       <div class="tier-card" onclick="selTier(this,'dj','DJ Pro',15000)">
         <img class="tc-img" src="img/dj-pro.jpg" alt="DJ Pro" loading="lazy">
         <div class="tc-check">✓</div>
-        <div class="tc-icon" style="background:var(--syl)">🏆</div>
         <div class="tc-name">DJ Pro</div>
         <div class="tc-sub">Premium DJ experience with expert DJ player and full light show</div>
-        <div class="tc-price">₹15,000 <span style="font-size:11px;color:var(--gy);font-weight:400">/ ₹12,000 bundled</span></div>
+        <div class="tc-price">₹15,000</div>
         <div class="tc-feats">
           <div class="tc-feat">2 speakers · 2 cordless mics</div>
           <div class="tc-feat">DJ mixer + expert DJ + DJ lights</div>
@@ -1368,7 +1401,6 @@ input,textarea,select{font-family:var(--fb)}
       </div>
     </div>
   </div>
-  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
 </div>
 
 <!-- ─── STEP 5: PINATA ─── -->
@@ -1384,6 +1416,7 @@ input,textarea,select{font-family:var(--fb)}
 
   <div class="sec-blk">
     <div id="freePinataBadge" class="free-badge" style="display:none">🎉 Your pinata is FREE — cart qualifies (order above ₹50,000)!</div>
+    <div style="font-size:12px;color:var(--gy);margin-bottom:12px">⚠️ Note: Fillings are not included.</div>
     <div class="cards-grid" id="pinCards"></div>
     <div id="pn-custom" onclick="selPinataC(this)">
       <div>
@@ -1396,7 +1429,6 @@ input,textarea,select{font-family:var(--fb)}
       </div>
     </div>
   </div>
-  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
 </div>
 
 <!-- ─── STEP 6: E-INVITE ─── -->
@@ -1412,7 +1444,8 @@ input,textarea,select{font-family:var(--fb)}
 
   <div class="sec-blk">
     <div id="freeInvBadge" class="free-badge" style="display:none">🎉 FREE with your order — your cart qualifies!</div>
-    <div id="chargeInvNote" class="charge-note" style="display:none">⚡ ₹500 charge applies (orders under ₹30,000). Free on orders ₹30,000+.</div>
+    <div id="chargeInvNote" class="charge-note" style="display:none">⚡ ₹500 charge applies (orders under ₹25,000). Free on orders ₹25,000+.</div>
+    <div id="invFilterNote" style="font-size:12px;color:var(--gy);margin-bottom:10px;display:none">Showing designs matching your selected theme — <span style="color:var(--li);font-weight:700;cursor:pointer" onclick="showAllInv()">Show All</span></div>
     <div class="cards-grid" id="invCards"></div>
 
     <div id="inv-custom" onclick="selInvC(this)">
@@ -1422,9 +1455,12 @@ input,textarea,select{font-family:var(--fb)}
           <div style="font-size:12px;color:var(--gy);margin-top:3px">Fully bespoke invite designed to match your theme</div>
         </div>
         <div style="text-align:right">
-          <div class="tier-price" id="invCustomPrice">₹1,500</div>
+          <div class="tier-price" id="invCustomPrice">₹1,000</div>
           <div style="font-size:10px;color:var(--gy)">final design shared in 48 hrs</div>
         </div>
+      </div>
+      <div id="invCustomThemeWrap" style="display:none;margin-top:10px" onclick="event.stopPropagation()">
+        <div class="ig"><label>Which theme should the invite match?</label><input type="text" id="ei-ctheme" placeholder="e.g. Unicorn Magic, Superhero, Space Explorer..."></div>
       </div>
     </div>
 
@@ -1432,14 +1468,14 @@ input,textarea,select{font-family:var(--fb)}
     <div id="eiDetail" style="display:none">
       <div class="sec-lbl"><span class="dot"></span>Invite Details</div>
       <div class="row2">
-        <div class="ig"><label>Child Name(s) on Invite</label><input type="text" id="ei-names" placeholder="e.g. Aarav or Aarav &amp; Aanya"></div>
-        <div class="ig"><label>Child Age</label><input type="text" id="ei-age" placeholder="e.g. 7th"></div>
+        <div class="ig"><label>Child Name(s) on Invite *</label><input type="text" id="ei-names" placeholder="e.g. Aarav or Aarav &amp; Aanya"></div>
+        <div class="ig"><label>Child Age *</label><input type="text" id="ei-age" placeholder="e.g. 7th"></div>
       </div>
       <div class="row2">
-        <div class="ig"><label>Event Date</label><input type="date" id="ei-date"></div>
-        <div class="ig"><label>Start Time</label><input type="time" id="ei-start" value="11:00"></div>
+        <div class="ig"><label>Event Date *</label><input type="date" id="ei-date"></div>
+        <div class="ig"><label>Start Time *</label><input type="time" id="ei-start" value="11:00"></div>
       </div>
-      <div class="ig"><label>Venue / Address</label><input type="text" id="ei-venue" placeholder="Venue name and address"></div>
+      <div class="ig"><label>Venue / Address *</label><input type="text" id="ei-venue" placeholder="Venue name and address"></div>
       <div class="row2">
         <div class="ig"><label>RSVP Name</label><input type="text" id="ei-rsvpname" placeholder="Name for RSVP replies"></div>
         <div class="ig"><label>RSVP Mobile</label>
@@ -1447,17 +1483,13 @@ input,textarea,select{font-family:var(--fb)}
         </div>
       </div>
       <div class="ig"><label>Any special instruction <span class="opt">optional</span></label><input type="text" id="ei-inst" placeholder="e.g. No nut products please"></div>
+      <div class="err-msg" id="e-ei" style="display:none;margin-top:4px">Please fill all required (*) fields to continue.</div>
     </div>
   </div>
-  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
 </div>
 
 <!-- ─── STEP 7: PHOTOGRAPHER ─── -->
 <div class="step" id="s7">
-  <div class="step-banner">
-    <div class="sb-slide active" style="background:linear-gradient(rgba(0,0,0,0.42),rgba(0,0,0,0.38)),url('https://images.pexels.com/photos/7221139/pexels-photo-7221139.jpeg?auto=compress&cs=tinysrgb&w=1200&h=450&fit=crop');background-size:cover;background-position:center top"><div class="sb-content"><h3>Capture Every Moment</h3><p>Professional photographers who preserve the magic forever</p></div></div>
-  </div>
-
   <div class="s-hero"><div class="slbl">Step 7 of 9</div>
     <h1>Add a <span class="hl">photographer</span></h1>
     <p>Professional photographers who capture every magical moment. Edited photos delivered within 5–7 days.</p>
@@ -1466,10 +1498,8 @@ input,textarea,select{font-family:var(--fb)}
   <div class="sec-blk">
     <div class="tier-cards" id="photoCards">
       <div class="tier-card" onclick="selTier(this,'photo','Starter',6000)">
-        <img class="tc-img" src="img/photo-starter.jpg" alt="Starter Package" loading="lazy">
+        <div class="tc-img-wrap"><img class="tc-img" src="img/photo-starter.jpg" alt="Starter Package" loading="lazy"><div class="tc-name">Starter Package</div></div>
         <div class="tc-check">✓</div>
-        <div class="tc-icon">📷</div>
-        <div class="tc-name">Starter Package</div>
         <div class="tc-sub">Essential coverage for intimate celebrations</div>
         <div class="tc-price">₹6,000</div>
         <div class="tc-feats">
@@ -1479,10 +1509,8 @@ input,textarea,select{font-family:var(--fb)}
         </div>
       </div>
       <div class="tier-card" onclick="selTier(this,'photo','Premium',9000)">
-        <img class="tc-img" src="img/photo-premium.jpg" alt="Premium Package" loading="lazy">
+        <div class="tc-img-wrap"><img class="tc-img" src="img/photo-premium.jpg" alt="Premium Package" loading="lazy"><div class="tc-name">Premium Package</div></div>
         <div class="tc-check">✓</div>
-        <div class="tc-icon" style="background:var(--spk)">📸</div>
-        <div class="tc-name">Premium Package</div>
         <div class="tc-sub">Full coverage with candid and portrait shots</div>
         <div class="tc-price">₹9,000</div>
         <div class="tc-feats">
@@ -1492,10 +1520,8 @@ input,textarea,select{font-family:var(--fb)}
         </div>
       </div>
       <div class="tier-card" onclick="selTier(this,'photo','Signature',14000)">
-        <img class="tc-img" src="img/photo-signature.jpg" alt="Signature Package" loading="lazy">
+        <div class="tc-img-wrap"><img class="tc-img" src="img/photo-signature.jpg" alt="Signature Package" loading="lazy"><div class="tc-name">Signature Package</div></div>
         <div class="tc-check">✓</div>
-        <div class="tc-icon" style="background:var(--syl)">🎬</div>
-        <div class="tc-name">Signature Package</div>
         <div class="tc-sub">Premium photography + videography combo</div>
         <div class="tc-price">₹14,000</div>
         <div class="tc-feats">
@@ -1513,7 +1539,6 @@ input,textarea,select{font-family:var(--fb)}
       <button class="reel-tog" id="reelTog" onclick="togReel()"></button>
     </div>
   </div>
-  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
 </div>
 
 <!-- ─── STEP 8: RETURN GIFTS ─── -->
@@ -1528,6 +1553,7 @@ input,textarea,select{font-family:var(--fb)}
   </div>
 
   <div class="sec-blk">
+    <div style="background:var(--li3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#7B5EA7">ℹ️ Once we receive your details, your return-gift order will be confirmed only after we've checked inventory availability — we'll confirm over a call or WhatsApp shortly after your requirement is received.</div>
     <!-- Filters -->
     <div style="margin-bottom:12px">
       <div style="font-size:11px;font-weight:700;color:var(--gy);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Filter by Type</div>
@@ -1592,7 +1618,6 @@ input,textarea,select{font-family:var(--fb)}
       <div class="ig" style="margin-bottom:0"><label>Required By Date</label><input type="date" id="f-gdate"><div class="hint">Must be on or before your event date</div></div>
     </div>
   </div>
-  <button class="co-direct-btn" onclick="goDirectCO()">Skip to Review →</button>
 </div>
 
 <!-- ─── STEP 9: REVIEW ─── -->
@@ -1656,7 +1681,17 @@ input,textarea,select{font-family:var(--fb)}
   <div class="sec-blk">
     <div class="sec-lbl"><span class="dot"></span>Payment Method</div>
     <div class="pay-opts">
-      <div class="pay-opt on" onclick="selPay(this,'online')"><div class="pay-radio"></div><div><div class="pay-name">💳 Pay Online (Recommended)</div><div class="pay-desc">Secure payment via Razorpay. Cards, UPI, netbanking &amp; wallets accepted.</div></div></div>
+      <div class="pay-opt on" onclick="selPay(this,'online')"><div class="pay-radio"></div><div><div class="pay-name">💳 Pay Online (UPI / Bank Transfer)</div><div class="pay-desc">Scan the QR or transfer directly via UPI / bank transfer using the details below.</div></div></div>
+      <div id="payOnlineDetails" class="ls-pay-box" style="margin-top:2px">
+        <div class="ls-qr-wrap"><img src="upi_qr.png" alt="Wondershop UPI QR Code" class="ls-qr-img"></div>
+        <div class="ls-upi-id">
+          <span class="ls-upi-label">UPI ID</span>
+          <span class="ls-upi-val" id="upiIdVal2">wondershopcol26qr@fbl</span>
+          <button class="ls-copy-btn" onclick="copyUPI(this)" title="Copy UPI ID">📋 Copy</button>
+        </div>
+        <div class="ls-upi-name">WONDERSHOP COLLECTIVE LLP · Federal Bank</div>
+        <p class="ls-pay-note">After paying, WhatsApp your screenshot to <b>+91 90044 35362</b> and we'll confirm your booking immediately.</p>
+      </div>
       <div class="pay-opt" onclick="selPay(this,'branch')"><div class="pay-radio"></div><div><div class="pay-name">🏦 Cash Deposit at Branch</div><div class="pay-desc">Wondershop Experiences, B1-Podium, Godrej Platinum, Vikhroli East, Mumbai – 400079.</div></div></div>
       <div class="pay-opt" onclick="selPay(this,'collect')"><div class="pay-radio"></div><div><div class="pay-name">💵 Cash Collection at Venue</div><div class="pay-desc">Our team collects at your event venue. Additional charge of ₹100 applies.</div></div></div>
     </div>
@@ -1695,6 +1730,7 @@ input,textarea,select{font-family:var(--fb)}
         <div class="tnc-item">Guest count changes must be communicated in advance.</div>
         <div class="tnc-item">No cancellation or refund on the day of the event.</div>
         <div class="tnc-item">Wondershop team not responsible for furniture movement or cleanup.</div>
+        <div class="tnc-item">Wondershop tries their best to match you with the best possible host for your party. In case of any emergency, if the host cancels last minute, Wondershop will try to map you with a like-to-like replacement. In case that does not happen, the entire amount will be refunded.</div>
       </div>
     </div>
     <div class="tnc-agree" onclick="togTNC()">
@@ -1707,7 +1743,6 @@ input,textarea,select{font-family:var(--fb)}
 
 <!-- ─── CONFIRMATION ─── -->
 <div class="step" id="sconf">
-  <div class="confetti-container" id="confettiContainer"></div>
   <div class="conf-hero">
     <div class="conf-icon">🎉</div>
     <h1>Booking Confirmed!</h1>
@@ -1786,7 +1821,7 @@ input,textarea,select{font-family:var(--fb)}
       <div class="ls-upi-id">
         <span class="ls-upi-label">UPI ID</span>
         <span class="ls-upi-val" id="upiIdVal">wondershopcol26qr@fbl</span>
-        <button class="ls-copy-btn" onclick="copyUPI()" title="Copy UPI ID">📋 Copy</button>
+        <button class="ls-copy-btn" onclick="copyUPI(this)" title="Copy UPI ID">📋 Copy</button>
       </div>
       <div class="ls-upi-name">WONDERSHOP COLLECTIVE LLP · Federal Bank</div>
       <p class="ls-pay-note">After paying, WhatsApp your screenshot to <b>+91 90044 35362</b> and we'll confirm your booking.</p>
@@ -1808,7 +1843,7 @@ input,textarea,select{font-family:var(--fb)}
 <!-- Bottom Bar -->
 <div class="bld-bb hidden" id="bldBB">
   <div class="bb-left">
-    <button class="bb-skip" id="bbSkip" onclick="doSkip()">Skip →</button>
+    <button class="bb-skip" id="bbSkip" onclick="if(S.screen==='s6'&&!validateInvite())return;goDirectCO()">Skip to Review →</button>
   </div>
   <div class="bb-disc-wrap">
     <div class="bb-savings-pill" id="bbSavings" style="display:none"></div>
@@ -1826,9 +1861,32 @@ input,textarea,select{font-family:var(--fb)}
 
 </div><!-- /pg-builder -->
 
+<!-- Confetti layer — page-level (not nested in any .step) so it's visible
+     no matter which step triggers it, e.g. booking confirmation or an
+     already-qualified free E-Invite on Step 6. -->
+<div class="confetti-container" id="confettiContainer"></div>
+<div class="free-inv-toast" id="freeInvToast">🎉 FREE E-Invite unlocked!</div>
+
 <!-- Cart overlay -->
 <div class="cart-overlay" id="cartO" onclick="if(event.target===this)closeCart()">
   <div class="cart-drawer"><div class="cart-drawer-hdr"><h2>🛒 Your Birthday</h2><button class="close-cart" onclick="closeCart()">✕</button></div><div id="cartC"></div></div>
+</div>
+
+<!-- Photo/video gallery modal — theme & activity "Set the Scene" viewer -->
+<div class="gal-modal" id="galModal" onclick="if(event.target===this)closeGallery()">
+  <div class="gal-box">
+    <div class="gal-stage" id="galStage">
+      <button class="gal-close" onclick="closeGallery()">✕</button>
+      <button class="gal-nav gal-prev" id="galPrev" onclick="galStep(-1)">‹</button>
+      <button class="gal-nav gal-next" id="galNext" onclick="galStep(1)">›</button>
+      <div class="gal-count" id="galCount"></div>
+    </div>
+    <div class="gal-thumbs" id="galThumbs"></div>
+    <div class="gal-info">
+      <div class="gal-name" id="galName"></div>
+      <div class="gal-desc" id="galDesc"></div>
+    </div>
+  </div>
 </div>
 
 <button class="float-call" id="floatCall" onclick="goLead()" title="Call to plan" style="display:none">💬</button>
@@ -1845,7 +1903,7 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Logs to the "Website Orders and Leads" Google Sheet.
 window.WS_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyVQ_8aZQS2hE5t9-1ceC5ttHeD7DSr0NQmKzYAdxkyRK4eqwgWAG_UnM_iZZmyxY8z4Q/exec';
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,pinata:null,einvite:null,photo:null,addReel:false,gifts:[],packaging:'',tagType:'',couponPct:0,payMethod:'online',tncOk:false,FIT:30000,FGT:40000,FPT:50000};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,pinata:null,einvite:null,photo:null,addReel:false,gifts:[],packaging:'',tagType:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FGT:40000,FPT:50000,remarks:{}};
 
 // ── Sends a lead or booking row to the Google Sheet, fire-and-forget. ──
 // Uses mode:'no-cors' + text/plain so the browser never sends a CORS
@@ -1957,17 +2015,20 @@ const PINATAS=[
   {id:'p8',n:'Elephant',e:'🐘',img:'pin-elephant',d:'2ft × 1.5ft × 2ft',p:2000,bg:'linear-gradient(135deg,#BCD8E8,#EDE6FA)'}
 ];
 const INVITES=[
-  {id:'i1',n:'Art Party',p:500,file:'art-party.jpg'},
-  {id:'i2',n:'Frozen',p:500,file:'frozen-1.jpg'},
-  {id:'i3',n:'Frozen (Anna)',p:500,file:'frozen-anna.jpg'},
-  {id:'i4',n:'K-Pop',p:500,file:'kpop-1.jpg'},
-  {id:'i5',n:'Little Singham',p:500,file:'little-singham.png'},
-  {id:'i6',n:'Ramayana',p:500,file:'ramayana.jpg'},
-  {id:'i7',n:'Spy × K-Pop',p:500,file:'spy-kpop.jpg'},
-  {id:'i8',n:'Spy Party',p:500,file:'spy-party-1.jpg'},
-  {id:'i9',n:'Spy Party (Alt)',p:500,file:'spy-party-3.jpg'},
-  {id:'i10',n:'Unicorn',p:500,file:'unicorn.jpg'}
+  {id:'i1',n:'Art Party',p:500,file:'art-party.jpg',t:'art'},
+  {id:'i2',n:'Frozen',p:500,file:'frozen-1.jpg',t:'frozen'},
+  {id:'i3',n:'Frozen (Anna)',p:500,file:'frozen-anna.jpg',t:'frozen'},
+  {id:'i4',n:'K-Pop',p:500,file:'kpop-1.jpg',t:'kpop'},
+  {id:'i5',n:'Little Singham',p:500,file:'little-singham.png',t:'hero'},
+  {id:'i6',n:'Ramayana',p:500,file:'ramayana.jpg',t:''},
+  {id:'i7',n:'Spy × K-Pop',p:500,file:'spy-kpop.jpg',t:'spy'},
+  {id:'i8',n:'Spy Party',p:500,file:'spy-party-1.jpg',t:'spy'},
+  {id:'i9',n:'Spy Party (Alt)',p:500,file:'spy-party-3.jpg',t:'spy'},
+  {id:'i10',n:'Unicorn',p:500,file:'unicorn.jpg',t:'uni'}
 ];
+// Return Gifts section is being redone with fresh product photography —
+// back to emoji tiles for now (real photos + this whole list will be
+// replaced). See GIFTS below: no `img` field = icon tile fallback.
 const GIFTS=[
   {id:'g1',n:'DIY Art Kit',e:'🎨',type:'art',gtheme:'generic',age:'4-10',unit:300,bg:'#FFF0F7',tag:'pop'},
   {id:'g2',n:'Science Explorer Kit',e:'🔬',type:'science',gtheme:'space',age:'6-12',unit:350,bg:'#F0F7FF',tag:'rec'},
@@ -1984,16 +2045,34 @@ let actFilter='all';
 // ── PRICING ──
 function cItems(){
   const items=[];
-  if(S.decor)items.push({cat:'Decor',n:S.decor.n,p:S.decor.p});
-  S.activities.forEach(a=>items.push({cat:'Activities',n:a.n,p:actPrice(a,S.kidsCount)}));
-  if(S.host)items.push({cat:'Host',n:S.host.tier+' Host',p:S.host.p});
-  if(S.dj)items.push({cat:'DJ',n:S.dj.tier,p:S.dj.p});
-  if(S.pinata){const pt=rawNoInv();const fp=pt>=S.FPT?0:S.pinata.p;items.push({cat:'Pinata',n:S.pinata.n+(pt>=S.FPT?' (FREE)':''),p:fp});}
-  if(S.einvite){const gt=rawNoInv();const ep=gt>=S.FIT?0:S.einvite.p;items.push({cat:'E-Invite',n:S.einvite.n+(gt>=S.FIT?' (FREE)':''),p:ep});}
-  if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p});if(S.addReel)items.push({cat:'Photographer',n:'30-sec Reel',p:999});}
-  S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty}));
+  if(S.decor)items.push({cat:'Decor',n:S.decor.n,p:S.decor.p,id:S.decor.id});
+  S.activities.forEach(a=>items.push({cat:'Activities',n:a.n,p:actPrice(a,S.kidsCount),id:a.id}));
+  if(S.host)items.push({cat:'Host',n:S.host.tier+' Host',p:S.host.p,id:S.host.tier});
+  if(S.dj)items.push({cat:'DJ',n:S.dj.tier,p:S.dj.p,id:S.dj.tier});
+  if(S.pinata){const pt=rawNoInv();const fp=pt>=S.FPT?0:S.pinata.p;items.push({cat:'Pinata',n:S.pinata.n+(pt>=S.FPT?' (FREE)':''),p:fp,id:S.pinata.id});}
+  if(S.einvite){const gt=rawNoInv();const ep=gt>=S.FIT?0:S.einvite.p;items.push({cat:'E-Invite',n:S.einvite.n+(gt>=S.FIT?' (FREE)':''),p:ep,id:S.einvite.id});}
+  if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});if(S.addReel)items.push({cat:'Photographer',n:'30-sec Reel',p:999,id:'reel'});}
+  S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty,id:g.id}));
   return items;
 }
+// Resolves a rectangular thumbnail (photo, or emoji tile as fallback) for a
+// review-page line item so the customer gets a visual recap of their picks.
+function thumbFor(cat,id){
+  const e=(ch,bg)=>({type:'e',e:ch,bg:bg||'var(--li2)'});
+  if(cat==='Decor'){
+    if(id&&id.indexOf('std')===0){const s=STD.find(x=>x.id===id);return s?{type:'img',src:'img/'+s.img+'.jpg'}:e('🎈');}
+    const t=THEMES.find(x=>x.id===id);return t?{type:'img',src:'img/theme-'+t.id+'.jpg'}:e('🎨');
+  }
+  if(cat==='Activities'){const a=ACTS.find(x=>x.id===id);return a?{type:'img',src:'img/'+a.img+'.jpg'}:e('🎨');}
+  if(cat==='Host'){const map={Starter:'host-starter',Premium:'host-premium',Signature:'host-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎤');}
+  if(cat==='DJ'){const map={'DJ Lite':'dj-lite','DJ Standard':'dj-standard','DJ Pro':'dj-pro'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎧');}
+  if(cat==='Pinata'){const p=PINATAS.find(x=>x.id===id);return p?{type:'img',src:'img/'+p.img+'.jpg'}:e('🪅');}
+  if(cat==='E-Invite'){const inv=INVITES.find(x=>x.id===id);return inv?{type:'img',src:'einvites/'+inv.file}:e('💌');}
+  if(cat==='Photographer'){if(id==='reel')return e('🎬');const map={Starter:'photo-starter',Premium:'photo-premium',Signature:'photo-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('📷');}
+  if(cat==='Return Gifts'){const g=GIFTS.find(x=>x.id===id);if(!g)return e('🎁');return g.img?{type:'img',src:'img/'+g.img}:e(g.e,g.bg);}
+  return e('✨');
+}
+function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e');box.style.background='var(--li2)';box.textContent='✨';}
 function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p+(S.addReel?999:0);S.gifts.forEach(g=>t+=g.unit*g.qty);return t;}
 function rawT(){return cItems().reduce((s,i)=>s+i.p,0)}
 function svcC(){let c=0;if(S.decor)c++;if(S.activities.length)c++;if(S.host)c++;if(S.dj)c++;if(S.pinata)c++;if(S.einvite)c++;if(S.photo)c++;if(S.gifts.length)c++;return c}
@@ -2005,6 +2084,9 @@ function adv(){return Math.round(tp()*0.5)}
 // ── NAVIGATION ──
 const SIDS=['s0','s1','s2','s3','s4','s5','s6','s7','s8','s9'];
 const SNAMES=['Your Details','Decor','Activities','Host','DJ','Pinata','E-Invite','Photographer','Return Gifts','Review'];
+// Short labels for the "Continue to X" bottom-bar button — matches the
+// progress-stepper labels for visual consistency.
+const NEXT_LABELS=['Details','Decor','Activity','Host','Music','Pinata','Invite','Photo','Gifts','Review'];
 
 // ── ANALYTICS: funnel event tracking (GA4) ──
 // Fires the events the CGO's revenue equation needs: Traffic (automatic page_view)
@@ -2074,6 +2156,7 @@ function doSkip(){wsTrack('builder_step_skip',{step_id:S.screen,step_name:SNAMES
 function goDirectCO(){wsTrack('builder_skip_to_review',{step_id:S.screen});goTo('s9');}
 function bbAction(){
   if(S.screen==='s0'){doS0();return;}
+  if(S.screen==='s6'&&!validateInvite())return;
   if(S.screen==='s9'){goTo('sco');fillCo();return;}
   if(S.screen==='sco'){doCo();return;}
   if(S.screen==='slead'){doLead();return;}
@@ -2106,7 +2189,11 @@ function updHdr(id){
 // ── BOTTOM BAR ──
 function updBB(id){
   const bb=document.getElementById('bldBB');
-  const hideOn=['shome','sconf','sleadsent'];
+  // Sticky bar only makes sense once there's a running total to show — starts
+  // from step 1 (Decor). Step 0 already has its own "Start Building →" button
+  // inline, so showing the bar there was both premature (₹0 total) and a
+  // duplicate CTA.
+  const hideOn=['shome','s0','sconf','sleadsent'];
   bb.classList.toggle('hidden',hideOn.includes(id));
   if(hideOn.includes(id))return;
   // Lead form: hide the running price total — this screen isn't about the cart amount
@@ -2138,7 +2225,11 @@ function updBB(id){
   else if(id==='sco')contBtn.textContent='Confirm & Pay 50% →';
   else if(id==='slead')contBtn.textContent='Send My Details →';
   else if(S.fromReview)contBtn.textContent='Save Changes ✓';
-  else contBtn.textContent='Continue →';
+  else{
+    const curIdx=SIDS.indexOf(id);
+    const nextLabel=curIdx>-1?NEXT_LABELS[curIdx+1]:'';
+    contBtn.innerHTML=nextLabel?('Continue <span class="bb-cont-sub">to '+nextLabel+'</span> →'):'Continue →';
+  }
   revBackBtn.style.display=S.fromReview&&['s1','s2','s3','s4','s5','s6','s7','s8'].includes(id)?'block':'none';
 }
 
@@ -2176,7 +2267,7 @@ function doS0(){
 const TAG_MAP={pop:'<span class="tag pop">Most Popular</span>',new:'<span class="tag new">New Launch</span>',trend:'<span class="tag trend">Trending</span>',rec:'<span class="tag rec">WS Recommends</span>'};
 function makeTC(t){
   const tagHtml=t.tag?TAG_MAP[t.tag]:'';
-  return '<div class="pcard" id="dc-'+t.id+'" onclick="selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="img/theme-'+t.id+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'"></div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tagHtml+'<span class="tag pk">'+t.gn+'</span><span class="tag gr">'+t.s+'</span></div><div class="card-detail">🎈 '+t.b+'<br>🖼 '+t.panels+'<br>⚠️ Excl: '+t.ni+'</div><div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div></div></div></div>';
+  return '<div class="pcard" id="dc-'+t.id+'" onclick="selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="img/theme-'+t.id+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'"><button class="gal-trig" onclick="event.stopPropagation();openGallery(\'theme\',\''+t.id+'\')">📷 Gallery</button></div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tagHtml+'<span class="tag pk">'+t.gn+'</span><span class="tag gr">'+t.s+'</span></div><div class="card-detail">🎈 '+t.b+'<br>🖼 '+t.panels+'<br>⚠️ Excl: '+t.ni+'</div><div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div></div></div></div>';
 }
 function buildDec(){
   const tc=document.getElementById('thCards');tc.innerHTML='';
@@ -2204,9 +2295,9 @@ function renderActs(list){
     const tagHtml=a.tag?TAG_MAP[a.tag]:'';
     const persHtml=a.pers?'<span class="tag" style="background:#F0FDF4;color:#1a6630">✦ Take-home</span>':'';
     const flatTag=a.flat?'<span class="tag" style="background:#FEF9C3;color:#92400E">Flat rate</span>':'';
-    const starsHtml='<div class="rating-row"><span class="star">★</span><span style="font-size:10px;font-weight:700;color:var(--bk)">'+a.rating+'</span><span class="rating-cnt">('+a.cnt+' events)</span></div>';
     const priceNote=a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child';
-    w.innerHTML+='<div class="pcard" id="ac-'+a.id+'"><div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+a.n+'"></div><div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span><span class="tag">Ages '+a.age+'</span>'+persHtml+'</div>'+starsHtml+'<div class="card-detail">📍 '+a.req+'</div><div class="card-pr-row"><div><div class="card-price">₹'+tot.toLocaleString('en-IN')+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+    const fieldsHtml='👶 Suitable for: Ages '+a.age+'<br>📦 Packaging: '+(a.pers?'Included':'Not applicable')+'<br>🎨 Personalization Possible: '+(a.pers?'Yes':'No');
+    w.innerHTML+='<div class="pcard" id="ac-'+a.id+'"><div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+a.n+'"><button class="gal-trig" onclick="event.stopPropagation();openGallery(\'act\',\''+a.id+'\')">📷 Gallery</button></div><div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">₹'+tot.toLocaleString('en-IN')+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
   });
 }
 function sortActs(){
@@ -2221,6 +2312,84 @@ function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.a
 function updSelActs(){const w=document.getElementById('selActs');const l=document.getElementById('selAList');if(!S.activities.length){w.style.display='none';return;}w.style.display='block';l.innerHTML='';S.activities.forEach(a=>{const tot=actPrice(a,S.kidsCount);l.innerHTML+='<div class="sai"><span>'+a.n+'</span><span style="display:flex;align-items:center;gap:5px"><span class="saip">₹'+tot.toLocaleString('en-IN')+'</span><button class="sarm" onclick="togAct(\''+a.id+'\')">✕</button></span></div>';});}
 function chgK(d){S.kidsCount=Math.max(1,Math.min(100,S.kidsCount+d));document.getElementById('kDisp2').textContent=S.kidsCount;try{document.getElementById('f-kids').value=S.kidsCount;}catch(e){}renderActs(actFilter==='all'?ACTS:ACTS.filter(a=>a.cat===actFilter));updSelActs();S.gifts.forEach(g=>{if(!g.userQty)g.qty=S.kidsCount;});renderGifts();updBB(S.screen);}
 
+// ── PER-STEP REMARKS BOX ──
+// Every builder step (except Review/Checkout/Confirmation/Lead, which have
+// their own summary/forms) gets an optional free-text remarks field so
+// customers can note special wishes; we reassure them we'll call to confirm
+// and customize rather than making them feel they must get everything perfect here.
+function injectRemarksBoxes(){
+  const RMK_STEPS=['s0','s1','s2','s3','s4','s5','s6','s7','s8'];
+  RMK_STEPS.forEach(id=>{
+    const step=document.getElementById(id);
+    if(!step||step.querySelector('.rmk-box'))return;
+    const box=document.createElement('div');
+    box.className='rmk-box';
+    box.innerHTML='<div class="sec-lbl" style="font-size:13px;margin-bottom:6px"><span class="dot"></span>Remarks / Special Wishes <span class="opt">optional</span></div>'+
+      '<textarea class="rmk-ta" placeholder="Anything specific you’d like here?"></textarea>'+
+      '<div class="rmk-note">Don’t worry — we’ll call you after receiving all your details to confirm everything and customize anything you need.</div>';
+    const ta=box.querySelector('textarea');
+    ta.value=S.remarks[id]||'';
+    ta.addEventListener('input',()=>{S.remarks[id]=ta.value;});
+    // s0 still has its own inline "Start Building" CTA to insert before;
+    // every other step no longer has an inline footer button (Skip to Review
+    // now lives only in the sticky bar), so just append to the end.
+    const anchor=id==='s0'?step.querySelector('[onclick="doS0()"]'):null;
+    if(anchor)anchor.parentNode.insertBefore(box,anchor);
+    else step.appendChild(box);
+  });
+}
+
+// ── "SET THE SCENE" GALLERY MODAL (theme & activity photo/video viewer) ──
+// Each theme/activity currently ships with one photo; gal.items still supports
+// multiple photos/videos per entry (via an optional `t.gallery` array of
+// {type:'img'|'video',src}) so more media can be dropped in later without
+// touching this code.
+let galItems=[],galIdx=0;
+function galMediaFor(kind,obj){
+  if(obj.gallery&&obj.gallery.length)return obj.gallery;
+  const src=kind==='theme'?('img/theme-'+obj.id+'.jpg'):('img/'+obj.img+'.jpg');
+  return [{type:'img',src}];
+}
+function openGallery(kind,id){
+  const obj=kind==='theme'?THEMES.find(t=>t.id===id):ACTS.find(a=>a.id===id);
+  if(!obj)return;
+  galItems=galMediaFor(kind,obj);
+  galIdx=0;
+  document.getElementById('galName').textContent=obj.n;
+  document.getElementById('galDesc').textContent=kind==='theme'
+    ? ('🎈 '+obj.b+'  ·  🖼 '+obj.panels+'  ·  ⏱ '+obj.s)
+    : ('📍 '+obj.req+'  ·  ⏱ '+obj.dur+'  ·  Ages '+obj.age);
+  renderGalThumbs();
+  renderGalStage();
+  document.getElementById('galModal').classList.add('show');
+}
+function closeGallery(){document.getElementById('galModal').classList.remove('show');}
+function galStep(d){if(!galItems.length)return;galIdx=(galIdx+d+galItems.length)%galItems.length;renderGalStage();}
+function galGoTo(i){galIdx=i;renderGalStage();}
+function renderGalStage(){
+  const stage=document.getElementById('galStage');
+  stage.querySelectorAll('img,video').forEach(el=>el.remove());
+  const it=galItems[galIdx];
+  if(it){
+    const el=document.createElement(it.type==='video'?'video':'img');
+    if(it.type==='video'){el.src=it.src;el.controls=true;el.playsInline=true;}
+    else{el.src=it.src;el.loading='lazy';el.alt='';}
+    stage.insertBefore(el,stage.firstChild);
+  }
+  const multi=galItems.length>1;
+  document.getElementById('galPrev').style.display=multi?'flex':'none';
+  document.getElementById('galNext').style.display=multi?'flex':'none';
+  document.getElementById('galCount').style.display=multi?'block':'none';
+  document.getElementById('galCount').textContent=(galIdx+1)+' / '+galItems.length;
+  document.querySelectorAll('#galThumbs .gal-thumb').forEach((t,i)=>t.classList.toggle('on',i===galIdx));
+}
+function renderGalThumbs(){
+  const w=document.getElementById('galThumbs');
+  if(galItems.length<2){w.innerHTML='';w.style.display='none';return;}
+  w.style.display='flex';
+  w.innerHTML=galItems.map((it,i)=>'<div class="gal-thumb" onclick="galGoTo('+i+')">'+(it.type==='video'?'<video src="'+it.src+'" muted></video>':'<img src="'+it.src+'" alt="" loading="lazy">')+'</div>').join('');
+}
+
 // ── HOST & DJ ──
 function selTier(card,type,tier,p){const wasSel=card.classList.contains('sel');document.querySelectorAll('#'+type+'Cards .tier-card').forEach(c=>c.classList.remove('sel'));if(wasSel){S[type]=null;}else{card.classList.add('sel');S[type]={tier,p};}updBB(S.screen);if(type==='photo')document.getElementById('reelRow').style.display=S.photo?'flex':'none';}
 function syncHostDom(){if(!S.host)return;const map={'Starter':0,'Premium':1,'Signature':2};const idx=map[S.host.tier];if(idx===undefined)return;const cards=document.querySelectorAll('#hostCards .tier-card');cards.forEach((c,i)=>c.classList.toggle('sel',i===idx));}
@@ -2231,26 +2400,57 @@ function buildPins(){
   chkFreePinata();
   const isFree=rawNoInv()>=S.FPT;
   const w=document.getElementById('pinCards');w.innerHTML='';
-  PINATAS.forEach(p=>{const priceLabel=isFree?'<span style="color:#1a6630;font-weight:700">FREE!</span>':'₹'+p.p.toLocaleString('en-IN');w.innerHTML+='<div class="pcard psm" id="pn-'+p.id+'" onclick="selPin(this,\''+p.id+'\','+p.p+',\''+p.n+'\')"><div class="sel-badge">✓</div><div class="caro" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+p.n+'"></div><div class="card-body"><div class="card-name" style="font-size:12px">'+p.n+'</div><div class="card-detail">'+p.d+'</div><div class="card-price" style="font-size:13px">'+priceLabel+'</div></div></div>';});
+  PINATAS.forEach(p=>{const priceLabel=isFree?'<span style="color:#1a6630;font-weight:700">FREE!</span>':'₹'+p.p.toLocaleString('en-IN');w.innerHTML+='<div class="pcard psm" id="pn-'+p.id+'" onclick="selPin(this,\''+p.id+'\','+p.p+',\''+p.n+'\')"><div class="sel-badge">✓</div><div class="caro" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+p.n+'"></div><div class="card-body"><div class="card-name" style="font-size:12px">'+p.n+'</div><div class="card-detail">Dimensions: '+p.d+'</div><div class="card-price" style="font-size:13px">'+priceLabel+'</div></div></div>';});
   if(S.pinata)document.getElementById('pn-'+S.pinata.id)?.classList.add('sel');
 }
 function selPin(card,id,p,n){const wasSel=card.classList.contains('sel');document.querySelectorAll('#pinCards .pcard,#pn-custom').forEach(c=>c.classList.remove('sel'));if(wasSel){S.pinata=null;}else{card.classList.add('sel');S.pinata={id,n,p};}updBB(S.screen);}
 function selPinataC(card){const wasSel=card.classList.contains('sel');document.querySelectorAll('#pinCards .pcard,#pn-custom').forEach(c=>c.classList.remove('sel'));if(wasSel){S.pinata=null;}else{card.classList.add('sel');S.pinata={id:'custom',n:'Custom Design',p:0};}updBB(S.screen);}
 
 // ── E-INVITE ──
+let invConfettiShown=false;
+function showFreeInvToast(){
+  const t=document.getElementById('freeInvToast');
+  if(!t)return;
+  t.classList.add('show');
+  clearTimeout(t._hideTimer);
+  t._hideTimer=setTimeout(()=>t.classList.remove('show'),3200);
+}
 function chkFreeInv(){
   const gt=rawNoInv();const isFree=gt>=S.FIT;
   document.getElementById('freeInvBadge').style.display=isFree?'block':'none';
-  document.getElementById('chargeInvNote').style.display=(!isFree&&S.einvite)?'block':'none';
+  // Below the free threshold: always show how much more they need to add —
+  // this is a standing incentive, not tied to having picked an invite yet.
+  const noteEl=document.getElementById('chargeInvNote');
+  if(!isFree){
+    const delta=S.FIT-gt;
+    noteEl.textContent='⚡ Add ₹'+delta.toLocaleString('en-IN')+' more to your cart to get your E-Invite FREE! (orders ₹25,000+)';
+    noteEl.style.display='block';
+  }else{
+    noteEl.style.display='none';
+  }
+  // Cart already qualifies for a free invite by the time the customer lands
+  // here — celebrate it once per visit rather than re-triggering on every re-render.
+  if(isFree&&!invConfettiShown&&S.screen==='s6'){
+    invConfettiShown=true;
+    launchConfetti();
+    showFreeInvToast();
+  }
+}
+function showAllInv(){document.getElementById('invFilterNote').style.display='none';const w=document.getElementById('invCards');w.innerHTML='';INVITES.forEach(inv=>w.innerHTML+=makeInvCard(inv));if(S.einvite)document.getElementById('inv-'+S.einvite.id)?.classList.add('sel');}
+function makeInvCard(inv){
+  const isFree=rawNoInv()>=S.FIT;
+  const priceText=isFree?'FREE':'₹'+inv.p;
+  return '<div class="pcard psm" id="inv-'+inv.id+'" onclick="selInv(this,\''+inv.id+'\','+inv.p+',\''+inv.n+'\')"><div class="sel-badge">✓</div><div style="position:relative;overflow:hidden;border-radius:var(--r) var(--r) 0 0;background:var(--li2)"><img src="einvites/'+inv.file+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+inv.n+'"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.58);padding:12px 10px;text-align:center;backdrop-filter:blur(2px)"><div style="font-family:var(--fd);font-size:15px;font-weight:700;color:#fff;line-height:1.2">'+inv.n+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:600;margin-top:3px">'+priceText+'</div></div></div></div>';
 }
 function buildInvs(){
   const w=document.getElementById('invCards');w.innerHTML='';
   const isFree=rawNoInv()>=S.FIT;
-  INVITES.forEach(inv=>{
-    const priceText=isFree?'FREE':'₹'+inv.p;
-    w.innerHTML+='<div class="pcard psm" id="inv-'+inv.id+'" onclick="selInv(this,\''+inv.id+'\','+inv.p+',\''+inv.n+'\')"><div class="sel-badge">✓</div><div style="position:relative;overflow:hidden;border-radius:var(--r) var(--r) 0 0;background:var(--li2)"><img src="einvites/'+inv.file+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+inv.n+'"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.58);padding:12px 10px;text-align:center;backdrop-filter:blur(2px)"><div style="font-family:var(--fd);font-size:15px;font-weight:700;color:#fff;line-height:1.2">'+inv.n+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:600;margin-top:3px">'+priceText+'</div></div></div></div>';
-  });
-  const cp=document.getElementById('invCustomPrice');if(cp)cp.textContent=isFree?'FREE':'₹1,500';
+  // Pre-filter to designs matching the theme chosen back in Step 0, if any.
+  let fl=INVITES;const note=document.getElementById('invFilterNote');
+  if(S.theme){const m=INVITES.filter(inv=>inv.t===S.theme);if(m.length){fl=m;note.style.display='block';}else note.style.display='none';}
+  else note.style.display='none';
+  fl.forEach(inv=>w.innerHTML+=makeInvCard(inv));
+  const cp=document.getElementById('invCustomPrice');if(cp)cp.textContent=isFree?'FREE':'₹1,000';
   if(S.einvite){
     document.getElementById('inv-'+S.einvite.id)?.classList.add('sel');
     if(S.einvite.id!=='custom'){
@@ -2262,8 +2462,9 @@ function buildInvs(){
       // auto-fill age from first child's dob
       if(S.children[0]?.dob){const bd=new Date(S.children[0].dob);const ev=new Date(S.eventDate||Date.now());const age=Math.floor((ev-bd)/(365.25*24*3600*1000));document.getElementById('ei-age').value=age+'th';}
       document.getElementById('eiDetail').style.display='block';
-    }else document.getElementById('eiDetail').style.display='none';
-  }else document.getElementById('eiDetail').style.display='none';
+      document.getElementById('invCustomThemeWrap').style.display='none';
+    }else{document.getElementById('eiDetail').style.display='none';document.getElementById('invCustomThemeWrap').style.display='block';}
+  }else{document.getElementById('eiDetail').style.display='none';document.getElementById('invCustomThemeWrap').style.display='none';}
 }
 function selInv(card,id,p,n){
   const wasSel=card.classList.contains('sel');
@@ -2278,17 +2479,44 @@ function selInv(card,id,p,n){
     if(S.mobile&&!document.getElementById('ei-rsvp').value)document.getElementById('ei-rsvp').value=S.mobile;
     if(S.children[0]?.dob){const bd=new Date(S.children[0].dob);const ev=new Date(S.eventDate||Date.now());const age=Math.floor((ev-bd)/(365.25*24*3600*1000));document.getElementById('ei-age').value=age+'th';}
     document.getElementById('eiDetail').style.display='block';
+    document.getElementById('invCustomThemeWrap').style.display='none';
   }
-  chkFreeInv();document.getElementById('chargeInvNote').style.display=(rawNoInv()<S.FIT&&S.einvite)?'block':'none';
+  chkFreeInv();
   updBB(S.screen);
 }
-function selInvC(card){const wasSel=card.classList.contains('sel');document.querySelectorAll('#invCards .pcard,#inv-custom').forEach(c=>c.classList.remove('sel'));if(wasSel){S.einvite=null;}else{card.classList.add('sel');S.einvite={id:'custom',n:'Custom Design',p:rawNoInv()>=S.FIT?0:1500};}document.getElementById('eiDetail').style.display='none';updBB(S.screen);}
+function selInvC(card){const wasSel=card.classList.contains('sel');document.querySelectorAll('#invCards .pcard,#inv-custom').forEach(c=>c.classList.remove('sel'));if(wasSel){S.einvite=null;document.getElementById('invCustomThemeWrap').style.display='none';}else{card.classList.add('sel');S.einvite={id:'custom',n:'Custom Design',p:rawNoInv()>=S.FIT?0:1000};document.getElementById('invCustomThemeWrap').style.display='block';if(S.theme){const th=THEMES.find(t=>t.id===S.theme);if(th)document.getElementById('ei-ctheme').value=th.n;}}document.getElementById('eiDetail').style.display='none';updBB(S.screen);}
+// If the customer has selected an invite, key details become mandatory before
+// they can move on — this covers both the sticky-bar Continue and the
+// in-page "Skip to Review" shortcut.
+function validateInvite(){
+  const errEl=document.getElementById('e-ei');
+  if(!S.einvite){if(errEl)errEl.style.display='none';return true;}
+  if(S.einvite.id==='custom'){
+    const ok=!!document.getElementById('ei-ctheme')?.value.trim();
+    if(!ok){document.getElementById('invCustomThemeWrap').scrollIntoView({behavior:'smooth',block:'center'});return false;}
+    return true;
+  }
+  const req=['ei-names','ei-age','ei-date','ei-start','ei-venue'];
+  const missing=req.some(id=>!document.getElementById(id)?.value.trim());
+  if(missing){if(errEl){errEl.style.display='block';errEl.scrollIntoView({behavior:'smooth',block:'center'});}return false;}
+  if(errEl)errEl.style.display='none';
+  return true;
+}
 
 // ── PHOTOGRAPHER ──
 function togReel(){S.addReel=!S.addReel;document.getElementById('reelTog').classList.toggle('on',S.addReel);updBB(S.screen);document.getElementById('cartTH').textContent='₹'+tp().toLocaleString('en-IN');}
 
 // ── GIFTS ──
-function buildGifts(){gF={type:'all',budget:'all',gtheme:'all'};['gTChips','gBChips','gThChips'].forEach(id=>{document.querySelectorAll('#'+id+' .chip').forEach((c,i)=>{if(i===0)c.classList.add('on');else c.classList.remove('on');});});renderGifts();}
+// Map a decor theme id (Step 0/1) to the closest matching gift theme, if any.
+const GIFT_THEME_MAP={space:'space',dino:'dino',uni:'unicorn'};
+function buildGifts(){
+  gF={type:'all',budget:'all',gtheme:'all'};
+  const gTh=S.theme&&GIFT_THEME_MAP[S.theme];
+  if(gTh)gF.gtheme=gTh;
+  ['gTChips','gBChips','gThChips'].forEach(id=>{document.querySelectorAll('#'+id+' .chip').forEach((c,i)=>{if(i===0)c.classList.add('on');else c.classList.remove('on');});});
+  if(gTh){const btn=document.querySelector('#gThChips .chip[onclick*="\''+gTh+'\'"]');if(btn){document.querySelectorAll('#gThChips .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');}}
+  renderGifts();
+}
 function renderGifts(){
   const list=GIFTS.filter(g=>{
     if(gF.type!=='all'&&g.type!==gF.type)return false;
@@ -2299,7 +2527,10 @@ function renderGifts(){
   const w=document.getElementById('gCards');w.innerHTML='';
   list.forEach(g=>{const ex=S.gifts.find(x=>x.id===g.id);const qty=ex?ex.qty:S.kidsCount;const added=!!ex;
     const tagHtml=g.tag?TAG_MAP[g.tag]:'';
-    w.innerHTML+='<div class="gift-card'+(added?' added':'')+'" id="gc-'+g.id+'"><div class="gift-top"><div class="g-emoji" style="background:'+g.bg+'">'+g.e+'</div><div><div class="g-name">'+g.n+'</div><div class="g-meta">Ages '+g.age+' · ₹'+g.unit+'/child</div>'+tagHtml+'</div></div><div class="gift-bottom"><div><div style="font-size:10px;color:var(--gy)">₹'+g.unit+' × <span id="qty-'+g.id+'">'+qty+'</span> kids</div><div class="gift-total">₹<span id="qtot-'+g.id+'">'+(qty*g.unit).toLocaleString('en-IN')+'</span></div></div><div style="display:flex;align-items:center;gap:6px">'+(added?'<div class="qty-ctrl"><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',-1)">−</button><span class="qty-val" id="qv-'+g.id+'">'+qty+'</span><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',1)">+</button></div><button class="card-btn rmv" onclick="rmGift(\''+g.id+'\')">Remove</button>':'<button class="card-btn" onclick="addGift(\''+g.id+'\',\''+g.n+'\','+g.unit+')">Add</button>')+'</div></div></div>';
+    const emojiHtml=g.img
+      ? '<div class="g-emoji has-img"><img src="img/'+g.img+'" alt="'+g.n+'" loading="lazy" onerror="this.parentElement.classList.remove(\'has-img\');this.parentElement.style.background=\''+g.bg+'\';this.outerHTML=\''+g.e+'\'"></div>'
+      : '<div class="g-emoji" style="background:'+g.bg+'">'+g.e+'</div>';
+    w.innerHTML+='<div class="gift-card'+(added?' added':'')+'" id="gc-'+g.id+'"><div class="gift-top">'+emojiHtml+'<div><div class="g-name">'+g.n+'</div><div class="g-meta">Ages '+g.age+' · ₹'+g.unit+'/child</div>'+tagHtml+'</div></div><div class="gift-bottom"><div><div style="font-size:10px;color:var(--gy)">₹'+g.unit+' × <span id="qty-'+g.id+'">'+qty+'</span> kids</div><div class="gift-total">₹<span id="qtot-'+g.id+'">'+(qty*g.unit).toLocaleString('en-IN')+'</span></div></div><div style="display:flex;align-items:center;gap:6px">'+(added?'<div class="qty-ctrl"><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',-1)">−</button><span class="qty-val" id="qv-'+g.id+'">'+qty+'</span><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',1)">+</button></div><button class="card-btn rmv" onclick="rmGift(\''+g.id+'\')">Remove</button>':'<button class="card-btn" onclick="addGift(\''+g.id+'\',\''+g.n+'\','+g.unit+')">Add</button>')+'</div></div></div>';
   });
   if(!list.length)w.innerHTML='<div style="text-align:center;padding:24px;color:var(--gy);font-size:13px">No gifts match. Try clearing a filter.</div>';
 }
@@ -2322,7 +2553,13 @@ function buildRev(){
     const its=cats[cat];
     html+='<div class="rv-sec"><div class="rv-hdr"><div class="rv-cat">'+cat+'</div><span class="edit-link" onclick="editFR('+sm[cat]+')">Edit</span></div><div class="rv-items">';
     if(!its)html+='<div class="rv-empty">Not added — skipped</div>';
-    else its.forEach(i=>{html+='<div class="rv-item"><span>'+i.n+'</span><span class="rv-item-price">₹'+i.p.toLocaleString('en-IN')+'</span></div>';});
+    else its.forEach(i=>{
+      const th=thumbFor(cat,i.id);
+      const thumbHtml=th.type==='img'
+        ? '<div class="rv-thumb"><img src="'+th.src+'" alt="" loading="lazy" onerror="rvImgErr(this)"></div>'
+        : '<div class="rv-thumb rv-thumb-e" style="background:'+th.bg+'">'+th.e+'</div>';
+      html+='<div class="rv-item">'+thumbHtml+'<span class="rv-item-name">'+i.n+'</span><span class="rv-item-price">₹'+i.p.toLocaleString('en-IN')+'</span></div>';
+    });
     html+='</div></div>';
   });
   body.innerHTML=html;
@@ -2341,6 +2578,10 @@ function fillCo(){
   document.getElementById('co-time').value=S.eventTime||'11:00';
   document.getElementById('co-child').value=S.children.map(c=>c.name||'').filter(Boolean).join(', ');
   document.getElementById('co-kids').value=S.kidsCount||'';
+  // Pre-fill whatever venue detail was already captured in Step 0
+  const addrEl=document.getElementById('co-addr');
+  if(addrEl&&!addrEl.value)addrEl.value=S.venueOther||(S.venue&&S.venue!=='Other'?S.venue:'')||'';
+  const qr=document.getElementById('payOnlineDetails');if(qr)qr.style.display=S.payMethod==='online'?'block':'none';
   updCoAmt();
 }
 function updCoAmt(){
@@ -2368,7 +2609,7 @@ function applyCoupon(){
   else{S.couponPct=0;ok.textContent='Invalid code. Try WONDER10';ok.classList.add('show');}
   updCoAmt();
 }
-function selPay(el,method){document.querySelectorAll('.pay-opt').forEach(p=>p.classList.remove('on'));el.classList.add('on');S.payMethod=method;}
+function selPay(el,method){document.querySelectorAll('.pay-opt').forEach(p=>p.classList.remove('on'));el.classList.add('on');S.payMethod=method;const qr=document.getElementById('payOnlineDetails');if(qr)qr.style.display=method==='online'?'block':'none';}
 function togTNC(){S.tncOk=!S.tncOk;const cb=document.getElementById('tncCb');cb.classList.toggle('checked',S.tncOk);cb.textContent=S.tncOk?'✓':'';}
 async function doCo(){
   if(!S.tncOk){document.getElementById('e-tnc').classList.add('show');return;}
@@ -2558,21 +2799,26 @@ function buildSnapshot(){
   }catch(e){return null;}
 }
 
-function copyUPI(){
+function copyUPI(btn){
   navigator.clipboard.writeText('wondershopcol26qr@fbl').then(()=>{
-    const btn=document.querySelector('.ls-copy-btn');
-    if(btn){btn.textContent='✅ Copied';setTimeout(()=>{btn.textContent='📋 Copy';},2000);}
+    const b=btn||document.querySelector('.ls-copy-btn');
+    if(b){const orig=b.textContent;b.textContent='✅ Copied';setTimeout(()=>{b.textContent=orig;},2000);}
   });
 }
 
 function sendToTeamAndLead(){
-  // Pre-fill lead form with builder data, then take the user to the form
-  // (submitting it — doLead() — is what actually captures and confirms the lead)
+  // "Call to Customise" — pre-fill the lead form with everything already
+  // captured in the builder so far, so the customer never has to re-type
+  // details our team already has. Submitting the form (doLead()) is what
+  // actually captures and confirms the lead.
   document.getElementById('ld-date').value=S.eventDate||'';
   document.getElementById('ld-kids').value=S.kidsCount||'';
   document.getElementById('ld-theme').value=S.theme||'';
   document.getElementById('ld-child').value=S.children.map(c=>c.name||'').filter(Boolean).join(', ');
   document.getElementById('ld-phone').value=S.mobile||'';
+  const venEl=document.getElementById('ld-venue');if(venEl)venEl.value=S.venueOther||(S.venue&&S.venue!=='Other'?S.venue:'')||'';
+  const ageEl=document.getElementById('ld-age');if(ageEl&&!ageEl.value&&S.children[0]?.dob){const bd=new Date(S.children[0].dob);const age=Math.floor((Date.now()-bd)/(365.25*24*3600*1000));if(age>=0&&age<=18)ageEl.value=age;}
+  const genEl=document.getElementById('ld-gender');if(genEl&&S.children[0]?.gender)genEl.value=S.children[0].gender;
   goTo('slead');
 }
 
@@ -2632,7 +2878,19 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Builder init
   renderC(1);
   try{const td=new Date();td.setDate(td.getDate()+1);document.getElementById('f-date').min=td.toISOString().split('T')[0];}catch(e){}
+  // Prefill pincode if the user already entered it on the home page (or an
+  // earlier visit) — same localStorage key the homepage's area picker uses.
+  // Left blank for anyone landing here directly; still mandatory to proceed.
+  try{
+    const savedLoc=JSON.parse(localStorage.getItem('ws_loc_v1')||'null');
+    if(savedLoc&&savedLoc.pin){
+      const pinEl=document.getElementById('f-pincode');
+      if(pinEl&&!pinEl.value)pinEl.value=savedLoc.pin;
+      S.pincode=savedLoc.pin;
+    }
+  }catch(e){}
   document.getElementById('f-kids')?.addEventListener('input',function(){S.kidsCount=parseInt(this.value)||15;document.getElementById('kDisp').textContent=S.kidsCount;document.getElementById('kDisp2').textContent=S.kidsCount;});
+  injectRemarksBoxes();
 
   // Home banner carousel
   const hbSlides=document.querySelectorAll('#shome-banner .sb-slide');
@@ -2736,9 +2994,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
 </a>
 <style>
-.wa-fab{position:fixed;bottom:24px;left:24px;z-index:9999;width:52px;height:52px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;text-decoration:none}
+.wa-fab{position:fixed;bottom:calc(var(--bb-h) + 14px);left:16px;z-index:9999;width:40px;height:40px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;text-decoration:none}
 .wa-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(37,211,102,.6)}
-.wa-fab svg{width:26px;height:26px}
+.wa-fab svg{width:20px;height:20px}
 </style>
 
 </body>
