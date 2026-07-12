@@ -234,14 +234,17 @@ input,textarea,select{font-family:var(--fb)}
 .bld-hdr-logo{display:flex;align-items:center;gap:8px;cursor:pointer}
 .bld-hdr-logo-icon{width:32px;height:32px}
 .bld-hdr-brand{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk)}
-.bld-progress{display:flex;align-items:center;gap:4px;position:absolute;left:50%;transform:translateX(-50%)}
-.bp-item{display:flex;align-items:center;gap:4px;cursor:default}
+.bld-progress{display:flex;align-items:flex-start;gap:10px;position:absolute;left:50%;transform:translateX(-50%)}
+.bp-item{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:default}
 .bp-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--li2);background:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--gy);transition:all .2s;flex-shrink:0}
 .bp-dot.done{background:var(--gr);border-color:var(--gr);color:#fff;cursor:pointer}
 .bp-dot.cur{background:var(--li);border-color:var(--li);color:#fff}
-.bp-label{font-size:9px;font-weight:600;color:var(--gy);white-space:nowrap;display:none}
-.bp-line{width:18px;height:2px;background:var(--li2);border-radius:1px}
+.bp-label{font-size:9px;font-weight:600;color:var(--gy);white-space:nowrap;text-transform:uppercase;letter-spacing:.02em}
+.bp-dot.cur + .bp-label{color:var(--li);font-weight:700}
+.bp-dot.done + .bp-label{color:var(--gr)}
+.bp-line{width:24px;height:2px;background:var(--li2);border-radius:1px;margin-top:13px}
 .bp-line.done{background:var(--gr)}
+@media(max-width:900px){.bp-label{display:none}.bld-progress{gap:4px}.bp-line{width:16px;margin-top:13px}}
 .bld-hdr-right{display:flex;align-items:center;gap:10px}
 .bld-cart-btn{background:var(--li3);border:1.5px solid var(--li2);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--bk);display:flex;align-items:center;gap:6px}
 .bld-cart-btn:hover{background:var(--li2)}
@@ -662,8 +665,8 @@ input,textarea,select{font-family:var(--fb)}
 
 <nav class="nav" id="main-nav">
   <div class="nav-inner">
-    <a href="#home" class="nav-logo">
-      <img src="logo-horizontal.png" alt="Wondershop Experiences" style="height:40px;width:auto;display:block">
+    <a href="index.html" class="nav-logo">
+      <img src="logo-horizontal.png" alt="Wondershop Experiences" style="height:54px;width:auto;display:block">
     </a>
     <ul class="nav-links">
       <li><a href="#home">Home</a></li>
@@ -901,9 +904,18 @@ input,textarea,select{font-family:var(--fb)}
         <img src="logo-horizontal-dark.png" alt="Wondershop Experiences" style="height:48px;width:auto;margin-bottom:14px">
         <div class="ft-tagline">Pick your services, personalise every detail, and we handle everything else. No calls needed until you're ready.</div>
         <div class="ft-soc">
-          <a href="https://www.instagram.com/wondershop.experiences/" target="_blank" class="ft-soc-a">📸</a>
-          <a href="https://wa.me/919004435362" target="_blank" class="ft-soc-a">💬</a>
-          <a href="tel:+919004435362" class="ft-soc-a">📞</a>
+          <a href="https://wa.me/919742240477" target="_blank" rel="noopener" class="ft-soc-a" aria-label="WhatsApp">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          </a>
+          <a href="tel:+919742240477" class="ft-soc-a" aria-label="Call">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.46.57 3.58a1 1 0 01-.25 1.01l-2.2 2.2z"/></svg>
+          </a>
+          <a href="https://www.youtube.com/@wondershop_experiences" target="_blank" rel="noopener" class="ft-soc-a" aria-label="YouTube">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          </a>
+          <a href="mailto:contact@wondershopexperiences.com" class="ft-soc-a" aria-label="Email">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </a>
         </div>
       </div>
       <div>
@@ -927,10 +939,9 @@ input,textarea,select{font-family:var(--fb)}
       <div>
         <div class="ft-col-h">Contact</div>
         <ul class="ft-links">
-          <li><a href="tel:+919004435362">+91 90044 35362</a></li>
           <li><a href="tel:+919742240477">+91 97422 40477</a></li>
           <li><a href="mailto:contact@wondershopexperiences.com">contact@wondershopexperiences.com</a></li>
-          <li><a href="#">Vikhroli East, Mumbai</a></li>
+          <li><a href="https://wa.me/919742240477" target="_blank" rel="noopener">WhatsApp Us</a></li>
         </ul>
       </div>
     </div>
@@ -954,31 +965,31 @@ input,textarea,select{font-family:var(--fb)}
 <header class="bld-hdr">
   <div style="display:flex;align-items:center;gap:8px">
     <button class="bld-back-btn" id="backBtn" onclick="goBack()">← Back</button>
-    <div class="bld-hdr-logo" onclick="goHome()">
-      <img src="logo-horizontal.png" alt="Wondershop Experiences" style="height:34px;width:auto;display:block">
-    </div>
+    <a href="index.html" class="bld-hdr-logo">
+      <img src="logo-horizontal.png" alt="Wondershop Experiences" style="height:54px;width:auto;display:block">
+    </a>
   </div>
   <!-- Step progress breadcrumbs -->
   <div class="bld-progress" id="bldProgress">
-    <div class="bp-item" id="bpi0"><div class="bp-dot" id="bpd0">0</div></div>
+    <div class="bp-item" id="bpi0"><div class="bp-dot" id="bpd0">0</div><div class="bp-label">Details</div></div>
     <div class="bp-line" id="bpl0"></div>
-    <div class="bp-item" id="bpi1"><div class="bp-dot" id="bpd1">1</div></div>
+    <div class="bp-item" id="bpi1"><div class="bp-dot" id="bpd1">1</div><div class="bp-label">Decor</div></div>
     <div class="bp-line" id="bpl1"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd2">2</div></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd2">2</div><div class="bp-label">Activity</div></div>
     <div class="bp-line" id="bpl2"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd3">3</div></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd3">3</div><div class="bp-label">Host</div></div>
     <div class="bp-line" id="bpl3"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd4">4</div></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd4">4</div><div class="bp-label">Music</div></div>
     <div class="bp-line" id="bpl4"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd5">5</div></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd5">5</div><div class="bp-label">Pinata</div></div>
     <div class="bp-line" id="bpl5"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd6">6</div></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd6">6</div><div class="bp-label">Invite</div></div>
     <div class="bp-line" id="bpl6"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd7">7</div></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd7">7</div><div class="bp-label">Photo</div></div>
     <div class="bp-line" id="bpl7"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd8">8</div></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd8">8</div><div class="bp-label">Gifts</div></div>
     <div class="bp-line" id="bpl8"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd9">✓</div></div>
+    <div class="bp-item"><div class="bp-dot" id="bpd9">✓</div><div class="bp-label">Review</div></div>
   </div>
   <div class="bld-hdr-right">
     <button class="bld-cart-btn" id="cartBtn" onclick="openCart()" style="display:none">🛒 <span id="cartTH">₹0</span></button>
@@ -1065,10 +1076,6 @@ input,textarea,select{font-family:var(--fb)}
   <div class="s-hero"><div class="slbl">Your Details</div>
     <h1>Tell us about the <span class="hl">birthday star</span> ⭐</h1>
     <p>Takes just 15 seconds — and every answer helps us curate the perfect decor, activities, and experience for your child.</p>
-    <div style="display:inline-flex;align-items:center;gap:10px;background:var(--li2);border-radius:12px;padding:10px 18px;margin-top:12px;font-family:var(--fb);font-size:13px;color:#5B3FA6">
-      <span style="font-size:18px">⏱️</span>
-      <span><strong>~15 seconds</strong> &nbsp;·&nbsp; No payment now &nbsp;·&nbsp; We personalise everything from your answers</span>
-    </div>
   </div>
 
   <!-- Child info -->
@@ -1731,6 +1738,17 @@ input,textarea,select{font-family:var(--fb)}
     <div class="row2">
       <div class="ig"><label>Parent Name<span class="req">*</span></label><input type="text" id="ld-name" placeholder="Your full name"></div>
       <div class="ig"><label>Child Name(s)</label><input type="text" id="ld-child" placeholder="Your child's name"></div>
+    </div>
+    <div class="row2">
+      <div class="ig"><label>Child's Age</label><input type="number" id="ld-age" min="0" max="18" placeholder="e.g. 5"></div>
+      <div class="ig"><label>Child's Gender</label>
+        <select id="ld-gender">
+          <option value="">Select</option>
+          <option value="Boy">Boy</option>
+          <option value="Girl">Girl</option>
+          <option value="Prefer not to say">Prefer not to say</option>
+        </select>
+      </div>
     </div>
     <div class="row2">
       <div class="ig"><label>WhatsApp Number<span class="req">*</span></label><div class="pfx-wrap"><span class="pfx">+91</span><input type="tel" id="ld-phone" class="pi" placeholder="Mobile"></div></div>
@@ -2411,6 +2429,8 @@ function buildSummaryText(){
   lines.push('=== WONDERSHOP CUSTOM REQUEST ===');
   lines.push('Parent: '+(document.getElementById('ld-name')?.value||'—'));
   lines.push('Child: '+(document.getElementById('ld-child')?.value||'—'));
+  lines.push('Child Age: '+(document.getElementById('ld-age')?.value||'—'));
+  lines.push('Child Gender: '+(document.getElementById('ld-gender')?.value||'—'));
   lines.push('WhatsApp: +91'+(document.getElementById('ld-phone')?.value||'—'));
   lines.push('Email: '+(document.getElementById('ld-email')?.value||'—'));
   lines.push('Event Date: '+(document.getElementById('ld-date')?.value||S.eventDate||'—'));
@@ -2440,6 +2460,8 @@ async function doLead(){
   const name   = (document.getElementById('ld-name')?.value  || '').trim();
   const phone  = (document.getElementById('ld-phone')?.value || '').trim().replace(/\D/g,'');
   const child  = (document.getElementById('ld-child')?.value || '').trim();
+  const childAge    = (document.getElementById('ld-age')?.value    || '').trim();
+  const childGender = (document.getElementById('ld-gender')?.value || '').trim();
   const email  = (document.getElementById('ld-email')?.value || '').trim();
   const date   = document.getElementById('ld-date')?.value || S.eventDate || '';
   const kids   = parseInt(document.getElementById('ld-kids')?.value || S.kidsCount) || null;
@@ -2468,6 +2490,8 @@ async function doLead(){
     parent_name:        name,
     phone:              phone,
     child_names:        child   || null,
+    child_age:          childAge    || null,
+    child_gender:       childGender || null,
     email:              email   || null,
     event_date:         date    || null,
     kids_count:         kids,
@@ -2483,6 +2507,7 @@ async function doLead(){
   // so leads land in the Sheet even before the backend is live.
   wsSendToSheet('lead', Object.assign({
     name: name, phone: phone, email: email, child: child,
+    child_age: childAge, child_gender: childGender,
     event_date: date, kids_count: kids, venue: venue, theme: theme,
     budget: budget, estimated_total: rawT(),
     lead_source: 'Website - Custom Request',
