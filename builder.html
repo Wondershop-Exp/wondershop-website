@@ -254,7 +254,8 @@ input,textarea,select{font-family:var(--fb)}
 
 /* Builder main scrollable area */
 .bld-main{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--lgy);padding-bottom:calc(var(--bb-h) + 16px)}
-.bld-wrap{max-width:860px;margin:0 auto;padding:24px 20px}
+.bld-wrap{max-width:860px;margin:0 auto;padding:24px 20px;transition:max-width .2s}
+.bld-wrap.wrap-wide{max-width:1120px}
 
 /* Builder bottom bar — 3-column grid (not flex space-between) so the amount
    in the middle column is genuinely centered regardless of how wide the
@@ -315,6 +316,7 @@ input,textarea,select{font-family:var(--fb)}
 .pcard.sel .sel-badge{display:block}
 .sel-badge{display:none;position:absolute;top:8px;right:8px;background:var(--li);color:#fff;font-size:10px;font-weight:700;border-radius:8px;padding:3px 8px;z-index:3}
 .caro{position:relative;overflow:hidden;background:var(--li2);flex-shrink:0;aspect-ratio:4/3}.caro img{width:100%;height:100%;display:block;object-fit:cover;object-position:center top}
+.caro-lg{aspect-ratio:1/1}
 .cs{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;position:absolute;inset:0;transition:opacity .4s}
 .cs:not(:first-child){opacity:0}
 .card-body{padding:10px 12px 12px}
@@ -347,19 +349,19 @@ input,textarea,select{font-family:var(--fb)}
 .gal-trig:hover{background:rgba(25,25,25,.85);transform:translateY(-1px)}
 
 /* Gallery modal — full-screen lightbox for theme/activity photos & videos */
-.gal-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,12,20,.88);align-items:center;justify-content:center;padding:24px}
+.gal-modal{display:none;position:fixed;inset:0;z-index:9999;background:#000;align-items:center;justify-content:center;padding:0}
 .gal-modal.show{display:flex}
-.gal-box{background:#fff;border-radius:18px;overflow:hidden;max-width:520px;width:100%;max-height:88vh;display:flex;flex-direction:column}
-.gal-stage{position:relative;background:#111;aspect-ratio:4/3;flex-shrink:0}
-.gal-stage img,.gal-stage video{width:100%;height:100%;object-fit:cover;display:block}
-.gal-close{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:16px;line-height:1;z-index:2}
-.gal-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.4);color:#fff;border:none;border-radius:50%;width:34px;height:34px;font-size:16px;z-index:2}
-.gal-prev{left:10px}.gal-next{right:10px}
-.gal-count{position:absolute;bottom:10px;right:12px;background:rgba(0,0,0,.5);color:#fff;font-size:11px;font-weight:600;border-radius:10px;padding:2px 9px;z-index:2}
-.gal-info{padding:14px 16px 16px}
-.gal-name{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--bk);margin-bottom:4px}
-.gal-desc{font-size:12px;color:var(--gy);line-height:1.6}
-.gal-thumbs{display:flex;gap:6px;padding:0 16px 14px;overflow-x:auto}
+.gal-box{background:#000;overflow:hidden;width:100vw;height:100vh;height:100dvh;max-width:100vw;max-height:100vh;max-height:100dvh;border-radius:0;display:flex;flex-direction:column}
+.gal-stage{position:relative;background:#000;flex:1;min-height:0}
+.gal-stage img,.gal-stage video{width:100%;height:100%;object-fit:contain;display:block}
+.gal-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:18px;line-height:1;z-index:2}
+.gal-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:20px;z-index:2}
+.gal-prev{left:14px}.gal-next{right:14px}
+.gal-count{position:absolute;bottom:14px;right:16px;background:rgba(255,255,255,.14);color:#fff;font-size:11px;font-weight:600;border-radius:10px;padding:3px 10px;z-index:2}
+.gal-info{padding:14px 16px 16px;background:#111;flex-shrink:0}
+.gal-name{font-family:var(--fd);font-size:16px;font-weight:700;color:#fff;margin-bottom:4px}
+.gal-desc{font-size:12px;color:#B8B4C0;line-height:1.6}
+.gal-thumbs{display:flex;gap:6px;padding:0 16px 14px;overflow-x:auto;background:#111;flex-shrink:0}
 .gal-thumb{width:52px;height:52px;border-radius:8px;overflow:hidden;flex-shrink:0;border:2px solid transparent;cursor:pointer;opacity:.6}
 .gal-thumb.on{border-color:var(--li);opacity:1}
 .gal-thumb img,.gal-thumb video{width:100%;height:100%;object-fit:cover}
@@ -1043,7 +1045,7 @@ input,textarea,select{font-family:var(--fb)}
 
 <!-- Steps container -->
 <main class="bld-main" id="bldMain">
-  <div class="bld-wrap">
+  <div class="bld-wrap" id="bldWrap">
 
 <!-- ─── HOME SCREEN ─── -->
 <div class="step active" id="shome">
@@ -2137,6 +2139,9 @@ function goTo(id){
   const el=document.getElementById(id);if(!el)return;
   el.classList.add('active');
   document.getElementById('bldMain').scrollTop=0;
+  // Set the Scene gets a wider canvas so its 3-across decor photos can be
+  // meaningfully bigger — every other step stays at the standard reading width.
+  document.getElementById('bldWrap').classList.toggle('wrap-wide',id==='s1');
   S.screen=id;updHdr(id);updBB(id);
   wsTrackScreen(id);
   if(id==='s9')buildRev();
@@ -2266,7 +2271,7 @@ const TAG_MAP={pop:'<span class="tag pop">Most Popular</span>',new:'<span class=
 function makeTC(t){
   const tagHtml=t.tag?TAG_MAP[t.tag]:'';
   const added=S.decor&&S.decor.id===t.id;
-  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="img/theme-'+t.id+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'"></div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tagHtml+'<span class="tag pk">'+t.gn+'</span><span class="tag gr">'+t.s+'</span></div><div class="card-detail">🎈 '+t.b+'<br>🖼 '+t.panels+'<br>⚠️ Excl: '+t.ni+'</div><div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro caro-lg" style="overflow:hidden"><img src="img/theme-'+t.id+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'"></div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tagHtml+'<span class="tag pk">'+t.gn+'</span><span class="tag gr">'+t.s+'</span></div><div class="card-detail">🎈 '+t.b+'<br>🖼 '+t.panels+'<br>⚠️ Excl: '+t.ni+'</div><div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
 }
 function buildDec(){
   const tc=document.getElementById('thCards');tc.innerHTML='';
@@ -2276,7 +2281,7 @@ function buildDec(){
   if(!fl.length)fl=THEMES;
   fl.forEach(t=>tc.innerHTML+=makeTC(t));
   const sc=document.getElementById('stdCards');sc.innerHTML='';
-  STD.forEach(t=>{const added=S.decor&&S.decor.id===t.id;sc.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'std\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="img/'+t.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'"></div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="card-detail">'+t.d+'</div><div class="card-pr-row"><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';});
+  STD.forEach(t=>{const added=S.decor&&S.decor.id===t.id;sc.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'std\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro caro-lg" style="overflow:hidden"><img src="img/'+t.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'"></div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="card-detail">'+t.d+'</div><div class="card-pr-row"><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';});
   if(S.decor)document.getElementById('dc-'+S.decor.id)?.classList.add('sel');
   const dtBtns=document.querySelectorAll('#s1 .dt-tog .dt-btn');
   if(dtBtns.length===2){if(S.decorType==='standard'){dtBtns[0].classList.remove('on');dtBtns[1].classList.add('on');document.getElementById('thSec').style.display='none';document.getElementById('stdSec').style.display='block';}else{dtBtns[0].classList.add('on');dtBtns[1].classList.remove('on');document.getElementById('thSec').style.display='block';document.getElementById('stdSec').style.display='none';}}
