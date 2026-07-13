@@ -315,6 +315,7 @@ input,textarea,select{font-family:var(--fb)}
 .pcard.sel .sel-badge{display:block}
 .sel-badge{display:none;position:absolute;top:8px;right:8px;background:var(--li);color:#fff;font-size:10px;font-weight:700;border-radius:8px;padding:3px 8px;z-index:3}
 .caro{position:relative;overflow:hidden;background:var(--li2);flex-shrink:0;aspect-ratio:4/3}.caro img{width:100%;height:100%;display:block;object-fit:cover;object-position:center top}
+.caro-fallback{display:flex;align-items:center;justify-content:center;font-size:40px}
 .cs{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;position:absolute;inset:0;transition:opacity .4s}
 .cs:not(:first-child){opacity:0}
 .card-body{padding:10px 12px 12px}
@@ -2000,7 +2001,7 @@ const ACTS=[
   {id:'a20',n:'Makeover Station',e:'💅',img:'act-dance',cat:'experience',age:'6-12',dur:'3 hrs',req:'Any space',r1:6000,r2:6500,r3:7000,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#E65A96,#B59DDE)'],tag:'trend',pers:false,rating:4.8,cnt:55},
   {id:'a21',n:'Nail Art Station',e:'💅',img:'act-dance',cat:'experience',age:'6-12',dur:'3 hrs',req:'Any space',r1:3500,r2:3500,r3:3500,flat:true,bgs:['linear-gradient(135deg,#EDE6FA,#F5C3D7)'],tag:'',pers:false,rating:4.7,cnt:40},
   // ── Package craft activities (per child) ──
-  {id:'a22',n:'Sunglasses Decor',e:'🕶️',img:'act-sunglasses',cat:'craft',age:'4-12',dur:'40 min',req:'Tables & chairs',r1:350,r2:320,r3:300,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)'],tag:'',pers:true,rating:4.7,cnt:25},
+  {id:'a22',n:'Sunglasses Decor',e:'🕶️',img:'act-sunglasses-decor',realImg:true,cat:'craft',age:'4-12',dur:'40 min',req:'Tables & chairs',r1:350,r2:320,r3:300,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)'],tag:'',pers:true,rating:4.7,cnt:25},
   {id:'a23',n:'Fridge Magnet Making',e:'🧲',img:'act-diy',cat:'craft',age:'4-12',dur:'40 min',req:'Tables & chairs',r1:320,r2:290,r3:270,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:20},
   {id:'a24',n:'Coaster Making',e:'☕',img:'act-diy',cat:'craft',age:'5-12',dur:'45 min',req:'Tables & chairs',r1:420,r2:390,r3:370,flat:false,bgs:['linear-gradient(135deg,#F2D147,#B7E0B8)'],tag:'',pers:true,rating:4.6,cnt:18},
   {id:'a25',n:'Colouring Station',e:'🎨',img:'act-art',cat:'art',age:'3-10',dur:'Session',req:'Tables & chairs',r1:2200,r2:2200,r3:2200,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#EDE6FA)'],tag:'pop',pers:false,rating:4.8,cnt:30}
@@ -2065,7 +2066,7 @@ function thumbFor(cat,id){
     if(id&&id.indexOf('std')===0){const s=STD.find(x=>x.id===id);return s?{type:'img',src:'img/'+s.img+'.jpg'}:e('🎈');}
     const t=THEMES.find(x=>x.id===id);return t?{type:'img',src:'img/theme-'+t.id+'.jpg'}:e('🎨');
   }
-  if(cat==='Activities'){const a=ACTS.find(x=>x.id===id);return a?{type:'img',src:'img/'+a.img+'.jpg'}:e('🎨');}
+  if(cat==='Activities'){const a=ACTS.find(x=>x.id===id);if(!a)return e('🎨');return a.realImg?{type:'img',src:'img/'+a.img+'.jpg'}:e(a.e,(a.bgs&&a.bgs[0]));}
   if(cat==='Host'){const map={Starter:'host-starter',Premium:'host-premium',Signature:'host-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎤');}
   if(cat==='DJ'){const map={'DJ Lite':'dj-lite','DJ Standard':'dj-standard','DJ Pro':'dj-pro'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎧');}
   if(cat==='Pinata'){const p=PINATAS.find(x=>x.id===id);return p?{type:'img',src:'img/'+p.img+'.jpg'}:e('🪅');}
@@ -2308,7 +2309,14 @@ function renderActs(list){
     const flatTag=a.flat?'<span class="tag" style="background:#FEF9C3;color:#92400E">Flat rate</span>':'';
     const priceNote=a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child';
     const fieldsHtml='👶 Suitable for: Ages '+a.age+'<br>📦 Packaging: '+(a.pers?'Included':'Not applicable')+'<br>🎨 Personalization Possible: '+(a.pers?'Yes':'No');
-    w.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="ac-'+a.id+'" onclick="openGallery(\'act\',\''+a.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+a.n+'"></div><div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">₹'+tot.toLocaleString('en-IN')+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="event.stopPropagation();togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+    // Most activities are still on the emoji/gradient fallback (see
+    // .caro-fallback) until fresh photography comes in — only entries
+    // flagged realImg have an actual confirmed photo to show.
+    const bg=(a.bgs&&a.bgs[0])||'linear-gradient(135deg,#EDE6FA,#B59DDE)';
+    const mediaHtml=a.realImg
+      ? '<div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+a.n+'"></div>'
+      : '<div class="caro caro-fallback" style="background:'+bg+'">'+a.e+'</div>';
+    w.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="ac-'+a.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">₹'+tot.toLocaleString('en-IN')+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="event.stopPropagation();togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
   });
 }
 function sortActs(){
