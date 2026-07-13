@@ -2140,9 +2140,10 @@ function goTo(id){
   const el=document.getElementById(id);if(!el)return;
   el.classList.add('active');
   document.getElementById('bldMain').scrollTop=0;
-  // Set the Scene gets a wider canvas so its 3-across decor photos can be
-  // meaningfully bigger — every other step stays at the standard reading width.
-  document.getElementById('bldWrap').classList.toggle('wrap-wide',id==='s1');
+  // Set the Scene & Activities get a wider canvas so their 3-across photo
+  // grids can be meaningfully bigger — every other step stays at the
+  // standard reading width.
+  document.getElementById('bldWrap').classList.toggle('wrap-wide',id==='s1'||id==='s2');
   S.screen=id;updHdr(id);updBB(id);
   wsTrackScreen(id);
   if(id==='s9')buildRev();
@@ -2313,7 +2314,7 @@ function renderActs(list){
     const flatTag=a.flat?'<span class="tag" style="background:#FEF9C3;color:#92400E">Flat rate</span>':'';
     const priceNote=a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child';
     const fieldsHtml='👶 Suitable for: Ages '+a.age+'<br>📦 Packaging: '+(a.pers?'Included':'Not applicable')+'<br>🎨 Personalization Possible: '+(a.pers?'Yes':'No');
-    w.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="ac-'+a.id+'" onclick="openGallery(\'act\',\''+a.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+a.n+'"></div><div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">₹'+tot.toLocaleString('en-IN')+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="event.stopPropagation();togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+    w.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="ac-'+a.id+'" onclick="openGallery(\'act\',\''+a.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro caro-lg" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+a.n+'"></div><div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">₹'+tot.toLocaleString('en-IN')+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="event.stopPropagation();togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
   });
 }
 function sortActs(){
