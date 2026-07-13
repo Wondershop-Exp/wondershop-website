@@ -232,7 +232,12 @@
     .hero-note { font-family: var(--fb); font-size: 12px; color: #9CA3AF; }
     .hero-svcs { display: flex; flex-direction: column; gap: 8px; margin: 18px 0 16px; }
     .hero-svcs-row { display: flex; gap: 8px; }
-    .hero-svc { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; font-family: var(--fb); font-size: 14px; font-weight: 600; color: #7B5EA7; background: var(--li2); border-radius: 20px; padding: 6px 8px; white-space: nowrap; }
+    .hero-svc { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-family: var(--fb); font-size: 12.5px; font-weight: 600; color: #7B5EA7; background: var(--li2); border-radius: 16px; padding: 10px 6px 8px; white-space: nowrap; }
+    .hero-svc img { width: 26px; height: 26px; object-fit: contain; display: block; }
+    @media (max-width: 420px) {
+      .hero-svc { font-size: 10.5px; padding: 8px 3px 6px; gap: 3px; }
+      .hero-svc img { width: 22px; height: 22px; }
+    }
     .hero-bullets { display: flex; flex-direction: column; gap: 7px; margin-bottom: 24px; }
     .hero-bullet { display: flex; align-items: center; gap: 8px; font-family: var(--fb); font-size: 14px; color: var(--gy); }
     .hero-bullet::before { content: '✓'; color: var(--gr); font-weight: 700; font-size: 15px; flex-shrink: 0; }
@@ -843,17 +848,17 @@
         <h1 class="hero-h1">Think Birthdays,<br>Think <em>Wondershop.</em></h1>
         <div class="hero-svcs">
           <div class="hero-svcs-row">
-            <span class="hero-svc">🎨 Decor</span>
-            <span class="hero-svc">🎯 Activities</span>
-            <span class="hero-svc">🎤 Host</span>
-            <span class="hero-svc">🎵 DJ</span>
-            <span class="hero-svc">🎊 Pinata</span>
+            <span class="hero-svc"><img src="img/icons/icon-decor-bw.png" alt="" loading="lazy">Decor</span>
+            <span class="hero-svc"><img src="img/icons/icon-activities-bw.png" alt="" loading="lazy">Activities</span>
+            <span class="hero-svc"><img src="img/icons/icon-host-bw.png" alt="" loading="lazy">Host</span>
+            <span class="hero-svc"><img src="img/icons/icon-dj-bw.png" alt="" loading="lazy">DJ</span>
+            <span class="hero-svc"><img src="img/icons/icon-pinata-bw.png" alt="" loading="lazy">Pinata</span>
           </div>
           <div class="hero-svcs-row">
-            <span class="hero-svc">✉️ E-Invite</span>
-            <span class="hero-svc">📸 Photographer</span>
-            <span class="hero-svc">🎁 Return Gifts</span>
-            <span class="hero-svc">🧸 Mascot</span>
+            <span class="hero-svc"><img src="img/icons/icon-invite-bw.png" alt="" loading="lazy">E-Invite</span>
+            <span class="hero-svc"><img src="img/icons/icon-photographer-bw.png" alt="" loading="lazy">Photographer</span>
+            <span class="hero-svc"><img src="img/icons/icon-gift-bw.png" alt="" loading="lazy">Return Gifts</span>
+            <span class="hero-svc"><img src="img/icons/icon-mascot-bw.png" alt="" loading="lazy">Mascot</span>
           </div>
         </div>
         <div class="hero-bullets">

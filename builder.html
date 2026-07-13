@@ -506,6 +506,9 @@ input,textarea,select{font-family:var(--fb)}
 .rv-item:last-child{border-bottom:none}
 .rv-item-name{flex:1}
 .rv-item-price{font-weight:700;color:var(--bk);flex-shrink:0}
+.rv-item-rm{flex-shrink:0;width:22px;height:22px;border-radius:50%;border:none;background:#FEF2F2;color:#DC2626;font-size:12px;font-weight:700;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.rv-item-rm:hover{background:#FEE2E2}
+.add-link{font-size:12px;font-weight:700;color:var(--li);cursor:pointer}
 .rv-thumb{width:44px;height:34px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--li2)}
 .rv-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .rv-thumb-e{display:flex;align-items:center;justify-content:center;font-size:16px}
@@ -1213,8 +1216,7 @@ input,textarea,select{font-family:var(--fb)}
     </div>
   </div>
 
-  <!-- Start Building Button + errors -->
-  <button class="btn-p" style="width:100%;justify-content:center;font-size:16px;padding:16px;border-radius:14px" onclick="doS0()">Start Building →</button>
+  <!-- Validation error (Start Building now lives only in the sticky bar) -->
   <div id="s0-err-all" style="display:none;background:#FEF2F2;border:1.5px solid #FECACA;border-radius:10px;padding:12px;margin-top:10px;font-size:13px;color:#DC2626;font-weight:600">
     ⚠️ Please fill in all required fields above to continue.
   </div>
@@ -1240,7 +1242,6 @@ input,textarea,select{font-family:var(--fb)}
 
     <!-- Themed -->
     <div id="thSec">
-      <div class="disc-callout">🎉 <span>Add 2+ services → <strong>5% off</strong> · 4+ → <strong>8% off</strong> · 6+ → <strong>10% off</strong></span></div>
       <div id="fNote" style="background:var(--li3);border-radius:10px;padding:10px 14px;font-size:12px;color:#7B5EA7;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
         <span>Showing themes based on your preferences</span>
         <button style="background:none;border:none;font-size:12px;font-weight:700;color:var(--li);cursor:pointer" onclick="showAllT()">Show All</button>
@@ -1416,7 +1417,7 @@ input,textarea,select{font-family:var(--fb)}
 
   <div class="sec-blk">
     <div id="freePinataBadge" class="free-badge" style="display:none">🎉 Your pinata is FREE — cart qualifies (order above ₹50,000)!</div>
-    <div style="font-size:12px;color:var(--gy);margin-bottom:12px">⚠️ Note: Fillings are not included.</div>
+    <div style="font-size:12px;color:var(--gy);margin-bottom:12px">📜 T&C: The final shape might vary a little from the images which are for representational purposes.</div>
     <div class="cards-grid" id="pinCards"></div>
     <div id="pn-custom" onclick="selPinataC(this)">
       <div>
@@ -1534,7 +1535,7 @@ input,textarea,select{font-family:var(--fb)}
     <div class="reel-row" id="reelRow" style="display:none">
       <div>
         <div class="reel-info">Add 30-second Instagram Reel</div>
-        <div class="reel-price">Edited highlights reel · ₹999 add-on</div>
+        <div class="reel-price">Edited highlights reel · ₹919 add-on</div>
       </div>
       <button class="reel-tog" id="reelTog" onclick="togReel()"></button>
     </div>
@@ -1628,16 +1629,16 @@ input,textarea,select{font-family:var(--fb)}
   </div>
   <div id="rvBody"></div>
   <div class="rv-total" id="rvTotal">
-    <div class="disc-row" id="rvDiscRow" style="display:none">🎉 Multi-service discount <span id="rvDiscAmt"></span></div>
     <div class="total-row"><span>Total</span><span id="rvTotal2">₹0</span></div>
-    <div class="adv-row" id="rvAdvRow"><span>50% Advance payable now</span><span id="rvAdv">₹0</span></div>
+    <div class="disc-row" id="rvDiscRow" style="display:none">🎉 You have saved <span id="rvDiscAmt"></span></div>
+    <div class="adv-row" id="rvAdvRow"><span>Advance to be paid</span><span id="rvAdv">₹0</span></div>
   </div>
-  <div style="background:var(--spk);border-radius:14px;padding:16px 18px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+  <div style="background:var(--spk);border-radius:14px;padding:16px 18px;margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span style="font-size:20px;flex-shrink:0">🎉</span>
     <div>
-      <div style="font-size:13px;font-weight:700;color:var(--bk)">Prefer to customise with our team?</div>
-      <div style="font-size:11px;color:var(--gy);margin-top:2px">We'll save your selections and reach out personally</div>
+      <div style="font-size:13px;font-weight:700;color:var(--bk)">Thank you for choosing Wondershop Experiences as your birthday experience partner.</div>
+      <div style="font-size:11px;color:var(--gy);margin-top:2px">Post checkout, our team will reach out to you within 6 hours.</div>
     </div>
-    <button class="btn-wa" style="flex-shrink:0" onclick="sendToTeamAndLead()">💬 Call to Customise</button>
   </div>
 </div>
 
@@ -2051,7 +2052,7 @@ function cItems(){
   if(S.dj)items.push({cat:'DJ',n:S.dj.tier,p:S.dj.p,id:S.dj.tier});
   if(S.pinata){const pt=rawNoInv();const fp=pt>=S.FPT?0:S.pinata.p;items.push({cat:'Pinata',n:S.pinata.n+(pt>=S.FPT?' (FREE)':''),p:fp,id:S.pinata.id});}
   if(S.einvite){const gt=rawNoInv();const ep=gt>=S.FIT?0:S.einvite.p;items.push({cat:'E-Invite',n:S.einvite.n+(gt>=S.FIT?' (FREE)':''),p:ep,id:S.einvite.id});}
-  if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});if(S.addReel)items.push({cat:'Photographer',n:'30-sec Reel',p:999,id:'reel'});}
+  if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});if(S.addReel)items.push({cat:'Photographer',n:'30-sec Reel',p:919,id:'reel'});}
   S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty,id:g.id}));
   return items;
 }
@@ -2073,7 +2074,7 @@ function thumbFor(cat,id){
   return e('✨');
 }
 function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e');box.style.background='var(--li2)';box.textContent='✨';}
-function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p+(S.addReel?999:0);S.gifts.forEach(g=>t+=g.unit*g.qty);return t;}
+function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p+(S.addReel?919:0);S.gifts.forEach(g=>t+=g.unit*g.qty);return t;}
 function rawT(){return cItems().reduce((s,i)=>s+i.p,0)}
 function svcC(){let c=0;if(S.decor)c++;if(S.activities.length)c++;if(S.host)c++;if(S.dj)c++;if(S.pinata)c++;if(S.einvite)c++;if(S.photo)c++;if(S.gifts.length)c++;return c}
 function autoDp(){const c=svcC();if(c>=6)return 10;if(c>=4)return 8;if(c>=2)return 5;return 0}
@@ -2189,16 +2190,13 @@ function updHdr(id){
 // ── BOTTOM BAR ──
 function updBB(id){
   const bb=document.getElementById('bldBB');
-  // Sticky bar only makes sense once there's a running total to show — starts
-  // from step 1 (Decor). Step 0 already has its own "Start Building →" button
-  // inline, so showing the bar there was both premature (₹0 total) and a
-  // duplicate CTA.
-  const hideOn=['shome','s0','sconf','sleadsent'];
+  const hideOn=['shome','sconf','sleadsent'];
   bb.classList.toggle('hidden',hideOn.includes(id));
   if(hideOn.includes(id))return;
-  // Lead form: hide the running price total — this screen isn't about the cart amount
+  // Lead form & Step 0: hide the running price total — neither screen has a
+  // cart amount to show yet (Step 0 shows only the "Start Building →" CTA).
   const priceWrap=document.querySelector('#bldBB .bb-disc-wrap');
-  if(priceWrap)priceWrap.style.display=(id==='slead')?'none':'';
+  if(priceWrap)priceWrap.style.display=(id==='slead'||id==='s0')?'none':'';
   if(id==='slead'){
     const skipBtn=document.getElementById('bbSkip');const contBtn=document.getElementById('bbCont');const revBackBtn=document.getElementById('bbRevBack');
     skipBtn.style.display='none';contBtn.textContent='Send My Details →';revBackBtn.style.display='none';
@@ -2267,7 +2265,8 @@ function doS0(){
 const TAG_MAP={pop:'<span class="tag pop">Most Popular</span>',new:'<span class="tag new">New Launch</span>',trend:'<span class="tag trend">Trending</span>',rec:'<span class="tag rec">WS Recommends</span>'};
 function makeTC(t){
   const tagHtml=t.tag?TAG_MAP[t.tag]:'';
-  return '<div class="pcard" id="dc-'+t.id+'" onclick="selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="img/theme-'+t.id+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'"><button class="gal-trig" onclick="event.stopPropagation();openGallery(\'theme\',\''+t.id+'\')">📷 Gallery</button></div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tagHtml+'<span class="tag pk">'+t.gn+'</span><span class="tag gr">'+t.s+'</span></div><div class="card-detail">🎈 '+t.b+'<br>🖼 '+t.panels+'<br>⚠️ Excl: '+t.ni+'</div><div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div></div></div></div>';
+  const added=S.decor&&S.decor.id===t.id;
+  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="img/theme-'+t.id+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'"></div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tagHtml+'<span class="tag pk">'+t.gn+'</span><span class="tag gr">'+t.s+'</span></div><div class="card-detail">🎈 '+t.b+'<br>🖼 '+t.panels+'<br>⚠️ Excl: '+t.ni+'</div><div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
 }
 function buildDec(){
   const tc=document.getElementById('thCards');tc.innerHTML='';
@@ -2277,14 +2276,25 @@ function buildDec(){
   if(!fl.length)fl=THEMES;
   fl.forEach(t=>tc.innerHTML+=makeTC(t));
   const sc=document.getElementById('stdCards');sc.innerHTML='';
-  STD.forEach(t=>sc.innerHTML+='<div class="pcard" id="dc-'+t.id+'" onclick="selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="img/'+t.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'"></div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="card-detail">'+t.d+'</div><div class="card-pr-row"><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div></div></div>');
+  STD.forEach(t=>{const added=S.decor&&S.decor.id===t.id;sc.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'std\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="img/'+t.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'"></div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="card-detail">'+t.d+'</div><div class="card-pr-row"><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';});
   if(S.decor)document.getElementById('dc-'+S.decor.id)?.classList.add('sel');
   const dtBtns=document.querySelectorAll('#s1 .dt-tog .dt-btn');
   if(dtBtns.length===2){if(S.decorType==='standard'){dtBtns[0].classList.remove('on');dtBtns[1].classList.add('on');document.getElementById('thSec').style.display='none';document.getElementById('stdSec').style.display='block';}else{dtBtns[0].classList.add('on');dtBtns[1].classList.remove('on');document.getElementById('thSec').style.display='block';document.getElementById('stdSec').style.display='none';}}
 }
 function showAllT(){document.getElementById('fNote').style.display='none';const tc=document.getElementById('thCards');tc.innerHTML='';THEMES.forEach(t=>tc.innerHTML+=makeTC(t));if(S.decor)document.querySelector('#dc-'+S.decor.id)?.classList.add('sel');}
 function setDT(type,btn){S.decorType=type;document.querySelectorAll('#s1 .dt-tog .dt-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.getElementById('thSec').style.display=type==='themed'?'block':'none';document.getElementById('stdSec').style.display=type==='standard'?'block':'none';}
-function selDec(card,id,n,p){const wasSel=card.classList.contains('sel');document.querySelectorAll('#thCards .pcard,#stdCards .pcard').forEach(c=>c.classList.remove('sel'));if(wasSel){S.decor=null;}else{card.classList.add('sel');S.decor={id,n,p};}updBB(S.screen);}
+function selDec(btn,id,n,p){
+  const card=btn.closest('.pcard');
+  const wasSel=card.classList.contains('sel');
+  document.querySelectorAll('#thCards .pcard,#stdCards .pcard').forEach(c=>{
+    c.classList.remove('sel');
+    const b=c.querySelector('.card-btn');
+    if(b){b.classList.remove('added');b.textContent='Add';}
+  });
+  if(wasSel){S.decor=null;}
+  else{card.classList.add('sel');S.decor={id,n,p};const b=card.querySelector('.card-btn');if(b){b.classList.add('added');b.textContent='✓ Added';}}
+  updBB(S.screen);
+}
 
 // ── ACTIVITIES ──
 function buildActs(){actFilter='all';document.querySelectorAll('#aChips .chip').forEach((c,i)=>{if(i===0)c.classList.add('on');else c.classList.remove('on');});renderActs(ACTS);updSelActs();}
@@ -2297,7 +2307,7 @@ function renderActs(list){
     const flatTag=a.flat?'<span class="tag" style="background:#FEF9C3;color:#92400E">Flat rate</span>':'';
     const priceNote=a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child';
     const fieldsHtml='👶 Suitable for: Ages '+a.age+'<br>📦 Packaging: '+(a.pers?'Included':'Not applicable')+'<br>🎨 Personalization Possible: '+(a.pers?'Yes':'No');
-    w.innerHTML+='<div class="pcard" id="ac-'+a.id+'"><div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+a.n+'"><button class="gal-trig" onclick="event.stopPropagation();openGallery(\'act\',\''+a.id+'\')">📷 Gallery</button></div><div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">₹'+tot.toLocaleString('en-IN')+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+    w.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="ac-'+a.id+'" onclick="openGallery(\'act\',\''+a.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+a.n+'"></div><div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">₹'+tot.toLocaleString('en-IN')+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="event.stopPropagation();togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
   });
 }
 function sortActs(){
@@ -2330,12 +2340,9 @@ function injectRemarksBoxes(){
     const ta=box.querySelector('textarea');
     ta.value=S.remarks[id]||'';
     ta.addEventListener('input',()=>{S.remarks[id]=ta.value;});
-    // s0 still has its own inline "Start Building" CTA to insert before;
-    // every other step no longer has an inline footer button (Skip to Review
-    // now lives only in the sticky bar), so just append to the end.
-    const anchor=id==='s0'?step.querySelector('[onclick="doS0()"]'):null;
-    if(anchor)anchor.parentNode.insertBefore(box,anchor);
-    else step.appendChild(box);
+    // No step has an inline footer CTA anymore (Start Building / Skip to
+    // Review both live only in the sticky bar), so just append to the end.
+    step.appendChild(box);
   });
 }
 
@@ -2351,19 +2358,24 @@ function galMediaFor(kind,obj){
   return [{type:'img',src}];
 }
 function openGallery(kind,id){
-  const obj=kind==='theme'?THEMES.find(t=>t.id===id):ACTS.find(a=>a.id===id);
+  const obj=kind==='theme'?THEMES.find(t=>t.id===id):kind==='std'?STD.find(t=>t.id===id):ACTS.find(a=>a.id===id);
   if(!obj)return;
   galItems=galMediaFor(kind,obj);
   galIdx=0;
   document.getElementById('galName').textContent=obj.n;
   document.getElementById('galDesc').textContent=kind==='theme'
     ? ('🎈 '+obj.b+'  ·  🖼 '+obj.panels+'  ·  ⏱ '+obj.s)
+    : kind==='std'
+    ? obj.d
     : ('📍 '+obj.req+'  ·  ⏱ '+obj.dur+'  ·  Ages '+obj.age);
   renderGalThumbs();
   renderGalStage();
   document.getElementById('galModal').classList.add('show');
 }
 function closeGallery(){document.getElementById('galModal').classList.remove('show');}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&document.getElementById('galModal').classList.contains('show'))closeGallery();
+});
 function galStep(d){if(!galItems.length)return;galIdx=(galIdx+d+galItems.length)%galItems.length;renderGalStage();}
 function galGoTo(i){galIdx=i;renderGalStage();}
 function renderGalStage(){
@@ -2440,7 +2452,7 @@ function showAllInv(){document.getElementById('invFilterNote').style.display='no
 function makeInvCard(inv){
   const isFree=rawNoInv()>=S.FIT;
   const priceText=isFree?'FREE':'₹'+inv.p;
-  return '<div class="pcard psm" id="inv-'+inv.id+'" onclick="selInv(this,\''+inv.id+'\','+inv.p+',\''+inv.n+'\')"><div class="sel-badge">✓</div><div style="position:relative;overflow:hidden;border-radius:var(--r) var(--r) 0 0;background:var(--li2)"><img src="einvites/'+inv.file+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+inv.n+'"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.58);padding:12px 10px;text-align:center;backdrop-filter:blur(2px)"><div style="font-family:var(--fd);font-size:15px;font-weight:700;color:#fff;line-height:1.2">'+inv.n+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:600;margin-top:3px">'+priceText+'</div></div></div></div>';
+  return '<div class="pcard psm" id="inv-'+inv.id+'" onclick="selInv(this,\''+inv.id+'\','+inv.p+',\''+inv.n+'\')"><div class="sel-badge">✓</div><div style="position:relative;overflow:hidden;border-radius:var(--r) var(--r) 0 0;background:var(--li2);aspect-ratio:3/4"><img src="einvites/'+inv.file+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+inv.n+'"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.58);padding:12px 10px;text-align:center;backdrop-filter:blur(2px)"><div style="font-family:var(--fd);font-size:15px;font-weight:700;color:#fff;line-height:1.2">'+inv.n+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:600;margin-top:3px">'+priceText+'</div></div></div></div>';
 }
 function buildInvs(){
   const w=document.getElementById('invCards');w.innerHTML='';
@@ -2551,23 +2563,40 @@ function buildRev(){
   let html='';
   ord.forEach(cat=>{
     const its=cats[cat];
-    html+='<div class="rv-sec"><div class="rv-hdr"><div class="rv-cat">'+cat+'</div><span class="edit-link" onclick="editFR('+sm[cat]+')">Edit</span></div><div class="rv-items">';
+    const actionHtml=its
+      ? '<span class="edit-link" onclick="editFR('+sm[cat]+')">Edit</span>'
+      : '<span class="add-link" onclick="editFR('+sm[cat]+')">+ Add</span>';
+    html+='<div class="rv-sec"><div class="rv-hdr"><div class="rv-cat">'+cat+'</div>'+actionHtml+'</div><div class="rv-items">';
     if(!its)html+='<div class="rv-empty">Not added — skipped</div>';
     else its.forEach(i=>{
       const th=thumbFor(cat,i.id);
       const thumbHtml=th.type==='img'
         ? '<div class="rv-thumb"><img src="'+th.src+'" alt="" loading="lazy" onerror="rvImgErr(this)"></div>'
         : '<div class="rv-thumb rv-thumb-e" style="background:'+th.bg+'">'+th.e+'</div>';
-      html+='<div class="rv-item">'+thumbHtml+'<span class="rv-item-name">'+i.n+'</span><span class="rv-item-price">₹'+i.p.toLocaleString('en-IN')+'</span></div>';
+      html+='<div class="rv-item">'+thumbHtml+'<span class="rv-item-name">'+i.n+'</span><span class="rv-item-price">₹'+i.p.toLocaleString('en-IN')+'</span><button class="rv-item-rm" title="Remove" onclick="rmRevItem(\''+cat+'\',\''+i.id+'\')">✕</button></div>';
     });
     html+='</div></div>';
   });
   body.innerHTML=html;
   const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();
-  if(dpv>0){document.getElementById('rvDiscRow').style.display='flex';document.getElementById('rvDiscAmt').textContent='-₹'+(gt-tpv).toLocaleString('en-IN')+' ('+dpv+'% off)';}
+  if(dpv>0){document.getElementById('rvDiscRow').style.display='flex';document.getElementById('rvDiscAmt').textContent='₹'+(gt-tpv).toLocaleString('en-IN')+' ('+dpv+'% off)';}
   else document.getElementById('rvDiscRow').style.display='none';
   document.getElementById('rvTotal2').textContent='₹'+tpv.toLocaleString('en-IN');
   document.getElementById('rvAdv').textContent='₹'+advv.toLocaleString('en-IN');
+}
+// Remove a single selection directly from the Review page without having to
+// jump back into that step.
+function rmRevItem(cat,id){
+  if(cat==='Decor')S.decor=null;
+  else if(cat==='Activities')S.activities=S.activities.filter(a=>a.id!==id);
+  else if(cat==='Host')S.host=null;
+  else if(cat==='DJ')S.dj=null;
+  else if(cat==='Pinata')S.pinata=null;
+  else if(cat==='E-Invite')S.einvite=null;
+  else if(cat==='Photographer'){if(id==='reel')S.addReel=false;else{S.photo=null;S.addReel=false;}}
+  else if(cat==='Return Gifts')S.gifts=S.gifts.filter(g=>g.id!==id);
+  buildRev();
+  updBB(S.screen);
 }
 function editFR(sn){S.fromReview=true;goTo(SIDS[sn]);}
 
