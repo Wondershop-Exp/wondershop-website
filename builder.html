@@ -1977,8 +1977,8 @@ const STD=[
 function actPrice(a,kids){const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;}
 const ACTS=[
   // ── Art (per child) ──
-  {id:'a1',n:'Canvas Painting',e:'🖼️',img:'act-art',cat:'art',age:'4-12',dur:'45 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'pop',pers:true,rating:4.8,cnt:95},
-  {id:'a2',n:'Tote Bag Painting',e:'👜',img:'act-art',cat:'art',age:'5-12',dur:'45 min',req:'Tables & chairs',r1:750,r2:700,r3:650,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#B59DDE)','linear-gradient(135deg,#F5C3D7,#E65A96)'],tag:'',pers:true,rating:4.7,cnt:70},
+  {id:'a1',n:'Canvas Painting',e:'🖼️',img:'act-canvas-painting',realImg:true,cat:'art',age:'4-12',dur:'45 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'pop',pers:true,rating:4.8,cnt:95},
+  {id:'a2',n:'Tote Bag Painting',e:'👜',img:'act-tote-bag-painting',realImg:true,cat:'art',age:'5-12',dur:'45 min',req:'Tables & chairs',r1:750,r2:700,r3:650,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#B59DDE)','linear-gradient(135deg,#F5C3D7,#E65A96)'],tag:'',pers:true,rating:4.7,cnt:70},
   {id:'a3',n:'Pot Painting',e:'🪴',img:'act-art',cat:'art',age:'4-12',dur:'45 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)','linear-gradient(135deg,#52C470,#F2D147)'],tag:'',pers:true,rating:4.6,cnt:55},
   {id:'a4',n:'Texture Art',e:'🎨',img:'act-art',cat:'art',age:'5-12',dur:'45 min',req:'Tables & chairs',r1:900,r2:850,r3:800,flat:false,bgs:['linear-gradient(135deg,#F2D147,#F57A1A)','linear-gradient(135deg,#F57A1A,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:40},
   {id:'a5',n:'Mosaic Art',e:'🔷',img:'act-art',cat:'art',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:950,r2:900,r3:850,flat:false,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)','linear-gradient(135deg,#5B8EDD,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:35},
@@ -2316,7 +2316,8 @@ function renderActs(list){
     const mediaHtml=a.realImg
       ? '<div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+a.n+'"></div>'
       : '<div class="caro caro-fallback" style="background:'+bg+'">'+a.e+'</div>';
-    w.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="ac-'+a.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">₹'+tot.toLocaleString('en-IN')+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="event.stopPropagation();togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+    const cardClick=a.realImg?' onclick="openGallery(\'act\',\''+a.id+'\')"':'';
+    w.innerHTML+='<div class="pcard'+(added?' sel':'')+'"'+cardClick+' id="ac-'+a.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">₹'+tot.toLocaleString('en-IN')+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="event.stopPropagation();togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
   });
 }
 function sortActs(){
