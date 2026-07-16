@@ -245,12 +245,23 @@ input,textarea,select{font-family:var(--fb)}
 .bp-line{width:20px;height:2px;background:var(--li2);border-radius:1px;margin-top:10px}
 .bp-line.done{background:var(--gr)}
 @media(max-width:900px){.bp-label{display:none}.bld-progress{gap:4px}.bp-line{width:16px;margin-top:13px}}
+.bp-gap{display:none;font-size:13px;font-weight:700;color:var(--li2);letter-spacing:1px;margin-top:8px}
 /* Even with labels hidden, 10 dots + 9 connector lines are still ~350px+
    wide — on a phone that collides with the logo and cart icons on either
-   side since the bar is absolutely centered over the whole header. Each
-   step's hero already shows "Step X of 9" as text, so just hide the dot
-   stepper entirely below phone width rather than let it overlap. */
-@media(max-width:660px){.bld-progress{display:none!important}}
+   side since the bar is absolutely centered over the whole header.
+   Below phone width: stack the header (logo+cart on row 1, steps on row
+   2 below) and only show prev/current/next/last dot with a "···" gap
+   marker standing in for whatever's skipped — updHdr() toggles .bp-hide
+   / .bp-gap.show on every navigation, but it only takes visual effect
+   inside this media query so desktop keeps the full breadcrumb. */
+@media(max-width:660px){
+  .bld-hdr{display:grid;grid-template-columns:1fr auto;grid-template-areas:"logo cart" "steps steps";height:auto;min-height:var(--bh-h);padding:10px 16px;row-gap:8px;align-items:center}
+  .bld-hdr-left{grid-area:logo;justify-self:start}
+  .bld-hdr-right{grid-area:cart;justify-self:end}
+  .bld-progress{grid-area:steps;position:static;transform:none;width:100%;justify-content:center;gap:5px}
+  .bp-item.bp-hide,.bp-line.bp-hide{display:none}
+  .bp-gap.show{display:block}
+}
 .bld-hdr-right{display:flex;align-items:center;gap:10px}
 .bld-cart-btn{background:var(--li3);border:1.5px solid var(--li2);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--bk);display:flex;align-items:center;gap:6px}
 .bld-cart-btn:hover{background:var(--li2)}
@@ -292,9 +303,9 @@ input,textarea,select{font-family:var(--fb)}
   .bb-left{grid-area:skip;justify-self:start}
   .bb-right{grid-area:continue;justify-self:end}
   .bb-skip-full{display:none}
-  .bb-cont-sub{display:none}
   .bb-total{font-size:17px}
-  .bb-continue{padding:9px 16px;font-size:13px}
+  .bb-continue{flex-direction:column;align-items:center;text-align:center;gap:1px;padding:8px 16px;font-size:13px;line-height:1.2}
+  .bb-cont-sub{font-size:.72em}
   .bb-rev-back{padding:9px 12px;font-size:12px}
 }
 
@@ -1032,7 +1043,7 @@ input,textarea,select{font-family:var(--fb)}
 
 <!-- Builder Header -->
 <header class="bld-hdr">
-  <div style="display:flex;align-items:center;gap:8px">
+  <div class="bld-hdr-left" style="display:flex;align-items:center;gap:8px">
     <button class="bld-back-btn" id="backBtn" onclick="goBack()">← Back</button>
     <a href="index.html" class="bld-hdr-logo">
       <img src="logo-horizontal.png" alt="Wondershop Experiences" style="height:54px;width:auto;display:block">
@@ -1044,21 +1055,22 @@ input,textarea,select{font-family:var(--fb)}
     <div class="bp-line" id="bpl0"></div>
     <div class="bp-item" id="bpi1"><div class="bp-dot" id="bpd1">1</div><div class="bp-label">Decor</div></div>
     <div class="bp-line" id="bpl1"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd2">2</div><div class="bp-label">Activity</div></div>
+    <div class="bp-item" id="bpi2"><div class="bp-dot" id="bpd2">2</div><div class="bp-label">Activity</div></div>
     <div class="bp-line" id="bpl2"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd3">3</div><div class="bp-label">Host</div></div>
+    <div class="bp-item" id="bpi3"><div class="bp-dot" id="bpd3">3</div><div class="bp-label">Host</div></div>
     <div class="bp-line" id="bpl3"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd4">4</div><div class="bp-label">Music</div></div>
+    <div class="bp-item" id="bpi4"><div class="bp-dot" id="bpd4">4</div><div class="bp-label">Music</div></div>
     <div class="bp-line" id="bpl4"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd5">5</div><div class="bp-label">Pinata</div></div>
+    <div class="bp-item" id="bpi5"><div class="bp-dot" id="bpd5">5</div><div class="bp-label">Pinata</div></div>
     <div class="bp-line" id="bpl5"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd6">6</div><div class="bp-label">Invite</div></div>
+    <div class="bp-item" id="bpi6"><div class="bp-dot" id="bpd6">6</div><div class="bp-label">Invite</div></div>
     <div class="bp-line" id="bpl6"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd7">7</div><div class="bp-label">Photo</div></div>
+    <div class="bp-item" id="bpi7"><div class="bp-dot" id="bpd7">7</div><div class="bp-label">Photo</div></div>
     <div class="bp-line" id="bpl7"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd8">8</div><div class="bp-label">Gifts</div></div>
+    <div class="bp-item" id="bpi8"><div class="bp-dot" id="bpd8">8</div><div class="bp-label">Gifts</div></div>
     <div class="bp-line" id="bpl8"></div>
-    <div class="bp-item"><div class="bp-dot" id="bpd9">✓</div><div class="bp-label">Review</div></div>
+    <div class="bp-gap" id="bpGap">···</div>
+    <div class="bp-item" id="bpi9"><div class="bp-dot" id="bpd9">✓</div><div class="bp-label">Review</div></div>
   </div>
   <div class="bld-hdr-right">
     <button class="bld-cart-btn" id="cartBtn" onclick="openCart()" style="display:none">🛒 <span id="cartTH">₹0</span></button>
@@ -2201,15 +2213,26 @@ function updHdr(id){
   prog.style.display=['shome','sconf','sleadsent','slead'].includes(id)?'none':'flex';
   // update dots
   const si=SIDS.indexOf(id);
+  // Compact mobile view: only prev/current/next/last(review) dots are kept
+  // visible (via .bp-hide, which only does anything inside the ≤660px media
+  // query — desktop still gets the full breadcrumb). A "···" marker fills
+  // in for whatever's skipped between "next" and the last dot.
+  const visible=new Set([9]);
+  if(si>=0){if(si>0)visible.add(si-1);visible.add(si);if(si<9)visible.add(si+1);}
   for(let i=0;i<=9;i++){
     const d=document.getElementById('bpd'+i);if(!d)continue;
     const l=document.getElementById('bpl'+i);
+    const it=document.getElementById('bpi'+i);
     d.className='bp-dot';
     if(i<si){d.classList.add('done');d.onclick=()=>{S.fromReview=(S.screen==='s9');goTo(SIDS[i]);};d.style.cursor='pointer';}
     else if(i===si){d.classList.add('cur');d.onclick=null;d.style.cursor='default';}
     else{d.onclick=null;d.style.cursor='default';}
     if(l){l.className='bp-line';if(i<si)l.classList.add('done');}
+    if(it)it.classList.toggle('bp-hide',!visible.has(i));
+    if(l&&i<9)l.classList.toggle('bp-hide',!(visible.has(i)&&visible.has(i+1)));
   }
+  const nextIdx=si<0?0:Math.min(si+1,9);
+  document.getElementById('bpGap').classList.toggle('show',nextIdx<=7);
 }
 
 // ── BOTTOM BAR ──
@@ -2251,7 +2274,7 @@ function updBB(id){
   else{
     const curIdx=SIDS.indexOf(id);
     const nextLabel=curIdx>-1?NEXT_LABELS[curIdx+1]:'';
-    contBtn.innerHTML=nextLabel?('Continue <span class="bb-cont-sub">to '+nextLabel+'</span> →'):'Continue →';
+    contBtn.innerHTML=nextLabel?('<span class="bb-cont-main">Continue</span><span class="bb-cont-sub">to '+nextLabel+' →</span>'):'Continue →';
   }
   revBackBtn.style.display=S.fromReview&&['s1','s2','s3','s4','s5','s6','s7','s8'].includes(id)?'block':'none';
 }
