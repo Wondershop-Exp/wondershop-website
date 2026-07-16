@@ -292,21 +292,27 @@ input,textarea,select{font-family:var(--fb)}
 .bb-continue:hover{opacity:.92;transform:translateY(-1px)}
 .bb-cont-sub{font-size:.78em;font-weight:600;opacity:.92}
 .bb-rev-back{background:var(--li2);color:#7B5EA7;border:none;border-radius:24px;padding:10px 20px;font-size:14px;font-weight:700}
-/* Below phone width the single-row bar (skip | price | continue) doesn't
-   have room for all three and the continue button gets cut off. Reflow
-   into two rows instead: price info on top (full width, centered), skip
-   and continue side by side underneath. */
+.bb-promo-msg{display:none}
+/* Amazon-style 2-row mobile bar: a thin promo strip (upsell message + Skip,
+   small text) on top, and a clean price-left / action-right row below —
+   instead of cramming discount text, savings, skip and continue into one
+   row where the continue button gets cut off. */
 @media(max-width:480px){
-  :root{--bb-h:100px}
-  .bld-bb{grid-template-columns:1fr 1fr;grid-template-rows:auto auto;grid-template-areas:"price price" "skip continue";height:auto;min-height:var(--bb-h);padding:10px 14px;gap:6px 8px}
-  .bb-disc-wrap{grid-area:price;justify-self:center}
-  .bb-left{grid-area:skip;justify-self:start}
-  .bb-right{grid-area:continue;justify-self:end}
+  :root{--bb-h:92px}
+  .bld-bb{grid-template-columns:1fr auto;grid-template-rows:auto auto;grid-template-areas:"promo promo" "price continue";height:auto;min-height:var(--bb-h);padding:6px 14px 10px;gap:2px 8px}
+  .bb-left{grid-area:promo;justify-self:stretch;width:100%;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--li3)}
+  .bb-promo-msg{display:block;font-size:10.5px;font-weight:600;color:var(--gr);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bb-skip{font-size:11px;padding:2px 6px;flex-shrink:0}
   .bb-skip-full{display:none}
-  .bb-total{font-size:17px}
-  .bb-continue{flex-direction:column;align-items:center;text-align:center;gap:1px;padding:8px 16px;font-size:13px;line-height:1.2}
-  .bb-cont-sub{font-size:.72em}
-  .bb-rev-back{padding:9px 12px;font-size:12px}
+  .bb-disc-wrap{grid-area:price;justify-self:start;gap:8px}
+  .bb-disc{display:none}
+  .bb-total{font-size:16px}
+  .bb-adv{font-size:9.5px}
+  .bb-savings-pill{font-size:9.5px;padding:2px 6px}
+  .bb-right{grid-area:continue;justify-self:end}
+  .bb-continue{padding:8px 18px;font-size:13px;gap:4px}
+  .bb-cont-sub{display:none}
+  .bb-rev-back{padding:8px 12px;font-size:11px}
 }
 
 /* Step common */
@@ -1880,6 +1886,7 @@ input,textarea,select{font-family:var(--fb)}
 <!-- Bottom Bar -->
 <div class="bld-bb hidden" id="bldBB">
   <div class="bb-left">
+    <span class="bb-promo-msg" id="bbDiscMobile"></span>
     <button class="bb-skip" id="bbSkip" onclick="if(S.screen==='s6'&&!validateInvite())return;goDirectCO()">Skip<span class="bb-skip-full"> to Review</span> →</button>
   </div>
   <div class="bb-disc-wrap">
@@ -2257,9 +2264,10 @@ function updBB(id){
   advEl.style.display=['s9','sco'].includes(id)?'block':'none';
   document.getElementById('bbAdvAmt').textContent='₹'+adv().toLocaleString('en-IN');
   const discEl=document.getElementById('bbDisc');
+  const discElM=document.getElementById('bbDiscMobile');
   const savEl=document.getElementById('bbSavings');
-  if(dpv>0){discEl.textContent=dpv+'% off applied';savEl.style.display='block';savEl.textContent='Saving ₹'+(gt-tpv).toLocaleString('en-IN');}
-  else{discEl.textContent=sc>=1?'Add '+(sc<2?1:sc<4?2:sc<6?2:0)+' more → unlock discount!':'';savEl.style.display='none';}
+  if(dpv>0){discEl.textContent=discElM.textContent=dpv+'% off applied';savEl.style.display='block';savEl.textContent='Saving ₹'+(gt-tpv).toLocaleString('en-IN');}
+  else{discEl.textContent=discElM.textContent=sc>=1?'Add '+(sc<2?1:sc<4?2:sc<6?2:0)+' more → unlock discount!':'';savEl.style.display='none';}
   // skip vs continue
   const skipBtn=document.getElementById('bbSkip');
   const contBtn=document.getElementById('bbCont');
