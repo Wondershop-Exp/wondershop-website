@@ -2272,9 +2272,12 @@ function updBB(id){
   }
   const gt=rawT();const tpv=tp();const dpv=dp();const sc=svcC();
   document.getElementById('bbTotal').textContent='₹'+tpv.toLocaleString('en-IN');
-  // Show 50% advance only on review page
+  // Show 50% advance only on the review page — checkout already has its
+  // own "⚡ 50% Advance" line in the Order Summary box, so showing it here
+  // too on 'sco' was redundant (and this bit of code didn't actually match
+  // this comment before now).
   const advEl=document.getElementById('bbAdv');
-  advEl.style.display=['s9','sco'].includes(id)?'block':'none';
+  advEl.style.display=(id==='s9')?'block':'none';
   document.getElementById('bbAdvAmt').textContent='₹'+adv().toLocaleString('en-IN');
   const discEl=document.getElementById('bbDisc');
   const discElM=document.getElementById('bbDiscMobile');
