@@ -250,7 +250,7 @@ input,textarea,select{font-family:var(--fb)}
    side since the bar is absolutely centered over the whole header. Each
    step's hero already shows "Step X of 9" as text, so just hide the dot
    stepper entirely below phone width rather than let it overlap. */
-@media(max-width:660px){.bld-progress{display:none}}
+@media(max-width:660px){.bld-progress{display:none!important}}
 .bld-hdr-right{display:flex;align-items:center;gap:10px}
 .bld-cart-btn{background:var(--li3);border:1.5px solid var(--li2);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--bk);display:flex;align-items:center;gap:6px}
 .bld-cart-btn:hover{background:var(--li2)}
@@ -281,6 +281,22 @@ input,textarea,select{font-family:var(--fb)}
 .bb-continue:hover{opacity:.92;transform:translateY(-1px)}
 .bb-cont-sub{font-size:.78em;font-weight:600;opacity:.92}
 .bb-rev-back{background:var(--li2);color:#7B5EA7;border:none;border-radius:24px;padding:10px 20px;font-size:14px;font-weight:700}
+/* Below phone width the single-row bar (skip | price | continue) doesn't
+   have room for all three and the continue button gets cut off. Reflow
+   into two rows instead: price info on top (full width, centered), skip
+   and continue side by side underneath. */
+@media(max-width:480px){
+  :root{--bb-h:100px}
+  .bld-bb{grid-template-columns:1fr 1fr;grid-template-rows:auto auto;grid-template-areas:"price price" "skip continue";height:auto;min-height:var(--bb-h);padding:10px 14px;gap:6px 8px}
+  .bb-disc-wrap{grid-area:price;justify-self:center}
+  .bb-left{grid-area:skip;justify-self:start}
+  .bb-right{grid-area:continue;justify-self:end}
+  .bb-skip-full{display:none}
+  .bb-cont-sub{display:none}
+  .bb-total{font-size:17px}
+  .bb-continue{padding:9px 16px;font-size:13px}
+  .bb-rev-back{padding:9px 12px;font-size:12px}
+}
 
 /* Step common */
 .step{display:none;animation:stepIn .25s ease}
@@ -1851,7 +1867,7 @@ input,textarea,select{font-family:var(--fb)}
 <!-- Bottom Bar -->
 <div class="bld-bb hidden" id="bldBB">
   <div class="bb-left">
-    <button class="bb-skip" id="bbSkip" onclick="if(S.screen==='s6'&&!validateInvite())return;goDirectCO()">Skip to Review →</button>
+    <button class="bb-skip" id="bbSkip" onclick="if(S.screen==='s6'&&!validateInvite())return;goDirectCO()">Skip<span class="bb-skip-full"> to Review</span> →</button>
   </div>
   <div class="bb-disc-wrap">
     <div class="bb-savings-pill" id="bbSavings" style="display:none"></div>
