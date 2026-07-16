@@ -246,21 +246,34 @@ input,textarea,select{font-family:var(--fb)}
 .bp-line.done{background:var(--gr)}
 @media(max-width:900px){.bp-label{display:none}.bld-progress{gap:4px}.bp-line{width:16px;margin-top:13px}}
 .bp-gap{display:none;font-size:13px;font-weight:700;color:var(--li2);letter-spacing:1px;margin-top:8px}
-/* Even with labels hidden, 10 dots + 9 connector lines are still ~350px+
-   wide — on a phone that collides with the logo and cart icons on either
-   side since the bar is absolutely centered over the whole header.
-   Below phone width: stack the header (logo+cart on row 1, steps on row
-   2 below) and only show prev/current/next/last dot with a "···" gap
-   marker standing in for whatever's skipped — updHdr() toggles .bp-hide
-   / .bp-gap.show on every navigation, but it only takes visual effect
-   inside this media query so desktop keeps the full breadcrumb. */
+/* Below phone width, move the step breadcrumb off the header entirely and
+   into a fixed vertical rail on the left — like Amazon's category sidebar.
+   It runs from below the header down to above the sticky bottom bar and
+   scrolls independently if a device is too short to fit all 10 dots.
+   Since .bld-progress becomes position:fixed (out of flow), the header's
+   existing flex layout just collapses back to a clean [logo ... cart]
+   single row with no extra CSS needed there. */
 @media(max-width:660px){
-  .bld-hdr{display:grid;grid-template-columns:1fr auto;grid-template-areas:"logo cart" "steps steps";height:auto;min-height:var(--bh-h);padding:10px 16px;row-gap:8px;align-items:center}
-  .bld-hdr-left{grid-area:logo;justify-self:start}
-  .bld-hdr-right{grid-area:cart;justify-self:end}
-  .bld-progress{grid-area:steps;position:static;transform:none;width:100%;justify-content:center;gap:5px}
-  .bp-item.bp-hide,.bp-line.bp-hide{display:none}
-  .bp-gap.show{display:block}
+  :root{--rail-w:60px}
+  .bld-progress{
+    position:fixed;top:var(--bh-h);bottom:var(--bb-h);left:0;
+    width:var(--rail-w);
+    flex-direction:column;align-items:center;justify-content:flex-start;
+    gap:12px;padding:14px 0;margin:0;transform:none;
+    background:#fff;border-right:1px solid var(--li2);
+    overflow-y:auto;z-index:8;
+  }
+  .bp-item{flex-direction:column;gap:3px}
+  /* Re-show labels (hidden by the ≤900px rule above) — there's room to
+     spare vertically, and a bare number is meaningless without one. */
+  .bp-label{display:block;font-size:7.5px;text-align:center;white-space:normal;line-height:1.15;max-width:52px}
+  .bp-line{width:2px;height:10px;margin:0 auto}
+  .bld-main{margin-left:var(--rail-w)}
+  /* Full 10-dot list fits fine vertically, so undo the old horizontal
+     prev/current/next/last condensing for this breakpoint. */
+  .bp-item.bp-hide{display:flex}
+  .bp-line.bp-hide{display:block}
+  .bp-gap.show{display:none}
 }
 .bld-hdr-right{display:flex;align-items:center;gap:10px}
 .bld-cart-btn{background:var(--li3);border:1.5px solid var(--li2);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--bk);display:flex;align-items:center;gap:6px}
@@ -3090,6 +3103,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 .wa-fab{position:fixed;bottom:calc(var(--bb-h) + 14px);left:16px;z-index:9999;width:40px;height:40px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;text-decoration:none}
 .wa-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(37,211,102,.6)}
 .wa-fab svg{width:20px;height:20px}
+/* Left rail (see .bld-progress mobile rule) would otherwise sit under this. */
+@media(max-width:660px){.wa-fab{left:calc(var(--rail-w, 52px) + 10px)}}
 </style>
 
 </body>
