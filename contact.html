@@ -112,7 +112,12 @@ button{cursor:pointer;font-family:var(--fb)}
   margin-bottom:0;
 }
 @media(max-width:860px){.ct-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:540px){.ct-grid{grid-template-columns:1fr}}
+@media(max-width:540px){
+  .ct-grid{grid-template-columns:1fr}
+  .ct-card{align-items:center;text-align:center}
+  .ct-ic{margin-left:auto;margin-right:auto}
+  .ct-label{justify-content:center}
+}
 
 .ct-card{
   display:flex;
