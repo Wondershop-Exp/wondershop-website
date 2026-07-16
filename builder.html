@@ -245,6 +245,12 @@ input,textarea,select{font-family:var(--fb)}
 .bp-line{width:20px;height:2px;background:var(--li2);border-radius:1px;margin-top:10px}
 .bp-line.done{background:var(--gr)}
 @media(max-width:900px){.bp-label{display:none}.bld-progress{gap:4px}.bp-line{width:16px;margin-top:13px}}
+/* Even with labels hidden, 10 dots + 9 connector lines are still ~350px+
+   wide — on a phone that collides with the logo and cart icons on either
+   side since the bar is absolutely centered over the whole header. Each
+   step's hero already shows "Step X of 9" as text, so just hide the dot
+   stepper entirely below phone width rather than let it overlap. */
+@media(max-width:660px){.bld-progress{display:none}}
 .bld-hdr-right{display:flex;align-items:center;gap:10px}
 .bld-cart-btn{background:var(--li3);border:1.5px solid var(--li2);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--bk);display:flex;align-items:center;gap:6px}
 .bld-cart-btn:hover{background:var(--li2)}

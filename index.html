@@ -292,6 +292,10 @@
       .hero-img-wrap img { min-height: 300px !important; }
       .hero { padding: calc(var(--nav-h) + 20px) 0 36px; min-height: auto; }
       .hero-sub { max-width: 100%; }
+      /* Stacked on mobile — show the photo carousel first so it's visible
+         on landing, instead of requiring a scroll past the whole text block. */
+      .hero-right { order: 1; }
+      .hero-left { order: 2; }
     }
     @media (max-width: 580px) {
       .hero-right { min-height: 240px; }
