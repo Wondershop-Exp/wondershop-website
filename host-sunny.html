@@ -18,11 +18,13 @@
      that's wrong.
 
      STILL NEEDS (marked inline with an HTML comment where they go):
-       1. Real event/hosting photos for the film strip — currently reusing
-          generic stock shots since no event photos of Sunny were supplied,
-          only the single portrait (img/Host/sunny.png).
-       2. Video — none supplied yet, section left as a "coming soon" note.
-       3. Parent testimonials — placeholders below.
+       1. Parent testimonials — placeholders below.
+     (Film strip now uses his real event photos and a real video is
+      embedded — see img/Host/sunny-carousal-1..3.jpg and sunny-video.mp4.
+      Note sunny-carousal-2.jpg / -3.jpg are frames pulled from the two
+      short .MOV clips supplied, since the film strip only supports still
+      images — the original clips are still on disk if a real video
+      carousel is wanted later.)
      ══════════════════════════════════════════════════════════════════ -->
 
 <meta name="robots" content="noindex, nofollow">
@@ -121,6 +123,8 @@ a{text-decoration:none}
 .host-video-soon-ic{font-size:32px;margin-bottom:8px}
 .host-video-soon-t{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--bk);margin-bottom:4px}
 .host-video-soon-s{font-size:13px;color:var(--gy)}
+.host-video{width:100%;max-width:420px;margin:0 auto;border-radius:16px;overflow:hidden;background:var(--bk)}
+.host-video video{width:100%;max-height:640px;display:block;background:#000}
 
 .host-testi-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:600px){.host-testi-grid{grid-template-columns:1fr}}
@@ -180,31 +184,20 @@ a{text-decoration:none}
     <p class="cq-text">"Seeing smiles, hearing laughter, and watching families celebrate together."</p>
   </div>
 
-  <!-- FILM STRIP — placeholder stock shots until Sunny's own real event
-       photos are supplied (only his portrait, img/Host/sunny.png, has
-       been shared so far). Second half exactly mirrors the first for
-       the seamless loop. -->
+  <!-- FILM STRIP — Sunny's own real event photos (img/Host/sunny-carousal-1..3.jpg,
+       the latter two are frames pulled from short video clips he sent).
+       Second half exactly mirrors the first for the seamless loop. -->
   <div class="film-strip">
     <div class="film-band"></div>
     <div class="film-strip-outer">
       <div class="film-strip-track">
-        <div class="ps-item"><img src="img/theme-hero.jpg" alt=""></div>
-        <div class="ps-item"><img src="img/theme-football.jpg" alt=""></div>
-        <div class="ps-item"><img src="img/theme-racing.jpg" alt=""></div>
-        <div class="ps-item"><img src="img/act-mystery.jpg" alt=""></div>
-        <div class="ps-item"><img src="img/theme-cricket.jpg" alt=""></div>
-        <div class="ps-item"><img src="img/act-science.jpg" alt=""></div>
-        <div class="ps-item"><img src="img/theme-science.jpg" alt=""></div>
-        <div class="ps-item"><img src="img/theme-hero.jpg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/sunny-carousal-1.jpg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/sunny-carousal-2.jpg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/sunny-carousal-3.jpg" alt=""></div>
         <!-- second half — must exactly mirror the first for the seamless loop -->
-        <div class="ps-item"><img src="img/theme-hero.jpg" alt=""></div>
-        <div class="ps-item"><img src="img/theme-football.jpg" alt=""></div>
-        <div class="ps-item"><img src="img/theme-racing.jpg" alt=""></div>
-        <div class="ps-item"><img src="img/act-mystery.jpg" alt=""></div>
-        <div class="ps-item"><img src="img/theme-cricket.jpg" alt=""></div>
-        <div class="ps-item"><img src="img/act-science.jpg" alt=""></div>
-        <div class="ps-item"><img src="img/theme-science.jpg" alt=""></div>
-        <div class="ps-item"><img src="img/theme-hero.jpg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/sunny-carousal-1.jpg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/sunny-carousal-2.jpg" alt=""></div>
+        <div class="ps-item"><img src="img/Host/sunny-carousal-3.jpg" alt=""></div>
       </div>
     </div>
     <div class="film-band"></div>
@@ -247,13 +240,15 @@ a{text-decoration:none}
       </div>
     </div>
 
-    <!-- VIDEO — none supplied yet -->
+    <!-- VIDEO (self-hosted, re-encoded from the supplied .MOV to H.264/AAC
+         mp4 for browser compatibility) -->
     <div>
       <h2 class="blk-h">Sunny in <em>action</em></h2>
-      <div class="host-video-soon">
-        <div class="host-video-soon-ic">🎬</div>
-        <div class="host-video-soon-t">Video coming soon</div>
-        <div class="host-video-soon-s">We'll drop a highlight reel of Sunny in action here shortly.</div>
+      <div class="host-video">
+        <video controls preload="metadata" playsinline>
+          <source src="img/Host/sunny-video.mp4" type="video/mp4">
+          Your browser doesn't support embedded video.
+        </video>
       </div>
     </div>
 
