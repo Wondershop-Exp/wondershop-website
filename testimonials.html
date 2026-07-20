@@ -148,6 +148,8 @@ button{cursor:pointer;font-family:var(--fb)}
 .ts-photo-col{position:relative;min-height:320px;background:var(--li3)}
 .ts-photo-col img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
 .ts-photo-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:56px;background:linear-gradient(160deg,var(--li2),var(--spk,#F5C3D7))}
+.ts-collage{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:3px;background:var(--li2)}
+.ts-collage img{width:100%;height:100%;object-fit:cover;display:block}
 .ts-ig-badge{position:absolute;left:16px;bottom:16px;background:rgba(25,25,25,.55);backdrop-filter:blur(4px);color:#fff;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:20px}
 
 .ts-content{padding:32px 34px;display:flex;flex-direction:column;gap:16px}
@@ -355,7 +357,7 @@ button{cursor:pointer;font-family:var(--fb)}
 const TESTIMONIALS=[
   {stars:5,quote:"A huge thank you to Shruti for organising such a wonderful birthday party! Everything was planned and executed perfectly, from the decorations and entertainment to the overall coordination. The attention to detail, creativity, and professionalism made the celebration truly special and stress-free for us.",name:"Niyara's Family",avatar:'N',city:'Mumbai',theme:'Lilo & Stitch Theme',photo:'img/Testimonials/testi-rutuja.jpg',ig:null,age:'7 Years',guests:'70 Guests (30 Kids)',venue:'Society Clubhouse, Vikhroli East',budget:null},
   {stars:5,quote:"We had an amazing experience with Wondershop. They organized our daughter's 5th birthday party. Everything was very smoothly and seamlessly managed. The decor turned out as per our request, the DIY activity and host were pretty engaging. Highly recommend them for your events.",name:"Swati's Family",avatar:'S',city:'Mumbai',theme:'Fridge Magnet & Cupcake Decor',photo:null,ig:null,age:'5 Years',guests:'15 Kids',venue:'House Party, Ghatkopar West',budget:'₹15,000'},
-  {stars:5,quote:"I booked Wondershop for a baby shower celebration and it exceeded expectations. All guests were completely immersed, and everything from setup to execution was seamless.",name:"Garvit's Family",avatar:'G',city:'Mumbai',theme:'Baby Shower',photo:null,ig:null,age:null,guests:null,venue:null,budget:null},
+  {stars:5,quote:"I booked Wondershop for a baby shower celebration and it exceeded expectations. All guests were completely immersed, and everything from setup to execution was seamless.",name:"Garvit's Family",avatar:'G',city:'Mumbai',theme:'Baby Shower · Host, Activities & Games',photo:null,photos:['img/Testimonials/testi-garvit-1.jpg','img/Testimonials/testi-garvit-2.jpg','img/Testimonials/testi-garvit-3.jpg','img/Testimonials/testi-garvit-4.jpg'],ig:null,age:null,guests:'200 Guests',venue:'Farmhouse',budget:null},
   {stars:5,quote:"I really liked the way Wondershop created the whole vibe of the party, everything was well organised and with new innovations, would highly recommend them for all the events.",name:"Jay's Family",avatar:'J',city:'Mumbai',theme:null,photo:null,ig:null,age:null,guests:null,venue:null,budget:null},
   {stars:5,quote:"We had our son's birthday party organised at our club house. The theme was super hero. Wanted to highlight the efforts from Wondershop as they took charge of decor, kids activity, engaging the children through tattoo stations — everything was perfect.",name:"Janani's Family",avatar:'J',city:'Mumbai',theme:'Super Hero Theme',photo:null,ig:null,age:null,guests:null,venue:null,budget:null},
   {stars:5,quote:"We celebrated our daughter's birthday party at Wondershop, and it was truly a memorable experience. Shruti did a wonderful job with the setup — everything was well organised and right on time. The decorations were lovely, and the activities kept the kids engaged throughout.",name:"Divya's Family",avatar:'D',city:'Mumbai',theme:null,photo:null,ig:null,age:null,guests:null,venue:null,budget:null},
@@ -367,7 +369,9 @@ let tsCur=0,tsTimer;
 function tsRender(){
   const t=TESTIMONIALS[tsCur];
   const metaLine=[t.city,t.theme].filter(Boolean).join(' · ');
-  const photoHtml=t.photo
+  const photoHtml=t.photos
+    ? '<div class="ts-collage">'+t.photos.map(p=>'<img src="'+p+'" alt="'+t.name+'">').join('')+'</div>'+(t.ig?'<div class="ts-ig-badge">'+t.ig+'</div>':'')
+    : t.photo
     ? '<img src="'+t.photo+'" alt="'+t.name+'">'+(t.ig?'<div class="ts-ig-badge">'+t.ig+'</div>':'')
     : '<div class="ts-photo-fallback">🎉</div>';
   const stats=[
