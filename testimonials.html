@@ -155,6 +155,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .ts-content{padding:32px 34px;display:flex;flex-direction:column;gap:16px}
 .ts-stars{color:var(--yl);font-size:19px;letter-spacing:2px}
 .ts-quote{font-family:var(--fd);font-style:italic;font-size:17px;color:var(--bk);line-height:1.6;flex:1}
+.ts-quote-empty{color:var(--gy);font-size:15px}
 .ts-author{display:flex;align-items:center;gap:12px}
 .ts-av{width:44px;height:44px;border-radius:50%;background:var(--li2);color:var(--li);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex-shrink:0}
 .ts-name{font-size:15px;font-weight:700;color:var(--bk)}
@@ -364,6 +365,7 @@ const TESTIMONIALS=[
   {stars:5,quote:"The love and attention with which my daughter's special day was curated was heartwarming. The core sentiment of the theme was understood directly from the birthday girl herself! Needless to say she was on the seventh heaven of delight.",name:"Preeti's Family",avatar:'P',city:'Mumbai',theme:null,photo:null,ig:null,age:null,guests:null,venue:null,budget:null},
   {stars:5,quote:"My child and her friends had a blast. The party was really organised very well and with a lot of patience. There is a certain warmth that you and your husband have — always going the extra mile for the children.",name:"Sheethala's Family",avatar:'S',city:'Mumbai',theme:null,photo:null,ig:null,age:null,guests:null,venue:null,budget:null},
   {stars:5,quote:"We had a fantastic experience celebrating my son's birthday at Wondershop with a canvas painting activity. Even though it was a last-minute plan and Shruti wasn't able to be there in person, the event was incredibly well-organized.",name:"Sonam's Family",avatar:'S',city:'Mumbai',theme:null,photo:null,ig:null,age:null,guests:null,venue:null,budget:null},
+  {stars:5,quote:null,name:"Ela's Family",avatar:'E',city:'Mumbai',theme:'Pool Party · Decor, Activities & Bubble Show',photo:'img/Testimonials/testi-ela.jpg',ig:null,age:'4 Years',guests:null,venue:'Restaurant, Vikhroli East',budget:null},
 ];
 let tsCur=0,tsTimer;
 function tsRender(){
@@ -386,7 +388,7 @@ function tsRender(){
       '<div class="ts-photo-col">'+photoHtml+'</div>'+
       '<div class="ts-content">'+
         '<div class="ts-stars">'+'★'.repeat(t.stars)+'</div>'+
-        '<div class="ts-quote">"'+t.quote+'"</div>'+
+        (t.quote?('<div class="ts-quote">"'+t.quote+'"</div>'):'<div class="ts-quote ts-quote-empty">A 5-star rated celebration on Google.</div>')+
         '<div class="ts-author"><div class="ts-av">'+t.avatar+'</div><div><div class="ts-name">'+t.name+'</div>'+(metaLine?('<div class="ts-meta">'+metaLine+'</div>'):'')+'</div></div>'+
         statsHtml+
       '</div>'+
