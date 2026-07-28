@@ -514,8 +514,8 @@ const ADDON_STATIONS = [
   {id:'s4', ic:'🧪', name:'Slime', d:'Hands-on slime making station.', base:11000, cap:30, per:450},
   {id:'s7', ic:'🕶️', name:'Sunglasses Decor', d:'Customise &amp; take home a unique pair.', r1:350, r2:320, r3:300},
   {id:'s8', ic:'🎨', name:'Mini Art Station', d:'A compact creative art corner.', flat:5000},
-  {id:'s9', ic:'🔦', name:'Laser Tunnel', d:'Entry / photo laser tunnel obstacle course.', flat:4000},
-  {id:'s10', ic:'🌑', name:'Dark Room', d:'Blacked-out room for spy games.', flat:12000},
+  {id:'s9', ic:'🔦', name:'Laser Tunnel', d:'Entry / photo laser tunnel obstacle course.', flat:5000, wasPrice:4000},
+  {id:'s10', ic:'🌑', name:'Dark Room', d:'Blacked-out room for spy games.', flat:15000, wasPrice:12000},
 ];
 
 // Music — single-select DJ tier, optional (click again to remove).
@@ -631,6 +631,8 @@ function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
       const wasR = kidsCount <= 12 ? g.r1 : kidsCount <= 25 ? g.r2 : g.r3;
       const wasPrice = wasR * kidsCount;
       if (wasPrice > price) priceHtml = '<s style="color:var(--gy);font-weight:500;font-size:13px;margin-right:5px">' + fmtINR(wasPrice) + '</s>' + fmtINR(price) + priceNote;
+    } else if (item.wasPrice != null) {
+      priceHtml = '<s style="color:var(--gy);font-weight:500;font-size:13px;margin-right:5px">' + fmtINR(item.wasPrice) + '</s>' + fmtINR(price) + priceNote;
     }
     return '<div class="addon-act-card' + (added ? ' added' : '') + '">' +
       '<div class="addon-act-top">' +

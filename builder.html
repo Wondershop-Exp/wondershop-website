@@ -2068,8 +2068,8 @@ const SPY_ADDON_STATIONS_DATA={
   s4:{n:'Slime',base:11000,cap:30,per:450},
   s7:{n:'Sunglasses Decor',linkAct:'a22',useGenericPrice:true},
   s8:{n:'Mini Art Station',flat:5000,linkAct:'a16'},
-  s9:{n:'Laser Tunnel',flat:4000},
-  s10:{n:'Dark Room',flat:12000},
+  s9:{n:'Laser Tunnel',linkAct:'a26',useGenericPrice:true},
+  s10:{n:'Dark Room',linkAct:'a27',useGenericPrice:true},
 };
 function spyStationAddonPrice(code,kids){
   const it=SPY_ADDON_STATIONS_DATA[code];if(!it)return 0;
@@ -2110,8 +2110,16 @@ const ACTS=[
   {id:'a22',n:'Sunglasses Decor',e:'🕶️',img:'act-sunglasses-decor',realImg:true,cat:'craft',age:'4-12',dur:'40 min',req:'Tables & chairs',r1:350,r2:320,r3:300,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)'],tag:'',pers:true,rating:4.7,cnt:25},
   {id:'a23',n:'Fridge Magnet Making',e:'🧲',img:'act-diy',cat:'craft',age:'4-12',dur:'40 min',req:'Tables & chairs',r1:320,r2:290,r3:270,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:20},
   {id:'a24',n:'Coaster Making',e:'☕',img:'act-diy',cat:'craft',age:'5-12',dur:'45 min',req:'Tables & chairs',r1:420,r2:390,r3:370,flat:false,bgs:['linear-gradient(135deg,#F2D147,#B7E0B8)'],tag:'',pers:true,rating:4.6,cnt:18},
-  {id:'a25',n:'Colouring Station',e:'🎨',img:'act-art',cat:'art',age:'3-10',dur:'Session',req:'Tables & chairs',r1:2200,r2:2200,r3:2200,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#EDE6FA)'],tag:'pop',pers:false,rating:4.8,cnt:30}
+  {id:'a25',n:'Colouring Station',e:'🎨',img:'act-art',cat:'art',age:'3-10',dur:'Session',req:'Tables & chairs',r1:2200,r2:2200,r3:2200,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#EDE6FA)'],tag:'pop',pers:false,rating:4.8,cnt:30},
+  // ── Theme-restricted (Spy only for now — see themeOnly) ──
+  {id:'a26',n:'Laser Tunnel',e:'🔦',img:'spy-laser-tunnel',realImg:true,cat:'experience',age:'6-12',dur:'20 min',req:'Any space',r1:5000,r2:5000,r3:5000,flat:true,wasP:4000,themeOnly:['spy'],bgs:['linear-gradient(135deg,#374151,#6B7280)'],tag:'',pers:false,rating:4.7,cnt:20},
+  {id:'a27',n:'Dark Room',e:'🌑',img:'act-dark-room',realImg:true,cat:'experience',age:'7-12',dur:'20 min',req:'Blackout-capable space',r1:15000,r2:15000,r3:15000,flat:true,wasP:12000,themeOnly:['spy'],bgs:['linear-gradient(135deg,#191919,#374151)'],tag:'',pers:false,rating:4.8,cnt:15}
 ];
+// Filters out theme-restricted activities (Laser Tunnel, Dark Room) unless
+// the current build's theme is one of the ids listed in that activity's
+// themeOnly array. Used everywhere the Activities step lists ACTS so those
+// two only ever appear for a Spy build.
+function visibleActs(){return ACTS.filter(a=>!a.themeOnly||a.themeOnly.includes(S.theme));}
 const PINATAS=[
   {id:'p1',n:'Dinosaur',e:'🦕',img:'pin-dino',d:'2ft × 1ft × 1.5ft',p:2000,bg:'linear-gradient(135deg,#B7E0B8,#F7F296)'},
   {id:'p2',n:'Unicorn',e:'🦄',img:'pin-uni',d:'2ft × 1ft × 1.5ft',p:2000,bg:'linear-gradient(135deg,#F5C3D7,#EDE6FA)'},
@@ -2161,6 +2169,9 @@ function cItems(){
     if(a.id&&a.id.indexOf('station-')===0){
       const it=SPY_ADDON_STATIONS_DATA[a.id.slice(8)];
       if(it&&it.discountFromLink&&it.linkAct){const wasP=genericActPrice(it.linkAct,S.kidsCount);if(wasP!=null&&wasP>item.p)item.wasP=wasP;}
+      else if(it&&it.useGenericPrice&&it.linkAct){const linked=ACTS.find(x=>x.id===it.linkAct);if(linked&&linked.wasP!=null&&linked.wasP>item.p)item.wasP=linked.wasP;}
+    }else if(a.wasP!=null&&a.wasP>item.p){
+      item.wasP=a.wasP;
     }
     items.push(item);
   });
@@ -2450,7 +2461,7 @@ function selDec(btn,id,n,p){
 }
 
 // ── ACTIVITIES ──
-function buildActs(){actFilter='all';document.querySelectorAll('#aChips .chip').forEach((c,i)=>{if(i===0)c.classList.add('on');else c.classList.remove('on');});renderActs(ACTS);updSelActs();}
+function buildActs(){actFilter='all';document.querySelectorAll('#aChips .chip').forEach((c,i)=>{if(i===0)c.classList.add('on');else c.classList.remove('on');});renderActs(visibleActs());updSelActs();}
 function renderActs(list){
   const w=document.getElementById('aCards');w.innerHTML='';
   list.forEach(a=>{
@@ -2459,6 +2470,7 @@ function renderActs(list){
     const persHtml=a.pers?'<span class="tag" style="background:#F0FDF4;color:#1a6630">✦ Take-home</span>':'';
     const flatTag=a.flat?'<span class="tag" style="background:#FEF9C3;color:#92400E">Flat rate</span>':'';
     const priceNote=a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child';
+    const priceHtml=(a.wasP&&a.wasP>tot)?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:13px">₹'+a.wasP.toLocaleString('en-IN')+'</s>₹'+tot.toLocaleString('en-IN'):'₹'+tot.toLocaleString('en-IN');
     const fieldsHtml='👶 Suitable for: Ages '+a.age+'<br>📦 Packaging: '+(a.pers?'Included':'Not applicable')+'<br>🎨 Personalization Possible: '+(a.pers?'Yes':'No');
     // Most activities are still on the emoji/gradient fallback (see
     // .caro-fallback) until fresh photography comes in — only entries
@@ -2468,20 +2480,20 @@ function renderActs(list){
       ? '<div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+a.n+'"></div>'
       : '<div class="caro caro-fallback" style="background:'+bg+'">'+a.e+'</div>';
     const cardClick=a.realImg?' onclick="openGallery(\'act\',\''+a.id+'\')"':'';
-    w.innerHTML+='<div class="pcard'+(added?' sel':'')+'"'+cardClick+' id="ac-'+a.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">₹'+tot.toLocaleString('en-IN')+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="event.stopPropagation();togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+    w.innerHTML+='<div class="pcard'+(added?' sel':'')+'"'+cardClick+' id="ac-'+a.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">'+priceHtml+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="event.stopPropagation();togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
   });
 }
 function sortActs(){
   const val=document.getElementById('actSort').value;
-  let list=actFilter==='all'?[...ACTS]:ACTS.filter(a=>a.cat===actFilter);
+  let list=actFilter==='all'?[...visibleActs()]:visibleActs().filter(a=>a.cat===actFilter);
   if(val==='price-asc')list.sort((a,b)=>actPrice(a,S.kidsCount)-actPrice(b,S.kidsCount));
   else if(val==='price-desc')list.sort((a,b)=>actPrice(b,S.kidsCount)-actPrice(a,S.kidsCount));
   renderActs(list);
 }
-function fActs(cat,btn){document.querySelectorAll('#aChips .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');actFilter=cat;renderActs(cat==='all'?ACTS:ACTS.filter(a=>a.cat===cat));}
-function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.activities.splice(idx,1);else{const a=ACTS.find(x=>x.id===id);if(a)S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat});}const cur=actFilter==='all'?ACTS:ACTS.filter(a=>a.cat===actFilter);renderActs(cur);updSelActs();updBB(S.screen);}
+function fActs(cat,btn){document.querySelectorAll('#aChips .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');actFilter=cat;renderActs(cat==='all'?visibleActs():visibleActs().filter(a=>a.cat===cat));}
+function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.activities.splice(idx,1);else{const a=ACTS.find(x=>x.id===id);if(a)S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat,wasP:a.wasP});}const cur=actFilter==='all'?visibleActs():visibleActs().filter(a=>a.cat===actFilter);renderActs(cur);updSelActs();updBB(S.screen);}
 function updSelActs(){const w=document.getElementById('selActs');const l=document.getElementById('selAList');if(!S.activities.length){w.style.display='none';return;}w.style.display='block';l.innerHTML='';S.activities.forEach(a=>{const tot=actPrice(a,S.kidsCount);l.innerHTML+='<div class="sai"><span>'+a.n+'</span><span style="display:flex;align-items:center;gap:5px"><span class="saip">₹'+tot.toLocaleString('en-IN')+'</span><button class="sarm" onclick="togAct(\''+a.id+'\')">✕</button></span></div>';});}
-function chgK(d){S.kidsCount=Math.max(1,Math.min(100,S.kidsCount+d));document.getElementById('kDisp2').textContent=S.kidsCount;try{document.getElementById('f-kids').value=S.kidsCount;}catch(e){}renderActs(actFilter==='all'?ACTS:ACTS.filter(a=>a.cat===actFilter));updSelActs();S.gifts.forEach(g=>{if(!g.userQty)g.qty=S.kidsCount;});renderGifts();updBB(S.screen);}
+function chgK(d){S.kidsCount=Math.max(1,Math.min(100,S.kidsCount+d));document.getElementById('kDisp2').textContent=S.kidsCount;try{document.getElementById('f-kids').value=S.kidsCount;}catch(e){}renderActs(actFilter==='all'?visibleActs():visibleActs().filter(a=>a.cat===actFilter));updSelActs();S.gifts.forEach(g=>{if(!g.userQty)g.qty=S.kidsCount;});renderGifts();updBB(S.screen);}
 
 // ── PER-STEP REMARKS BOX ──
 // Every builder step (except Review/Checkout/Confirmation/Lead, which have
