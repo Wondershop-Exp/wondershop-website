@@ -2047,8 +2047,26 @@ function spyStationTier(kids){
   return{stations:8,rate:1150};
 }
 function spyStationsPrice(kids){return Math.max(25000,kids*spyStationTier(kids).rate);}
+// Spy package "Activity Addon Stations" — same prices as spy-basic.html.
+// linkAct points at a real ACTS catalogue entry to borrow its thumbnail/emoji
+// from (never its price) where a genuine match exists.
+const SPY_ADDON_STATIONS_DATA={
+  s1:{n:'Science Show',flat:20000},
+  s2:{n:'Cap Decor',base:12000,cap:30,per:400,linkAct:'a9'},
+  s3:{n:'MDF Spy Badge',base:9000,cap:30,per:300},
+  s4:{n:'Slime',base:11000,cap:30,per:450},
+  s7:{n:'Sunglasses Decor',base:12000,cap:30,per:400,linkAct:'a22'},
+  s8:{n:'Mini Art Station',flat:6000,linkAct:'a16'},
+  s9:{n:'Laser Tunnel',flat:4000},
+  s10:{n:'Dark Room',flat:12000},
+};
+function spyStationAddonPrice(code,kids){
+  const it=SPY_ADDON_STATIONS_DATA[code];if(!it)return 0;
+  return it.flat!=null?it.flat:it.base+Math.max(0,kids-it.cap)*it.per;
+}
 function actPrice(a,kids){
   if(a.id==='spy-mission')return spyStationsPrice(kids);
+  if(a.id&&a.id.indexOf('station-')===0)return spyStationAddonPrice(a.id.slice(8),kids);
   const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;
 }
 const ACTS=[
@@ -2146,7 +2164,16 @@ function thumbFor(cat,id){
     if(id&&id.indexOf('std')===0){const s=STD.find(x=>x.id===id);return s?{type:'img',src:'img/'+s.img+'.jpg'}:e('🎈');}
     const t=THEMES.find(x=>x.id===id);return t?{type:'img',src:'img/theme-'+t.id+'.jpg'}:e('🎨');
   }
-  if(cat==='Activities'){const a=ACTS.find(x=>x.id===id);if(!a)return e('🎨');return a.realImg?{type:'img',src:'img/'+a.img+'.jpg'}:e(a.e,(a.bgs&&a.bgs[0]));}
+  if(cat==='Activities'){
+    if(id==='spy-mission')return e('🎯');
+    if(id&&id.indexOf('station-')===0){
+      const it=SPY_ADDON_STATIONS_DATA[id.slice(8)];
+      const linked=it&&it.linkAct?ACTS.find(x=>x.id===it.linkAct):null;
+      if(linked)return linked.realImg?{type:'img',src:'img/'+linked.img+'.jpg'}:e(linked.e,(linked.bgs&&linked.bgs[0]));
+      return e('🕵️');
+    }
+    const a=ACTS.find(x=>x.id===id);if(!a)return e('🎨');return a.realImg?{type:'img',src:'img/'+a.img+'.jpg'}:e(a.e,(a.bgs&&a.bgs[0]));
+  }
   if(cat==='Host'){const map={Starter:'host-starter',Premium:'host-premium',Signature:'host-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎤');}
   if(cat==='DJ'){const map={'DJ Lite':'dj-lite','DJ Standard':'dj-standard','DJ Pro':'dj-pro'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎧');}
   if(cat==='Pinata'){const p=PINATAS.find(x=>x.id===id);return p?{type:'img',src:'img/'+p.img+'.jpg'}:e('🪅');}
@@ -3115,18 +3142,14 @@ document.addEventListener('DOMContentLoaded',()=>{
       // Shown as an Activities line item; actPrice() special-cases this id so
       // the price (and cItems()'s name label) stay live if kidsCount changes later.
       if(pkgData.stationTier)S.activities.push({id:'spy-mission',n:pkgData.stationTier.stations+' Mission Stations ('+kids+' kids)'});
-      // Activity Addon Stations selected on the package page (same data/pricing as spy-basic.html)
-      const SPY_ADDON_STATIONS=[
-        {id:'s1',n:'Science Show',flat:20000},{id:'s2',n:'Cap Decor',base:12000,cap:30,per:400},
-        {id:'s3',n:'MDF Spy Badge',base:9000,cap:30,per:300},{id:'s4',n:'Slime',base:11000,cap:30,per:450},
-        {id:'s7',n:'Sunglasses Decor',base:12000,cap:30,per:400},{id:'s8',n:'Mini Art Station',flat:6000},
-        {id:'s9',n:'Laser Tunnel',flat:4000},{id:'s10',n:'Dark Room',flat:12000},
-      ];
+      // Activity Addon Stations selected on the package page — shown as
+      // Activities line items; actPrice()/thumbFor() special-case 'station-*'
+      // ids so price stays live with kidsCount and thumbnails borrow a real
+      // catalogue photo/emoji where a genuine match exists (see SPY_ADDON_STATIONS_DATA).
       if(pkgData.addonStations&&pkgData.addonStations.length){
         pkgData.addonStations.forEach(sid=>{
-          const item=SPY_ADDON_STATIONS.find(x=>x.id===sid);if(!item)return;
-          const p=item.flat!=null?item.flat:item.base+Math.max(0,kids-item.cap)*item.per;
-          S.spyExtras.push({id:'station-'+item.id,n:item.n+' (Activity Station)',p});
+          const item=SPY_ADDON_STATIONS_DATA[sid];if(!item)return;
+          S.activities.push({id:'station-'+sid,n:item.n+' (Activity Station)'});
         });
       }
       // Music (DJ tier)
