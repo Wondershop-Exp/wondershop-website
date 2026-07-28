@@ -351,15 +351,15 @@ button{cursor:pointer;font-family:var(--fb)}
 
   <hr class="divider">
 
-  <!-- ACTIVITY ADDON STATIONS -->
+  <!-- PROPS -->
   <section class="sec">
     <div class="container">
       <div class="act-section-hdr">
-        <h2 class="sec-h2">More <em>Activity Stations Addons</em></h2>
+        <h2 class="sec-h2">Props</h2>
         <span class="act-badge grn">Optional extras</span>
       </div>
-      <p class="sec-sub">Stack on extra activity stations beyond what's included. Some are priced per child above 30 kids.</p>
-      <div class="act-grid" id="addonStationGrid"></div>
+      <p class="sec-sub">Per-child props, priced by headcount.</p>
+      <div class="act-grid" id="propsGrid"></div>
     </div>
   </section>
 
@@ -388,34 +388,6 @@ button{cursor:pointer;font-family:var(--fb)}
       </div>
       <p class="sec-sub">Send guests a personalized digital invite.</p>
       <div class="act-grid" id="einviteGrid"></div>
-      <div class="act-grid" id="reelGrid" style="margin-top:12px"></div>
-    </div>
-  </section>
-
-  <hr class="divider">
-
-  <!-- PINATA -->
-  <section class="sec">
-    <div class="container">
-      <div class="act-section-hdr">
-        <h2 class="sec-h2">Pinata</h2>
-        <span class="act-badge grn">Optional · pick one</span>
-      </div>
-      <div class="act-grid" id="pinataGrid"></div>
-    </div>
-  </section>
-
-  <hr class="divider">
-
-  <!-- PROPS -->
-  <section class="sec">
-    <div class="container">
-      <div class="act-section-hdr">
-        <h2 class="sec-h2">Props</h2>
-        <span class="act-badge grn">Optional extras</span>
-      </div>
-      <p class="sec-sub">Per-child props, priced by headcount.</p>
-      <div class="act-grid" id="propsGrid"></div>
     </div>
   </section>
 
@@ -435,6 +407,20 @@ button{cursor:pointer;font-family:var(--fb)}
 
   <hr class="divider">
 
+  <!-- ACTIVITY ADDON STATIONS -->
+  <section class="sec">
+    <div class="container">
+      <div class="act-section-hdr">
+        <h2 class="sec-h2">More <em>Activity Stations Addons</em></h2>
+        <span class="act-badge grn">Optional extras</span>
+      </div>
+      <p class="sec-sub">Stack on extra activity stations beyond what's included. Some are priced per child above 30 kids.</p>
+      <div class="act-grid" id="addonStationGrid"></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
   <!-- PHOTOGRAPHER -->
   <section class="sec">
     <div class="container">
@@ -443,6 +429,20 @@ button{cursor:pointer;font-family:var(--fb)}
         <span class="act-badge grn">Optional · pick one</span>
       </div>
       <div class="act-grid" id="photoGrid"></div>
+      <div class="act-grid" id="reelGrid" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- PINATA -->
+  <section class="sec">
+    <div class="container">
+      <div class="act-section-hdr">
+        <h2 class="sec-h2">Pinata</h2>
+        <span class="act-badge grn">Optional · pick one</span>
+      </div>
+      <div class="act-grid" id="pinataGrid"></div>
 
       <div class="tnc-note">📄 <span>By booking this package you agree to our <a href="terms.html">Terms &amp; Conditions</a>.</span></div>
     </div>
@@ -509,8 +509,6 @@ const ADDON_STATIONS = [
   {id:'s2', ic:'🧢', name:'Cap Decor', d:'Kids decorate their own caps to take home.', base:12000, cap:30, per:400},
   {id:'s3', ic:'🕵️', name:'MDF Spy Badge', d:'Paint &amp; personalize a wooden spy badge.', base:9000, cap:30, per:300},
   {id:'s4', ic:'🧪', name:'Slime', d:'Hands-on slime making station.', base:11000, cap:30, per:450},
-  {id:'s5', ic:'🔮', name:'Kaleidoscope', d:'Build &amp; decorate a take-home kaleidoscope.', base:10500, cap:30, per:400},
-  {id:'s6', ic:'🪧', name:'MDF Name Plate', d:'Personalized wooden name plate craft.', base:22000, cap:30, per:750},
   {id:'s7', ic:'🕶️', name:'Sunglasses Decor', d:'Customise &amp; take home a unique pair.', base:12000, cap:30, per:400},
   {id:'s8', ic:'🎨', name:'Mini Art Station', d:'A compact creative art corner.', flat:6000},
   {id:'s9', ic:'🔦', name:'Laser Tunnel', d:'Entry / photo laser tunnel obstacle course.', flat:4000},
