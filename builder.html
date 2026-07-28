@@ -2749,7 +2749,7 @@ function buildRev(){
       const thumbHtml=th.type==='img'
         ? '<div class="rv-thumb"><img src="'+th.src+'" alt="" loading="lazy" onerror="rvImgErr(this)"></div>'
         : '<div class="rv-thumb rv-thumb-e" style="background:'+th.bg+'">'+th.e+'</div>';
-      const priceHtml=i.wasP?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:12px">₹'+i.wasP.toLocaleString('en-IN')+'</s>₹'+i.p.toLocaleString('en-IN'):'₹'+i.p.toLocaleString('en-IN');
+      const priceHtml=(cat==='Host'&&i.id==='Spy'&&i.p===0)?'<span style="font-size:12px;color:var(--gy);font-weight:600">Included with Spy Mission</span>':i.wasP?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:12px">₹'+i.wasP.toLocaleString('en-IN')+'</s>₹'+i.p.toLocaleString('en-IN'):'₹'+i.p.toLocaleString('en-IN');
       html+='<div class="rv-item">'+thumbHtml+'<span class="rv-item-name">'+i.n+'</span><span class="rv-item-price">'+priceHtml+'</span><button class="rv-item-rm" title="Remove" onclick="rmRevItem(\''+cat+'\',\''+i.id+'\')">✕</button></div>';
     });
     html+='</div></div>';
