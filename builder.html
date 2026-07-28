@@ -2175,7 +2175,11 @@ function cItems(){
     }
     items.push(item);
   });
-  if(S.host)items.push({cat:'Host',n:S.host.tier+' Host',p:S.host.p,id:S.host.tier});
+  if(S.host){
+    const hostIncluded=S.host.tier==='Signature'&&S.host.p===0;
+    const hostNote=hostIncluded?' <span style="color:var(--gy);font-weight:500;font-size:11px">· Included in Spy theme</span>':'';
+    items.push({cat:'Host',n:S.host.tier+' Host'+hostNote,p:S.host.p,id:S.host.tier});
+  }
   if(S.dj)items.push({cat:'DJ',n:S.dj.tier,p:S.dj.p,id:S.dj.tier});
   if(S.pinata){const pt=rawNoInv();const isFree=pt>=S.FPT;const fp=isFree?0:S.pinata.p;const pItem={cat:'Pinata',n:S.pinata.n+(isFree?' (FREE)':''),p:fp,id:S.pinata.id};if(isFree&&S.pinata.p>0)pItem.wasP=S.pinata.p;items.push(pItem);}
   if(S.einvite){const gt=rawNoInv();const isFree=gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n+(isFree?' (FREE)':''),p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
@@ -2749,7 +2753,7 @@ function buildRev(){
       const thumbHtml=th.type==='img'
         ? '<div class="rv-thumb"><img src="'+th.src+'" alt="" loading="lazy" onerror="rvImgErr(this)"></div>'
         : '<div class="rv-thumb rv-thumb-e" style="background:'+th.bg+'">'+th.e+'</div>';
-      const priceHtml=(cat==='Host'&&i.id==='Spy'&&i.p===0)?'<span style="font-size:12px;color:var(--gy);font-weight:600">Included with Spy Mission</span>':i.wasP?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:12px">₹'+i.wasP.toLocaleString('en-IN')+'</s>₹'+i.p.toLocaleString('en-IN'):'₹'+i.p.toLocaleString('en-IN');
+      const priceHtml=i.wasP?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:12px">₹'+i.wasP.toLocaleString('en-IN')+'</s>₹'+i.p.toLocaleString('en-IN'):'₹'+i.p.toLocaleString('en-IN');
       html+='<div class="rv-item">'+thumbHtml+'<span class="rv-item-name">'+i.n+'</span><span class="rv-item-price">'+priceHtml+'</span><button class="rv-item-rm" title="Remove" onclick="rmRevItem(\''+cat+'\',\''+i.id+'\')">✕</button></div>';
     });
     html+='</div></div>';
@@ -3175,7 +3179,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       // Decor tier chosen on the package page — fully optional, may be absent
       if(pkgData.decorTier)S.decor={n:pkgData.decorTier.name+' Decor',p:pkgData.decorTier.price,id:'spy-'+pkgData.decorTier.id};
       // Spy Host — always included in the package, bundled into the station price
-      S.host={tier:'Spy',p:0};
+      S.host={tier:'Signature',p:0};
       // Mission Stations — the core kids-scaled station package (always included).
       // Shown as an Activities line item; actPrice() special-cases this id so
       // the price (and cItems()'s name label) stay live if kidsCount changes later.
