@@ -1960,7 +1960,7 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Logs to the "Website Orders and Leads" Google Sheet.
 window.WS_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyVQ_8aZQS2hE5t9-1ceC5ttHeD7DSr0NQmKzYAdxkyRK4eqwgWAG_UnM_iZZmyxY8z4Q/exec';
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,pinata:null,einvite:null,photo:null,addReel:false,gifts:[],packaging:'',tagType:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FGT:40000,FPT:50000,remarks:{}};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,pinata:null,einvite:null,photo:null,addReel:false,gifts:[],spyExtras:[],packaging:'',tagType:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FGT:40000,FPT:50000,remarks:{}};
 
 // ── Sends a lead or booking row to the Google Sheet, fire-and-forget. ──
 // Uses mode:'no-cors' + text/plain so the browser never sends a CORS
@@ -2111,6 +2111,7 @@ function cItems(){
   if(S.einvite){const gt=rawNoInv();const ep=gt>=S.FIT?0:S.einvite.p;items.push({cat:'E-Invite',n:S.einvite.n+(gt>=S.FIT?' (FREE)':''),p:ep,id:S.einvite.id});}
   if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});if(S.addReel)items.push({cat:'Photographer',n:'30-sec Reel',p:919,id:'reel'});}
   S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty,id:g.id}));
+  S.spyExtras.forEach(x=>items.push({cat:'Spy Extra',n:x.n,p:x.p,id:x.id}));
   return items;
 }
 // Resolves a rectangular thumbnail (photo, or emoji tile as fallback) for a
@@ -2128,12 +2129,13 @@ function thumbFor(cat,id){
   if(cat==='E-Invite'){const inv=INVITES.find(x=>x.id===id);return inv?{type:'img',src:'einvites/'+inv.file}:e('💌');}
   if(cat==='Photographer'){if(id==='reel')return e('🎬');const map={Starter:'photo-starter',Premium:'photo-premium',Signature:'photo-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('📷');}
   if(cat==='Return Gifts'){const g=GIFTS.find(x=>x.id===id);if(!g)return e('🎁');return g.img?{type:'img',src:'img/'+g.img}:e(g.e,g.bg);}
+  if(cat==='Spy Extra')return e('🕵️');
   return e('✨');
 }
 function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e');box.style.background='var(--li2)';box.textContent='✨';}
-function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p+(S.addReel?919:0);S.gifts.forEach(g=>t+=g.unit*g.qty);return t;}
+function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p+(S.addReel?919:0);S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
 function rawT(){return cItems().reduce((s,i)=>s+i.p,0)}
-function svcC(){let c=0;if(S.decor)c++;if(S.activities.length)c++;if(S.host)c++;if(S.dj)c++;if(S.pinata)c++;if(S.einvite)c++;if(S.photo)c++;if(S.gifts.length)c++;return c}
+function svcC(){let c=0;if(S.decor)c++;if(S.activities.length)c++;if(S.host)c++;if(S.dj)c++;if(S.pinata)c++;if(S.einvite)c++;if(S.photo)c++;if(S.gifts.length)c++;if(S.spyExtras.length)c++;return c}
 function autoDp(){const c=svcC();if(c>=6)return 10;if(c>=4)return 8;if(c>=2)return 5;return 0}
 function dp(){return Math.max(S.couponPct,autoDp())}
 function tp(){const gt=rawT();return Math.round(gt*(1-dp()/100))}
@@ -2675,6 +2677,7 @@ function rmRevItem(cat,id){
   else if(cat==='E-Invite')S.einvite=null;
   else if(cat==='Photographer'){if(id==='reel')S.addReel=false;else{S.photo=null;S.addReel=false;}}
   else if(cat==='Return Gifts')S.gifts=S.gifts.filter(g=>g.id!==id);
+  else if(cat==='Spy Extra')S.spyExtras=S.spyExtras.filter(x=>x.id!==id);
   buildRev();
   updBB(S.screen);
 }
@@ -3067,6 +3070,53 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(pkgData.additionalActs&&pkgData.additionalActs.length){
         pkgData.additionalActs.forEach(pa=>{const xa=ACTS.find(x=>x.id===pa.id);if(xa&&!S.activities.find(x=>x.id===xa.id))S.activities.push({id:xa.id,n:xa.n,r1:xa.r1,r2:xa.r2,r3:xa.r3,flat:xa.flat});});
       }
+    }catch(e){}
+  }else if(urlPkg==='spy-basic'){
+    try{
+      const pkgData=JSON.parse(localStorage.getItem('ws_pkg')||'{}');
+      const kids=pkgData.kidsCount||25;
+      if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
+      // Decor tier chosen on the package page — fully optional, may be absent
+      if(pkgData.decorTier)S.decor={n:pkgData.decorTier.name+' Decor',p:pkgData.decorTier.price,id:'spy-'+pkgData.decorTier.id};
+      // Mission Stations — the core kids-scaled station package (always included)
+      if(pkgData.stationTier){
+        const st=pkgData.stationTier;
+        const stationsCost=Math.max(25000,kids*st.rate);
+        S.spyExtras.push({id:'mission-stations',n:st.stations+' Mission Stations ('+kids+' kids)',p:stationsCost});
+      }
+      // Activity Addon Stations selected on the package page (same data/pricing as spy-basic.html)
+      const SPY_ADDON_STATIONS=[
+        {id:'s1',n:'Science Show',flat:20000},{id:'s2',n:'Cap Decor',base:12000,cap:30,per:400},
+        {id:'s3',n:'MDF Spy Badge',base:9000,cap:30,per:300},{id:'s4',n:'Slime',base:11000,cap:30,per:450},
+        {id:'s5',n:'Kaleidoscope',base:10500,cap:30,per:400},{id:'s6',n:'MDF Name Plate',base:22000,cap:30,per:750},
+        {id:'s7',n:'Sunglasses Decor',base:12000,cap:30,per:400},{id:'s8',n:'Mini Art Station',flat:6000},
+        {id:'s9',n:'Laser Tunnel',flat:4000},{id:'s10',n:'Dark Room',flat:12000},
+      ];
+      if(pkgData.addonStations&&pkgData.addonStations.length){
+        pkgData.addonStations.forEach(sid=>{
+          const item=SPY_ADDON_STATIONS.find(x=>x.id===sid);if(!item)return;
+          const p=item.flat!=null?item.flat:item.base+Math.max(0,kids-item.cap)*item.per;
+          S.spyExtras.push({id:'station-'+item.id,n:item.n+' (Activity Station)',p});
+        });
+      }
+      // Music (DJ tier)
+      if(pkgData.music)S.dj={tier:pkgData.music.name,p:pkgData.music.price};
+      // E-Invite
+      if(pkgData.einvite)S.einvite={id:'spy-'+pkgData.einvite.id,n:pkgData.einvite.name,p:pkgData.einvite.price};
+      // Birthday Reel
+      if(pkgData.reel)S.spyExtras.push({id:'reel',n:'Birthday Reel',p:1000});
+      // Pinata
+      if(pkgData.pinata)S.pinata={id:'spy-'+pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
+      // Props (per-child)
+      if(pkgData.props&&pkgData.props.length){
+        const PROPS_MAP={pr1:{n:'Sunglasses',perChild:75},pr2:{n:'Caps',perChild:75}};
+        pkgData.props.forEach(pid=>{const item=PROPS_MAP[pid];if(item)S.spyExtras.push({id:'prop-'+pid,n:item.n+' (Props) ×'+kids,p:item.perChild*kids});});
+      }
+      // Entry Options
+      if(pkgData.entry)S.spyExtras.push({id:'entry-'+pkgData.entry.id,n:pkgData.entry.name+' Entry',p:pkgData.entry.price});
+      // Photographer — same tier names as the site's standard photographer step,
+      // so its thumbnail/image resolves correctly on the review page.
+      if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
     }catch(e){}
   }
 

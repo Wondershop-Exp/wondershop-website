@@ -95,7 +95,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .divider{border:none;border-top:1px solid var(--li2);margin:0}
 
 /* INCLUSIONS */
-.incl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.incl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .incl-card{background:var(--li3);border:1.5px solid var(--li2);border-radius:16px;padding:20px}
 .incl-card-ic{font-size:28px;margin-bottom:10px}
 .incl-card-h{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--bk);margin-bottom:6px}
@@ -239,6 +239,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <span class="pkg-incl-chip">🕵️ Spy Host</span>
             <span class="pkg-incl-chip">🎯 4–8 Mission Stations</span>
             <span class="pkg-incl-chip">🎈 Decor (your pick of tier)</span>
+            <span class="pkg-incl-chip">🎂 Min. age 7</span>
           </div>
           <div class="pkg-price-block">
             <div class="pkg-price-note">Estimated total for your party</div>
@@ -305,6 +306,12 @@ button{cursor:pointer;font-family:var(--fb)}
           </div>
         </div>
 
+        <div class="incl-card">
+          <div class="incl-card-ic">🪪</div>
+          <div class="incl-card-h">Personalized Spy ID Cards</div>
+          <div class="incl-card-body">Every agent gets their own Wondershop Spy Academy ID card with photo, name &amp; QR — theirs to keep after the mission.</div>
+        </div>
+
       </div>
     </div>
   </section>
@@ -348,7 +355,7 @@ button{cursor:pointer;font-family:var(--fb)}
   <section class="sec">
     <div class="container">
       <div class="act-section-hdr">
-        <h2 class="sec-h2">Add more <em>Mission Stations</em></h2>
+        <h2 class="sec-h2">More <em>Activity Stations Addons</em></h2>
         <span class="act-badge grn">Optional extras</span>
       </div>
       <p class="sec-sub">Stack on extra activity stations beyond what's included. Some are priced per child above 30 kids.</p>
@@ -358,17 +365,105 @@ button{cursor:pointer;font-family:var(--fb)}
 
   <hr class="divider">
 
-  <!-- ADD-ONS -->
+  <!-- MUSIC -->
   <section class="sec">
     <div class="container">
       <div class="act-section-hdr">
-        <h2 class="sec-h2">More <em>Add-ons</em></h2>
+        <h2 class="sec-h2">Music</h2>
+        <span class="act-badge grn">Optional · pick one</span>
+      </div>
+      <p class="sec-sub">Pick a DJ tier for the party. Click your selected tier again to remove it.</p>
+      <div class="act-grid" id="musicGrid"></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- E-INVITE -->
+  <section class="sec">
+    <div class="container">
+      <div class="act-section-hdr">
+        <h2 class="sec-h2">E-Invite</h2>
+        <span class="act-badge grn">Optional · pick one</span>
+      </div>
+      <p class="sec-sub">Send guests a personalized digital invite.</p>
+      <div class="act-grid" id="einviteGrid"></div>
+      <div class="act-grid" id="reelGrid" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- PINATA -->
+  <section class="sec">
+    <div class="container">
+      <div class="act-section-hdr">
+        <h2 class="sec-h2">Pinata</h2>
+        <span class="act-badge grn">Optional · pick one</span>
+      </div>
+      <div class="act-grid" id="pinataGrid"></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- PROPS -->
+  <section class="sec">
+    <div class="container">
+      <div class="act-section-hdr">
+        <h2 class="sec-h2">Props</h2>
         <span class="act-badge grn">Optional extras</span>
       </div>
-      <p class="sec-sub">Round out the mission with these extras — mix and match as you like.</p>
-      <div class="act-grid" id="addonGrid"></div>
+      <p class="sec-sub">Per-child props, priced by headcount.</p>
+      <div class="act-grid" id="propsGrid"></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ENTRY OPTIONS -->
+  <section class="sec">
+    <div class="container">
+      <div class="act-section-hdr">
+        <h2 class="sec-h2">Entry Options</h2>
+        <span class="act-badge grn">Optional · pick one</span>
+      </div>
+      <p class="sec-sub">Give the birthday agent a grand entrance.</p>
+      <div class="act-grid" id="entryGrid"></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- PHOTOGRAPHER -->
+  <section class="sec">
+    <div class="container">
+      <div class="act-section-hdr">
+        <h2 class="sec-h2">Photographer</h2>
+        <span class="act-badge grn">Optional · pick one</span>
+      </div>
+      <div class="act-grid" id="photoGrid"></div>
 
       <div class="tnc-note">📄 <span>By booking this package you agree to our <a href="terms.html">Terms &amp; Conditions</a>.</span></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- PHOTO STRIP -->
+  <section class="sec" style="padding-bottom:8px">
+    <div class="container">
+      <h2 class="sec-h2">From real <em>Spy Missions</em></h2>
+      <p class="sec-sub">A few moments from spy parties we've run.</p>
+    </div>
+    <div style="display:flex;gap:14px;overflow-x:auto;padding:4px 24px 12px;scroll-snap-type:x mandatory">
+      <img src="img/spy-strip-hero.jpg" alt="Spy mission backdrop" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
+      <img src="img/spy-decor-1panel.jpg" alt="Spy decor setup" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
+      <img src="img/spy-idcards-sunglasses.jpg" alt="Spy ID cards and sunglasses" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
+      <img src="img/spy-laser-tunnel.jpg" alt="Kids in the laser tunnel" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
+      <img src="img/spy-strip-cardgame.jpg" alt="Spy card game station" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
+      <img src="img/spy-strip-twister.jpg" alt="Spy mission twister game" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
+      <img src="img/spy-strip-photobooth.jpg" alt="Spy photobooth" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
     </div>
   </section>
 
@@ -403,9 +498,9 @@ document.getElementById('nav-ham').addEventListener('click',()=>document.getElem
 // removes decor from the total (see selectDecor()).
 const DECOR_TIERS = [
   {id:'basic', name:'Basic', price:5000, d:'Balloon arch, Happy Birthday bunting, name bunting, age foil balloons — up to 200 balloons.'},
-  {id:'p1', name:'1 Panel', price:8000, d:'1 flex panel (4x7ft) with a balloon arch, Happy Birthday LED light, name on flex, age foil balloon.'},
-  {id:'p2', name:'2 Panel', price:15000, d:'2 flex panels — 8ft total decor width, 3ft age light, themed cutouts, welcome board.'},
-  {id:'sig', name:'Signature', price:25000, d:'Welcome arch, welcome board, spy cutouts, 3 panel decor, 3ft age light, Happy Birthday LED (if needed), name on flex.'},
+  {id:'p1', name:'1 Panel', price:8000, d:'1 flex panel (4x7ft) with a balloon arch, Happy Birthday LED light, name on flex, age foil balloon.', img:'img/spy-decor-1panel.jpg'},
+  {id:'p2', name:'2 Panel', price:15000, d:'2 flex panels — 8ft total decor width, 3ft age light, themed cutouts, welcome board.', img:'img/spy-decor-2panel.jpg'},
+  {id:'sig', name:'Signature', price:25000, d:'Welcome arch, welcome board, spy cutouts, 3 panel decor, 3ft age light, Happy Birthday LED (if needed), name on flex.', img:'img/spy-decor-signature.jpg'},
 ];
 
 // Activity Addon Stations — some flat, some tiered above 30 kids.
@@ -418,20 +513,46 @@ const ADDON_STATIONS = [
   {id:'s6', ic:'🪧', name:'MDF Name Plate', d:'Personalized wooden name plate craft.', base:22000, cap:30, per:750},
   {id:'s7', ic:'🕶️', name:'Sunglasses Decor', d:'Customise &amp; take home a unique pair.', base:12000, cap:30, per:400},
   {id:'s8', ic:'🎨', name:'Mini Art Station', d:'A compact creative art corner.', flat:6000},
+  {id:'s9', ic:'🔦', name:'Laser Tunnel', d:'Entry / photo laser tunnel obstacle course.', flat:4000},
+  {id:'s10', ic:'🌑', name:'Dark Room', d:'Blacked-out room for spy games.', flat:12000},
 ];
 
-// General add-ons — mostly flat, 2 are per-child.
-const ADDONS = [
-  {id:'o1', ic:'🕶️', name:'Spy Glasses', d:'One per child.', perChild:75},
-  {id:'o2', ic:'🧢', name:'Spy Caps', d:'One per child.', perChild:75},
-  {id:'o3', ic:'🎵', name:'Music', d:'Party music setup.', flat:10000},
-  {id:'o4', ic:'🔦', name:'Laser Tunnel', d:'Entry / photo laser tunnel.', flat:4000},
-  {id:'o5', ic:'🌑', name:'Dark Room', d:'Blacked-out room for spy games.', flat:12000},
-  {id:'o6', ic:'💌', name:'E-Invite', d:'Personalized digital invite.', flat:500},
-  {id:'o7', ic:'🎬', name:'Video Invite + Reminder', d:'Video invite plus a reminder message.', flat:2000},
-  {id:'o8', ic:'📱', name:'Birthday Reel', d:'A shareable highlight reel.', flat:1000},
-  {id:'o9', ic:'💨', name:'Entry on Fogg', d:'Dramatic fog-machine entry.', flat:6000},
-  {id:'o10', ic:'🫧', name:'Entry on Bubbles', d:'Bubble-machine grand entry.', flat:6000},
+// Music — single-select DJ tier, optional (click again to remove).
+const MUSIC_TIERS = [
+  {id:'m1', name:'DJ Compact', price:7000, d:'Compact DJ setup with speaker + mixer.'},
+  {id:'m2', name:'DJ Premium', price:11000, d:'Bigger sound system with lighting included.'},
+  {id:'m3', name:'DJ Signature', price:15000, d:'Full sound + lighting rig for a big party feel.'},
+];
+// E-Invite — single-select, optional.
+const EINVITE_TIERS = [
+  {id:'e1', name:'Static', price:500, d:'Personalized digital invite card.'},
+  {id:'e2', name:'Video + Reminder', price:2000, d:'Video invite plus a reminder message closer to the date.'},
+];
+// Birthday Reel — independent single toggle addon.
+const REEL_ADDON = {id:'o8', ic:'📱', name:'Birthday Reel', d:'A shareable highlight reel.', flat:1000};
+// Pinata — single-select, optional.
+const PINATA_TIERS = [
+  {id:'pn1', name:'Square', price:1250, d:'Square spy-themed pinata.'},
+  {id:'pn2', name:'Customized', price:1750, d:'Custom-shaped pinata to match your theme.'},
+];
+// Props — per-child, multi toggle-add.
+const PROPS_ADDONS = [
+  {id:'pr1', ic:'🕶️', name:'Sunglasses', d:'One per child.', perChild:75},
+  {id:'pr2', ic:'🧢', name:'Caps', d:'One per child.', perChild:75},
+];
+// Entry Options — single-select, optional.
+const ENTRY_TIERS = [
+  {id:'en1', name:'Fogg', price:6000, d:'Dramatic fog-machine entry.'},
+  {id:'en2', name:'Car', price:3000, d:'Grand entry in a prop car.'},
+  {id:'en3', name:'Segway', price:7500, d:'Entry on a segway for a big wow moment.'},
+  {id:'en4', name:'Bubbles', price:6000, d:'Bubble-machine grand entry.'},
+];
+// Photographer — single-select, optional. Same tiers/prices as the site's
+// standard photographer step.
+const PHOTO_TIERS = [
+  {id:'ph1', name:'Starter', price:6000, d:'Candid coverage for your event.'},
+  {id:'ph2', name:'Premium', price:9000, d:'Extended coverage with more deliverables.'},
+  {id:'ph3', name:'Signature', price:14000, d:'Full coverage, our top photography tier.'},
 ];
 
 const MIN_KIDS = 12, MAX_KIDS = 60, MIN_BILL = 25000;
@@ -439,8 +560,14 @@ const MIN_KIDS = 12, MAX_KIDS = 60, MIN_BILL = 25000;
 // ── STATE ──
 let kidsCount = 25;
 let selectedDecor = DECOR_TIERS[0];
-let selectedStations = [];   // array of station ids
-let selectedAddons = [];     // array of addon ids
+let selectedStations = [];      // array of ADDON_STATIONS ids
+let selectedMusic = null;       // one of MUSIC_TIERS or null
+let selectedEinvite = null;     // one of EINVITE_TIERS or null
+let selectedReel = false;       // Birthday Reel toggle
+let selectedPinata = null;      // one of PINATA_TIERS or null
+let selectedProps = [];         // array of PROPS_ADDONS ids
+let selectedEntry = null;       // one of ENTRY_TIERS or null
+let selectedPhotographer = null;// one of PHOTO_TIERS or null
 
 // ── STATION TIER (host + included mission stations) ──
 function stationTier(kids) {
@@ -467,24 +594,53 @@ function changeKids(d) {
   info.innerHTML = '<strong>' + kidsCount + ' kids</strong> · ' + t.stations + ' mission stations · ' + fmtINR(t.rate) + '/child';
   document.getElementById('kidsMinNote').style.display = raw < MIN_BILL ? 'block' : 'none';
   renderAddonStations();
-  renderAddons();
+  renderProps();
   updateSticky();
 }
 
-// ── DECOR SELECTION ──
-// selectedDecor can be null — clicking an already-selected tier deselects it,
-// and no decor cost is added to the total.
-function renderDecor() {
-  const grid = document.getElementById('decorGrid');
-  grid.innerHTML = DECOR_TIERS.map(t =>
-    '<div class="act-card' + (selectedDecor && t.id === selectedDecor.id ? ' sel' : '') + '" data-decor="' + t.id + '" onclick="selectDecor(\'' + t.id + '\')">' +
+// ── GENERIC RENDERERS ──
+// Single-select "tier" cards (Decor, Music, E-Invite, Pinata, Entry, Photographer).
+// Clicking the already-selected card deselects it (removes cost from total).
+function renderTierGrid(gridId, items, selected) {
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = items.map(t => {
+    const img = t.img ? '<img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;margin-bottom:10px">' : '';
+    return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
+      img +
       '<div class="act-card-n">' + t.name + '</div>' +
       '<div class="act-card-p">' + fmtINR(t.price) + '</div>' +
-      '<div class="act-card-d">' + t.d + '</div>' +
-    '</div>'
-  ).join('');
+      (t.d ? '<div class="act-card-d">' + t.d + '</div>' : '') +
+    '</div>';
+  }).join('');
 }
-function selectDecor(id) {
+// Multi-select toggle-add cards (Activity Stations, Props).
+function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = items.map(item => {
+    const price = priceFn(item, kidsCount);
+    const added = selectedArr.includes(item.id);
+    let priceNote = '';
+    if (item.perChild != null) priceNote = ' <span style="font-size:11px;color:var(--gy);font-weight:500">(' + fmtINR(item.perChild) + '/child)</span>';
+    else if (item.flat == null && item.base != null) priceNote = ' <span style="font-size:11px;color:var(--gy);font-weight:500">(' + fmtINR(item.base) + ' upto ' + item.cap + ')</span>';
+    return '<div class="addon-act-card' + (added ? ' added' : '') + '">' +
+      '<div class="addon-act-top">' +
+        '<div class="addon-act-ic">' + item.ic + '</div>' +
+        '<div class="addon-act-info">' +
+          '<div class="addon-act-n">' + item.name + '</div>' +
+          '<div class="addon-act-d">' + item.d + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="addon-act-foot">' +
+        '<div class="addon-act-price">' + fmtINR(price) + priceNote + '</div>' +
+        '<button class="btn-addon-add' + (added ? ' added' : '') + '" onclick="' + toggleFnName + '(\'' + item.id + '\')">' + (added ? '✓ Added' : '+ Add') + '</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── DECOR SELECTION ──
+function renderDecor() { renderTierGrid('decorGrid', DECOR_TIERS, selectedDecor); }
+function decorGridSelect(id) {
   selectedDecor = (selectedDecor && selectedDecor.id === id) ? null : DECOR_TIERS.find(t => t.id === id);
   renderDecor();
   updateSticky();
@@ -496,27 +652,7 @@ function addonStationPrice(item, kids) {
   const extra = Math.max(0, kids - item.cap);
   return item.base + extra * item.per;
 }
-function renderAddonStations() {
-  const grid = document.getElementById('addonStationGrid');
-  grid.innerHTML = ADDON_STATIONS.map(item => {
-    const price = addonStationPrice(item, kidsCount);
-    const added = selectedStations.includes(item.id);
-    const priceNote = item.flat != null ? '' : ' <span style="font-size:11px;color:var(--gy);font-weight:500">(' + fmtINR(item.base) + ' upto ' + item.cap + ')</span>';
-    return '<div class="addon-act-card' + (added ? ' added' : '') + '" id="add-' + item.id + '">' +
-      '<div class="addon-act-top">' +
-        '<div class="addon-act-ic">' + item.ic + '</div>' +
-        '<div class="addon-act-info">' +
-          '<div class="addon-act-n">' + item.name + '</div>' +
-          '<div class="addon-act-d">' + item.d + '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="addon-act-foot">' +
-        '<div class="addon-act-price">' + fmtINR(price) + priceNote + '</div>' +
-        '<button class="btn-addon-add' + (added ? ' added' : '') + '" onclick="toggleStation(\'' + item.id + '\')">' + (added ? '✓ Added' : '+ Add') + '</button>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-}
+function renderAddonStations() { renderToggleGrid('addonStationGrid', ADDON_STATIONS, selectedStations, addonStationPrice, 'toggleStation'); }
 function toggleStation(id) {
   const idx = selectedStations.indexOf(id);
   if (idx > -1) selectedStations.splice(idx, 1);
@@ -525,36 +661,61 @@ function toggleStation(id) {
   updateSticky();
 }
 
-// ── ADD-ONS ──
-function addonPrice(item, kids) {
-  return item.flat != null ? item.flat : item.perChild * kids;
+// ── MUSIC ──
+function renderMusic() { renderTierGrid('musicGrid', MUSIC_TIERS, selectedMusic); }
+function musicGridSelect(id) {
+  selectedMusic = (selectedMusic && selectedMusic.id === id) ? null : MUSIC_TIERS.find(t => t.id === id);
+  renderMusic();
+  updateSticky();
 }
-function renderAddons() {
-  const grid = document.getElementById('addonGrid');
-  grid.innerHTML = ADDONS.map(item => {
-    const price = addonPrice(item, kidsCount);
-    const added = selectedAddons.includes(item.id);
-    const priceNote = item.perChild != null ? ' <span style="font-size:11px;color:var(--gy);font-weight:500">(' + fmtINR(item.perChild) + '/child)</span>' : '';
-    return '<div class="addon-act-card' + (added ? ' added' : '') + '" id="oadd-' + item.id + '">' +
-      '<div class="addon-act-top">' +
-        '<div class="addon-act-ic">' + item.ic + '</div>' +
-        '<div class="addon-act-info">' +
-          '<div class="addon-act-n">' + item.name + '</div>' +
-          '<div class="addon-act-d">' + item.d + '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="addon-act-foot">' +
-        '<div class="addon-act-price">' + fmtINR(price) + priceNote + '</div>' +
-        '<button class="btn-addon-add' + (added ? ' added' : '') + '" onclick="toggleAddon(\'' + item.id + '\')">' + (added ? '✓ Added' : '+ Add') + '</button>' +
-      '</div>' +
-    '</div>';
-  }).join('');
+
+// ── E-INVITE + REEL ──
+function renderEinvite() { renderTierGrid('einviteGrid', EINVITE_TIERS, selectedEinvite); }
+function einviteGridSelect(id) {
+  selectedEinvite = (selectedEinvite && selectedEinvite.id === id) ? null : EINVITE_TIERS.find(t => t.id === id);
+  renderEinvite();
+  updateSticky();
 }
-function toggleAddon(id) {
-  const idx = selectedAddons.indexOf(id);
-  if (idx > -1) selectedAddons.splice(idx, 1);
-  else selectedAddons.push(id);
-  renderAddons();
+function reelPrice() { return REEL_ADDON.flat; }
+function renderReel() { renderToggleGrid('reelGrid', [REEL_ADDON], selectedReel ? [REEL_ADDON.id] : [], () => REEL_ADDON.flat, 'toggleReel'); }
+function toggleReel() {
+  selectedReel = !selectedReel;
+  renderReel();
+  updateSticky();
+}
+
+// ── PINATA ──
+function renderPinata() { renderTierGrid('pinataGrid', PINATA_TIERS, selectedPinata); }
+function pinataGridSelect(id) {
+  selectedPinata = (selectedPinata && selectedPinata.id === id) ? null : PINATA_TIERS.find(t => t.id === id);
+  renderPinata();
+  updateSticky();
+}
+
+// ── PROPS ──
+function propPrice(item, kids) { return item.perChild * kids; }
+function renderProps() { renderToggleGrid('propsGrid', PROPS_ADDONS, selectedProps, propPrice, 'toggleProp'); }
+function toggleProp(id) {
+  const idx = selectedProps.indexOf(id);
+  if (idx > -1) selectedProps.splice(idx, 1);
+  else selectedProps.push(id);
+  renderProps();
+  updateSticky();
+}
+
+// ── ENTRY OPTIONS ──
+function renderEntry() { renderTierGrid('entryGrid', ENTRY_TIERS, selectedEntry); }
+function entryGridSelect(id) {
+  selectedEntry = (selectedEntry && selectedEntry.id === id) ? null : ENTRY_TIERS.find(t => t.id === id);
+  renderEntry();
+  updateSticky();
+}
+
+// ── PHOTOGRAPHER ──
+function renderPhoto() { renderTierGrid('photoGrid', PHOTO_TIERS, selectedPhotographer); }
+function photoGridSelect(id) {
+  selectedPhotographer = (selectedPhotographer && selectedPhotographer.id === id) ? null : PHOTO_TIERS.find(t => t.id === id);
+  renderPhoto();
   updateSticky();
 }
 
@@ -566,10 +727,16 @@ function totalPrice() {
     const item = ADDON_STATIONS.find(a => a.id === id);
     if (item) t += addonStationPrice(item, kidsCount);
   });
-  selectedAddons.forEach(id => {
-    const item = ADDONS.find(a => a.id === id);
-    if (item) t += addonPrice(item, kidsCount);
+  if (selectedMusic) t += selectedMusic.price;
+  if (selectedEinvite) t += selectedEinvite.price;
+  if (selectedReel) t += REEL_ADDON.flat;
+  if (selectedPinata) t += selectedPinata.price;
+  selectedProps.forEach(id => {
+    const item = PROPS_ADDONS.find(a => a.id === id);
+    if (item) t += item.perChild * kidsCount;
   });
+  if (selectedEntry) t += selectedEntry.price;
+  if (selectedPhotographer) t += selectedPhotographer.price;
   return t;
 }
 
@@ -580,8 +747,10 @@ function updateSticky() {
 
   const t = stationTier(kidsCount);
   const parts = [kidsCount + ' kids', t.stations + ' stations', selectedDecor ? (selectedDecor.name + ' decor') : 'No decor'];
-  if (selectedStations.length) parts.push('+' + selectedStations.length + ' extra station' + (selectedStations.length > 1 ? 's' : ''));
-  if (selectedAddons.length) parts.push('+' + selectedAddons.length + ' add-on' + (selectedAddons.length > 1 ? 's' : ''));
+  const extrasCount = selectedStations.length + selectedProps.length +
+    (selectedMusic ? 1 : 0) + (selectedEinvite ? 1 : 0) + (selectedReel ? 1 : 0) +
+    (selectedPinata ? 1 : 0) + (selectedEntry ? 1 : 0) + (selectedPhotographer ? 1 : 0);
+  if (extrasCount) parts.push('+' + extrasCount + ' add-on' + (extrasCount > 1 ? 's' : ''));
   document.getElementById('stickyDetails').textContent = parts.join(' · ');
 }
 
@@ -605,7 +774,13 @@ function proceedToBuilder() {
       kidsCount: kidsCount,
       stationTier: stationTier(kidsCount),
       addonStations: selectedStations,
-      addons: selectedAddons,
+      music: selectedMusic,
+      einvite: selectedEinvite,
+      reel: selectedReel,
+      pinata: selectedPinata,
+      props: selectedProps,
+      entry: selectedEntry,
+      photographer: selectedPhotographer,
       packagePrice: totalPrice(),
       ts: Date.now()
     }));
@@ -616,7 +791,13 @@ function proceedToBuilder() {
 // ── INIT ──
 renderDecor();
 renderAddonStations();
-renderAddons();
+renderMusic();
+renderEinvite();
+renderReel();
+renderPinata();
+renderProps();
+renderEntry();
+renderPhoto();
 changeKids(0);
 </script>
 
