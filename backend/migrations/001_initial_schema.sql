@@ -970,18 +970,78 @@ ON CONFLICT DO NOTHING;
 -- ─── terms_conditions ────────────────────────────────────────
 
 INSERT INTO terms_conditions (version, content, effective_from, is_active) VALUES (
-    'v1.0',
-    'Quotation is provided on the basis of the scope selected with the client. Any changes in requirements may result in a revised quotation.
-Advance payment of 50% is required to reserve the event date.
-The remaining 40% payment is due before the event date.
-The remaining 10% payment is due post the party, on the event date.
-Additional transport charges may apply based on the event location.
-Any additions, deletions, or guest changes must be communicated in advance.
-The number of guests cannot be decreased once the team has reached the venue.
-Furniture and tables can be rented at additional cost.
-No cancellation or refund is allowed on the day of the event.
-The client is responsible for arranging housekeeping for any cleanup required prior to or during the event.
-The Wondershop team is not responsible for movement of chairs, tables, or furniture during the event.',
+    'v2.0',
+    'Wondershop Experiences – Terms & Conditions
+To ensure a smooth planning and execution experience, please read the following terms carefully.
+
+1. Booking Confirmation
+Your event date will be confirmed and blocked only upon receipt of 50% advance payment.
+Until the advance is received, Wondershop Experiences reserves the right to accept another booking for the same date.
+
+2. Payment Terms
+50% Advance: To confirm the booking.
+40% Balance: Payable 2 days prior to the event date.
+Final 10% Balance: Payable before the commencement of the event. Kindly arrange for a family member or authorised representative to be available for the payment, as the host may be occupied with guests during the event.
+
+3. Venue Facilities
+The client shall ensure that our team has access to:
+Clean washroom facilities
+Drinking water
+Basic ventilation (fan and/or air conditioning) from the beginning of setup until completion of pack-up
+
+4. Venue & Society Restrictions
+The client is responsible for informing Wondershop Experiences, in advance, of any venue or society restrictions, including but not limited to:
+Vendor entry permissions or gate passes.
+Vehicle entry restrictions.
+Movement of materials within the premises.
+Service lift availability and usage restrictions.
+Restrictions on electricity usage.
+Restrictions on the use of tapes, adhesives, hooks or hanging decor.
+Noise or music limitations.
+Any restrictions imposed by the venue, society or caterer.
+Any additional costs, delays, penalties or operational challenges arising due to non-disclosure of such restrictions shall be the responsibility of the client.
+
+5. Cancellation Policy
+If Wondershop Experiences is unable to execute the event due to reasons attributable to us, the entire advance amount received will be refunded.
+If the client cancels the booking for any reason, the advance amount paid shall be non-refundable.
+
+6. Guest Count
+The confirmed number of children/participants cannot be reduced on the day of the event.
+Any increase in the number of participants will be charged as per the applicable rates. We cannot guarantee the same rates for any modifications after freezing the event.
+
+7. Additional Requirements
+Any additions or changes to the confirmed scope of work after booking confirmation may attract additional charges.
+Any extra materials, activities, gifts or services requested during or before the event will be billed separately.
+
+8. Product & Material Availability
+The decor elements, props, return gifts, giveaways, stationery, colours and other materials shown during the planning stage are indicative and subject to market availability.
+In the event that a particular item becomes unavailable after booking confirmation, Wondershop Experiences reserves the right to provide a suitable alternative of similar quality and value. We cannot guarantee the availability of the exact product, colour, brand or size discussed during the planning phase.
+
+9. Venue Readiness
+The venue should be clean and ready before our team arrives for setup.
+Our team is not responsible for:
+Cleaning the venue before setup.
+Cleaning the venue during the event.
+Cleaning the venue after the event, unless this has been specifically agreed upon as part of the scope of work.
+
+10. Movement of Furniture
+Our team is not responsible for moving furniture, heavy fixtures or venue equipment.
+If furniture needs to be shifted before, during or after setup, the client shall arrange adequate manpower. If requested in advance, Wondershop Experiences may assist in arranging additional manpower at an extra cost, subject to availability.
+
+11. Damages
+Any damage caused to venue property, decor, equipment or materials by guests, children or third parties during the event shall be the responsibility of the client. Any repair or replacement costs arising from such damage may be recovered from the client, where applicable.
+
+12. Delays Beyond Our Control
+Wondershop Experiences shall not be held responsible for delays or disruption caused by circumstances beyond our reasonable control, including but not limited to:
+Venue or society restrictions.
+Delayed vendor entry.
+Lift unavailability.
+Power outages.
+Extreme weather conditions.
+Government restrictions or force majeure events.
+
+13. Acceptance
+By confirming the booking and making the advance payment, the client acknowledges that they have read, understood and accepted these Terms & Conditions.',
     CURRENT_DATE,
     TRUE
 );
