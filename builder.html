@@ -2197,7 +2197,7 @@ function thumbFor(cat,id){
     const t=THEMES.find(x=>x.id===id);return t?{type:'img',src:'img/theme-'+t.id+'.jpg'}:e('🎨');
   }
   if(cat==='Activities'){
-    if(id==='spy-mission')return e('🎯');
+    if(id==='spy-mission')return{type:'img',src:'img/spy-mission-icon.jpg'};
     if(id&&id.indexOf('station-')===0){
       const it=SPY_ADDON_STATIONS_DATA[id.slice(8)];
       const linked=it&&it.linkAct?ACTS.find(x=>x.id===it.linkAct):null;
