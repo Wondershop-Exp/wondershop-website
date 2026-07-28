@@ -619,7 +619,7 @@ function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
     const added = selectedArr.includes(item.id);
     let priceNote = '';
     if (item.perChild != null) priceNote = ' <span style="font-size:11px;color:var(--gy);font-weight:500">(' + fmtINR(item.perChild) + '/child)</span>';
-    else if (item.flat == null && item.base != null) priceNote = ' <span style="font-size:11px;color:var(--gy);font-weight:500">(upto ' + item.cap + ')</span>';
+    else if (item.flat == null && item.base != null) priceNote = ' <span style="font-size:11px;color:var(--gy);font-weight:500">(upto ' + item.cap + ' kids)</span>';
     return '<div class="addon-act-card' + (added ? ' added' : '') + '">' +
       '<div class="addon-act-top">' +
         '<div class="addon-act-ic">' + item.ic + '</div>' +
