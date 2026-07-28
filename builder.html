@@ -530,8 +530,9 @@ input,textarea,select{font-family:var(--fb)}
 .tnc-wrap{border:1.5px solid var(--li2);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
 .tnc-hdr{padding:12px 14px;font-size:13px;font-weight:600;color:var(--bk);cursor:pointer;background:var(--li3)}
 .tnc-body{padding:0 14px;max-height:0;overflow:hidden;transition:max-height .3s ease}
-.tnc-body.show{max-height:300px;padding:12px 14px}
-.tnc-item{font-size:12px;color:var(--gy);padding:5px 0;border-bottom:1px solid var(--li2)}
+.tnc-body.show{max-height:340px;padding:12px 14px;overflow-y:auto}
+.tnc-item{font-size:12px;color:var(--gy);padding:7px 0;border-bottom:1px solid var(--li2);line-height:1.6}
+.tnc-item strong{display:block;font-size:12.5px;color:var(--bk);margin-bottom:2px}
 .tnc-item:last-child{border-bottom:none}
 .tnc-agree{display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 0}
 .tnc-cb{width:20px;height:20px;border-radius:5px;border:2px solid var(--li2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
@@ -1780,13 +1781,19 @@ input,textarea,select{font-family:var(--fb)}
     <div class="tnc-wrap">
       <div class="tnc-hdr" onclick="this.nextElementSibling.classList.toggle('show')">Read Terms &amp; Conditions ▾</div>
       <div class="tnc-body">
-        <div class="tnc-item">50% advance required to reserve the event date.</div>
-        <div class="tnc-item">Remaining 40% due before event; 10% on event day.</div>
-        <div class="tnc-item">Additional transport charges may apply based on location.</div>
-        <div class="tnc-item">Guest count changes must be communicated in advance.</div>
-        <div class="tnc-item">No cancellation or refund on the day of the event.</div>
-        <div class="tnc-item">Wondershop team not responsible for furniture movement or cleanup.</div>
-        <div class="tnc-item">Wondershop tries their best to match you with the best possible host for your party. In case of any emergency, if the host cancels last minute, Wondershop will try to map you with a like-to-like replacement. In case that does not happen, the entire amount will be refunded.</div>
+        <div class="tnc-item"><strong>1. Booking Confirmation</strong><br>Your event date will be confirmed and blocked only upon receipt of 50% advance payment. Until the advance is received, Wondershop Experiences reserves the right to accept another booking for the same date.</div>
+        <div class="tnc-item"><strong>2. Payment Terms</strong><br>50% advance to confirm the booking · 40% balance payable 2 days prior to the event · Final 10% payable before the event begins. Please arrange for a family member or authorised representative to handle this payment, as the host may be occupied with guests.</div>
+        <div class="tnc-item"><strong>3. Venue Facilities</strong><br>Please ensure our team has access to clean washroom facilities, drinking water, and basic ventilation (fan and/or AC) from the start of setup until pack-up is complete.</div>
+        <div class="tnc-item"><strong>4. Venue &amp; Society Restrictions</strong><br>Please inform us in advance of any vendor entry permissions, vehicle restrictions, service lift limits, electricity restrictions, tape/adhesive/hanging-decor rules, or noise limitations at your venue. Any extra costs or delays from non-disclosure of these restrictions are the client's responsibility.</div>
+        <div class="tnc-item"><strong>5. Cancellation Policy</strong><br>If we're unable to execute the event for reasons attributable to us, the full advance is refunded. If the client cancels for any reason, the advance paid is non-refundable.</div>
+        <div class="tnc-item"><strong>6. Guest Count</strong><br>The confirmed headcount cannot be reduced on the day of the event. Any increase will be charged at applicable rates — we can't guarantee the same rates for changes made after the event is frozen.</div>
+        <div class="tnc-item"><strong>7. Additional Requirements</strong><br>Any changes to the confirmed scope after booking, or extra materials/activities/gifts/services requested during or before the event, will be billed separately.</div>
+        <div class="tnc-item"><strong>8. Product &amp; Material Availability</strong><br>Decor, props, return gifts and other materials shown during planning are indicative and subject to market availability. If an item becomes unavailable, we'll provide a suitable alternative of similar quality and value — we can't guarantee the exact product, colour, brand or size discussed.</div>
+        <div class="tnc-item"><strong>9. Venue Readiness</strong><br>The venue should be clean and ready before our team arrives. We're not responsible for cleaning the venue before, during, or after the event unless specifically agreed as part of the scope of work.</div>
+        <div class="tnc-item"><strong>10. Movement of Furniture</strong><br>Our team is not responsible for moving furniture, heavy fixtures or venue equipment. If shifting is needed, the client should arrange manpower — we can assist at an extra cost if requested in advance, subject to availability.</div>
+        <div class="tnc-item"><strong>11. Damages</strong><br>Any damage to venue property, decor or equipment caused by guests, children or third parties during the event is the client's responsibility, and repair/replacement costs may be recovered accordingly.</div>
+        <div class="tnc-item"><strong>12. Delays Beyond Our Control</strong><br>We're not responsible for delays caused by venue/society restrictions, delayed vendor entry, lift unavailability, power outages, extreme weather, or government restrictions/force majeure events.</div>
+        <div class="tnc-item"><strong>13. Acceptance</strong><br>By confirming the booking and making the advance payment, you acknowledge that you have read, understood and accepted these Terms &amp; Conditions.</div>
       </div>
     </div>
     <div class="tnc-agree" onclick="togTNC()">
