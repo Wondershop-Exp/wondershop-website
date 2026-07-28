@@ -504,13 +504,16 @@ const DECOR_TIERS = [
 ];
 
 // Activity Addon Stations — some flat, some tiered above 30 kids.
+// discountFromGeneric mirrors the matching generic-catalogue activity's real
+// per-child rate (Cap Decoration: r1/r2/r3 850/800/750) — shown struck-through
+// next to the discounted spy price so the saving is visible.
 const ADDON_STATIONS = [
   {id:'s1', ic:'🔬', name:'Science Show', d:'Live science demo that wows the whole party.', flat:20000},
-  {id:'s2', ic:'🧢', name:'Cap Decor', d:'Kids decorate their own caps to take home.', base:12000, cap:30, per:400},
+  {id:'s2', ic:'🧢', name:'Cap Decor', d:'Kids decorate their own caps to take home.', base:12000, cap:30, per:400, discountFromGeneric:{r1:850,r2:800,r3:750}},
   {id:'s3', ic:'🕵️', name:'MDF Spy Badge', d:'Paint &amp; personalize a wooden spy badge.', base:9000, cap:30, per:300},
   {id:'s4', ic:'🧪', name:'Slime', d:'Hands-on slime making station.', base:11000, cap:30, per:450},
-  {id:'s7', ic:'🕶️', name:'Sunglasses Decor', d:'Customise &amp; take home a unique pair.', base:12000, cap:30, per:400},
-  {id:'s8', ic:'🎨', name:'Mini Art Station', d:'A compact creative art corner.', flat:6000},
+  {id:'s7', ic:'🕶️', name:'Sunglasses Decor', d:'Customise &amp; take home a unique pair.', r1:350, r2:320, r3:300},
+  {id:'s8', ic:'🎨', name:'Mini Art Station', d:'A compact creative art corner.', flat:5000},
   {id:'s9', ic:'🔦', name:'Laser Tunnel', d:'Entry / photo laser tunnel obstacle course.', flat:4000},
   {id:'s10', ic:'🌑', name:'Dark Room', d:'Blacked-out room for spy games.', flat:12000},
 ];
@@ -619,7 +622,15 @@ function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
     const added = selectedArr.includes(item.id);
     let priceNote = '';
     if (item.perChild != null) priceNote = ' <span style="font-size:11px;color:var(--gy);font-weight:500">(' + fmtINR(item.perChild) + '/child)</span>';
+    else if (item.r1 != null) priceNote = ' <span style="font-size:11px;color:var(--gy);font-weight:500">(per child)</span>';
     else if (item.flat == null && item.base != null) priceNote = ' <span style="font-size:11px;color:var(--gy);font-weight:500">(upto ' + item.cap + ' kids)</span>';
+    let priceHtml = fmtINR(price) + priceNote;
+    if (item.discountFromGeneric) {
+      const g = item.discountFromGeneric;
+      const wasR = kidsCount <= 12 ? g.r1 : kidsCount <= 25 ? g.r2 : g.r3;
+      const wasPrice = wasR * kidsCount;
+      if (wasPrice > price) priceHtml = '<s style="color:var(--gy);font-weight:500;font-size:13px;margin-right:5px">' + fmtINR(wasPrice) + '</s>' + fmtINR(price) + priceNote;
+    }
     return '<div class="addon-act-card' + (added ? ' added' : '') + '">' +
       '<div class="addon-act-top">' +
         '<div class="addon-act-ic">' + item.ic + '</div>' +
@@ -629,7 +640,7 @@ function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
         '</div>' +
       '</div>' +
       '<div class="addon-act-foot">' +
-        '<div class="addon-act-price">' + fmtINR(price) + priceNote + '</div>' +
+        '<div class="addon-act-price">' + priceHtml + '</div>' +
         '<button class="btn-addon-add' + (added ? ' added' : '') + '" onclick="' + toggleFnName + '(\'' + item.id + '\')">' + (added ? '✓ Added' : '+ Add') + '</button>' +
       '</div>' +
     '</div>';
@@ -647,6 +658,7 @@ function decorGridSelect(id) {
 // ── ADDON STATIONS ──
 function addonStationPrice(item, kids) {
   if (item.flat != null) return item.flat;
+  if (item.r1 != null) { const r = kids <= 12 ? item.r1 : kids <= 25 ? item.r2 : item.r3; return r * kids; }
   const extra = Math.max(0, kids - item.cap);
   return item.base + extra * item.per;
 }

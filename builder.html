@@ -2047,21 +2047,33 @@ function spyStationTier(kids){
   return{stations:8,rate:1150};
 }
 function spyStationsPrice(kids){return Math.max(25000,kids*spyStationTier(kids).rate);}
-// Spy package "Activity Addon Stations" — same prices as spy-basic.html.
-// linkAct points at a real ACTS catalogue entry to borrow its thumbnail/emoji
-// from (never its price) where a genuine match exists.
+// Price of a real ACTS catalogue activity by id, independent of actPrice()'s
+// spy special-casing — used to compare/borrow generic-catalogue pricing.
+function genericActPrice(actId,kids){
+  const a=ACTS.find(x=>x.id===actId);if(!a)return null;
+  const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;
+}
+// Spy package "Activity Addon Stations". linkAct points at a real ACTS
+// catalogue entry to borrow its thumbnail/emoji from. useGenericPrice means
+// pricing is fully delegated to that linked activity's own rate (no spy-
+// specific number at all). discountFromLink means the spy price is a
+// deliberate discount off the linked activity's generic rate — shown
+// struck-through on the review page so the saving is visible; if the
+// customer instead adds the plain catalogue activity (not via this package
+// hand-off), it prices at the normal, undiscounted rate automatically.
 const SPY_ADDON_STATIONS_DATA={
   s1:{n:'Science Show',flat:20000},
-  s2:{n:'Cap Decor',base:12000,cap:30,per:400,linkAct:'a9'},
+  s2:{n:'Cap Decor',base:12000,cap:30,per:400,linkAct:'a9',discountFromLink:true},
   s3:{n:'MDF Spy Badge',base:9000,cap:30,per:300},
   s4:{n:'Slime',base:11000,cap:30,per:450},
-  s7:{n:'Sunglasses Decor',base:12000,cap:30,per:400,linkAct:'a22'},
-  s8:{n:'Mini Art Station',flat:6000,linkAct:'a16'},
+  s7:{n:'Sunglasses Decor',linkAct:'a22',useGenericPrice:true},
+  s8:{n:'Mini Art Station',flat:5000,linkAct:'a16'},
   s9:{n:'Laser Tunnel',flat:4000},
   s10:{n:'Dark Room',flat:12000},
 };
 function spyStationAddonPrice(code,kids){
   const it=SPY_ADDON_STATIONS_DATA[code];if(!it)return 0;
+  if(it.useGenericPrice)return genericActPrice(it.linkAct,kids);
   return it.flat!=null?it.flat:it.base+Math.max(0,kids-it.cap)*it.per;
 }
 function actPrice(a,kids){
@@ -2088,7 +2100,7 @@ const ACTS=[
   {id:'a14',n:'Journaling',e:'📔',img:'act-yoga',cat:'craft',age:'7-12',dur:'45 min',req:'Tables & chairs',r1:850,r2:850,r3:850,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)','linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:true,rating:4.6,cnt:25},
   // ── Experiences (flat rate) ──
   {id:'a15',n:'Tattoo Station',e:'🖊️',img:'act-mystery',cat:'experience',age:'5-12',dur:'Up to 3 hrs',req:'Any space',r1:2500,r2:2500,r3:2500,flat:true,bgs:['linear-gradient(135deg,#374151,#6B7280)'],tag:'pop',pers:false,rating:4.8,cnt:75},
-  {id:'a16',n:'Mini Art Station',e:'🖌️',img:'act-art',cat:'experience',age:'4-12',dur:'Session',req:'Tables & chairs',r1:3500,r2:4000,r3:5000,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'',pers:false,rating:4.7,cnt:50},
+  {id:'a16',n:'Mini Art Station',e:'🖌️',img:'act-art',cat:'experience',age:'4-12',dur:'Session',req:'Tables & chairs',r1:5000,r2:5000,r3:5000,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'',pers:false,rating:4.7,cnt:50},
   {id:'a17',n:'Mascot Visit',e:'🦸',img:'act-immersive',cat:'experience',age:'3-12',dur:'2 hrs',req:'Any space',r1:4000,r2:4000,r3:4000,flat:true,bgs:['linear-gradient(135deg,#E65A96,#F57A1A)','linear-gradient(135deg,#F57A1A,#F2D147)'],tag:'pop',pers:false,rating:4.9,cnt:60},
   {id:'a18',n:'Pottery Station',e:'🏺',img:'act-science',cat:'experience',age:'5-12',dur:'3 hrs',req:'Tables & aprons',r1:5000,r2:5000,r3:5000,flat:true,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)','linear-gradient(135deg,#52C470,#BCD8E8)'],tag:'new',pers:false,rating:4.7,cnt:30},
   {id:'a19',n:'Storytelling',e:'📖',img:'act-magic',cat:'experience',age:'3-10',dur:'Up to 2 hrs',req:'Seated space',r1:11000,r2:12500,r3:15000,flat:true,bgs:['linear-gradient(135deg,#191919,#374151)','linear-gradient(135deg,#B59DDE,#EDE6FA)'],tag:'rec',pers:false,rating:4.9,cnt:85},
@@ -2145,7 +2157,12 @@ function cItems(){
   if(S.decor)items.push({cat:'Decor',n:S.decor.n,p:S.decor.p,id:S.decor.id});
   S.activities.forEach(a=>{
     const nm=a.id==='spy-mission'?(spyStationTier(S.kidsCount).stations+' Mission Stations ('+S.kidsCount+' kids)'):a.n;
-    items.push({cat:'Activities',n:nm,p:actPrice(a,S.kidsCount),id:a.id});
+    const item={cat:'Activities',n:nm,p:actPrice(a,S.kidsCount),id:a.id};
+    if(a.id&&a.id.indexOf('station-')===0){
+      const it=SPY_ADDON_STATIONS_DATA[a.id.slice(8)];
+      if(it&&it.discountFromLink&&it.linkAct){const wasP=genericActPrice(it.linkAct,S.kidsCount);if(wasP!=null&&wasP>item.p)item.wasP=wasP;}
+    }
+    items.push(item);
   });
   if(S.host)items.push({cat:'Host',n:S.host.tier+' Host',p:S.host.p,id:S.host.tier});
   if(S.dj)items.push({cat:'DJ',n:S.dj.tier,p:S.dj.p,id:S.dj.tier});
@@ -2720,7 +2737,8 @@ function buildRev(){
       const thumbHtml=th.type==='img'
         ? '<div class="rv-thumb"><img src="'+th.src+'" alt="" loading="lazy" onerror="rvImgErr(this)"></div>'
         : '<div class="rv-thumb rv-thumb-e" style="background:'+th.bg+'">'+th.e+'</div>';
-      html+='<div class="rv-item">'+thumbHtml+'<span class="rv-item-name">'+i.n+'</span><span class="rv-item-price">₹'+i.p.toLocaleString('en-IN')+'</span><button class="rv-item-rm" title="Remove" onclick="rmRevItem(\''+cat+'\',\''+i.id+'\')">✕</button></div>';
+      const priceHtml=i.wasP?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:12px">₹'+i.wasP.toLocaleString('en-IN')+'</s>₹'+i.p.toLocaleString('en-IN'):'₹'+i.p.toLocaleString('en-IN');
+      html+='<div class="rv-item">'+thumbHtml+'<span class="rv-item-name">'+i.n+'</span><span class="rv-item-price">'+priceHtml+'</span><button class="rv-item-rm" title="Remove" onclick="rmRevItem(\''+cat+'\',\''+i.id+'\')">✕</button></div>';
     });
     html+='</div></div>';
   });
