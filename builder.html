@@ -2036,7 +2036,21 @@ const STD=[
   {id:'std4',n:'3 Flex + Arch',e:'🌟',img:'std-flex3',bg:'linear-gradient(135deg,#EDE6FA,#FAFAFA)',p:9000,d:'3 printed flex panels + arch · Grand setup · 4 hrs'}
 ];
 // actPrice: r1=<12 kids, r2=13-25 kids, r3=>25 kids. flat=true → rate is total, false → rate × kids
-function actPrice(a,kids){const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;}
+// Spy package "Mission Stations" pricing — same tiers/minimum-bill formula as
+// spy-basic.html's stationTier()/stationsPrice(), kept here so the review-page
+// line item stays live if S.kidsCount changes after the package hand-off.
+function spyStationTier(kids){
+  if(kids<=20)return{stations:4,rate:1250};
+  if(kids<=30)return{stations:5,rate:1200};
+  if(kids<=40)return{stations:6,rate:1200};
+  if(kids<=50)return{stations:7,rate:1200};
+  return{stations:8,rate:1150};
+}
+function spyStationsPrice(kids){return Math.max(25000,kids*spyStationTier(kids).rate);}
+function actPrice(a,kids){
+  if(a.id==='spy-mission')return spyStationsPrice(kids);
+  const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;
+}
 const ACTS=[
   // ── Art (per child) ──
   {id:'a1',n:'Canvas Painting',e:'🖼️',img:'act-canvas-painting',realImg:true,cat:'art',age:'4-12',dur:'45 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'pop',pers:true,rating:4.8,cnt:95},
@@ -2111,7 +2125,10 @@ let actFilter='all';
 function cItems(){
   const items=[];
   if(S.decor)items.push({cat:'Decor',n:S.decor.n,p:S.decor.p,id:S.decor.id});
-  S.activities.forEach(a=>items.push({cat:'Activities',n:a.n,p:actPrice(a,S.kidsCount),id:a.id}));
+  S.activities.forEach(a=>{
+    const nm=a.id==='spy-mission'?(spyStationTier(S.kidsCount).stations+' Mission Stations ('+S.kidsCount+' kids)'):a.n;
+    items.push({cat:'Activities',n:nm,p:actPrice(a,S.kidsCount),id:a.id});
+  });
   if(S.host)items.push({cat:'Host',n:S.host.tier+' Host',p:S.host.p,id:S.host.tier});
   if(S.dj)items.push({cat:'DJ',n:S.dj.tier,p:S.dj.p,id:S.dj.tier});
   if(S.pinata){const pt=rawNoInv();const fp=pt>=S.FPT?0:S.pinata.p;items.push({cat:'Pinata',n:S.pinata.n+(pt>=S.FPT?' (FREE)':''),p:fp,id:S.pinata.id});}
@@ -3095,12 +3112,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       // Spy Host — always included in the package, bundled into the station price
       S.host={tier:'Spy',p:0};
       // Mission Stations — the core kids-scaled station package (always included).
-      // Shown as an Activities line item so it's editable like any other activity.
-      if(pkgData.stationTier){
-        const st=pkgData.stationTier;
-        const stationsCost=Math.max(25000,kids*st.rate);
-        S.activities.push({id:'spy-mission',n:st.stations+' Mission Stations ('+kids+' kids)',r1:stationsCost,r2:stationsCost,r3:stationsCost,flat:true});
-      }
+      // Shown as an Activities line item; actPrice() special-cases this id so
+      // the price (and cItems()'s name label) stay live if kidsCount changes later.
+      if(pkgData.stationTier)S.activities.push({id:'spy-mission',n:pkgData.stationTier.stations+' Mission Stations ('+kids+' kids)'});
       // Activity Addon Stations selected on the package page (same data/pricing as spy-basic.html)
       const SPY_ADDON_STATIONS=[
         {id:'s1',n:'Science Show',flat:20000},{id:'s2',n:'Cap Decor',base:12000,cap:30,per:400},
