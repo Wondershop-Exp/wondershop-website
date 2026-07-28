@@ -2161,6 +2161,10 @@ function cItems(){
 function thumbFor(cat,id){
   const e=(ch,bg)=>({type:'e',e:ch,bg:bg||'var(--li2)'});
   if(cat==='Decor'){
+    if(id&&id.indexOf('spy-')===0){
+      const map={'spy-basic':'spy-decor-basic','spy-p1':'spy-decor-1panel','spy-p2':'spy-decor-2panel','spy-sig':'spy-decor-signature'};
+      const f=map[id];return f?{type:'img',src:'img/'+f+'.jpg'}:e('🎈');
+    }
     if(id&&id.indexOf('std')===0){const s=STD.find(x=>x.id===id);return s?{type:'img',src:'img/'+s.img+'.jpg'}:e('🎈');}
     const t=THEMES.find(x=>x.id===id);return t?{type:'img',src:'img/theme-'+t.id+'.jpg'}:e('🎨');
   }
@@ -2179,7 +2183,11 @@ function thumbFor(cat,id){
   if(cat==='Pinata'){const p=PINATAS.find(x=>x.id===id);return p?{type:'img',src:'img/'+p.img+'.jpg'}:e('🪅');}
   if(cat==='E-Invite'){const inv=INVITES.find(x=>x.id===id);return inv?{type:'img',src:'einvites/'+inv.file}:e('💌');}
   if(cat==='Photographer'){if(id==='reel')return e('🎬');const map={Starter:'photo-starter',Premium:'photo-premium',Signature:'photo-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('📷');}
-  if(cat==='Return Gifts'){const g=GIFTS.find(x=>x.id===id);if(!g)return e('🎁');return g.img?{type:'img',src:'img/'+g.img}:e(g.e,g.bg);}
+  if(cat==='Return Gifts'){
+    if(id==='prop-pr1')return{type:'img',src:'img/spy-prop-sunglasses.jpg'};
+    if(id==='prop-pr2')return e('🧢'); // no real Caps photo uploaded yet — placeholder emoji
+    const g=GIFTS.find(x=>x.id===id);if(!g)return e('🎁');return g.img?{type:'img',src:'img/'+g.img}:e(g.e,g.bg);
+  }
   if(cat==='Addons')return e('🕵️');
   return e('✨');
 }
