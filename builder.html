@@ -1591,7 +1591,7 @@ input,textarea,select{font-family:var(--fb)}
     <div class="reel-row" id="reelRow" style="display:none">
       <div>
         <div class="reel-info">Add 30-second Instagram Reel</div>
-        <div class="reel-price">Edited highlights reel · ₹919 add-on</div>
+        <div class="reel-price">Edited highlights reel · ₹1,000 add-on</div>
       </div>
       <button class="reel-tog" id="reelTog" onclick="togReel()"></button>
     </div>
@@ -2168,7 +2168,7 @@ function cItems(){
   if(S.dj)items.push({cat:'DJ',n:S.dj.tier,p:S.dj.p,id:S.dj.tier});
   if(S.pinata){const pt=rawNoInv();const isFree=pt>=S.FPT;const fp=isFree?0:S.pinata.p;const pItem={cat:'Pinata',n:S.pinata.n+(isFree?' (FREE)':''),p:fp,id:S.pinata.id};if(isFree&&S.pinata.p>0)pItem.wasP=S.pinata.p;items.push(pItem);}
   if(S.einvite){const gt=rawNoInv();const isFree=gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n+(isFree?' (FREE)':''),p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
-  if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});if(S.addReel)items.push({cat:'Photographer',n:'30-sec Reel',p:919,id:'reel'});}
+  if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});if(S.addReel)items.push({cat:'Photographer',n:'30-sec Reel',p:1000,id:'reel'});}
   S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty,id:g.id}));
   S.spyExtras.forEach(x=>items.push({cat:'Addons',n:x.n,p:x.p,id:x.id}));
   return items;
@@ -2209,7 +2209,7 @@ function thumbFor(cat,id){
   return e('✨');
 }
 function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e');box.style.background='var(--li2)';box.textContent='✨';}
-function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p+(S.addReel?919:0);S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
+function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p+(S.addReel?1000:0);S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
 function rawT(){return cItems().reduce((s,i)=>s+i.p,0)}
 function svcC(){let c=0;if(S.decor)c++;if(S.activities.length)c++;if(S.host)c++;if(S.dj)c++;if(S.pinata)c++;if(S.einvite)c++;if(S.photo)c++;if(S.gifts.length)c++;if(S.spyExtras.length)c++;return c}
 function autoDp(){const c=svcC();if(c>=6)return 10;if(c>=4)return 8;if(c>=2)return 5;return 0}
@@ -3182,9 +3182,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(pkgData.music)S.dj={tier:pkgData.music.name,p:pkgData.music.price};
       // E-Invite
       if(pkgData.einvite)S.einvite={id:'spy-'+pkgData.einvite.id,n:pkgData.einvite.name,p:pkgData.einvite.price};
-      // Birthday Reel
       // Birthday Reel — tied to the site's existing Photographer-step reel
-      // add-on (S.addReel, ₹919), not a separate spy-specific price. Note:
+      // add-on (S.addReel, ₹1,000), not a separate spy-specific price. Note:
       // like the generic builder, this only shows on the review page if a
       // Photographer tier is also selected (cItems() nests it under S.photo).
       if(pkgData.reel)S.addReel=true;

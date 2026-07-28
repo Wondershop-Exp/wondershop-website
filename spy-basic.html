@@ -530,8 +530,8 @@ const EINVITE_TIERS = [
   {id:'e2', name:'Video + Reminder', price:2000, d:'Video invite plus a reminder message closer to the date.'},
 ];
 // Birthday Reel — independent single toggle addon.
-// Matches the site's existing Photographer-step reel add-on price (₹919).
-const REEL_ADDON = {id:'o8', ic:'📱', name:'Birthday Reel', d:'A shareable highlight reel.', flat:919};
+// Matches the site's existing Photographer-step reel add-on price (₹1,000).
+const REEL_ADDON = {id:'o8', ic:'📱', name:'Birthday Reel', d:'A shareable highlight reel.', flat:1000};
 // Pinata — single-select, optional.
 const PINATA_TIERS = [
   {id:'pn1', name:'Square', price:1250, d:'Square spy-themed pinata.'},
@@ -688,8 +688,28 @@ function einviteGridSelect(id) {
   updateSticky();
 }
 function reelPrice() { return REEL_ADDON.flat; }
-function renderReel() { renderToggleGrid('reelGrid', [REEL_ADDON], selectedReel ? [REEL_ADDON.id] : [], () => REEL_ADDON.flat, 'toggleReel'); }
+// Reel is an add-on to photography — disabled with an explanatory message
+// until a Photographer tier is selected.
+function renderReel() {
+  const grid = document.getElementById('reelGrid');
+  if (!selectedPhotographer) {
+    selectedReel = false;
+    grid.innerHTML =
+      '<div class="addon-act-card" style="opacity:.65;background:var(--li3)">' +
+        '<div class="addon-act-top">' +
+          '<div class="addon-act-ic">' + REEL_ADDON.ic + '</div>' +
+          '<div class="addon-act-info">' +
+            '<div class="addon-act-n" style="color:var(--gy)">' + REEL_ADDON.name + '</div>' +
+            '<div class="addon-act-d" style="color:var(--gy)">This addon is available only if you add a photographer to your package.</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    return;
+  }
+  renderToggleGrid('reelGrid', [REEL_ADDON], selectedReel ? [REEL_ADDON.id] : [], () => REEL_ADDON.flat, 'toggleReel');
+}
 function toggleReel() {
+  if (!selectedPhotographer) return;
   selectedReel = !selectedReel;
   renderReel();
   updateSticky();
@@ -727,6 +747,7 @@ function renderPhoto() { renderTierGrid('photoGrid', PHOTO_TIERS, selectedPhotog
 function photoGridSelect(id) {
   selectedPhotographer = (selectedPhotographer && selectedPhotographer.id === id) ? null : PHOTO_TIERS.find(t => t.id === id);
   renderPhoto();
+  renderReel();
   updateSticky();
 }
 
