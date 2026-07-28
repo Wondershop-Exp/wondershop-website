@@ -334,10 +334,10 @@ button{cursor:pointer;font-family:var(--fb)}
   <section class="sec" id="decorSection">
     <div class="act-section-hdr container">
       <h2 class="sec-h2">Choose your <em>Decor</em></h2>
-      <span class="act-badge">Priced separately · Pick one</span>
+      <span class="act-badge">Priced separately · Optional</span>
     </div>
     <div class="container">
-      <p class="sec-sub">Decor is not bundled into the mission-station price — pick the tier that fits your venue and budget.</p>
+      <p class="sec-sub">Decor is not bundled into the mission-station price. Pick a tier below, or click your selected tier again to remove decor from your total.</p>
       <div class="act-grid" id="decorGrid"></div>
     </div>
   </section>
@@ -399,13 +399,12 @@ document.getElementById('nav-ham').addEventListener('click',()=>document.getElem
 
 // ── DATA ──
 // All prices below are exactly as briefed — nothing estimated or invented.
-// Decor tiers: Basic includes a documented item list; 1 Panel / 2 Panel prices
-// are confirmed but their exact inclusions weren't itemized, so those two
-// cards intentionally show price + tier name only rather than guessing contents.
+// Decor is fully optional — clicking a selected tier again deselects it and
+// removes decor from the total (see selectDecor()).
 const DECOR_TIERS = [
   {id:'basic', name:'Basic', price:5000, d:'Balloon arch, Happy Birthday bunting, name bunting, age foil balloons — up to 200 balloons.'},
-  {id:'p1', name:'1 Panel', price:8000, d:'Adds 1 printed spy-theme decor panel. Full breakup shared on your planning call.'},
-  {id:'p2', name:'2 Panel', price:15000, d:'Adds 2 printed spy-theme decor panels for bigger backdrop coverage.'},
+  {id:'p1', name:'1 Panel', price:8000, d:'1 flex panel (4x7ft) with a balloon arch, Happy Birthday LED light, name on flex, age foil balloon.'},
+  {id:'p2', name:'2 Panel', price:15000, d:'2 flex panels — 8ft total decor width, 3ft age light, themed cutouts, welcome board.'},
   {id:'sig', name:'Signature', price:25000, d:'Welcome arch, welcome board, spy cutouts, 3 panel decor, 3ft age light, Happy Birthday LED (if needed), name on flex.'},
 ];
 
@@ -473,10 +472,12 @@ function changeKids(d) {
 }
 
 // ── DECOR SELECTION ──
+// selectedDecor can be null — clicking an already-selected tier deselects it,
+// and no decor cost is added to the total.
 function renderDecor() {
   const grid = document.getElementById('decorGrid');
   grid.innerHTML = DECOR_TIERS.map(t =>
-    '<div class="act-card' + (t.id === selectedDecor.id ? ' sel' : '') + '" data-decor="' + t.id + '" onclick="selectDecor(\'' + t.id + '\')">' +
+    '<div class="act-card' + (selectedDecor && t.id === selectedDecor.id ? ' sel' : '') + '" data-decor="' + t.id + '" onclick="selectDecor(\'' + t.id + '\')">' +
       '<div class="act-card-n">' + t.name + '</div>' +
       '<div class="act-card-p">' + fmtINR(t.price) + '</div>' +
       '<div class="act-card-d">' + t.d + '</div>' +
@@ -484,7 +485,7 @@ function renderDecor() {
   ).join('');
 }
 function selectDecor(id) {
-  selectedDecor = DECOR_TIERS.find(t => t.id === id);
+  selectedDecor = (selectedDecor && selectedDecor.id === id) ? null : DECOR_TIERS.find(t => t.id === id);
   renderDecor();
   updateSticky();
 }
@@ -560,7 +561,7 @@ function toggleAddon(id) {
 // ── PRICING ──
 function totalPrice() {
   let t = stationsPrice(kidsCount);
-  t += selectedDecor.price;
+  if (selectedDecor) t += selectedDecor.price;
   selectedStations.forEach(id => {
     const item = ADDON_STATIONS.find(a => a.id === id);
     if (item) t += addonStationPrice(item, kidsCount);
@@ -578,7 +579,7 @@ function updateSticky() {
   document.getElementById('heroPrice').textContent = fmtINR(total);
 
   const t = stationTier(kidsCount);
-  const parts = [kidsCount + ' kids', t.stations + ' stations', selectedDecor.name + ' decor'];
+  const parts = [kidsCount + ' kids', t.stations + ' stations', selectedDecor ? (selectedDecor.name + ' decor') : 'No decor'];
   if (selectedStations.length) parts.push('+' + selectedStations.length + ' extra station' + (selectedStations.length > 1 ? 's' : ''));
   if (selectedAddons.length) parts.push('+' + selectedAddons.length + ' add-on' + (selectedAddons.length > 1 ? 's' : ''));
   document.getElementById('stickyDetails').textContent = parts.join(' · ');
