@@ -3183,7 +3183,11 @@ document.addEventListener('DOMContentLoaded',()=>{
       // E-Invite
       if(pkgData.einvite)S.einvite={id:'spy-'+pkgData.einvite.id,n:pkgData.einvite.name,p:pkgData.einvite.price};
       // Birthday Reel
-      if(pkgData.reel)S.spyExtras.push({id:'reel',n:'Birthday Reel',p:1000});
+      // Birthday Reel — tied to the site's existing Photographer-step reel
+      // add-on (S.addReel, ₹919), not a separate spy-specific price. Note:
+      // like the generic builder, this only shows on the review page if a
+      // Photographer tier is also selected (cItems() nests it under S.photo).
+      if(pkgData.reel)S.addReel=true;
       // Pinata
       if(pkgData.pinata)S.pinata={id:'spy-'+pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
       // Props (per-child) — shown under Return Gifts, same {id,n,unit,qty} shape
