@@ -2118,7 +2118,7 @@ function cItems(){
   if(S.einvite){const gt=rawNoInv();const ep=gt>=S.FIT?0:S.einvite.p;items.push({cat:'E-Invite',n:S.einvite.n+(gt>=S.FIT?' (FREE)':''),p:ep,id:S.einvite.id});}
   if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});if(S.addReel)items.push({cat:'Photographer',n:'30-sec Reel',p:919,id:'reel'});}
   S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty,id:g.id}));
-  S.spyExtras.forEach(x=>items.push({cat:'Spy Extra',n:x.n,p:x.p,id:x.id}));
+  S.spyExtras.forEach(x=>items.push({cat:'Addons',n:x.n,p:x.p,id:x.id}));
   return items;
 }
 // Resolves a rectangular thumbnail (photo, or emoji tile as fallback) for a
@@ -2136,7 +2136,7 @@ function thumbFor(cat,id){
   if(cat==='E-Invite'){const inv=INVITES.find(x=>x.id===id);return inv?{type:'img',src:'einvites/'+inv.file}:e('💌');}
   if(cat==='Photographer'){if(id==='reel')return e('🎬');const map={Starter:'photo-starter',Premium:'photo-premium',Signature:'photo-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('📷');}
   if(cat==='Return Gifts'){const g=GIFTS.find(x=>x.id===id);if(!g)return e('🎁');return g.img?{type:'img',src:'img/'+g.img}:e(g.e,g.bg);}
-  if(cat==='Spy Extra')return e('🕵️');
+  if(cat==='Addons')return e('🕵️');
   return e('✨');
 }
 function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e');box.style.background='var(--li2)';box.textContent='✨';}
@@ -2215,6 +2215,9 @@ function goTo(id){
 }
 function goBack(){
   const prev={s0:'shome',s1:'s0',s2:'s1',s3:'s2',s4:'s3',s5:'s4',s6:'s5',s7:'s6',s8:'s7',s9:'s8',sco:'s9',slead:'s9',sleadsent:'slead',sconf:'shome'};
+  // Landed on Review directly from a package page (e.g. spy-basic.html) —
+  // Back should return to that package page, not step into the builder flow.
+  if(S.screen==='s9'&&S._pkgOrigin){window.location.href=S._pkgOrigin+'.html';return;}
   if(S.fromReview&&['s1','s2','s3','s4','s5','s6','s7','s8'].includes(S.screen)){S.fromReview=false;goTo('s9');return;}
   const p=prev[S.screen];if(p)goTo(p);
 }
@@ -2648,13 +2651,16 @@ function buildRev(){
   const body=document.getElementById('rvBody');
   const items=cItems();const cats={};items.forEach(i=>{if(!cats[i.cat])cats[i.cat]=[];cats[i.cat].push(i);});
   const sm={Decor:1,Activities:2,Host:3,DJ:4,Pinata:5,'E-Invite':6,Photographer:7,'Return Gifts':8};
-  const ord=['Decor','Activities','Host','DJ','Pinata','E-Invite','Photographer','Return Gifts'];
+  const ord=['Decor','Activities','Host','DJ','Pinata','E-Invite','Photographer','Return Gifts','Addons'];
   let html='';
   ord.forEach(cat=>{
     const its=cats[cat];
-    const actionHtml=its
-      ? '<span class="edit-link" onclick="editFR('+sm[cat]+')">Edit</span>'
-      : '<span class="add-link" onclick="editFR('+sm[cat]+')">+ Add</span>';
+    // "Addons" (e.g. spy package Entry Options) has no dedicated builder step —
+    // skip it entirely when empty, and don't show an Edit/+Add link when present.
+    if(!its&&!sm[cat])return;
+    const actionHtml=!sm[cat]?''
+      :its?'<span class="edit-link" onclick="editFR('+sm[cat]+')">Edit</span>'
+      :'<span class="add-link" onclick="editFR('+sm[cat]+')">+ Add</span>';
     html+='<div class="rv-sec"><div class="rv-hdr"><div class="rv-cat">'+cat+'</div>'+actionHtml+'</div><div class="rv-items">';
     if(!its)html+='<div class="rv-empty">Not added — skipped</div>';
     else its.forEach(i=>{
@@ -2684,7 +2690,7 @@ function rmRevItem(cat,id){
   else if(cat==='E-Invite')S.einvite=null;
   else if(cat==='Photographer'){if(id==='reel')S.addReel=false;else{S.photo=null;S.addReel=false;}}
   else if(cat==='Return Gifts')S.gifts=S.gifts.filter(g=>g.id!==id);
-  else if(cat==='Spy Extra')S.spyExtras=S.spyExtras.filter(x=>x.id!==id);
+  else if(cat==='Addons')S.spyExtras=S.spyExtras.filter(x=>x.id!==id);
   buildRev();
   updBB(S.screen);
 }
@@ -3080,16 +3086,20 @@ document.addEventListener('DOMContentLoaded',()=>{
     }catch(e){}
   }else if(urlPkg==='spy-basic'){
     try{
+      S._pkgOrigin='spy-basic';
       const pkgData=JSON.parse(localStorage.getItem('ws_pkg')||'{}');
       const kids=pkgData.kidsCount||25;
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
       // Decor tier chosen on the package page — fully optional, may be absent
       if(pkgData.decorTier)S.decor={n:pkgData.decorTier.name+' Decor',p:pkgData.decorTier.price,id:'spy-'+pkgData.decorTier.id};
-      // Mission Stations — the core kids-scaled station package (always included)
+      // Spy Host — always included in the package, bundled into the station price
+      S.host={tier:'Spy',p:0};
+      // Mission Stations — the core kids-scaled station package (always included).
+      // Shown as an Activities line item so it's editable like any other activity.
       if(pkgData.stationTier){
         const st=pkgData.stationTier;
         const stationsCost=Math.max(25000,kids*st.rate);
-        S.spyExtras.push({id:'mission-stations',n:st.stations+' Mission Stations ('+kids+' kids)',p:stationsCost});
+        S.activities.push({id:'spy-mission',n:st.stations+' Mission Stations ('+kids+' kids)',r1:stationsCost,r2:stationsCost,r3:stationsCost,flat:true});
       }
       // Activity Addon Stations selected on the package page (same data/pricing as spy-basic.html)
       const SPY_ADDON_STATIONS=[
@@ -3113,12 +3123,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(pkgData.reel)S.spyExtras.push({id:'reel',n:'Birthday Reel',p:1000});
       // Pinata
       if(pkgData.pinata)S.pinata={id:'spy-'+pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
-      // Props (per-child)
+      // Props (per-child) — shown under Return Gifts, same {id,n,unit,qty} shape
       if(pkgData.props&&pkgData.props.length){
         const PROPS_MAP={pr1:{n:'Sunglasses',perChild:75},pr2:{n:'Caps',perChild:75}};
-        pkgData.props.forEach(pid=>{const item=PROPS_MAP[pid];if(item)S.spyExtras.push({id:'prop-'+pid,n:item.n+' (Props) ×'+kids,p:item.perChild*kids});});
+        pkgData.props.forEach(pid=>{const item=PROPS_MAP[pid];if(item)S.gifts.push({id:'prop-'+pid,n:item.n,unit:item.perChild,qty:kids});});
       }
-      // Entry Options
+      // Entry Options — shown under the new Addons section
       if(pkgData.entry)S.spyExtras.push({id:'entry-'+pkgData.entry.id,n:pkgData.entry.name+' Entry',p:pkgData.entry.price});
       // Photographer — same tier names as the site's standard photographer step,
       // so its thumbnail/image resolves correctly on the review page.
