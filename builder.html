@@ -2166,8 +2166,8 @@ function cItems(){
   });
   if(S.host)items.push({cat:'Host',n:S.host.tier+' Host',p:S.host.p,id:S.host.tier});
   if(S.dj)items.push({cat:'DJ',n:S.dj.tier,p:S.dj.p,id:S.dj.tier});
-  if(S.pinata){const pt=rawNoInv();const fp=pt>=S.FPT?0:S.pinata.p;items.push({cat:'Pinata',n:S.pinata.n+(pt>=S.FPT?' (FREE)':''),p:fp,id:S.pinata.id});}
-  if(S.einvite){const gt=rawNoInv();const ep=gt>=S.FIT?0:S.einvite.p;items.push({cat:'E-Invite',n:S.einvite.n+(gt>=S.FIT?' (FREE)':''),p:ep,id:S.einvite.id});}
+  if(S.pinata){const pt=rawNoInv();const isFree=pt>=S.FPT;const fp=isFree?0:S.pinata.p;const pItem={cat:'Pinata',n:S.pinata.n+(isFree?' (FREE)':''),p:fp,id:S.pinata.id};if(isFree&&S.pinata.p>0)pItem.wasP=S.pinata.p;items.push(pItem);}
+  if(S.einvite){const gt=rawNoInv();const isFree=gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n+(isFree?' (FREE)':''),p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
   if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});if(S.addReel)items.push({cat:'Photographer',n:'30-sec Reel',p:919,id:'reel'});}
   S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty,id:g.id}));
   S.spyExtras.forEach(x=>items.push({cat:'Addons',n:x.n,p:x.p,id:x.id}));
