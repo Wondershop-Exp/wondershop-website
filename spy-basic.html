@@ -330,7 +330,6 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
         <div class="kids-info" id="kidsInfo"></div>
       </div>
-      <div class="kids-note" id="kidsMinNote" style="display:none">Your guest count is below the minimum bill threshold — the ₹25,000 minimum applies regardless of headcount.</div>
     </div>
   </section>
 
@@ -590,10 +589,8 @@ function changeKids(d) {
   kidsCount = Math.max(MIN_KIDS, Math.min(MAX_KIDS, kidsCount + d));
   document.getElementById('kidsDisp').textContent = kidsCount;
   const t = stationTier(kidsCount);
-  const raw = kidsCount * t.rate;
   const info = document.getElementById('kidsInfo');
   info.innerHTML = '<strong>' + kidsCount + ' kids</strong> · ' + t.stations + ' mission stations · ' + fmtINR(t.rate) + '/child';
-  document.getElementById('kidsMinNote').style.display = raw < MIN_BILL ? 'block' : 'none';
   renderAddonStations();
   renderProps();
   updateSticky();
