@@ -3155,12 +3155,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   const urlPkg=urlParams.get('pkg');
   if(urlPkg==='unicorn-basic'){
     try{
+      S._pkgOrigin='unicorn-basic';
       const pkgData=JSON.parse(localStorage.getItem('ws_pkg')||'{}');
+      const kids=pkgData.kidsCount||25;
       const actId=pkgData.actId||'a8';
       const act=ACTS.find(a=>a.id===actId);
-      // Pre-fill state — host, einvite, activity, coupon, kids count
+      // Host — bundled at the real Starter Host price, always included.
       S.host={tier:'Starter',p:10000};
-      S.einvite={id:'i10',n:'Unicorn',p:500};
       S.couponPct=15;
       S._pkgCoupon='PKGUNICORN';
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
@@ -3169,6 +3170,34 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(pkgData.additionalActs&&pkgData.additionalActs.length){
         pkgData.additionalActs.forEach(pa=>{const xa=ACTS.find(x=>x.id===pa.id);if(xa&&!S.activities.find(x=>x.id===xa.id))S.activities.push({id:xa.id,n:xa.n,r1:xa.r1,r2:xa.r2,r3:xa.r3,flat:xa.flat});});
       }
+      // Decor tier chosen on the package page — reuse the real 'uni' theme id
+      // so the review page picks up the existing theme-uni.jpg photo.
+      if(pkgData.decorTier)S.decor={n:pkgData.decorTier.name+' Decor',p:pkgData.decorTier.price,id:'uni'};
+      // Music (DJ tier) — same tier names as the Spy package.
+      if(pkgData.music)S.dj={tier:pkgData.music.name,p:pkgData.music.price};
+      // E-Invite — Static reuses the real 'i10' Unicorn invite design so the
+      // review page shows the correct real photo; Video + Reminder is a
+      // bespoke package upgrade with no matching catalogue design.
+      if(pkgData.einvite){
+        if(pkgData.einvite.id==='e1')S.einvite={id:'i10',n:'Unicorn',p:pkgData.einvite.price};
+        else S.einvite={id:'uni-'+pkgData.einvite.id,n:'Unicorn '+pkgData.einvite.name,p:pkgData.einvite.price};
+      }
+      // Entry Options — shown under the Addons section, same as Spy.
+      if(pkgData.entry)S.spyExtras.push({id:'entry-'+pkgData.entry.id,n:pkgData.entry.name+' Entry',p:pkgData.entry.price});
+      // Return Gift — reuses the real GIFTS id ('g8' Unicorn Craft Set) so
+      // the review page shows the correct real emoji/background.
+      if(pkgData.gifts&&pkgData.gifts.length){
+        const GIFT_MAP={g8:{n:'Unicorn Craft Set',perChild:290}};
+        pkgData.gifts.forEach(gid=>{const item=GIFT_MAP[gid];if(item)S.gifts.push({id:gid,n:item.n,unit:item.perChild,qty:kids});});
+      }
+      // Photographer — same tier names as the site's standard photographer step.
+      if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
+      // Birthday Reel — tied to the site's existing Photographer-step reel
+      // add-on (S.addReel, ₹1,000), only shows if a Photographer is also selected.
+      if(pkgData.reel)S.addReel=true;
+      // Pinata — reuses real PINATAS ids ('p2' Unicorn / 'p7' Rainbow) so the
+      // review page shows the correct real photo.
+      if(pkgData.pinata)S.pinata={id:pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
     }catch(e){}
   }else if(urlPkg==='spy-basic'){
     try{
