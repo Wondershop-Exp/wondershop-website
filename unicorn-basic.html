@@ -452,6 +452,12 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="act-card-d">Themed colouring sheets, crayons and markers. Works for any age and always a hit.</div>
         </div>
 
+        <div class="act-card" data-act="glitter" data-name="Glitter Station" onclick="selectAct(this)">
+          <div class="act-card-ic">✨</div>
+          <div class="act-card-n">Glitter Station</div>
+          <div class="act-card-d">Glitter tattoos &amp; face art, about 10 minutes per child. Age 3+.</div>
+        </div>
+
       </div>
       <div class="act-req-note" id="actReqNote">Please select an activity to continue.</div>
     </div>
@@ -556,6 +562,36 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="addon-act-price">₹4,999</div>
             <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
             <button class="btn-addon-add" id="abtn-a21" onclick="toggleAddon('a21','Nail Art Station',this)">+ Add</button>
+          </div>
+        </div>
+
+        <div class="addon-act-card" id="add-glitter" data-act="glitter" data-name="Glitter Station">
+          <div class="addon-act-top">
+            <div class="addon-act-ic">✨</div>
+            <div class="addon-act-info">
+              <div class="addon-act-n">Glitter Station</div>
+              <div class="addon-act-d">Glitter tattoos &amp; face art, ~10 min/child. Age 3+</div>
+            </div>
+          </div>
+          <div class="addon-act-foot">
+            <div class="addon-act-price">₹4,000</div>
+            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
+            <button class="btn-addon-add" id="abtn-glitter" onclick="toggleAddon('glitter','Glitter Station',this)">+ Add</button>
+          </div>
+        </div>
+
+        <div class="addon-act-card" id="add-slime">
+          <div class="addon-act-top">
+            <div class="addon-act-ic">🧪</div>
+            <div class="addon-act-info">
+              <div class="addon-act-n">Slime Making</div>
+              <div class="addon-act-d">Make-your-own slime station, ~15 min/child. Age 3+. ₹6,300 up to 15 kids · ₹11,000 up to 30 kids · +₹350/child after 30.</div>
+            </div>
+          </div>
+          <div class="addon-act-foot">
+            <div class="addon-act-price" id="slimePriceVal">₹11,000</div>
+            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
+            <button class="btn-addon-add" id="abtn-slime" onclick="toggleAddon('slime','Slime Making',this)">+ Add</button>
           </div>
         </div>
 
@@ -705,6 +741,19 @@ const EXTRA_ACT_PRICE = 4999;
 // flat ₹2,500, "Up to 3 hrs", real age range 5–12). Always included in the
 // package price, no tier options, similar to Host.
 const TATTOO_PRICE = 2500;
+// Add-on activity pricing — Cupcake Decor / Sunglasses Decor / Fridge Magnet
+// / Coaster Making / Colouring Station / Nail Art Station all use the flat
+// EXTRA_ACT_PRICE markup. Glitter Station and Slime Making have their own
+// real pricing (given directly by Shruti) so they're priced separately.
+function addonActPrice(id, kids) {
+  if (id === 'glitter') return 4000;
+  if (id === 'slime') {
+    if (kids <= 15) return 6300;
+    if (kids <= 30) return 11000;
+    return 11000 + (kids - 30) * 350;
+  }
+  return EXTRA_ACT_PRICE;
+}
 
 // Decor — same tier structure & pricing as the Spy package (balloon arch up
 // to full flex-panel installs), Unicorn-themed copy. Tier-specific photos
@@ -783,7 +832,15 @@ function changeKids(d) {
     note.classList.remove('show');
   }
   renderGifts();
+  updateSlimePrice();
   updateSticky();
+}
+
+// Slime Making's addon price is tiered by headcount, so its card needs to
+// refresh whenever kidsCount changes (unlike the other flat-priced addons).
+function updateSlimePrice() {
+  const el = document.getElementById('slimePriceVal');
+  if (el) el.textContent = fmtINR(addonActPrice('slime', kidsCount));
 }
 
 // ── INCLUDED ACTIVITY SELECTION ──
@@ -948,7 +1005,7 @@ function totalPrice() {
   let t = HOST_PRICE;
   const extraKids = Math.max(0, kidsCount - KIDS_THRESHOLD);
   t += extraKids * EXTRA_PER_CHILD;
-  t += additionalActs.length * EXTRA_ACT_PRICE;
+  additionalActs.forEach(a => { t += addonActPrice(a.id, kidsCount); });
   t += TATTOO_PRICE;
   if (selectedDecor) t += selectedDecor.price;
   if (selectedMusic) t += selectedMusic.price;

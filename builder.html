@@ -2079,6 +2079,10 @@ function spyStationAddonPrice(code,kids){
 function actPrice(a,kids){
   if(a.id==='spy-mission')return spyStationsPrice(kids);
   if(a.id&&a.id.indexOf('station-')===0)return spyStationAddonPrice(a.id.slice(8),kids);
+  // Glitter Station / Slime Making — Unicorn Basic add-ons with no ACTS
+  // catalogue entry (real pricing given directly by Shruti, not fabricated).
+  if(a.id==='glitter')return 4000;
+  if(a.id==='slime')return kids<=15?6300:kids<=30?11000:11000+(kids-30)*350;
   const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;
 }
 const ACTS=[
@@ -2208,6 +2212,8 @@ function thumbFor(cat,id){
       if(linked)return linked.realImg?{type:'img',src:'img/'+linked.img+'.jpg'}:e(linked.e,(linked.bgs&&linked.bgs[0]));
       return e('🕵️');
     }
+    if(id==='glitter')return e('✨');
+    if(id==='slime')return e('🧪');
     const a=ACTS.find(x=>x.id===id);if(!a)return e('🎨');return a.realImg?{type:'img',src:'img/'+a.img+'.jpg'}:e(a.e,(a.bgs&&a.bgs[0]));
   }
   if(cat==='Host'){const map={Starter:'host-starter',Premium:'host-premium',Signature:'host-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎤');}
@@ -3166,9 +3172,18 @@ document.addEventListener('DOMContentLoaded',()=>{
       S._pkgCoupon='PKGUNICORN';
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
       if(act)S.activities=[{id:act.id,n:act.n,r1:act.r1,r2:act.r2,r3:act.r3,flat:act.flat}];
+      // Glitter Station can also be picked as the 1 included activity — it
+      // has no ACTS catalogue entry (real pricing handled in actPrice()).
+      else if(actId==='glitter')S.activities=[{id:'glitter',n:pkgData.actName||'Glitter Station'}];
       // Pre-select additional paid activities
       if(pkgData.additionalActs&&pkgData.additionalActs.length){
-        pkgData.additionalActs.forEach(pa=>{const xa=ACTS.find(x=>x.id===pa.id);if(xa&&!S.activities.find(x=>x.id===xa.id))S.activities.push({id:xa.id,n:xa.n,r1:xa.r1,r2:xa.r2,r3:xa.r3,flat:xa.flat});});
+        pkgData.additionalActs.forEach(pa=>{
+          if(pa.id==='glitter'||pa.id==='slime'){
+            if(!S.activities.find(x=>x.id===pa.id))S.activities.push({id:pa.id,n:pa.name});
+            return;
+          }
+          const xa=ACTS.find(x=>x.id===pa.id);if(xa&&!S.activities.find(x=>x.id===xa.id))S.activities.push({id:xa.id,n:xa.n,r1:xa.r1,r2:xa.r2,r3:xa.r3,flat:xa.flat});
+        });
       }
       // Tattoo Station — always included on this package; reuses the real
       // catalogue activity 'a15' (flat Rs2,500) so pricing/thumbnail match.
