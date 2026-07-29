@@ -288,12 +288,8 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="incl-card">
           <div class="incl-card-ic">🎈</div>
           <div class="incl-card-h">Decor</div>
-          <div class="incl-card-body">Basic is included by default — a balloon arch (up to 200 balloons, 2 colours), name bunting and Happy Birthday bunting. Upgrade to a bigger tier below if you'd like.</div>
-          <button class="expand-btn" id="btn-decor" onclick="toggleDetail('decor','btn-decor','See full list')">
-            <span>See full list</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="detail-list" id="decor">
+          <div class="incl-card-body">Basic is included by default. Upgrade to a bigger tier below if you'd like.</div>
+          <div class="detail-list show" id="decor">
             <ul>
               <li>Balloon arch</li>
               <li>Up to 200 balloons, 2 colours</li>
@@ -316,12 +312,8 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="incl-card">
           <div class="incl-card-ic">🎤</div>
           <div class="incl-card-h">Host</div>
-          <div class="incl-card-body">Energetic, kid-friendly host who keeps every child engaged for 1 hour — games, activity facilitation, and the birthday sing-along.</div>
-          <button class="expand-btn" id="btn-host" onclick="toggleDetail('host','btn-host','What the host does')">
-            <span>What the host does</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="detail-list" id="host">
+          <div class="incl-card-body">Energetic, kid-friendly host who keeps every child engaged.</div>
+          <div class="detail-list show" id="host">
             <ul>
               <li>Welcomes guests &amp; sets the tone</li>
               <li>Runs party games with the children</li>
@@ -336,12 +328,8 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="incl-card">
           <div class="incl-card-ic">🎉</div>
           <div class="incl-card-h">1 Activity</div>
-          <div class="incl-card-body">Pick one activity below — your host runs it, all materials provided. Most include a take-home keepsake for each child.</div>
-          <button class="expand-btn" id="btn-act" onclick="toggleDetail('act','btn-act','See what\'s available')">
-            <span>See what's available</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="detail-list" id="act">
+          <div class="incl-card-body">Pick one activity below — your host runs it, all materials provided.</div>
+          <div class="detail-list show" id="act">
             <ul>
               <li>Cupcake Decor</li>
               <li>Sunglasses Decor</li>
@@ -355,18 +343,21 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="incl-card">
           <div class="incl-card-ic">🖊️</div>
           <div class="incl-card-h">Tattoo Station</div>
-          <div class="incl-card-body">Temporary-tattoo artist included as standard — up to 3 hours, best suited for ages 5–12.</div>
+          <div class="incl-card-body">Included as standard for every booking.</div>
+          <div class="detail-list show" id="tattoo">
+            <ul>
+              <li>Temporary-tattoo artist included</li>
+              <li>Up to 3 hours</li>
+              <li>Best suited for ages 5–12</li>
+            </ul>
+          </div>
         </div>
 
         <div class="incl-card">
           <div class="incl-card-ic">💌</div>
           <div class="incl-card-h">E-Invite</div>
-          <div class="incl-card-body">Custom digital invite in the unicorn theme with your child's name, date, venue and RSVP details. Shareable on WhatsApp.</div>
-          <button class="expand-btn" id="btn-einv" onclick="toggleDetail('einv','btn-einv','See details')">
-            <span>See details</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="detail-list" id="einv">
+          <div class="incl-card-body">Custom digital invite in the unicorn theme.</div>
+          <div class="detail-list show" id="einv">
             <ul>
               <li>Unicorn-themed design</li>
               <li>Child's name &amp; age personalized</li>
@@ -423,11 +414,17 @@ button{cursor:pointer;font-family:var(--fb)}
   <section class="sec" id="actSection">
     <div class="container">
       <div class="act-section-hdr">
-        <h2 class="sec-h2">Choose your <em>Activity</em></h2>
-        <span class="act-badge">1 included · Pick one</span>
+        <h2 class="sec-h2">Choose your <em>Activities</em></h2>
+        <span class="act-badge">Tattoo included · Pick 1 more</span>
       </div>
-      <p class="sec-sub">Your host runs the activity. All materials provided. Most activities include a take-home keepsake for each child.</p>
+      <p class="sec-sub">Tattoo Station is included in every booking. Your host also runs one activity below — all materials provided, most include a take-home keepsake for each child.</p>
       <div class="act-grid" id="actGrid">
+
+        <div class="act-card sel" style="cursor:default" title="Tattoo Station is included in every Unicorn Basic package and can't be removed.">
+          <div class="act-card-ic">🖊️</div>
+          <div class="act-card-n">Tattoo Station</div>
+          <div class="act-card-d">Included with every booking — can't be removed.</div>
+        </div>
 
         <div class="act-card" data-act="a8" data-name="Cupcake Decor" onclick="selectAct(this)">
           <div class="act-card-ic">🧁</div>
@@ -548,6 +545,21 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="addon-act-price">₹4,999</div>
             <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
             <button class="btn-addon-add" id="abtn-a25" onclick="toggleAddon('a25','Colouring Station',this)">+ Add</button>
+          </div>
+        </div>
+
+        <div class="addon-act-card" id="add-a21" data-act="a21" data-name="Nail Art Station">
+          <div class="addon-act-top">
+            <div class="addon-act-ic">💅</div>
+            <div class="addon-act-info">
+              <div class="addon-act-n">Nail Art Station</div>
+              <div class="addon-act-d">Mini manicures &amp; nail art for every guest</div>
+            </div>
+          </div>
+          <div class="addon-act-foot">
+            <div class="addon-act-price">₹4,999</div>
+            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
+            <button class="btn-addon-add" id="abtn-a21" onclick="toggleAddon('a21','Nail Art Station',this)">+ Add</button>
           </div>
         </div>
 
