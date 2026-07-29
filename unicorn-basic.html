@@ -288,19 +288,17 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="incl-card">
           <div class="incl-card-ic">🎈</div>
           <div class="incl-card-h">Decor</div>
-          <div class="incl-card-body">Your pick of tier below — from a balloon arch to full flex-panel installations. Balloon arch, Happy Birthday bunting, name bunting and unicorn touches included at every tier.</div>
+          <div class="incl-card-body">Basic is included by default — a balloon arch (up to 200 balloons, 2 colours), name bunting and Happy Birthday bunting. Upgrade to a bigger tier below if you'd like.</div>
           <button class="expand-btn" id="btn-decor" onclick="toggleDetail('decor','btn-decor','See full list')">
             <span>See full list</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="detail-list" id="decor">
             <ul>
-              <li>Balloon arch (pink &amp; purple)</li>
-              <li>Happy Birthday paper bunting</li>
-              <li>Age foil balloon</li>
+              <li>Balloon arch</li>
+              <li>Up to 200 balloons, 2 colours</li>
               <li>Personalized name bunting</li>
-              <li>Unicorn foil balloon</li>
-              <li>Balloon bunches throughout the venue</li>
+              <li>Happy Birthday bunting</li>
             </ul>
           </div>
           <button class="expand-btn" id="btn-decor-not" onclick="toggleDetail('decor-not','btn-decor-not','Not included')" style="margin-top:6px;color:#9CA3AF">
@@ -695,7 +693,7 @@ const EXTRA_ACT_PRICE = 4999;
 // to full flex-panel installs), Unicorn-themed copy. Tier-specific photos
 // haven't been uploaded yet, so all 4 cards use the existing theme photo.
 const DECOR_TIERS = [
-  {id:'basic', name:'Basic', price:5000, d:'Balloon arch, Happy Birthday bunting, name bunting, age foil balloon, unicorn foil balloon.', img:'img/theme-uni.jpg'},
+  {id:'basic', name:'Basic', price:5000, d:'Balloon arch, up to 200 balloons (2 colours), name bunting, Happy Birthday bunting.', img:'img/theme-uni.jpg'},
   {id:'p1', name:'1 Panel', price:8000, d:'1 flex panel (4x7ft) with a balloon arch, Happy Birthday LED light, name on flex, age foil balloon.', img:'img/theme-uni.jpg'},
   {id:'p2', name:'2 Panel', price:15000, d:'2 flex panels — 8ft total decor width, 3ft age light, unicorn cutouts, welcome board.', img:'img/theme-uni.jpg'},
   {id:'sig', name:'Signature', price:25000, d:'Welcome arch, welcome board, unicorn cutouts, 3 panel decor, 3ft age light, name on flex.', img:'img/theme-uni.jpg'},
