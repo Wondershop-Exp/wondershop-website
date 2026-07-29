@@ -30,6 +30,9 @@
 
 ## Waiting On
 
+- [ ] **New "Imposter" theme** - waiting on product manager for decor/pricing details (emoji/icon, age range, price, balloon count & colors, panel setup, session length, on-site items needed) before it can be added to the builder's THEMES list. Requested alongside Spy theme; Laser Tunnel & Dark Room stay Spy-only for now.
+- [ ] **4 new Unicorn Basic activities** - Glitter Station, Bracelet Making, Slime, Hair Braiding requested for the "Choose your Activity" picker and "Add more Activities" addon grid on unicorn-basic.html. None exist in the ACTS catalogue (only Nail Art Station, a21, was a real match and has been added). Waiting on Shruti for icon, age range, duration, and any real per-child pricing for each before adding.
+
 ## Someday
 
 ## Done
