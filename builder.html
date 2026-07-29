@@ -2815,7 +2815,7 @@ function coKidsChanged(val){
 function applyCoupon(){
   const code=document.getElementById('co-coupon').value.toUpperCase().trim();
   const ok=document.getElementById('couponOk');
-  const codes={WONDER10:10,BIRTHDAY5:5,FIRST15:15,PKGUNICORN:15};
+  const codes={WONDER10:10,BIRTHDAY5:5,FIRST15:15,PKGUNICORN:15,PKGPRINCESS:15,PKGSUPERHERO:15,PKGTURF:15};
   if(codes[code]){S.couponPct=codes[code];ok.textContent='🎉 '+code+' applied — '+codes[code]+'% off!';ok.classList.add('show');}
   else{S.couponPct=0;ok.textContent='Invalid code. Try WONDER10';ok.classList.add('show');}
   updCoAmt();
@@ -3244,6 +3244,120 @@ document.addEventListener('DOMContentLoaded',()=>{
       // Photographer — same tier names as the site's standard photographer step,
       // so its thumbnail/image resolves correctly on the review page.
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
+    }catch(e){}
+  }else if(urlPkg==='princess-basic'){
+    // Same structure/pricing as unicorn-basic (Decor, Music, Entry, Photographer,
+    // Return Gift all reuse identical tiers/prices — see princess-basic.html).
+    try{
+      S._pkgOrigin='princess-basic';
+      const pkgData=JSON.parse(localStorage.getItem('ws_pkg')||'{}');
+      const kids=pkgData.kidsCount||25;
+      const actId=pkgData.actId||'a8';
+      const act=ACTS.find(a=>a.id===actId);
+      S.host={tier:'Starter',p:10000};
+      S.couponPct=15;
+      S._pkgCoupon='PKGPRINCESS';
+      if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
+      if(act)S.activities=[{id:act.id,n:act.n,r1:act.r1,r2:act.r2,r3:act.r3,flat:act.flat}];
+      if(pkgData.additionalActs&&pkgData.additionalActs.length){
+        pkgData.additionalActs.forEach(pa=>{const xa=ACTS.find(x=>x.id===pa.id);if(xa&&!S.activities.find(x=>x.id===xa.id))S.activities.push({id:xa.id,n:xa.n,r1:xa.r1,r2:xa.r2,r3:xa.r3,flat:xa.flat});});
+      }
+      // Decor — reuses the real 'princess' theme id so the review page picks
+      // up the existing theme-princess.jpg photo.
+      if(pkgData.decorTier)S.decor={n:pkgData.decorTier.name+' Decor',p:pkgData.decorTier.price,id:'princess'};
+      if(pkgData.music)S.dj={tier:pkgData.music.name,p:pkgData.music.price};
+      // E-Invite — no real Princess design in the invite catalogue yet, so
+      // Static falls back to the generic envelope thumbnail (still ₹500).
+      if(pkgData.einvite){
+        if(pkgData.einvite.id==='e1')S.einvite={id:'princess-e1',n:'Princess',p:pkgData.einvite.price};
+        else S.einvite={id:'princess-'+pkgData.einvite.id,n:'Princess '+pkgData.einvite.name,p:pkgData.einvite.price};
+      }
+      if(pkgData.entry)S.spyExtras.push({id:'entry-'+pkgData.entry.id,n:pkgData.entry.name+' Entry',p:pkgData.entry.price});
+      // Return Gift — reuses the real GIFTS id ('g1' DIY Art Kit, generic
+      // placeholder until a Princess-specific gift exists in the catalogue).
+      if(pkgData.gifts&&pkgData.gifts.length){
+        pkgData.gifts.forEach(gid=>{const g=GIFTS.find(x=>x.id===gid);if(g)S.gifts.push({id:g.id,n:g.n,unit:g.unit,qty:kids});});
+      }
+      if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
+      if(pkgData.reel)S.addReel=true;
+      // Pinata — reuses real PINATAS ids ('p3' Star / 'p7' Rainbow).
+      if(pkgData.pinata)S.pinata={id:pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
+    }catch(e){}
+  }else if(urlPkg==='superhero-basic'){
+    try{
+      S._pkgOrigin='superhero-basic';
+      const pkgData=JSON.parse(localStorage.getItem('ws_pkg')||'{}');
+      const kids=pkgData.kidsCount||25;
+      const actId=pkgData.actId||'a8';
+      const act=ACTS.find(a=>a.id===actId);
+      S.host={tier:'Starter',p:10000};
+      S.couponPct=15;
+      S._pkgCoupon='PKGSUPERHERO';
+      if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
+      if(act)S.activities=[{id:act.id,n:act.n,r1:act.r1,r2:act.r2,r3:act.r3,flat:act.flat}];
+      if(pkgData.additionalActs&&pkgData.additionalActs.length){
+        pkgData.additionalActs.forEach(pa=>{const xa=ACTS.find(x=>x.id===pa.id);if(xa&&!S.activities.find(x=>x.id===xa.id))S.activities.push({id:xa.id,n:xa.n,r1:xa.r1,r2:xa.r2,r3:xa.r3,flat:xa.flat});});
+      }
+      // Decor — reuses the real 'hero' theme id so the review page picks up
+      // the existing theme-hero.jpg photo.
+      if(pkgData.decorTier)S.decor={n:pkgData.decorTier.name+' Decor',p:pkgData.decorTier.price,id:'hero'};
+      if(pkgData.music)S.dj={tier:pkgData.music.name,p:pkgData.music.price};
+      // E-Invite — Static reuses the real 'i5' Little Singham (hero-type)
+      // invite design so the review page shows the correct real photo.
+      if(pkgData.einvite){
+        if(pkgData.einvite.id==='e1')S.einvite={id:'i5',n:'Little Singham',p:pkgData.einvite.price};
+        else S.einvite={id:'hero-'+pkgData.einvite.id,n:'Superhero '+pkgData.einvite.name,p:pkgData.einvite.price};
+      }
+      if(pkgData.entry)S.spyExtras.push({id:'entry-'+pkgData.entry.id,n:pkgData.entry.name+' Entry',p:pkgData.entry.price});
+      // Return Gift — reuses the real GIFTS id ('g1' DIY Art Kit, generic
+      // placeholder until a Superhero-specific gift exists in the catalogue).
+      if(pkgData.gifts&&pkgData.gifts.length){
+        pkgData.gifts.forEach(gid=>{const g=GIFTS.find(x=>x.id===gid);if(g)S.gifts.push({id:g.id,n:g.n,unit:g.unit,qty:kids});});
+      }
+      if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
+      if(pkgData.reel)S.addReel=true;
+      // Pinata — reuses real PINATAS ids ('p4' Superhero / 'p3' Star).
+      if(pkgData.pinata)S.pinata={id:pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
+    }catch(e){}
+  }else if(urlPkg==='turf-basic'){
+    // "Turf Party" reuses the real 'jungle' (Jungle Safari) theme — there is
+    // no separate 'turf' entry in THEMES. Flagged: the homepage's Turf Party
+    // card links to builder.html?theme=turf directly, which doesn't match
+    // any real theme id either; this page correctly uses 'jungle' throughout.
+    try{
+      S._pkgOrigin='turf-basic';
+      const pkgData=JSON.parse(localStorage.getItem('ws_pkg')||'{}');
+      const kids=pkgData.kidsCount||25;
+      const actId=pkgData.actId||'a8';
+      const act=ACTS.find(a=>a.id===actId);
+      S.host={tier:'Starter',p:10000};
+      S.couponPct=15;
+      S._pkgCoupon='PKGTURF';
+      if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
+      if(act)S.activities=[{id:act.id,n:act.n,r1:act.r1,r2:act.r2,r3:act.r3,flat:act.flat}];
+      if(pkgData.additionalActs&&pkgData.additionalActs.length){
+        pkgData.additionalActs.forEach(pa=>{const xa=ACTS.find(x=>x.id===pa.id);if(xa&&!S.activities.find(x=>x.id===xa.id))S.activities.push({id:xa.id,n:xa.n,r1:xa.r1,r2:xa.r2,r3:xa.r3,flat:xa.flat});});
+      }
+      // Decor — reuses the real 'jungle' theme id so the review page picks
+      // up the existing theme-jungle.jpg photo.
+      if(pkgData.decorTier)S.decor={n:pkgData.decorTier.name+' Decor',p:pkgData.decorTier.price,id:'jungle'};
+      if(pkgData.music)S.dj={tier:pkgData.music.name,p:pkgData.music.price};
+      // E-Invite — no real Jungle/Turf design in the invite catalogue yet,
+      // so Static falls back to the generic envelope thumbnail (still ₹500).
+      if(pkgData.einvite){
+        if(pkgData.einvite.id==='e1')S.einvite={id:'turf-e1',n:'Turf Party',p:pkgData.einvite.price};
+        else S.einvite={id:'turf-'+pkgData.einvite.id,n:'Turf Party '+pkgData.einvite.name,p:pkgData.einvite.price};
+      }
+      if(pkgData.entry)S.spyExtras.push({id:'entry-'+pkgData.entry.id,n:pkgData.entry.name+' Entry',p:pkgData.entry.price});
+      // Return Gift — reuses the real GIFTS id ('g1' DIY Art Kit, generic
+      // placeholder until a Turf-specific gift exists in the catalogue).
+      if(pkgData.gifts&&pkgData.gifts.length){
+        pkgData.gifts.forEach(gid=>{const g=GIFTS.find(x=>x.id===gid);if(g)S.gifts.push({id:g.id,n:g.n,unit:g.unit,qty:kids});});
+      }
+      if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
+      if(pkgData.reel)S.addReel=true;
+      // Pinata — reuses real PINATAS ids ('p5' Jungle Animal / 'p8' Elephant).
+      if(pkgData.pinata)S.pinata={id:pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
     }catch(e){}
   }
 
