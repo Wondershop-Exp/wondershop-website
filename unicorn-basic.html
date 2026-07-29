@@ -9,7 +9,7 @@
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',window.WS_GA_ID);</script>
 <link rel="icon" type="image/png" href="logo-square.png">
 <link rel="apple-touch-icon" href="logo-square.png">
-<meta name="description" content="Unicorn Basic birthday package by Wondershop — decor, host, music, e-invite and your choice of activity, from ₹22,500 for up to 25 kids in Mumbai.">
+<meta name="description" content="Unicorn Basic birthday package by Wondershop — decor, host, tattoo station, e-invite and your choice of activity, from ₹18,000 for up to 25 kids in Mumbai.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
@@ -250,17 +250,17 @@ button{cursor:pointer;font-family:var(--fb)}
             <span class="pkg-tag">⭐ Fan Favourite</span>
           </div>
           <h1 class="pkg-h1">Unicorn <em>Basic</em> Package</h1>
-          <p class="pkg-desc">A complete unicorn birthday — decor you choose, a fun activity the kids will love, music, and an energetic host to keep the energy high. Everything handled. Nothing to worry about.</p>
+          <p class="pkg-desc">A complete unicorn birthday — decor you choose, a fun activity the kids will love, a tattoo station, and an energetic host to keep the energy high. Music can be added on. Everything handled. Nothing to worry about.</p>
           <div class="pkg-incl-row">
             <span class="pkg-incl-chip">🎈 Decor</span>
             <span class="pkg-incl-chip">🎤 Host</span>
+            <span class="pkg-incl-chip">🖊️ Tattoo</span>
             <span class="pkg-incl-chip">🎉 1 Activity</span>
-            <span class="pkg-incl-chip">🎵 Music</span>
             <span class="pkg-incl-chip">💌 E-Invite</span>
           </div>
           <div class="pkg-price-block">
             <div class="pkg-price-note">Estimated total for your party</div>
-            <div class="pkg-price" id="heroPrice">₹22,500</div>
+            <div class="pkg-price" id="heroPrice">₹18,000</div>
             <div class="pkg-price-sub">For up to 25 kids · extra kids at ₹399/child</div>
           </div>
           <div class="pkg-cta-row">
@@ -353,9 +353,9 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
-          <div class="incl-card-ic">🎵</div>
-          <div class="incl-card-h">Music</div>
-          <div class="incl-card-body">DJ Compact setup included as standard — speaker, mixer and age-appropriate playlist. Upgrade to Premium or Signature below.</div>
+          <div class="incl-card-ic">🖊️</div>
+          <div class="incl-card-h">Tattoo Station</div>
+          <div class="incl-card-body">Temporary-tattoo artist included as standard — up to 3 hours, best suited for ages 5–12.</div>
         </div>
 
         <div class="incl-card">
@@ -562,9 +562,9 @@ button{cursor:pointer;font-family:var(--fb)}
     <div class="container">
       <div class="act-section-hdr">
         <h2 class="sec-h2">Music</h2>
-        <span class="act-badge">Included · pick a tier</span>
+        <span class="act-badge grn">Optional · pick a tier</span>
       </div>
-      <p class="sec-sub">DJ Compact is included in the package price. Upgrading adds the difference to your total.</p>
+      <p class="sec-sub">Not included by default — add a DJ tier if you'd like music at your party.</p>
       <div class="act-grid" id="musicGrid"></div>
     </div>
   </section>
@@ -664,7 +664,7 @@ button{cursor:pointer;font-family:var(--fb)}
   <div class="sticky-inner">
     <div class="sticky-left">
       <div class="sticky-price-row">
-        <div class="sticky-price" id="stickyTotal">₹22,500</div>
+        <div class="sticky-price" id="stickyTotal">₹18,000</div>
         <div class="sticky-base" id="stickyBase">· Unicorn Basic</div>
       </div>
       <div class="sticky-details" id="stickyDetails">Select an activity above to continue</div>
@@ -684,13 +684,19 @@ document.getElementById('nav-ham').addEventListener('click',()=>document.getElem
 
 // ── DATA ──
 // Host is bundled at the site's real Starter Host price (₹10,000) — not
-// separately selectable on this page. Decor/Music/E-Invite each default to
-// their first tier (Basic / DJ Compact / Static), which is what's "included"
-// in the headline price; picking a higher tier adds the difference.
+// separately selectable on this page. Decor/E-Invite each default to their
+// first tier (Basic / Static), which is what's "included" in the headline
+// price; picking a higher tier adds the difference. Music is NOT included by
+// default (optional add-on, selectedMusic starts null) — Tattoo Station is
+// the included add-on instead.
 const HOST_PRICE = 10000;
 const KIDS_THRESHOLD = 25;
 const EXTRA_PER_CHILD = 399;
 const EXTRA_ACT_PRICE = 4999;
+// Tattoo Station — reuses the site's real activity catalogue entry (id 'a15',
+// flat ₹2,500, "Up to 3 hrs", real age range 5–12). Always included in the
+// package price, no tier options, similar to Host.
+const TATTOO_PRICE = 2500;
 
 // Decor — same tier structure & pricing as the Spy package (balloon arch up
 // to full flex-panel installs), Unicorn-themed copy. Tier-specific photos
@@ -743,7 +749,7 @@ let kidsCount = 25;
 let selectedAct = null;              // {id, name} — the 1 included activity
 let additionalActs = [];             // array of {id, name} — extra paid activities
 let selectedDecor = DECOR_TIERS[0];  // Basic default (included)
-let selectedMusic = MUSIC_TIERS[0];  // DJ Compact default (included)
+let selectedMusic = null;            // optional add-on, not included by default
 let selectedEinvite = EINVITE_TIERS[0]; // Static default (included)
 let selectedEntry = null;            // optional
 let selectedGifts = [];              // array of GIFT_ITEMS ids
@@ -872,9 +878,9 @@ function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
 function renderDecor() { renderTierGrid('decorGrid', DECOR_TIERS, selectedDecor); }
 function decorGridSelect(id) { selectedDecor = DECOR_TIERS.find(t => t.id === id); renderDecor(); updateSticky(); }
 
-// ── MUSIC (included, pick a tier) ──
+// ── MUSIC (optional, removable) ──
 function renderMusic() { renderTierGrid('musicGrid', MUSIC_TIERS, selectedMusic); }
-function musicGridSelect(id) { selectedMusic = MUSIC_TIERS.find(t => t.id === id); renderMusic(); updateSticky(); }
+function musicGridSelect(id) { selectedMusic = (selectedMusic && selectedMusic.id === id) ? null : MUSIC_TIERS.find(t => t.id === id); renderMusic(); updateSticky(); }
 
 // ── E-INVITE (included, pick a tier) ──
 function renderEinvite() { renderTierGrid('einviteGrid', EINVITE_TIERS, selectedEinvite); }
@@ -935,6 +941,7 @@ function totalPrice() {
   const extraKids = Math.max(0, kidsCount - KIDS_THRESHOLD);
   t += extraKids * EXTRA_PER_CHILD;
   t += additionalActs.length * EXTRA_ACT_PRICE;
+  t += TATTOO_PRICE;
   if (selectedDecor) t += selectedDecor.price;
   if (selectedMusic) t += selectedMusic.price;
   if (selectedEinvite) t += selectedEinvite.price;
@@ -960,6 +967,7 @@ function updateSticky() {
   else parts.push('Select an activity above to continue');
   parts.push(kidsCount + ' kids');
   if (selectedDecor) parts.push(selectedDecor.name + ' decor');
+  parts.push('Tattoo Station');
   if (selectedMusic) parts.push(selectedMusic.name);
   const extrasCount = additionalActs.length + selectedGifts.length +
     (selectedEntry ? 1 : 0) + (selectedPhotographer ? 1 : 0) + (selectedReel ? 1 : 0) + (selectedPinata ? 1 : 0);
@@ -997,6 +1005,7 @@ function proceedToBuilder() {
       additionalActs: additionalActs,
       kidsCount: kidsCount,
       decorTier: selectedDecor,
+      tattoo: {id:'a15', name:'Tattoo Station', price:TATTOO_PRICE},
       music: selectedMusic,
       einvite: selectedEinvite,
       entry: selectedEntry,

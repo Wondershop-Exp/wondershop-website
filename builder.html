@@ -3170,6 +3170,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(pkgData.additionalActs&&pkgData.additionalActs.length){
         pkgData.additionalActs.forEach(pa=>{const xa=ACTS.find(x=>x.id===pa.id);if(xa&&!S.activities.find(x=>x.id===xa.id))S.activities.push({id:xa.id,n:xa.n,r1:xa.r1,r2:xa.r2,r3:xa.r3,flat:xa.flat});});
       }
+      // Tattoo Station — always included on this package; reuses the real
+      // catalogue activity 'a15' (flat Rs2,500) so pricing/thumbnail match.
+      if(pkgData.tattoo){
+        const ta=ACTS.find(x=>x.id==='a15');
+        if(ta&&!S.activities.find(x=>x.id===ta.id))S.activities.push({id:ta.id,n:ta.n,r1:ta.r1,r2:ta.r2,r3:ta.r3,flat:ta.flat});
+      }
       // Decor tier chosen on the package page — reuse the real 'uni' theme id
       // so the review page picks up the existing theme-uni.jpg photo.
       if(pkgData.decorTier)S.decor={n:pkgData.decorTier.name+' Decor',p:pkgData.decorTier.price,id:'uni'};
