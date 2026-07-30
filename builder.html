@@ -2079,10 +2079,16 @@ function spyStationAddonPrice(code,kids){
 function actPrice(a,kids){
   if(a.id==='spy-mission')return spyStationsPrice(kids);
   if(a.id&&a.id.indexOf('station-')===0)return spyStationAddonPrice(a.id.slice(8),kids);
-  // Glitter Station / Slime Making — Unicorn Basic add-ons with no ACTS
-  // catalogue entry (real pricing given directly by Shruti, not fabricated).
+  // Glitter Station / Slime Making / Jelly Swimbags / Hairbrush Decoration /
+  // Photoframe Decoration — Unicorn Basic add-ons with no ACTS catalogue
+  // entry (real pricing given directly by Shruti, not fabricated). Jelly
+  // Swimbags' +Rs40/alphabet name-personalization charge isn't captured
+  // here — confirmed with the customer at checkout instead.
   if(a.id==='glitter')return 4000;
   if(a.id==='slime')return kids<=15?6300:kids<=30?11000:11000+(kids-30)*350;
+  if(a.id==='jelly-swimbags')return kids*280;
+  if(a.id==='hairbrush-decor')return kids*400;
+  if(a.id==='photoframe-decor')return kids*400;
   const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;
 }
 const ACTS=[
@@ -2214,6 +2220,9 @@ function thumbFor(cat,id){
     }
     if(id==='glitter')return e('✨');
     if(id==='slime')return e('🧪');
+    if(id==='jelly-swimbags')return e('🏊');
+    if(id==='hairbrush-decor')return e('🪮');
+    if(id==='photoframe-decor')return e('🖼️');
     const a=ACTS.find(x=>x.id===id);if(!a)return e('🎨');return a.realImg?{type:'img',src:'img/'+a.img+'.jpg'}:e(a.e,(a.bgs&&a.bgs[0]));
   }
   if(cat==='Host'){const map={Starter:'host-starter',Premium:'host-premium',Signature:'host-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎤');}
@@ -2224,6 +2233,7 @@ function thumbFor(cat,id){
   if(cat==='Return Gifts'){
     if(id==='prop-pr1')return{type:'img',src:'img/spy-prop-sunglasses.jpg'};
     if(id==='prop-pr2')return e('🧢'); // no real Caps photo uploaded yet — placeholder emoji
+    if(id==='unicorn-tshirt')return e('👕');
     const g=GIFTS.find(x=>x.id===id);if(!g)return e('🎁');return g.img?{type:'img',src:'img/'+g.img}:e(g.e,g.bg);
   }
   if(cat==='Addons')return e('🕵️');
@@ -3178,7 +3188,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       // Pre-select additional paid activities
       if(pkgData.additionalActs&&pkgData.additionalActs.length){
         pkgData.additionalActs.forEach(pa=>{
-          if(pa.id==='glitter'||pa.id==='slime'){
+          if(pa.id==='glitter'||pa.id==='slime'||pa.id==='jelly-swimbags'||pa.id==='hairbrush-decor'||pa.id==='photoframe-decor'){
             if(!S.activities.find(x=>x.id===pa.id))S.activities.push({id:pa.id,n:pa.name});
             return;
           }
@@ -3208,7 +3218,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       // Return Gift — reuses the real GIFTS id ('g8' Unicorn Craft Set) so
       // the review page shows the correct real emoji/background.
       if(pkgData.gifts&&pkgData.gifts.length){
-        const GIFT_MAP={g8:{n:'Unicorn Craft Set',perChild:290}};
+        const GIFT_MAP={g8:{n:'Unicorn Craft Set',perChild:290},'unicorn-tshirt':{n:'Live T-shirt Printing',perChild:450}};
         pkgData.gifts.forEach(gid=>{const item=GIFT_MAP[gid];if(item)S.gifts.push({id:gid,n:item.n,unit:item.perChild,qty:kids});});
       }
       // Photographer — same tier names as the site's standard photographer step.

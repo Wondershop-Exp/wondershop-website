@@ -609,6 +609,51 @@ button{cursor:pointer;font-family:var(--fb)}
           </div>
         </div>
 
+        <div class="addon-act-card" id="add-jelly-swimbags">
+          <div class="addon-act-top">
+            <div class="addon-act-ic">🏊</div>
+            <div class="addon-act-info">
+              <div class="addon-act-n">Jelly Swimbags</div>
+              <div class="addon-act-d">Personalized jelly swim bag for every guest. +₹40 per alphabet for name personalization, confirmed at checkout.</div>
+            </div>
+          </div>
+          <div class="addon-act-foot">
+            <div class="addon-act-price" id="jellySwimbagsPriceVal">₹7,000</div>
+            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
+            <button class="btn-addon-add" id="abtn-jelly-swimbags" onclick="toggleAddon('jelly-swimbags','Jelly Swimbags',this)">+ Add</button>
+          </div>
+        </div>
+
+        <div class="addon-act-card" id="add-hairbrush-decor">
+          <div class="addon-act-top">
+            <div class="addon-act-ic">🪮</div>
+            <div class="addon-act-info">
+              <div class="addon-act-n">Hairbrush Decoration</div>
+              <div class="addon-act-d">Kids decorate their own hairbrush to take home</div>
+            </div>
+          </div>
+          <div class="addon-act-foot">
+            <div class="addon-act-price" id="hairbrushDecorPriceVal">₹10,000</div>
+            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
+            <button class="btn-addon-add" id="abtn-hairbrush-decor" onclick="toggleAddon('hairbrush-decor','Hairbrush Decoration',this)">+ Add</button>
+          </div>
+        </div>
+
+        <div class="addon-act-card" id="add-photoframe-decor">
+          <div class="addon-act-top">
+            <div class="addon-act-ic">🖼️</div>
+            <div class="addon-act-info">
+              <div class="addon-act-n">Photoframe Decoration</div>
+              <div class="addon-act-d">Kids decorate their own photo frame to take home</div>
+            </div>
+          </div>
+          <div class="addon-act-foot">
+            <div class="addon-act-price" id="photoframeDecorPriceVal">₹10,000</div>
+            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
+            <button class="btn-addon-add" id="abtn-photoframe-decor" onclick="toggleAddon('photoframe-decor','Photoframe Decoration',this)">+ Add</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
@@ -766,6 +811,13 @@ function addonActPrice(id, kids) {
     if (kids <= 30) return 11000;
     return 11000 + (kids - 30) * 350;
   }
+  // Jelly Swimbags is Rs280/child at the base; the +Rs40/alphabet name
+  // personalization charge isn't calculable on this page (no per-child name
+  // input here) so it's called out in the card copy and confirmed at
+  // checkout instead of folded into this running total.
+  if (id === 'jelly-swimbags') return kids * 280;
+  if (id === 'hairbrush-decor') return kids * 400;
+  if (id === 'photoframe-decor') return kids * 400;
   return EXTRA_ACT_PRICE;
 }
 
@@ -800,6 +852,9 @@ const ENTRY_TIERS = [
 // Return Gift — the real "Unicorn Craft Set" from the gifts catalogue (₹290/child).
 const GIFT_ITEMS = [
   {id:'g8', ic:'🦄', name:'Unicorn Craft Set', d:'A themed DIY craft kit for every guest to take home.', perChild:290},
+  // Live T-shirt Printing — real per-child price from Shruti, no matching
+  // GIFTS catalogue entry so it uses a synthetic id + emoji fallback.
+  {id:'unicorn-tshirt', ic:'👕', name:'Live T-shirt Printing', d:'Live on-site printing — every guest takes home a custom-printed tee.', perChild:450},
 ];
 // Photographer — same tiers/prices as the site's standard photographer step.
 const PHOTO_TIERS = [
@@ -846,15 +901,20 @@ function changeKids(d) {
     note.classList.remove('show');
   }
   renderGifts();
-  updateSlimePrice();
+  updateDynamicAddonPrices();
   updateSticky();
 }
 
-// Slime Making's addon price is tiered by headcount, so its card needs to
-// refresh whenever kidsCount changes (unlike the other flat-priced addons).
-function updateSlimePrice() {
-  const el = document.getElementById('slimePriceVal');
-  if (el) el.textContent = fmtINR(addonActPrice('slime', kidsCount));
+// Slime Making, Jelly Swimbags, Hairbrush Decoration and Photoframe
+// Decoration are all priced by headcount (tiered or per-child), so their
+// cards need to refresh whenever kidsCount changes — unlike the other
+// flat-priced addons.
+function updateDynamicAddonPrices() {
+  const map = {slime:'slimePriceVal', 'jelly-swimbags':'jellySwimbagsPriceVal', 'hairbrush-decor':'hairbrushDecorPriceVal', 'photoframe-decor':'photoframeDecorPriceVal'};
+  Object.keys(map).forEach(id => {
+    const el = document.getElementById(map[id]);
+    if (el) el.textContent = fmtINR(addonActPrice(id, kidsCount));
+  });
 }
 
 // ── INCLUDED ACTIVITY SELECTION ──
