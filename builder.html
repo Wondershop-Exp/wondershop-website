@@ -563,7 +563,7 @@ input,textarea,select{font-family:var(--fb)}
 .rv-item-price{font-weight:700;color:var(--bk);flex-shrink:0}
 .rv-item-rm{flex-shrink:0;width:22px;height:22px;border-radius:50%;border:none;background:#FEF2F2;color:#DC2626;font-size:12px;font-weight:700;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
 .rv-item-rm:hover{background:#FEE2E2}
-.add-link{font-size:12px;font-weight:700;color:var(--li);cursor:pointer}
+.add-link{font-size:14px;font-weight:700;color:var(--li);cursor:pointer;margin-left:10px}
 .rv-thumb{width:44px;height:34px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--li2)}
 .rv-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .rv-thumb-e{display:flex;align-items:center;justify-content:center;font-size:16px}
@@ -2759,10 +2759,16 @@ function buildRev(){
     // "Addons" (e.g. spy package Entry Options) has no dedicated builder step —
     // skip it entirely when empty, and don't show an Edit/+Add link when present.
     if(!its&&!sm[cat])return;
-    const actionHtml=!sm[cat]?''
-      :its?'<span class="edit-link" onclick="editFR('+sm[cat]+')">Edit</span>'
-      :'<span class="add-link" onclick="editFR('+sm[cat]+')">+ Add</span>';
-    html+='<div class="rv-sec"><div class="rv-hdr"><div class="rv-cat">'+cat+'</div>'+actionHtml+'</div><div class="rv-items">';
+    // Empty categories get their "+ Add" link inline right next to the
+    // category name (left-aligned, bigger/more visible) instead of pushed
+    // to the far right by .rv-hdr's space-between — populated categories
+    // keep "Edit" on the right as before.
+    const catHtml=(!its&&sm[cat])
+      ?'<div class="rv-cat">'+cat+'<span class="add-link" onclick="editFR('+sm[cat]+')">+ Add</span></div>'
+      :'<div class="rv-cat">'+cat+'</div>';
+    const actionHtml=(!sm[cat]||!its)?''
+      :'<span class="edit-link" onclick="editFR('+sm[cat]+')">Edit</span>';
+    html+='<div class="rv-sec"><div class="rv-hdr">'+catHtml+actionHtml+'</div><div class="rv-items">';
     if(!its)html+='<div class="rv-empty">Not added — skipped</div>';
     else its.forEach(i=>{
       const th=thumbFor(cat,i.id);
