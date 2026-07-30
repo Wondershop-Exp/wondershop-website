@@ -43,6 +43,7 @@ class LeadSubmitRequest(BaseModel):
     pincode:            Optional[str]   = None
     client_budget:      Optional[float] = None
     builder_snapshot:   Optional[dict]  = None
+    remarks:            Optional[str]   = None
     lead_source:        Optional[str]   = "Website"
     lead_source_detail: Optional[str]   = None
     referred_by:        Optional[str]   = None
@@ -96,6 +97,7 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest) -> None:
         return
 
     try:
+        remarks_block = f"\nYour special requests / remarks:\n  {req.remarks}\n" if req.remarks else ""
         body = f"""Hi {req.parent_name.split()[0]}! 🎉
 
 Thank you for reaching out to Wondershop Experiences.
@@ -106,7 +108,7 @@ Your details:
   Event Date  : {req.event_date.isoformat() if req.event_date else '—'}
   Theme       : {req.theme or '—'}
   City        : {req.city or '—'}
-
+{remarks_block}
 If you have any questions in the meantime, WhatsApp us at +91 90044 35362.
 
 Warmly,
@@ -133,6 +135,7 @@ async def _send_team_email(lead_id: int, req: LeadSubmitRequest) -> None:
 
     try:
         budget_str = f"Rs.{req.client_budget:,.0f}" if req.client_budget else "—"
+        remarks_block = f"\nSPECIAL REQUESTS / REMARKS\n  {req.remarks}\n" if req.remarks else ""
         body = f"""New lead #{lead_id} received on Wondershop website.
 
 PARENT
@@ -152,7 +155,7 @@ EVENT
   Venue      : {req.venue or '—'} ({req.location_type or '—'})
   City       : {req.city or '—'}   Pincode: {req.pincode or '—'}
   Budget     : {budget_str}
-
+{remarks_block}
 SOURCE
   {req.lead_source or '—'} / {req.lead_source_detail or '—'}
   Referred by: {req.referred_by or '—'}
@@ -300,14 +303,14 @@ async def submit_lead(req: LeadSubmitRequest):
             parent_name, phone, child_names, email,
             event_date, kids_count, child_ages, child_genders,
             venue, location_type, theme, city, pincode,
-            client_budget, builder_snapshot,
+            client_budget, builder_snapshot, remarks,
             lead_source, lead_source_detail, referred_by,
             status
         ) VALUES (
             :parent_name, :phone, :child_names, :email,
             :event_date, :kids_count, :child_ages, :child_genders,
             :venue, :location_type, :theme, :city, :pincode,
-            :client_budget, :builder_snapshot,
+            :client_budget, :builder_snapshot, :remarks,
             :lead_source, :lead_source_detail, :referred_by,
             'New'
         )
@@ -329,6 +332,7 @@ async def submit_lead(req: LeadSubmitRequest):
             "pincode":            req.pincode,
             "client_budget":      req.client_budget,
             "builder_snapshot":   json.dumps(req.builder_snapshot) if req.builder_snapshot else None,
+            "remarks":            req.remarks,
             "lead_source":        req.lead_source,
             "lead_source_detail": req.lead_source_detail,
             "referred_by":        req.referred_by,

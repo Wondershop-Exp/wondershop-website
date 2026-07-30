@@ -1823,6 +1823,7 @@ input,textarea,select{font-family:var(--fb)}
     <div class="ns-item"><div class="ns-num">3</div><div class="ns-txt">Venue recce &amp; floor plan<span>Our team visits the venue and shares a layout for your approval</span></div></div>
     <div class="ns-item"><div class="ns-num">4</div><div class="ns-txt">Execution day — we bring the magic ✨<span>Sit back and enjoy watching your child's face light up</span></div></div>
   </div>
+  <div id="confRemarks"></div>
   <div class="cbox"><div class="cb-row">Need anything? We're here:</div><div class="cb-val" style="font-size:14px;font-weight:700;color:var(--pk);margin-top:4px">+91 90044 35362 · +91 97422 40477</div><div class="cb-val">contact@wondershopexperiences.com</div></div>
 </div>
 
@@ -2515,6 +2516,14 @@ function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.a
 function updSelActs(){const w=document.getElementById('selActs');const l=document.getElementById('selAList');if(!S.activities.length){w.style.display='none';return;}w.style.display='block';l.innerHTML='';S.activities.forEach(a=>{const tot=actPrice(a,S.kidsCount);l.innerHTML+='<div class="sai"><span>'+a.n+'</span><span style="display:flex;align-items:center;gap:5px"><span class="saip">₹'+tot.toLocaleString('en-IN')+'</span><button class="sarm" onclick="togAct(\''+a.id+'\')">✕</button></span></div>';});}
 function chgK(d){S.kidsCount=Math.max(1,Math.min(100,S.kidsCount+d));document.getElementById('kDisp2').textContent=S.kidsCount;try{document.getElementById('f-kids').value=S.kidsCount;}catch(e){}renderActs(actFilter==='all'?visibleActs():visibleActs().filter(a=>a.cat===actFilter));updSelActs();S.gifts.forEach(g=>{if(!g.userQty)g.qty=S.kidsCount;});renderGifts();updBB(S.screen);}
 
+// Combines every captured remarks entry (per-step boxes below, plus the
+// dedicated "pkg" key used for package-page special-request fields like
+// spy-basic.html's) into one string for the review page, order
+// confirmation screen, and the /api/leads/submit payload.
+function combinedRemarks(){
+  return Object.values(S.remarks||{}).map(v=>(v||'').trim()).filter(Boolean).join('\n\n');
+}
+
 // ── PER-STEP REMARKS BOX ──
 // Every builder step (except Review/Checkout/Confirmation/Lead, which have
 // their own summary/forms) gets an optional free-text remarks field so
@@ -2780,6 +2789,12 @@ function buildRev(){
     });
     html+='</div></div>';
   });
+  const rmk=combinedRemarks();
+  if(rmk){
+    html+='<div class="rv-sec"><div class="rv-hdr"><div class="rv-cat">Special Requests</div></div>'+
+      '<div class="rv-items" style="padding:14px 16px"><div style="font-size:13px;color:var(--bk);line-height:1.6;white-space:pre-wrap">'+
+      rmk.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</div></div></div>';
+  }
   body.innerHTML=html;
   const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();
   if(dpv>0){document.getElementById('rvDiscRow').style.display='flex';document.getElementById('rvDiscAmt').textContent='₹'+(gt-tpv).toLocaleString('en-IN')+' ('+dpv+'% off)';}
@@ -2878,10 +2893,18 @@ async function doCo(){
         pincode:            S.pincode || null,
         client_budget:      tp() || null,
         builder_snapshot:   buildSnapshot ? buildSnapshot() : null,
+        remarks:            combinedRemarks() || null,
         lead_source:        'Website - Checkout',
       }),
     }).catch(e=>console.error('Booking notify error:',e));
   }
+
+  // Show the customer's special requests back to them on the confirmation
+  // screen so they can see it was captured.
+  const rmk=combinedRemarks();
+  document.getElementById('confRemarks').innerHTML=rmk
+    ? '<div class="cbox" style="margin-top:16px;text-align:left"><div class="cb-row">Your special requests / remarks:</div><div class="cb-val" style="white-space:pre-wrap">'+rmk.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</div></div>'
+    : '';
 
   goTo('sconf');launchConfetti();
 }
@@ -3281,6 +3304,11 @@ document.addEventListener('DOMContentLoaded',()=>{
       // Photographer — same tier names as the site's standard photographer step,
       // so its thumbnail/image resolves correctly on the review page.
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
+      // Special requests / remarks entered on the package page — merged into
+      // the same S.remarks bucket the per-step remarks boxes use, under a
+      // dedicated 'pkg' key, so combinedRemarks() picks it up everywhere
+      // (review page, confirmation screen, /api/leads/submit).
+      if(pkgData.remarks)S.remarks['pkg']=pkgData.remarks;
     }catch(e){}
   }else if(urlPkg==='princess-basic'){
     // Same structure/pricing as unicorn-basic (Decor, Music, Entry, Photographer,

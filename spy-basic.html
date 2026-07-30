@@ -156,6 +156,11 @@ button{cursor:pointer;font-family:var(--fb)}
 .addon-chip{display:flex;align-items:center;gap:8px;background:#f9f9f9;border:1.5px solid #eee;border-radius:12px;padding:11px 14px;font-size:13px;color:var(--gy);font-weight:500}
 .addon-chip-ic{font-size:18px;flex-shrink:0}
 
+/* SPECIAL REQUESTS */
+.rmk-ta{width:100%;border:1.5px solid var(--li2);border-radius:12px;padding:12px 14px;font-family:inherit;font-size:14px;color:var(--bk);resize:vertical;min-height:80px}
+.rmk-ta:focus{outline:none;border-color:var(--li)}
+.rmk-note{font-size:12px;color:var(--gy);margin-top:8px;line-height:1.5}
+
 /* STICKY BAR */
 .sticky-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#fff;border-top:1.5px solid var(--li2);box-shadow:0 -4px 20px rgba(181,157,222,.12);padding:12px 24px}
 .sticky-inner{max-width:var(--max);margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
@@ -245,6 +250,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <span class="pkg-incl-chip">🎯 4–8 Mission Stations</span>
             <span class="pkg-incl-chip">🎂 Min. age 7</span>
           </div>
+          <div style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--gy);font-weight:500;margin-bottom:20px"><span style="color:var(--gr);font-weight:700">✓</span> Age-appropriate stations for your child</div>
           <div class="pkg-price-block">
             <div class="pkg-price-note">Estimated total for your party</div>
             <div class="pkg-price" id="heroPrice">₹25,000</div>
@@ -313,7 +319,7 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="incl-card">
           <div class="incl-card-ic">🪪</div>
           <div class="incl-card-h">Personalized Spy ID Cards</div>
-          <div class="incl-card-body">Every agent gets their own Wondershop Spy Academy ID card with photo and name — theirs to keep after the mission.</div>
+          <div class="incl-card-body">Every agent gets their own Wondershop Spy Academy ID card with photo, name &amp; QR — theirs to keep after the mission.</div>
         </div>
 
       </div>
@@ -448,6 +454,18 @@ button{cursor:pointer;font-family:var(--fb)}
       <div class="act-grid" id="pinataGrid"></div>
 
       <div class="tnc-note">📄 <span>By booking this package you agree to our <a href="terms.html">Terms &amp; Conditions</a>.</span></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- SPECIAL REQUESTS -->
+  <section class="sec">
+    <div class="container">
+      <h2 class="sec-h2">Special <em>Requests</em></h2>
+      <p class="sec-sub">Anything specific you'd like us to know? <span style="color:var(--gy);font-weight:400">(optional)</span></p>
+      <textarea class="rmk-ta" id="specialRequest" placeholder="e.g. a specific cover name for the mission, allergy info, a surprise moment you'd like..."></textarea>
+      <div class="rmk-note">We'll call you after receiving your details to confirm everything and customize anything you need.</div>
     </div>
   </section>
 
@@ -834,6 +852,7 @@ function proceedToBuilder() {
       props: selectedProps,
       entry: selectedEntry,
       photographer: selectedPhotographer,
+      remarks: (document.getElementById('specialRequest').value || '').trim(),
       packagePrice: totalPrice(),
       ts: Date.now()
     }));
