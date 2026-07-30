@@ -151,6 +151,11 @@ button{cursor:pointer;font-family:var(--fb)}
 .tnc-note{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gy);margin-top:20px}
 .tnc-note a{color:var(--li);font-weight:600}
 
+/* ADD-ONS TEASER */
+.addon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.addon-chip{display:flex;align-items:center;gap:8px;background:#f9f9f9;border:1.5px solid #eee;border-radius:12px;padding:11px 14px;font-size:13px;color:var(--gy);font-weight:500}
+.addon-chip-ic{font-size:18px;flex-shrink:0}
+
 /* STICKY BAR */
 .sticky-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#fff;border-top:1.5px solid var(--li2);box-shadow:0 -4px 20px rgba(181,157,222,.12);padding:12px 24px}
 .sticky-inner{max-width:var(--max);margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
@@ -242,7 +247,7 @@ button{cursor:pointer;font-family:var(--fb)}
           </div>
           <div class="pkg-price-block">
             <div class="pkg-price-note">Estimated total for your party</div>
-            <div class="pkg-price" id="heroPrice">₹35,000</div>
+            <div class="pkg-price" id="heroPrice">₹25,000</div>
             <div class="pkg-price-sub">Mission stations priced per child · decor priced separately · min. bill ₹25,000</div>
           </div>
           <div class="pkg-cta-row">
@@ -308,7 +313,7 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="incl-card">
           <div class="incl-card-ic">🪪</div>
           <div class="incl-card-h">Personalized Spy ID Cards</div>
-          <div class="incl-card-body">Every agent gets their own Wondershop Spy Academy ID card with photo, name &amp; QR — theirs to keep after the mission.</div>
+          <div class="incl-card-body">Every agent gets their own Wondershop Spy Academy ID card with photo and name — theirs to keep after the mission.</div>
         </div>
 
       </div>
@@ -325,7 +330,7 @@ button{cursor:pointer;font-family:var(--fb)}
       <div class="kids-wrap">
         <div class="kids-stepper">
           <button class="kids-btn" onclick="changeKids(-1)">−</button>
-          <div class="kids-num" id="kidsDisp">25</div>
+          <div class="kids-num" id="kidsDisp">15</div>
           <button class="kids-btn" onclick="changeKids(1)">+</button>
         </div>
         <div class="kids-info" id="kidsInfo"></div>
@@ -465,6 +470,24 @@ button{cursor:pointer;font-family:var(--fb)}
     </div>
   </section>
 
+  <hr class="divider">
+
+  <!-- ADD-ONS TEASER (services) -->
+  <section class="sec">
+    <div class="container">
+      <h2 class="sec-h2">More to <em>add later</em></h2>
+      <p class="sec-sub">Speak with your account manager to add these after order placement.</p>
+      <div class="addon-grid">
+        <div class="addon-chip"><span class="addon-chip-ic">🧸</span><span>Mascot</span></div>
+        <div class="addon-chip"><span class="addon-chip-ic">🎂</span><span>Cake Table</span></div>
+        <div class="addon-chip"><span class="addon-chip-ic">🎊</span><span>Welcome Arch</span></div>
+        <div class="addon-chip"><span class="addon-chip-ic">🪧</span><span>Welcome Board</span></div>
+        <div class="addon-chip"><span class="addon-chip-ic">🍬</span><span>Pinata Fillings</span></div>
+        <div class="addon-chip"><span class="addon-chip-ic">🛍️</span><span>Pinata Bags</span></div>
+      </div>
+    </div>
+  </section>
+
 </div><!-- /page-wrap -->
 
 <!-- STICKY BAR -->
@@ -472,7 +495,7 @@ button{cursor:pointer;font-family:var(--fb)}
   <div class="sticky-inner">
     <div class="sticky-left">
       <div class="sticky-price-row">
-        <div class="sticky-price" id="stickyTotal">₹35,000</div>
+        <div class="sticky-price" id="stickyTotal">₹25,000</div>
         <div class="sticky-base" id="stickyBase">· Spy Adventure</div>
       </div>
       <div class="sticky-details" id="stickyDetails">25 kids · 5 stations · Basic decor</div>
@@ -558,8 +581,8 @@ const PHOTO_TIERS = [
 const MIN_KIDS = 12, MAX_KIDS = 60, MIN_BILL = 25000;
 
 // ── STATE ──
-let kidsCount = 25;
-let selectedDecor = DECOR_TIERS[0];
+let kidsCount = 15;
+let selectedDecor = null;
 let selectedStations = [];      // array of ADDON_STATIONS ids
 let selectedMusic = null;       // one of MUSIC_TIERS or null
 let selectedEinvite = null;     // one of EINVITE_TIERS or null
