@@ -138,10 +138,10 @@ button{cursor:pointer;font-family:var(--fb)}
 .filmstrip-wrap::before,.filmstrip-wrap::after{content:'';position:absolute;left:0;right:0;height:13px;background-image:repeating-linear-gradient(90deg,#f4f4f4 0 9px,transparent 9px 24px);background-position:12px center;z-index:2}
 .filmstrip-wrap::before{top:0}
 .filmstrip-wrap::after{bottom:0}
-.filmstrip-track{display:flex;width:max-content;animation:filmScroll 38s linear infinite}
+.filmstrip-track{display:flex;width:max-content;animation:filmScroll 85s linear infinite}
 .filmstrip-wrap:hover .filmstrip-track{animation-play-state:paused}
 .film-frame{position:relative;flex-shrink:0;width:210px;height:210px;margin:0 6px;border-radius:6px;overflow:hidden;border:3px solid #000;background:#000}
-.film-frame img{width:100%;height:100%;object-fit:cover;display:block}
+.film-frame img,.film-frame video{width:100%;height:100%;object-fit:cover;display:block}
 .film-tag{position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,.72);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:.2px}
 @keyframes filmScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @media(max-width:600px){.film-frame{width:150px;height:150px}}
@@ -221,18 +221,6 @@ button{cursor:pointer;font-family:var(--fb)}
 .act-req-note{font-size:12px;color:#ef4444;font-weight:600;margin-top:10px;display:none;padding:8px 12px;background:#fef2f2;border-radius:8px}
 .act-req-note.show{display:block}
 
-/* PARENT FEEDBACK */
-.pf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.pf-card{border:1.5px solid var(--li2);border-radius:16px;padding:22px 20px;background:var(--li3);display:flex;flex-direction:column}
-.pf-stars{color:var(--yl);font-size:14px;letter-spacing:2px;margin-bottom:12px}
-.pf-quote{font-size:13.5px;line-height:1.65;color:var(--bk);flex:1;margin-bottom:18px}
-.pf-quote::before{content:'“'}
-.pf-quote::after{content:'”'}
-.pf-author{display:flex;align-items:center;gap:10px}
-.pf-photo{width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid #fff}
-.pf-name{font-family:var(--fd);font-weight:700;font-size:13.5px;color:var(--bk)}
-.pf-meta{font-size:11.5px;color:var(--gy)}
-
 /* ADDON TEASER (services) */
 .addon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .addon-chip{display:flex;align-items:center;gap:8px;background:#f9f9f9;border:1.5px solid #eee;border-radius:12px;padding:11px 14px;font-size:13px;color:var(--gy);font-weight:500}
@@ -258,7 +246,6 @@ button{cursor:pointer;font-family:var(--fb)}
   .pkg-img-wrap{aspect-ratio:16/9;order:-1}
   .incl-grid{grid-template-columns:1fr}
   .pkg-h1{font-size:28px}
-  .pf-grid{grid-template-columns:1fr}
 }
 @media(max-width:600px){
   .act-grid{grid-template-columns:1fr 1fr}
@@ -403,7 +390,6 @@ button{cursor:pointer;font-family:var(--fb)}
               <li>Cupcake Decor</li>
               <li>Sunglasses Decor</li>
               <li>Fridge Magnet</li>
-              <li>Pot Painting</li>
               <li>Colouring Station</li>
               <li>Glitter Station</li>
             </ul>
@@ -507,7 +493,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="act-card" data-act="a23" data-name="Fridge Magnet" onclick="selectAct(this)">
-          <div class="act-card-ic">🧲</div>
+          <img class="act-card-ic-img" src="img/act-fridge-magnet.jpg" alt="Fridge Magnet">
           <div class="act-card-n">Fridge Magnet</div>
           <div class="act-card-d">Each child creates their own painted fridge magnet — a little party memory to take home.</div>
         </div>
@@ -522,12 +508,6 @@ button{cursor:pointer;font-family:var(--fb)}
           <img class="act-card-ic-img" src="img/act-glitter.jpg" alt="Glitter Station">
           <div class="act-card-n">Glitter Station</div>
           <div class="act-card-d">Glitter tattoos &amp; face art.</div>
-        </div>
-
-        <div class="act-card" data-act="a3" data-name="Pot Painting" onclick="selectAct(this)">
-          <div class="act-card-ic">🪴</div>
-          <div class="act-card-n">Pot Painting</div>
-          <div class="act-card-d">Kids paint and decorate their own terracotta pot — a cute little planter to take home.</div>
         </div>
 
         <div class="act-card" data-act="a12" data-name="Dreamcatcher" onclick="selectAct(this)">
@@ -700,21 +680,6 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="addon-act-price" id="photoframeDecorPriceVal">₹10,000</div>
             <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
             <button class="btn-addon-add" id="abtn-photoframe-decor" onclick="toggleAddon('photoframe-decor','Photoframe Decoration',this)">+ Add</button>
-          </div>
-        </div>
-
-        <div class="addon-act-card" id="add-a3" data-act="a3" data-name="Pot Painting">
-          <div class="addon-act-top">
-            <div class="addon-act-ic">🪴</div>
-            <div class="addon-act-info">
-              <div class="addon-act-n">Pot Painting</div>
-              <div class="addon-act-d">Paint &amp; take home a terracotta pot</div>
-            </div>
-          </div>
-          <div class="addon-act-foot">
-            <div class="addon-act-price">₹4,999</div>
-            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
-            <button class="btn-addon-add" id="abtn-a3" onclick="toggleAddon('a3','Pot Painting',this)">+ Add</button>
           </div>
         </div>
 
@@ -913,17 +878,6 @@ button{cursor:pointer;font-family:var(--fb)}
     </div>
   </section>
 
-  <hr class="divider">
-
-  <!-- PARENT FEEDBACK -->
-  <section class="sec">
-    <div class="container">
-      <h2 class="sec-h2">What <em>parents</em> say</h2>
-      <p class="sec-sub">Real reviews from families we've thrown birthday parties for.</p>
-      <div class="pf-grid" id="pfGrid"></div>
-    </div>
-  </section>
-
 </div><!-- /page-wrap -->
 
 <!-- STICKY BAR -->
@@ -1035,49 +989,39 @@ function pkgCReset() { clearInterval(pkgCTimer); pkgCTimer = setInterval(pkgCNex
 pkgCReset();
 
 // ── FILM STRIP (auto-scrolling, tagged) ──
+// All photos are real shots from the same real Unicorn party (Anahita's
+// birthday), sourced from the uploaded carousal-N.jpg files — same source
+// as the hero carousel (PKG_FRAMES). One frame is a short muted video loop
+// of the grandmother's live feedback, filmed at the same party.
 const FILM_FRAMES = [
-  { src: 'img/unicorn-decor-basic.jpg', tag: 'Decor' },
-  { src: 'img/unicorn-host.jpg', tag: 'Host' },
-  { src: 'img/unicorn-tattoo.jpg', tag: 'Tattoo Station' },
-  { src: 'img/act-sunglasses-decor.jpg', tag: 'Sunglasses Decor' },
-  { src: 'img/act-tote-bag-painting.jpg', tag: 'Tote Bag Painting' },
-  { src: 'img/act-art.jpg', tag: 'Craft Activity' },
-  { src: 'img/act-slime.jpg', tag: 'Slime Making' },
+  { src: 'img/unicorn-carousel-01.jpg', tag: 'Cake Cutting Moment' },
+  { src: 'img/unicorn-carousel-02.jpg', tag: 'Unicorn Balloon Arch' },
+  { video: 'img/unicorn-grandma-feedback.mp4', poster: 'img/unicorn-grandma-feedback-poster.jpg', tag: "Grandma's Review" },
+  { src: 'img/unicorn-carousel-03.jpg', tag: 'Host in Action' },
+  { src: 'img/unicorn-carousel-04.jpg', tag: 'Craft Activity' },
+  { src: 'img/unicorn-carousel-05.jpg', tag: 'Tattoo Station' },
+  { src: 'img/unicorn-carousel-06.jpg', tag: 'Host Engaging Kids' },
+  { src: 'img/unicorn-carousel-07.jpg', tag: 'Party Fun' },
+  { src: 'img/unicorn-carousel-08.jpg', tag: 'Dance Floor' },
+  { src: 'img/unicorn-carousel-09.jpg', tag: 'Host Storytelling' },
+  { src: 'img/unicorn-carousel-10.jpg', tag: 'Host & Music' },
+  { src: 'img/unicorn-carousel-11.jpg', tag: 'Magic Show' },
+  { src: 'img/unicorn-carousel-12.jpg', tag: 'Magic Show' },
+  { src: 'img/unicorn-carousel-13.jpg', tag: 'Dance Performance' },
+  { src: 'img/unicorn-carousel-14.jpg', tag: 'Cake Table' },
+  { src: 'img/unicorn-carousel-15.jpg', tag: 'Unicorn Surprise' },
 ];
 (function initFilmstrip(){
   const track = document.getElementById('filmTrack');
   if (!track) return;
   const frameHTML = (f, hidden) => '<div class="film-frame"' + (hidden ? ' aria-hidden="true"' : '') + '>' +
-    '<img src="' + f.src + '" alt="' + (hidden ? '' : f.tag + ' — Unicorn Magic package') + '" loading="lazy">' +
+    (f.video ?
+      '<video src="' + f.video + '" poster="' + f.poster + '" autoplay muted loop playsinline></video>' :
+      '<img src="' + f.src + '" alt="' + (hidden ? '' : f.tag + ' — Unicorn Magic package') + '" loading="lazy">') +
     '<span class="film-tag">' + f.tag + '</span></div>';
   // Duplicate the set so translateX(-50%) loops seamlessly.
   track.innerHTML = FILM_FRAMES.map(f => frameHTML(f, false)).join('') +
                      FILM_FRAMES.map(f => frameHTML(f, true)).join('');
-})();
-
-// ── PARENT FEEDBACK ──
-// Real reviews pulled from the site's TESTIMONIALS database (index.html).
-// Neeta's review is from the same real Unicorn-theme party used for the
-// decor/tattoo/host photos on this page. Divya and Swati are shown too for
-// social proof, with their own real theme/venue tags (not claimed as Unicorn).
-const PARENT_FEEDBACK = [
-  { stars: 5, quote: "We had a wonderful experience with Wondershop. The party was very lively because of a witty host. The games were interesting. The tattoo artist kept the kids occupied. The decor and ambience was apt for a toddlers party. The whole event was very professionally managed by Shruti and Siddhant. Thank you to the event managers.", name: 'Neeta', photo: 'img/Testimonials/testi-neeta-anahita.jpg', theme: 'Unicorn Theme', age: '4 Years', venue: 'Society Clubhouse' },
-  { stars: 5, quote: "We celebrated our daughter's birthday party at Wondershop, and it was truly a memorable experience. Shruti did a wonderful job with the setup — everything was well organised and right on time. The decorations were lovely, and the activities kept the kids engaged throughout.", name: 'Divya', photo: 'img/Testimonials/testi-divya.jpg', theme: 'Art Party', age: '4 Years', venue: 'House Party' },
-  { stars: 5, quote: "We had an amazing experience with Wondershop. They organized our daughter's 5th birthday party. Everything was very smoothly and seamlessly managed. The decor turned out as per our request, the DIY activity and host were pretty engaging. Highly recommend them for your events.", name: 'Swati', photo: 'img/Testimonials/testi-swati-2.jpg', theme: 'Princess Theme', age: '5 Years', venue: 'Restaurant' },
-];
-(function initParentFeedback(){
-  const grid = document.getElementById('pfGrid');
-  if (!grid) return;
-  grid.innerHTML = PARENT_FEEDBACK.map(t =>
-    '<div class="pf-card">' +
-      '<div class="pf-stars">' + '★'.repeat(t.stars) + '</div>' +
-      '<div class="pf-quote">' + t.quote + '</div>' +
-      '<div class="pf-author">' +
-        '<img class="pf-photo" src="' + t.photo + '" alt="' + t.name + '" loading="lazy">' +
-        '<div><div class="pf-name">' + t.name + '</div><div class="pf-meta">' + t.theme + ' · ' + t.age + ' · ' + t.venue + '</div></div>' +
-      '</div>' +
-    '</div>'
-  ).join('');
 })();
 
 // ── DATA ──
@@ -1096,7 +1040,7 @@ const EXTRA_ACT_PRICE = 4999;
 // package price, no tier options, similar to Host.
 const TATTOO_PRICE = 2500;
 // Add-on activity pricing — Cupcake Decor / Sunglasses Decor / Fridge Magnet
-// / Colouring Station / Pot Painting / Soft Toy Making / Dreamcatcher all use
+// / Colouring Station / Soft Toy Making / Dreamcatcher all use
 // the flat EXTRA_ACT_PRICE markup. Glitter Station and Slime Making have their own
 // real pricing (given directly by Shruti) so they're priced separately.
 // Bubble Show / Magic Show / Science Show are add-on-only performances (too
