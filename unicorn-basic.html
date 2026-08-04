@@ -86,8 +86,15 @@ button{cursor:pointer;font-family:var(--fb)}
 .btn-pkg-ghost{background:transparent;color:var(--bk);border:1.5px solid #ddd;border-radius:28px;padding:13px 22px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:border-color .15s,background .15s;text-decoration:none}
 .btn-pkg-ghost:hover{border-color:var(--li);background:var(--li3)}
 .pkg-img-wrap{position:relative;border-radius:24px;overflow:hidden;box-shadow:0 24px 64px rgba(181,157,222,.28);aspect-ratio:4/3}
-.pkg-img-wrap img{width:100%;height:100%;object-fit:cover}
-.pkg-img-badge{position:absolute;bottom:16px;left:16px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--bk)}
+.pkg-img-wrap img{width:100%;height:100%;object-fit:cover;transition:opacity .5s ease}
+.pkg-img-badge{position:absolute;bottom:16px;left:16px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--bk);z-index:3}
+.pkg-cdots{position:absolute;bottom:16px;right:16px;display:flex;gap:6px;z-index:3}
+.pkg-cdot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.55);border:none;cursor:pointer;padding:0;transition:background .2s,width .2s}
+.pkg-cdot.active{background:#fff;width:18px;border-radius:4px}
+.pkg-carousel-arrow{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.85);border:none;font-size:20px;line-height:1;color:var(--bk);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;transition:background .15s}
+.pkg-carousel-arrow:hover{background:#fff}
+.pkg-carousel-arrow.left{left:12px}
+.pkg-carousel-arrow.right{right:12px}
 
 /* SECTIONS */
 .sec{padding:48px 0}
@@ -271,8 +278,11 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
         <div>
           <div class="pkg-img-wrap">
-            <img src="img/unicorn-main.jpg" alt="Unicorn birthday party by Wondershop" onerror="this.src='img/theme-uni.jpg'">
-            <div class="pkg-img-badge">🦄 Unicorn Theme · Wondershop</div>
+            <img id="pkgHeroImg" src="img/unicorn-main.jpg" alt="Unicorn birthday party by Wondershop" onerror="this.src='img/theme-uni.jpg'">
+            <div class="pkg-img-badge" id="pkgHeroBadge">🦄 Unicorn Theme · Wondershop</div>
+            <button class="pkg-carousel-arrow left" onclick="pkgCGoTo(pkgCCur-1);pkgCReset()" aria-label="Previous photo">‹</button>
+            <button class="pkg-carousel-arrow right" onclick="pkgCGoTo(pkgCCur+1);pkgCReset()" aria-label="Next photo">›</button>
+            <div class="pkg-cdots" id="pkgHeroDots"></div>
           </div>
         </div>
       </div>
@@ -801,6 +811,42 @@ button{cursor:pointer;font-family:var(--fb)}
 <script>
 // Nav
 document.getElementById('nav-ham').addEventListener('click',()=>document.getElementById('nav-mob').classList.toggle('open'));
+
+// ── HERO IMAGE CAROUSEL ──
+const PKG_FRAMES = [
+  { src: 'img/unicorn-main.jpg', badge: '🦄 Unicorn Theme · Wondershop' },
+  { src: 'img/unicorn-decor-basic.jpg', badge: '🎈 Balloon Arch Decor' },
+  { src: 'img/unicorn-tattoo.jpg', badge: '🖊️ Tattoo Station' },
+  { src: 'img/unicorn-host.jpg', badge: '🎤 Your Party Host' },
+  { src: 'img/act-sunglasses-decor.jpg', badge: '🕶️ Sunglasses Decor Activity' },
+];
+let pkgCCur = 0, pkgCTimer;
+const pkgFrontImg = document.getElementById('pkgHeroImg');
+const pkgHeroBadge = document.getElementById('pkgHeroBadge');
+const pkgDots = document.getElementById('pkgHeroDots');
+
+PKG_FRAMES.forEach((_,i) => {
+  const d = document.createElement('button');
+  d.className = 'pkg-cdot' + (i===0 ? ' active' : '');
+  d.setAttribute('aria-label', 'Show photo '+(i+1));
+  d.onclick = () => { pkgCGoTo(i); pkgCReset(); };
+  pkgDots.appendChild(d);
+});
+
+function pkgCGoTo(n) {
+  n = (n + PKG_FRAMES.length) % PKG_FRAMES.length;
+  pkgFrontImg.style.opacity = '0';
+  setTimeout(() => {
+    pkgFrontImg.src = PKG_FRAMES[n].src;
+    pkgHeroBadge.textContent = PKG_FRAMES[n].badge;
+    pkgFrontImg.style.opacity = '1';
+  }, 250);
+  Array.from(pkgDots.children).forEach((d,i) => d.classList.toggle('active', i===n));
+  pkgCCur = n;
+}
+function pkgCNext() { pkgCGoTo(pkgCCur + 1); }
+function pkgCReset() { clearInterval(pkgCTimer); pkgCTimer = setInterval(pkgCNext, 4500); }
+pkgCReset();
 
 // ── DATA ──
 // Host is bundled at the site's real Starter Host price (₹10,000) — not
