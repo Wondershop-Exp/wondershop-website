@@ -72,7 +72,8 @@ button{cursor:pointer;font-family:var(--fb)}
 .pkg-h1{font-family:var(--fd);font-size:clamp(28px,4vw,42px);font-weight:700;color:var(--bk);margin-bottom:12px;line-height:1.15}
 .pkg-h1 em{color:var(--li);font-style:italic}
 .pkg-desc{font-size:15px;color:var(--gy);margin-bottom:22px;line-height:1.65;max-width:460px}
-.pkg-incl-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+.pkg-incl-row{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
+.pkg-incl-line{display:flex;flex-wrap:wrap;gap:8px}
 .pkg-incl-chip{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--bk);background:#fff;border:1.5px solid var(--li2);border-radius:20px;padding:5px 12px}
 .pkg-incl-chip img{width:15px;height:15px;object-fit:contain;flex-shrink:0}
 .pkg-price-block{margin-bottom:20px}
@@ -254,11 +255,15 @@ button{cursor:pointer;font-family:var(--fb)}
           <h1 class="pkg-h1">Unicorn <em>Basic</em> Package</h1>
           <p class="pkg-desc">A complete unicorn birthday — decor you choose, a fun activity the kids will love, a tattoo station, and an energetic host to keep the energy high. Music can be added on. Everything handled. Nothing to worry about.</p>
           <div class="pkg-incl-row">
-            <span class="pkg-incl-chip"><img src="img/icons/icon-decor-bw.png" alt="" loading="lazy"> Decor</span>
-            <span class="pkg-incl-chip"><img src="img/icons/icon-host-bw.png" alt="" loading="lazy"> Host</span>
-            <span class="pkg-incl-chip">🖊️ Tattoo</span>
-            <span class="pkg-incl-chip"><img src="img/icons/icon-activities-bw.png" alt="" loading="lazy"> 1 Activity</span>
-            <span class="pkg-incl-chip"><img src="img/icons/icon-invite-bw.png" alt="" loading="lazy"> E-Invite</span>
+            <div class="pkg-incl-line">
+              <span class="pkg-incl-chip"><img src="img/icons/icon-decor-bw.png" alt="" loading="lazy"> Decor</span>
+              <span class="pkg-incl-chip"><img src="img/icons/icon-host-bw.png" alt="" loading="lazy"> Host</span>
+              <span class="pkg-incl-chip">🖊️ Tattoo</span>
+            </div>
+            <div class="pkg-incl-line">
+              <span class="pkg-incl-chip"><img src="img/icons/icon-activities-bw.png" alt="" loading="lazy"> 1 Activity</span>
+              <span class="pkg-incl-chip"><img src="img/icons/icon-invite-bw.png" alt="" loading="lazy"> E-Invite</span>
+            </div>
           </div>
           <div class="pkg-price-block">
             <div class="pkg-price-note">Estimated total for your party</div>
