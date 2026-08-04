@@ -96,6 +96,19 @@ button{cursor:pointer;font-family:var(--fb)}
 .pkg-carousel-arrow.left{left:12px}
 .pkg-carousel-arrow.right{right:12px}
 
+/* FILM STRIP */
+.filmstrip-wrap{position:relative;background:#161616;padding:15px 0;overflow:hidden}
+.filmstrip-wrap::before,.filmstrip-wrap::after{content:'';position:absolute;left:0;right:0;height:13px;background-image:repeating-linear-gradient(90deg,#f4f4f4 0 9px,transparent 9px 24px);background-position:12px center;z-index:2}
+.filmstrip-wrap::before{top:0}
+.filmstrip-wrap::after{bottom:0}
+.filmstrip-track{display:flex;width:max-content;animation:filmScroll 38s linear infinite}
+.filmstrip-wrap:hover .filmstrip-track{animation-play-state:paused}
+.film-frame{position:relative;flex-shrink:0;width:210px;height:210px;margin:0 6px;border-radius:6px;overflow:hidden;border:3px solid #000;background:#000}
+.film-frame img{width:100%;height:100%;object-fit:cover;display:block}
+.film-tag{position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,.72);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:.2px}
+@keyframes filmScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(max-width:600px){.film-frame{width:150px;height:150px}}
+
 /* SECTIONS */
 .sec{padding:48px 0}
 .sec-h2{font-family:var(--fd);font-size:clamp(22px,3vw,28px);font-weight:700;color:var(--bk);margin-bottom:6px}
@@ -771,19 +784,14 @@ button{cursor:pointer;font-family:var(--fb)}
 
   <hr class="divider">
 
-  <!-- PHOTO STRIP -->
+  <!-- PHOTO STRIP (film strip, auto-scrolling) -->
   <section class="sec" style="padding-bottom:8px">
     <div class="container">
       <h2 class="sec-h2">From real <em>Unicorn Parties</em></h2>
       <p class="sec-sub">A few moments from unicorn-themed parties we've run.</p>
     </div>
-    <div style="display:flex;gap:14px;overflow-x:auto;padding:4px 24px 12px;scroll-snap-type:x mandatory">
-      <img src="img/unicorn-decor-basic.jpg" alt="Unicorn birthday decor" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
-      <img src="img/pin-uni.jpg" alt="Unicorn pinata" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
-      <img src="img/act-sunglasses-decor.jpg" alt="Sunglasses decor activity" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
-      <img src="img/act-tote-bag-painting.jpg" alt="Tote bag painting activity" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
-      <img src="img/act-art.jpg" alt="Craft activity station" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
-      <img src="img/act-slime.jpg" alt="Slime making activity" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
+    <div class="filmstrip-wrap">
+      <div class="filmstrip-track" id="filmTrack"></div>
     </div>
   </section>
 
@@ -847,6 +855,28 @@ function pkgCGoTo(n) {
 function pkgCNext() { pkgCGoTo(pkgCCur + 1); }
 function pkgCReset() { clearInterval(pkgCTimer); pkgCTimer = setInterval(pkgCNext, 4500); }
 pkgCReset();
+
+// ── FILM STRIP (auto-scrolling, tagged) ──
+const FILM_FRAMES = [
+  { src: 'img/unicorn-decor-basic.jpg', tag: 'Decor' },
+  { src: 'img/unicorn-host.jpg', tag: 'Host' },
+  { src: 'img/unicorn-tattoo.jpg', tag: 'Tattoo Station' },
+  { src: 'img/pin-uni.jpg', tag: 'Pinata' },
+  { src: 'img/act-sunglasses-decor.jpg', tag: 'Sunglasses Decor' },
+  { src: 'img/act-tote-bag-painting.jpg', tag: 'Tote Bag Painting' },
+  { src: 'img/act-art.jpg', tag: 'Craft Activity' },
+  { src: 'img/act-slime.jpg', tag: 'Slime Making' },
+];
+(function initFilmstrip(){
+  const track = document.getElementById('filmTrack');
+  if (!track) return;
+  const frameHTML = (f, hidden) => '<div class="film-frame"' + (hidden ? ' aria-hidden="true"' : '') + '>' +
+    '<img src="' + f.src + '" alt="' + (hidden ? '' : f.tag + ' — Unicorn Magic package') + '" loading="lazy">' +
+    '<span class="film-tag">' + f.tag + '</span></div>';
+  // Duplicate the set so translateX(-50%) loops seamlessly.
+  track.innerHTML = FILM_FRAMES.map(f => frameHTML(f, false)).join('') +
+                     FILM_FRAMES.map(f => frameHTML(f, true)).join('');
+})();
 
 // ── DATA ──
 // Host is bundled at the site's real Starter Host price (₹10,000) — not
