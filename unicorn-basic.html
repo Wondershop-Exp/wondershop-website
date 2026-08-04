@@ -1147,7 +1147,7 @@ function toggleAddon(actId, actName, btn) {
 function renderTierGrid(gridId, items, selected) {
   const grid = document.getElementById(gridId);
   grid.innerHTML = items.map(t => {
-    const img = t.img ? '<div class="tier-img-wrap"><img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;margin-bottom:10px">' +
+    const img = t.img ? '<div class="tier-img-wrap"><img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;margin-bottom:10px;cursor:zoom-in" onclick="event.stopPropagation();openDecorGallery(\'' + t.id + '\')">' +
       '<button class="gal-trig" onclick="event.stopPropagation();openDecorGallery(\'' + t.id + '\')" aria-label="Zoom ' + t.name + ' photo">🔍 Zoom</button></div>' : '';
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
