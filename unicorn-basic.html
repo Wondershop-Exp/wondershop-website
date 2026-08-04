@@ -118,6 +118,8 @@ button{cursor:pointer;font-family:var(--fb)}
 .gal-detail-list li::before{content:'✓';position:absolute;left:0;color:#4ADE80;font-weight:700}
 .gal-detail-list.neg li{color:#9CA3AF}
 .gal-detail-list.neg li::before{content:'✕';color:#F87171}
+.gal-detail-list li.gal-empty{padding-left:0}
+.gal-detail-list li.gal-empty::before{content:none}
 @media(max-width:520px){.gal-detail-cols{grid-template-columns:1fr;gap:20px}.gal-detail-panel{padding:56px 20px 32px}}
 .gal-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:18px;line-height:1;z-index:2;cursor:pointer}
 .gal-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:20px;z-index:2;cursor:pointer}
@@ -1107,7 +1109,7 @@ const DECOR_TIERS = [
   {id:'basic', name:'Basic', price:5000, d:'Balloon arch, Upto 200 Balloons of 2 Colours, Age Foil Balloon, Happy Birthday Paper Bunting.', img:'img/unicorn-decor-basic.jpg'},
   {id:'p1', name:'1 Panel', price:8000, d:'1 Flex Panel (4x7ft) with balloon arch, Happy Birthday LED light, Name on Flex, Age Foil Balloon.', img:'img/unicorn-decor-p1.jpg', imgFit:'contain'},
   {id:'p2', name:'2 Panel', price:15000, d:'2 Panel Decor - 8 Feet Decor Width, 3 Feet Age Light, Theme Based Cutouts.', img:'img/unicorn-decor-p2.jpg'},
-  {id:'sig', name:'Signature', price:25000, d:'Welcome Arch, Welcome Board, Theme Based Cutouts, 12ft decor, 3ft Age Light.', img:'img/unicorn-decor-sig.jpg'},
+  {id:'sig', name:'Signature', price:25000, d:'Welcome Arch, Welcome Board, Theme Based Cutouts, 12ft decor, 3ft Age Light, Cake Table.', img:'img/unicorn-decor-sig.jpg'},
 ];
 // Music — same DJ tier structure & pricing as the Spy package / generic builder.
 const MUSIC_TIERS = [
@@ -1276,8 +1278,9 @@ function renderTierGrid(gridId, items, selected) {
 // Each decor tier opens its OWN separate 2-slide gallery (Photo, then
 // Included/Not Included) — prev/next never cross into another tier.
 // "Not included" is the same real generic decor add-on list shown in the
-// What's Included section (Balloon stand / Cake table setup) — those are
-// separate paid add-ons regardless of which decor tier is picked.
+// What's Included section (Balloon stand / Cake table setup) — separate
+// paid add-ons, EXCEPT for tiers whose own inclusion list already covers
+// them (e.g. Signature includes Cake Table), which are filtered out below.
 const DECOR_NOT_INCLUDED = ['Cake Table'];
 let galTier = null, galSlide = 0;
 const GAL_SLIDE_COUNT = 2;
@@ -1322,7 +1325,10 @@ function updateGalStage() {
   const included = (t.d || '').replace(/\.$/, '').split(',').map(s => s.trim()).filter(Boolean);
   document.getElementById('galDetailTitle').textContent = t.name + ' Decor — What\'s Included';
   document.getElementById('galIncList').innerHTML = included.map(i => '<li>' + i + '</li>').join('');
-  document.getElementById('galExcList').innerHTML = DECOR_NOT_INCLUDED.map(i => '<li>' + i + '</li>').join('');
+  const excluded = DECOR_NOT_INCLUDED.filter(x => !included.some(inc => inc.toLowerCase() === x.toLowerCase()));
+  document.getElementById('galExcList').innerHTML = excluded.length
+    ? excluded.map(i => '<li>' + i + '</li>').join('')
+    : '<li class="gal-empty">Nothing — it\'s all included above.</li>';
 
   document.getElementById('galCount').textContent = (galSlide + 1) + ' / ' + GAL_SLIDE_COUNT;
   Array.from(document.getElementById('galThumbs').children).forEach((th, i) => th.classList.toggle('on', i === galSlide));
