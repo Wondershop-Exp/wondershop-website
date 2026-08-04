@@ -341,7 +341,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
         <div>
           <div class="pkg-img-wrap">
-            <img id="pkgHeroImg" src="img/unicorn-main.jpg" alt="Unicorn birthday party by Wondershop" onerror="this.src='img/theme-uni.jpg'">
+            <img id="pkgHeroImg" src="img/unicorn-hero-1.jpg" alt="Unicorn birthday party by Wondershop" onerror="this.src='img/theme-uni.jpg'">
             <div class="pkg-img-badge" id="pkgHeroBadge">🦄 Unicorn Theme · Wondershop</div>
             <button class="pkg-carousel-arrow left" onclick="pkgCGoTo(pkgCCur-1);pkgCReset()" aria-label="Previous photo">‹</button>
             <button class="pkg-carousel-arrow right" onclick="pkgCGoTo(pkgCCur+1);pkgCReset()" aria-label="Next photo">›</button>
@@ -960,15 +960,14 @@ button{cursor:pointer;font-family:var(--fb)}
 document.getElementById('nav-ham').addEventListener('click',()=>document.getElementById('nav-mob').classList.toggle('open'));
 
 // ── HERO IMAGE CAROUSEL ──
-// Hero carousel stays limited to one photo per inclusion (full party, decor,
-// host, tattoo, craft activity) — the full carousal-sourced photo set lives
-// in the film strip further down the page instead.
+// Hero carousel — real photos uploaded to img/packages/unicorn/hero-N,
+// kept in upload order (hero-1 first, etc).
 const PKG_FRAMES = [
-  { src: 'img/unicorn-main.jpg', badge: '🦄 Unicorn Theme · Wondershop' },
-  { src: 'img/unicorn-decor-basic.jpg', badge: '🎈 Decor' },
-  { src: 'img/unicorn-host.jpg', badge: '🎤 Host' },
-  { src: 'img/unicorn-tattoo.jpg', badge: '🖊️ Tattoo Station' },
-  { src: 'img/act-art.jpg', badge: '🖍️ Craft Activity' },
+  { src: 'img/unicorn-hero-1.jpg', badge: '🦄 Unicorn Theme · Wondershop' },
+  { src: 'img/unicorn-hero-2.jpg', badge: '🎈 Decor' },
+  { src: 'img/unicorn-hero-3.jpg', badge: '🎤 Host' },
+  { src: 'img/unicorn-hero-4.jpg', badge: '🖊️ Tattoo Station' },
+  { src: 'img/unicorn-hero-5.jpg', badge: '🖍️ Craft Activity' },
 ];
 let pkgCCur = 0, pkgCTimer;
 const pkgFrontImg = document.getElementById('pkgHeroImg');
