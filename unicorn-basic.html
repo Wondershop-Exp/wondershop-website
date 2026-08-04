@@ -993,7 +993,7 @@ function addonActPrice(id, kids) {
 // haven't been uploaded yet, so all 4 cards use the existing theme photo.
 const DECOR_TIERS = [
   {id:'basic', name:'Basic', price:5000, d:'Balloon arch, Upto 200 Balloons of 2 Colours, Age Foil Balloon, Happy Birthday Paper Bunting.', img:'img/unicorn-decor-basic.jpg'},
-  {id:'p1', name:'1 Panel', price:8000, d:'1 Flex Panel (4x7ft) with balloon arch, Happy Birthday LED light, Name on Flex, Age Foil Balloon.', img:'img/unicorn-decor-p1.jpg'},
+  {id:'p1', name:'1 Panel', price:8000, d:'1 Flex Panel (4x7ft) with balloon arch, Happy Birthday LED light, Name on Flex, Age Foil Balloon.', img:'img/unicorn-decor-p1.jpg', imgFit:'contain'},
   {id:'p2', name:'2 Panel', price:15000, d:'2 Panel Decor - 8 Feet Decor Width, 3 Feet Age Light, Theme Based Cutouts.', img:'img/unicorn-decor-p2.jpg'},
   {id:'sig', name:'Signature', price:25000, d:'Welcome Arch, Welcome Board, Theme Based Cutouts, 12ft decor, 3ft Age Light.', img:'img/unicorn-decor-sig.jpg'},
 ];
@@ -1147,7 +1147,9 @@ function toggleAddon(actId, actName, btn) {
 function renderTierGrid(gridId, items, selected) {
   const grid = document.getElementById(gridId);
   grid.innerHTML = items.map(t => {
-    const img = t.img ? '<div class="tier-img-wrap"><img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:3/4;object-fit:cover;object-position:center 15%;border-radius:10px;margin-bottom:10px;cursor:zoom-in" onclick="event.stopPropagation();openDecorGallery(\'' + t.id + '\')">' +
+    const fit = t.imgFit || 'cover';
+    const imgBg = fit === 'contain' ? ';background:#F3F1F8' : '';
+    const img = t.img ? '<div class="tier-img-wrap"><img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:4/3;object-fit:' + fit + imgBg + ';border-radius:10px;margin-bottom:10px;cursor:zoom-in" onclick="event.stopPropagation();openDecorGallery(\'' + t.id + '\')">' +
       '<button class="gal-trig" onclick="event.stopPropagation();openDecorGallery(\'' + t.id + '\')" aria-label="Zoom ' + t.name + ' photo">🔍 Zoom</button></div>' : '';
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
