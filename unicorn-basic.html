@@ -74,6 +74,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .pkg-desc{font-size:15px;color:var(--gy);margin-bottom:22px;line-height:1.65;max-width:460px}
 .pkg-incl-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
 .pkg-incl-chip{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--bk);background:#fff;border:1.5px solid var(--li2);border-radius:20px;padding:5px 12px}
+.pkg-incl-chip img{width:15px;height:15px;object-fit:contain;flex-shrink:0}
 .pkg-price-block{margin-bottom:20px}
 .pkg-price-note{font-size:11px;color:var(--gy);margin-bottom:2px;letter-spacing:.8px;text-transform:uppercase;font-weight:700}
 .pkg-price{font-family:var(--fd);font-size:38px;font-weight:700;color:var(--bk);line-height:1}
@@ -98,6 +99,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .incl-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
 .incl-card{background:var(--li3);border:1.5px solid var(--li2);border-radius:14px;padding:16px 14px}
 .incl-card-ic{font-size:22px;margin-bottom:8px}
+.incl-card-ic img{width:26px;height:26px;object-fit:contain;display:block}
 .incl-card-h{font-family:var(--fd);font-size:13.5px;font-weight:700;color:var(--bk);margin-bottom:5px}
 .incl-card-body{font-size:11.5px;color:var(--gy);line-height:1.5}
 .expand-btn{background:none;border:none;font-size:12px;color:var(--li);font-weight:600;cursor:pointer;padding:0;margin-top:10px;display:flex;align-items:center;gap:4px}
@@ -252,11 +254,11 @@ button{cursor:pointer;font-family:var(--fb)}
           <h1 class="pkg-h1">Unicorn <em>Basic</em> Package</h1>
           <p class="pkg-desc">A complete unicorn birthday — decor you choose, a fun activity the kids will love, a tattoo station, and an energetic host to keep the energy high. Music can be added on. Everything handled. Nothing to worry about.</p>
           <div class="pkg-incl-row">
-            <span class="pkg-incl-chip">🎈 Decor</span>
-            <span class="pkg-incl-chip">🎤 Host</span>
+            <span class="pkg-incl-chip"><img src="img/icons/icon-decor-bw.png" alt="" loading="lazy"> Decor</span>
+            <span class="pkg-incl-chip"><img src="img/icons/icon-host-bw.png" alt="" loading="lazy"> Host</span>
             <span class="pkg-incl-chip">🖊️ Tattoo</span>
-            <span class="pkg-incl-chip">🎉 1 Activity</span>
-            <span class="pkg-incl-chip">💌 E-Invite</span>
+            <span class="pkg-incl-chip"><img src="img/icons/icon-activities-bw.png" alt="" loading="lazy"> 1 Activity</span>
+            <span class="pkg-incl-chip"><img src="img/icons/icon-invite-bw.png" alt="" loading="lazy"> E-Invite</span>
           </div>
           <div class="pkg-price-block">
             <div class="pkg-price-note">Estimated total for your party</div>
@@ -286,7 +288,7 @@ button{cursor:pointer;font-family:var(--fb)}
       <div class="incl-grid">
 
         <div class="incl-card">
-          <div class="incl-card-ic">🎈</div>
+          <div class="incl-card-ic"><img src="img/icons/icon-decor-bw.png" alt=""></div>
           <div class="incl-card-h">Decor</div>
           <div class="incl-card-body">Basic is included by default. Upgrade to a bigger tier below if you'd like.</div>
           <div class="detail-list show" id="decor">
@@ -310,7 +312,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
-          <div class="incl-card-ic">🎤</div>
+          <div class="incl-card-ic"><img src="img/icons/icon-host-bw.png" alt=""></div>
           <div class="incl-card-h">Host</div>
           <div class="incl-card-body">Energetic, kid-friendly host who keeps every child engaged.</div>
           <div class="detail-list show" id="host">
@@ -324,7 +326,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
-          <div class="incl-card-ic">🎉</div>
+          <div class="incl-card-ic"><img src="img/icons/icon-activities-bw.png" alt=""></div>
           <div class="incl-card-h">1 Activity</div>
           <div class="incl-card-body">Pick one activity below — your host runs it, all materials provided.</div>
           <div class="detail-list show" id="act">
@@ -351,7 +353,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
-          <div class="incl-card-ic">💌</div>
+          <div class="incl-card-ic"><img src="img/icons/icon-invite-bw.png" alt=""></div>
           <div class="incl-card-h">E-Invite</div>
           <div class="incl-card-body">Custom digital invite in the unicorn theme.</div>
           <div class="detail-list show" id="einv">
