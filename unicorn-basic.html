@@ -104,7 +104,21 @@ button{cursor:pointer;font-family:var(--fb)}
 .gal-modal.show{display:flex}
 .gal-box{background:#000;overflow:hidden;width:100vw;height:100vh;height:100dvh;max-width:100vw;max-height:100vh;max-height:100dvh;border-radius:0;display:flex;flex-direction:column}
 .gal-stage{position:relative;background:#000;flex:1;min-height:0}
+.gal-slide{position:absolute;inset:0}
 .gal-stage img{width:100%;height:100%;object-fit:contain;display:block}
+.gal-name-badge{position:absolute;top:16px;left:16px;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);color:#fff;font-family:var(--fd);font-size:18px;font-weight:700;padding:8px 16px;border-radius:10px;z-index:2}
+.gal-detail-panel{width:100%;height:100%;overflow-y:auto;padding:60px 24px 40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center}
+.gal-detail-title{font-family:var(--fd);font-size:22px;font-weight:700;color:#fff;margin-bottom:24px;text-align:center}
+.gal-detail-cols{display:grid;grid-template-columns:1fr 1fr;gap:28px;max-width:560px;width:100%}
+.gal-detail-h{font-size:13px;font-weight:700;margin-bottom:12px;letter-spacing:.3px}
+.gal-detail-h-yes{color:#4ADE80}
+.gal-detail-h-no{color:#F87171}
+.gal-detail-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.gal-detail-list li{font-size:13.5px;color:#E5E7EB;line-height:1.5;padding-left:20px;position:relative}
+.gal-detail-list li::before{content:'✓';position:absolute;left:0;color:#4ADE80;font-weight:700}
+.gal-detail-list.neg li{color:#9CA3AF}
+.gal-detail-list.neg li::before{content:'✕';color:#F87171}
+@media(max-width:520px){.gal-detail-cols{grid-template-columns:1fr;gap:20px}.gal-detail-panel{padding:56px 20px 32px}}
 .gal-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:18px;line-height:1;z-index:2;cursor:pointer}
 .gal-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:20px;z-index:2;cursor:pointer}
 .gal-prev{left:14px}.gal-next{right:14px}
@@ -116,6 +130,8 @@ button{cursor:pointer;font-family:var(--fb)}
 .gal-thumb{width:52px;height:52px;border-radius:8px;overflow:hidden;flex-shrink:0;border:2px solid transparent;cursor:pointer;opacity:.6;background:none;padding:0}
 .gal-thumb.on{border-color:var(--li);opacity:1}
 .gal-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.gal-thumb-label{width:auto;height:auto;border-radius:20px;padding:7px 14px;font-size:12px;font-weight:600;color:#B8B4C0;border:1.5px solid #333}
+.gal-thumb-label.on{color:#fff;border-color:var(--li);background:rgba(181,157,222,.18)}
 
 /* FILM STRIP */
 .filmstrip-wrap{position:relative;background:#161616;padding:15px 0;overflow:hidden}
@@ -832,14 +848,34 @@ button{cursor:pointer;font-family:var(--fb)}
   </div>
 </div>
 
-<!-- DECOR GALLERY MODAL -->
+<!-- DECOR GALLERY MODAL (per-tier, 2 slides: photo -> included/not included) -->
 <div class="gal-modal" id="decorGalModal" onclick="if(event.target===this)closeDecorGallery()">
   <div class="gal-box">
-    <div class="gal-stage">
-      <img id="galImg" src="" alt="">
+    <div class="gal-stage" id="galStage">
+      <!-- Slide 0: photo -->
+      <div class="gal-slide" id="galSlidePhoto">
+        <img id="galImg" src="" alt="">
+        <div class="gal-name-badge" id="galNameBadge"></div>
+      </div>
+      <!-- Slide 1: included / not included -->
+      <div class="gal-slide" id="galSlideInfo" style="display:none">
+        <div class="gal-detail-panel">
+          <div class="gal-detail-title" id="galDetailTitle"></div>
+          <div class="gal-detail-cols">
+            <div class="gal-detail-col">
+              <div class="gal-detail-h gal-detail-h-yes">✓ What's included</div>
+              <ul class="gal-detail-list" id="galIncList"></ul>
+            </div>
+            <div class="gal-detail-col">
+              <div class="gal-detail-h gal-detail-h-no">✕ Not included</div>
+              <ul class="gal-detail-list neg" id="galExcList"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
       <button class="gal-close" onclick="closeDecorGallery()" aria-label="Close">✕</button>
-      <button class="gal-nav gal-prev" onclick="galShift(-1)" aria-label="Previous photo">‹</button>
-      <button class="gal-nav gal-next" onclick="galShift(1)" aria-label="Next photo">›</button>
+      <button class="gal-nav gal-prev" onclick="galShift(-1)" aria-label="Previous">‹</button>
+      <button class="gal-nav gal-next" onclick="galShift(1)" aria-label="Next">›</button>
       <div class="gal-count" id="galCount"></div>
     </div>
     <div class="gal-info">
@@ -1123,11 +1159,18 @@ function renderTierGrid(gridId, items, selected) {
 }
 
 // ── DECOR PHOTO GALLERY (zoom lightbox) ──
-let galItems = [], galIdx = 0;
+// Each decor tier opens its OWN separate 2-slide gallery (Photo, then
+// Included/Not Included) — prev/next never cross into another tier.
+// "Not included" is the same real generic decor add-on list shown in the
+// What's Included section (Balloon stand / Cake table setup) — those are
+// separate paid add-ons regardless of which decor tier is picked.
+const DECOR_NOT_INCLUDED = ['Balloon stand (add-on)', 'Cake table setup (add-on)'];
+let galTier = null, galSlide = 0;
+const GAL_SLIDE_COUNT = 2;
+
 function openDecorGallery(id) {
-  galItems = DECOR_TIERS.filter(t => t.img);
-  galIdx = galItems.findIndex(t => t.id === id);
-  if (galIdx < 0) galIdx = 0;
+  galTier = DECOR_TIERS.find(t => t.id === id) || DECOR_TIERS.find(t => t.img);
+  galSlide = 0;
   renderGalThumbs();
   updateGalStage();
   document.getElementById('decorGalModal').classList.add('show');
@@ -1138,22 +1181,43 @@ function closeDecorGallery() {
   document.body.style.overflow = '';
 }
 function galShift(dir) {
-  galIdx = (galIdx + dir + galItems.length) % galItems.length;
+  galSlide = (galSlide + dir + GAL_SLIDE_COUNT) % GAL_SLIDE_COUNT;
+  updateGalStage();
+}
+function galGoToSlide(n) {
+  galSlide = n;
   updateGalStage();
 }
 function updateGalStage() {
-  const t = galItems[galIdx];
+  const t = galTier;
+  const isPhoto = galSlide === 0;
+  document.getElementById('galSlidePhoto').style.display = isPhoto ? 'block' : 'none';
+  document.getElementById('galSlideInfo').style.display = isPhoto ? 'none' : 'block';
   document.getElementById('galImg').src = t.img;
-  document.getElementById('galImg').alt = t.name;
-  document.getElementById('galName').textContent = t.name + ' Decor';
-  document.getElementById('galDesc').textContent = t.d || '';
-  document.getElementById('galCount').textContent = (galIdx + 1) + ' / ' + galItems.length;
-  Array.from(document.getElementById('galThumbs').children).forEach((th, i) => th.classList.toggle('on', i === galIdx));
+  document.getElementById('galImg').alt = t.name + ' decor';
+  document.getElementById('galNameBadge').textContent = t.name + ' Decor';
+
+  if (isPhoto) {
+    document.getElementById('galName').textContent = t.name + ' Decor';
+    document.getElementById('galDesc').textContent = t.d || '';
+  } else {
+    document.getElementById('galName').textContent = '';
+    document.getElementById('galDesc').textContent = '';
+  }
+
+  const included = (t.d || '').replace(/\.$/, '').split(',').map(s => s.trim()).filter(Boolean);
+  document.getElementById('galDetailTitle').textContent = t.name + ' Decor — What\'s Included';
+  document.getElementById('galIncList').innerHTML = included.map(i => '<li>' + i + '</li>').join('');
+  document.getElementById('galExcList').innerHTML = DECOR_NOT_INCLUDED.map(i => '<li>' + i + '</li>').join('');
+
+  document.getElementById('galCount').textContent = (galSlide + 1) + ' / ' + GAL_SLIDE_COUNT;
+  Array.from(document.getElementById('galThumbs').children).forEach((th, i) => th.classList.toggle('on', i === galSlide));
 }
 function renderGalThumbs() {
   const wrap = document.getElementById('galThumbs');
-  wrap.innerHTML = galItems.map((t, i) =>
-    '<button class="gal-thumb' + (i === galIdx ? ' on' : '') + '" onclick="galIdx=' + i + ';updateGalStage()"><img src="' + t.img + '" alt="' + t.name + '"></button>'
+  const labels = ['Photo', 'Included / Not Included'];
+  wrap.innerHTML = labels.map((lbl, i) =>
+    '<button class="gal-thumb gal-thumb-label' + (i === galSlide ? ' on' : '') + '" onclick="galGoToSlide(' + i + ')">' + lbl + '</button>'
   ).join('');
 }
 document.addEventListener('keydown', e => {
