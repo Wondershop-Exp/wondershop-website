@@ -145,6 +145,16 @@ button{cursor:pointer;font-family:var(--fb)}
 .film-tag{position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,.72);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:.2px}
 @keyframes filmScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @media(max-width:600px){.film-frame{width:150px;height:150px}}
+.film-frame-video{cursor:pointer}
+.film-play-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.5);border:1.5px solid rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;z-index:2;transition:background .15s,transform .15s}
+.film-frame-video:hover .film-play-btn{background:rgba(0,0,0,.72);transform:translate(-50%,-50%) scale(1.08)}
+.film-play-btn svg{width:16px;height:16px;margin-left:2px}
+
+/* VIDEO MODAL (with audio) */
+.vid-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);align-items:center;justify-content:center;padding:20px}
+.vid-modal.open{display:flex}
+.vid-modal video{max-width:92vw;max-height:88vh;border-radius:12px;background:#000}
+.vid-modal-close{position:absolute;top:18px;right:18px;background:rgba(255,255,255,.14);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:18px;line-height:1;cursor:pointer;z-index:2}
 
 /* SECTIONS */
 .sec{padding:48px 0}
@@ -932,6 +942,12 @@ button{cursor:pointer;font-family:var(--fb)}
   </div>
 </div>
 
+<!-- VIDEO MODAL (film strip clips, with audio) -->
+<div class="vid-modal" id="vidModal" onclick="if(event.target===this)closeVideoModal()">
+  <button class="vid-modal-close" onclick="closeVideoModal()" aria-label="Close">✕</button>
+  <video id="vidModalPlayer" controls playsinline></video>
+</div>
+
 <!-- WA FAB -->
 <a href="https://wa.me/919742240477" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -996,7 +1012,7 @@ pkgCReset();
 const FILM_FRAMES = [
   { src: 'img/unicorn-carousel-01.jpg', tag: 'Cake Cutting Moment' },
   { src: 'img/unicorn-carousel-02.jpg', tag: 'Unicorn Balloon Arch' },
-  { video: 'img/unicorn-grandma-feedback.mp4', poster: 'img/unicorn-grandma-feedback-poster.jpg', tag: "Grandma's Review" },
+  { video: 'img/unicorn-grandma-feedback.mp4', fullVideo: 'img/unicorn-grandma-feedback-full.mp4', poster: 'img/unicorn-grandma-feedback-poster.jpg', tag: "Grandma's Review" },
   { src: 'img/unicorn-carousel-03.jpg', tag: 'Host in Action' },
   { src: 'img/unicorn-carousel-04.jpg', tag: 'Craft Activity' },
   { src: 'img/unicorn-carousel-05.jpg', tag: 'Tattoo Station' },
@@ -1014,15 +1030,40 @@ const FILM_FRAMES = [
 (function initFilmstrip(){
   const track = document.getElementById('filmTrack');
   if (!track) return;
-  const frameHTML = (f, hidden) => '<div class="film-frame"' + (hidden ? ' aria-hidden="true"' : '') + '>' +
+  const frameHTML = (f, hidden) => '<div class="film-frame' + (f.video ? ' film-frame-video' : '') + '"' + (hidden ? ' aria-hidden="true"' : '') + (f.video ? ' onclick="openVideoModal(\'' + f.fullVideo + '\')"' : '') + '>' +
     (f.video ?
-      '<video src="' + f.video + '" poster="' + f.poster + '" autoplay muted loop playsinline></video>' :
+      '<video src="' + f.video + '" poster="' + f.poster + '" autoplay muted loop playsinline></video>' +
+      '<div class="film-play-btn"><svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div>' :
       '<img src="' + f.src + '" alt="' + (hidden ? '' : f.tag + ' — Unicorn Magic package') + '" loading="lazy">') +
     '<span class="film-tag">' + f.tag + '</span></div>';
   // Duplicate the set so translateX(-50%) loops seamlessly.
   track.innerHTML = FILM_FRAMES.map(f => frameHTML(f, false)).join('') +
                      FILM_FRAMES.map(f => frameHTML(f, true)).join('');
 })();
+
+// Video lightbox — plays the full-quality clip with audio on click.
+function openVideoModal(src) {
+  const modal = document.getElementById('vidModal');
+  const video = document.getElementById('vidModalPlayer');
+  video.src = src;
+  video.muted = false;
+  video.currentTime = 0;
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  video.play().catch(() => {});
+}
+function closeVideoModal() {
+  const modal = document.getElementById('vidModal');
+  const video = document.getElementById('vidModalPlayer');
+  video.pause();
+  video.removeAttribute('src');
+  video.load();
+  modal.classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeVideoModal();
+});
 
 // ── DATA ──
 // Host is bundled at the site's real Starter Host price (₹10,000) — not
