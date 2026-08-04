@@ -220,6 +220,18 @@ button{cursor:pointer;font-family:var(--fb)}
 .act-req-note{font-size:12px;color:#ef4444;font-weight:600;margin-top:10px;display:none;padding:8px 12px;background:#fef2f2;border-radius:8px}
 .act-req-note.show{display:block}
 
+/* PARENT FEEDBACK */
+.pf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.pf-card{border:1.5px solid var(--li2);border-radius:16px;padding:22px 20px;background:var(--li3);display:flex;flex-direction:column}
+.pf-stars{color:var(--yl);font-size:14px;letter-spacing:2px;margin-bottom:12px}
+.pf-quote{font-size:13.5px;line-height:1.65;color:var(--bk);flex:1;margin-bottom:18px}
+.pf-quote::before{content:'“'}
+.pf-quote::after{content:'”'}
+.pf-author{display:flex;align-items:center;gap:10px}
+.pf-photo{width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid #fff}
+.pf-name{font-family:var(--fd);font-weight:700;font-size:13.5px;color:var(--bk)}
+.pf-meta{font-size:11.5px;color:var(--gy)}
+
 /* ADDON TEASER (services) */
 .addon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .addon-chip{display:flex;align-items:center;gap:8px;background:#f9f9f9;border:1.5px solid #eee;border-radius:12px;padding:11px 14px;font-size:13px;color:var(--gy);font-weight:500}
@@ -245,6 +257,7 @@ button{cursor:pointer;font-family:var(--fb)}
   .pkg-img-wrap{aspect-ratio:16/9;order:-1}
   .incl-grid{grid-template-columns:1fr}
   .pkg-h1{font-size:28px}
+  .pf-grid{grid-template-columns:1fr}
 }
 @media(max-width:600px){
   .act-grid{grid-template-columns:1fr 1fr}
@@ -740,6 +753,51 @@ button{cursor:pointer;font-family:var(--fb)}
           </div>
         </div>
 
+        <div class="addon-act-card" id="add-bubble-show">
+          <div class="addon-act-top">
+            <div class="addon-act-ic">🫧</div>
+            <div class="addon-act-info">
+              <div class="addon-act-n">Bubble Show</div>
+              <div class="addon-act-d">30-minute giant bubble performance</div>
+            </div>
+          </div>
+          <div class="addon-act-foot">
+            <div class="addon-act-price">₹9,000</div>
+            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
+            <button class="btn-addon-add" id="abtn-bubble-show" onclick="toggleAddon('bubble-show','Bubble Show',this)">+ Add</button>
+          </div>
+        </div>
+
+        <div class="addon-act-card" id="add-magic-show">
+          <div class="addon-act-top">
+            <div class="addon-act-ic">🎩</div>
+            <div class="addon-act-info">
+              <div class="addon-act-n">Magic Show</div>
+              <div class="addon-act-d">30-minute live magic performance</div>
+            </div>
+          </div>
+          <div class="addon-act-foot">
+            <div class="addon-act-price">₹9,000</div>
+            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
+            <button class="btn-addon-add" id="abtn-magic-show" onclick="toggleAddon('magic-show','Magic Show',this)">+ Add</button>
+          </div>
+        </div>
+
+        <div class="addon-act-card" id="add-science-show">
+          <div class="addon-act-top">
+            <div class="addon-act-ic">🔬</div>
+            <div class="addon-act-info">
+              <div class="addon-act-n">Science Show</div>
+              <div class="addon-act-d">Live science demo that wows the whole party</div>
+            </div>
+          </div>
+          <div class="addon-act-foot">
+            <div class="addon-act-price">₹20,000</div>
+            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
+            <button class="btn-addon-add" id="abtn-science-show" onclick="toggleAddon('science-show','Science Show',this)">+ Add</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
@@ -857,6 +915,17 @@ button{cursor:pointer;font-family:var(--fb)}
     </div>
     <div class="filmstrip-wrap">
       <div class="filmstrip-track" id="filmTrack"></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- PARENT FEEDBACK -->
+  <section class="sec">
+    <div class="container">
+      <h2 class="sec-h2">What <em>parents</em> say</h2>
+      <p class="sec-sub">Real reviews from families we've thrown birthday parties for.</p>
+      <div class="pf-grid" id="pfGrid"></div>
     </div>
   </section>
 
@@ -991,6 +1060,31 @@ const FILM_FRAMES = [
                      FILM_FRAMES.map(f => frameHTML(f, true)).join('');
 })();
 
+// ── PARENT FEEDBACK ──
+// Real reviews pulled from the site's TESTIMONIALS database (index.html).
+// Neeta's review is from the same real Unicorn-theme party used for the
+// decor/tattoo/host photos on this page. Divya and Swati are shown too for
+// social proof, with their own real theme/venue tags (not claimed as Unicorn).
+const PARENT_FEEDBACK = [
+  { stars: 5, quote: "We had a wonderful experience with Wondershop. The party was very lively because of a witty host. The games were interesting. The tattoo artist kept the kids occupied. The decor and ambience was apt for a toddlers party. The whole event was very professionally managed by Shruti and Siddhant. Thank you to the event managers.", name: 'Neeta', photo: 'img/Testimonials/testi-neeta-anahita.jpg', theme: 'Unicorn Theme', age: '4 Years', venue: 'Society Clubhouse' },
+  { stars: 5, quote: "We celebrated our daughter's birthday party at Wondershop, and it was truly a memorable experience. Shruti did a wonderful job with the setup — everything was well organised and right on time. The decorations were lovely, and the activities kept the kids engaged throughout.", name: 'Divya', photo: 'img/Testimonials/testi-divya.jpg', theme: 'Art Party', age: '4 Years', venue: 'House Party' },
+  { stars: 5, quote: "We had an amazing experience with Wondershop. They organized our daughter's 5th birthday party. Everything was very smoothly and seamlessly managed. The decor turned out as per our request, the DIY activity and host were pretty engaging. Highly recommend them for your events.", name: 'Swati', photo: 'img/Testimonials/testi-swati-2.jpg', theme: 'Princess Theme', age: '5 Years', venue: 'Restaurant' },
+];
+(function initParentFeedback(){
+  const grid = document.getElementById('pfGrid');
+  if (!grid) return;
+  grid.innerHTML = PARENT_FEEDBACK.map(t =>
+    '<div class="pf-card">' +
+      '<div class="pf-stars">' + '★'.repeat(t.stars) + '</div>' +
+      '<div class="pf-quote">' + t.quote + '</div>' +
+      '<div class="pf-author">' +
+        '<img class="pf-photo" src="' + t.photo + '" alt="' + t.name + '" loading="lazy">' +
+        '<div><div class="pf-name">' + t.name + '</div><div class="pf-meta">' + t.theme + ' · ' + t.age + ' · ' + t.venue + '</div></div>' +
+      '</div>' +
+    '</div>'
+  ).join('');
+})();
+
 // ── DATA ──
 // Host is bundled at the site's real Starter Host price (₹10,000) — not
 // separately selectable on this page. Decor/E-Invite each default to their
@@ -1010,6 +1104,10 @@ const TATTOO_PRICE = 2500;
 // / Colouring Station / Pot Painting / Soft Toy Making / Dreamcatcher all use
 // the flat EXTRA_ACT_PRICE markup. Glitter Station and Slime Making have their own
 // real pricing (given directly by Shruti) so they're priced separately.
+// Bubble Show / Magic Show / Science Show are add-on-only performances (too
+// expensive to be the single free included activity) — flat prices supplied
+// directly by Shruti; Science Show's ₹20,000 matches the real catalogue
+// entry used elsewhere on the site (spy-basic.html, builder.html).
 function addonActPrice(id, kids) {
   if (id === 'glitter') return 4000;
   if (id === 'slime') {
@@ -1024,6 +1122,9 @@ function addonActPrice(id, kids) {
   if (id === 'jelly-swimbags') return kids * 280;
   if (id === 'hairbrush-decor') return kids * 400;
   if (id === 'photoframe-decor') return kids * 400;
+  if (id === 'bubble-show') return 9000;
+  if (id === 'magic-show') return 9000;
+  if (id === 'science-show') return 20000;
   return EXTRA_ACT_PRICE;
 }
 
