@@ -389,7 +389,7 @@ button{cursor:pointer;font-family:var(--fb)}
               <li>Cupcake Decor</li>
               <li>Sunglasses Decor</li>
               <li>Fridge Magnet</li>
-              <li>Coaster Making</li>
+              <li>Pot Painting</li>
               <li>Colouring Station</li>
               <li>Glitter Station</li>
             </ul>
@@ -498,12 +498,6 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="act-card-d">Each child creates their own painted fridge magnet — a little party memory to take home.</div>
         </div>
 
-        <div class="act-card" data-act="a24" data-name="Coaster Making" onclick="selectAct(this)">
-          <div class="act-card-ic">☕</div>
-          <div class="act-card-n">Coaster Making</div>
-          <div class="act-card-d">Kids decorate ceramic coasters with paints and markers. A creative craft they take home.</div>
-        </div>
-
         <div class="act-card" data-act="a25" data-name="Colouring Station" onclick="selectAct(this)">
           <div class="act-card-ic">🎨</div>
           <div class="act-card-n">Colouring Station</div>
@@ -514,6 +508,24 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="act-card-ic">✨</div>
           <div class="act-card-n">Glitter Station</div>
           <div class="act-card-d">Glitter tattoos &amp; face art.</div>
+        </div>
+
+        <div class="act-card" data-act="a3" data-name="Pot Painting" onclick="selectAct(this)">
+          <div class="act-card-ic">🪴</div>
+          <div class="act-card-n">Pot Painting</div>
+          <div class="act-card-d">Kids paint and decorate their own terracotta pot — a cute little planter to take home.</div>
+        </div>
+
+        <div class="act-card" data-act="a10" data-name="Soft Toy Making" onclick="selectAct(this)">
+          <div class="act-card-ic">🧸</div>
+          <div class="act-card-n">Soft Toy Making</div>
+          <div class="act-card-d">Stuff and personalize their own soft toy friend to cuddle and take home.</div>
+        </div>
+
+        <div class="act-card" data-act="a12" data-name="Dreamcatcher" onclick="selectAct(this)">
+          <div class="act-card-ic">🌙</div>
+          <div class="act-card-n">Dreamcatcher</div>
+          <div class="act-card-d">Kids craft their own dreamcatcher with beads, feathers and string to take home.</div>
         </div>
 
       </div>
@@ -578,21 +590,6 @@ button{cursor:pointer;font-family:var(--fb)}
           </div>
         </div>
 
-        <div class="addon-act-card" id="add-a24" data-act="a24" data-name="Coaster Making">
-          <div class="addon-act-top">
-            <div class="addon-act-ic">☕</div>
-            <div class="addon-act-info">
-              <div class="addon-act-n">Coaster Making</div>
-              <div class="addon-act-d">Decorate ceramic coasters to take home</div>
-            </div>
-          </div>
-          <div class="addon-act-foot">
-            <div class="addon-act-price">₹4,999</div>
-            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
-            <button class="btn-addon-add" id="abtn-a24" onclick="toggleAddon('a24','Coaster Making',this)">+ Add</button>
-          </div>
-        </div>
-
         <div class="addon-act-card" id="add-a25" data-act="a25" data-name="Colouring Station">
           <div class="addon-act-top">
             <div class="addon-act-ic">🎨</div>
@@ -605,21 +602,6 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="addon-act-price">₹4,999</div>
             <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
             <button class="btn-addon-add" id="abtn-a25" onclick="toggleAddon('a25','Colouring Station',this)">+ Add</button>
-          </div>
-        </div>
-
-        <div class="addon-act-card" id="add-a21" data-act="a21" data-name="Nail Art Station">
-          <div class="addon-act-top">
-            <div class="addon-act-ic">💅</div>
-            <div class="addon-act-info">
-              <div class="addon-act-n">Nail Art Station</div>
-              <div class="addon-act-d">Mini manicures &amp; nail art for every guest</div>
-            </div>
-          </div>
-          <div class="addon-act-foot">
-            <div class="addon-act-price">₹4,999</div>
-            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
-            <button class="btn-addon-add" id="abtn-a21" onclick="toggleAddon('a21','Nail Art Station',this)">+ Add</button>
           </div>
         </div>
 
@@ -713,6 +695,51 @@ button{cursor:pointer;font-family:var(--fb)}
           </div>
         </div>
 
+        <div class="addon-act-card" id="add-a3" data-act="a3" data-name="Pot Painting">
+          <div class="addon-act-top">
+            <div class="addon-act-ic">🪴</div>
+            <div class="addon-act-info">
+              <div class="addon-act-n">Pot Painting</div>
+              <div class="addon-act-d">Paint &amp; take home a terracotta pot</div>
+            </div>
+          </div>
+          <div class="addon-act-foot">
+            <div class="addon-act-price">₹4,999</div>
+            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
+            <button class="btn-addon-add" id="abtn-a3" onclick="toggleAddon('a3','Pot Painting',this)">+ Add</button>
+          </div>
+        </div>
+
+        <div class="addon-act-card" id="add-a10" data-act="a10" data-name="Soft Toy Making">
+          <div class="addon-act-top">
+            <div class="addon-act-ic">🧸</div>
+            <div class="addon-act-info">
+              <div class="addon-act-n">Soft Toy Making</div>
+              <div class="addon-act-d">Stuff &amp; personalize their own soft toy</div>
+            </div>
+          </div>
+          <div class="addon-act-foot">
+            <div class="addon-act-price">₹4,999</div>
+            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
+            <button class="btn-addon-add" id="abtn-a10" onclick="toggleAddon('a10','Soft Toy Making',this)">+ Add</button>
+          </div>
+        </div>
+
+        <div class="addon-act-card" id="add-a12" data-act="a12" data-name="Dreamcatcher">
+          <div class="addon-act-top">
+            <div class="addon-act-ic">🌙</div>
+            <div class="addon-act-info">
+              <div class="addon-act-n">Dreamcatcher</div>
+              <div class="addon-act-d">Craft &amp; take home a dreamcatcher</div>
+            </div>
+          </div>
+          <div class="addon-act-foot">
+            <div class="addon-act-price">₹4,999</div>
+            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
+            <button class="btn-addon-add" id="abtn-a12" onclick="toggleAddon('a12','Dreamcatcher',this)">+ Add</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
@@ -742,6 +769,7 @@ button{cursor:pointer;font-family:var(--fb)}
       </div>
       <p class="sec-sub">Send guests a personalized digital invite. Static is included; Video + Reminder is a paid upgrade.</p>
       <div class="act-grid" id="einviteGrid"></div>
+      <div style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--gy);font-weight:500;margin-top:14px">🎨 Every invite is designed from scratch, just for you — and carries subtle Wondershop branding across all our creatives.</div>
     </div>
   </section>
 
@@ -968,8 +996,8 @@ const EXTRA_ACT_PRICE = 4999;
 // package price, no tier options, similar to Host.
 const TATTOO_PRICE = 2500;
 // Add-on activity pricing — Cupcake Decor / Sunglasses Decor / Fridge Magnet
-// / Coaster Making / Colouring Station / Nail Art Station all use the flat
-// EXTRA_ACT_PRICE markup. Glitter Station and Slime Making have their own
+// / Colouring Station / Pot Painting / Soft Toy Making / Dreamcatcher all use
+// the flat EXTRA_ACT_PRICE markup. Glitter Station and Slime Making have their own
 // real pricing (given directly by Shruti) so they're priced separately.
 function addonActPrice(id, kids) {
   if (id === 'glitter') return 4000;
