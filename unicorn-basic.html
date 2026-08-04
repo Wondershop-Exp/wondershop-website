@@ -192,6 +192,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .act-card.sel{border-color:var(--li);background:var(--li3);box-shadow:0 0 0 3px rgba(181,157,222,.2)}
 .act-card.sel::after{content:'✓';position:absolute;top:-1px;right:-1px;width:24px;height:24px;background:var(--li);color:#fff;border-radius:0 14px 0 12px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;line-height:24px;text-align:center}
 .act-card-ic{font-size:30px;margin-bottom:8px}
+.act-card-ic-img{width:44px;height:44px;object-fit:cover;border-radius:10px;margin:0 auto 8px;display:block}
 .act-card-n{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:4px}
 .act-card-p{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--li);margin-bottom:6px}
 .act-card-d{font-size:12px;color:var(--gy);line-height:1.5}
@@ -488,7 +489,7 @@ button{cursor:pointer;font-family:var(--fb)}
       <div class="act-grid" id="actGrid">
 
         <div class="act-card sel" style="cursor:default" title="Tattoo Station is included in every Unicorn Magic package and can't be removed.">
-          <div class="act-card-ic">🖊️</div>
+          <img class="act-card-ic-img" src="img/icon-tattoo.png" alt="Tattoo Station">
           <div class="act-card-n">Tattoo Station</div>
           <div class="act-card-d">Included with every booking — can't be removed.</div>
         </div>
@@ -518,7 +519,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="act-card" data-act="glitter" data-name="Glitter Station" onclick="selectAct(this)">
-          <div class="act-card-ic">✨</div>
+          <img class="act-card-ic-img" src="img/act-glitter.jpg" alt="Glitter Station">
           <div class="act-card-n">Glitter Station</div>
           <div class="act-card-d">Glitter tattoos &amp; face art.</div>
         </div>
@@ -527,12 +528,6 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="act-card-ic">🪴</div>
           <div class="act-card-n">Pot Painting</div>
           <div class="act-card-d">Kids paint and decorate their own terracotta pot — a cute little planter to take home.</div>
-        </div>
-
-        <div class="act-card" data-act="a10" data-name="Soft Toy Making" onclick="selectAct(this)">
-          <div class="act-card-ic">🧸</div>
-          <div class="act-card-n">Soft Toy Making</div>
-          <div class="act-card-d">Stuff and personalize their own soft toy friend to cuddle and take home.</div>
         </div>
 
         <div class="act-card" data-act="a12" data-name="Dreamcatcher" onclick="selectAct(this)">
