@@ -472,6 +472,24 @@ button{cursor:pointer;font-family:var(--fb)}
 
   <hr class="divider">
 
+  <!-- ADD-ONS TEASER (services) -->
+  <section class="sec">
+    <div class="container">
+      <h2 class="sec-h2">More to <em>add later</em></h2>
+      <p class="sec-sub">Speak with your account manager to add these after order placement.</p>
+      <div class="addon-grid">
+        <div class="addon-chip"><span class="addon-chip-ic">🧸</span><span>Mascot</span></div>
+        <div class="addon-chip"><span class="addon-chip-ic">🎂</span><span>Cake Table</span></div>
+        <div class="addon-chip"><span class="addon-chip-ic">🎊</span><span>Welcome Arch</span></div>
+        <div class="addon-chip"><span class="addon-chip-ic">🪧</span><span>Welcome Board</span></div>
+        <div class="addon-chip"><span class="addon-chip-ic">🍬</span><span>Pinata Fillings</span></div>
+        <div class="addon-chip"><span class="addon-chip-ic">🛍️</span><span>Pinata Bags</span></div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
   <!-- PHOTO STRIP -->
   <section class="sec" style="padding-bottom:8px">
     <div class="container">
@@ -486,24 +504,6 @@ button{cursor:pointer;font-family:var(--fb)}
       <img src="img/packages/spy/spy-strip-cardgame.jpg" alt="Spy card game station" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
       <img src="img/packages/spy/spy-strip-twister.jpg" alt="Spy mission twister game" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
       <img src="img/packages/spy/spy-strip-photobooth.jpg" alt="Spy photobooth" style="height:220px;width:auto;border-radius:14px;object-fit:cover;scroll-snap-align:start;flex-shrink:0">
-    </div>
-  </section>
-
-  <hr class="divider">
-
-  <!-- ADD-ONS TEASER (services) -->
-  <section class="sec">
-    <div class="container">
-      <h2 class="sec-h2">More to <em>add later</em></h2>
-      <p class="sec-sub">Speak with your account manager to add these after order placement.</p>
-      <div class="addon-grid">
-        <div class="addon-chip"><span class="addon-chip-ic">🧸</span><span>Mascot</span></div>
-        <div class="addon-chip"><span class="addon-chip-ic">🎂</span><span>Cake Table</span></div>
-        <div class="addon-chip"><span class="addon-chip-ic">🎊</span><span>Welcome Arch</span></div>
-        <div class="addon-chip"><span class="addon-chip-ic">🪧</span><span>Welcome Board</span></div>
-        <div class="addon-chip"><span class="addon-chip-ic">🍬</span><span>Pinata Fillings</span></div>
-        <div class="addon-chip"><span class="addon-chip-ic">🛍️</span><span>Pinata Bags</span></div>
-      </div>
     </div>
   </section>
 
@@ -550,7 +550,7 @@ const DECOR_TIERS = [
 const ADDON_STATIONS = [
   {id:'s1', ic:'🔬', img:'img/activity/act-science-show.jpg', name:'Science Show', d:'Live science demo that wows the whole party.', flat:20000},
   {id:'s2', ic:'🧢', img:'img/activity/act-cap-decoration-sq.jpg', name:'Cap Decor', d:'Kids decorate their own caps to take home.', base:12000, cap:30, per:400, discountFromGeneric:{r1:850,r2:800,r3:750}},
-  {id:'s3', ic:'🕵️', name:'MDF Spy Badge', d:'Paint &amp; personalize a wooden spy badge.', base:9000, cap:30, per:300},
+  {id:'s3', ic:'🕵️', img:'img/packages/spy/spy-badge-mdf-sq.jpg', name:'MDF Spy Badge', d:'Paint &amp; personalize a wooden spy badge.', base:9000, cap:30, per:300},
   {id:'s4', ic:'🧪', img:'img/activity/act-slime.jpg', name:'Slime', d:'Hands-on slime making station.', base:11000, cap:30, per:450},
   {id:'s7', ic:'🕶️', img:'img/activity/act-sunglasses-decor-sq.jpg', name:'Sunglasses Decor', d:'Customise &amp; take home a unique pair.', r1:350, r2:320, r3:300},
   {id:'s8', ic:'🎨', img:'img/activity/act-mini-art-station-sq.jpg', name:'Mini Art Station', d:'A compact creative art corner.', flat:5000},
