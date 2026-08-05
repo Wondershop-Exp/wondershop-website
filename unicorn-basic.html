@@ -708,6 +708,22 @@ button{cursor:pointer;font-family:var(--fb)}
           </div>
         </div>
 
+        <div class="addon-act-card" id="add-mirror-decor">
+          <div class="addon-act-top">
+            <img class="addon-act-ic-img" src="img/act-mirror-decor.jpg" alt="Mirror Decoration">
+            <div class="addon-act-info">
+              <div class="addon-act-n">Mirror Decoration</div>
+              <div class="addon-act-d">Kids decorate their own jeweled hand mirror to take home</div>
+              <div class="takehome-tag" style="margin-top:6px">🏠 Takehome</div>
+            </div>
+          </div>
+          <div class="addon-act-foot">
+            <div class="addon-act-price" id="mirrorDecorPriceVal">₹18,750</div>
+            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
+            <button class="btn-addon-add" id="abtn-mirror-decor" onclick="toggleAddon('mirror-decor','Mirror Decoration',this)">+ Add</button>
+          </div>
+        </div>
+
         <div class="addon-act-card" id="add-a10" data-act="a10" data-name="Soft Toy Making">
           <div class="addon-act-top">
             <img class="addon-act-ic-img" src="img/act-soft-toy-making.jpg" alt="Soft Toy Making">
@@ -834,8 +850,13 @@ button{cursor:pointer;font-family:var(--fb)}
 
   <hr class="divider">
 
-  <!-- RETURN GIFTS -->
-  <section class="sec">
+  <!-- RETURN GIFTS —
+       TODO: hidden for now per Shruti (Aug 2026), revisit later. Section
+       markup is kept in the DOM (just display:none) rather than deleted so
+       #giftsGrid / renderGifts() / selectedGifts still work without errors
+       if anything else on the page references them. Un-hide by removing
+       the style="display:none" below when ready to bring it back. -->
+  <section class="sec" style="display:none">
     <div class="container">
       <div class="act-section-hdr">
         <h2 class="sec-h2">Return Gifts</h2>
@@ -846,7 +867,7 @@ button{cursor:pointer;font-family:var(--fb)}
     </div>
   </section>
 
-  <hr class="divider">
+  <!-- <hr class="divider"> hidden with Return Gifts above, restore together -->
 
   <!-- PHOTOGRAPHER -->
   <section class="sec">
@@ -1110,6 +1131,7 @@ function addonActPrice(id, kids) {
   if (id === 'jelly-swimbags') return kids * 280;
   if (id === 'hairbrush-decor') return kids * 400;
   if (id === 'photoframe-decor') return kids * 400;
+  if (id === 'mirror-decor') return kids * 750;
   if (id === 'bubble-show') return 9000;
   if (id === 'magic-show') return 9000;
   if (id === 'science-show') return 20000;
@@ -1200,12 +1222,13 @@ function changeKids(d) {
   updateSticky();
 }
 
-// Slime Making, Personalized Jelly Tote Bags, Hairbrush Decoration and
-// Photoframe Decoration are all priced by headcount (tiered or per-child),
-// so their cards need to refresh whenever kidsCount changes — unlike the other
+// Slime Making, Personalized Jelly Tote Bags, Hairbrush Decoration,
+// Photoframe Decoration and Mirror Decoration are all priced by headcount
+// (tiered or per-child), so their cards need to refresh whenever kidsCount
+// changes — unlike the other
 // flat-priced addons.
 function updateDynamicAddonPrices() {
-  const map = {slime:'slimePriceVal', 'jelly-swimbags':'jellySwimbagsPriceVal', 'hairbrush-decor':'hairbrushDecorPriceVal', 'photoframe-decor':'photoframeDecorPriceVal'};
+  const map = {slime:'slimePriceVal', 'jelly-swimbags':'jellySwimbagsPriceVal', 'hairbrush-decor':'hairbrushDecorPriceVal', 'photoframe-decor':'photoframeDecorPriceVal', 'mirror-decor':'mirrorDecorPriceVal'};
   Object.keys(map).forEach(id => {
     const el = document.getElementById(map[id]);
     if (el) el.textContent = fmtINR(addonActPrice(id, kidsCount));
