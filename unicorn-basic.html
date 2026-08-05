@@ -653,16 +653,16 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-jelly-swimbags">
           <div class="addon-act-top">
-            <div class="addon-act-ic">🏊</div>
+            <img class="addon-act-ic-img" src="img/act-jelly-tote-bag.jpg" alt="Personalized Jelly Tote Bags">
             <div class="addon-act-info">
-              <div class="addon-act-n">Jelly Swimbags</div>
-              <div class="addon-act-d">Personalized jelly swim bag for every guest. +₹40 per alphabet for name personalization, confirmed at checkout.</div>
+              <div class="addon-act-n">Personalized Jelly Tote Bags</div>
+              <div class="addon-act-d">Personalized jelly tote bag for every guest. +₹40 per alphabet for name personalization, confirmed at checkout.</div>
             </div>
           </div>
           <div class="addon-act-foot">
             <div class="addon-act-price" id="jellySwimbagsPriceVal">₹7,000</div>
             <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
-            <button class="btn-addon-add" id="abtn-jelly-swimbags" onclick="toggleAddon('jelly-swimbags','Jelly Swimbags',this)">+ Add</button>
+            <button class="btn-addon-add" id="abtn-jelly-swimbags" onclick="toggleAddon('jelly-swimbags','Personalized Jelly Tote Bags',this)">+ Add</button>
           </div>
         </div>
 
@@ -1089,9 +1089,9 @@ function addonActPrice(id, kids) {
     if (kids <= 30) return 11000;
     return 11000 + (kids - 30) * 350;
   }
-  // Jelly Swimbags is Rs280/child at the base; the +Rs40/alphabet name
-  // personalization charge isn't calculable on this page (no per-child name
-  // input here) so it's called out in the card copy and confirmed at
+  // Personalized Jelly Tote Bags is Rs280/child at the base; the +Rs40/alphabet
+  // name personalization charge isn't calculable on this page (no per-child
+  // name input here) so it's called out in the card copy and confirmed at
   // checkout instead of folded into this running total.
   if (id === 'jelly-swimbags') return kids * 280;
   if (id === 'hairbrush-decor') return kids * 400;
@@ -1186,9 +1186,9 @@ function changeKids(d) {
   updateSticky();
 }
 
-// Slime Making, Jelly Swimbags, Hairbrush Decoration and Photoframe
-// Decoration are all priced by headcount (tiered or per-child), so their
-// cards need to refresh whenever kidsCount changes — unlike the other
+// Slime Making, Personalized Jelly Tote Bags, Hairbrush Decoration and
+// Photoframe Decoration are all priced by headcount (tiered or per-child),
+// so their cards need to refresh whenever kidsCount changes — unlike the other
 // flat-priced addons.
 function updateDynamicAddonPrices() {
   const map = {slime:'slimePriceVal', 'jelly-swimbags':'jellySwimbagsPriceVal', 'hairbrush-decor':'hairbrushDecorPriceVal', 'photoframe-decor':'photoframeDecorPriceVal'};
