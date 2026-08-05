@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Science Show — Wondershop Experiences</title>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     ADD-ON EXPERIENCE PAGE — Science Show (same magazine-cover template
+     as bubble-show.html / magic-show.html / host-nimesh.html)
+     ══════════════════════════════════════════════════════════════════
+     STILL NEEDS:
+       1. Bottom photo/video strip — not added yet (only the one action
+          video was uploaded so far).
+       2. Parent testimonials — placeholders below, hidden until ready.
+     (Cover caricature + action video are real, uploaded to
+     img/ScienceShow/.)
+     ══════════════════════════════════════════════════════════════════ -->
+
+<meta name="description" content="Science Show add-on for Wondershop birthday parties — a 30-minute interactive science performance, ₹20,000.">
+<link rel="icon" type="image/png" href="logo-square.png">
+<link rel="apple-touch-icon" href="logo-square.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Lora:ital,wght@0,400;0,600;0,700;0,900;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --li:#B59DDE;--li2:#EDE6FA;--li3:#F5F0FF;
+  --pk:#E65A96;--spk:#FFB74D;
+  --am:#C98A00;--am2:#FFF3D6;
+  --bk:#191919;--gy:#6B7280;--lgy:#F5F2FA;--wh:#FAFAFA;
+  --cream:#F7ECE0;
+  --cov-a:#071B2E;--cov-b:#0F3D5C;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif;--fs:'Pinyon Script',cursive;
+  --max:1160px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);color:var(--bk);background:var(--wh);overflow-x:hidden}
+h1,h2,h3{font-family:var(--fd);line-height:1.15}
+p{line-height:1.7;color:var(--gy)}
+img{display:block;max-width:100%}
+a{text-decoration:none}
+.container{max-width:var(--max);margin:0 auto;padding:0 24px}
+
+/* ═══════════════ SCROLL 1 — COVER ═══════════════ */
+.cover{min-height:100vh;background:linear-gradient(160deg,var(--cov-a) 0%,var(--cov-b) 100%);display:flex;flex-direction:column;position:relative}
+
+.cover-hdr{max-width:var(--max);margin:0 auto;width:100%;padding:12px 24px 0;display:flex;align-items:center;justify-content:space-between}
+.cover-hdr img{height:38px;width:auto}
+.cover-tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:rgba(255,255,255,.14);padding:5px 13px;border-radius:20px}
+
+.cover-title-wrap{display:flex;flex-direction:column;align-items:center;padding:4px 20px 0}
+.cover-script{font-family:var(--fs);font-size:clamp(30px,6vw,54px);color:var(--spk);transform:rotate(-6deg);margin-bottom:2px;text-shadow:0 4px 12px rgba(0,0,0,.35)}
+.cover-title{font-family:var(--fd);font-weight:900;font-size:clamp(28px,7.2vw,64px);letter-spacing:-.01em;color:var(--cream);text-transform:uppercase;line-height:1;text-align:center}
+.cover-moniker{margin-top:8px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);color:var(--spk);font-family:var(--fb);font-weight:800;font-size:13px;letter-spacing:.04em;text-transform:uppercase;padding:6px 16px;border-radius:20px}
+
+.cover-mid{position:relative;max-width:var(--max);margin:0 auto;width:100%;flex:1;display:flex;align-items:center;justify-content:center;padding:2px 24px;min-height:0}
+@media(max-width:880px){.cover-mid{flex-direction:column;gap:10px;padding:2px 24px}}
+
+.cover-photo-col{position:relative;z-index:1;width:430px;max-height:52vh;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+@media(max-width:880px){.cover-photo-col{width:min(365px,64vw)}}
+.cover-photo-glow{position:absolute;width:135%;aspect-ratio:1;left:50%;top:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,140,60,.28),transparent 70%);filter:blur(44px);z-index:0}
+.cover-photo{position:relative;z-index:1;width:auto;max-width:100%;height:auto;max-height:52vh;object-fit:contain;filter:drop-shadow(0 18px 30px rgba(0,0,0,.5))}
+/* Fallback shown only if img/ScienceShow/science-show-main.png fails to load */
+.cover-photo-avatar{position:relative;z-index:1;width:100%;aspect-ratio:3/4;border-radius:20px;background:linear-gradient(160deg,var(--li) 0%,#0F3D5C 100%);display:flex;align-items:center;justify-content:center;font-size:96px;filter:drop-shadow(0 18px 30px rgba(0,0,0,.5))}
+
+.cover-facts-left{position:absolute;left:50%;top:50%;width:175px;transform:translate(calc(-100% - 130px),-50%);z-index:2;display:flex;flex-direction:column;gap:16px;align-items:flex-end;text-align:right}
+@media(max-width:880px){.cover-facts-left{position:static;transform:none;width:auto;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;text-align:center;order:2;gap:8px 14px}}
+
+.cover-facts-right{position:absolute;left:50%;top:50%;width:175px;transform:translate(130px,-50%);z-index:2;display:flex;flex-direction:column;gap:16px;align-items:flex-start;text-align:left}
+@media(max-width:880px){.cover-facts-right{position:static;transform:none;width:auto;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;text-align:center;order:3;gap:8px 14px}}
+
+.cf-num{font-family:var(--fd);font-weight:700;font-size:19px;color:var(--cream);line-height:1.25}
+.cf-lbl{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-top:3px}
+
+.cover-loves{max-width:640px;margin:4px auto 0;text-align:center;padding:0 20px}
+.cq-label{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--spk)}
+.cq-text{font-family:var(--fd);font-style:italic;font-size:17px;color:rgba(255,255,255,.9);line-height:1.4;white-space:nowrap}
+@media(max-width:700px){.cq-text{white-space:normal}}
+
+.cover-scroll-cue{margin:14px auto 6px;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:.7}
+.cover-scroll-cue span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.75);font-weight:700}
+.cover-scroll-cue svg{animation:scrollBounce 1.8s ease-in-out infinite}
+@keyframes scrollBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
+/* ═══════════════ SCROLL 2 — ABOUT ═══════════════ */
+.about{padding:72px 0 8px;background:var(--wh)}
+
+.about-body{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:40px;padding:0 24px 56px}
+
+.kicker{display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--li);margin-bottom:10px}
+.blk-h{font-size:clamp(21px,2.6vw,27px);font-weight:700;color:var(--bk);margin-bottom:16px}
+.blk-h em{color:var(--pk);font-style:italic}
+
+.backstory{border-left:4px solid var(--pk);background:var(--li3);border-radius:0 16px 16px 0;padding:22px 24px;display:flex;flex-direction:column;gap:13px}
+.backstory p{font-size:14.5px;color:var(--bk);opacity:.78}
+.backstory p:first-of-type::first-letter{font-family:var(--fd);font-weight:700;font-size:44px;line-height:.7;float:left;padding:4px 6px 0 0;color:var(--pk)}
+
+.expect-row{display:flex;align-items:center;gap:26px}
+.expect-row .backstory{flex:1}
+.expect-img-col{flex-shrink:0;width:140px;display:flex;justify-content:center}
+.expect-img{width:100%;height:auto;filter:drop-shadow(0 10px 18px rgba(0,0,0,.16))}
+@media(max-width:640px){.expect-row{flex-direction:column-reverse}.expect-img-col{width:120px}}
+
+.host-video{width:100%;max-width:420px;margin:0 auto;border-radius:16px;overflow:hidden;background:var(--bk)}
+.host-video video{width:100%;max-height:640px;display:block;background:#000}
+
+.host-testi-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.host-testi-grid{grid-template-columns:1fr}}
+.host-testi{background:#fff;border:1.5px solid var(--li2);border-radius:16px;padding:18px}
+.host-testi-q{font-family:var(--fd);font-style:italic;font-size:14.5px;color:var(--bk);line-height:1.65;margin-bottom:10px}
+.host-testi-a{font-size:12px;font-weight:700;color:var(--li)}
+
+/* ── CTA ── */
+.host-cta{background:linear-gradient(135deg,var(--bk) 0%,#0F3D5C 100%);padding:48px 24px;text-align:center}
+.hcta-h{font-family:var(--fd);font-size:clamp(20px,3vw,26px);font-weight:700;color:#fff;margin-bottom:10px}
+.hcta-sub{font-size:14px;color:rgba(255,255,255,.65);margin-bottom:22px}
+.hcta-btn{background:#25D366;color:#fff;border-radius:24px;padding:12px 26px;font-size:14.5px;font-weight:700;display:inline-flex;align-items:center;gap:8px}
+
+/* ── MICRO FOOTER ── */
+.mf{padding:24px;text-align:center;font-size:12px;color:var(--gy)}
+.mf a{color:var(--li);font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════ SCROLL 1 — COVER ═══════════════════════ -->
+<section class="cover">
+
+  <header class="cover-hdr">
+    <a href="index.html"><img src="logo-horizontal-dark.png" alt="Wondershop Experiences"></a>
+    <span class="cover-tag">Add-on Experience</span>
+  </header>
+
+  <div class="cover-title-wrap">
+    <div class="cover-script">The</div>
+    <h1 class="cover-title">Science Show</h1>
+    <div class="cover-moniker">Fire, Smoke &amp; Wonder</div>
+  </div>
+
+  <div class="cover-mid">
+    <div class="cover-facts-left">
+      <div class="cf-item"><div class="cf-num">30 Mins</div><div class="cf-lbl">Duration</div></div>
+      <div class="cf-item"><div class="cf-num">₹20,000</div><div class="cf-lbl">Price</div></div>
+      <div class="cf-item"><div class="cf-num">🔥 Fire Experiments</div></div>
+      <div class="cf-item"><div class="cf-num">🧪 STEM Learning</div></div>
+      <div class="cf-item"><div class="cf-num">🙌 Interactive</div></div>
+    </div>
+
+    <div class="cover-photo-col">
+      <div class="cover-photo-glow"></div>
+      <img class="cover-photo" src="img/ScienceShow/science-show-main.png" alt="Science Show" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div class=cover-photo-avatar>🧪</div>')">
+    </div>
+
+    <div class="cover-facts-right">
+      <div class="cf-item"><div class="cf-num">Ages 5+</div><div class="cf-lbl">Best For</div></div>
+      <div class="cf-item"><div class="cf-num">🛡️ Safe &amp; Supervised</div></div>
+      <div class="cf-item"><div class="cf-num">Experts</div></div>
+    </div>
+  </div>
+
+  <div class="cover-loves">
+    <div class="cq-label">What Kids Love About It</div>
+    <p class="cq-text">"The moment the fire and colour experiments go off — and they got to help."</p>
+  </div>
+
+  <div class="cover-scroll-cue" aria-hidden="true">
+    <span>Scroll</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+
+</section>
+
+<!-- ═══════════════════════ SCROLL 2 — ABOUT ═══════════════════════ -->
+<section class="about">
+
+  <div class="about-body">
+
+    <!-- BACKSTORY / WHAT'S INCLUDED -->
+    <div>
+      <div class="kicker">What To Expect</div>
+      <div class="expect-row">
+        <div class="backstory">
+          <p>Watch science come alive in the most exciting way! Our interactive Science Show is packed with fascinating experiments involving fire, smoke, colour-changing reactions, and other incredible demonstrations that spark curiosity and wonder. Every experiment is explained in a fun, age-appropriate way, making learning feel like magic.</p>
+          <p>Children don't just watch—they become part of the action! With audience participation throughout the show and exclusive moments where the birthday child gets to assist in special experiments, this experience creates memories that are both educational and unforgettable. Safe, engaging, and full of surprises, it's the perfect blend of entertainment and hands-on discovery for curious young minds.</p>
+        </div>
+        <div class="expect-img-col">
+          <img class="expect-img" src="img/ScienceShow/science-show-main.png" alt="Science Show artist">
+        </div>
+      </div>
+    </div>
+
+    <!-- VIDEO — real clip, img/ScienceShow/science-show-video.mp4 -->
+    <div>
+      <h2 class="blk-h">Science Show in <em>action</em></h2>
+      <div class="host-video">
+        <video controls preload="metadata" playsinline>
+          <source src="img/ScienceShow/science-show-video.mp4" type="video/mp4">
+          Your browser doesn't support embedded video.
+        </video>
+      </div>
+    </div>
+
+    <!-- TESTIMONIALS —
+         TODO: hidden until real parent quotes are available, revisit later. -->
+    <div style="display:none">
+      <h2 class="blk-h">What <em>Parents Say</em></h2>
+      <div class="host-testi-grid">
+        <div class="host-testi">
+          <div class="host-testi-q">"[Quote from a parent about the Science Show — reaction from the kids, standout moment, etc.]"</div>
+          <div class="host-testi-a">— [Parent name / party details]</div>
+        </div>
+        <div class="host-testi">
+          <div class="host-testi-q">"[Another quote — could focus on how the science show paired with the rest of the party.]"</div>
+          <div class="host-testi-a">— [Parent name / party details]</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- BOTTOM PHOTO/VIDEO STRIP —
+     TODO: not added yet — only the one action video has been uploaded so
+     far. Once more real Science Show clips are available, reuse the
+     .bottom-strip-sec / .filmstrip-wrap pattern from bubble-show.html
+     (including the #vidModal video lightbox + JS). -->
+
+<!-- CTA -->
+<div class="host-cta">
+  <div class="hcta-h">Want a Science Show at your party?</div>
+  <div class="hcta-sub">Message your Party Lead and we'll add it to your package.</div>
+  <a href="https://wa.me/919742240477?text=Hi!%20I'd%20like%20to%20add%20a%20Science%20Show%20to%20my%20child's%20birthday%20party." target="_blank" class="hcta-btn">💬 WhatsApp Your Party Lead</a>
+</div>
+
+<!-- MICRO FOOTER -->
+<div class="mf">
+  Wondershop Experiences &nbsp;·&nbsp;
+  <a href="mailto:contact@wondershopexperiences.com">contact@wondershopexperiences.com</a>
+</div>
+
+</body>
+</html>
