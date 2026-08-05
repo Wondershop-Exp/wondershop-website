@@ -77,10 +77,9 @@ a{text-decoration:none}
 .cq-text{font-family:var(--fd);font-style:italic;font-size:17px;color:rgba(255,255,255,.9);line-height:1.4;white-space:nowrap}
 @media(max-width:700px){.cq-text{white-space:normal}}
 
-.cover-scroll-cue{position:absolute;right:24px;bottom:20px;z-index:3;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;animation:scrollBounce 1.8s ease-in-out infinite;transition:background .15s}
-.cover-scroll-cue:hover{background:rgba(255,255,255,.22)}
-.cover-scroll-cue svg{width:18px;height:18px}
-@media(max-width:880px){.cover-scroll-cue{right:14px;bottom:14px;width:38px;height:38px}}
+.cover-scroll-cue{margin:14px auto 6px;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:.7}
+.cover-scroll-cue span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.75);font-weight:700}
+.cover-scroll-cue svg{animation:scrollBounce 1.8s ease-in-out infinite}
 @keyframes scrollBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
 
 /* ═══════════════ SCROLL 2 — ABOUT ═══════════════ */
@@ -198,19 +197,15 @@ a{text-decoration:none}
     <p class="cq-text">"Chasing, popping, and disappearing inside a giant bubble."</p>
   </div>
 
-  <a href="#about-bubbleshow" class="cover-scroll-cue" aria-label="Scroll down">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-  </a>
+  <div class="cover-scroll-cue" aria-hidden="true">
+    <span>Scroll</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
 
 </section>
 
 <!-- ═══════════════════════ SCROLL 2 — ABOUT ═══════════════════════ -->
-<section class="about" id="about-bubbleshow">
-  <div class="about-head">
-    <div class="about-kicker">Scroll On</div>
-    <h2 class="about-title">About the <em>Bubble Show</em></h2>
-    <p class="about-intro">A 30-minute giant bubble performance that turns any birthday into a wonderland — big bubbles, bubble-within-a-bubble tricks, and plenty of hands-on moments for the kids to jump in and pop, chase, and even stand inside a bubble themselves.</p>
-  </div>
+<section class="about">
 
   <div class="about-body">
 
@@ -232,7 +227,7 @@ a{text-decoration:none}
     <div>
       <h2 class="blk-h">Bubble Show in <em>action</em></h2>
       <div class="host-video">
-        <video controls preload="metadata" playsinline poster="img/BubbleShow/bubble-show-video-poster.jpg">
+        <video controls preload="metadata" playsinline>
           <source src="img/BubbleShow/bubble-show-video.mp4" type="video/mp4">
           Your browser doesn't support embedded video.
         </video>
