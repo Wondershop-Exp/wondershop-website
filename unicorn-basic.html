@@ -208,6 +208,8 @@ button{cursor:pointer;font-family:var(--fb)}
 .act-card-n{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:4px}
 .act-card-p{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--li);margin-bottom:6px}
 .act-card-d{font-size:12px;color:var(--gy);line-height:1.5}
+.takehome-tag{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#166534;background:var(--sgr);padding:3px 9px;border-radius:20px;letter-spacing:.2px;white-space:nowrap}
+.act-card-tag{position:absolute;top:10px;left:10px;z-index:1}
 
 /* Add-on activity cards */
 .addon-act-card{border:1.5px solid #eee;border-radius:16px;padding:16px;background:#fff;transition:border-color .15s,background .15s;position:relative;display:flex;flex-direction:column;height:100%}
@@ -500,12 +502,14 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="act-card" data-act="a22" data-name="Sunglasses Decor" onclick="selectAct(this)">
+          <div class="takehome-tag act-card-tag">🏠 Takehome</div>
           <img class="act-card-ic-img" src="img/act-sunglasses-decor.jpg" alt="Sunglasses Decor">
           <div class="act-card-n">Sunglasses Decor</div>
           <div class="act-card-d">Plain sunnies + stickers, gems &amp; paint pens. Kids customise and take home their unique pair.</div>
         </div>
 
         <div class="act-card" data-act="a23" data-name="Fridge Magnet" onclick="selectAct(this)">
+          <div class="takehome-tag act-card-tag">🏠 Takehome</div>
           <img class="act-card-ic-img" src="img/act-fridge-magnet.jpg" alt="Fridge Magnet">
           <div class="act-card-n">Fridge Magnet</div>
           <div class="act-card-d">Each child creates their own painted fridge magnet — a little party memory to take home.</div>
@@ -524,6 +528,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="act-card" data-act="a12" data-name="Dreamcatcher" onclick="selectAct(this)">
+          <div class="takehome-tag act-card-tag">🏠 Takehome</div>
           <img class="act-card-ic-img" src="img/act-dreamcatcher.jpg" alt="Dreamcatcher">
           <div class="act-card-n">Dreamcatcher</div>
           <div class="act-card-d">Kids craft their own dreamcatcher with beads, feathers and string to take home.</div>
@@ -567,6 +572,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="addon-act-info">
               <div class="addon-act-n">Sunglasses Decor</div>
               <div class="addon-act-d">Customise &amp; take home a unique pair</div>
+              <div class="takehome-tag" style="margin-top:6px">🏠 Takehome</div>
             </div>
           </div>
           <div class="addon-act-foot">
@@ -582,6 +588,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="addon-act-info">
               <div class="addon-act-n">Fridge Magnet</div>
               <div class="addon-act-d">Paint &amp; take home a custom magnet</div>
+              <div class="takehome-tag" style="margin-top:6px">🏠 Takehome</div>
             </div>
           </div>
           <div class="addon-act-foot">
@@ -612,6 +619,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="addon-act-info">
               <div class="addon-act-n">Canvas Tote Bag Painting</div>
               <div class="addon-act-d">Paint &amp; take home a custom canvas tote bag</div>
+              <div class="takehome-tag" style="margin-top:6px">🏠 Takehome</div>
             </div>
           </div>
           <div class="addon-act-foot">
@@ -642,6 +650,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="addon-act-info">
               <div class="addon-act-n">Slime Making</div>
               <div class="addon-act-d">Make-your-own slime station</div>
+              <div class="takehome-tag" style="margin-top:6px">🏠 Takehome</div>
             </div>
           </div>
           <div class="addon-act-foot">
@@ -657,6 +666,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="addon-act-info">
               <div class="addon-act-n">Personalized Jelly Tote Bags</div>
               <div class="addon-act-d">Personalized jelly tote bag for every guest. +₹40 per alphabet for name personalization, confirmed at checkout.</div>
+              <div class="takehome-tag" style="margin-top:6px">🏠 Takehome</div>
             </div>
           </div>
           <div class="addon-act-foot">
@@ -668,10 +678,11 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-hairbrush-decor">
           <div class="addon-act-top">
-            <div class="addon-act-ic">🪮</div>
+            <img class="addon-act-ic-img" src="img/act-hairbrush-decor.jpg" alt="Hairbrush Decoration">
             <div class="addon-act-info">
               <div class="addon-act-n">Hairbrush Decoration</div>
               <div class="addon-act-d">Kids decorate their own hairbrush to take home</div>
+              <div class="takehome-tag" style="margin-top:6px">🏠 Takehome</div>
             </div>
           </div>
           <div class="addon-act-foot">
@@ -687,6 +698,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="addon-act-info">
               <div class="addon-act-n">Photoframe Decoration</div>
               <div class="addon-act-d">Kids decorate their own photo frame to take home</div>
+              <div class="takehome-tag" style="margin-top:6px">🏠 Takehome</div>
             </div>
           </div>
           <div class="addon-act-foot">
@@ -702,6 +714,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="addon-act-info">
               <div class="addon-act-n">Soft Toy Making</div>
               <div class="addon-act-d">Stuff &amp; personalize their own soft toy</div>
+              <div class="takehome-tag" style="margin-top:6px">🏠 Takehome</div>
             </div>
           </div>
           <div class="addon-act-foot">
@@ -717,6 +730,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="addon-act-info">
               <div class="addon-act-n">Dreamcatcher</div>
               <div class="addon-act-d">Craft &amp; take home a dreamcatcher</div>
+              <div class="takehome-tag" style="margin-top:6px">🏠 Takehome</div>
             </div>
           </div>
           <div class="addon-act-foot">
