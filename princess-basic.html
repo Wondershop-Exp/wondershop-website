@@ -134,6 +134,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .act-card.sel{border-color:var(--li);background:var(--li3);box-shadow:0 0 0 3px rgba(181,157,222,.2)}
 .act-card.sel::after{content:'✓';position:absolute;top:-1px;right:-1px;width:24px;height:24px;background:var(--li);color:#fff;border-radius:0 14px 0 12px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;line-height:24px;text-align:center}
 .act-card-ic{font-size:30px;margin-bottom:8px}
+.act-card-ic-img{width:44px;height:44px;object-fit:cover;border-radius:10px;margin:0 auto 8px;display:block}
 .act-card-n{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:4px}
 .act-card-p{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--li);margin-bottom:6px}
 .act-card-d{font-size:12px;color:var(--gy);line-height:1.5}
@@ -144,6 +145,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .addon-act-card.added{border-color:var(--gr);background:var(--sgr)}
 .addon-act-top{display:flex;align-items:flex-start;gap:12px}
 .addon-act-ic{font-size:24px;flex-shrink:0;margin-top:2px}
+.addon-act-ic-img{width:44px;height:44px;object-fit:cover;border-radius:10px;flex-shrink:0}
 .addon-act-info{flex:1;min-width:0}
 .addon-act-n{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:2px}
 .addon-act-d{font-size:12px;color:var(--gy);line-height:1.5}
@@ -442,7 +444,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="act-card" data-act="a23" data-name="Fridge Magnet" onclick="selectAct(this)">
-          <div class="act-card-ic">🧲</div>
+          <img class="act-card-ic-img" src="img/activity/act-fridge-magnet-sq.jpg" alt="Fridge Magnet">
           <div class="act-card-n">Fridge Magnet</div>
           <div class="act-card-d">Each child creates their own painted fridge magnet — a little party memory to take home.</div>
         </div>
@@ -508,7 +510,7 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-a23" data-act="a23" data-name="Fridge Magnet">
           <div class="addon-act-top">
-            <div class="addon-act-ic">🧲</div>
+            <img class="addon-act-ic-img" src="img/activity/act-fridge-magnet-sq.jpg" alt="Fridge Magnet">
             <div class="addon-act-info">
               <div class="addon-act-n">Fridge Magnet</div>
               <div class="addon-act-d">Paint &amp; take home a custom magnet</div>
