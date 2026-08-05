@@ -177,7 +177,7 @@
     /* ── HERO ── */
     .hero {
       background: #FDF8FF;
-      padding: calc(var(--nav-h) + 12px) 0 32px;
+      padding: calc(var(--nav-h) + 30px) 0 52px;
       min-height: 76vh;
       display: flex; align-items: center;
     }
@@ -194,7 +194,7 @@
     }
     .hero-h1 {
       font-family: var(--fd); font-weight: 700; color: var(--bk);
-      font-size: clamp(32px, 4vw, 50px); line-height: 1.16; margin-bottom: 28px;
+      font-size: clamp(26px, 3.2vw, 38px); line-height: 1.16; margin-bottom: 22px;
     }
     .hero-h1 em { color: var(--li); font-style: normal; }
     .hero-sub {
@@ -286,6 +286,18 @@
     .hero-deco-circle {
       position: absolute; border-radius: 50%; pointer-events: none;
     }
+    .hero-scroll-cue {
+      position: absolute; right: 18px; bottom: 18px; z-index: 6;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(255,255,255,.85); box-shadow: 0 4px 14px rgba(0,0,0,.15);
+      display: flex; align-items: center; justify-content: center;
+      animation: heroScrollBounce 1.8s ease-in-out infinite;
+      transition: background .15s;
+    }
+    .hero-scroll-cue:hover { background: #fff; }
+    .hero-scroll-cue svg { width: 16px; height: 16px; }
+    @keyframes heroScrollBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
+    @media (max-width: 960px) { .hero-scroll-cue { display: none; } }
 
     @media (max-width: 960px) {
       .hero-inner { grid-template-columns: 1fr; gap: 32px; align-items: stretch; }
@@ -918,6 +930,9 @@
               <div class="hcb-dot"></div>
               <div class="hcb-txt" id="hcb-txt">Wondershop Experiences</div>
             </div>
+            <a href="#how-it-works" class="hero-scroll-cue" aria-label="Scroll down">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#191919" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </a>
           </div>
           <div class="hero-cdots" id="hero-cdots" style="position:absolute;bottom:14px;left:0;right:0;justify-content:center;display:flex;gap:7px;z-index:5"></div>
         </div>
