@@ -215,6 +215,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .addon-act-card.added{border-color:var(--gr);background:var(--sgr)}
 .addon-act-top{display:flex;align-items:flex-start;gap:12px}
 .addon-act-ic{font-size:24px;flex-shrink:0;margin-top:2px}
+.addon-act-ic-img{width:44px;height:44px;object-fit:cover;border-radius:10px;flex-shrink:0}
 .addon-act-info{flex:1;min-width:0}
 .addon-act-n{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:2px}
 .addon-act-d{font-size:12px;color:var(--gy);line-height:1.5}
@@ -487,19 +488,19 @@ button{cursor:pointer;font-family:var(--fb)}
       <div class="act-grid" id="actGrid">
 
         <div class="act-card sel" style="cursor:default" title="Tattoo Station is included in every Unicorn Magic package and can't be removed.">
-          <img class="act-card-ic-img" src="img/icon-tattoo.png" alt="Tattoo Station">
+          <img class="act-card-ic-img" src="img/act-tattoo-station.jpg" alt="Tattoo Station">
           <div class="act-card-n">Tattoo Station</div>
           <div class="act-card-d">Included with every booking — can't be removed.</div>
         </div>
 
         <div class="act-card" data-act="a8" data-name="Cupcake Decor" onclick="selectAct(this)">
-          <div class="act-card-ic">🧁</div>
+          <img class="act-card-ic-img" src="img/act-cupcake-decor.jpg" alt="Cupcake Decor">
           <div class="act-card-n">Cupcake Decor</div>
           <div class="act-card-d">Kids decorate their own cupcakes with icing and sprinkles. A sweet creation they get to eat!</div>
         </div>
 
         <div class="act-card" data-act="a22" data-name="Sunglasses Decor" onclick="selectAct(this)">
-          <div class="act-card-ic">🕶️</div>
+          <img class="act-card-ic-img" src="img/act-sunglasses-decor.jpg" alt="Sunglasses Decor">
           <div class="act-card-n">Sunglasses Decor</div>
           <div class="act-card-d">Plain sunnies + stickers, gems &amp; paint pens. Kids customise and take home their unique pair.</div>
         </div>
@@ -511,7 +512,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="act-card" data-act="a25" data-name="Colouring Station" onclick="selectAct(this)">
-          <div class="act-card-ic">🎨</div>
+          <img class="act-card-ic-img" src="img/act-colouring-station.jpg" alt="Colouring Station">
           <div class="act-card-n">Colouring Station</div>
           <div class="act-card-d">Themed colouring sheets, crayons and markers. Works for any age and always a hit.</div>
         </div>
@@ -523,7 +524,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="act-card" data-act="a12" data-name="Dreamcatcher" onclick="selectAct(this)">
-          <div class="act-card-ic">🌙</div>
+          <img class="act-card-ic-img" src="img/act-dreamcatcher.jpg" alt="Dreamcatcher">
           <div class="act-card-n">Dreamcatcher</div>
           <div class="act-card-d">Kids craft their own dreamcatcher with beads, feathers and string to take home.</div>
         </div>
@@ -547,7 +548,7 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-a8" data-act="a8" data-name="Cupcake Decor">
           <div class="addon-act-top">
-            <div class="addon-act-ic">🧁</div>
+            <img class="addon-act-ic-img" src="img/act-cupcake-decor.jpg" alt="Cupcake Decor">
             <div class="addon-act-info">
               <div class="addon-act-n">Cupcake Decor</div>
               <div class="addon-act-d">Decorate &amp; eat their own cupcakes</div>
@@ -562,7 +563,7 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-a22" data-act="a22" data-name="Sunglasses Decor">
           <div class="addon-act-top">
-            <div class="addon-act-ic">🕶️</div>
+            <img class="addon-act-ic-img" src="img/act-sunglasses-decor.jpg" alt="Sunglasses Decor">
             <div class="addon-act-info">
               <div class="addon-act-n">Sunglasses Decor</div>
               <div class="addon-act-d">Customise &amp; take home a unique pair</div>
@@ -577,7 +578,7 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-a23" data-act="a23" data-name="Fridge Magnet">
           <div class="addon-act-top">
-            <div class="addon-act-ic">🧲</div>
+            <img class="addon-act-ic-img" src="img/act-fridge-magnet.jpg" alt="Fridge Magnet">
             <div class="addon-act-info">
               <div class="addon-act-n">Fridge Magnet</div>
               <div class="addon-act-d">Paint &amp; take home a custom magnet</div>
@@ -592,7 +593,7 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-a25" data-act="a25" data-name="Colouring Station">
           <div class="addon-act-top">
-            <div class="addon-act-ic">🎨</div>
+            <img class="addon-act-ic-img" src="img/act-colouring-station.jpg" alt="Colouring Station">
             <div class="addon-act-info">
               <div class="addon-act-n">Colouring Station</div>
               <div class="addon-act-d">Themed sheets, crayons &amp; markers</div>
@@ -607,7 +608,7 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-a2" data-act="a2" data-name="Canvas Tote Bag Painting">
           <div class="addon-act-top">
-            <div class="addon-act-ic">👜</div>
+            <img class="addon-act-ic-img" src="img/act-tote-bag-painting.jpg" alt="Canvas Tote Bag Painting">
             <div class="addon-act-info">
               <div class="addon-act-n">Canvas Tote Bag Painting</div>
               <div class="addon-act-d">Paint &amp; take home a custom canvas tote bag</div>
@@ -622,7 +623,7 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-glitter" data-act="glitter" data-name="Glitter Station">
           <div class="addon-act-top">
-            <div class="addon-act-ic">✨</div>
+            <img class="addon-act-ic-img" src="img/act-glitter.jpg" alt="Glitter Station">
             <div class="addon-act-info">
               <div class="addon-act-n">Glitter Station</div>
               <div class="addon-act-d">Glitter tattoos &amp; face art</div>
@@ -637,7 +638,7 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-slime">
           <div class="addon-act-top">
-            <div class="addon-act-ic">🧪</div>
+            <img class="addon-act-ic-img" src="img/act-slime.jpg" alt="Slime Making">
             <div class="addon-act-info">
               <div class="addon-act-n">Slime Making</div>
               <div class="addon-act-d">Make-your-own slime station</div>
@@ -682,7 +683,7 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-photoframe-decor">
           <div class="addon-act-top">
-            <div class="addon-act-ic">🖼️</div>
+            <img class="addon-act-ic-img" src="img/act-photoframe-decor.jpg" alt="Photoframe Decoration">
             <div class="addon-act-info">
               <div class="addon-act-n">Photoframe Decoration</div>
               <div class="addon-act-d">Kids decorate their own photo frame to take home</div>
@@ -697,7 +698,7 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-a10" data-act="a10" data-name="Soft Toy Making">
           <div class="addon-act-top">
-            <div class="addon-act-ic">🧸</div>
+            <img class="addon-act-ic-img" src="img/act-soft-toy-making.jpg" alt="Soft Toy Making">
             <div class="addon-act-info">
               <div class="addon-act-n">Soft Toy Making</div>
               <div class="addon-act-d">Stuff &amp; personalize their own soft toy</div>
@@ -712,7 +713,7 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-a12" data-act="a12" data-name="Dreamcatcher">
           <div class="addon-act-top">
-            <div class="addon-act-ic">🌙</div>
+            <img class="addon-act-ic-img" src="img/act-dreamcatcher.jpg" alt="Dreamcatcher">
             <div class="addon-act-info">
               <div class="addon-act-n">Dreamcatcher</div>
               <div class="addon-act-d">Craft &amp; take home a dreamcatcher</div>
@@ -727,7 +728,7 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-bubble-show">
           <div class="addon-act-top">
-            <div class="addon-act-ic">🫧</div>
+            <img class="addon-act-ic-img" src="img/act-bubble-show.jpg" alt="Bubble Show">
             <div class="addon-act-info">
               <div class="addon-act-n"><a href="bubble-show.html" target="_blank" style="color:inherit">Bubble Show</a></div>
               <div class="addon-act-d">30-minute giant bubble performance</div>
@@ -742,7 +743,7 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-magic-show">
           <div class="addon-act-top">
-            <div class="addon-act-ic">🎩</div>
+            <img class="addon-act-ic-img" src="img/act-magic-show.jpg" alt="Magic Show">
             <div class="addon-act-info">
               <div class="addon-act-n">Magic Show</div>
               <div class="addon-act-d">30-minute live magic performance</div>
@@ -757,7 +758,7 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="addon-act-card" id="add-science-show">
           <div class="addon-act-top">
-            <div class="addon-act-ic">🔬</div>
+            <img class="addon-act-ic-img" src="img/act-science-show.jpg" alt="Science Show">
             <div class="addon-act-info">
               <div class="addon-act-n">Science Show</div>
               <div class="addon-act-d">Live science demo that wows the whole party</div>
