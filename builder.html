@@ -645,7 +645,7 @@ input,textarea,select{font-family:var(--fb)}
 .scratch-canvas:active{cursor:grabbing}
 .scratch-shimmer{position:absolute;inset:0;border-radius:18px;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.6) 50%,transparent 70%);background-size:200% 100%;animation:scratchShimmer 2.1s linear infinite;pointer-events:none;mix-blend-mode:overlay}
 @keyframes scratchShimmer{0%{background-position:200% 0}100%{background-position:-50% 0}}
-.scratch-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:rgba(25,25,25,.55);font-size:13.5px;font-weight:700;letter-spacing:.3px;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;animation:scratchHintPulse 1.6s ease-in-out infinite}
+.scratch-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,.92);text-shadow:0 2px 8px rgba(0,0,0,.25);font-size:13.5px;font-weight:700;letter-spacing:.3px;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;animation:scratchHintPulse 1.6s ease-in-out infinite}
 .scratch-hint .sh-ic{font-size:26px}
 @keyframes scratchHintPulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-52%) scale(1.08)}}
 @keyframes scratchRevealPulse{0%{transform:scale(1)}40%{transform:scale(1.045)}100%{transform:scale(1)}}
@@ -3302,11 +3302,24 @@ function openScratchModal(reward){
   const W=300,H=190;
   canvas.width=W;canvas.height=H;
   const ctx=canvas.getContext('2d');
+  // Brand lavender/purple scratch surface (was grey foil — now matches site palette).
   const g=ctx.createLinearGradient(0,0,W,H);
-  g.addColorStop(0,'#DEE3EA');g.addColorStop(.5,'#B7BEC9');g.addColorStop(1,'#DEE3EA');
+  g.addColorStop(0,'#B59DDE');g.addColorStop(.5,'#9B7FCB');g.addColorStop(1,'#7A5CB0');
   ctx.globalCompositeOperation='source-over';
   ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=2;
+  // Subtle repeating icon motif, like Google Pay's reward-card texture.
+  ctx.save();
+  ctx.globalAlpha=0.16;
+  ctx.font='20px sans-serif';
+  ctx.textBaseline='middle';
+  const motifs=['🎁','✨','🎉','⭐','🎀'];
+  let mi=0;
+  for(let y=16;y<H;y+=34){
+    for(let x=(mi%2?20:0)-4;x<W+20;x+=40){ctx.fillText(motifs[mi%motifs.length],x,y);mi++;}
+  }
+  ctx.restore();
+  // Fine diagonal sheen for a foil-like finish.
+  ctx.strokeStyle='rgba(255,255,255,.14)';ctx.lineWidth=2;
   for(let i=-H;i<W;i+=14){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i+H,H);ctx.stroke();}
 
   let totalCheck=0,done=false;
