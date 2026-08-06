@@ -2114,20 +2114,34 @@ const THEMES=[
   {id:'art',n:'Art & Paint Party',e:'🎨',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',age:'4-10',gn:'Both',p:8500,b:'150 (Colorful mix)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-art-1panel.jpg'},{type:'img',src:'img/Decor/decor-art-2panel.jpg'}]},
   {id:'science',n:'Science Party',e:'🔬',bg:'linear-gradient(135deg,#BCD8E8,#52C470)',age:'6-12',gn:'Both',p:9000,b:'150 (Blue, Green, White)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-science-1panel.jpg'}]},
   {id:'cooking',n:'Cooking & Baking',e:'👩‍🍳',bg:'linear-gradient(135deg,#F2D147,#F5C3D7)',age:'5-12',gn:'Both',p:8500,b:'150 (Yellow, Pink, White)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'new'},
-  {id:'racing',n:'Race Track & Cars',e:'🏎️',bg:'linear-gradient(135deg,#F57A1A,#374151)',age:'3-8',gn:'Boys',p:8500,b:'150 (Black, Red, Yellow)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'pop'},
+  {id:'racing',n:'Race Track & Cars',e:'🏎️',bg:'linear-gradient(135deg,#F57A1A,#374151)',age:'3-8',gn:'Boys',p:8500,b:'150 (Black, Red, Yellow)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'pop',gallery:[{type:'img',src:'img/Decor/decor-racing-2panel.jpg'}]},
   {id:'football',n:'Football Party',e:'⚽',bg:'linear-gradient(135deg,#52C470,#374151)',age:'5-12',gn:'Both',p:8500,b:'150 (Green, Black, White)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'pop',gallery:[{type:'img',src:'img/Decor/decor-football-arch.jpg'},{type:'img',src:'img/Decor/decor-football-1panel.jpg'},{type:'img',src:'img/Decor/decor-football-2panel.jpg'},{type:'img',src:'img/Decor/decor-football-3panel.jpg'}]},
   {id:'cricket',n:'Cricket Party',e:'🏏',bg:'linear-gradient(135deg,#52C470,#F2D147)',age:'6-14',gn:'Boys',p:8500,b:'150 (Blue, White, Green)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'new'},
   {id:'ninja',n:'Ninja Warrior',e:'🥷',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'5-10',gn:'Boys',p:8500,b:'150 (Black, Red, Gold)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'new'},
   {id:'carnival',n:'Carnival & Funfair',e:'🎡',bg:'linear-gradient(135deg,#F57A1A,#E65A96)',age:'2+',gn:'Both',p:9000,b:'200 (Red, Yellow, Blue)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Open area',tag:'pop'},
   {id:'picnic',n:'Garden Picnic',e:'🌿',bg:'linear-gradient(135deg,#B7E0B8,#F2D147)',age:'6+',gn:'Both',p:8000,b:'150 (Green, Yellow, White)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Outdoor space',tag:'new'},
   {id:'construction',n:'Construction Party',e:'🚧',bg:'linear-gradient(135deg,#F57A1A,#374151)',age:'2-6',gn:'Boys',p:8000,b:'150 (Yellow, Black, Orange)',panels:'1 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'new'},
-  {id:'wimpy',n:'Diary of a Wimpy Kid',e:'📓',bg:'linear-gradient(135deg,#F2D147,#BCD8E8)',age:'8-12',gn:'Both',p:9000,b:'150 (Yellow, Blue, White)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Tables, chairs',tag:'new'}
+  {id:'wimpy',n:'Diary of a Wimpy Kid',e:'📓',bg:'linear-gradient(135deg,#F2D147,#BCD8E8)',age:'8-12',gn:'Both',p:9000,b:'150 (Yellow, Blue, White)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Tables, chairs',tag:'new'},
+  // ── NEW (added from the latest img/Decor photo batch) — pricing, age
+  // range, gender and balloon/exclusion details below are provisional
+  // placeholders pending confirmation; update once real details are shared.
+  {id:'craftbazaar',n:'Indian Craft Bazaar',e:'🪅',bg:'linear-gradient(135deg,#F2D147,#F57A1A)',age:'5-12',gn:'Both',p:9000,b:'180 (mixed colours)',panels:'3 flex panels',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-craftbazaar-3panel.jpg'},{type:'img',src:'img/Decor/decor-craftbazaar-3panel-alt.jpg'}]},
+  {id:'indianpalace',n:'Indian Palace',e:'🏯',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',age:'4-10',gn:'Both',p:9000,b:'180 (mixed colours)',panels:'3 flex panels',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-indianpalace-3panel.jpg'}]},
+  {id:'railways',n:'Indian Railways',e:'🚂',bg:'linear-gradient(135deg,#5B8EDD,#374151)',age:'3-8',gn:'Both',p:9000,b:'180 (mixed colours)',panels:'3 flex panels',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-railways-3panel.jpg'}]},
+  {id:'katseye',n:'Katseye',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-16',gn:'Girls',p:9000,b:'150 (mixed colours)',panels:'3 flex panels',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-katseye-3panel.jpg'}]},
+  {id:'stitch',n:'Lilo & Stitch',e:'🌺',bg:'linear-gradient(135deg,#5B8EDD,#B7E0B8)',age:'2-6',gn:'Both',p:8000,b:'150 (Blue, Turquoise, White)',panels:'1 shimmer flex panel',s:'2.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-stitch-1panel.jpg'}]},
+  {id:'malgudi',n:'Malgudi Days',e:'📖',bg:'linear-gradient(135deg,#F2D147,#B7E0B8)',age:'4-10',gn:'Both',p:9000,b:'180 (mixed colours)',panels:'3 flex panels',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-malgudi-3panel.jpg'},{type:'img',src:'img/Decor/decor-malgudi-3panel-alt.jpg'}]},
+  {id:'mithai',n:'Mithai Theme',e:'🍬',bg:'linear-gradient(135deg,#F57A1A,#F2D147)',age:'2-8',gn:'Both',p:9000,b:'180 (mixed colours)',panels:'3 flex panels',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-mithai-3panel.jpg'}]},
+  {id:'nanighar',n:'Nani ka Ghar',e:'👵',bg:'linear-gradient(135deg,#F5C3D7,#F7F296)',age:'3-8',gn:'Both',p:8500,b:'150 (mixed colours)',panels:'3 flex panels',s:'3 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-nanighar-3panel.jpg'}]},
+  {id:'treasure',n:'The Great Ancient Indian Treasure',e:'🏺',bg:'linear-gradient(135deg,#F2D147,#374151)',age:'6-12',gn:'Both',p:9500,b:'200 (mixed colours)',panels:'3 flex panels',s:'4 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-treasure-3panel.jpg'}]}
 ];
 const STD=[
   {id:'std1',n:'Home Balloon Arch',e:'🎈',img:'std-home',bg:'linear-gradient(135deg,#F5C3D7,#FAFAFA)',p:5000,d:'200 balloons · 1 arch · Ideal for homes · Setup 2 hrs'},
   {id:'std2',n:'Banquet Arch + Bunches',e:'🎊',img:'std-banquet',bg:'linear-gradient(135deg,#BCD8E8,#FAFAFA)',p:7500,d:'300 balloons · 1 arch + bunches · Setup 2.5 hrs'},
   {id:'std3',n:'1 Flex + Arch',e:'✨',img:'std-flex1',bg:'linear-gradient(135deg,#B7E0B8,#FAFAFA)',p:6000,d:'1 printed flex + arch · Setup 3 hrs'},
-  {id:'std4',n:'3 Flex + Arch',e:'🌟',img:'std-flex3',bg:'linear-gradient(135deg,#EDE6FA,#FAFAFA)',p:9000,d:'3 printed flex panels + arch · Grand setup · 4 hrs'}
+  {id:'std4',n:'3 Flex + Arch',e:'🌟',img:'std-flex3',bg:'linear-gradient(135deg,#EDE6FA,#FAFAFA)',p:9000,d:'3 printed flex panels + arch · Grand setup · 4 hrs'},
+  // Placeholder pricing — confirm before this goes live.
+  {id:'std5',n:'Rainbow Balloon Arch',e:'🌈',img:'Decor/decor-rainbow-arch',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',p:5500,d:'200 balloons (rainbow mix) · 1 arch · Suits any theme · Setup 2 hrs'}
 ];
 // actPrice: r1=<12 kids, r2=13-25 kids, r3=>25 kids. flat=true → rate is total, false → rate × kids
 // Spy package "Mission Stations" pricing — same tiers/minimum-bill formula as
