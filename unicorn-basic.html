@@ -526,7 +526,7 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="act-card" data-act="glitter" data-name="Glitter Station" onclick="selectAct(this)">
           <img class="act-card-ic-img" src="img/activity/act-glitter.jpg" alt="Glitter Station">
           <div class="act-card-n">Glitter Station</div>
-          <div class="act-card-d">Glitter tattoos &amp; face art.</div>
+          <div class="act-card-d">Our Face Glitter Station transforms little faces with skin-safe glitter, gems, and magical designs, creating a glamorous party look that kids absolutely love.</div>
         </div>
 
         <div class="act-card" data-act="a12" data-name="Dreamcatcher" onclick="selectAct(this)">
@@ -636,7 +636,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <img class="addon-act-ic-img" src="img/activity/act-glitter.jpg" alt="Glitter Station">
             <div class="addon-act-info">
               <div class="addon-act-n">Glitter Station</div>
-              <div class="addon-act-d">Glitter tattoos &amp; face art</div>
+              <div class="addon-act-d">Our Face Glitter Station transforms little faces with skin-safe glitter, gems, and magical designs, creating a glamorous party look that kids absolutely love.</div>
             </div>
           </div>
           <div class="addon-act-foot">
@@ -667,12 +667,12 @@ button{cursor:pointer;font-family:var(--fb)}
             <img class="addon-act-ic-img" src="img/activity/act-jelly-tote-bag.jpg" alt="Personalized Jelly Tote Bags">
             <div class="addon-act-info">
               <div class="addon-act-n">Personalized Jelly Tote Bags</div>
-              <div class="addon-act-d">Personalized jelly tote bag for every guest. +₹40 per alphabet for name personalization, confirmed at checkout.</div>
+              <div class="addon-act-d">Personalized jelly tote bag for every guest with channel patches.</div>
               <div class="takehome-tag" style="margin-top:6px">🏠 Takehome</div>
             </div>
           </div>
           <div class="addon-act-foot">
-            <div class="addon-act-price" id="jellySwimbagsPriceVal">₹7,000</div>
+            <div class="addon-act-price" id="jellySwimbagsPriceVal">₹10,750</div>
             <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
             <button class="btn-addon-add" id="abtn-jelly-swimbags" onclick="toggleAddon('jelly-swimbags','Personalized Jelly Tote Bags',this)">+ Add</button>
           </div>
@@ -1137,11 +1137,8 @@ function addonActPrice(id, kids) {
     if (kids <= 30) return 11000;
     return 11000 + (kids - 30) * 350;
   }
-  // Personalized Jelly Tote Bags is Rs280/child at the base; the +Rs40/alphabet
-  // name personalization charge isn't calculable on this page (no per-child
-  // name input here) so it's called out in the card copy and confirmed at
-  // checkout instead of folded into this running total.
-  if (id === 'jelly-swimbags') return kids * 280;
+  // Personalized Jelly Tote Bags is Rs430/child — a jelly tote bag + 6 patches.
+  if (id === 'jelly-swimbags') return kids * 430;
   if (id === 'hairbrush-decor') return kids * 400;
   if (id === 'photoframe-decor') return kids * 400;
   if (id === 'mirror-decor') return kids * 750;
