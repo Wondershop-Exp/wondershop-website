@@ -416,6 +416,13 @@ input,textarea,select{font-family:var(--fb)}
 .gal-thumb{width:52px;height:52px;border-radius:8px;overflow:hidden;flex-shrink:0;border:2px solid transparent;cursor:pointer;opacity:.6}
 .gal-thumb.on{border-color:var(--li);opacity:1}
 .gal-thumb img,.gal-thumb video{width:100%;height:100%;object-fit:cover}
+.gal-thumb-info{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:#222;font-size:15px}
+.gal-thumb-info span{font-size:7px;font-weight:700;color:#fff;letter-spacing:.02em}
+.gal-info-card{width:100%;height:100%;overflow-y:auto;box-sizing:border-box;padding:32px 24px;background:linear-gradient(165deg,#211a2e,#0c0c10);color:#fff}
+.gal-info-card h4{font-family:var(--fd);font-size:15px;font-weight:700;margin:0 0 8px;color:#fff}
+.gal-info-card ul{margin:0 0 20px;padding-left:18px}
+.gal-info-card li{font-size:13px;line-height:1.6;color:#D8D5DE;margin-bottom:4px}
+.gal-info-note{font-size:12px;line-height:1.65;color:#B8B4C0;background:rgba(255,255,255,.07);border-radius:10px;padding:12px 14px}
 .card-btn.added{background:var(--gr)}
 .card-btn.rmv{background:#fee2e2;color:#dc2626}
 
@@ -2089,26 +2096,26 @@ function wsBuilderSnapshotForSheet(){
 // ── DATA ──
 const THEMES=[
   {id:'dino',n:'Dinosaur Adventure',e:'🦕',bg:'linear-gradient(135deg,#B7E0B8,#F7F296)',age:'3-5',gn:'Boy',p:8500,b:'150 (Green, Yellow, Brown)',panels:'1 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'pop'},
-  {id:'uni',n:'Unicorn Magic',e:'🦄',bg:'linear-gradient(135deg,#F5C3D7,#EDE6FA)',age:'3-5',gn:'Girl',p:8000,b:'150 (Pink, Purple, White)',panels:'1 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'pop'},
-  {id:'jungle',n:'Jungle Safari',e:'🌴',bg:'linear-gradient(135deg,#52C470,#B7E0B8)',age:'3-8',gn:'Both',p:9000,b:'200 (Green, Yellow, Orange)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Tables, chairs, props',tag:'trend'},
+  {id:'uni',n:'Unicorn Magic',e:'🦄',bg:'linear-gradient(135deg,#F5C3D7,#EDE6FA)',age:'3-5',gn:'Girl',p:8000,b:'150 (Pink, Purple, White)',panels:'1 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'pop',gallery:[{type:'img',src:'img/Decor/decor-uni-arch.jpg'},{type:'img',src:'img/Decor/decor-uni-1panel.jpg'},{type:'img',src:'img/Decor/decor-uni-2panel.jpg'},{type:'img',src:'img/Decor/decor-uni-3panel.jpg'}]},
+  {id:'jungle',n:'Jungle Safari',e:'🌴',bg:'linear-gradient(135deg,#52C470,#B7E0B8)',age:'3-8',gn:'Both',p:9000,b:'200 (Green, Yellow, Orange)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Tables, chairs, props',tag:'trend',gallery:[{type:'img',src:'img/Decor/decor-jungle-3panel.jpg'}]},
   {id:'princess',n:'Princess',e:'👸',bg:'linear-gradient(135deg,#F5C3D7,#F7F296)',age:'3-5',gn:'Girl',p:8000,b:'150 (Pink, Gold, White)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'pop'},
-  {id:'hero',n:'Superhero',e:'🦸',bg:'linear-gradient(135deg,#5B8EDD,#BCD8E8)',age:'6-8',gn:'Both',p:8500,b:'150 (Red, Blue, Yellow)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'rec'},
-  {id:'space',n:'Space Explorer',e:'🚀',bg:'linear-gradient(135deg,#B59DDE,#BCD8E8)',age:'6-12',gn:'Both',p:9500,b:'180 (Blue, Purple, Silver)',panels:'2 flex + 1 arch + LED',s:'4 hrs',ni:'Tables, chairs',tag:'new'},
-  {id:'spy',n:'Mystery & Spy',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',p:9000,b:'120 (Black, Gold, Red)',panels:'2 flex + arch',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend'},
+  {id:'hero',n:'Superhero',e:'🦸',bg:'linear-gradient(135deg,#5B8EDD,#BCD8E8)',age:'6-8',gn:'Both',p:8500,b:'150 (Red, Blue, Yellow)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'rec',gallery:[{type:'img',src:'img/Decor/decor-hero-arch.jpg'},{type:'img',src:'img/Decor/decor-hero-1panel.jpg'},{type:'img',src:'img/Decor/decor-hero-2panel.jpg'},{type:'img',src:'img/Decor/decor-hero-extra1.jpg'}]},
+  {id:'space',n:'Space Explorer',e:'🚀',bg:'linear-gradient(135deg,#B59DDE,#BCD8E8)',age:'6-12',gn:'Both',p:9500,b:'180 (Blue, Purple, Silver)',panels:'2 flex + 1 arch + LED',s:'4 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-space-arch.jpg'},{type:'img',src:'img/Decor/decor-space-1panel.jpg'}]},
+  {id:'spy',n:'Mystery & Spy',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',p:9000,b:'120 (Black, Gold, Red)',panels:'2 flex + arch',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',gallery:[{type:'img',src:'img/Decor/decor-spy-arch.jpg'},{type:'img',src:'img/Decor/decor-spy-1panel.jpg'},{type:'img',src:'img/Decor/decor-spy-2panel.jpg'},{type:'img',src:'img/Decor/decor-spy-3panel.jpg'}]},
   {id:'gaming',n:'Gaming Zone',e:'🎮',bg:'linear-gradient(135deg,#F57A1A,#F2D147)',age:'7-12',gn:'Both',p:8500,b:'150 (Orange, Yellow, Green)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'new'},
-  {id:'kpop',n:'K-Pop Party',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-14',gn:'Girls',p:9500,b:'180 (Purple, Pink, Black)',panels:'2 flex + arch + LED',s:'4 hrs',ni:'Open area, mini stage',tag:'trend'},
-  {id:'hp',n:'Harry Potter',e:'⚡',bg:'linear-gradient(135deg,#374151,#B59DDE)',age:'7-14',gn:'Both',p:9500,b:'180 (Black, Gold, Red)',panels:'2 flex + arch',s:'4 hrs',ni:'Tables, chairs',tag:'trend'},
+  {id:'kpop',n:'K-Pop Party',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-14',gn:'Girls',p:9500,b:'180 (Purple, Pink, Black)',panels:'2 flex + arch + LED',s:'4 hrs',ni:'Open area, mini stage',tag:'trend',gallery:[{type:'img',src:'img/Decor/decor-kpop-arch.jpg'},{type:'img',src:'img/Decor/decor-kpop-1panel.jpg'},{type:'img',src:'img/Decor/decor-kpop-3panel.jpg'}]},
+  {id:'hp',n:'Harry Potter',e:'⚡',bg:'linear-gradient(135deg,#374151,#B59DDE)',age:'7-14',gn:'Both',p:9500,b:'180 (Black, Gold, Red)',panels:'2 flex + arch',s:'4 hrs',ni:'Tables, chairs',tag:'trend',gallery:[{type:'img',src:'img/Decor/decor-hp-1panel.jpg'},{type:'img',src:'img/Decor/decor-hp-3panel.jpg'}]},
   {id:'frozen',n:'Frozen',e:'❄️',bg:'linear-gradient(135deg,#BCD8E8,#EDE6FA)',age:'3-7',gn:'Girls',p:8500,b:'150 (Blue, Purple, White)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'pop'},
   {id:'spiderman',n:'Spider-Man',e:'🕷️',bg:'linear-gradient(135deg,#E65050,#5B8EDD)',age:'3-8',gn:'Boys',p:8500,b:'150 (Red, Blue, White)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'pop'},
   {id:'peppa',n:'Peppa Pig',e:'🐷',bg:'linear-gradient(135deg,#F5C3D7,#FAFAFA)',age:'2-5',gn:'Both',p:8000,b:'150 (Pink, Red, White)',panels:'1 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'pop'},
   {id:'barbie',n:'Barbie Theme',e:'👗',bg:'linear-gradient(135deg,#F5C3D7,#E65A96)',age:'4-10',gn:'Girls',p:8500,b:'150 (Hot Pink, White, Gold)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'trend'},
   {id:'castle',n:'Fairytale Castle',e:'🏰',bg:'linear-gradient(135deg,#EDE6FA,#F5C3D7)',age:'4-10',gn:'Girls',p:9000,b:'180 (Purple, Pink, Gold)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Tables, chairs',tag:'new'},
   {id:'disco',n:'Disco Party',e:'🪩',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'7-14',gn:'Girls',p:9000,b:'150 (Pink, Purple, Silver)',panels:'2 flex + 1 arch + LED',s:'3.5 hrs',ni:'Any space',tag:'trend'},
-  {id:'art',n:'Art & Paint Party',e:'🎨',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',age:'4-10',gn:'Both',p:8500,b:'150 (Colorful mix)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'new'},
-  {id:'science',n:'Science Party',e:'🔬',bg:'linear-gradient(135deg,#BCD8E8,#52C470)',age:'6-12',gn:'Both',p:9000,b:'150 (Blue, Green, White)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Tables, chairs',tag:'new'},
+  {id:'art',n:'Art & Paint Party',e:'🎨',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',age:'4-10',gn:'Both',p:8500,b:'150 (Colorful mix)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-art-1panel.jpg'},{type:'img',src:'img/Decor/decor-art-2panel.jpg'}]},
+  {id:'science',n:'Science Party',e:'🔬',bg:'linear-gradient(135deg,#BCD8E8,#52C470)',age:'6-12',gn:'Both',p:9000,b:'150 (Blue, Green, White)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-science-1panel.jpg'}]},
   {id:'cooking',n:'Cooking & Baking',e:'👩‍🍳',bg:'linear-gradient(135deg,#F2D147,#F5C3D7)',age:'5-12',gn:'Both',p:8500,b:'150 (Yellow, Pink, White)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'new'},
   {id:'racing',n:'Race Track & Cars',e:'🏎️',bg:'linear-gradient(135deg,#F57A1A,#374151)',age:'3-8',gn:'Boys',p:8500,b:'150 (Black, Red, Yellow)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'pop'},
-  {id:'football',n:'Football Party',e:'⚽',bg:'linear-gradient(135deg,#52C470,#374151)',age:'5-12',gn:'Both',p:8500,b:'150 (Green, Black, White)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'pop'},
+  {id:'football',n:'Football Party',e:'⚽',bg:'linear-gradient(135deg,#52C470,#374151)',age:'5-12',gn:'Both',p:8500,b:'150 (Green, Black, White)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'pop',gallery:[{type:'img',src:'img/Decor/decor-football-arch.jpg'},{type:'img',src:'img/Decor/decor-football-1panel.jpg'},{type:'img',src:'img/Decor/decor-football-2panel.jpg'},{type:'img',src:'img/Decor/decor-football-3panel.jpg'}]},
   {id:'cricket',n:'Cricket Party',e:'🏏',bg:'linear-gradient(135deg,#52C470,#F2D147)',age:'6-14',gn:'Boys',p:8500,b:'150 (Blue, White, Green)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'new'},
   {id:'ninja',n:'Ninja Warrior',e:'🥷',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'5-10',gn:'Boys',p:8500,b:'150 (Black, Red, Gold)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'new'},
   {id:'carnival',n:'Carnival & Funfair',e:'🎡',bg:'linear-gradient(135deg,#F57A1A,#E65A96)',age:'2+',gn:'Both',p:9000,b:'200 (Red, Yellow, Blue)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Open area',tag:'pop'},
@@ -2655,16 +2662,42 @@ function injectRemarksBoxes(){
 // Each theme/activity currently ships with one photo; gal.items still supports
 // multiple photos/videos per entry (via an optional `t.gallery` array of
 // {type:'img'|'video',src}) so more media can be dropped in later without
-// touching this code.
-let galItems=[],galIdx=0;
+// touching this code. Decor entries (theme + std) additionally get a final
+// 'info' item — a details card (what's included / not included) built live
+// from the entry's own data, rather than an image.
+let galItems=[],galIdx=0,galKind='',galObj=null;
 function galMediaFor(kind,obj){
-  if(obj.gallery&&obj.gallery.length)return obj.gallery;
-  const src=kind==='theme'?('img/theme-'+obj.id+'.jpg'):('img/'+obj.img+'.jpg');
-  return [{type:'img',src}];
+  let items;
+  if(obj.gallery&&obj.gallery.length)items=obj.gallery.slice();
+  else{
+    const src=kind==='theme'?('img/theme-'+obj.id+'.jpg'):('img/'+obj.img+'.jpg');
+    items=[{type:'img',src}];
+  }
+  if(kind==='theme'||kind==='std')items=items.concat([{type:'info'}]);
+  return items;
+}
+// Splits a "·"-separated summary string (e.g. STD's `d` field) into bullets.
+function splitBits(str){return (str||'').split('·').map(s=>s.trim()).filter(Boolean);}
+// Builds the "what's included / not included" details card shown as the
+// last gallery item for every decor entry. Generated live from the theme's
+// own catalogue fields (panels/balloons/setup time/exclusions) — swap in a
+// custom `obj.info` HTML string on any entry later to override this.
+function buildDecorInfoHTML(kind,obj){
+  if(obj.info)return obj.info;
+  const custNote='<div class="gal-info-note">🎨 Flex/panel designs shown are customizable to an extent — basic personalisation like your child\'s name, age and similar details is included. Any major design change (new artwork, extra panels, structural changes, etc.) may be chargeable depending on the scope of work; our team will confirm exact details with you on the call.</div>';
+  if(kind==='std'){
+    const inc=splitBits(obj.d);
+    return '<h4>✅ What\'s Included</h4><ul>'+inc.map(x=>'<li>'+x+'</li>').join('')+'</ul>'+custNote;
+  }
+  const incBits=[obj.panels,obj.b+' balloons','On-site setup in ~'+obj.s,'Flex/panel design customised with your child\'s name &amp; age'].filter(Boolean);
+  return '<h4>✅ What\'s Included</h4><ul>'+incBits.map(x=>'<li>'+x+'</li>').join('')+'</ul>'+
+    (obj.ni?'<h4>🚫 What\'s Not Included</h4><ul><li>'+obj.ni+'</li></ul>':'')+
+    custNote;
 }
 function openGallery(kind,id){
   const obj=kind==='theme'?THEMES.find(t=>t.id===id):kind==='std'?STD.find(t=>t.id===id):ACTS.find(a=>a.id===id);
   if(!obj)return;
+  galKind=kind;galObj=obj;
   galItems=galMediaFor(kind,obj);
   galIdx=0;
   document.getElementById('galName').textContent=obj.n;
@@ -2685,13 +2718,20 @@ function galStep(d){if(!galItems.length)return;galIdx=(galIdx+d+galItems.length)
 function galGoTo(i){galIdx=i;renderGalStage();}
 function renderGalStage(){
   const stage=document.getElementById('galStage');
-  stage.querySelectorAll('img,video').forEach(el=>el.remove());
+  stage.querySelectorAll('img,video,.gal-info-card').forEach(el=>el.remove());
   const it=galItems[galIdx];
   if(it){
-    const el=document.createElement(it.type==='video'?'video':'img');
-    if(it.type==='video'){el.src=it.src;el.controls=true;el.playsInline=true;}
-    else{el.src=it.src;el.loading='lazy';el.alt='';}
-    stage.insertBefore(el,stage.firstChild);
+    if(it.type==='info'){
+      const div=document.createElement('div');
+      div.className='gal-info-card';
+      div.innerHTML=buildDecorInfoHTML(galKind,galObj);
+      stage.insertBefore(div,stage.firstChild);
+    }else{
+      const el=document.createElement(it.type==='video'?'video':'img');
+      if(it.type==='video'){el.src=it.src;el.controls=true;el.playsInline=true;}
+      else{el.src=it.src;el.loading='lazy';el.alt='';}
+      stage.insertBefore(el,stage.firstChild);
+    }
   }
   const multi=galItems.length>1;
   document.getElementById('galPrev').style.display=multi?'flex':'none';
@@ -2704,7 +2744,10 @@ function renderGalThumbs(){
   const w=document.getElementById('galThumbs');
   if(galItems.length<2){w.innerHTML='';w.style.display='none';return;}
   w.style.display='flex';
-  w.innerHTML=galItems.map((it,i)=>'<div class="gal-thumb" onclick="galGoTo('+i+')">'+(it.type==='video'?'<video src="'+it.src+'" muted></video>':'<img src="'+it.src+'" alt="" loading="lazy">')+'</div>').join('');
+  w.innerHTML=galItems.map((it,i)=>{
+    if(it.type==='info')return '<div class="gal-thumb gal-thumb-info" onclick="galGoTo('+i+')">ℹ️<span>Details</span></div>';
+    return '<div class="gal-thumb" onclick="galGoTo('+i+')">'+(it.type==='video'?'<video src="'+it.src+'" muted></video>':'<img src="'+it.src+'" alt="" loading="lazy">')+'</div>';
+  }).join('');
 }
 
 // ── HOST & DJ ──
