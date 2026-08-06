@@ -366,6 +366,7 @@ input,textarea,select{font-family:var(--fb)}
 .pcard.sel{border-color:var(--li);box-shadow:0 0 0 2px var(--li)}
 .pcard.sel .sel-badge{display:block}
 .sel-badge{display:none;position:absolute;top:8px;right:8px;background:var(--li);color:#fff;font-size:10px;font-weight:700;border-radius:8px;padding:3px 8px;z-index:3}
+.variant-badge{position:absolute;bottom:8px;left:8px;background:rgba(25,25,25,.68);color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px;z-index:3;display:flex;align-items:center;gap:4px;backdrop-filter:blur(2px)}
 .caro{position:relative;overflow:hidden;background:var(--li2);flex-shrink:0;aspect-ratio:4/3}.caro img{width:100%;height:100%;display:block;object-fit:cover;object-position:center top}
 .caro-fallback{display:flex;align-items:center;justify-content:center;font-size:40px}
 .cs{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;position:absolute;inset:0;transition:opacity .4s}
@@ -2603,10 +2604,20 @@ const TAG_MAP={pop:'<span class="tag pop">Most Popular</span>',new:'<span class=
 // theme-<id>.jpg at all would just show a broken image).
 function themeThumb(t){return (t.gallery&&t.gallery[0]&&t.gallery[0].type!=='video')?t.gallery[0].src:'img/theme-'+t.id+'.jpg';}
 function stdThumb(t){return (t.gallery&&t.gallery[0]&&t.gallery[0].type!=='video')?t.gallery[0].src:'img/'+t.img+'.jpg';}
+// Small overlay on the card thumbnail flagging that this decor has more
+// than one real photo variant (arch/1-panel/2-panel/3-panel, etc.) to
+// browse — shown only when there's genuinely more than one photo to see;
+// doesn't imply anything about pricing (all variants of a theme are still
+// priced the same today — see TODO near const THEMES for per-variant
+// pricing, pending a pricing sheet).
+function variantBadge(t){
+  const n=t.gallery?t.gallery.length:0;
+  return n>1?'<div class="variant-badge">🖼 '+n+' variants</div>':'';
+}
 function makeTC(t){
   const tagHtml=t.tag?TAG_MAP[t.tag]:'';
   const added=S.decor&&S.decor.id===t.id;
-  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+themeThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'"></div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tagHtml+'<span class="tag pk">'+t.gn+'</span><span class="tag gr">'+t.s+'</span></div><div class="card-detail">🎈 '+t.b+'<br>🖼 '+t.panels+'<br>⚠️ Excl: '+t.ni+'</div><div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+themeThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tagHtml+'<span class="tag pk">'+t.gn+'</span><span class="tag gr">'+t.s+'</span></div><div class="card-detail">🎈 '+t.b+'<br>🖼 '+t.panels+'<br>⚠️ Excl: '+t.ni+'</div><div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
 }
 function buildDec(){
   const tc=document.getElementById('thCards');tc.innerHTML='';
@@ -2616,7 +2627,7 @@ function buildDec(){
   if(!fl.length)fl=THEMES;
   fl.forEach(t=>tc.innerHTML+=makeTC(t));
   const sc=document.getElementById('stdCards');sc.innerHTML='';
-  STD.forEach(t=>{const added=S.decor&&S.decor.id===t.id;sc.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'std\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+stdThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'"></div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="card-detail">'+t.d+'</div><div class="card-pr-row"><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';});
+  STD.forEach(t=>{const added=S.decor&&S.decor.id===t.id;sc.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'std\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+stdThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="card-detail">'+t.d+'</div><div class="card-pr-row"><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';});
   if(S.decor)document.getElementById('dc-'+S.decor.id)?.classList.add('sel');
   const dtBtns=document.querySelectorAll('#s1 .dt-tog .dt-btn');
   if(dtBtns.length===2){if(S.decorType==='standard'){dtBtns[0].classList.remove('on');dtBtns[1].classList.add('on');document.getElementById('thSec').style.display='none';document.getElementById('stdSec').style.display='block';}else{dtBtns[0].classList.add('on');dtBtns[1].classList.remove('on');document.getElementById('thSec').style.display='block';document.getElementById('stdSec').style.display='none';}}
