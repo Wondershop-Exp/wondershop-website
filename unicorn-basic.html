@@ -239,6 +239,8 @@ button{cursor:pointer;font-family:var(--fb)}
 /* ADDON TEASER (services) */
 .addon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .addon-chip{display:flex;align-items:center;gap:8px;background:#f9f9f9;border:1.5px solid #eee;border-radius:12px;padding:11px 14px;font-size:13px;color:var(--gy);font-weight:500}
+.rmk-ta{width:100%;border:1.5px solid var(--li2);border-radius:12px;padding:12px 14px;font-family:inherit;font-size:14px;color:var(--bk);resize:vertical;min-height:80px}
+.rmk-note{font-size:12px;color:var(--gy);margin-top:8px;line-height:1.5}
 .addon-chip-ic{font-size:18px;flex-shrink:0}
 
 /* STICKY BAR */
@@ -915,6 +917,18 @@ button{cursor:pointer;font-family:var(--fb)}
 
   <hr class="divider">
 
+  <!-- SPECIAL REQUESTS -->
+  <section class="sec">
+    <div class="container">
+      <h2 class="sec-h2">Special <em>Requests</em></h2>
+      <p class="sec-sub">Anything specific you'd like us to know? <span style="color:var(--gy);font-weight:400">(optional)</span></p>
+      <textarea class="rmk-ta" id="specialRequest" placeholder="e.g. a specific theme detail, allergy info, a surprise moment you'd like..."></textarea>
+      <div class="rmk-note">We'll call you after receiving your details to confirm everything and customize anything you need.</div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
   <!-- PHOTO STRIP (film strip, auto-scrolling) -->
   <section class="sec" style="padding-bottom:8px">
     <div class="container">
@@ -1545,6 +1559,7 @@ function proceedToBuilder() {
       photographer: selectedPhotographer,
       reel: selectedReel,
       pinata: selectedPinata,
+      remarks: (document.getElementById('specialRequest').value || '').trim(),
       packagePrice: totalPrice(),
       host: {tier:'Starter', p:10000},
       coupon: 'PKGUNICORN',
