@@ -1971,7 +1971,7 @@ input,textarea,select{font-family:var(--fb)}
 <div class="scratch-overlay" id="scratchOverlay">
   <div class="scratch-card-pop">
     <button class="scratch-close" id="scratchCloseBtn" style="display:none" onclick="closeScratchModal()" aria-label="Close">✕</button>
-    <div class="scratch-title">You've got a surprise! 🎁</div>
+    <div class="scratch-title" id="scratchTitle">Scratch &amp; Reveal! ✨</div>
     <div class="scratch-card" id="scratchCard">
       <div class="scratch-result" id="scratchResult">
         <div class="sr-badge" id="srBadge"></div>
@@ -3160,9 +3160,9 @@ const SCRATCH_REWARDS=[
   {type:'discount',weight:27,icon:'🏷️',label:'10% Off Your Next Booking',badge:'',
     sub:"We'll share a code with your Account Manager — use it on your next celebration.",
     grad:'linear-gradient(135deg,#E65A96 0%,#C43D77 100%)'},
-  {type:'none',weight:38,icon:'🎈',label:'Better Luck Next Time!',badge:'',
+  {type:'none',weight:38,icon:'🎈',label:'Better Luck Next Time!',badge:'',dark:true,
     sub:"Thank you for booking with Wondershop — see you at the party!",
-    grad:'linear-gradient(135deg,#8A93A6 0%,#6B7280 100%)'},
+    grad:'linear-gradient(135deg,#FFFFFF 0%,#F2EFF9 100%)'},
 ];
 let __scratchReward=null;
 
@@ -3195,13 +3195,17 @@ function openScratchModal(reward){
   __scratchReward=reward;
   const resEl=document.getElementById('scratchResult');
   resEl.style.background=reward.grad;
+  resEl.style.color=reward.dark?'var(--bk)':'#fff';
   document.getElementById('srIcon').textContent=reward.icon;
   document.getElementById('srLabel').textContent=reward.label;
-  document.getElementById('srSub').textContent=reward.sub;
+  const srSub=document.getElementById('srSub');
+  srSub.textContent=reward.sub;
+  srSub.style.color=reward.dark?'var(--gy)':'rgba(255,255,255,.94)';
   const badgeEl=document.getElementById('srBadge');
   if(reward.badge){badgeEl.textContent=reward.badge;badgeEl.style.display='inline-block';}
   else badgeEl.style.display='none';
 
+  document.getElementById('scratchTitle').textContent='Scratch & Reveal! ✨';
   document.getElementById('scratchCta').style.display='none';
   document.getElementById('scratchCloseBtn').style.display='none';
   document.getElementById('scratchHint').style.display='flex';
@@ -3260,9 +3264,16 @@ function revealScratchCard(){
   const card=document.getElementById('scratchCard');
   card.style.animation='scratchRevealPulse .5s ease';
   setTimeout(()=>{
-    document.getElementById('scratchCta').style.display='inline-block';
+    const won=__scratchReward.type!=='none';
+    document.getElementById('scratchTitle').textContent=won?"You've Got a Surprise! 🎁":'Thanks for Booking! 🎈';
     document.getElementById('scratchCloseBtn').style.display='flex';
-    document.getElementById('scratchNote').textContent="This has been noted on your booking — your Account Manager will confirm the details.";
+    if(won){
+      document.getElementById('scratchCta').style.display='inline-block';
+      document.getElementById('scratchNote').textContent="This has been noted on your booking — your Account Manager will confirm the details.";
+    }else{
+      document.getElementById('scratchCta').style.display='none';
+      document.getElementById('scratchNote').textContent='';
+    }
     showRewardOnConfirmation(__scratchReward);
   },500);
   wsTrack('scratch_card_revealed',{reward_type:__scratchReward.type,reward_value:__scratchReward.value||null});
