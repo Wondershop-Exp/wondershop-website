@@ -47,6 +47,19 @@ class LeadSubmitRequest(BaseModel):
     lead_source:        Optional[str]   = "Website"
     lead_source_detail: Optional[str]   = None
     referred_by:        Optional[str]   = None
+    # Order summary — sent from the checkout step so the confirmation email
+    # can show a full bill, not just the payable total (client_budget).
+    order_grand_total:  Optional[float] = None
+    order_discount_pct: Optional[float] = None
+    order_advance:      Optional[float] = None
+    order_balance:      Optional[float] = None
+    # Post-booking scratch-card reward — only set when the customer won
+    # something (reward_type is None/omitted for "better luck next time").
+    reward_type:        Optional[str]   = None
+    reward_label:       Optional[str]   = None
+    reward_value:       Optional[float] = None
+    reward_terms:       Optional[str]   = None
+    reward_expiry:      Optional[date]  = None
 
 
 # ─── GMAIL API EMAIL HELPER ──────────────────────────────────────────────────
@@ -87,6 +100,50 @@ async def _gmail_send(to_email: str, subject: str, body: str) -> None:
         raise Exception(f"Gmail API error {r.status_code}: {r.text}")
 
 
+# ─── ORDER SUMMARY / REWARD EMAIL BLOCKS ─────────────────────────────────────
+# Shared by the user ack email and (for the reward) the internal team email,
+# so the customer's "bill" and the ops team's alert always agree.
+
+def _fmt_rupees(amount: Optional[float]) -> str:
+    return f"Rs.{amount:,.0f}" if amount is not None else "—"
+
+def _format_order_summary_block(req: LeadSubmitRequest) -> str:
+    """Itemised order summary — acts as the customer's on-email bill."""
+    if req.order_grand_total is None and req.client_budget is None:
+        return ""
+    lines = ["\nYOUR ORDER SUMMARY"]
+    if req.order_grand_total is not None:
+        lines.append(f"  Grand Total     : {_fmt_rupees(req.order_grand_total)}")
+    if req.order_discount_pct:
+        lines.append(f"  Discount        : {req.order_discount_pct:.0f}%")
+    lines.append(f"  Payable Total   : {_fmt_rupees(req.client_budget)}")
+    if req.order_advance is not None:
+        lines.append(f"  Advance Paid    : {_fmt_rupees(req.order_advance)}")
+    if req.order_balance is not None:
+        lines.append(f"  Balance Due     : {_fmt_rupees(req.order_balance)} (before event)")
+    lines.append("")
+    return "\n".join(lines) + "\n"
+
+def _format_reward_block(req: LeadSubmitRequest) -> str:
+    """Scratch-card reward + full terms & conditions — only present if won."""
+    if not req.reward_type:
+        return ""
+    lines = ["\nYOUR REWARD 🎁", f"  {req.reward_label or req.reward_type}"]
+    if req.reward_value:
+        lines.append(f"  Value: Rs.{req.reward_value:,.0f}")
+    if req.reward_expiry:
+        lines.append(f"  Valid until: {req.reward_expiry.isoformat()}")
+    if req.reward_terms:
+        lines.append("  Terms & Conditions:")
+        for clause in req.reward_terms.split(" | "):
+            clause = clause.strip()
+            if clause:
+                lines.append(f"    • {clause}")
+    lines.append("  Your Account Manager will confirm redemption details with you.")
+    lines.append("")
+    return "\n".join(lines) + "\n"
+
+
 # ─── 1. USER ACK EMAIL ───────────────────────────────────────────────────────
 
 async def _send_user_ack(lead_id: int, req: LeadSubmitRequest) -> None:
@@ -98,6 +155,8 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest) -> None:
 
     try:
         remarks_block = f"\nYour special requests / remarks:\n  {req.remarks}\n" if req.remarks else ""
+        order_block = _format_order_summary_block(req)
+        reward_block = _format_reward_block(req)
         body = f"""Hi {req.parent_name.split()[0]}! 🎉
 
 Thank you for reaching out to Wondershop Experiences.
@@ -108,7 +167,7 @@ Your details:
   Event Date  : {req.event_date.isoformat() if req.event_date else '—'}
   Theme       : {req.theme or '—'}
   City        : {req.city or '—'}
-{remarks_block}
+{remarks_block}{order_block}{reward_block}
 If you have any questions in the meantime, WhatsApp us at +91 90044 35362.
 
 Warmly,
@@ -136,6 +195,13 @@ async def _send_team_email(lead_id: int, req: LeadSubmitRequest) -> None:
     try:
         budget_str = f"Rs.{req.client_budget:,.0f}" if req.client_budget else "—"
         remarks_block = f"\nSPECIAL REQUESTS / REMARKS\n  {req.remarks}\n" if req.remarks else ""
+        order_block = _format_order_summary_block(req)
+        reward_block = ""
+        if req.reward_type:
+            reward_block = _format_reward_block(req).replace(
+                "YOUR REWARD 🎁",
+                "SCRATCH-CARD REWARD WON — please action this on the account ⚠️",
+            )
         body = f"""New lead #{lead_id} received on Wondershop website.
 
 PARENT
@@ -155,7 +221,7 @@ EVENT
   Venue      : {req.venue or '—'} ({req.location_type or '—'})
   City       : {req.city or '—'}   Pincode: {req.pincode or '—'}
   Budget     : {budget_str}
-{remarks_block}
+{remarks_block}{order_block}{reward_block}
 SOURCE
   {req.lead_source or '—'} / {req.lead_source_detail or '—'}
   Referred by: {req.referred_by or '—'}

@@ -656,6 +656,13 @@ input,textarea,select{font-family:var(--fb)}
 .scratch-close{position:absolute;top:-42px;right:-4px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:background .15s;border:none}
 .scratch-close:hover{background:rgba(255,255,255,.28)}
 @media(max-width:360px){.scratch-card{width:260px;height:170px}}
+.scratch-terms-wrap{margin-top:10px;max-width:300px;width:100%}
+.scratch-terms-toggle{font-size:11.5px;color:rgba(255,255,255,.7);text-align:center;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.scratch-terms-toggle:hover{color:#fff}
+.scratch-terms-body{display:none;margin-top:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:12px 14px;font-size:11px;line-height:1.65;color:rgba(255,255,255,.85);max-height:160px;overflow-y:auto}
+.scratch-terms-body.show{display:block}
+.scratch-terms-body ul{margin:0;padding-left:16px}
+.scratch-terms-body li{margin-bottom:6px}
 
 /* Reward box — persists on the confirmation screen after the scratch card is closed */
 .reward-box{margin-top:16px;border-radius:var(--r);padding:16px 18px;color:#fff;display:flex;align-items:center;gap:14px;box-shadow:0 10px 28px rgba(0,0,0,.14)}
@@ -1846,6 +1853,16 @@ input,textarea,select{font-family:var(--fb)}
     <p>We're thrilled to celebrate with you. A confirmation has been sent to your email and WhatsApp.</p>
   </div>
   <div class="cal-note">📅 Calendar invite sent to your email &amp; Wondershop team — your date is blocked!</div>
+  <div class="sec-blk" style="margin-bottom:14px">
+    <div class="sec-lbl"><span class="dot"></span>Your Order Summary</div>
+    <div class="amt-box">
+      <div class="amt-row"><span>Grand Total</span><span id="confGt">₹0</span></div>
+      <div class="amt-row" id="confDr" style="display:none"><span>Discount</span><span id="confDisc" style="color:var(--gr)"></span></div>
+      <div class="amt-row tot"><span>Payable Total</span><span id="confPt">₹0</span></div>
+      <div class="amt-row adv"><span>⚡ Advance Paid</span><span id="confAdv">₹0</span></div>
+      <div class="amt-row"><span style="font-size:11px;color:var(--gy)">Balance due before event</span><span id="confBal" style="font-size:12px;color:var(--gy)">₹0</span></div>
+    </div>
+  </div>
   <div id="confReward"></div>
   <div class="conf-share-btns">
     <button class="conf-share-btn conf-wa" onclick="shareWA()">💬 Share on WhatsApp</button>
@@ -1984,6 +2001,10 @@ input,textarea,select{font-family:var(--fb)}
       <div class="scratch-hint" id="scratchHint"><span class="sh-ic">🪙</span>Scratch here</div>
     </div>
     <div class="scratch-note" id="scratchNote">Use your mouse or finger to scratch the card</div>
+    <div class="scratch-terms-wrap" id="scratchTermsWrap" style="display:none">
+      <div class="scratch-terms-toggle" id="scratchTermsToggle" onclick="toggleScratchTerms()">Terms &amp; Conditions ▾</div>
+      <div class="scratch-terms-body" id="scratchTermsBody"></div>
+    </div>
     <button class="scratch-cta" id="scratchCta" style="display:none" onclick="closeScratchModal()">Awesome, got it!</button>
   </div>
 </div>
@@ -2916,13 +2937,26 @@ async function doCo(){
   S.kidsCount=parseInt(document.getElementById('co-kids').value)||S.kidsCount;
   S.parentName=document.getElementById('co-name').value;S.email=document.getElementById('co-email').value;S.address=document.getElementById('co-addr').value;
 
+  // Pick the scratch-card reward now — before the notifications fire — so
+  // the same reward (with its terms & expiry) can be included in the
+  // booking email / sheet row, not just shown client-side after confetti.
+  const __reward=pickScratchReward();
+  const __gt=rawT(),__dpv=dp(),__tpv=tp(),__advv=adv(),__bal=__tpv-__advv;
+  const __rewardWon=__reward.type!=='none';
+  // Expiry is sent separately as reward_expiry — kept out of this string to avoid duplication.
+  const __rewardTermsText=__rewardWon?(__reward.terms||[]).join(' | '):'';
+
   // Google Sheet — fire-and-forget
   wsSendToSheet('booking', Object.assign({
     name: S.parentName, phone: S.mobile, email: S.email,
     child: S.children.map(c=>c.name||'').filter(Boolean).join(', '),
     event_date: S.eventDate, event_time: S.eventTime, kids_count: S.kidsCount,
     venue: S.address || S.venue, pincode: S.pincode, theme: S.theme,
-    estimated_total: tp(), advance: adv(), lead_source: 'Website - Checkout',
+    estimated_total: __tpv, advance: __advv, balance_due: __bal, discount_pct: __dpv,
+    reward_type: __rewardWon ? __reward.type : '', reward_label: __rewardWon ? __reward.label : '',
+    reward_value: __reward.value || '', reward_terms: __rewardTermsText,
+    reward_expiry: __reward.expiryDate || '',
+    lead_source: 'Website - Checkout',
   }, wsBuilderSnapshotForSheet()));
 
   // Railway — WhatsApp + email + DB (fire-and-forget, never blocks confirmation)
@@ -2941,7 +2975,16 @@ async function doCo(){
         theme:              S.theme || null,
         venue:              S.address || S.venue || null,
         pincode:            S.pincode || null,
-        client_budget:      tp() || null,
+        client_budget:      __tpv || null,
+        order_grand_total:  __gt || null,
+        order_discount_pct: __dpv || null,
+        order_advance:      __advv || null,
+        order_balance:      __bal || null,
+        reward_type:        __rewardWon ? __reward.type : null,
+        reward_label:       __rewardWon ? __reward.label : null,
+        reward_value:       __reward.value || null,
+        reward_terms:       __rewardWon ? __rewardTermsText : null,
+        reward_expiry:      __reward.expiryISO || null,
         builder_snapshot:   buildSnapshot ? buildSnapshot() : null,
         remarks:            combinedRemarks() || null,
         lead_source:        'Website - Checkout',
@@ -2956,8 +2999,15 @@ async function doCo(){
     ? '<div class="cbox" style="margin-top:16px;text-align:left"><div class="cb-row">Your special requests / remarks:</div><div class="cb-val" style="white-space:pre-wrap">'+rmk.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</div></div>'
     : '';
 
+  // Populate the on-screen Order Summary — the customer's on-page receipt.
+  document.getElementById('confGt').textContent='₹'+__gt.toLocaleString('en-IN');
+  if(__dpv>0){document.getElementById('confDr').style.display='flex';document.getElementById('confDisc').textContent='-₹'+(__gt-__tpv).toLocaleString('en-IN')+' ('+__dpv+'%)';}
+  else document.getElementById('confDr').style.display='none';
+  document.getElementById('confPt').textContent='₹'+__tpv.toLocaleString('en-IN');
+  document.getElementById('confAdv').textContent='₹'+__advv.toLocaleString('en-IN');
+  document.getElementById('confBal').textContent='₹'+__bal.toLocaleString('en-IN');
+
   goTo('sconf');launchConfetti();
-  const __reward=pickScratchReward();
   setTimeout(()=>openScratchModal(__reward),900);
 }
 
@@ -3148,23 +3198,50 @@ function launchConfetti(){
 // is under 7 — otherwise it's excluded from the pool entirely.
 // ══════════════════════════════════════
 const SCRATCH_REWARDS=[
-  {type:'tattoo',weight:22,icon:'🎨',label:'Free Tattoo Artist',badge:'',
+  {type:'tattoo',weight:22,icon:'🎨',label:'Free Tattoo Artist',badge:'',validityMonths:6,
     sub:"On the house! Valid on any booking in the next 6 months — including this one.",
-    grad:'linear-gradient(135deg,#B59DDE 0%,#8A67BE 100%)'},
+    grad:'linear-gradient(135deg,#B59DDE 0%,#8A67BE 100%)',
+    terms:[
+      'Valid for one (1) complimentary Tattoo Artist session, redeemable on this booking or any new Wondershop booking made within the validity period.',
+      'Subject to artist availability on your chosen date — please confirm with your Account Manager in advance.',
+      'One redemption per reward. Non-transferable and not exchangeable for cash.',
+    ]},
   {type:'bubble',weight:3,rare:true,icon:'🫧',label:'Free Bubble Artist!',badge:'Jackpot',
     sub:"You hit the jackpot! We'll add a Bubble Artist to your party at no charge.",
-    grad:'linear-gradient(135deg,#FFC200 0%,#F57A1A 100%)'},
+    grad:'linear-gradient(135deg,#FFC200 0%,#F57A1A 100%)',
+    terms:[
+      'Valid for this booking only — our team will add a complimentary Bubble Artist to your event.',
+      'Non-transferable and not valid on any other or future booking.',
+    ]},
   {type:'refund',weight:10,icon:'💰',label:'',badge:'',
     sub:'Credited back to you after your final party payment is complete.',
-    grad:'linear-gradient(135deg,#52C470 0%,#2E9E52 100%)'},
-  {type:'discount',weight:27,icon:'🏷️',label:'10% Off Your Next Booking',badge:'',
+    grad:'linear-gradient(135deg,#52C470 0%,#2E9E52 100%)',
+    terms:[
+      'Credited via UPI or bank transfer within 7 working days of your final event payment.',
+      'Valid for this booking only. Non-transferable and not exchangeable for an on-the-spot cash discount.',
+    ]},
+  {type:'discount',weight:27,icon:'🏷️',label:'10% Off Your Next Booking',badge:'',validityMonths:6,
     sub:"We'll share a code with your Account Manager — use it on your next celebration.",
-    grad:'linear-gradient(135deg,#E65A96 0%,#C43D77 100%)'},
+    grad:'linear-gradient(135deg,#E65A96 0%,#C43D77 100%)',
+    terms:[
+      'Valid for your next new Wondershop booking, made within the validity period.',
+      'Minimum spend of ₹25,000 on the next booking required.',
+      'Cannot be combined with other offers, coupons or discounts. One-time use, non-transferable.',
+    ]},
   {type:'none',weight:38,icon:'🎈',label:'Better Luck Next Time!',badge:'',dark:true,
     sub:"Thank you for booking with Wondershop — see you at the party!",
     grad:'linear-gradient(135deg,#FFFFFF 0%,#F2EFF9 100%)'},
 ];
 let __scratchReward=null;
+
+function scratchAddMonths(months){
+  const d=new Date();
+  d.setMonth(d.getMonth()+months);
+  return d;
+}
+function scratchFmtDate(d){
+  return d.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+}
 
 function pickScratchReward(){
   let bubbleEligible=false;
@@ -3187,6 +3264,11 @@ function pickScratchReward(){
     const amt=100+Math.floor(Math.random()*91)*10; // ₹100..₹1000, multiples of 10
     reward.value=amt;
     reward.label='₹'+amt.toLocaleString('en-IN')+' Refund';
+  }
+  if(reward.validityMonths){
+    const __expD=scratchAddMonths(reward.validityMonths);
+    reward.expiryDate=scratchFmtDate(__expD); // human-readable, for on-page/card display
+    reward.expiryISO=__expD.toISOString().slice(0,10); // yyyy-mm-dd, for API payloads
   }
   return reward;
 }
@@ -3211,6 +3293,9 @@ function openScratchModal(reward){
   document.getElementById('scratchHint').style.display='flex';
   document.getElementById('scratchShimmer').style.display='block';
   document.getElementById('scratchNote').textContent='Use your mouse or finger to scratch the card';
+  document.getElementById('scratchTermsWrap').style.display='none';
+  document.getElementById('scratchTermsBody').classList.remove('show');
+  document.getElementById('scratchTermsToggle').textContent='Terms & Conditions ▾';
 
   const canvas=document.getElementById('scratchCanvas');
   canvas.style.transition='';canvas.style.opacity='1';canvas.style.transform='scale(1)';
@@ -3270,6 +3355,11 @@ function revealScratchCard(){
     if(won){
       document.getElementById('scratchCta').style.display='inline-block';
       document.getElementById('scratchNote').textContent="This has been noted on your booking — your Account Manager will confirm the details.";
+      if(__scratchReward.terms&&__scratchReward.terms.length){
+        const expiryLine=__scratchReward.expiryDate?'<li><b>Valid until:</b> '+__scratchReward.expiryDate+'</li>':'';
+        document.getElementById('scratchTermsBody').innerHTML='<ul>'+expiryLine+__scratchReward.terms.map(t=>'<li>'+t+'</li>').join('')+'</ul>';
+        document.getElementById('scratchTermsWrap').style.display='block';
+      }
     }else{
       document.getElementById('scratchCta').style.display='none';
       document.getElementById('scratchNote').textContent='';
@@ -3295,11 +3385,23 @@ function closeScratchModal(){
   document.getElementById('scratchOverlay').classList.remove('show');
 }
 
+function toggleScratchTerms(){
+  const body=document.getElementById('scratchTermsBody');
+  const toggle=document.getElementById('scratchTermsToggle');
+  const open=body.classList.toggle('show');
+  toggle.textContent=open?'Terms & Conditions ▴':'Terms & Conditions ▾';
+}
+
 function showRewardOnConfirmation(reward){
   const el=document.getElementById('confReward');
   if(!el)return;
   if(reward.type==='none'){el.innerHTML='';return;}
-  el.innerHTML='<div class="reward-box" style="background:'+reward.grad+'"><div class="rb-ic">'+reward.icon+'</div><div class="rb-txt"><b>'+reward.label+'</b>'+reward.sub+'</div></div>';
+  let termsHtml='';
+  if(reward.terms&&reward.terms.length){
+    const expiryLine=reward.expiryDate?'<div>Valid until '+reward.expiryDate+'.</div>':'';
+    termsHtml='<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.3);font-size:11px;line-height:1.65;opacity:.92">'+expiryLine+reward.terms.map(t=>'<div>• '+t+'</div>').join('')+'</div>';
+  }
+  el.innerHTML='<div class="reward-box" style="background:'+reward.grad+'"><div class="rb-ic">'+reward.icon+'</div><div class="rb-txt"><b>'+reward.label+'</b>'+reward.sub+termsHtml+'</div></div>';
 }
 
 // ── SHARE ──

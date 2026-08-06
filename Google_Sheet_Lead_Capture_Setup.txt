@@ -1,13 +1,21 @@
 /**
  * Wondershop Experiences — Lead & Booking capture into Google Sheets
  * ─────────────────────────────────────────────────────────────────
- * ALREADY DEPLOYED, JUST ADDING EMAIL CONFIRMATIONS?
+ * ALREADY DEPLOYED, JUST UPDATING TO THIS VERSION?
  *  Paste this whole file over your existing script (select all, delete,
  *  paste this in), then: Deploy → Manage deployments → pencil icon →
  *  "New version" → Deploy. The Web app URL stays exactly the same —
  *  nothing to change on the website side. Apps Script may ask you to
  *  re-authorize (it now also sends email as you) — that's expected,
  *  just click Allow.
+ *
+ *  IMPORTANT — if your Sheet already has data in it: this version adds
+ *  7 new columns (Discount, Balance Due, Reward Type, Reward, Reward
+ *  Value, Reward Terms, Reward Valid Until) at the END of each row, so
+ *  your existing columns won't shift. But since the header row on an
+ *  existing sheet is never auto-rewritten, add those 7 header labels
+ *  yourself to the end of row 1 (copy the names from getOrCreateSheet_
+ *  below) so the new columns aren't blank at the top.
  *
  * FIRST-TIME SETUP (~10 minutes):
  *  1. Go to sheets.google.com → create a new blank spreadsheet.
@@ -38,6 +46,15 @@
  *  - If email sending fails for any reason, the Sheet row still saves —
  *    email is best-effort and never blocks the core capture.
  *
+ * WHAT'S NEW — scratch-card rewards + fuller order summary:
+ *  - When a booking's post-payment scratch card wins a reward, that
+ *    reward (name, value, full terms & conditions, expiry) now shows
+ *    up in the customer's confirmation email, the team alert email
+ *    (flagged so it actually gets actioned), and its own Sheet columns.
+ *  - Both emails now also show a proper order summary (grand total,
+ *    discount, payable total, advance paid, balance due) instead of
+ *    just a single "budget" figure.
+ *
  * WhatsApp confirmations are NOT included here — that needs a verified
  * Meta WhatsApp Business API account with an approved message template,
  * which is a separate, bigger setup. Tracked as a backlog item.
@@ -54,6 +71,9 @@ function doPost(e) {
     // Reference number = which data row this will be (header is row 1)
     const refNum = sheet.getLastRow();
 
+    // NOTE: new fields are always appended at the END of this array, never
+    // inserted in the middle — that keeps column position stable for any
+    // sheet that's already deployed and already has a header row.
     sheet.appendRow([
       new Date(),                 // Timestamp (when it hit the Sheet)
       data.type || '',            // 'lead' or 'booking'
@@ -82,6 +102,14 @@ function doPost(e) {
       data.lead_source || 'Website',
       data.utm_source || '',
       data.page_url || '',
+      // ── added for scratch-card rewards + fuller order summary ──
+      data.discount_pct ? data.discount_pct + '%' : '',
+      data.balance_due || '',
+      data.reward_type || '',
+      data.reward_label || '',
+      data.reward_value || '',
+      data.reward_terms || '',
+      data.reward_expiry || '',
     ]);
 
     sendNotificationEmails_(data, refNum);
@@ -120,8 +148,10 @@ function sendNotificationEmails_(data, refNum) {
         'will call you within a few hours to discuss your child\'s birthday party.\n\n' +
         'Your details:\n' +
         '  Event Date : ' + (data.event_date || '—') + '\n' +
-        '  Theme      : ' + (data.theme || '—') + '\n\n' +
-        'If you have any questions in the meantime, WhatsApp us at +91 90044 35362.\n\n' +
+        '  Theme      : ' + (data.theme || '—') + '\n' +
+        orderSummaryBlock_(data) +
+        rewardBlock_(data) +
+        '\nIf you have any questions in the meantime, WhatsApp us at +91 90044 35362.\n\n' +
         'Warmly,\n' +
         'Team Wondershop 🎈\n' +
         'wondershopexperiences.com';
@@ -134,6 +164,9 @@ function sendNotificationEmails_(data, refNum) {
     }
 
     // 2. Team alert — always sent, regardless of whether customer email exists
+    const rewardHeader = data.reward_type
+      ? '\n⚠️ SCRATCH-CARD REWARD WON — please action this on the account\n'
+      : '';
     const teamBody =
       'New ' + kindLabel + ' received on the Wondershop website. (Ref #' + refNum + ')\n\n' +
       'PARENT\n' +
@@ -149,11 +182,11 @@ function sendNotificationEmails_(data, refNum) {
       '  Venue      : ' + (data.venue || '—') + '\n' +
       '  Pincode    : ' + (data.pincode || '—') + '\n' +
       '  Theme      : ' + (data.theme || '—') + '\n' +
-      '  Budget     : ' + (data.budget || '—') + '\n\n' +
-      'PRICING\n' +
-      '  Estimated Total: ₹' + (data.estimated_total || '—') + '\n' +
-      '  Advance        : ₹' + (data.advance || '—') + '\n\n' +
-      'SOURCE\n' +
+      '  Budget     : ' + (data.budget || '—') + '\n' +
+      orderSummaryBlock_(data) +
+      rewardHeader +
+      rewardBlock_(data) +
+      '\nSOURCE\n' +
       '  ' + (data.lead_source || '—') + ' / ' + (data.utm_source || '—') + '\n\n' +
       '— Wondershop Lead System';
 
@@ -169,6 +202,36 @@ function sendNotificationEmails_(data, refNum) {
   }
 }
 
+// Itemised order summary — shared by the customer email and team alert so
+// both always agree on the numbers.
+function orderSummaryBlock_(data) {
+  if (!data.estimated_total && !data.budget) return '';
+  var lines = ['\nORDER SUMMARY'];
+  if (data.estimated_total) lines.push('  Grand Total   : ₹' + data.estimated_total);
+  if (data.discount_pct) lines.push('  Discount      : ' + data.discount_pct + '%');
+  if (data.budget) lines.push('  Payable Total : ₹' + data.budget);
+  if (data.advance) lines.push('  Advance Paid  : ₹' + data.advance);
+  if (data.balance_due) lines.push('  Balance Due   : ₹' + data.balance_due + ' (before event)');
+  return lines.join('\n') + '\n';
+}
+
+// Scratch-card reward block — empty string if nothing was won.
+function rewardBlock_(data) {
+  if (!data.reward_type) return '';
+  var lines = ['\nYOUR REWARD 🎁', '  ' + (data.reward_label || data.reward_type)];
+  if (data.reward_value) lines.push('  Value: ₹' + data.reward_value);
+  if (data.reward_expiry) lines.push('  Valid until: ' + data.reward_expiry);
+  if (data.reward_terms) {
+    lines.push('  Terms & Conditions:');
+    String(data.reward_terms).split(' | ').forEach(function (clause) {
+      clause = clause.trim();
+      if (clause) lines.push('    • ' + clause);
+    });
+  }
+  lines.push('  Your Account Manager will confirm redemption details with you.');
+  return lines.join('\n') + '\n';
+}
+
 function getOrCreateSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_NAME);
@@ -180,9 +243,11 @@ function getOrCreateSheet_() {
       'Theme', 'Budget', 'Estimated Total (Rs)', 'Advance (Rs)',
       'Decor', 'Activities', 'Host', 'DJ', 'Pinata', 'E-Invite',
       'Photographer', 'Return Gifts', 'Notes', 'Lead Source', 'UTM Source', 'Page URL',
+      'Discount', 'Balance Due (Rs)',
+      'Reward Type', 'Reward', 'Reward Value (Rs)', 'Reward Terms', 'Reward Valid Until',
     ]);
     sheet.setFrozenRows(1);
-    sheet.getRange(1, 1, 1, 27).setFontWeight('bold');
+    sheet.getRange(1, 1, 1, 33).setFontWeight('bold');
   }
   return sheet;
 }
