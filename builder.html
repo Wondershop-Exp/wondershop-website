@@ -3321,7 +3321,9 @@ function openScratchModal(reward){
   ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
 
   let totalCheck=0,done=false;
-  const threshold=0.55;
+  const threshold=0.32; // quick reveal, like Google Pay — no need to fully clear the card
+  const brush=34;
+  let lastX=null,lastY=null;
   function pos(e){
     const r=canvas.getBoundingClientRect();
     const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
@@ -3330,20 +3332,27 @@ function openScratchModal(reward){
   }
   function scratchAt(x,y){
     ctx.globalCompositeOperation='destination-out';
-    ctx.beginPath();ctx.arc(x,y,20,0,Math.PI*2);ctx.fill();
+    // Stroke from the last point so fast swipes clear a continuous path,
+    // not just isolated dots — this is what makes it feel quick.
+    if(lastX!==null){
+      ctx.lineWidth=brush*2;ctx.lineCap='round';ctx.lineJoin='round';
+      ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(x,y);ctx.stroke();
+    }
+    ctx.beginPath();ctx.arc(x,y,brush,0,Math.PI*2);ctx.fill();
+    lastX=x;lastY=y;
   }
   function checkProgress(){
     totalCheck++;
-    if(totalCheck%5!==0)return;
+    if(totalCheck%3!==0)return;
     const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
     let clear=0,total=0;
     for(let i=3;i<data.length;i+=4){total++;if(data[i]===0)clear++;}
     if(!done&&clear/total>threshold){done=true;revealScratchCard();}
   }
   let dragging=false;
-  function down(e){dragging=true;document.getElementById('scratchHint').style.display='none';document.getElementById('scratchShimmer').style.display='none';const p=pos(e);scratchAt(p.x,p.y);checkProgress();e.preventDefault();}
+  function down(e){dragging=true;lastX=lastY=null;document.getElementById('scratchHint').style.display='none';document.getElementById('scratchShimmer').style.display='none';const p=pos(e);scratchAt(p.x,p.y);checkProgress();e.preventDefault();}
   function move(e){if(!dragging)return;const p=pos(e);scratchAt(p.x,p.y);checkProgress();e.preventDefault();}
-  function up(){dragging=false;}
+  function up(){dragging=false;lastX=lastY=null;}
   canvas.onmousedown=down;canvas.onmousemove=move;window.onmouseup=up;
   canvas.ontouchstart=down;canvas.ontouchmove=move;canvas.ontouchend=up;
 
