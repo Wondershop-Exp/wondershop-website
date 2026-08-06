@@ -3221,7 +3221,7 @@ const SCRATCH_REWARDS=[
       'Valid for this booking only. Non-transferable and not exchangeable for an on-the-spot cash discount.',
     ]},
   {type:'discount',weight:27,icon:'🏷️',label:'10% Off Your Next Booking',badge:'',validityMonths:6,
-    sub:"We'll share a code with your Account Manager — use it on your next celebration.",
+    sub:"We'll share a code over email with the details. Please use it for your next booking with us.",
     grad:'linear-gradient(135deg,#E65A96 0%,#C43D77 100%)',
     terms:[
       'Valid for your next new Wondershop booking, made within the validity period.',
@@ -3302,25 +3302,23 @@ function openScratchModal(reward){
   const W=300,H=190;
   canvas.width=W;canvas.height=H;
   const ctx=canvas.getContext('2d');
-  // Brand lavender/purple scratch surface (was grey foil — now matches site palette).
+  // Dark purple, glossy scratch surface — solid colour, no texture/pattern.
   const g=ctx.createLinearGradient(0,0,W,H);
-  g.addColorStop(0,'#B59DDE');g.addColorStop(.5,'#9B7FCB');g.addColorStop(1,'#7A5CB0');
+  g.addColorStop(0,'#5B3AA0');g.addColorStop(.5,'#3E2478');g.addColorStop(1,'#241250');
   ctx.globalCompositeOperation='source-over';
   ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-  // Subtle repeating icon motif, like Google Pay's reward-card texture.
-  ctx.save();
-  ctx.globalAlpha=0.16;
-  ctx.font='20px sans-serif';
-  ctx.textBaseline='middle';
-  const motifs=['🎁','✨','🎉','⭐','🎀'];
-  let mi=0;
-  for(let y=16;y<H;y+=34){
-    for(let x=(mi%2?20:0)-4;x<W+20;x+=40){ctx.fillText(motifs[mi%motifs.length],x,y);mi++;}
-  }
-  ctx.restore();
-  // Fine diagonal sheen for a foil-like finish.
-  ctx.strokeStyle='rgba(255,255,255,.14)';ctx.lineWidth=2;
-  for(let i=-H;i<W;i+=14){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i+H,H);ctx.stroke();}
+  // Glass-like gloss band running diagonally across the surface.
+  const sheen=ctx.createLinearGradient(0,0,W,H);
+  sheen.addColorStop(0,'rgba(255,255,255,0)');
+  sheen.addColorStop(.32,'rgba(255,255,255,.22)');
+  sheen.addColorStop(.48,'rgba(255,255,255,.04)');
+  sheen.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=sheen;ctx.fillRect(0,0,W,H);
+  // Soft highlight glow, upper-left, for extra shine.
+  const glow=ctx.createRadialGradient(W*.28,H*.16,0,W*.28,H*.16,W*.65);
+  glow.addColorStop(0,'rgba(255,255,255,.20)');
+  glow.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
 
   let totalCheck=0,done=false;
   const threshold=0.55;
