@@ -676,6 +676,9 @@ input,textarea,select{font-family:var(--fb)}
 .conf-hero h1{font-family:var(--fd);font-size:28px;font-weight:700;color:var(--bk);margin-bottom:10px}
 .conf-hero p{color:var(--gy);font-size:15px;max-width:400px;margin:0 auto}
 .cal-note{background:var(--sbl);border-radius:10px;padding:10px 14px;font-size:13px;color:#1a3a6b;text-align:center;margin-bottom:16px}
+.urgent-warn{background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:10px;padding:12px 14px;margin-top:10px;font-size:13px;color:#92400E;font-weight:600;display:flex;gap:8px;align-items:flex-start;line-height:1.45}
+.urgent-warn .uw-ic{flex-shrink:0;font-size:16px}
+.urgent-note{background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400E;text-align:center;margin-bottom:16px;font-weight:600}
 .next-steps{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);padding:20px;margin-bottom:14px}
 .next-steps h3{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--bk);margin-bottom:14px}
 .ns-item{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px}
@@ -1237,9 +1240,10 @@ input,textarea,select{font-family:var(--fb)}
   <div class="s0-form">
     <div class="s0-section-title"><span>🎂</span> Event Details</div>
     <div class="row2">
-      <div class="ig"><label>Event Date</label><input type="date" id="f-date"></div>
+      <div class="ig"><label>Event Date</label><input type="date" id="f-date" onchange="checkUrgentDate('f-date','s0-urgent-warn')"></div>
       <div class="ig"><label>Start Time</label><input type="time" id="f-time" value="11:00"></div>
     </div>
+    <div id="s0-urgent-warn" class="urgent-warn" style="display:none"><span class="uw-ic">⚡</span><span>Your event is less than 3 days away — we won't be able to confirm this booking instantly online. Our team will call you within 24 hours to check feasibility instead.</span></div>
     <div class="ig"><label>Theme Preference</label>
       <select id="f-theme" style="width:100%;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--fb);color:var(--bk);background:#fff;appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer">
         <option value="">Surprise Me 🎉</option>
@@ -1757,9 +1761,10 @@ input,textarea,select{font-family:var(--fb)}
       <div class="ig"><label>Secondary Mobile <span class="opt">opt.</span></label><div class="pfx-wrap"><span class="pfx">+91</span><input type="tel" id="co-mob2" class="pi" placeholder="Alt. no."></div></div>
     </div>
     <div class="row2">
-      <div class="ig"><label>Event Date</label><input type="date" id="co-date"></div>
+      <div class="ig"><label>Event Date</label><input type="date" id="co-date" onchange="checkUrgentDate('co-date','co-urgent-warn');updCoUrgent()"></div>
       <div class="ig"><label>Start Time</label><input type="time" id="co-time"></div>
     </div>
+    <div id="co-urgent-warn" class="urgent-warn" style="display:none"><span class="uw-ic">⚡</span><span>Your event is less than 3 days away — we can't take an advance payment or confirm this booking instantly. Submit your details below and our team will call you within 24 hours to check feasibility.</span></div>
     <div class="ig"><label>Venue Address</label><input type="text" id="co-addr" placeholder="Full venue address"></div>
     <div class="row2">
       <div class="ig"><label>Guest Kids Count</label><input type="number" id="co-kids" placeholder="No. of kids" onchange="coKidsChanged(this.value)"></div>
@@ -1776,7 +1781,7 @@ input,textarea,select{font-family:var(--fb)}
     <div class="coupon-ok" id="couponOk"></div>
   </div>
 
-  <div class="sec-blk">
+  <div class="sec-blk" id="coPayBlk">
     <div class="sec-lbl"><span class="dot"></span>Payment Method</div>
     <div class="pay-opts">
       <div class="pay-opt on" onclick="selPay(this,'online')"><div class="pay-radio"></div><div><div class="pay-name">💳 Pay Online (UPI / Bank Transfer)</div><div class="pay-desc">Scan the QR or transfer directly via UPI / bank transfer using the details below.</div></div></div>
@@ -1801,8 +1806,9 @@ input,textarea,select{font-family:var(--fb)}
       <div class="amt-row"><span>Grand Total</span><span id="co-gt">₹0</span></div>
       <div class="amt-row" id="co-dr" style="display:none"><span>Discount</span><span id="co-disc" style="color:var(--gr)"></span></div>
       <div class="amt-row tot"><span>Payable Total</span><span id="co-pt">₹0</span></div>
-      <div class="amt-row adv"><span>⚡ 50% Advance</span><span id="co-adv">₹0</span></div>
-      <div class="amt-row"><span style="font-size:11px;color:var(--gy)">Balance due before event</span><span id="co-bal" style="font-size:12px;color:var(--gy)">₹0</span></div>
+      <div class="amt-row adv" id="coAdvRow"><span>⚡ 50% Advance</span><span id="co-adv">₹0</span></div>
+      <div class="amt-row" id="coBalRow"><span style="font-size:11px;color:var(--gy)">Balance due before event</span><span id="co-bal" style="font-size:12px;color:var(--gy)">₹0</span></div>
+      <div class="amt-row" id="coNoAdvNote" style="display:none"><span style="font-size:11px;color:#92400E">⚡ No advance required now — payable once our team confirms feasibility</span></div>
     </div>
   </div>
 
@@ -1848,12 +1854,13 @@ input,textarea,select{font-family:var(--fb)}
 <!-- ─── CONFIRMATION ─── -->
 <div class="step" id="sconf">
   <div class="conf-hero">
-    <div class="conf-icon">🎉</div>
-    <h1>Booking Confirmed!</h1>
-    <p>We're thrilled to celebrate with you. A confirmation has been sent to your email and WhatsApp.</p>
+    <div class="conf-icon" id="confHeroIcon">🎉</div>
+    <h1 id="confHeroTitle">Booking Confirmed!</h1>
+    <p id="confHeroDesc">We're thrilled to celebrate with you. A confirmation has been sent to your email and WhatsApp.</p>
   </div>
-  <div class="cal-note">📅 Calendar invite sent to your email &amp; Wondershop team — your date is blocked!</div>
-  <div class="sec-blk" style="margin-bottom:14px">
+  <div class="cal-note" id="confCalNote">📅 Calendar invite sent to your email &amp; Wondershop team — your date is blocked!</div>
+  <div class="urgent-note" id="confUrgentNote" style="display:none">⚡ Since your event is less than 3 days away, we haven't taken any advance and this booking isn't confirmed yet. Our team will call you within 24 hours to check feasibility.</div>
+  <div class="sec-blk" style="margin-bottom:14px" id="confSummaryBox">
     <div class="sec-lbl"><span class="dot"></span>Your Order Summary</div>
     <div class="amt-box">
       <div class="amt-row"><span>Grand Total</span><span id="confGt">₹0</span></div>
@@ -1866,11 +1873,11 @@ input,textarea,select{font-family:var(--fb)}
     </div>
   </div>
   <div id="confReward"></div>
-  <div class="conf-share-btns">
+  <div class="conf-share-btns" id="confShareBtns">
     <button class="conf-share-btn conf-wa" onclick="shareWA()">💬 Share on WhatsApp</button>
     <button class="conf-share-btn conf-ref" onclick="referWS()">🎁 Refer &amp; Earn</button>
   </div>
-  <div class="next-steps">
+  <div class="next-steps" id="confNextSteps">
     <h3>What happens next</h3>
     <div class="ns-item"><div class="ns-num">1</div><div class="ns-txt">Account Manager assigned<span>They'll discuss your vision, decor references, and all the details</span></div></div>
     <div class="ns-item"><div class="ns-num">2</div><div class="ns-txt">WhatsApp group created<span>Share inspiration images &amp; ideas with your AM at any time</span></div></div>
@@ -2478,7 +2485,7 @@ function updBB(id){
   skipBtn.style.display=noSkip.includes(id)?'none':'block';
   if(id==='s0')contBtn.textContent='Start Building →';
   else if(id==='s9')contBtn.textContent='Checkout →';
-  else if(id==='sco')contBtn.textContent='Confirm & Pay 50% →';
+  else if(id==='sco')contBtn.textContent=isUrgentBooking(S.eventDate)?'Submit Booking Request →':'Confirm & Pay 50% →';
   else if(id==='slead')contBtn.textContent='Send My Details →';
   else if(S.fromReview)contBtn.textContent='Save Changes ✓';
   else{
@@ -2507,6 +2514,29 @@ function selG(btn,val){btn.closest('.g-sel').querySelectorAll('.g-btn').forEach(
 function syncC(){S.children=[];document.querySelectorAll('.child-card').forEach(c=>{const gBtn=c.querySelector('.g-btn.on');S.children.push({name:c.querySelector('.c-name')?.value||'',dob:c.querySelector('.c-dob')?.value||'',gender:gBtn?gBtn.textContent.trim().replace(/./,'').trim():''});});}
 function selV(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('.v-btn').forEach(b=>b.classList.remove('on'));if(wasSel){S.venue='';document.getElementById('v-other-wrap').style.display='none';}else{btn.classList.add('on');S.venue=val;document.getElementById('e-ven').classList.remove('show');document.getElementById('v-other-wrap').style.display=val==='Other'?'block':'none';}}
 function selBudget(btn,val){document.querySelectorAll('.budget-chip').forEach(b=>b.classList.remove('on'));btn.classList.add('on');S.budget=val;}
+
+// ── URGENT BOOKING (event < 3 days away) ──
+// Feasibility for very-last-minute bookings isn't guaranteed, so instead of
+// an instant online confirmation + advance + scratch card, we collect the
+// details and have the team call within 24 hours to confirm it's doable.
+const URGENT_DAYS_THRESHOLD=3;
+function daysUntilEvent(dateStr){
+  if(!dateStr)return null;
+  const evt=new Date(dateStr+'T00:00:00');
+  if(isNaN(evt.getTime()))return null;
+  const today=new Date();today.setHours(0,0,0,0);
+  return Math.round((evt-today)/86400000);
+}
+function isUrgentBooking(dateStr){
+  const d=daysUntilEvent(dateStr);
+  return d!==null&&d<URGENT_DAYS_THRESHOLD;
+}
+function checkUrgentDate(inputId,warnId){
+  const val=document.getElementById(inputId)?.value;
+  const warn=document.getElementById(warnId);
+  if(!warn)return;
+  warn.style.display=isUrgentBooking(val)?'flex':'none';
+}
 function doS0(){
   const dt=document.getElementById('f-date').value;
   if(S.venue==='Other'){const ov=document.getElementById('f-venue-other').value.trim();if(ov)S.venueOther=ov;}
@@ -2904,6 +2934,19 @@ function fillCo(){
   if(addrEl&&!addrEl.value)addrEl.value=S.venueOther||(S.venue&&S.venue!=='Other'?S.venue:'')||'';
   const qr=document.getElementById('payOnlineDetails');if(qr)qr.style.display=S.payMethod==='online'?'block':'none';
   updCoAmt();
+  checkUrgentDate('co-date','co-urgent-warn');
+  updCoUrgent();
+}
+// Toggle the checkout screen between the normal "pay 50% advance" flow and
+// the urgent (<3-days-away) flow: no payment method, no advance/balance
+// lines, different CTA label.
+function updCoUrgent(){
+  const urgent=isUrgentBooking(document.getElementById('co-date')?.value);
+  const payBlk=document.getElementById('coPayBlk');if(payBlk)payBlk.style.display=urgent?'none':'block';
+  const advRow=document.getElementById('coAdvRow');if(advRow)advRow.style.display=urgent?'none':'flex';
+  const balRow=document.getElementById('coBalRow');if(balRow)balRow.style.display=urgent?'none':'flex';
+  const noAdvNote=document.getElementById('coNoAdvNote');if(noAdvNote)noAdvNote.style.display=urgent?'flex':'none';
+  updBB(S.screen);
 }
 function updCoAmt(){
   const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();
@@ -2932,6 +2975,16 @@ function applyCoupon(){
 }
 function selPay(el,method){document.querySelectorAll('.pay-opt').forEach(p=>p.classList.remove('on'));el.classList.add('on');S.payMethod=method;const qr=document.getElementById('payOnlineDetails');if(qr)qr.style.display=method==='online'?'block':'none';}
 function togTNC(){S.tncOk=!S.tncOk;const cb=document.getElementById('tncCb');cb.classList.toggle('checked',S.tncOk);cb.textContent=S.tncOk?'✓':'';}
+const CONF_NEXT_STEPS_NORMAL=`<h3>What happens next</h3>
+    <div class="ns-item"><div class="ns-num">1</div><div class="ns-txt">Account Manager assigned<span>They'll discuss your vision, decor references, and all the details</span></div></div>
+    <div class="ns-item"><div class="ns-num">2</div><div class="ns-txt">WhatsApp group created<span>Share inspiration images &amp; ideas with your AM at any time</span></div></div>
+    <div class="ns-item"><div class="ns-num">3</div><div class="ns-txt">Venue recce &amp; floor plan<span>Our team visits the venue and shares a layout for your approval</span></div></div>
+    <div class="ns-item"><div class="ns-num">4</div><div class="ns-txt">Execution day — we bring the magic ✨<span>Sit back and enjoy watching your child's face light up</span></div></div>`;
+const CONF_NEXT_STEPS_URGENT=`<h3>What happens next</h3>
+    <div class="ns-item"><div class="ns-num">1</div><div class="ns-txt">Our team reviews your request<span>We check crew, decor &amp; slot availability for your date</span></div></div>
+    <div class="ns-item"><div class="ns-num">2</div><div class="ns-txt">You get a call within 24 hours<span>We confirm feasibility and next steps with you directly</span></div></div>
+    <div class="ns-item"><div class="ns-num">3</div><div class="ns-txt">Booking confirmed on the call<span>Advance &amp; date-lock happen only once feasibility is confirmed</span></div></div>`;
+
 async function doCo(){
   if(!S.tncOk){document.getElementById('e-tnc').classList.add('show');return;}
   document.getElementById('e-tnc').classList.remove('show');
@@ -2939,14 +2992,23 @@ async function doCo(){
   S.kidsCount=parseInt(document.getElementById('co-kids').value)||S.kidsCount;
   S.parentName=document.getElementById('co-name').value;S.email=document.getElementById('co-email').value;S.address=document.getElementById('co-addr').value;
 
+  // Event less than 3 days away: no instant confirmation, no advance, no
+  // scratch card — the team calls within 24 hours to confirm feasibility.
+  const __urgent=isUrgentBooking(S.eventDate);
+
   // Pick the scratch-card reward now — before the notifications fire — so
   // the same reward (with its terms & expiry) can be included in the
   // booking email / sheet row, not just shown client-side after confetti.
-  const __reward=pickScratchReward();
-  const __gt=rawT(),__dpv=dp(),__tpv=tp(),__advv=adv(),__bal=__tpv-__advv;
+  // Urgent bookings skip this entirely — no advance has been taken, so
+  // there's nothing to reward yet.
+  const __reward=__urgent?{type:'none'}:pickScratchReward();
+  const __gt=rawT(),__dpv=dp(),__tpv=tp();
+  const __advv=__urgent?0:adv();
+  const __bal=__tpv-__advv;
   const __rewardWon=__reward.type!=='none';
   // Expiry is sent separately as reward_expiry — kept out of this string to avoid duplication.
   const __rewardTermsText=__rewardWon?(__reward.terms||[]).join(' | '):'';
+  const __leadSource=__urgent?'Website - Checkout (Urgent, <3 days to event)':'Website - Checkout';
 
   // Google Sheet — fire-and-forget
   wsSendToSheet('booking', Object.assign({
@@ -2958,7 +3020,7 @@ async function doCo(){
     reward_type: __rewardWon ? __reward.type : '', reward_label: __rewardWon ? __reward.label : '',
     reward_value: __reward.value || '', reward_terms: __rewardTermsText,
     reward_expiry: __reward.expiryDate || '',
-    lead_source: 'Website - Checkout',
+    lead_source: __leadSource,
   }, wsBuilderSnapshotForSheet()));
 
   // Railway — WhatsApp + email + DB (fire-and-forget, never blocks confirmation)
@@ -2989,7 +3051,7 @@ async function doCo(){
         reward_expiry:      __reward.expiryISO || null,
         builder_snapshot:   buildSnapshot ? buildSnapshot() : null,
         remarks:            combinedRemarks() || null,
-        lead_source:        'Website - Checkout',
+        lead_source:        __leadSource,
       }),
     }).catch(e=>console.error('Booking notify error:',e));
   }
@@ -3001,20 +3063,55 @@ async function doCo(){
     ? '<div class="cbox" style="margin-top:16px;text-align:left"><div class="cb-row">Your special requests / remarks:</div><div class="cb-val" style="white-space:pre-wrap">'+rmk.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</div></div>'
     : '';
 
-  // Populate the on-screen Order Summary — the customer's on-page receipt.
-  document.getElementById('confGt').textContent='₹'+__gt.toLocaleString('en-IN');
-  if(__dpv>0){document.getElementById('confDr').style.display='flex';document.getElementById('confDisc').textContent='-₹'+(__gt-__tpv).toLocaleString('en-IN')+' ('+__dpv+'%)';}
-  else document.getElementById('confDr').style.display='none';
-  document.getElementById('confPt').textContent='₹'+__tpv.toLocaleString('en-IN');
-  document.getElementById('confAdv').textContent='₹'+__advv.toLocaleString('en-IN');
-  const confBalEl=document.getElementById('confBal');
-  confBalEl.textContent='₹'+__bal.toLocaleString('en-IN');
-  confBalEl.dataset.raw=__bal; // read back after reveal, if the reward is a refund adjustment
-  document.getElementById('confRefundRow').style.display='none';
-  document.getElementById('confFinalBalRow').style.display='none';
+  // Swap the confirmation screen between the normal "Booking Confirmed!"
+  // flourish and the urgent "we'll call to check feasibility" version.
+  const heroIcon=document.getElementById('confHeroIcon');
+  const heroTitle=document.getElementById('confHeroTitle');
+  const heroDesc=document.getElementById('confHeroDesc');
+  const calNote=document.getElementById('confCalNote');
+  const urgentNote=document.getElementById('confUrgentNote');
+  const summaryBox=document.getElementById('confSummaryBox');
+  const shareBtns=document.getElementById('confShareBtns');
+  const nextSteps=document.getElementById('confNextSteps');
 
-  goTo('sconf');launchConfetti();
-  setTimeout(()=>openScratchModal(__reward),900);
+  if(__urgent){
+    heroIcon.textContent='📞';
+    heroTitle.textContent="We'll Call You Within 24 Hours!";
+    heroDesc.textContent='Your event is less than 3 days away, so we need to quickly confirm feasibility before locking anything in.';
+    calNote.style.display='none';
+    urgentNote.style.display='block';
+    summaryBox.style.display='none';
+    shareBtns.style.display='none';
+    nextSteps.innerHTML=CONF_NEXT_STEPS_URGENT;
+  }else{
+    heroIcon.textContent='🎉';
+    heroTitle.textContent='Booking Confirmed!';
+    heroDesc.textContent="We're thrilled to celebrate with you. A confirmation has been sent to your email and WhatsApp.";
+    calNote.style.display='block';
+    urgentNote.style.display='none';
+    summaryBox.style.display='block';
+    shareBtns.style.display='flex';
+    nextSteps.innerHTML=CONF_NEXT_STEPS_NORMAL;
+
+    // Populate the on-screen Order Summary — the customer's on-page receipt.
+    // (Skipped entirely for urgent bookings — nothing has been charged yet.)
+    document.getElementById('confGt').textContent='₹'+__gt.toLocaleString('en-IN');
+    if(__dpv>0){document.getElementById('confDr').style.display='flex';document.getElementById('confDisc').textContent='-₹'+(__gt-__tpv).toLocaleString('en-IN')+' ('+__dpv+'%)';}
+    else document.getElementById('confDr').style.display='none';
+    document.getElementById('confPt').textContent='₹'+__tpv.toLocaleString('en-IN');
+    document.getElementById('confAdv').textContent='₹'+__advv.toLocaleString('en-IN');
+    const confBalEl=document.getElementById('confBal');
+    confBalEl.textContent='₹'+__bal.toLocaleString('en-IN');
+    confBalEl.dataset.raw=__bal; // read back after reveal, if the reward is a refund adjustment
+    document.getElementById('confRefundRow').style.display='none';
+    document.getElementById('confFinalBalRow').style.display='none';
+  }
+
+  goTo('sconf');
+  if(!__urgent){
+    launchConfetti();
+    setTimeout(()=>openScratchModal(__reward),900);
+  }
 }
 
 // ── LEAD ──
