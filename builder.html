@@ -629,6 +629,40 @@ input,textarea,select{font-family:var(--fb)}
 .free-inv-toast{position:fixed;top:calc(var(--bh-h, 60px) + 16px);left:50%;transform:translateX(-50%) translateY(-8px) scale(.92);background:linear-gradient(90deg,var(--li),var(--pk));color:#fff;font-family:var(--fd);font-weight:700;font-size:15px;padding:13px 26px;border-radius:30px;box-shadow:0 10px 30px rgba(0,0,0,.28);z-index:9999;opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease;white-space:nowrap}
 .free-inv-toast.show{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
 
+/* ── SCRATCH CARD (post-booking reward, GPay-style reveal) ── */
+.scratch-overlay{display:none;position:fixed;inset:0;z-index:10000;background:rgba(15,10,25,.8);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px}
+.scratch-overlay.show{display:flex}
+.scratch-card-pop{position:relative;display:flex;flex-direction:column;align-items:center;animation:scratchPopIn .55s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes scratchPopIn{from{transform:scale(.55) translateY(30px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.scratch-title{font-family:var(--fd);font-size:20px;font-weight:700;color:#fff;margin-bottom:18px;text-align:center;text-shadow:0 2px 10px rgba(0,0,0,.3)}
+.scratch-card{position:relative;width:300px;height:190px;border-radius:18px;overflow:visible;box-shadow:0 20px 60px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.08)}
+.scratch-result{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px;color:#fff;border-radius:18px;overflow:hidden}
+.sr-badge{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.45);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;display:none}
+.sr-icon{font-size:44px;margin-bottom:8px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.25))}
+.sr-label{font-family:var(--fd);font-size:19px;font-weight:700;line-height:1.25}
+.sr-sub{font-size:12.5px;margin-top:6px;color:rgba(255,255,255,.94);line-height:1.5;max-width:230px}
+.scratch-canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:18px;cursor:grab;touch-action:none}
+.scratch-canvas:active{cursor:grabbing}
+.scratch-shimmer{position:absolute;inset:0;border-radius:18px;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.6) 50%,transparent 70%);background-size:200% 100%;animation:scratchShimmer 2.1s linear infinite;pointer-events:none;mix-blend-mode:overlay}
+@keyframes scratchShimmer{0%{background-position:200% 0}100%{background-position:-50% 0}}
+.scratch-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:rgba(25,25,25,.55);font-size:13.5px;font-weight:700;letter-spacing:.3px;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;animation:scratchHintPulse 1.6s ease-in-out infinite}
+.scratch-hint .sh-ic{font-size:26px}
+@keyframes scratchHintPulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-52%) scale(1.08)}}
+@keyframes scratchRevealPulse{0%{transform:scale(1)}40%{transform:scale(1.045)}100%{transform:scale(1)}}
+@keyframes scratchBurstPart{to{transform:translate(var(--tx),var(--ty)) scale(.25);opacity:0}}
+.scratch-note{font-size:12.5px;color:rgba(255,255,255,.78);margin-top:14px;text-align:center;max-width:280px}
+.scratch-cta{margin-top:16px;background:#fff;color:var(--bk);border:none;border-radius:24px;padding:12px 30px;font-size:14.5px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.28);animation:scratchCtaIn .4s ease both}
+@keyframes scratchCtaIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.scratch-close{position:absolute;top:-42px;right:-4px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:background .15s;border:none}
+.scratch-close:hover{background:rgba(255,255,255,.28)}
+@media(max-width:360px){.scratch-card{width:260px;height:170px}}
+
+/* Reward box — persists on the confirmation screen after the scratch card is closed */
+.reward-box{margin-top:16px;border-radius:var(--r);padding:16px 18px;color:#fff;display:flex;align-items:center;gap:14px;box-shadow:0 10px 28px rgba(0,0,0,.14)}
+.reward-box .rb-ic{font-size:32px;flex-shrink:0}
+.reward-box .rb-txt{font-size:12.5px;line-height:1.55}
+.reward-box .rb-txt b{display:block;font-family:var(--fd);font-size:15.5px;margin-bottom:2px}
+
 /* Confirmation screen */
 .conf-hero{text-align:center;padding:32px 0 20px}
 .conf-icon{font-size:72px;margin-bottom:12px}
@@ -1812,6 +1846,7 @@ input,textarea,select{font-family:var(--fb)}
     <p>We're thrilled to celebrate with you. A confirmation has been sent to your email and WhatsApp.</p>
   </div>
   <div class="cal-note">📅 Calendar invite sent to your email &amp; Wondershop team — your date is blocked!</div>
+  <div id="confReward"></div>
   <div class="conf-share-btns">
     <button class="conf-share-btn conf-wa" onclick="shareWA()">💬 Share on WhatsApp</button>
     <button class="conf-share-btn conf-ref" onclick="referWS()">🎁 Refer &amp; Earn</button>
@@ -1931,6 +1966,27 @@ input,textarea,select{font-family:var(--fb)}
      already-qualified free E-Invite on Step 6. -->
 <div class="confetti-container" id="confettiContainer"></div>
 <div class="free-inv-toast" id="freeInvToast">🎉 FREE E-Invite unlocked!</div>
+
+<!-- SCRATCH CARD — post-booking reward (page-level, not nested in any .step) -->
+<div class="scratch-overlay" id="scratchOverlay">
+  <div class="scratch-card-pop">
+    <button class="scratch-close" id="scratchCloseBtn" style="display:none" onclick="closeScratchModal()" aria-label="Close">✕</button>
+    <div class="scratch-title">You've got a surprise! 🎁</div>
+    <div class="scratch-card" id="scratchCard">
+      <div class="scratch-result" id="scratchResult">
+        <div class="sr-badge" id="srBadge"></div>
+        <div class="sr-icon" id="srIcon"></div>
+        <div class="sr-label" id="srLabel"></div>
+        <div class="sr-sub" id="srSub"></div>
+      </div>
+      <canvas class="scratch-canvas" id="scratchCanvas"></canvas>
+      <div class="scratch-shimmer" id="scratchShimmer"></div>
+      <div class="scratch-hint" id="scratchHint"><span class="sh-ic">🪙</span>Scratch here</div>
+    </div>
+    <div class="scratch-note" id="scratchNote">Use your mouse or finger to scratch the card</div>
+    <button class="scratch-cta" id="scratchCta" style="display:none" onclick="closeScratchModal()">Awesome, got it!</button>
+  </div>
+</div>
 
 <!-- Cart overlay -->
 <div class="cart-overlay" id="cartO" onclick="if(event.target===this)closeCart()">
@@ -2901,6 +2957,8 @@ async function doCo(){
     : '';
 
   goTo('sconf');launchConfetti();
+  const __reward=pickScratchReward();
+  setTimeout(()=>openScratchModal(__reward),900);
 }
 
 // ── LEAD ──
@@ -3081,6 +3139,156 @@ function launchConfetti(){
     el.style.cssText='left:'+(Math.random()*100)+'%;background:'+colors[Math.floor(Math.random()*colors.length)]+';width:'+(6+Math.random()*8)+'px;height:'+(6+Math.random()*8)+'px;border-radius:'+(Math.random()>0.5?'50%':'2px')+';animation-duration:'+(2+Math.random()*2)+'s;animation-delay:'+(Math.random()*1.5)+'s';
     c.appendChild(el);
   }
+}
+
+// ══════════════════════════════════════
+// SCRATCH CARD — post-booking reward
+// A different colour per reward type. "Free Bubble Artist" is a rare
+// jackpot only offered for orders above ₹1L where the birthday child
+// is under 7 — otherwise it's excluded from the pool entirely.
+// ══════════════════════════════════════
+const SCRATCH_REWARDS=[
+  {type:'tattoo',weight:22,icon:'🎨',label:'Free Tattoo Artist',badge:'',
+    sub:"On the house! Valid on any booking in the next 6 months — including this one.",
+    grad:'linear-gradient(135deg,#B59DDE 0%,#8A67BE 100%)'},
+  {type:'bubble',weight:3,rare:true,icon:'🫧',label:'Free Bubble Artist!',badge:'Jackpot',
+    sub:"You hit the jackpot! We'll add a Bubble Artist to your party at no charge.",
+    grad:'linear-gradient(135deg,#FFC200 0%,#F57A1A 100%)'},
+  {type:'refund',weight:10,icon:'💰',label:'',badge:'',
+    sub:'Credited back to you after your final party payment is complete.',
+    grad:'linear-gradient(135deg,#52C470 0%,#2E9E52 100%)'},
+  {type:'discount',weight:27,icon:'🏷️',label:'10% Off Your Next Booking',badge:'',
+    sub:"We'll share a code with your Account Manager — use it on your next celebration.",
+    grad:'linear-gradient(135deg,#E65A96 0%,#C43D77 100%)'},
+  {type:'none',weight:38,icon:'🎈',label:'Better Luck Next Time!',badge:'',
+    sub:"Thank you for booking with Wondershop — see you at the party!",
+    grad:'linear-gradient(135deg,#8A93A6 0%,#6B7280 100%)'},
+];
+let __scratchReward=null;
+
+function pickScratchReward(){
+  let bubbleEligible=false;
+  try{
+    const dob=S.children[0]?.dob;
+    if(dob){
+      const bd=new Date(dob);
+      const ev=new Date(S.eventDate||Date.now());
+      const age=Math.floor((ev-bd)/(365.25*24*3600*1000));
+      bubbleEligible=age>=0&&age<7&&tp()>100000;
+    }
+  }catch(e){bubbleEligible=false;}
+  const pool=SCRATCH_REWARDS.filter(r=>!r.rare||bubbleEligible);
+  const totalW=pool.reduce((s,r)=>s+r.weight,0);
+  let roll=Math.random()*totalW;
+  let chosen=pool[pool.length-1];
+  for(const r of pool){if(roll<r.weight){chosen=r;break;}roll-=r.weight;}
+  const reward=Object.assign({},chosen);
+  if(reward.type==='refund'){
+    const amt=100+Math.floor(Math.random()*91)*10; // ₹100..₹1000, multiples of 10
+    reward.value=amt;
+    reward.label='₹'+amt.toLocaleString('en-IN')+' Refund';
+  }
+  return reward;
+}
+
+function openScratchModal(reward){
+  __scratchReward=reward;
+  const resEl=document.getElementById('scratchResult');
+  resEl.style.background=reward.grad;
+  document.getElementById('srIcon').textContent=reward.icon;
+  document.getElementById('srLabel').textContent=reward.label;
+  document.getElementById('srSub').textContent=reward.sub;
+  const badgeEl=document.getElementById('srBadge');
+  if(reward.badge){badgeEl.textContent=reward.badge;badgeEl.style.display='inline-block';}
+  else badgeEl.style.display='none';
+
+  document.getElementById('scratchCta').style.display='none';
+  document.getElementById('scratchCloseBtn').style.display='none';
+  document.getElementById('scratchHint').style.display='flex';
+  document.getElementById('scratchShimmer').style.display='block';
+  document.getElementById('scratchNote').textContent='Use your mouse or finger to scratch the card';
+
+  const canvas=document.getElementById('scratchCanvas');
+  canvas.style.transition='';canvas.style.opacity='1';canvas.style.transform='scale(1)';
+  const W=300,H=190;
+  canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  const g=ctx.createLinearGradient(0,0,W,H);
+  g.addColorStop(0,'#DEE3EA');g.addColorStop(.5,'#B7BEC9');g.addColorStop(1,'#DEE3EA');
+  ctx.globalCompositeOperation='source-over';
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=2;
+  for(let i=-H;i<W;i+=14){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i+H,H);ctx.stroke();}
+
+  let totalCheck=0,done=false;
+  const threshold=0.55;
+  function pos(e){
+    const r=canvas.getBoundingClientRect();
+    const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+    const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+    return{x:cx*(canvas.width/r.width),y:cy*(canvas.height/r.height)};
+  }
+  function scratchAt(x,y){
+    ctx.globalCompositeOperation='destination-out';
+    ctx.beginPath();ctx.arc(x,y,20,0,Math.PI*2);ctx.fill();
+  }
+  function checkProgress(){
+    totalCheck++;
+    if(totalCheck%5!==0)return;
+    const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    let clear=0,total=0;
+    for(let i=3;i<data.length;i+=4){total++;if(data[i]===0)clear++;}
+    if(!done&&clear/total>threshold){done=true;revealScratchCard();}
+  }
+  let dragging=false;
+  function down(e){dragging=true;document.getElementById('scratchHint').style.display='none';document.getElementById('scratchShimmer').style.display='none';const p=pos(e);scratchAt(p.x,p.y);checkProgress();e.preventDefault();}
+  function move(e){if(!dragging)return;const p=pos(e);scratchAt(p.x,p.y);checkProgress();e.preventDefault();}
+  function up(){dragging=false;}
+  canvas.onmousedown=down;canvas.onmousemove=move;window.onmouseup=up;
+  canvas.ontouchstart=down;canvas.ontouchmove=move;canvas.ontouchend=up;
+
+  document.getElementById('scratchOverlay').classList.add('show');
+  wsTrack('scratch_card_shown',{reward_type:reward.type,reward_value:reward.value||null});
+}
+
+function revealScratchCard(){
+  const canvas=document.getElementById('scratchCanvas');
+  canvas.style.transition='opacity .6s ease, transform .6s ease';
+  canvas.style.opacity='0';canvas.style.transform='scale(1.06)';
+  setTimeout(()=>{canvas.onmousedown=canvas.onmousemove=canvas.ontouchstart=canvas.ontouchmove=null;},650);
+  burstScratchCard();
+  const card=document.getElementById('scratchCard');
+  card.style.animation='scratchRevealPulse .5s ease';
+  setTimeout(()=>{
+    document.getElementById('scratchCta').style.display='inline-block';
+    document.getElementById('scratchCloseBtn').style.display='flex';
+    document.getElementById('scratchNote').textContent="This has been noted on your booking — your Account Manager will confirm the details.";
+    showRewardOnConfirmation(__scratchReward);
+  },500);
+  wsTrack('scratch_card_revealed',{reward_type:__scratchReward.type,reward_value:__scratchReward.value||null});
+}
+
+function burstScratchCard(){
+  const card=document.getElementById('scratchCard');
+  const colors=['#fff','#FFC200','#E65A96','#B59DDE','#52C470'];
+  for(let i=0;i<26;i++){
+    const p=document.createElement('div');
+    const ang=Math.random()*Math.PI*2,dist=60+Math.random()*70;
+    p.style.cssText='position:absolute;left:50%;top:50%;width:'+(4+Math.random()*5)+'px;height:'+(4+Math.random()*5)+'px;background:'+colors[Math.floor(Math.random()*colors.length)]+';border-radius:'+(Math.random()>0.5?'50%':'2px')+';pointer-events:none;z-index:5;--tx:'+(Math.cos(ang)*dist)+'px;--ty:'+(Math.sin(ang)*dist)+'px;animation:scratchBurstPart .8s ease-out forwards;animation-delay:'+(Math.random()*.1)+'s';
+    card.appendChild(p);
+    setTimeout(()=>p.remove(),1000);
+  }
+}
+
+function closeScratchModal(){
+  document.getElementById('scratchOverlay').classList.remove('show');
+}
+
+function showRewardOnConfirmation(reward){
+  const el=document.getElementById('confReward');
+  if(!el)return;
+  if(reward.type==='none'){el.innerHTML='';return;}
+  el.innerHTML='<div class="reward-box" style="background:'+reward.grad+'"><div class="rb-ic">'+reward.icon+'</div><div class="rb-txt"><b>'+reward.label+'</b>'+reward.sub+'</div></div>';
 }
 
 // ── SHARE ──
