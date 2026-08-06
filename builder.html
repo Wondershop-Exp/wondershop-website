@@ -1251,6 +1251,28 @@ input,textarea,select{font-family:var(--fb)}
       <div class="ig"><label>Start Time</label><input type="time" id="f-time" value="11:00"></div>
     </div>
     <div id="s0-urgent-warn" class="urgent-warn" style="display:none"><span class="uw-ic">⚡</span><span>Your event is less than 3 days away — we won't be able to confirm this booking instantly online. Our team will call you within 24 hours to check feasibility instead.</span></div>
+    <!-- ── TODO — link every option below to an actual decor theme (added
+         2026-08-06 at Shruti's request). Right now buildDec()'s filter
+         (search "if(S.theme){fl=THEMES.filter") does a fuzzy substring
+         match between this dropdown's value and each theme's id/name, so
+         most options here DON'T reliably resolve to a catalogue entry —
+         e.g. "K Pop" vs. catalogue name "K-Pop Party" (punctuation
+         mismatch), "Space / Astronaut" vs. "Space Explorer" (different
+         wording entirely). No match = falls back to showing every theme,
+         so nothing visibly breaks, but the filter is a no-op for most
+         selections today.
+         Also: some options correspond to themes currently removed from
+         THEMES for lack of photos (Cooking/Baking, Frozen, Peppa Pig,
+         Princess/Disney Princess, Fairytale Castle, Barbie, Disco,
+         Spider-Man, Cricket, Ninja Warrior, Carnival/Funfair, Picnic,
+         Construction/Trucks, Diary of a Wimpy Kid — see the TODO above
+         const THEMES). And a few (Bollywood, Robotics, Superheroes Mix,
+         Cars/Racing, "Something Else") don't map to any catalogue theme
+         at all yet, old or new.
+         Fix plan: replace the fuzzy match with an explicit option→theme-id
+         mapping (or add a `themeId` data attribute to each <option> below)
+         so every selection deterministically opens the right decor, once
+         every theme above has real photos to back it up. -->
     <div class="ig"><label>Theme Preference</label>
       <select id="f-theme" style="width:100%;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--fb);color:var(--bk);background:#fff;appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer">
         <option value="">Surprise Me 🎉</option>
