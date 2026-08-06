@@ -89,10 +89,23 @@ a{text-decoration:none}
 .film-strip-outer{width:100%;overflow:hidden;background:#000}
 .film-strip-track{display:flex;width:max-content;animation:filmScroll 34s linear infinite}
 .film-strip-track:hover{animation-play-state:paused}
-.ps-item{width:100px;height:100px;flex-shrink:0;border-right:2px solid rgba(0,0,0,.6)}
-.ps-item img{width:100%;height:100%;object-fit:cover;display:block;opacity:.94}
+.ps-item{width:100px;height:100px;flex-shrink:0;border-right:2px solid rgba(0,0,0,.6);overflow:hidden;cursor:pointer}
+.ps-item img{width:100%;height:100%;object-fit:cover;display:block;opacity:.94;transition:transform .3s ease}
+.ps-item:hover img{transform:scale(1.12)}
 @keyframes filmScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @media(max-width:600px){.ps-item{width:74px;height:74px}}
+
+/* ── LIGHTBOX GALLERY (photo strip) ── */
+.lb-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);align-items:center;justify-content:center;padding:20px}
+.lb-overlay.open{display:flex}
+.lb-overlay img{max-width:90vw;max-height:85vh;object-fit:contain;border-radius:10px;user-select:none}
+.lb-close{position:absolute;top:18px;right:18px;background:rgba(255,255,255,.14);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:18px;line-height:1;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.lb-close:hover{background:rgba(255,255,255,.26)}
+.lb-arrow{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.14);border:none;color:#fff;font-size:24px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.lb-arrow:hover{background:rgba(255,255,255,.26)}
+.lb-prev{left:14px}
+.lb-next{right:14px}
+@media(max-width:600px){.lb-arrow{width:36px;height:36px;font-size:18px}.lb-close{width:32px;height:32px;font-size:15px}}
 
 /* ═══════════════ SCROLL 2 — ABOUT ═══════════════ */
 .about{padding:72px 0 8px;background:var(--wh)}
@@ -183,23 +196,23 @@ a{text-decoration:none}
     <div class="film-band"></div>
     <div class="film-strip-outer">
       <div class="film-strip-track">
-        <div class="ps-item"><img src="img/Host/ritika-carousel-1.jpeg" alt=""></div>
-        <div class="ps-item"><img src="img/Host/ritika-carousel-2.jpeg" alt=""></div>
-        <div class="ps-item"><img src="img/Host/ritika-carousel-3.jpeg" alt=""></div>
-        <div class="ps-item"><img src="img/Host/ritika-carousel-4.jpeg" alt=""></div>
-        <div class="ps-item"><img src="img/Host/ritika-carousel-5.jpeg" alt=""></div>
-        <div class="ps-item"><img src="img/Host/ritika-carousel-6.jpeg" alt=""></div>
-        <div class="ps-item"><img src="img/Host/ritika-carousel-7.jpeg" alt=""></div>
-        <div class="ps-item"><img src="img/Host/ritika-carousel-8.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,0)"><img src="img/Host/ritika-carousel-1.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,1)"><img src="img/Host/ritika-carousel-2.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,2)"><img src="img/Host/ritika-carousel-3.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,3)"><img src="img/Host/ritika-carousel-4.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,4)"><img src="img/Host/ritika-carousel-5.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,5)"><img src="img/Host/ritika-carousel-6.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,6)"><img src="img/Host/ritika-carousel-7.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,7)"><img src="img/Host/ritika-carousel-8.jpeg" alt=""></div>
         <!-- second half — must exactly mirror the first for the seamless loop -->
-        <div class="ps-item"><img src="img/Host/ritika-carousel-1.jpeg" alt=""></div>
-        <div class="ps-item"><img src="img/Host/ritika-carousel-2.jpeg" alt=""></div>
-        <div class="ps-item"><img src="img/Host/ritika-carousel-3.jpeg" alt=""></div>
-        <div class="ps-item"><img src="img/Host/ritika-carousel-4.jpeg" alt=""></div>
-        <div class="ps-item"><img src="img/Host/ritika-carousel-5.jpeg" alt=""></div>
-        <div class="ps-item"><img src="img/Host/ritika-carousel-6.jpeg" alt=""></div>
-        <div class="ps-item"><img src="img/Host/ritika-carousel-7.jpeg" alt=""></div>
-        <div class="ps-item"><img src="img/Host/ritika-carousel-8.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,0)"><img src="img/Host/ritika-carousel-1.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,1)"><img src="img/Host/ritika-carousel-2.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,2)"><img src="img/Host/ritika-carousel-3.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,3)"><img src="img/Host/ritika-carousel-4.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,4)"><img src="img/Host/ritika-carousel-5.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,5)"><img src="img/Host/ritika-carousel-6.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,6)"><img src="img/Host/ritika-carousel-7.jpeg" alt=""></div>
+        <div class="ps-item" onclick="openLightbox(RITIKA_STRIP_IMAGES,7)"><img src="img/Host/ritika-carousel-8.jpeg" alt=""></div>
       </div>
     </div>
     <div class="film-band"></div>
@@ -267,6 +280,50 @@ a{text-decoration:none}
   This is an internal profile page, shared privately — not indexed or listed publicly. &nbsp;·&nbsp;
   <a href="mailto:contact@wondershopexperiences.com">contact@wondershopexperiences.com</a>
 </div>
+
+<!-- PHOTO LIGHTBOX (click-to-zoom gallery with left/right navigation) -->
+<div class="lb-overlay" id="lbOverlay" onclick="if(event.target===this)closeLightbox()">
+  <button class="lb-close" onclick="closeLightbox()" aria-label="Close">✕</button>
+  <button class="lb-arrow lb-prev" onclick="lbNav(-1)" aria-label="Previous image">‹</button>
+  <img id="lbImg" src="" alt="">
+  <button class="lb-arrow lb-next" onclick="lbNav(1)" aria-label="Next image">›</button>
+</div>
+
+<script>
+// ── PHOTO LIGHTBOX (click-to-zoom gallery, left/right navigation) ──
+const RITIKA_STRIP_IMAGES = [
+  'img/Host/ritika-carousel-1.jpeg',
+  'img/Host/ritika-carousel-2.jpeg',
+  'img/Host/ritika-carousel-3.jpeg',
+  'img/Host/ritika-carousel-4.jpeg',
+  'img/Host/ritika-carousel-5.jpeg',
+  'img/Host/ritika-carousel-6.jpeg',
+  'img/Host/ritika-carousel-7.jpeg',
+  'img/Host/ritika-carousel-8.jpeg',
+];
+let LB_IMAGES = [], LB_IDX = 0;
+function openLightbox(images, idx) {
+  LB_IMAGES = images;
+  LB_IDX = idx;
+  document.getElementById('lbImg').src = LB_IMAGES[LB_IDX];
+  document.getElementById('lbOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function lbNav(dir) {
+  LB_IDX = (LB_IDX + dir + LB_IMAGES.length) % LB_IMAGES.length;
+  document.getElementById('lbImg').src = LB_IMAGES[LB_IDX];
+}
+function closeLightbox() {
+  document.getElementById('lbOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lbOverlay').classList.contains('open')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') lbNav(-1);
+  if (e.key === 'ArrowRight') lbNav(1);
+});
+</script>
 
 </body>
 </html>
