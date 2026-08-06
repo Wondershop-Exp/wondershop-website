@@ -212,6 +212,11 @@ function orderSummaryBlock_(data) {
   if (data.budget) lines.push('  Payable Total : ₹' + data.budget);
   if (data.advance) lines.push('  Advance Paid  : ₹' + data.advance);
   if (data.balance_due) lines.push('  Balance Due   : ₹' + data.balance_due + ' (before event)');
+  if (data.reward_type === 'refund' && data.reward_value && data.balance_due) {
+    var adjustedBalance = Math.max(0, Number(data.balance_due) - Number(data.reward_value));
+    lines.push('  Scratch Card Refund : -₹' + data.reward_value);
+    lines.push('  Final Balance Due    : ₹' + adjustedBalance + ' (before event)');
+  }
   return lines.join('\n') + '\n';
 }
 

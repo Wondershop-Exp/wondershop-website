@@ -1861,6 +1861,8 @@ input,textarea,select{font-family:var(--fb)}
       <div class="amt-row tot"><span>Payable Total</span><span id="confPt">₹0</span></div>
       <div class="amt-row adv"><span>⚡ Advance Paid</span><span id="confAdv">₹0</span></div>
       <div class="amt-row"><span style="font-size:11px;color:var(--gy)">Balance due before event</span><span id="confBal" style="font-size:12px;color:var(--gy)">₹0</span></div>
+      <div class="amt-row" id="confRefundRow" style="display:none"><span style="font-size:11px;color:var(--gr)">🎁 Scratch card refund</span><span id="confRefundVal" style="font-size:12px;color:var(--gr)"></span></div>
+      <div class="amt-row tot" id="confFinalBalRow" style="display:none"><span>Final balance due</span><span id="confFinalBal"></span></div>
     </div>
   </div>
   <div id="confReward"></div>
@@ -3005,7 +3007,11 @@ async function doCo(){
   else document.getElementById('confDr').style.display='none';
   document.getElementById('confPt').textContent='₹'+__tpv.toLocaleString('en-IN');
   document.getElementById('confAdv').textContent='₹'+__advv.toLocaleString('en-IN');
-  document.getElementById('confBal').textContent='₹'+__bal.toLocaleString('en-IN');
+  const confBalEl=document.getElementById('confBal');
+  confBalEl.textContent='₹'+__bal.toLocaleString('en-IN');
+  confBalEl.dataset.raw=__bal; // read back after reveal, if the reward is a refund adjustment
+  document.getElementById('confRefundRow').style.display='none';
+  document.getElementById('confFinalBalRow').style.display='none';
 
   goTo('sconf');launchConfetti();
   setTimeout(()=>openScratchModal(__reward),900);
@@ -3214,11 +3220,11 @@ const SCRATCH_REWARDS=[
       'Non-transferable and not valid on any other or future booking.',
     ]},
   {type:'refund',weight:10,icon:'💰',label:'',badge:'',
-    sub:'Credited back to you after your final party payment is complete.',
+    sub:'This amount will be adjusted against your final event payment.',
     grad:'linear-gradient(135deg,#52C470 0%,#2E9E52 100%)',
     terms:[
-      'Credited via UPI or bank transfer within 7 working days of your final event payment.',
-      'Valid for this booking only. Non-transferable and not exchangeable for an on-the-spot cash discount.',
+      'This amount will be deducted from your balance payable at the time of your final event payment — no separate transfer needed.',
+      'Valid for this booking only. Non-transferable and not exchangeable for a separate cash payout.',
     ]},
   {type:'discount',weight:27,icon:'🏷️',label:'10% Off Your Next Booking',badge:'',validityMonths:6,
     sub:"We'll share a code over email with the details. Please use it for your next booking with us.",
@@ -3385,6 +3391,17 @@ function revealScratchCard(){
       document.getElementById('scratchNote').textContent='';
     }
     showRewardOnConfirmation(__scratchReward);
+    // Refund reward — show the adjustment against the balance due, right on
+    // the Order Summary, once the customer has actually revealed it.
+    if(__scratchReward.type==='refund'&&__scratchReward.value){
+      const confBalEl=document.getElementById('confBal');
+      const rawBal=parseFloat(confBalEl.dataset.raw||'0');
+      const adjBal=Math.max(0,rawBal-__scratchReward.value);
+      document.getElementById('confRefundVal').textContent='-₹'+__scratchReward.value.toLocaleString('en-IN');
+      document.getElementById('confRefundRow').style.display='flex';
+      document.getElementById('confFinalBal').textContent='₹'+adjBal.toLocaleString('en-IN');
+      document.getElementById('confFinalBalRow').style.display='flex';
+    }
   },500);
   wsTrack('scratch_card_revealed',{reward_type:__scratchReward.type,reward_value:__scratchReward.value||null});
 }

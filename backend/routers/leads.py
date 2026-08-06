@@ -121,6 +121,10 @@ def _format_order_summary_block(req: LeadSubmitRequest) -> str:
         lines.append(f"  Advance Paid    : {_fmt_rupees(req.order_advance)}")
     if req.order_balance is not None:
         lines.append(f"  Balance Due     : {_fmt_rupees(req.order_balance)} (before event)")
+    if req.reward_type == "refund" and req.reward_value and req.order_balance is not None:
+        adjusted_balance = max(0.0, req.order_balance - req.reward_value)
+        lines.append(f"  Scratch Card Refund : -{_fmt_rupees(req.reward_value)}")
+        lines.append(f"  Final Balance Due    : {_fmt_rupees(adjusted_balance)} (before event)")
     lines.append("")
     return "\n".join(lines) + "\n"
 
