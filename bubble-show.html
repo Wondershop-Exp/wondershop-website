@@ -134,6 +134,8 @@ a{text-decoration:none}
 @keyframes filmScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @media(max-width:600px){.film-frame{width:150px;height:150px}}
 .film-frame-video{cursor:pointer}
+.film-frame-video video{transition:transform .3s ease}
+.film-frame-video:hover video{transform:scale(1.1)}
 .film-play-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.5);border:1.5px solid rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;z-index:2;transition:background .15s,transform .15s}
 .film-frame-video:hover .film-play-btn{background:rgba(0,0,0,.72);transform:translate(-50%,-50%) scale(1.08)}
 .film-play-btn svg{width:16px;height:16px;margin-left:2px}
@@ -142,6 +144,11 @@ a{text-decoration:none}
 .vid-modal.open{display:flex}
 .vid-modal video{max-width:92vw;max-height:88vh;border-radius:12px;background:#000}
 .vid-modal-close{position:absolute;top:18px;right:18px;background:rgba(255,255,255,.14);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:18px;line-height:1;cursor:pointer;z-index:2}
+.vid-modal-arrow{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.14);border:none;color:#fff;font-size:24px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.vid-modal-arrow:hover{background:rgba(255,255,255,.26)}
+.vid-modal-prev{left:14px}
+.vid-modal-next{right:14px}
+@media(max-width:600px){.vid-modal-arrow{width:36px;height:36px;font-size:18px}.vid-modal-close{width:32px;height:32px;font-size:15px}}
 
 /* ── CTA ── */
 .host-cta{background:linear-gradient(135deg,var(--bk) 0%,#0E3B4C 100%);padding:48px 24px;text-align:center}
@@ -265,10 +272,12 @@ a{text-decoration:none}
   </div>
 </section>
 
-<!-- VIDEO MODAL (film strip clips, with audio) -->
+<!-- VIDEO MODAL (film strip clips, with audio, left/right navigation) -->
 <div class="vid-modal" id="vidModal" onclick="if(event.target===this)closeVideoModal()">
   <button class="vid-modal-close" onclick="closeVideoModal()" aria-label="Close">✕</button>
+  <button class="vid-modal-arrow vid-modal-prev" onclick="vidNav(-1)" aria-label="Previous video">‹</button>
   <video id="vidModalPlayer" controls playsinline></video>
+  <button class="vid-modal-arrow vid-modal-next" onclick="vidNav(1)" aria-label="Next video">›</button>
 </div>
 
 <!-- CTA -->
@@ -300,24 +309,35 @@ const BS_FILM_FRAMES = [
 (function initBsFilmstrip(){
   const track = document.getElementById('bsFilmTrack');
   if (!track) return;
-  const frameHTML = (f, hidden) => '<div class="film-frame film-frame-video"' + (hidden ? ' aria-hidden="true"' : '') + ' onclick="openVideoModal(\'' + f.fullVideo + '\')">' +
+  const frameHTML = (f, idx, hidden) => '<div class="film-frame film-frame-video"' + (hidden ? ' aria-hidden="true"' : '') + ' onclick="openVideoModal(' + idx + ')">' +
     '<video src="' + f.video + '" poster="' + f.poster + '" autoplay muted loop playsinline></video>' +
     '<div class="film-play-btn"><svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div>' +
     '<span class="film-tag">' + f.tag + '</span></div>';
   // Duplicate the set so translateX(-50%) loops seamlessly.
-  track.innerHTML = BS_FILM_FRAMES.map(f => frameHTML(f, false)).join('') +
-                     BS_FILM_FRAMES.map(f => frameHTML(f, true)).join('');
+  track.innerHTML = BS_FILM_FRAMES.map((f, i) => frameHTML(f, i, false)).join('') +
+                     BS_FILM_FRAMES.map((f, i) => frameHTML(f, i, true)).join('');
 })();
 
-// Video lightbox — plays the full-quality clip with audio on click.
-function openVideoModal(src) {
+// Video lightbox — plays the full-quality clip with audio, with left/right
+// navigation between the 5 clips.
+let VID_IDX = 0;
+function openVideoModal(idx) {
+  VID_IDX = idx;
   const modal = document.getElementById('vidModal');
   const video = document.getElementById('vidModalPlayer');
-  video.src = src;
+  video.src = BS_FILM_FRAMES[VID_IDX].fullVideo;
   video.muted = false;
   video.currentTime = 0;
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
+  video.play().catch(() => {});
+}
+function vidNav(dir) {
+  VID_IDX = (VID_IDX + dir + BS_FILM_FRAMES.length) % BS_FILM_FRAMES.length;
+  const video = document.getElementById('vidModalPlayer');
+  video.src = BS_FILM_FRAMES[VID_IDX].fullVideo;
+  video.muted = false;
+  video.currentTime = 0;
   video.play().catch(() => {});
 }
 function closeVideoModal() {
@@ -330,7 +350,10 @@ function closeVideoModal() {
   document.body.style.overflow = '';
 }
 document.addEventListener('keydown', e => {
+  if (!document.getElementById('vidModal').classList.contains('open')) return;
   if (e.key === 'Escape') closeVideoModal();
+  if (e.key === 'ArrowLeft') vidNav(-1);
+  if (e.key === 'ArrowRight') vidNav(1);
 });
 </script>
 
