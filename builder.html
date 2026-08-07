@@ -2276,6 +2276,11 @@ const ACTS=[
 // themeOnly array. Used everywhere the Activities step lists ACTS so those
 // two only ever appear for a Spy build.
 function visibleActs(){return ACTS.filter(a=>!a.themeOnly||a.themeOnly.includes(S.theme));}
+// TODO — old pin-*.jpg photos removed from site + deleted from disk on
+// 2026-08-07 at Shruti's request (600x320 landscape, being replaced with
+// new 600x600 square photos — see chat). Cards fall back to the emoji/
+// gradient tile (same pattern as photo-less Activities) until new photos
+// land — add realImg:true + confirm the img id once each is uploaded.
 const PINATAS=[
   {id:'p1',n:'Dinosaur',e:'🦕',img:'pin-dino',d:'2ft × 1ft × 1.5ft',p:2000,bg:'linear-gradient(135deg,#B7E0B8,#F7F296)'},
   {id:'p2',n:'Unicorn',e:'🦄',img:'pin-uni',d:'2ft × 1ft × 1.5ft',p:2000,bg:'linear-gradient(135deg,#F5C3D7,#EDE6FA)'},
@@ -2380,7 +2385,7 @@ function thumbFor(cat,id){
   }
   if(cat==='Host'){const map={Starter:'host-starter',Premium:'host-premium',Signature:'host-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎤');}
   if(cat==='DJ'){const map={'DJ Lite':'dj-lite','DJ Standard':'dj-standard','DJ Pro':'dj-pro'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎧');}
-  if(cat==='Pinata'){const p=PINATAS.find(x=>x.id===id);return p?{type:'img',src:'img/'+p.img+'.jpg'}:e('🪅');}
+  if(cat==='Pinata'){const p=PINATAS.find(x=>x.id===id);if(!p)return e('🪅');return p.realImg?{type:'img',src:'img/'+p.img+'.jpg'}:e(p.e);}
   if(cat==='E-Invite'){const inv=INVITES.find(x=>x.id===id);return inv?{type:'img',src:'einvites/'+inv.file}:e('💌');}
   if(cat==='Photographer'){if(id==='reel')return e('🎬');const map={Starter:'photo-starter',Premium:'photo-premium',Signature:'photo-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('📷');}
   if(cat==='Return Gifts'){
@@ -2842,7 +2847,10 @@ function buildPins(){
   chkFreePinata();
   const isFree=rawNoInv()>=S.FPT;
   const w=document.getElementById('pinCards');w.innerHTML='';
-  PINATAS.forEach(p=>{const priceLabel=isFree?'<span style="color:#1a6630;font-weight:700">FREE!</span>':'₹'+p.p.toLocaleString('en-IN');w.innerHTML+='<div class="pcard psm" id="pn-'+p.id+'" onclick="selPin(this,\''+p.id+'\','+p.p+',\''+p.n+'\')"><div class="sel-badge">✓</div><div class="caro caro-sq" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center" loading="lazy" alt="'+p.n+'"></div><div class="card-body"><div class="card-name" style="font-size:12px">'+p.n+'</div><div class="card-detail">Dimensions: '+p.d+'</div><div class="card-price" style="font-size:13px">'+priceLabel+'</div></div></div>';});
+  // No real photos right now (old ones removed — see TODO above
+  // const PINATAS) — every card falls back to its emoji/gradient tile
+  // until new square photos are wired in, same pattern as Activities.
+  PINATAS.forEach(p=>{const priceLabel=isFree?'<span style="color:#1a6630;font-weight:700">FREE!</span>':'₹'+p.p.toLocaleString('en-IN');const mediaHtml=p.realImg?('<div class="caro caro-sq" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center" loading="lazy" alt="'+p.n+'"></div>'):('<div class="caro caro-sq caro-fallback" style="background:'+p.bg+'">'+p.e+'</div>');w.innerHTML+='<div class="pcard psm" id="pn-'+p.id+'" onclick="selPin(this,\''+p.id+'\','+p.p+',\''+p.n+'\')"><div class="sel-badge">✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name" style="font-size:12px">'+p.n+'</div><div class="card-detail">Dimensions: '+p.d+'</div><div class="card-price" style="font-size:13px">'+priceLabel+'</div></div></div>';});
   if(S.pinata)document.getElementById('pn-'+S.pinata.id)?.classList.add('sel');
 }
 function selPin(card,id,p,n){const wasSel=card.classList.contains('sel');document.querySelectorAll('#pinCards .pcard,#pn-custom').forEach(c=>c.classList.remove('sel'));if(wasSel){S.pinata=null;}else{card.classList.add('sel');S.pinata={id,n,p};}updBB(S.screen);}
