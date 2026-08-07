@@ -637,6 +637,7 @@ button{cursor:pointer;font-family:var(--fb)}
         <span class="act-badge grn">Optional · pick one</span>
       </div>
       <div class="act-grid" id="pinataGrid"></div>
+      <div class="tnc-note">🎨 <span>Your piñata will be personalized to match your child's name and this party's theme — fillings not included. Photos shown are reference images; final look may vary slightly by materials available.</span></div>
 
       <div class="tnc-note">📄 <span>By booking this package you agree to our <a href="terms.html">Terms &amp; Conditions</a>.</span></div>
     </div>
@@ -735,9 +736,15 @@ const PHOTO_TIERS = [
 // Birthday Reel — independent single toggle addon, gated behind Photographer.
 const REEL_ADDON = {id:'reel', ic:'📱', name:'Birthday Reel', d:'A shareable highlight reel.', flat:1000};
 // Pinata — real catalogue entries that fit the Superhero theme (₹2,000 each).
+// Real catalogue (2026-08-07): same 3 shapes/prices/photos used across
+// every package page & the main builder (see builder.html's PINATAS). The
+// piñata is generic, not theme-specific — it gets personalised with the
+// child's name & this package's theme, called out in the note under the
+// grid below rather than via separate per-theme SKUs.
 const PINATA_TIERS = [
-  {id:'p4', name:'Superhero', price:2000, d:'Superhero-shaped pinata, filled with treats.'},
-  {id:'p3', name:'Star', price:2000, d:'Star-shaped pinata, filled with treats.'},
+  {id:'square', name:'Square Pinata', price:2000, d:'12" × 12", flat briefcase-style', img:'img/pin-square-1.jpg'},
+  {id:'circle', name:'Circle Pinata', price:2100, d:'Round shape', img:'img/pin-circle-1.jpg'},
+  {id:'number', name:'Number Pinata', price:2400, d:'Shaped as your child\'s age', img:'img/pin-number-1.jpg'},
 ];
 
 // ── STATE ──
@@ -928,7 +935,21 @@ function toggleReel() {
 }
 
 // ── PINATA (optional, removable) ──
-function renderPinata() { renderTierGrid('pinataGrid', PINATA_TIERS, selectedPinata); }
+// Own renderer (not renderTierGrid) so the square reference photos show at
+// their real 1:1 aspect ratio instead of being cropped to 4:3.
+function renderPinataGrid(gridId, items, selected) {
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = items.map(t => {
+    const img = t.img ? '<img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;margin-bottom:10px" loading="lazy">' : '';
+    return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
+      img +
+      '<div class="act-card-n">' + t.name + '</div>' +
+      '<div class="act-card-p">' + fmtINR(t.price) + '</div>' +
+      (t.d ? '<div class="act-card-d">' + t.d + '</div>' : '') +
+    '</div>';
+  }).join('');
+}
+function renderPinata() { renderPinataGrid('pinataGrid', PINATA_TIERS, selectedPinata); }
 function pinataGridSelect(id) { selectedPinata = (selectedPinata && selectedPinata.id === id) ? null : PINATA_TIERS.find(t => t.id === id); renderPinata(); updateSticky(); }
 
 // ── PRICING ──

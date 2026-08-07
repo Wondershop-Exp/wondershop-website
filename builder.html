@@ -3873,12 +3873,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       // Birthday Reel — tied to the site's existing Photographer-step reel
       // add-on (S.addReel, ₹1,000), only shows if a Photographer is also selected.
       if(pkgData.reel)S.addReel=true;
-      // Pinata — this package's own PINATA_TIERS ids ('p2'/'p7') predate the
-      // 2026-08-07 catalogue rebuild (Square/Circle/Number) and no longer
-      // match a PINATAS entry, so the review-page thumbnail falls back to
-      // the 🪅 emoji instead of a themed photo. Name/price still carry
-      // through correctly. TODO: revisit whether this package's bundled
-      // pinata choice should map to one of the new real types.
+      // Pinata — this package's PINATA_TIERS now uses the same real
+      // Square/Circle/Number ids as builder.html's PINATAS (2026-08-07), so
+      // the review-page thumbnail resolves to the correct real photo.
       if(pkgData.pinata)S.pinata={id:pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
     }catch(e){}
   }else if(urlPkg==='spy-basic'){
@@ -3967,8 +3964,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
       if(pkgData.reel)S.addReel=true;
-      // Pinata — see TODO above the first occurrence of this pattern
-      // (ids predate the 2026-08-07 Square/Circle/Number catalogue rebuild).
+      // Pinata — real Square/Circle/Number ids (see note above the first
+      // occurrence of this pattern).
       if(pkgData.pinata)S.pinata={id:pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
     }catch(e){}
   }else if(urlPkg==='superhero-basic'){
@@ -4004,8 +4001,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
       if(pkgData.reel)S.addReel=true;
-      // Pinata — see TODO above the first occurrence of this pattern
-      // (ids predate the 2026-08-07 Square/Circle/Number catalogue rebuild).
+      // Pinata — real Square/Circle/Number ids (see note above the first
+      // occurrence of this pattern).
       if(pkgData.pinata)S.pinata={id:pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
     }catch(e){}
   }else if(urlPkg==='turf-basic'){
@@ -4045,8 +4042,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
       if(pkgData.reel)S.addReel=true;
-      // Pinata — see TODO above the first occurrence of this pattern
-      // (ids predate the 2026-08-07 Square/Circle/Number catalogue rebuild).
+      // Pinata — real Square/Circle/Number ids (see note above the first
+      // occurrence of this pattern).
       if(pkgData.pinata)S.pinata={id:pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
     }catch(e){}
   }
