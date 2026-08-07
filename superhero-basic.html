@@ -636,8 +636,9 @@ button{cursor:pointer;font-family:var(--fb)}
         <h2 class="sec-h2">Pinata</h2>
         <span class="act-badge grn">Optional · pick one</span>
       </div>
+      <div style="font-size:13px;color:var(--bk);font-weight:600;margin-bottom:12px">🎨 Every piñata is personalized with your child's name and customised to match this party's theme.</div>
       <div class="act-grid" id="pinataGrid"></div>
-      <div class="tnc-note">🎨 <span>Your piñata will be personalized to match your child's name and this party's theme — fillings not included. Photos shown are reference images; final look may vary slightly by materials available.</span></div>
+      <div class="tnc-note">📜 <span>T&amp;C: Fillings not included. Photos shown are reference images; final look may vary slightly by materials available. Please allow a minimum of 3 working days to prepare your piñata — if your event is sooner, your account manager will confirm feasibility.</span></div>
 
       <div class="tnc-note">📄 <span>By booking this package you agree to our <a href="terms.html">Terms &amp; Conditions</a>.</span></div>
     </div>
@@ -940,7 +941,7 @@ function toggleReel() {
 function renderPinataGrid(gridId, items, selected) {
   const grid = document.getElementById(gridId);
   grid.innerHTML = items.map(t => {
-    const img = t.img ? '<img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;margin-bottom:10px" loading="lazy">' : '';
+    const img = t.img ? '<div style="position:relative;margin-bottom:10px"><img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;display:block" loading="lazy"><div style="position:absolute;bottom:8px;left:8px;background:rgba(25,25,25,.68);color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px">🖼 3 designs</div></div>' : '';
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
       '<div class="act-card-n">' + t.name + '</div>' +

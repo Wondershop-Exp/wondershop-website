@@ -1566,7 +1566,7 @@ input,textarea,select{font-family:var(--fb)}
 
   <div class="sec-blk">
     <div id="freePinataBadge" class="free-badge" style="display:none">🎉 Your pinata is FREE — cart qualifies (order above ₹50,000)!</div>
-    <div style="font-size:12px;color:var(--gy);margin-bottom:12px">📜 T&C: Fillings not included. Design is customised to your event's theme — tap a piñata to see reference photos & full details. Final shape/finish may vary slightly from the photos shown, depending on materials available.</div>
+    <div style="font-size:13px;color:var(--bk);font-weight:600;margin-bottom:12px">🎨 Every piñata is personalized with your child's name and customised to match your event's theme — tap a piñata to see reference photos & full details.</div>
     <div class="cards-grid" id="pinCards"></div>
     <div id="pn-custom" onclick="selPinataC(this)">
       <div>
@@ -1578,6 +1578,7 @@ input,textarea,select{font-family:var(--fb)}
         <div style="font-size:12px;font-weight:700;color:var(--li)">Our team will confirm →</div>
       </div>
     </div>
+    <div style="font-size:12px;color:var(--gy);margin-top:14px">📜 T&C: Fillings not included. Final shape/finish may vary slightly from the reference photos shown, depending on materials available. Please allow a minimum of 3 working days to prepare your piñata — if your event is sooner, your account manager will confirm feasibility.</div>
   </div>
 </div>
 
@@ -2873,7 +2874,9 @@ function buildPins(){
   PINATAS.forEach(p=>{
     const added=S.pinata&&S.pinata.id===p.id;
     const priceLabel=isFree?'<span style="color:#1a6630;font-weight:700">FREE!</span>':'₹'+p.p.toLocaleString('en-IN');
-    const mediaHtml=p.realImg?('<div class="caro caro-sq" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center" loading="lazy" alt="'+p.n+'"></div>'):('<div class="caro caro-sq caro-fallback" style="background:'+p.bg+'">'+p.e+'</div>');
+    const n=p.gallery?p.gallery.length:0;
+    const badgeHtml=n>1?'<div class="variant-badge">🖼 '+n+' designs</div>':'';
+    const mediaHtml=p.realImg?('<div class="caro caro-sq" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center" loading="lazy" alt="'+p.n+'">'+badgeHtml+'</div>'):('<div class="caro caro-sq caro-fallback" style="background:'+p.bg+'">'+p.e+'</div>');
     const cardClick=p.realImg?' onclick="openGallery(\'pinata\',\''+p.id+'\')"':'';
     w.innerHTML+='<div class="pcard'+(added?' sel':'')+'"'+cardClick+' id="pn-'+p.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+p.n+'</div><div class="card-detail">'+p.d+'</div><div class="card-pr-row"><div class="card-price">'+priceLabel+'</div><button class="card-btn'+(added?' added':'')+'" onclick="event.stopPropagation();selPin(this,\''+p.id+'\','+p.p+',\''+p.n+'\')">'+(added?'✓ Added':'Select')+'</button></div></div></div>';
   });
