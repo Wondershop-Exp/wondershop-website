@@ -141,6 +141,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .addon-act-info{flex:1;min-width:0}
 .addon-act-n{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:2px}
 .addon-act-d{font-size:12px;color:var(--gy);line-height:1.5}
+.addon-act-meta{font-size:11px;color:var(--li);font-weight:700;margin-top:4px}
 .addon-act-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:12px;gap:8px}
 .addon-act-price{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--bk)}
 .btn-addon-add{border:1.5px solid var(--li);background:#fff;color:var(--li);border-radius:20px;padding:6px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0}
@@ -572,11 +573,11 @@ const DECOR_TIERS = [
 // per-child rate (Cap Decoration: r1/r2/r3 850/800/750) — shown struck-through
 // next to the discounted spy price so the saving is visible.
 const ADDON_STATIONS = [
-  {id:'s1', ic:'🔬', img:'img/activity/act-science-show.jpg', name:'Science Show', d:'Live science demo that wows the whole party.', flat:20000},
-  {id:'s2', ic:'🧢', img:'img/activity/act-cap-decoration-sq.jpg', name:'Cap Decor', d:'Kids decorate their own caps to take home.', base:12000, cap:30, per:400, discountFromGeneric:{r1:850,r2:800,r3:750}},
-  {id:'s3', ic:'🕵️', img:'img/packages/spy/spy-badge-mdf-sq.jpg', name:'MDF Spy Badge', d:'Paint &amp; personalize a wooden spy badge.', base:9000, cap:30, per:300},
-  {id:'s4', ic:'🧪', img:'img/activity/act-slime.jpg', name:'Slime', d:'Hands-on slime making station.', base:11000, cap:30, per:450},
-  {id:'s7', ic:'🕶️', img:'img/activity/act-sunglasses-decor-sq.jpg', name:'Sunglasses Decor', d:'Customise &amp; take home a unique pair.', r1:350, r2:320, r3:300},
+  {id:'s1', ic:'🔬', img:'img/activity/act-science-show.jpg', name:'Science Show', d:'Live science demo that wows the whole party.', dur:'30 min', flat:20000},
+  {id:'s2', ic:'🧢', img:'img/activity/act-cap-decoration-sq.jpg', name:'Cap Decor', d:'Kids decorate their own caps to take home.', dur:'20-30 min', base:12000, cap:30, per:400, discountFromGeneric:{r1:850,r2:800,r3:750}},
+  {id:'s3', ic:'🕵️', img:'img/packages/spy/spy-badge-mdf-sq.jpg', name:'MDF Spy Badge', d:'Paint &amp; personalize a wooden spy badge.', dur:'15-20 min', base:9000, cap:30, per:300},
+  {id:'s4', ic:'🧪', img:'img/activity/act-slime.jpg', name:'Slime', d:'Hands-on slime making station.', dur:'15-20 min', base:11000, cap:30, per:450},
+  {id:'s7', ic:'🕶️', img:'img/activity/act-sunglasses-decor-sq.jpg', name:'Sunglasses Decor', d:'Customise &amp; take home a unique pair.', dur:'15-20 min', r1:350, r2:320, r3:300},
   {id:'s8', ic:'🎨', img:'img/activity/act-mini-art-station-sq.jpg', name:'Mini Art Station', d:'A compact creative art corner.', flat:5000},
   {id:'s9', ic:'🔦', img:'img/packages/spy/spy-laser-tunnel-sq.jpg', name:'Laser Tunnel', d:'Entry / photo laser tunnel obstacle course.', flat:4000, wasPrice:5000},
   {id:'s10', ic:'🌑', img:'img/packages/spy/dark-room-sq.jpg', name:'Dark Room', d:'Blacked-out room for spy games.', flat:15000, wasPrice:20000},
@@ -711,12 +712,14 @@ function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
     const iconHtml = item.img
       ? '<img class="addon-act-ic-img" src="' + item.img + '" alt="' + item.name + '">'
       : '<div class="addon-act-ic">' + item.ic + '</div>';
+    const durHtml = item.dur ? '<div class="addon-act-meta">⏱ ' + item.dur + '</div>' : '';
     return '<div class="addon-act-card' + (added ? ' added' : '') + '">' +
       '<div class="addon-act-top">' +
         iconHtml +
         '<div class="addon-act-info">' +
           '<div class="addon-act-n">' + item.name + '</div>' +
           '<div class="addon-act-d">' + item.d + '</div>' +
+          durHtml +
         '</div>' +
       '</div>' +
       '<div class="addon-act-foot">' +
