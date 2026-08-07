@@ -1451,7 +1451,7 @@ input,textarea,select{font-family:var(--fb)}
   <div class="sec-blk">
     <div class="tier-cards" id="hostCards">
       <div class="tier-card" onclick="selTier(this,'host','Classic',10000)">
-        <img class="tc-img" src="img/host-classic.jpg" alt="Classic Host" loading="lazy">
+        <img class="tc-img" src="img/host-classic.jpg" alt="Classic Host">
         <div class="tc-check">✓</div>
         <div class="tc-name">Classic Host</div>
         <div class="tc-sub">Energetic anchor who manages games, activities and programme flow</div>
@@ -1463,7 +1463,7 @@ input,textarea,select{font-family:var(--fb)}
         </div>
       </div>
       <div class="tier-card" onclick="selTier(this,'host','Premium',12000)">
-        <img class="tc-img" src="img/host-premium.jpg" alt="Premium Host" loading="lazy">
+        <img class="tc-img" src="img/host-premium.jpg" alt="Premium Host">
         <div class="tc-check">✓</div>
         <div class="tc-name">Premium Host</div>
         <div class="tc-sub">Experienced host with interactive storytelling and theme integration</div>
@@ -1475,7 +1475,7 @@ input,textarea,select{font-family:var(--fb)}
         </div>
       </div>
       <div class="tier-card" onclick="selTier(this,'host','Signature',15000)">
-        <img class="tc-img" src="img/host-signature.jpg" alt="Signature Host" loading="lazy">
+        <img class="tc-img" src="img/host-signature.jpg" alt="Signature Host">
         <div class="tc-check">✓</div>
         <div class="tc-name">Signature Host</div>
         <div class="tc-sub">Our top performer — premium props, signature-category host, fully immersive experience</div>
@@ -1511,7 +1511,7 @@ input,textarea,select{font-family:var(--fb)}
   <div class="sec-blk">
     <div class="tier-cards" id="djCards">
       <div class="tier-card" onclick="selTier(this,'dj','Classic',7000)">
-        <img class="tc-img" src="img/dj-classic.jpg" alt="Classic DJ" loading="lazy">
+        <img class="tc-img" src="img/dj-classic.jpg" alt="Classic DJ">
         <div class="tc-check">✓</div>
         <div class="tc-name">Classic DJ</div>
         <div class="tc-sub">Essential sound for homes and small spaces</div>
@@ -1523,7 +1523,7 @@ input,textarea,select{font-family:var(--fb)}
         </div>
       </div>
       <div class="tier-card" onclick="selTier(this,'dj','Premium',11000)">
-        <img class="tc-img" src="img/dj-premium.jpg" alt="Premium DJ" loading="lazy">
+        <img class="tc-img" src="img/dj-premium.jpg" alt="Premium DJ">
         <div class="tc-check">✓</div>
         <div class="tc-name">Premium DJ</div>
         <div class="tc-sub">Full DJ setup for banquet halls and larger venues</div>
@@ -1535,7 +1535,7 @@ input,textarea,select{font-family:var(--fb)}
         </div>
       </div>
       <div class="tier-card" onclick="selTier(this,'dj','Signature',15000)">
-        <img class="tc-img" src="img/dj-signature.jpg" alt="Signature DJ" loading="lazy">
+        <img class="tc-img" src="img/dj-signature.jpg" alt="Signature DJ">
         <div class="tc-check">✓</div>
         <div class="tc-name">Signature DJ</div>
         <div class="tc-sub">Premium DJ experience with expert DJ player and full light show</div>
@@ -1646,7 +1646,7 @@ input,textarea,select{font-family:var(--fb)}
   <div class="sec-blk">
     <div class="tier-cards" id="photoCards">
       <div class="tier-card" onclick="selTier(this,'photo','Classic',6000)">
-        <div class="tc-img-wrap"><img class="tc-img" src="img/photo-classic.jpg" alt="Classic Package" loading="lazy"><div class="tc-name">Classic Package</div></div>
+        <div class="tc-img-wrap"><img class="tc-img" src="img/photo-classic.jpg" alt="Classic Package"><div class="tc-name">Classic Package</div></div>
         <div class="tc-check">✓</div>
         <div class="tc-price">₹6,000</div>
         <div class="tc-feats">
@@ -1655,7 +1655,7 @@ input,textarea,select{font-family:var(--fb)}
         </div>
       </div>
       <div class="tier-card" onclick="selTier(this,'photo','Premium',10000)">
-        <div class="tc-img-wrap"><img class="tc-img" src="img/photo-premium.jpg" alt="Premium Package" loading="lazy"><div class="tc-name">Premium Package</div></div>
+        <div class="tc-img-wrap"><img class="tc-img" src="img/photo-premium.jpg" alt="Premium Package"><div class="tc-name">Premium Package</div></div>
         <div class="tc-check">✓</div>
         <div class="tc-price">₹10,000</div>
         <div class="tc-feats">
@@ -1664,7 +1664,7 @@ input,textarea,select{font-family:var(--fb)}
         </div>
       </div>
       <div class="tier-card" onclick="selTier(this,'photo','Signature',18000)">
-        <div class="tc-img-wrap"><img class="tc-img" src="img/photo-signature.jpg" alt="Signature Package" loading="lazy"><div class="tc-name">Signature Package</div></div>
+        <div class="tc-img-wrap"><img class="tc-img" src="img/photo-signature.jpg" alt="Signature Package"><div class="tc-name">Signature Package</div></div>
         <div class="tc-check">✓</div>
         <div class="tc-price">₹18,000</div>
         <div class="tc-feats">
@@ -2670,6 +2670,18 @@ function doS0(){
   document.getElementById('s0-err-all').style.display='none';
   S.pincode=document.getElementById('f-pincode').value.trim();S.eventDate=dt;S.eventTime=document.getElementById('f-time').value;
   S.theme=document.getElementById('f-theme').value;S.kidsCount=parseInt(document.getElementById('f-kids').value)||15;
+  // NOTE (2026-08-07): every step's images used to have loading="lazy". All
+  // steps except the current one sit inside a display:none container, and
+  // these catalogues are built into the DOM up front (right here) rather
+  // than when the user reaches that step — so every lazy image was being
+  // decoded correctly (network/decode succeeded) but never painted, because
+  // it never got a real intersection/layout event while its ancestor step
+  // was display:none. Result: cards for Host/DJ/Photographer/Pinata/
+  // E-Invite/Return Gifts/Decor/Activities looked blank until something
+  // forced a reflow (e.g. re-assigning the img's src). Fixed by removing
+  // loading="lazy" everywhere in this file — confirmed against the live
+  // site. If lazy-loading is reintroduced later, build each step's cards
+  // only when the user actually navigates to that step, not all up front.
   syncC();buildDec();buildActs();buildPins();buildInvs();buildGifts();
   document.getElementById('f-gaddr').value='';
   try{if(dt){document.getElementById('f-gdate').value=dt;document.getElementById('f-gdate').max=dt;}}catch(e){}
@@ -2698,7 +2710,7 @@ function variantBadge(t){
 function makeTC(t){
   const tagHtml=t.tag?TAG_MAP[t.tag]:'';
   const added=S.decor&&S.decor.id===t.id;
-  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+themeThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tagHtml+'<span class="tag pk">'+t.gn+'</span><span class="tag gr">'+t.s+'</span></div><div class="card-detail">🎈 '+t.b+'<br>🖼 '+t.panels+'<br>⚠️ Excl: '+t.ni+'</div><div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+themeThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tagHtml+'<span class="tag pk">'+t.gn+'</span><span class="tag gr">'+t.s+'</span></div><div class="card-detail">🎈 '+t.b+'<br>🖼 '+t.panels+'<br>⚠️ Excl: '+t.ni+'</div><div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
 }
 function buildDec(){
   const tc=document.getElementById('thCards');tc.innerHTML='';
@@ -2708,7 +2720,7 @@ function buildDec(){
   if(!fl.length)fl=THEMES;
   fl.forEach(t=>tc.innerHTML+=makeTC(t));
   const sc=document.getElementById('stdCards');sc.innerHTML='';
-  STD.forEach(t=>{const added=S.decor&&S.decor.id===t.id;sc.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'std\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+stdThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="card-detail">'+t.d+'</div><div class="card-pr-row"><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';});
+  STD.forEach(t=>{const added=S.decor&&S.decor.id===t.id;sc.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'std\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+stdThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="card-detail">'+t.d+'</div><div class="card-pr-row"><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';});
   if(S.decor)document.getElementById('dc-'+S.decor.id)?.classList.add('sel');
   const dtBtns=document.querySelectorAll('#s1 .dt-tog .dt-btn');
   if(dtBtns.length===2){if(S.decorType==='standard'){dtBtns[0].classList.remove('on');dtBtns[1].classList.add('on');document.getElementById('thSec').style.display='none';document.getElementById('stdSec').style.display='block';}else{dtBtns[0].classList.add('on');dtBtns[1].classList.remove('on');document.getElementById('thSec').style.display='block';document.getElementById('stdSec').style.display='none';}}
@@ -2745,7 +2757,7 @@ function renderActs(list){
     // flagged realImg have an actual confirmed photo to show.
     const bg=(a.bgs&&a.bgs[0])||'linear-gradient(135deg,#EDE6FA,#B59DDE)';
     const mediaHtml=a.realImg
-      ? '<div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:contain;object-position:center" loading="lazy" alt="'+a.n+'"></div>'
+      ? '<div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:contain;object-position:center" alt="'+a.n+'"></div>'
       : '<div class="caro caro-fallback" style="background:'+bg+'">'+a.e+'</div>';
     const cardClick=a.realImg?' onclick="openGallery(\'act\',\''+a.id+'\')"':'';
     w.innerHTML+='<div class="pcard'+(added?' sel':'')+'"'+cardClick+' id="ac-'+a.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">'+priceHtml+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="event.stopPropagation();togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
@@ -2876,7 +2888,7 @@ function renderGalStage(){
     }else{
       const el=document.createElement(it.type==='video'?'video':'img');
       if(it.type==='video'){el.src=it.src;el.controls=true;el.playsInline=true;}
-      else{el.src=it.src;el.loading='lazy';el.alt='';}
+      else{el.src=it.src;el.alt='';}
       stage.insertBefore(el,stage.firstChild);
     }
   }
@@ -2893,7 +2905,7 @@ function renderGalThumbs(){
   w.style.display='flex';
   w.innerHTML=galItems.map((it,i)=>{
     if(it.type==='info')return '<div class="gal-thumb gal-thumb-info" onclick="galGoTo('+i+')">ℹ️<span>Details</span></div>';
-    return '<div class="gal-thumb" onclick="galGoTo('+i+')">'+(it.type==='video'?'<video src="'+it.src+'" muted></video>':'<img src="'+it.src+'" alt="" loading="lazy">')+'</div>';
+    return '<div class="gal-thumb" onclick="galGoTo('+i+')">'+(it.type==='video'?'<video src="'+it.src+'" muted></video>':'<img src="'+it.src+'" alt="">')+'</div>';
   }).join('');
 }
 
@@ -2915,7 +2927,7 @@ function buildPins(){
     const priceLabel=isFree?'<span style="color:#1a6630;font-weight:700">FREE!</span>':'₹'+p.p.toLocaleString('en-IN');
     const n=p.gallery?p.gallery.length:0;
     const badgeHtml=n>1?'<div class="variant-badge">🖼 '+n+' designs</div>':'';
-    const mediaHtml=p.realImg?('<div class="caro caro-sq" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center" loading="lazy" alt="'+p.n+'">'+badgeHtml+'</div>'):('<div class="caro caro-sq caro-fallback" style="background:'+p.bg+'">'+p.e+'</div>');
+    const mediaHtml=p.realImg?('<div class="caro caro-sq" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center" alt="'+p.n+'">'+badgeHtml+'</div>'):('<div class="caro caro-sq caro-fallback" style="background:'+p.bg+'">'+p.e+'</div>');
     const cardClick=p.realImg?' onclick="openGallery(\'pinata\',\''+p.id+'\')"':'';
     w.innerHTML+='<div class="pcard'+(added?' sel':'')+'"'+cardClick+' id="pn-'+p.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+p.n+'</div><div class="card-detail">'+p.d+'</div><div class="card-pr-row"><div class="card-price">'+priceLabel+'</div><button class="card-btn'+(added?' added':'')+'" onclick="event.stopPropagation();selPin(this,\''+p.id+'\','+p.p+',\''+p.n+'\')">'+(added?'✓ Added':'Select')+'</button></div></div></div>';
   });
@@ -2968,7 +2980,7 @@ function showAllInv(){document.getElementById('invFilterNote').style.display='no
 function makeInvCard(inv){
   const isFree=rawNoInv()>=S.FIT;
   const priceText=isFree?'FREE':'₹'+inv.p;
-  return '<div class="pcard psm" id="inv-'+inv.id+'" onclick="selInv(this,\''+inv.id+'\','+inv.p+',\''+inv.n+'\')"><div class="sel-badge">✓</div><div style="position:relative;overflow:hidden;border-radius:var(--r) var(--r) 0 0;background:var(--li2);aspect-ratio:3/4"><img src="einvites/'+inv.file+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+inv.n+'"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.58);padding:12px 10px;text-align:center;backdrop-filter:blur(2px)"><div style="font-family:var(--fd);font-size:15px;font-weight:700;color:#fff;line-height:1.2">'+inv.n+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:600;margin-top:3px">'+priceText+'</div></div></div></div>';
+  return '<div class="pcard psm" id="inv-'+inv.id+'" onclick="selInv(this,\''+inv.id+'\','+inv.p+',\''+inv.n+'\')"><div class="sel-badge">✓</div><div style="position:relative;overflow:hidden;border-radius:var(--r) var(--r) 0 0;background:var(--li2);aspect-ratio:3/4"><img src="einvites/'+inv.file+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+inv.n+'"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.58);padding:12px 10px;text-align:center;backdrop-filter:blur(2px)"><div style="font-family:var(--fd);font-size:15px;font-weight:700;color:#fff;line-height:1.2">'+inv.n+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:600;margin-top:3px">'+priceText+'</div></div></div></div>';
 }
 function buildInvs(){
   const w=document.getElementById('invCards');w.innerHTML='';
@@ -3058,7 +3070,7 @@ function renderGifts(){
   list.forEach(g=>{const ex=S.gifts.find(x=>x.id===g.id);const qty=ex?ex.qty:S.kidsCount;const added=!!ex;
     const tagHtml=g.tag?TAG_MAP[g.tag]:'';
     const emojiHtml=g.img
-      ? '<div class="g-emoji has-img" style="cursor:pointer" onclick="openGallery(\'gift\',\''+g.id+'\')"><img src="img/'+g.img+'" alt="'+g.n+'" loading="lazy" onerror="this.parentElement.classList.remove(\'has-img\');this.parentElement.style.background=\''+g.bg+'\';this.parentElement.removeAttribute(\'onclick\');this.parentElement.style.cursor=\'\';this.outerHTML=\''+g.e+'\'"></div>'
+      ? '<div class="g-emoji has-img" style="cursor:pointer" onclick="openGallery(\'gift\',\''+g.id+'\')"><img src="img/'+g.img+'" alt="'+g.n+'" onerror="this.parentElement.classList.remove(\'has-img\');this.parentElement.style.background=\''+g.bg+'\';this.parentElement.removeAttribute(\'onclick\');this.parentElement.style.cursor=\'\';this.outerHTML=\''+g.e+'\'"></div>'
       : '<div class="g-emoji" style="background:'+g.bg+'">'+g.e+'</div>';
     w.innerHTML+='<div class="gift-card'+(added?' added':'')+'" id="gc-'+g.id+'"><div class="gift-top">'+emojiHtml+'<div><div class="g-name">'+g.n+'</div><div class="g-meta">Ages '+g.age+' · ₹'+g.unit+'/child</div>'+tagHtml+'</div></div><div class="gift-bottom"><div><div style="font-size:10px;color:var(--gy)">₹'+g.unit+' × <span id="qty-'+g.id+'">'+qty+'</span> kids</div><div class="gift-total">₹<span id="qtot-'+g.id+'">'+(qty*g.unit).toLocaleString('en-IN')+'</span></div></div><div style="display:flex;align-items:center;gap:6px">'+(added?'<div class="qty-ctrl"><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',-1)">−</button><span class="qty-val" id="qv-'+g.id+'">'+qty+'</span><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',1)">+</button></div><button class="card-btn rmv" onclick="rmGift(\''+g.id+'\')">Remove</button>':'<button class="card-btn" onclick="addGift(\''+g.id+'\',\''+g.n+'\','+g.unit+')">Add</button>')+'</div></div></div>';
   });
@@ -3098,7 +3110,7 @@ function buildRev(){
     else its.forEach(i=>{
       const th=thumbFor(cat,i.id);
       const thumbHtml=th.type==='img'
-        ? '<div class="rv-thumb"><img src="'+th.src+'" alt="" loading="lazy" onerror="rvImgErr(this)"></div>'
+        ? '<div class="rv-thumb"><img src="'+th.src+'" alt="" onerror="rvImgErr(this)"></div>'
         : '<div class="rv-thumb rv-thumb-e" style="background:'+th.bg+'">'+th.e+'</div>';
       const priceHtml=i.wasP?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:12px">₹'+i.wasP.toLocaleString('en-IN')+'</s>₹'+i.p.toLocaleString('en-IN'):'₹'+i.p.toLocaleString('en-IN');
       html+='<div class="rv-item">'+thumbHtml+'<span class="rv-item-name">'+i.n+'</span><span class="rv-item-price">'+priceHtml+'</span><button class="rv-item-rm" title="Remove" onclick="rmRevItem(\''+cat+'\',\''+i.id+'\')">✕</button></div>';
