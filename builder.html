@@ -1437,6 +1437,15 @@ input,textarea,select{font-family:var(--fb)}
     <p>Your Party Lead will personally match you with the perfect host and share the details post-booking.</p>
   </div>
 
+  <!-- TODO — tier naming review (added 2026-08-07 at Shruti's request):
+       "Premium" is the MIDDLE tier here (Starter ₹10k / Premium ₹12k /
+       Signature ₹15k), which already caused one mix-up matching uploaded
+       host photos (a file literally named "host-premium" turned out to be
+       the top-tier photo, not this middle one). Revisit these labels —
+       and DJ's (search "id=\"djCards\"": Lite/Standard/Pro) and Decor's
+       (once per-variant tier names exist — see pricing-sheet TODO near
+       const THEMES) — so "Premium" et al. map consistently to rank across
+       all three categories, not just here. -->
   <div class="sec-blk">
     <div class="tier-cards" id="hostCards">
       <div class="tier-card" onclick="selTier(this,'host','Starter',10000)">
@@ -1493,6 +1502,10 @@ input,textarea,select{font-family:var(--fb)}
     <p>Professional DJ with the right equipment and playlist for children's birthdays. Skip if your venue has its own sound system.</p>
   </div>
 
+  <!-- TODO — tier naming review: see the matching comment above
+       id="hostCards". Lite/Standard/Pro doesn't have the same
+       middle-tier-named-"Premium" collision, but re-check it against
+       Host/Decor once those are renamed, for consistency. -->
   <div class="sec-blk">
     <div class="tier-cards" id="djCards">
       <div class="tier-card" onclick="selTier(this,'dj','DJ Lite',7000)">
@@ -2128,6 +2141,14 @@ function wsBuilderSnapshotForSheet(){
 // (pricing/age/gender/etc.) for each is preserved in git history — see the
 // "Remove 16 photo-less decor themes" commit — so nothing needs to be
 // re-typed from scratch when photos arrive.
+//
+// TODO — tier naming review (added 2026-08-07): each decor variant (arch/
+// 1-panel/2-panel/3-panel) will need its own tier name once real
+// per-variant pricing arrives (see the pricing-sheet discussion in chat).
+// When naming those tiers, check them against Host's Starter/Premium/
+// Signature and DJ's Lite/Standard/Pro — Host's "Premium" sitting in the
+// middle price slot already caused one mix-up with uploaded photo naming,
+// so keep Decor's tier names unambiguous (low/mid/top) from the start.
 const THEMES=[
   {id:'uni',n:'Unicorn Magic',e:'🦄',bg:'linear-gradient(135deg,#F5C3D7,#EDE6FA)',age:'3-5',gn:'Girl',p:8000,b:'150 (Pink, Purple, White)',panels:'1 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'pop',gallery:[{type:'img',src:'img/Decor/decor-uni-arch.jpg'},{type:'img',src:'img/Decor/decor-uni-1panel.jpg'},{type:'img',src:'img/Decor/decor-uni-2panel.jpg'},{type:'img',src:'img/Decor/decor-uni-3panel.jpg'}]},
   {id:'jungle',n:'Jungle Safari',e:'🌴',bg:'linear-gradient(135deg,#52C470,#B7E0B8)',age:'3-8',gn:'Both',p:9000,b:'200 (Green, Yellow, Orange)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Tables, chairs, props',tag:'trend',gallery:[{type:'img',src:'img/Decor/decor-jungle-3panel.jpg'}]},
