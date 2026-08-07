@@ -368,6 +368,11 @@ input,textarea,select{font-family:var(--fb)}
 .sel-badge{display:none;position:absolute;top:8px;right:8px;background:var(--li);color:#fff;font-size:10px;font-weight:700;border-radius:8px;padding:3px 8px;z-index:3}
 .variant-badge{position:absolute;bottom:8px;left:8px;background:rgba(25,25,25,.68);color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px;z-index:3;display:flex;align-items:center;gap:4px;backdrop-filter:blur(2px)}
 .caro{position:relative;overflow:hidden;background:var(--li2);flex-shrink:0;aspect-ratio:4/3}.caro img{width:100%;height:100%;display:block;object-fit:cover;object-position:center top}
+/* Piñatas are compact/round objects, not wide banners — the shared 4:3
+   .caro crop leaves a lot of empty background on either side, so give
+   piñata cards a square frame instead (scoped via this modifier, not a
+   change to .caro itself, so decor/std cards are unaffected). */
+.caro.caro-sq{aspect-ratio:1/1}
 .caro-fallback{display:flex;align-items:center;justify-content:center;font-size:40px}
 .cs{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;position:absolute;inset:0;transition:opacity .4s}
 .cs:not(:first-child){opacity:0}
@@ -2837,7 +2842,7 @@ function buildPins(){
   chkFreePinata();
   const isFree=rawNoInv()>=S.FPT;
   const w=document.getElementById('pinCards');w.innerHTML='';
-  PINATAS.forEach(p=>{const priceLabel=isFree?'<span style="color:#1a6630;font-weight:700">FREE!</span>':'₹'+p.p.toLocaleString('en-IN');w.innerHTML+='<div class="pcard psm" id="pn-'+p.id+'" onclick="selPin(this,\''+p.id+'\','+p.p+',\''+p.n+'\')"><div class="sel-badge">✓</div><div class="caro" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+p.n+'"></div><div class="card-body"><div class="card-name" style="font-size:12px">'+p.n+'</div><div class="card-detail">Dimensions: '+p.d+'</div><div class="card-price" style="font-size:13px">'+priceLabel+'</div></div></div>';});
+  PINATAS.forEach(p=>{const priceLabel=isFree?'<span style="color:#1a6630;font-weight:700">FREE!</span>':'₹'+p.p.toLocaleString('en-IN');w.innerHTML+='<div class="pcard psm" id="pn-'+p.id+'" onclick="selPin(this,\''+p.id+'\','+p.p+',\''+p.n+'\')"><div class="sel-badge">✓</div><div class="caro caro-sq" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center" loading="lazy" alt="'+p.n+'"></div><div class="card-body"><div class="card-name" style="font-size:12px">'+p.n+'</div><div class="card-detail">Dimensions: '+p.d+'</div><div class="card-price" style="font-size:13px">'+priceLabel+'</div></div></div>';});
   if(S.pinata)document.getElementById('pn-'+S.pinata.id)?.classList.add('sel');
 }
 function selPin(card,id,p,n){const wasSel=card.classList.contains('sel');document.querySelectorAll('#pinCards .pcard,#pn-custom').forEach(c=>c.classList.remove('sel'));if(wasSel){S.pinata=null;}else{card.classList.add('sel');S.pinata={id,n,p};}updBB(S.screen);}
