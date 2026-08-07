@@ -1566,7 +1566,7 @@ input,textarea,select{font-family:var(--fb)}
 
   <div class="sec-blk">
     <div id="freePinataBadge" class="free-badge" style="display:none">🎉 Your pinata is FREE — cart qualifies (order above ₹50,000)!</div>
-    <div style="font-size:12px;color:var(--gy);margin-bottom:12px">📜 T&C: The final shape might vary a little from the images which are for representational purposes.</div>
+    <div style="font-size:12px;color:var(--gy);margin-bottom:12px">📜 T&C: Fillings not included. Design is customised to your event's theme — tap a piñata to see reference photos & full details. Final shape/finish may vary slightly from the photos shown, depending on materials available.</div>
     <div class="cards-grid" id="pinCards"></div>
     <div id="pn-custom" onclick="selPinataC(this)">
       <div>
@@ -2276,20 +2276,32 @@ const ACTS=[
 // themeOnly array. Used everywhere the Activities step lists ACTS so those
 // two only ever appear for a Spy build.
 function visibleActs(){return ACTS.filter(a=>!a.themeOnly||a.themeOnly.includes(S.theme));}
-// TODO — old pin-*.jpg photos removed from site + deleted from disk on
-// 2026-08-07 at Shruti's request (600x320 landscape, being replaced with
-// new 600x600 square photos — see chat). Cards fall back to the emoji/
-// gradient tile (same pattern as photo-less Activities) until new photos
-// land — add realImg:true + confirm the img id once each is uploaded.
+// Pinata catalogue rebuilt 2026-08-07 at Shruti's request around the 3
+// shape categories we actually offer (Square/Circle/Number), each with
+// its own price and a 3-photo gallery of real reference pinatas (each
+// personalised with a sample child's name/age — the design shown is an
+// example, not a fixed catalogue). Fillings are NOT included, and the
+// design is customised to the child's chosen theme (coordinate exact
+// artwork with the account manager) — both called out in the gallery
+// info card via buildDecorInfoHTML's 'pinata' branch below, plus the
+// T&C line under the section. Final shape/finish may vary slightly from
+// the reference photos depending on materials available and the theme.
 const PINATAS=[
-  {id:'p1',n:'Dinosaur',e:'🦕',img:'pin-dino',d:'2ft × 1ft × 1.5ft',p:2000,bg:'linear-gradient(135deg,#B7E0B8,#F7F296)'},
-  {id:'p2',n:'Unicorn',e:'🦄',img:'pin-uni',d:'2ft × 1ft × 1.5ft',p:2000,bg:'linear-gradient(135deg,#F5C3D7,#EDE6FA)'},
-  {id:'p3',n:'Star',e:'⭐',img:'pin-star',d:'1.5ft × 1.5ft × 0.5ft',p:2000,bg:'linear-gradient(135deg,#F2D147,#F57A1A)'},
-  {id:'p4',n:'Superhero',e:'🦸',img:'pin-hero',d:'2ft × 1ft × 1.5ft',p:2000,bg:'linear-gradient(135deg,#BCD8E8,#5B8EDD)'},
-  {id:'p5',n:'Jungle Animal',e:'🐯',img:'pin-jungle',d:'2ft × 1.5ft × 1.5ft',p:2000,bg:'linear-gradient(135deg,#52C470,#B7E0B8)'},
-  {id:'p6',n:'Space Rocket',e:'🚀',img:'pin-space',d:'2ft × 1ft × 2ft',p:2000,bg:'linear-gradient(135deg,#B59DDE,#BCD8E8)'},
-  {id:'p7',n:'Rainbow',e:'🌈',img:'pin-rainbow',d:'2ft × 2ft × 0.5ft',p:2000,bg:'linear-gradient(135deg,#F5C3D7,#BCD8E8)'},
-  {id:'p8',n:'Elephant',e:'🐘',img:'pin-elephant',d:'2ft × 1.5ft × 2ft',p:2000,bg:'linear-gradient(135deg,#BCD8E8,#EDE6FA)'}
+  {id:'square',n:'Square Pinata',e:'🧧',img:'pin-square-1',gallery:[
+    {type:'img',src:'img/pin-square-1.jpg'},
+    {type:'img',src:'img/pin-square-2.jpg'},
+    {type:'img',src:'img/pin-square-3.jpg'}
+  ],d:'12" × 12", flat briefcase-style',p:2000,bg:'linear-gradient(135deg,#B7E0B8,#F7F296)',realImg:true},
+  {id:'circle',n:'Circle Pinata',e:'⭕',img:'pin-circle-1',gallery:[
+    {type:'img',src:'img/pin-circle-1.jpg'},
+    {type:'img',src:'img/pin-circle-2.jpg'},
+    {type:'img',src:'img/pin-circle-3.jpg'}
+  ],d:'Round shape',p:2100,bg:'linear-gradient(135deg,#F5C3D7,#EDE6FA)',realImg:true},
+  {id:'number',n:'Number Pinata',e:'🔢',img:'pin-number-1',gallery:[
+    {type:'img',src:'img/pin-number-1.jpg'},
+    {type:'img',src:'img/pin-number-2.jpg'},
+    {type:'img',src:'img/pin-number-3.jpg'}
+  ],d:'Shaped as your child\'s age',p:2400,bg:'linear-gradient(135deg,#BCD8E8,#5B8EDD)',realImg:true}
 ];
 const INVITES=[
   {id:'i1',n:'Art Party',p:500,file:'art-party.jpg',t:'art'},
@@ -2385,7 +2397,7 @@ function thumbFor(cat,id){
   }
   if(cat==='Host'){const map={Starter:'host-starter',Premium:'host-premium',Signature:'host-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎤');}
   if(cat==='DJ'){const map={'DJ Lite':'dj-lite','DJ Standard':'dj-standard','DJ Pro':'dj-pro'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎧');}
-  if(cat==='Pinata'){const p=PINATAS.find(x=>x.id===id);if(!p)return e('🪅');return p.realImg?{type:'img',src:'img/'+p.img+'.jpg'}:e(p.e);}
+  if(cat==='Pinata'){if(id==='custom')return e('🪅');const p=PINATAS.find(x=>x.id===id);if(!p)return e('🪅');return p.realImg?{type:'img',src:'img/'+p.img+'.jpg'}:e(p.e);}
   if(cat==='E-Invite'){const inv=INVITES.find(x=>x.id===id);return inv?{type:'img',src:'einvites/'+inv.file}:e('💌');}
   if(cat==='Photographer'){if(id==='reel')return e('🎬');const map={Starter:'photo-starter',Premium:'photo-premium',Signature:'photo-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('📷');}
   if(cat==='Return Gifts'){
@@ -2760,7 +2772,7 @@ function galMediaFor(kind,obj){
     const src=kind==='theme'?('img/theme-'+obj.id+'.jpg'):('img/'+obj.img+'.jpg');
     items=[{type:'img',src}];
   }
-  if(kind==='theme'||kind==='std')items=items.concat([{type:'info'}]);
+  if(kind==='theme'||kind==='std'||kind==='pinata')items=items.concat([{type:'info'}]);
   return items;
 }
 // Splits a "·"-separated summary string (e.g. STD's `d` field) into bullets.
@@ -2772,6 +2784,12 @@ function splitBits(str){return (str||'').split('·').map(s=>s.trim()).filter(Boo
 function buildDecorInfoHTML(kind,obj){
   if(obj.info)return obj.info;
   const custNote='<div class="gal-info-note">🎨 Flex/panel designs shown are customizable to an extent — basic personalisation like your child\'s name, age and similar details is included. Any major design change (new artwork, extra panels, structural changes, etc.) may be chargeable depending on the scope of work; our team will confirm exact details with you on the call.</div>';
+  if(kind==='pinata'){
+    return '<h4>✅ What\'s Included</h4><ul><li>Handcrafted '+obj.n.toLowerCase()+', personalised with your child\'s name'+(obj.id==='number'?' and age number':'')+'</li><li>Design customised to your event\'s theme</li></ul>'+
+      '<h4>🚫 What\'s Not Included</h4><ul><li>Fillings/candy — can be added on request, ask your account manager for options &amp; pricing</li></ul>'+
+      '<div class="gal-info-note">🎨 The exact artwork/characters shown here are examples — our account manager will confirm the final design with you based on your chosen theme.</div>'+
+      '<div class="gal-info-note">📸 Photos are reference images. The final piñata\'s look may vary slightly depending on materials available and the theme chosen.</div>';
+  }
   if(kind==='std'){
     const inc=splitBits(obj.d);
     return '<h4>✅ What\'s Included</h4><ul>'+inc.map(x=>'<li>'+x+'</li>').join('')+'</ul>'+custNote;
@@ -2782,7 +2800,7 @@ function buildDecorInfoHTML(kind,obj){
     custNote;
 }
 function openGallery(kind,id){
-  const obj=kind==='theme'?THEMES.find(t=>t.id===id):kind==='std'?STD.find(t=>t.id===id):ACTS.find(a=>a.id===id);
+  const obj=kind==='theme'?THEMES.find(t=>t.id===id):kind==='std'?STD.find(t=>t.id===id):kind==='pinata'?PINATAS.find(p=>p.id===id):ACTS.find(a=>a.id===id);
   if(!obj)return;
   galKind=kind;galObj=obj;
   galItems=galMediaFor(kind,obj);
@@ -2792,6 +2810,8 @@ function openGallery(kind,id){
     ? ('🎈 '+obj.b+'  ·  🖼 '+obj.panels+'  ·  ⏱ '+obj.s)
     : kind==='std'
     ? obj.d
+    : kind==='pinata'
+    ? ('₹'+obj.p.toLocaleString('en-IN')+'  ·  '+obj.d)
     : ('📍 '+obj.req+'  ·  ⏱ '+obj.dur+'  ·  Ages '+obj.age);
   renderGalThumbs();
   renderGalStage();
@@ -2847,14 +2867,30 @@ function buildPins(){
   chkFreePinata();
   const isFree=rawNoInv()>=S.FPT;
   const w=document.getElementById('pinCards');w.innerHTML='';
-  // No real photos right now (old ones removed — see TODO above
-  // const PINATAS) — every card falls back to its emoji/gradient tile
-  // until new square photos are wired in, same pattern as Activities.
-  PINATAS.forEach(p=>{const priceLabel=isFree?'<span style="color:#1a6630;font-weight:700">FREE!</span>':'₹'+p.p.toLocaleString('en-IN');const mediaHtml=p.realImg?('<div class="caro caro-sq" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center" loading="lazy" alt="'+p.n+'"></div>'):('<div class="caro caro-sq caro-fallback" style="background:'+p.bg+'">'+p.e+'</div>');w.innerHTML+='<div class="pcard psm" id="pn-'+p.id+'" onclick="selPin(this,\''+p.id+'\','+p.p+',\''+p.n+'\')"><div class="sel-badge">✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name" style="font-size:12px">'+p.n+'</div><div class="card-detail">Dimensions: '+p.d+'</div><div class="card-price" style="font-size:13px">'+priceLabel+'</div></div></div>';});
-  if(S.pinata)document.getElementById('pn-'+S.pinata.id)?.classList.add('sel');
+  // Tap the card to view the reference-photo gallery + inclusions/exclusions
+  // (same pattern as Decor/Activities); the Select button adds it to the
+  // order without leaving the grid.
+  PINATAS.forEach(p=>{
+    const added=S.pinata&&S.pinata.id===p.id;
+    const priceLabel=isFree?'<span style="color:#1a6630;font-weight:700">FREE!</span>':'₹'+p.p.toLocaleString('en-IN');
+    const mediaHtml=p.realImg?('<div class="caro caro-sq" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center" loading="lazy" alt="'+p.n+'"></div>'):('<div class="caro caro-sq caro-fallback" style="background:'+p.bg+'">'+p.e+'</div>');
+    const cardClick=p.realImg?' onclick="openGallery(\'pinata\',\''+p.id+'\')"':'';
+    w.innerHTML+='<div class="pcard'+(added?' sel':'')+'"'+cardClick+' id="pn-'+p.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+p.n+'</div><div class="card-detail">'+p.d+'</div><div class="card-pr-row"><div class="card-price">'+priceLabel+'</div><button class="card-btn'+(added?' added':'')+'" onclick="event.stopPropagation();selPin(this,\''+p.id+'\','+p.p+',\''+p.n+'\')">'+(added?'✓ Added':'Select')+'</button></div></div></div>';
+  });
 }
-function selPin(card,id,p,n){const wasSel=card.classList.contains('sel');document.querySelectorAll('#pinCards .pcard,#pn-custom').forEach(c=>c.classList.remove('sel'));if(wasSel){S.pinata=null;}else{card.classList.add('sel');S.pinata={id,n,p};}updBB(S.screen);}
-function selPinataC(card){const wasSel=card.classList.contains('sel');document.querySelectorAll('#pinCards .pcard,#pn-custom').forEach(c=>c.classList.remove('sel'));if(wasSel){S.pinata=null;}else{card.classList.add('sel');S.pinata={id:'custom',n:'Custom Design',p:0};}updBB(S.screen);}
+function selPin(btn,id,p,n){
+  const card=btn.closest('.pcard');
+  const wasSel=card.classList.contains('sel');
+  document.querySelectorAll('#pinCards .pcard,#pn-custom').forEach(c=>{
+    c.classList.remove('sel');
+    const b=c.querySelector('.card-btn');
+    if(b){b.classList.remove('added');b.textContent='Select';}
+  });
+  if(wasSel){S.pinata=null;}
+  else{card.classList.add('sel');S.pinata={id,n,p};const b=card.querySelector('.card-btn');if(b){b.classList.add('added');b.textContent='✓ Added';}}
+  updBB(S.screen);
+}
+function selPinataC(card){const wasSel=card.classList.contains('sel');document.querySelectorAll('#pinCards .pcard,#pn-custom').forEach(c=>{c.classList.remove('sel');const b=c.querySelector('.card-btn');if(b){b.classList.remove('added');b.textContent='Select';}});if(wasSel){S.pinata=null;}else{card.classList.add('sel');S.pinata={id:'custom',n:'Custom Design',p:0};}updBB(S.screen);}
 
 // ── E-INVITE ──
 let invConfettiShown=false;
@@ -3837,8 +3873,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       // Birthday Reel — tied to the site's existing Photographer-step reel
       // add-on (S.addReel, ₹1,000), only shows if a Photographer is also selected.
       if(pkgData.reel)S.addReel=true;
-      // Pinata — reuses real PINATAS ids ('p2' Unicorn / 'p7' Rainbow) so the
-      // review page shows the correct real photo.
+      // Pinata — this package's own PINATA_TIERS ids ('p2'/'p7') predate the
+      // 2026-08-07 catalogue rebuild (Square/Circle/Number) and no longer
+      // match a PINATAS entry, so the review-page thumbnail falls back to
+      // the 🪅 emoji instead of a themed photo. Name/price still carry
+      // through correctly. TODO: revisit whether this package's bundled
+      // pinata choice should map to one of the new real types.
       if(pkgData.pinata)S.pinata={id:pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
     }catch(e){}
   }else if(urlPkg==='spy-basic'){
@@ -3927,7 +3967,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
       if(pkgData.reel)S.addReel=true;
-      // Pinata — reuses real PINATAS ids ('p3' Star / 'p7' Rainbow).
+      // Pinata — see TODO above the first occurrence of this pattern
+      // (ids predate the 2026-08-07 Square/Circle/Number catalogue rebuild).
       if(pkgData.pinata)S.pinata={id:pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
     }catch(e){}
   }else if(urlPkg==='superhero-basic'){
@@ -3963,7 +4004,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
       if(pkgData.reel)S.addReel=true;
-      // Pinata — reuses real PINATAS ids ('p4' Superhero / 'p3' Star).
+      // Pinata — see TODO above the first occurrence of this pattern
+      // (ids predate the 2026-08-07 Square/Circle/Number catalogue rebuild).
       if(pkgData.pinata)S.pinata={id:pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
     }catch(e){}
   }else if(urlPkg==='turf-basic'){
@@ -4003,7 +4045,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
       if(pkgData.reel)S.addReel=true;
-      // Pinata — reuses real PINATAS ids ('p5' Jungle Animal / 'p8' Elephant).
+      // Pinata — see TODO above the first occurrence of this pattern
+      // (ids predate the 2026-08-07 Square/Circle/Number catalogue rebuild).
       if(pkgData.pinata)S.pinata={id:pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
     }catch(e){}
   }
