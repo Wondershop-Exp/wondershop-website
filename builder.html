@@ -1648,40 +1648,41 @@ input,textarea,select{font-family:var(--fb)}
 
   <div class="sec-blk">
     <div class="tier-cards" id="photoCards">
-      <div class="tier-card" onclick="selTier(this,'photo','Starter',6000)">
-        <div class="tc-img-wrap"><img class="tc-img" src="img/photo-starter.jpg" alt="Starter Package" loading="lazy"><div class="tc-name">Starter Package</div></div>
+      <div class="tier-card" onclick="selTier(this,'photo','Basic',6000)">
+        <div class="tc-img-wrap"><img class="tc-img" src="img/photo-starter.jpg" alt="Basic Package" loading="lazy"><div class="tc-name">Basic Package</div></div>
         <div class="tc-check">✓</div>
-        <div class="tc-sub">Essential coverage for intimate celebrations</div>
+        <div class="tc-sub">Photography-only coverage for your celebration</div>
         <div class="tc-price">₹6,000</div>
         <div class="tc-feats">
-          <div class="tc-feat">2 hours · 1 photographer</div>
-          <div class="tc-feat">50+ edited photos</div>
-          <div class="tc-feat">Delivered in 5 days</div>
+          <div class="tc-feat">Unlimited photos</div>
+          <div class="tc-feat">Output: Edited photos</div>
         </div>
       </div>
-      <div class="tier-card" onclick="selTier(this,'photo','Premium',9000)">
+      <div class="tier-card" onclick="selTier(this,'photo','Premium',10000)">
         <div class="tc-img-wrap"><img class="tc-img" src="img/photo-premium.jpg" alt="Premium Package" loading="lazy"><div class="tc-name">Premium Package</div></div>
         <div class="tc-check">✓</div>
-        <div class="tc-sub">Full coverage with candid and portrait shots</div>
-        <div class="tc-price">₹9,000</div>
+        <div class="tc-sub">Photo + video coverage with 1 videographer</div>
+        <div class="tc-price">₹10,000</div>
         <div class="tc-feats">
-          <div class="tc-feat">3 hours · 1 photographer</div>
-          <div class="tc-feat">100+ edited photos</div>
-          <div class="tc-feat">Candid + portrait shots</div>
+          <div class="tc-feat">Photo + video shoot · 1 person</div>
+          <div class="tc-feat">Output: Edited photos, highlight reel, candid photos</div>
         </div>
       </div>
-      <div class="tier-card" onclick="selTier(this,'photo','Signature',14000)">
+      <div class="tier-card" onclick="selTier(this,'photo','Signature',18000)">
         <div class="tc-img-wrap"><img class="tc-img" src="img/photo-signature.jpg" alt="Signature Package" loading="lazy"><div class="tc-name">Signature Package</div></div>
         <div class="tc-check">✓</div>
-        <div class="tc-sub">Premium photography + videography combo</div>
-        <div class="tc-price">₹14,000</div>
+        <div class="tc-sub">Full photo + video coverage with a 2-person crew</div>
+        <div class="tc-price">₹18,000</div>
         <div class="tc-feats">
-          <div class="tc-feat">Full event · Photo + Video</div>
-          <div class="tc-feat">200+ photos + highlights reel</div>
-          <div class="tc-feat">Same-day teaser clip</div>
+          <div class="tc-feat">Photo + video shoot · 2 people</div>
+          <div class="tc-feat">Output: Edited photos, highlight reel, traditional video, candid photos</div>
         </div>
       </div>
     </div>
+    <!-- Only shown for the Basic tier — Premium & Signature already include
+         a highlight reel in their output, so the paid add-on would double
+         up. Gated in JS via S.photo.tier==='Basic' (see id==='s7' handler
+         and selTier()). -->
     <div class="reel-row" id="reelRow" style="display:none">
       <div>
         <div class="reel-info">Add 30-second Instagram Reel</div>
@@ -2400,7 +2401,7 @@ function thumbFor(cat,id){
   if(cat==='DJ'){const map={'DJ Lite':'dj-lite','DJ Standard':'dj-standard','DJ Pro':'dj-pro'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎧');}
   if(cat==='Pinata'){if(id==='custom')return e('🪅');const p=PINATAS.find(x=>x.id===id);if(!p)return e('🪅');return p.realImg?{type:'img',src:'img/'+p.img+'.jpg'}:e(p.e);}
   if(cat==='E-Invite'){const inv=INVITES.find(x=>x.id===id);return inv?{type:'img',src:'einvites/'+inv.file}:e('💌');}
-  if(cat==='Photographer'){if(id==='reel')return e('🎬');const map={Starter:'photo-starter',Premium:'photo-premium',Signature:'photo-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('📷');}
+  if(cat==='Photographer'){if(id==='reel')return e('🎬');const map={Basic:'photo-starter',Premium:'photo-premium',Signature:'photo-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('📷');}
   if(cat==='Return Gifts'){
     if(id==='prop-pr1')return{type:'img',src:'img/packages/spy/spy-prop-sunglasses.jpg'};
     if(id==='prop-pr2')return e('🧢'); // no real Caps photo uploaded yet — placeholder emoji
@@ -2479,7 +2480,7 @@ function goTo(id){
   if(id==='s9')buildRev();
   if(id==='s6'){chkFreeInv();buildInvs();}
   if(id==='s8')chkFreeTag();
-  if(id==='s7')document.getElementById('reelRow').style.display=S.photo?'flex':'none';
+  if(id==='s7')document.getElementById('reelRow').style.display=(S.photo&&S.photo.tier==='Basic')?'flex':'none';
   if(id==='s3')syncHostDom();
   if(id==='s2'){try{document.getElementById('kDisp2').textContent=S.kidsCount;}catch(e){}}
   if(id==='sco'&&S._pkgCoupon){setTimeout(()=>{const el=document.getElementById('co-coupon');const ok=document.getElementById('couponOk');if(el&&!el.value){el.value=S._pkgCoupon;if(ok){ok.textContent='🎉 '+S._pkgCoupon+' applied — 15% off package price!';ok.classList.add('show');}}},50);}
@@ -2859,7 +2860,7 @@ function renderGalThumbs(){
 }
 
 // ── HOST & DJ ──
-function selTier(card,type,tier,p){const wasSel=card.classList.contains('sel');document.querySelectorAll('#'+type+'Cards .tier-card').forEach(c=>c.classList.remove('sel'));if(wasSel){S[type]=null;}else{card.classList.add('sel');S[type]={tier,p};}updBB(S.screen);if(type==='photo')document.getElementById('reelRow').style.display=S.photo?'flex':'none';}
+function selTier(card,type,tier,p){const wasSel=card.classList.contains('sel');document.querySelectorAll('#'+type+'Cards .tier-card').forEach(c=>c.classList.remove('sel'));if(wasSel){S[type]=null;}else{card.classList.add('sel');S[type]={tier,p};}updBB(S.screen);if(type==='photo'){const rr=document.getElementById('reelRow');rr.style.display=(S.photo&&S.photo.tier==='Basic')?'flex':'none';if(!(S.photo&&S.photo.tier==='Basic')&&S.addReel){S.addReel=false;document.getElementById('reelTog')?.classList.remove('on');}}}
 function syncHostDom(){if(!S.host)return;const map={'Starter':0,'Premium':1,'Signature':2};const idx=map[S.host.tier];if(idx===undefined)return;const cards=document.querySelectorAll('#hostCards .tier-card');cards.forEach((c,i)=>c.classList.toggle('sel',i===idx));}
 
 // ── PINATA ──

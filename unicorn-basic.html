@@ -1244,10 +1244,13 @@ const GIFT_ITEMS = [
   {id:'unicorn-tshirt', ic:'👕', name:'Live T-shirt Printing', d:'Live on-site printing — every guest takes home a custom-printed tee.', perChild:450},
 ];
 // Photographer — same tiers/prices as the site's standard photographer step.
+// Real catalogue (2026-08-07), matches builder.html's Photographer step.
+// Premium & Signature already include a highlight reel in their output, so
+// the paid Reel add-on below is gated to Basic only (see renderReel()).
 const PHOTO_TIERS = [
-  {id:'Starter', name:'Starter', price:6000, d:'Candid coverage for your event.'},
-  {id:'Premium', name:'Premium', price:9000, d:'Extended coverage with more deliverables.'},
-  {id:'Signature', name:'Signature', price:14000, d:'Full coverage, our top photography tier.'},
+  {id:'Basic', name:'Basic', price:6000, d:'Unlimited photos. Output: Edited photos.'},
+  {id:'Premium', name:'Premium', price:10000, d:'Photo + video shoot, 1 person. Output: Edited photos, highlight reel, candid photos.'},
+  {id:'Signature', name:'Signature', price:18000, d:'Photo + video shoot, 2 people. Output: Edited photos, highlight reel, traditional video, candid photos.'},
 ];
 // Birthday Reel — independent single toggle addon, gated behind Photographer.
 const REEL_ADDON = {id:'reel', ic:'📱', name:'Birthday Reel', d:'A shareable highlight reel.', flat:1000};
@@ -1530,10 +1533,24 @@ function renderReel() {
       '</div>';
     return;
   }
+  if (selectedPhotographer.id !== 'Basic') {
+    selectedReel = false;
+    grid.innerHTML =
+      '<div class="addon-act-card" style="opacity:.65;background:var(--li3)">' +
+        '<div class="addon-act-top">' +
+          '<div class="addon-act-ic">' + REEL_ADDON.ic + '</div>' +
+          '<div class="addon-act-info">' +
+            '<div class="addon-act-n" style="color:var(--gy)">' + REEL_ADDON.name + '</div>' +
+            '<div class="addon-act-d" style="color:var(--gy)">Already included with your ' + selectedPhotographer.name + ' package.</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    return;
+  }
   renderToggleGrid('reelGrid', [REEL_ADDON], selectedReel ? [REEL_ADDON.id] : [], () => REEL_ADDON.flat, 'toggleReel');
 }
 function toggleReel() {
-  if (!selectedPhotographer) return;
+  if (!selectedPhotographer || selectedPhotographer.id !== 'Basic') return;
   selectedReel = !selectedReel;
   renderReel();
   updateSticky();

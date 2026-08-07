@@ -620,10 +620,13 @@ const ENTRY_TIERS = [
 ];
 // Photographer — single-select, optional. Same tiers/prices as the site's
 // standard photographer step.
+// Real catalogue (2026-08-07), matches builder.html's Photographer step.
+// Premium & Signature already include a highlight reel in their output, so
+// the paid Reel add-on below is gated to Basic only (see renderReel()).
 const PHOTO_TIERS = [
-  {id:'ph1', name:'Starter', price:6000, d:'Candid coverage for your event.'},
-  {id:'ph2', name:'Premium', price:9000, d:'Extended coverage with more deliverables.'},
-  {id:'ph3', name:'Signature', price:14000, d:'Full coverage, our top photography tier.'},
+  {id:'ph1', name:'Basic', price:6000, d:'Unlimited photos. Output: Edited photos.'},
+  {id:'ph2', name:'Premium', price:10000, d:'Photo + video shoot, 1 person. Output: Edited photos, highlight reel, candid photos.'},
+  {id:'ph3', name:'Signature', price:18000, d:'Photo + video shoot, 2 people. Output: Edited photos, highlight reel, traditional video, candid photos.'},
 ];
 
 const MIN_KIDS = 12, MAX_KIDS = 60, MIN_BILL = 25000;
@@ -778,10 +781,24 @@ function renderReel() {
       '</div>';
     return;
   }
+  if (selectedPhotographer.id !== 'ph1') {
+    selectedReel = false;
+    grid.innerHTML =
+      '<div class="addon-act-card" style="opacity:.65;background:var(--li3)">' +
+        '<div class="addon-act-top">' +
+          '<div class="addon-act-ic">' + REEL_ADDON.ic + '</div>' +
+          '<div class="addon-act-info">' +
+            '<div class="addon-act-n" style="color:var(--gy)">' + REEL_ADDON.name + '</div>' +
+            '<div class="addon-act-d" style="color:var(--gy)">Already included with your ' + selectedPhotographer.name + ' package.</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    return;
+  }
   renderToggleGrid('reelGrid', [REEL_ADDON], selectedReel ? [REEL_ADDON.id] : [], () => REEL_ADDON.flat, 'toggleReel');
 }
 function toggleReel() {
-  if (!selectedPhotographer) return;
+  if (!selectedPhotographer || selectedPhotographer.id !== 'ph1') return;
   selectedReel = !selectedReel;
   renderReel();
   updateSticky();
