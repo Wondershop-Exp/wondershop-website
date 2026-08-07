@@ -1705,26 +1705,23 @@ input,textarea,select{font-family:var(--fb)}
       <div style="font-size:11px;font-weight:700;color:var(--gy);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Filter by Type</div>
       <div class="chips" id="gTChips">
         <button class="chip on" onclick="fGifts('type','all',this)">All</button>
-        <button class="chip" onclick="fGifts('type','art',this)">Art</button>
-        <button class="chip" onclick="fGifts('type','science',this)">Science</button>
-        <button class="chip" onclick="fGifts('type','reading',this)">Reading</button>
+        <button class="chip" onclick="fGifts('type','bags',this)">Bags & Pouches</button>
+        <button class="chip" onclick="fGifts('type','games',this)">Games</button>
+        <button class="chip" onclick="fGifts('type','personalized',this)">Personalized</button>
         <button class="chip" onclick="fGifts('type','stationery',this)">Stationery</button>
-        <button class="chip" onclick="fGifts('type','diy',this)">DIY</button>
+        <button class="chip" onclick="fGifts('type','home',this)">Home & Lifestyle</button>
       </div>
       <div style="font-size:11px;font-weight:700;color:var(--gy);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Budget per Child</div>
       <div class="chips" id="gBChips">
         <button class="chip on" onclick="fGifts('budget','all',this)">All</button>
-        <button class="chip" onclick="fGifts('budget','low',this)">Under ₹200</button>
-        <button class="chip" onclick="fGifts('budget','mid',this)">₹200–₹300</button>
-        <button class="chip" onclick="fGifts('budget','high',this)">₹300+</button>
+        <button class="chip" onclick="fGifts('budget','low',this)">Under ₹350</button>
+        <button class="chip" onclick="fGifts('budget','mid',this)">₹350–₹600</button>
+        <button class="chip" onclick="fGifts('budget','high',this)">₹600+</button>
       </div>
       <div style="font-size:11px;font-weight:700;color:var(--gy);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Theme</div>
       <div class="chips" id="gThChips">
         <button class="chip on" onclick="fGifts('gtheme','all',this)">All</button>
-        <button class="chip" onclick="fGifts('gtheme','generic',this)">Generic</button>
         <button class="chip" onclick="fGifts('gtheme','space',this)">Space</button>
-        <button class="chip" onclick="fGifts('gtheme','dino',this)">Dino</button>
-        <button class="chip" onclick="fGifts('gtheme','unicorn',this)">Unicorn</button>
       </div>
     </div>
     <div class="cards-grid" id="gCards"></div>
@@ -2333,18 +2330,40 @@ const INVITES=[
   {id:'i25',n:'Nani ka Ghar (Photoreal)',p:500,file:'nanighar-photoreal.png',t:'nanighar'},
   {id:'i26',n:'Nani ka Ghar (Phone Call)',p:500,file:'nanighar-phonecall.jpg',t:'nanighar'}
 ];
-// Return Gifts section is being redone with fresh product photography —
-// back to emoji tiles for now (real photos + this whole list will be
-// replaced). See GIFTS below: no `img` field = icon tile fallback.
+// Return Gifts catalogue refreshed 2026-08-07 with real product photography
+// from img/return-gifts/ (name + price sourced directly from the supplied
+// filenames). `type` values now match the actual product categories —
+// bags/games/personalized/stationery/home — not the old fictional
+// art/science/reading/diy taxonomy, so the Filter by Type chips below were
+// updated to match (see id="gTChips"). Budget buckets were also re-centred
+// around the real price range (₹210–₹1,200 vs the old ₹200–₹380 placeholder
+// range) — see id="gBChips" and the budget check in renderGifts().
+// One upload had no price in its filename ("5 Pcs Steel Straw Set - Rs.jpg")
+// and was left out — ask Shruti for that price to add it.
 const GIFTS=[
-  {id:'g1',n:'DIY Art Kit',e:'🎨',type:'art',gtheme:'generic',age:'4-10',unit:300,bg:'#FFF0F7',tag:'pop'},
-  {id:'g2',n:'Science Explorer Kit',e:'🔬',type:'science',gtheme:'space',age:'6-12',unit:350,bg:'#F0F7FF',tag:'rec'},
-  {id:'g3',n:'Puzzle Master',e:'🧩',type:'reading',gtheme:'generic',age:'4-8',unit:250,bg:'#FFFBDC',tag:''},
-  {id:'g4',n:'Stationery Set',e:'✏️',type:'stationery',gtheme:'generic',age:'5-12',unit:200,bg:'#F0FDF4',tag:'pop'},
-  {id:'g5',n:'Story Book Bundle',e:'📚',type:'reading',gtheme:'generic',age:'3-8',unit:280,bg:'#FFF5E6',tag:''},
-  {id:'g6',n:'Dino DIY Kit',e:'🦕',type:'diy',gtheme:'dino',age:'4-9',unit:320,bg:'#F0FDF4',tag:'new'},
-  {id:'g7',n:'Space Science Kit',e:'🚀',type:'science',gtheme:'space',age:'6-12',unit:380,bg:'#F0F7FF',tag:'new'},
-  {id:'g8',n:'Unicorn Craft Set',e:'🦄',type:'art',gtheme:'unicorn',age:'3-8',unit:290,bg:'#FFF0F7',tag:'trend'}
+  {id:'g1',n:'3D Printed Personalized FIFA World Cup',img:'return-gifts/fifa-world-cup-3d.jpg',e:'⚽',type:'personalized',gtheme:'generic',age:'5-12',unit:850,bg:'#F0F7FF',tag:''},
+  {id:'g2',n:'900ml Tumbler',img:'return-gifts/tumbler-900ml.jpg',e:'🥤',type:'home',gtheme:'generic',age:'3-12',unit:750,bg:'#F0FDF4',tag:''},
+  {id:'g3',n:'Baby Frost Pouch',img:'return-gifts/baby-frost-pouch.jpg',e:'👝',type:'bags',gtheme:'generic',age:'3-12',unit:245,bg:'#FFF0F7',tag:''},
+  {id:'g4',n:'Codenames (Board Game)',img:'return-gifts/board-game-codenames.jpg',e:'🎲',type:'games',gtheme:'generic',age:'10-14',unit:475,bg:'#FFFBDC',tag:''},
+  {id:'g5',n:'Neon Chest Bag',img:'return-gifts/chest-bag-neon.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'5-12',unit:275,bg:'#FFF0F7',tag:''},
+  {id:'g6',n:'Foam Duffle Bag',img:'return-gifts/foam-duffle-bag.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:300,bg:'#FFF0F7',tag:''},
+  {id:'g7',n:'Jelly Tote Bag',img:'return-gifts/jelly-tote-bag.jpg',e:'👜',type:'bags',gtheme:'generic',age:'3-12',unit:500,bg:'#FFF0F7',tag:''},
+  {id:'g8',n:'Jewellery Organizer with Initial',img:'return-gifts/jewellery-organizer-initial.jpg',e:'💍',type:'personalized',gtheme:'generic',age:'5-12',unit:500,bg:'#F0F7FF',tag:''},
+  {id:'g9',n:'Kids Travel Trolley',img:'return-gifts/kids-travel-trolley.jpg',e:'🧳',type:'home',gtheme:'generic',age:'3-10',unit:1200,bg:'#F0FDF4',tag:''},
+  {id:'g10',n:'LCD Compass Box with Calculator',img:'return-gifts/lcd-compass-calculator.jpg',e:'📐',type:'stationery',gtheme:'generic',age:'6-14',unit:210,bg:'#FFFBDC',tag:''},
+  {id:'g11',n:'Mafia (Board Game)',img:'return-gifts/board-game-mafia.jpg',e:'🎲',type:'games',gtheme:'generic',age:'10-14',unit:300,bg:'#FFFBDC',tag:''},
+  {id:'g12',n:'Magic Water Painting Book',img:'return-gifts/magic-water-painting-book.jpg',e:'🎨',type:'stationery',gtheme:'generic',age:'3-8',unit:375,bg:'#FFFBDC',tag:''},
+  {id:'g13',n:'Neon Bag with Double Packet',img:'return-gifts/neon-bag-double-packet.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:400,bg:'#FFF0F7',tag:''},
+  {id:'g14',n:'Neon Duffle Bag',img:'return-gifts/neon-duffle-bag.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:350,bg:'#FFF0F7',tag:''},
+  {id:'g15',n:'Personalized Drawstring Pouch',img:'return-gifts/personalized-drawstring-pouch.jpg',e:'👝',type:'bags',gtheme:'generic',age:'3-12',unit:500,bg:'#FFF0F7',tag:''},
+  {id:'g16',n:'Personalized Drawstring Bag & Pouch Combo',img:'return-gifts/personalized-drawstring-combo.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:750,bg:'#FFF0F7',tag:''},
+  {id:'g17',n:'Personalized Duffle Bag',img:'return-gifts/personalized-duffle-bag.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:650,bg:'#FFF0F7',tag:''},
+  {id:'g18',n:'Personalized Football',img:'return-gifts/personalized-football.jpg',e:'⚽',type:'personalized',gtheme:'generic',age:'5-12',unit:600,bg:'#F0F7FF',tag:''},
+  {id:'g19',n:'Personalized Pouch',img:'return-gifts/personalized-pouch.jpg',e:'👝',type:'bags',gtheme:'generic',age:'3-12',unit:325,bg:'#FFF0F7',tag:''},
+  {id:'g20',n:'Space Rocket Piggy Bank with Password',img:'return-gifts/space-rocket-piggy-bank.jpg',e:'🚀',type:'personalized',gtheme:'space',age:'3-10',unit:410,bg:'#F0F7FF',tag:''},
+  {id:'g21',n:'Theme Based Penstand',img:'return-gifts/theme-penstand.jpg',e:'✏️',type:'stationery',gtheme:'generic',age:'5-12',unit:450,bg:'#FFFBDC',tag:''},
+  {id:'g22',n:'Toy Storage Box',img:'return-gifts/toy-storage-box.jpg',e:'📦',type:'home',gtheme:'generic',age:'3-10',unit:375,bg:'#F0FDF4',tag:''},
+  {id:'g23',n:'Train Night Lamp',img:'return-gifts/train-night-lamp.jpg',e:'🚂',type:'home',gtheme:'generic',age:'3-8',unit:300,bg:'#F0FDF4',tag:''}
 ];
 let gF={type:'all',budget:'all',gtheme:'all'};
 let actFilter='all';
@@ -3015,7 +3034,9 @@ function togReel(){S.addReel=!S.addReel;document.getElementById('reelTog').class
 
 // ── GIFTS ──
 // Map a decor theme id (Step 0/1) to the closest matching gift theme, if any.
-const GIFT_THEME_MAP={space:'space',dino:'dino',uni:'unicorn'};
+// Only Space has a real matching product (Space Rocket Piggy Bank) since the
+// 2026-08-07 catalogue refresh — dino/unicorn dropped, no matching product.
+const GIFT_THEME_MAP={space:'space'};
 function buildGifts(){
   gF={type:'all',budget:'all',gtheme:'all'};
   const gTh=S.theme&&GIFT_THEME_MAP[S.theme];
@@ -3027,7 +3048,7 @@ function buildGifts(){
 function renderGifts(){
   const list=GIFTS.filter(g=>{
     if(gF.type!=='all'&&g.type!==gF.type)return false;
-    if(gF.budget!=='all'){if(gF.budget==='low'&&g.unit>=200)return false;if(gF.budget==='mid'&&(g.unit<200||g.unit>300))return false;if(gF.budget==='high'&&g.unit<=300)return false;}
+    if(gF.budget!=='all'){if(gF.budget==='low'&&g.unit>=350)return false;if(gF.budget==='mid'&&(g.unit<350||g.unit>600))return false;if(gF.budget==='high'&&g.unit<=600)return false;}
     if(gF.gtheme!=='all'&&g.gtheme!==gF.gtheme)return false;
     return true;
   });
@@ -3883,11 +3904,13 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
       // Entry Options — shown under the Addons section, same as Spy.
       if(pkgData.entry)S.spyExtras.push({id:'entry-'+pkgData.entry.id,n:pkgData.entry.name+' Entry',p:pkgData.entry.price});
-      // Return Gift — reuses the real GIFTS id ('g8' Unicorn Craft Set) so
-      // the review page shows the correct real emoji/background.
+      // Return Gift — local map with ids namespaced 'uni-*' so they can't
+      // collide with the real GIFTS catalogue ids (thumbFor looks up
+      // Return Gift thumbnails by id in the live GIFTS array — a collision
+      // would show the wrong real photo under this item's name).
       if(pkgData.gifts&&pkgData.gifts.length){
-        const GIFT_MAP={g8:{n:'Unicorn Craft Set',perChild:290},'unicorn-tshirt':{n:'Live T-shirt Printing',perChild:450}};
-        pkgData.gifts.forEach(gid=>{const item=GIFT_MAP[gid];if(item)S.gifts.push({id:gid,n:item.n,unit:item.perChild,qty:kids});});
+        const GIFT_MAP={'uni-craftset':{n:'Unicorn Craft Set',perChild:290},'unicorn-tshirt':{n:'Live T-shirt Printing',perChild:450}};
+        pkgData.gifts.forEach(gid=>{const key=gid==='g8'?'uni-craftset':gid;const item=GIFT_MAP[key];if(item)S.gifts.push({id:key,n:item.n,unit:item.perChild,qty:kids});});
       }
       // Photographer — same tier names as the site's standard photographer step.
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
@@ -3980,10 +4003,14 @@ document.addEventListener('DOMContentLoaded',()=>{
         else S.einvite={id:'turf-'+pkgData.einvite.id,n:'Turf Party '+pkgData.einvite.name,p:pkgData.einvite.price};
       }
       if(pkgData.entry)S.spyExtras.push({id:'entry-'+pkgData.entry.id,n:pkgData.entry.name+' Entry',p:pkgData.entry.price});
-      // Return Gift — reuses the real GIFTS id ('g1' DIY Art Kit, generic
-      // placeholder until a Turf-specific gift exists in the catalogue).
+      // Return Gift — turf-basic.html's GIFT_ITEMS is its own small local
+      // catalogue (not the main builder GIFTS array), so this is a local
+      // map with a 'turf-*' namespaced id — keeps working regardless of
+      // what's in the real Return Gifts catalogue (see 2026-08-07 refresh),
+      // and can't collide with a real GIFTS id in thumbFor's lookup.
       if(pkgData.gifts&&pkgData.gifts.length){
-        pkgData.gifts.forEach(gid=>{const g=GIFTS.find(x=>x.id===gid);if(g)S.gifts.push({id:g.id,n:g.n,unit:g.unit,qty:kids});});
+        const GIFT_MAP={'turf-artkit':{n:'DIY Art Kit',perChild:300}};
+        pkgData.gifts.forEach(gid=>{const key=gid==='g1'?'turf-artkit':gid;const item=GIFT_MAP[key];if(item)S.gifts.push({id:key,n:item.n,unit:item.perChild,qty:kids});});
       }
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
       if(pkgData.reel)S.addReel=true;
