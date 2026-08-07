@@ -2807,7 +2807,7 @@ function galMediaFor(kind,obj){
   let items;
   if(obj.gallery&&obj.gallery.length)items=obj.gallery.slice();
   else{
-    const src=kind==='theme'?('img/theme-'+obj.id+'.jpg'):('img/'+obj.img+'.jpg');
+    const src=kind==='theme'?('img/theme-'+obj.id+'.jpg'):kind==='gift'?('img/'+obj.img):('img/'+obj.img+'.jpg');
     items=[{type:'img',src}];
   }
   if(kind==='theme'||kind==='std'||kind==='pinata')items=items.concat([{type:'info'}]);
@@ -2838,7 +2838,7 @@ function buildDecorInfoHTML(kind,obj){
     custNote;
 }
 function openGallery(kind,id){
-  const obj=kind==='theme'?THEMES.find(t=>t.id===id):kind==='std'?STD.find(t=>t.id===id):kind==='pinata'?PINATAS.find(p=>p.id===id):ACTS.find(a=>a.id===id);
+  const obj=kind==='theme'?THEMES.find(t=>t.id===id):kind==='std'?STD.find(t=>t.id===id):kind==='pinata'?PINATAS.find(p=>p.id===id):kind==='gift'?GIFTS.find(g=>g.id===id):ACTS.find(a=>a.id===id);
   if(!obj)return;
   galKind=kind;galObj=obj;
   galItems=galMediaFor(kind,obj);
@@ -2850,6 +2850,8 @@ function openGallery(kind,id){
     ? obj.d
     : kind==='pinata'
     ? ('₹'+obj.p.toLocaleString('en-IN')+'  ·  '+obj.d)
+    : kind==='gift'
+    ? ('₹'+obj.unit.toLocaleString('en-IN')+'/child  ·  Ages '+obj.age)
     : ('📍 '+obj.req+'  ·  ⏱ '+obj.dur+'  ·  Ages '+obj.age);
   renderGalThumbs();
   renderGalStage();
@@ -3056,7 +3058,7 @@ function renderGifts(){
   list.forEach(g=>{const ex=S.gifts.find(x=>x.id===g.id);const qty=ex?ex.qty:S.kidsCount;const added=!!ex;
     const tagHtml=g.tag?TAG_MAP[g.tag]:'';
     const emojiHtml=g.img
-      ? '<div class="g-emoji has-img"><img src="img/'+g.img+'" alt="'+g.n+'" loading="lazy" onerror="this.parentElement.classList.remove(\'has-img\');this.parentElement.style.background=\''+g.bg+'\';this.outerHTML=\''+g.e+'\'"></div>'
+      ? '<div class="g-emoji has-img" style="cursor:pointer" onclick="openGallery(\'gift\',\''+g.id+'\')"><img src="img/'+g.img+'" alt="'+g.n+'" loading="lazy" onerror="this.parentElement.classList.remove(\'has-img\');this.parentElement.style.background=\''+g.bg+'\';this.parentElement.removeAttribute(\'onclick\');this.parentElement.style.cursor=\'\';this.outerHTML=\''+g.e+'\'"></div>'
       : '<div class="g-emoji" style="background:'+g.bg+'">'+g.e+'</div>';
     w.innerHTML+='<div class="gift-card'+(added?' added':'')+'" id="gc-'+g.id+'"><div class="gift-top">'+emojiHtml+'<div><div class="g-name">'+g.n+'</div><div class="g-meta">Ages '+g.age+' · ₹'+g.unit+'/child</div>'+tagHtml+'</div></div><div class="gift-bottom"><div><div style="font-size:10px;color:var(--gy)">₹'+g.unit+' × <span id="qty-'+g.id+'">'+qty+'</span> kids</div><div class="gift-total">₹<span id="qtot-'+g.id+'">'+(qty*g.unit).toLocaleString('en-IN')+'</span></div></div><div style="display:flex;align-items:center;gap:6px">'+(added?'<div class="qty-ctrl"><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',-1)">−</button><span class="qty-val" id="qv-'+g.id+'">'+qty+'</span><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',1)">+</button></div><button class="card-btn rmv" onclick="rmGift(\''+g.id+'\')">Remove</button>':'<button class="card-btn" onclick="addGift(\''+g.id+'\',\''+g.n+'\','+g.unit+')">Add</button>')+'</div></div></div>';
   });
