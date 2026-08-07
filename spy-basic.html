@@ -583,10 +583,14 @@ const ADDON_STATIONS = [
 ];
 
 // Music — single-select DJ tier, optional (click again to remove).
+// Tier names unified 2026-08-07 to Classic/Premium/Signature (bare, no
+// "DJ" prefix) — matches builder.html's S.dj.tier values so the review
+// page's DJ thumbnail resolves to the correct real photo instead of
+// falling back to the emoji tile.
 const MUSIC_TIERS = [
-  {id:'m1', name:'DJ Compact', price:7000, d:'Compact DJ setup with speaker + mixer.'},
-  {id:'m2', name:'DJ Premium', price:11000, d:'Bigger sound system with lighting included.'},
-  {id:'m3', name:'DJ Signature', price:15000, d:'Full sound + lighting rig for a big party feel.'},
+  {id:'m1', name:'Classic', price:7000, d:'Compact DJ setup with speaker + mixer.'},
+  {id:'m2', name:'Premium', price:11000, d:'Bigger sound system with lighting included.'},
+  {id:'m3', name:'Signature', price:15000, d:'Full sound + lighting rig for a big party feel.'},
 ];
 // E-Invite — single-select, optional.
 const EINVITE_TIERS = [
@@ -622,9 +626,9 @@ const ENTRY_TIERS = [
 // standard photographer step.
 // Real catalogue (2026-08-07), matches builder.html's Photographer step.
 // Premium & Signature already include a highlight reel in their output, so
-// the paid Reel add-on below is gated to Basic only (see renderReel()).
+// the paid Reel add-on below is gated to Classic only (see renderReel()).
 const PHOTO_TIERS = [
-  {id:'ph1', name:'Basic', price:6000, d:'Unlimited photos. Output: Edited photos.'},
+  {id:'ph1', name:'Classic', price:6000, d:'Unlimited photos. Output: Edited photos.'},
   {id:'ph2', name:'Premium', price:10000, d:'Photo + video shoot, 1 person. Output: Edited photos, highlight reel, candid photos.'},
   {id:'ph3', name:'Signature', price:18000, d:'Photo + video shoot, 2 people. Output: Edited photos, highlight reel, traditional video, candid photos.'},
 ];

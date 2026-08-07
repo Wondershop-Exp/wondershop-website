@@ -1442,21 +1442,18 @@ input,textarea,select{font-family:var(--fb)}
     <p>Your Party Lead will personally match you with the perfect host and share the details post-booking.</p>
   </div>
 
-  <!-- TODO — tier naming review (added 2026-08-07 at Shruti's request):
-       "Premium" is the MIDDLE tier here (Starter ₹10k / Premium ₹12k /
-       Signature ₹15k), which already caused one mix-up matching uploaded
-       host photos (a file literally named "host-premium" turned out to be
-       the top-tier photo, not this middle one). Revisit these labels —
-       and DJ's (search "id=\"djCards\"": Lite/Standard/Pro) and Decor's
-       (once per-variant tier names exist — see pricing-sheet TODO near
-       const THEMES) — so "Premium" et al. map consistently to rank across
-       all three categories, not just here. -->
+  <!-- Tier naming unified 2026-08-07 (Classic/Premium/Signature) across
+       Host, DJ and Photographer — see matching comments at id="djCards"
+       and the Photographer tier-card block. Resolves the earlier "Premium"
+       mix-up (a file literally named "host-premium" was the top tier, not
+       the middle one) since all three categories now share the same
+       three-word vocabulary, in the same rank order, everywhere. -->
   <div class="sec-blk">
     <div class="tier-cards" id="hostCards">
-      <div class="tier-card" onclick="selTier(this,'host','Starter',10000)">
-        <img class="tc-img" src="img/host-starter.jpg" alt="Starter Host" loading="lazy">
+      <div class="tier-card" onclick="selTier(this,'host','Classic',10000)">
+        <img class="tc-img" src="img/host-classic.jpg" alt="Classic Host" loading="lazy">
         <div class="tc-check">✓</div>
-        <div class="tc-name">Starter Host</div>
+        <div class="tc-name">Classic Host</div>
         <div class="tc-sub">Energetic anchor who manages games, activities and programme flow</div>
         <div class="tc-price">₹10,000</div>
         <div class="tc-feats">
@@ -1507,16 +1504,16 @@ input,textarea,select{font-family:var(--fb)}
     <p>Professional DJ with the right equipment and playlist for children's birthdays. Skip if your venue has its own sound system.</p>
   </div>
 
-  <!-- TODO — tier naming review: see the matching comment above
-       id="hostCards". Lite/Standard/Pro doesn't have the same
-       middle-tier-named-"Premium" collision, but re-check it against
-       Host/Decor once those are renamed, for consistency. -->
+  <!-- Tier naming unified 2026-08-07 (Classic/Premium/Signature) — see
+       matching comment at id="hostCards". S.dj.tier now stores the bare
+       tier word ('Classic'/'Premium'/'Signature'), same as Host/Photographer;
+       "DJ" only appears in the display label, not the stored value. -->
   <div class="sec-blk">
     <div class="tier-cards" id="djCards">
-      <div class="tier-card" onclick="selTier(this,'dj','DJ Lite',7000)">
-        <img class="tc-img" src="img/dj-lite.jpg" alt="DJ Lite" loading="lazy">
+      <div class="tier-card" onclick="selTier(this,'dj','Classic',7000)">
+        <img class="tc-img" src="img/dj-classic.jpg" alt="Classic DJ" loading="lazy">
         <div class="tc-check">✓</div>
-        <div class="tc-name">DJ Lite</div>
+        <div class="tc-name">Classic DJ</div>
         <div class="tc-sub">Essential sound for homes and small spaces</div>
         <div class="tc-price">₹7,000</div>
         <div class="tc-feats">
@@ -1525,10 +1522,10 @@ input,textarea,select{font-family:var(--fb)}
           <div class="tc-feat">Ideal for homes &amp; small venues</div>
         </div>
       </div>
-      <div class="tier-card" onclick="selTier(this,'dj','DJ Standard',11000)">
-        <img class="tc-img" src="img/dj-standard.jpg" alt="DJ Standard" loading="lazy">
+      <div class="tier-card" onclick="selTier(this,'dj','Premium',11000)">
+        <img class="tc-img" src="img/dj-premium.jpg" alt="Premium DJ" loading="lazy">
         <div class="tc-check">✓</div>
-        <div class="tc-name">DJ Standard</div>
+        <div class="tc-name">Premium DJ</div>
         <div class="tc-sub">Full DJ setup for banquet halls and larger venues</div>
         <div class="tc-price">₹11,000</div>
         <div class="tc-feats">
@@ -1537,10 +1534,10 @@ input,textarea,select{font-family:var(--fb)}
           <div class="tc-feat">Full venue sound coverage</div>
         </div>
       </div>
-      <div class="tier-card" onclick="selTier(this,'dj','DJ Pro',15000)">
-        <img class="tc-img" src="img/dj-pro.jpg" alt="DJ Pro" loading="lazy">
+      <div class="tier-card" onclick="selTier(this,'dj','Signature',15000)">
+        <img class="tc-img" src="img/dj-signature.jpg" alt="Signature DJ" loading="lazy">
         <div class="tc-check">✓</div>
-        <div class="tc-name">DJ Pro</div>
+        <div class="tc-name">Signature DJ</div>
         <div class="tc-sub">Premium DJ experience with expert DJ player and full light show</div>
         <div class="tc-price">₹15,000</div>
         <div class="tc-feats">
@@ -1648,8 +1645,8 @@ input,textarea,select{font-family:var(--fb)}
 
   <div class="sec-blk">
     <div class="tier-cards" id="photoCards">
-      <div class="tier-card" onclick="selTier(this,'photo','Basic',6000)">
-        <div class="tc-img-wrap"><img class="tc-img" src="img/photo-starter.jpg" alt="Basic Package" loading="lazy"><div class="tc-name">Basic Package</div></div>
+      <div class="tier-card" onclick="selTier(this,'photo','Classic',6000)">
+        <div class="tc-img-wrap"><img class="tc-img" src="img/photo-classic.jpg" alt="Classic Package" loading="lazy"><div class="tc-name">Classic Package</div></div>
         <div class="tc-check">✓</div>
         <div class="tc-price">₹6,000</div>
         <div class="tc-feats">
@@ -1676,10 +1673,10 @@ input,textarea,select{font-family:var(--fb)}
         </div>
       </div>
     </div>
-    <!-- Only shown for the Basic tier — Premium & Signature already include
-         a highlight reel in their output, so the paid add-on would double
-         up. Gated in JS via S.photo.tier==='Basic' (see id==='s7' handler
-         and selTier()). -->
+    <!-- Only shown for the Classic tier — Premium & Signature already
+         include a highlight reel in their output, so the paid add-on would
+         double up. Gated in JS via S.photo.tier==='Classic' (see id==='s7'
+         handler and selTier()). -->
     <div class="reel-row" id="reelRow" style="display:none">
       <div>
         <div class="reel-info">Add 30-second Instagram Reel</div>
@@ -2146,13 +2143,14 @@ function wsBuilderSnapshotForSheet(){
 // "Remove 16 photo-less decor themes" commit — so nothing needs to be
 // re-typed from scratch when photos arrive.
 //
-// TODO — tier naming review (added 2026-08-07): each decor variant (arch/
-// 1-panel/2-panel/3-panel) will need its own tier name once real
-// per-variant pricing arrives (see the pricing-sheet discussion in chat).
-// When naming those tiers, check them against Host's Starter/Premium/
-// Signature and DJ's Lite/Standard/Pro — Host's "Premium" sitting in the
-// middle price slot already caused one mix-up with uploaded photo naming,
-// so keep Decor's tier names unambiguous (low/mid/top) from the start.
+// TODO — tier naming review (added 2026-08-07, still open): each decor
+// variant (arch/1-panel/2-panel/3-panel) will need its own tier name once
+// real per-variant pricing arrives (see the pricing-sheet discussion in
+// chat). Host, DJ and Photographer were unified to Classic/Premium/
+// Signature on 2026-08-07 (see id="hostCards"/"djCards" and the
+// Photographer tier-card block) — match Decor's naming to that same
+// vocabulary/rank order once its per-variant pricing lands, rather than
+// inventing a fourth scheme.
 const THEMES=[
   {id:'uni',n:'Unicorn Magic',e:'🦄',bg:'linear-gradient(135deg,#F5C3D7,#EDE6FA)',age:'3-5',gn:'Girl',p:8000,b:'150 (Pink, Purple, White)',panels:'1 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'pop',gallery:[{type:'img',src:'img/Decor/decor-uni-arch.jpg'},{type:'img',src:'img/Decor/decor-uni-1panel.jpg'},{type:'img',src:'img/Decor/decor-uni-2panel.jpg'},{type:'img',src:'img/Decor/decor-uni-3panel.jpg'}]},
   {id:'jungle',n:'Jungle Safari',e:'🌴',bg:'linear-gradient(135deg,#52C470,#B7E0B8)',age:'3-8',gn:'Both',p:9000,b:'200 (Green, Yellow, Orange)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Tables, chairs, props',tag:'trend',gallery:[{type:'img',src:'img/Decor/decor-jungle-3panel.jpg'}]},
@@ -2352,7 +2350,7 @@ function cItems(){
     const hostNote=hostIncluded?' <span style="color:var(--gy);font-weight:500;font-size:11px">· Included in Spy theme</span>':'';
     items.push({cat:'Host',n:S.host.tier+' Host'+hostNote,p:S.host.p,id:S.host.tier});
   }
-  if(S.dj)items.push({cat:'DJ',n:S.dj.tier,p:S.dj.p,id:S.dj.tier});
+  if(S.dj)items.push({cat:'DJ',n:S.dj.tier+' DJ',p:S.dj.p,id:S.dj.tier});
   if(S.pinata){const pt=rawNoInv();const isFree=pt>=S.FPT;const fp=isFree?0:S.pinata.p;const pItem={cat:'Pinata',n:S.pinata.n+(isFree?' (FREE)':''),p:fp,id:S.pinata.id};if(isFree&&S.pinata.p>0)pItem.wasP=S.pinata.p;items.push(pItem);}
   if(S.einvite){const gt=rawNoInv();const isFree=gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n+(isFree?' (FREE)':''),p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
   if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});if(S.addReel)items.push({cat:'Photographer',n:'30-sec Reel',p:1000,id:'reel'});}
@@ -2396,11 +2394,11 @@ function thumbFor(cat,id){
     if(id==='photoframe-decor')return e('🖼️');
     const a=ACTS.find(x=>x.id===id);if(!a)return e('🎨');return a.realImg?{type:'img',src:'img/'+a.img+'.jpg'}:e(a.e,(a.bgs&&a.bgs[0]));
   }
-  if(cat==='Host'){const map={Starter:'host-starter',Premium:'host-premium',Signature:'host-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎤');}
-  if(cat==='DJ'){const map={'DJ Lite':'dj-lite','DJ Standard':'dj-standard','DJ Pro':'dj-pro'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎧');}
+  if(cat==='Host'){const map={Classic:'host-classic',Premium:'host-premium',Signature:'host-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎤');}
+  if(cat==='DJ'){const map={Classic:'dj-classic',Premium:'dj-premium',Signature:'dj-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎧');}
   if(cat==='Pinata'){if(id==='custom')return e('🪅');const p=PINATAS.find(x=>x.id===id);if(!p)return e('🪅');return p.realImg?{type:'img',src:'img/'+p.img+'.jpg'}:e(p.e);}
   if(cat==='E-Invite'){const inv=INVITES.find(x=>x.id===id);return inv?{type:'img',src:'einvites/'+inv.file}:e('💌');}
-  if(cat==='Photographer'){if(id==='reel')return e('🎬');const map={Basic:'photo-starter',Premium:'photo-premium',Signature:'photo-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('📷');}
+  if(cat==='Photographer'){if(id==='reel')return e('🎬');const map={Classic:'photo-classic',Premium:'photo-premium',Signature:'photo-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('📷');}
   if(cat==='Return Gifts'){
     if(id==='prop-pr1')return{type:'img',src:'img/packages/spy/spy-prop-sunglasses.jpg'};
     if(id==='prop-pr2')return e('🧢'); // no real Caps photo uploaded yet — placeholder emoji
@@ -2479,7 +2477,7 @@ function goTo(id){
   if(id==='s9')buildRev();
   if(id==='s6'){chkFreeInv();buildInvs();}
   if(id==='s8')chkFreeTag();
-  if(id==='s7')document.getElementById('reelRow').style.display=(S.photo&&S.photo.tier==='Basic')?'flex':'none';
+  if(id==='s7')document.getElementById('reelRow').style.display=(S.photo&&S.photo.tier==='Classic')?'flex':'none';
   if(id==='s3')syncHostDom();
   if(id==='s2'){try{document.getElementById('kDisp2').textContent=S.kidsCount;}catch(e){}}
   if(id==='sco'&&S._pkgCoupon){setTimeout(()=>{const el=document.getElementById('co-coupon');const ok=document.getElementById('couponOk');if(el&&!el.value){el.value=S._pkgCoupon;if(ok){ok.textContent='🎉 '+S._pkgCoupon+' applied — 15% off package price!';ok.classList.add('show');}}},50);}
@@ -2859,8 +2857,8 @@ function renderGalThumbs(){
 }
 
 // ── HOST & DJ ──
-function selTier(card,type,tier,p){const wasSel=card.classList.contains('sel');document.querySelectorAll('#'+type+'Cards .tier-card').forEach(c=>c.classList.remove('sel'));if(wasSel){S[type]=null;}else{card.classList.add('sel');S[type]={tier,p};}updBB(S.screen);if(type==='photo'){const rr=document.getElementById('reelRow');rr.style.display=(S.photo&&S.photo.tier==='Basic')?'flex':'none';if(!(S.photo&&S.photo.tier==='Basic')&&S.addReel){S.addReel=false;document.getElementById('reelTog')?.classList.remove('on');}}}
-function syncHostDom(){if(!S.host)return;const map={'Starter':0,'Premium':1,'Signature':2};const idx=map[S.host.tier];if(idx===undefined)return;const cards=document.querySelectorAll('#hostCards .tier-card');cards.forEach((c,i)=>c.classList.toggle('sel',i===idx));}
+function selTier(card,type,tier,p){const wasSel=card.classList.contains('sel');document.querySelectorAll('#'+type+'Cards .tier-card').forEach(c=>c.classList.remove('sel'));if(wasSel){S[type]=null;}else{card.classList.add('sel');S[type]={tier,p};}updBB(S.screen);if(type==='photo'){const rr=document.getElementById('reelRow');rr.style.display=(S.photo&&S.photo.tier==='Classic')?'flex':'none';if(!(S.photo&&S.photo.tier==='Classic')&&S.addReel){S.addReel=false;document.getElementById('reelTog')?.classList.remove('on');}}}
+function syncHostDom(){if(!S.host)return;const map={'Classic':0,'Premium':1,'Signature':2};const idx=map[S.host.tier];if(idx===undefined)return;const cards=document.querySelectorAll('#hostCards .tier-card');cards.forEach((c,i)=>c.classList.toggle('sel',i===idx));}
 
 // ── PINATA ──
 function chkFreePinata(){const isFree=rawNoInv()>=S.FPT;document.getElementById('freePinataBadge').style.display=isFree?'block':'none';}
@@ -3826,8 +3824,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       const kids=pkgData.kidsCount||25;
       const actId=pkgData.actId||'a8';
       const act=ACTS.find(a=>a.id===actId);
-      // Host — bundled at the real Starter Host price, always included.
-      S.host={tier:'Starter',p:10000};
+      // Host — bundled at the real Classic Host price, always included.
+      S.host={tier:'Classic',p:10000};
       S.couponPct=15;
       S._pkgCoupon='PKGUNICORN';
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
@@ -3943,7 +3941,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       const kids=pkgData.kidsCount||25;
       const actId=pkgData.actId||'a8';
       const act=ACTS.find(a=>a.id===actId);
-      S.host={tier:'Starter',p:10000};
+      S.host={tier:'Classic',p:10000};
       S.couponPct=15;
       S._pkgCoupon='PKGTURF';
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;

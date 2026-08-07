@@ -357,7 +357,7 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="incl-card">
           <div class="incl-card-ic">🎵</div>
           <div class="incl-card-h">Music</div>
-          <div class="incl-card-body">DJ Compact setup included as standard — speaker, mixer and age-appropriate playlist. Upgrade to Premium or Signature below.</div>
+          <div class="incl-card-body">Classic DJ setup included as standard — speaker, mixer and age-appropriate playlist. Upgrade to Premium or Signature below.</div>
         </div>
 
         <div class="incl-card">
@@ -566,7 +566,7 @@ button{cursor:pointer;font-family:var(--fb)}
         <h2 class="sec-h2">Music</h2>
         <span class="act-badge">Included · pick a tier</span>
       </div>
-      <p class="sec-sub">DJ Compact is included in the package price. Upgrading adds the difference to your total.</p>
+      <p class="sec-sub">Classic DJ is included in the package price. Upgrading adds the difference to your total.</p>
       <div class="act-grid" id="musicGrid"></div>
     </div>
   </section>
@@ -687,9 +687,9 @@ button{cursor:pointer;font-family:var(--fb)}
 document.getElementById('nav-ham').addEventListener('click',()=>document.getElementById('nav-mob').classList.toggle('open'));
 
 // ── DATA ──
-// Host is bundled at the site's real Starter Host price (₹10,000) — not
+// Host is bundled at the site's real Classic Host price (₹10,000) — not
 // separately selectable on this page. Decor/Music/E-Invite each default to
-// their first tier (Basic / DJ Compact / Static), which is what's "included"
+// their first tier (Basic / Classic DJ / Static), which is what's "included"
 // in the headline price; picking a higher tier adds the difference.
 const HOST_PRICE = 10000;
 const KIDS_THRESHOLD = 25;
@@ -706,10 +706,14 @@ const DECOR_TIERS = [
   {id:'sig', name:'Signature', price:25000, d:'Welcome arch, welcome board, jungle cutouts, 3 panel decor, 3ft age light, name on flex.', img:'img/theme-jungle.jpg'},
 ];
 // Music — same DJ tier structure & pricing as the Spy package / generic builder.
+// Tier names unified 2026-08-07 to Classic/Premium/Signature (bare, no
+// "DJ" prefix) — matches builder.html's S.dj.tier values so the review
+// page's DJ thumbnail resolves to the correct real photo instead of
+// falling back to the emoji tile.
 const MUSIC_TIERS = [
-  {id:'m1', name:'DJ Compact', price:7000, d:'Compact DJ setup with speaker + mixer.'},
-  {id:'m2', name:'DJ Premium', price:11000, d:'Bigger sound system with lighting included.'},
-  {id:'m3', name:'DJ Signature', price:15000, d:'Full sound + lighting rig for a big party feel.'},
+  {id:'m1', name:'Classic', price:7000, d:'Compact DJ setup with speaker + mixer.'},
+  {id:'m2', name:'Premium', price:11000, d:'Bigger sound system with lighting included.'},
+  {id:'m3', name:'Signature', price:15000, d:'Full sound + lighting rig for a big party feel.'},
 ];
 // E-Invite — Static uses a generic personalized invite design (₹500).
 // Video + Reminder is the same paid upgrade price as the Spy package.
@@ -733,7 +737,7 @@ const GIFT_ITEMS = [
 // Premium & Signature already include a highlight reel in their output, so
 // the paid Reel add-on below is gated to Basic only (see renderReel()).
 const PHOTO_TIERS = [
-  {id:'Basic', name:'Basic', price:6000, d:'Unlimited photos. Output: Edited photos.'},
+  {id:'Classic', name:'Classic', price:6000, d:'Unlimited photos. Output: Edited photos.'},
   {id:'Premium', name:'Premium', price:10000, d:'Photo + video shoot, 1 person. Output: Edited photos, highlight reel, candid photos.'},
   {id:'Signature', name:'Signature', price:18000, d:'Photo + video shoot, 2 people. Output: Edited photos, highlight reel, traditional video, candid photos.'},
 ];
@@ -756,7 +760,7 @@ let kidsCount = 25;
 let selectedAct = null;              // {id, name} — the 1 included activity
 let additionalActs = [];             // array of {id, name} — extra paid activities
 let selectedDecor = DECOR_TIERS[0];  // Basic default (included)
-let selectedMusic = MUSIC_TIERS[0];  // DJ Compact default (included)
+let selectedMusic = MUSIC_TIERS[0];  // Classic DJ default (included)
 let selectedEinvite = EINVITE_TIERS[0]; // Static default (included)
 let selectedEntry = null;            // optional
 let selectedGifts = [];              // array of GIFT_ITEMS ids
@@ -929,7 +933,7 @@ function renderReel() {
       '</div>';
     return;
   }
-  if (selectedPhotographer.id !== 'Basic') {
+  if (selectedPhotographer.id !== 'Classic') {
     selectedReel = false;
     grid.innerHTML =
       '<div class="addon-act-card" style="opacity:.65;background:var(--li3)">' +
@@ -946,7 +950,7 @@ function renderReel() {
   renderToggleGrid('reelGrid', [REEL_ADDON], selectedReel ? [REEL_ADDON.id] : [], () => REEL_ADDON.flat, 'toggleReel');
 }
 function toggleReel() {
-  if (!selectedPhotographer || selectedPhotographer.id !== 'Basic') return;
+  if (!selectedPhotographer || selectedPhotographer.id !== 'Classic') return;
   selectedReel = !selectedReel;
   renderReel();
   updateSticky();
