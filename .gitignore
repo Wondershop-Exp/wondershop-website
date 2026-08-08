@@ -3,26 +3,31 @@
 Thumbs.db
 
 # Raw event photo/video dumps (not needed for website)
-Ruchi's
-Krupa's
-Veer's
-Abeer
-Spy
-Kshitija's
-Barkha
-Rima
-Niyara
-Parmi's
-Prisha's
-Kids
-Samkit
-Parmi
-Sarth
-Revised
-WSR
-Invite
-20260624
-Event
+# Anchored to repo root (leading /) so these never accidentally match a
+# nested folder/file of the same name elsewhere in the tree — e.g. the bare
+# "Spy" pattern used to also match img/packages/spy/ on case-insensitive
+# filesystems, silently keeping the entire spy package image folder out of
+# git (fixed 2026-08-08; see "From real Spy Missions" broken-image report).
+/Ruchi's
+/Krupa's
+/Veer's
+/Abeer
+/Spy
+/Kshitija's
+/Barkha
+/Rima
+/Niyara
+/Parmi's
+/Prisha's
+/Kids
+/Samkit
+/Parmi
+/Sarth
+/Revised
+/WSR
+/Invite
+/20260624
+/Event
 
 # PDFs (internal docs)
 *.pdf
