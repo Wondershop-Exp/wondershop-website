@@ -604,7 +604,7 @@ const ADDON_STATIONS = [
 const MUSIC_TIERS = [
   {id:'m1', name:'Classic', price:7000, bullets:['1 speaker · 1 mixer · 2 mics', '1 operator', 'Up to 50 guests', '4 hours']},
   {id:'m2', name:'Premium', price:11000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', '50-200 guests', '4 hours']},
-  {id:'m3', name:'Signature', price:15000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', 'DJ lights', '50-200 guests', '4 hours', 'Smoke machine']},
+  {id:'m3', name:'Signature', price:15000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', '50-200 guests', 'DJ lights · smoke machine', '4 hours']},
 ];
 // E-Invite — single-select, optional.
 const EINVITE_TIERS = [
@@ -797,7 +797,7 @@ function einviteGridSelect(id) {
 function renderPinataGrid(gridId, items, selected) {
   const grid = document.getElementById(gridId);
   grid.innerHTML = items.map(t => {
-    const img = t.img ? '<div style="position:relative;margin-bottom:10px"><img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;display:block" loading="lazy"><div style="position:absolute;bottom:8px;left:8px;background:rgba(25,25,25,.68);color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px">🖼 3 designs</div></div>' : '';
+    const img = t.img ? '<div style="position:relative;margin-bottom:10px"><img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;display:block" loading="lazy"><div style="position:absolute;bottom:8px;left:8px;background:rgba(25,25,25,.68);color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px">🖼 3 photos</div></div>' : '';
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
       '<div class="act-card-n">' + t.name + '</div>' +

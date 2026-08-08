@@ -1536,10 +1536,9 @@ input,textarea,select{font-family:var(--fb)}
         <div class="tc-feats">
           <div class="tc-feat">2 big speakers · 1 mixer · 2 mics</div>
           <div class="tc-feat">1 operator</div>
-          <div class="tc-feat">DJ lights</div>
           <div class="tc-feat">50-200 guests</div>
+          <div class="tc-feat">DJ lights · smoke machine</div>
           <div class="tc-feat">4 hours</div>
-          <div class="tc-feat">Smoke machine</div>
         </div>
       </div>
     </div>
@@ -1717,35 +1716,35 @@ input,textarea,select{font-family:var(--fb)}
     <div style="margin-top:14px">
       <div class="sec-lbl" style="font-size:13px;margin-bottom:8px"><span class="dot"></span>Packaging Options</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="pkg-btn" onclick="selPkg(this,'kraft-bag')">🛍️ Kraft Paper Bag<div style="font-size:10px;color:var(--gy)">₹20/bag</div></button>
-        <button class="pkg-btn" onclick="selPkg(this,'box')">📦 Gift Box<div style="font-size:10px;color:var(--gy)">₹45/box</div></button>
-        <button class="pkg-btn" onclick="selPkg(this,'jute')">🌿 Jute Bag<div style="font-size:10px;color:var(--gy)">₹35/bag</div></button>
+        <button class="pkg-btn" onclick="selPkg(this,'paper-bag')">🛍️ Paper Gift Bag<div style="font-size:10px;color:var(--gy)">₹35/bag</div></button>
+        <button class="pkg-btn" onclick="selPkg(this,'wrap')">🎀 Gift Wrap<div style="font-size:10px;color:var(--gy)">₹30/item</div></button>
+        <button class="pkg-btn" onclick="selPkg(this,'both')">✨ Both<div style="font-size:10px;color:var(--gy)">₹60/item</div></button>
       </div>
     </div>
 
-    <!-- Gift tags -->
+    <!-- Thank you note -->
     <div style="margin-top:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div class="sec-lbl" style="font-size:13px;margin-bottom:0"><span class="dot"></span>Personalised Gift Tags</div>
-        <div id="freeTagBadge" style="display:none;background:var(--sgr);color:#1a6630;font-size:11px;font-weight:700;border-radius:8px;padding:3px 8px">🎉 FREE!</div>
-      </div>
-      <div style="font-size:12px;color:var(--gy);margin-bottom:8px">Add a personalised tag to each gift — with the child's name and a message from the birthday star.</div>
+      <div class="sec-lbl" style="font-size:13px;margin-bottom:8px"><span class="dot"></span>Personalised Thank You Note</div>
+      <div style="font-size:12px;color:var(--gy);margin-bottom:8px">Add a personalised thank-you note to each gift — with the child's name and a message from the birthday star.</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="tag-opt-btn" id="tagEx" onclick="selTag(this,'existing')">
-          Existing Design<div style="font-size:11px;color:var(--gy);margin-top:3px" id="tagExP">₹250 / tag</div>
-        </button>
-        <button class="tag-opt-btn" id="tagCust" onclick="selTag(this,'custom')">
-          Custom Design<div style="font-size:11px;color:var(--gy);margin-top:3px" id="tagCuP">₹500 / tag</div>
+        <button class="tag-opt-btn" id="tagEx" onclick="selTag(this,'note')">
+          Add Thank You Note<div style="font-size:11px;color:var(--gy);margin-top:3px" id="tagExP">₹10 / item</div>
         </button>
       </div>
-      <div style="font-size:11px;color:var(--gy);margin-top:6px" id="tagPN">Personalisation available · ₹15/gift extra</div>
+      <div style="font-size:11px;color:var(--gy);margin-top:6px" id="tagPN">Minimum 15 items · billed on your total gift count</div>
     </div>
 
     <!-- Delivery -->
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">
       <div class="sec-lbl" style="font-size:13px;margin-bottom:10px"><span class="dot"></span>Delivery Details</div>
       <div class="ig"><label>Delivery Address <span class="opt">defaults to event venue</span></label><input type="text" id="f-gaddr" placeholder="Delivery address for return gifts"></div>
+      <div class="ig"><label>Google Maps Link <span class="opt">opt.</span></label><input type="text" id="f-gmaps" placeholder="Paste a Google Maps link to the delivery location"></div>
+      <div class="row2">
+        <div class="ig"><label>Address Type</label><select id="f-gaddrtype"><option value="venue">Venue</option><option value="home">Home</option><option value="office">Office</option><option value="other">Other</option></select></div>
+        <div class="ig"><label>Delivery Contact Person</label><input type="text" id="f-gcontact" placeholder="Name of person coordinating delivery"></div>
+      </div>
       <div class="ig" style="margin-bottom:0"><label>Required By Date</label><input type="date" id="f-gdate"><div class="hint">Must be on or before your event date</div></div>
+      <div style="font-size:11px;color:var(--gy);margin-top:8px">📦 Delivery dates may shift by a few days either way due to weather or other logistical factors — we'll keep you posted if that happens.</div>
     </div>
   </div>
 </div>
@@ -2082,7 +2081,7 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Logs to the "Website Orders and Leads" Google Sheet.
 window.WS_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyVQ_8aZQS2hE5t9-1ceC5ttHeD7DSr0NQmKzYAdxkyRK4eqwgWAG_UnM_iZZmyxY8z4Q/exec';
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FGT:40000,FPT:50000,remarks:{}};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FPT:50000,remarks:{}};
 
 // ── Sends a lead or booking row to the Google Sheet, fire-and-forget. ──
 // Uses mode:'no-cors' + text/plain so the browser never sends a CORS
@@ -2502,7 +2501,7 @@ function goTo(id){
   wsTrackScreen(id);
   if(id==='s9')buildRev();
   if(id==='s6'){chkFreeInv();buildInvs();}
-  if(id==='s8')chkFreeTag();
+  if(id==='s8')updTagNote();
   if(id==='s3')syncHostDom();
   if(id==='s2'){try{document.getElementById('kDisp2').textContent=S.kidsCount;}catch(e){}}
   if(id==='sco'&&S._pkgCoupon){setTimeout(()=>{const el=document.getElementById('co-coupon');const ok=document.getElementById('couponOk');if(el&&!el.value){el.value=S._pkgCoupon;if(ok){ok.textContent='🎉 '+S._pkgCoupon+' applied — 15% off package price!';ok.classList.add('show');}}},50);}
@@ -2932,7 +2931,7 @@ function buildPins(){
     const added=S.pinata&&S.pinata.id===p.id;
     const priceLabel=isFree?'<span style="color:#1a6630;font-weight:700">FREE!</span>':'₹'+p.p.toLocaleString('en-IN');
     const n=p.gallery?p.gallery.length:0;
-    const badgeHtml=n>1?'<div class="variant-badge">🖼 '+n+' designs</div>':'';
+    const badgeHtml=n>1?'<div class="variant-badge">🖼 '+n+' photos</div>':'';
     const mediaHtml=p.realImg?('<div class="caro caro-sq" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center" alt="'+p.n+'">'+badgeHtml+'</div>'):('<div class="caro caro-sq caro-fallback" style="background:'+p.bg+'">'+p.e+'</div>');
     const cardClick=p.realImg?' onclick="openGallery(\'pinata\',\''+p.id+'\')"':'';
     w.innerHTML+='<div class="pcard'+(added?' sel':'')+'"'+cardClick+' id="pn-'+p.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+p.n+'</div><div class="card-detail">'+p.d+'</div><div class="card-pr-row"><div class="card-price">'+priceLabel+'</div><button class="card-btn'+(added?' added':'')+'" onclick="event.stopPropagation();selPin(this,\''+p.id+'\','+p.p+',\''+p.n+'\')">'+(added?'✓ Added':'Select')+'</button></div></div></div>';
@@ -3080,12 +3079,14 @@ function renderGifts(){
   if(!list.length)w.innerHTML='<div style="text-align:center;padding:24px;color:var(--gy);font-size:13px">No gifts match. Try clearing a filter.</div>';
 }
 function fGifts(f,val,btn){const mp={type:'gTChips',budget:'gBChips',gtheme:'gThChips'};document.querySelectorAll('#'+mp[f]+' .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');gF[f]=val;renderGifts();}
-function addGift(id,n,unit){if(!S.gifts.find(g=>g.id===id))S.gifts.push({id,n,unit,qty:S.kidsCount});renderGifts();updBB(S.screen);chkFreeTag();}
-function rmGift(id){S.gifts=S.gifts.filter(g=>g.id!==id);renderGifts();updBB(S.screen);}
-function chgQty(id,unit,d){const g=S.gifts.find(g=>g.id===id);if(!g)return;g.qty=Math.max(1,g.qty+d);g.userQty=true;document.getElementById('qty-'+id).textContent=g.qty;document.getElementById('qv-'+id).textContent=g.qty;document.getElementById('qtot-'+id).textContent=(g.qty*unit).toLocaleString('en-IN');updBB(S.screen);}
-function chkFreeTag(){const gt=rawNoInv();const f=gt>=S.FGT;document.getElementById('freeTagBadge').style.display=f?'block':'none';document.getElementById('tagPN').textContent=f?'Gift tags are FREE with your order!':'Personalisation available · ₹15/gift extra';document.getElementById('tagExP').textContent=f?'FREE!':'₹250 / tag';document.getElementById('tagCuP').textContent=f?'FREE!':'₹500 / tag';}
+function addGift(id,n,unit){if(!S.gifts.find(g=>g.id===id))S.gifts.push({id,n,unit,qty:S.kidsCount});renderGifts();updBB(S.screen);updTagNote();}
+function rmGift(id){S.gifts=S.gifts.filter(g=>g.id!==id);renderGifts();updBB(S.screen);updTagNote();}
+function chgQty(id,unit,d){const g=S.gifts.find(g=>g.id===id);if(!g)return;g.qty=Math.max(1,g.qty+d);g.userQty=true;document.getElementById('qty-'+id).textContent=g.qty;document.getElementById('qv-'+id).textContent=g.qty;document.getElementById('qtot-'+id).textContent=(g.qty*unit).toLocaleString('en-IN');updBB(S.screen);updTagNote();}
+// Thank-you note: flat ₹10/item, billed on the total no. of gift items
+// (min. 15 items charged even if fewer gifts are selected).
+function updTagNote(){const n=Math.max(15,S.gifts.reduce((s,g)=>s+g.qty,0));const t=n*10;const el=document.getElementById('tagPN');if(el)el.textContent='₹10/item · min. 15 items — ₹'+t.toLocaleString('en-IN')+' for '+n+' item'+(n===1?'':'s');}
 function selPkg(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('.pkg-btn').forEach(b=>b.classList.remove('on'));if(wasSel){S.packaging='';}else{btn.classList.add('on');S.packaging=val;}}
-function selTag(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('#tagEx,#tagCust').forEach(b=>b.classList.remove('on'));if(wasSel){S.tagType='';}else{btn.classList.add('on');S.tagType=val;}}
+function selTag(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('#tagEx').forEach(b=>b.classList.remove('on'));if(wasSel){S.tagType='';}else{btn.classList.add('on');S.tagType=val;}}
 
 // ── REVIEW ──
 function buildRev(){

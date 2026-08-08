@@ -547,7 +547,7 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="act-card" data-act="glitter" data-name="Glitter Station" onclick="selectAct(this)">
           <img class="act-card-ic-img" src="img/activity/act-glitter.jpg" alt="Glitter Station">
           <div class="act-card-n">Glitter Station</div>
-          <div class="act-card-d">Our Face Glitter Station transforms little faces with skin-safe glitter, gems, and magical designs, creating a glamorous party look that kids absolutely love.</div>
+          <div class="act-card-d">Skin-safe glitter and gems for a glamorous party look kids love.</div>
         </div>
 
         <div class="act-card" data-act="a12" data-name="Dreamcatcher" onclick="selectAct(this)">
@@ -658,7 +658,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <img class="addon-act-ic-img" src="img/activity/act-glitter.jpg" alt="Glitter Station">
             <div class="addon-act-info">
               <div class="addon-act-n">Glitter Station</div>
-              <div class="addon-act-d">Our Face Glitter Station transforms little faces with skin-safe glitter, gems, and magical designs, creating a glamorous party look that kids absolutely love.</div>
+              <div class="addon-act-d">Skin-safe glitter and gems for a glamorous party look kids love.</div>
             </div>
           </div>
           <div class="addon-act-foot">
@@ -1245,7 +1245,7 @@ const DECOR_TIERS = [
 const MUSIC_TIERS = [
   {id:'m1', name:'Classic', price:7000, bullets:['1 speaker · 1 mixer · 2 mics', '1 operator', 'Up to 50 guests', '4 hours']},
   {id:'m2', name:'Premium', price:11000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', '50-200 guests', '4 hours']},
-  {id:'m3', name:'Signature', price:15000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', 'DJ lights', '50-200 guests', '4 hours', 'Smoke machine']},
+  {id:'m3', name:'Signature', price:15000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', '50-200 guests', 'DJ lights · smoke machine', '4 hours']},
 ];
 // E-Invite — Static uses the site's real "Unicorn" invite design (₹500).
 // Video + Reminder is the same paid upgrade price as the Spy package.
@@ -1565,7 +1565,7 @@ function photoGridSelect(id) { selectedPhotographer = (selectedPhotographer && s
 function renderPinataGrid(gridId, items, selected) {
   const grid = document.getElementById(gridId);
   grid.innerHTML = items.map(t => {
-    const img = t.img ? '<div style="position:relative;margin-bottom:10px"><img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;display:block" loading="lazy"><div style="position:absolute;bottom:8px;left:8px;background:rgba(25,25,25,.68);color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px">🖼 3 designs</div></div>' : '';
+    const img = t.img ? '<div style="position:relative;margin-bottom:10px"><img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;display:block" loading="lazy"><div style="position:absolute;bottom:8px;left:8px;background:rgba(25,25,25,.68);color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px">🖼 3 photos</div></div>' : '';
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
       '<div class="act-card-n">' + t.name + '</div>' +
