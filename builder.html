@@ -1381,6 +1381,7 @@ input,textarea,select{font-family:var(--fb)}
     </div>
     <!-- Standard -->
     <div id="stdSec" style="display:none">
+      <div style="background:var(--li3);border-radius:10px;padding:10px 14px;font-size:12px;color:#7B5EA7;margin-bottom:12px">🎨 These are reference setups — every decor can be customized to your theme. Balloon colours, flex designs, age and cutouts are all customizable.</div>
       <div class="cards-grid" id="stdCards"></div>
     </div>
   </div>
@@ -2217,14 +2218,24 @@ function themeTierEntries(t){
 // what the "Set the Scene" grid renders, one card per tier (no more
 // clubbing multiple tiers' photos into a single card/price).
 const THEME_TIERS=THEMES.reduce((acc,t)=>acc.concat(themeTierEntries(t)),[]);
-const STD=[
-  {id:'std1',n:'Home Balloon Arch',e:'🎈',img:'std-home',bg:'linear-gradient(135deg,#F5C3D7,#FAFAFA)',p:5000,d:'200 balloons · 1 arch · Ideal for homes · Setup 2 hrs'},
-  {id:'std2',n:'Banquet Arch + Bunches',e:'🎊',img:'std-banquet',bg:'linear-gradient(135deg,#BCD8E8,#FAFAFA)',p:7500,d:'300 balloons · 1 arch + bunches · Setup 2.5 hrs'},
-  {id:'std3',n:'1 Flex + Arch',e:'✨',img:'std-flex1',bg:'linear-gradient(135deg,#B7E0B8,#FAFAFA)',p:6000,d:'1 printed flex + arch · Setup 3 hrs'},
-  {id:'std4',n:'3 Flex + Arch',e:'🌟',img:'std-flex3',bg:'linear-gradient(135deg,#EDE6FA,#FAFAFA)',p:9000,d:'3 printed flex panels + arch · Grand setup · 4 hrs'},
-  // Placeholder pricing — confirm before this goes live.
-  {id:'std5',n:'Rainbow Balloon Arch',e:'🌈',img:'Decor/decor-rainbow-arch',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',p:5500,d:'200 balloons (rainbow mix) · 1 arch · Suits any theme · Setup 2 hrs'}
+// "Standard" (non-themed) decor — trimmed to exactly the same 4 tiers as
+// themed decor (Classic/Premium/Luxury/Signature, same pricing + spec, see
+// DECOR_TIER_META above), just with generic reference photos that aren't
+// tied to any one theme. Balloon Colours falls back to "As per theme" for
+// Luxury/Signature since there's no specific theme to pull real colours
+// from here (2026-08-08, at Shruti's request — replaces the old 5 mixed
+// standalone options).
+const STD_META=[
+  {tier:'Classic',n:'Classic Balloon Arch',e:'🎈',img:'Decor/Standard Classic Balloon Arch',bg:'linear-gradient(135deg,#F5C3D7,#FAFAFA)'},
+  {tier:'Premium',n:'Premium Decor',e:'✨',img:'Decor/Standard - Premium 1 panel decor',bg:'linear-gradient(135deg,#B7E0B8,#FAFAFA)'},
+  {tier:'Luxury',n:'Luxury Decor',e:'🎊',img:'Decor/Standard - Luxury 2 panel decor',bg:'linear-gradient(135deg,#BCD8E8,#FAFAFA)'},
+  {tier:'Signature',n:'Signature Decor',e:'🌟',img:'Decor/Standard Signature 3 Panel Decor',bg:'linear-gradient(135deg,#EDE6FA,#FAFAFA)'},
 ];
+const STD=STD_META.map(m=>{
+  const tm=DECOR_TIER_META.find(x=>x.tier===m.tier);
+  const spec=tm.spec.map(s=>s.v==='__THEME__'?Object.assign({},s,{v:'As per theme'}):s);
+  return {id:'std-'+m.tier.toLowerCase(),n:m.n,tier:m.tier,e:m.e,img:m.img,bg:m.bg,p:tm.price,spec};
+});
 // actPrice: r1=<12 kids, r2=13-25 kids, r3=>25 kids. flat=true → rate is total, false → rate × kids
 // Spy package "Mission Stations" pricing — same tiers/minimum-bill formula as
 // spy-basic.html's stationTier()/stationsPrice(), kept here so the review-page
@@ -2789,7 +2800,12 @@ function buildDec(){
   if(!fl.length)fl=THEME_TIERS;
   fl.forEach(t=>tc.innerHTML+=makeTC(t));
   const sc=document.getElementById('stdCards');sc.innerHTML='';
-  STD.forEach(t=>{const added=S.decor&&S.decor.id===t.id;sc.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'std\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+stdThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="card-detail">'+t.d+'</div><div class="card-pr-row"><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';});
+  STD.forEach(t=>{
+    const added=S.decor&&S.decor.id===t.id;
+    const tierPill='<span class="tag" style="'+(TIER_TAG_STYLE[t.tier]||'')+'">'+t.tier+'</span>';
+    const specHtml='<ul class="act-card-spec">'+t.spec.map(s=>'<li'+(s.na?' class="na"':'')+'><b>'+s.l+':</b> '+s.v+'</li>').join('')+'</ul>';
+    sc.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'std\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+stdThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tierPill+'</div>'+specHtml+'<div class="card-pr-row"><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+  });
   if(S.decor)document.getElementById('dc-'+S.decor.id)?.classList.add('sel');
   const dtBtns=document.querySelectorAll('#s1 .dt-tog .dt-btn');
   if(dtBtns.length===2){if(S.decorType==='standard'){dtBtns[0].classList.remove('on');dtBtns[1].classList.add('on');document.getElementById('thSec').style.display='none';document.getElementById('stdSec').style.display='block';}else{dtBtns[0].classList.add('on');dtBtns[1].classList.remove('on');document.getElementById('thSec').style.display='block';document.getElementById('stdSec').style.display='none';}}
@@ -2895,7 +2911,6 @@ function galMediaFor(kind,obj){
   return items;
 }
 // Splits a "·"-separated summary string (e.g. STD's `d` field) into bullets.
-function splitBits(str){return (str||'').split('·').map(s=>s.trim()).filter(Boolean);}
 // Builds the "what's included / not included" details card shown as the
 // last gallery item for every decor entry. Generated live from the theme's
 // own catalogue fields (panels/balloons/setup time/exclusions) — swap in a
@@ -2909,13 +2924,10 @@ function buildDecorInfoHTML(kind,obj){
       '<div class="gal-info-note">🎨 The exact artwork/characters shown here are examples — our account manager will confirm the final design with you based on your chosen theme.</div>'+
       '<div class="gal-info-note">📸 Photos are reference images. The final piñata\'s look may vary slightly depending on materials available and the theme chosen.</div>';
   }
-  if(kind==='std'){
-    const inc=splitBits(obj.d);
-    return '<h4>✅ What\'s Included</h4><ul>'+inc.map(x=>'<li>'+x+'</li>').join('')+'</ul>'+custNote;
-  }
-  // Theme+tier (kind==='theme') — driven by the tier's own spec array (same
-  // labelled-bullet + `na` system used to bulletize Decor on the package
-  // pages), so Included/Not Included always matches the card's own bullets.
+  // Theme+tier (kind==='theme') and Standard (kind==='std') both use the
+  // same tier spec array (labelled-bullet + `na` system also used to
+  // bulletize Decor on the package pages), so Included/Not Included always
+  // matches the card's own bullets.
   const incBits=obj.spec.filter(s=>!s.na).map(s=>'<li><b>'+s.l+':</b> '+s.v+'</li>');
   const excBits=obj.spec.filter(s=>s.na).map(s=>'<li>'+s.l+'</li>');
   return '<h4>✅ What\'s Included</h4><ul>'+incBits.join('')+'</ul>'+
@@ -2930,10 +2942,8 @@ function openGallery(kind,id){
   galItems=galMediaFor(kind,obj);
   galIdx=0;
   document.getElementById('galName').textContent=obj.n;
-  document.getElementById('galDesc').textContent=kind==='theme'
+  document.getElementById('galDesc').textContent=(kind==='theme'||kind==='std')
     ? ('₹'+obj.p.toLocaleString('en-IN')+'  ·  '+obj.tier+' tier  ·  '+((obj.spec.find(s=>s.l==='Balloons')||{}).v||''))
-    : kind==='std'
-    ? obj.d
     : kind==='pinata'
     ? ('₹'+obj.p.toLocaleString('en-IN')+'  ·  '+obj.d)
     : kind==='gift'
