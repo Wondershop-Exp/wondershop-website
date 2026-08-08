@@ -1253,7 +1253,7 @@ input,textarea,select{font-family:var(--fb)}
   <div class="s0-form">
     <div class="s0-section-title"><span>🎂</span> Event Details</div>
     <div class="row2">
-      <div class="ig"><label>Event Date</label><input type="date" id="f-date" onchange="checkUrgentDate('f-date','s0-urgent-warn')"></div>
+      <div class="ig"><label>Event Date</label><input type="date" id="f-date" onchange="checkUrgentDate('f-date','s0-urgent-warn')"><div class="err-msg" id="f-date-past-err">This date has already passed — please choose today or a later date.</div></div>
       <div class="ig"><label>Start Time</label><input type="time" id="f-time" value="11:00"></div>
     </div>
     <div id="s0-urgent-warn" class="urgent-warn" style="display:none"><span class="uw-ic">⚡</span><span>Your event is less than 3 days away — we won't be able to confirm this booking instantly online. Our team will call you within 24 hours to check feasibility instead.</span></div>
@@ -1802,7 +1802,7 @@ input,textarea,select{font-family:var(--fb)}
       <div class="ig"><label>Secondary Mobile <span class="opt">opt.</span></label><div class="pfx-wrap"><span class="pfx">+91</span><input type="tel" id="co-mob2" class="pi" placeholder="Alt. no."></div></div>
     </div>
     <div class="row2">
-      <div class="ig"><label>Event Date</label><input type="date" id="co-date" onchange="checkUrgentDate('co-date','co-urgent-warn');updCoUrgent()"></div>
+      <div class="ig"><label>Event Date</label><input type="date" id="co-date" onchange="checkUrgentDate('co-date','co-urgent-warn');updCoUrgent()"><div class="err-msg" id="co-date-past-err">This date has already passed — please choose today or a later date.</div></div>
       <div class="ig"><label>Start Time</label><input type="time" id="co-time"></div>
     </div>
     <div id="co-urgent-warn" class="urgent-warn" style="display:none"><span class="uw-ic">⚡</span><span>Your event is less than 3 days away — we can't take an advance payment or confirm this booking instantly. Submit your details below and our team will call you within 24 hours to check feasibility.</span></div>
@@ -1956,7 +1956,7 @@ input,textarea,select{font-family:var(--fb)}
       <div class="ig"><label>Email</label><input type="email" id="ld-email" placeholder="your@email.com"></div>
     </div>
     <div class="row2">
-      <div class="ig"><label>Event Date</label><input type="date" id="ld-date"></div>
+      <div class="ig"><label>Event Date</label><input type="date" id="ld-date" onchange="checkUrgentDate('ld-date')"><div class="err-msg" id="ld-date-past-err">This date has already passed — please choose today or a later date.</div></div>
       <div class="ig"><label>No. of Kids</label><input type="number" id="ld-kids" placeholder="e.g. 20"></div>
     </div>
     <div class="ig"><label>Venue</label><input type="text" id="ld-venue" placeholder="Venue name or address"></div>
@@ -2658,14 +2658,34 @@ function isUrgentBooking(dateStr){
   const d=daysUntilEvent(dateStr);
   return d!==null&&d<URGENT_DAYS_THRESHOLD;
 }
+// A past date is never valid (whereas "urgent" just means <3 days away but
+// still in the future) — kept as its own check so callers can hard-block
+// on it instead of just showing the softer urgent-booking notice.
+function isPastDate(dateStr){
+  const d=daysUntilEvent(dateStr);
+  return d!==null&&d<0;
+}
+// warnId is optional — pass it to also toggle that step's amber "urgent
+// booking" banner (only relevant once we know the date isn't in the past).
+// Every date input this is wired to also has a sibling
+// <div class="err-msg" id="<inputId>-past-err"> for the hard past-date error.
 function checkUrgentDate(inputId,warnId){
-  const val=document.getElementById(inputId)?.value;
-  const warn=document.getElementById(warnId);
-  if(!warn)return;
-  warn.style.display=isUrgentBooking(val)?'flex':'none';
+  const input=document.getElementById(inputId);
+  const val=input?.value;
+  const past=isPastDate(val);
+  const errEl=document.getElementById(inputId+'-past-err');
+  if(errEl)errEl.classList.toggle('show',past);
+  input?.classList.toggle('err',past);
+  const warn=warnId?document.getElementById(warnId):null;
+  if(warn)warn.style.display=(!past&&isUrgentBooking(val))?'flex':'none';
 }
 function doS0(){
   const dt=document.getElementById('f-date').value;
+  if(isPastDate(dt)){
+    checkUrgentDate('f-date','s0-urgent-warn');
+    document.getElementById('f-date').focus();
+    return;
+  }
   if(S.venue==='Other'){const ov=document.getElementById('f-venue-other').value.trim();if(ov)S.venueOther=ov;}
   document.getElementById('s0-err-all').style.display='none';
   S.pincode=document.getElementById('f-pincode').value.trim();S.eventDate=dt;S.eventTime=document.getElementById('f-time').value;
@@ -3211,6 +3231,11 @@ const CONF_NEXT_STEPS_URGENT=`<h3>What happens next</h3>
     <div class="ns-item"><div class="ns-num">3</div><div class="ns-txt">Booking confirmed on the call<span>Advance &amp; date-lock happen only once feasibility is confirmed</span></div></div>`;
 
 async function doCo(){
+  if(isPastDate(document.getElementById('co-date').value)){
+    checkUrgentDate('co-date','co-urgent-warn');
+    document.getElementById('co-date').focus();
+    return;
+  }
   if(!S.tncOk){document.getElementById('e-tnc').classList.add('show');return;}
   document.getElementById('e-tnc').classList.remove('show');
   S.mobile=document.getElementById('co-mob').value;S.eventDate=document.getElementById('co-date').value;S.eventTime=document.getElementById('co-time').value;
@@ -3405,6 +3430,11 @@ async function doLead(){
   if(phone.length!==10){
     const el=document.getElementById('ld-phone');
     el.style.borderColor='#E65A96';el.focus();
+    return;
+  }
+  if(isPastDate(date)){
+    checkUrgentDate('ld-date');
+    document.getElementById('ld-date').focus();
     return;
   }
 
@@ -3807,7 +3837,19 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Builder init
   renderC(1);
-  try{const td=new Date();td.setDate(td.getDate()+1);document.getElementById('f-date').min=td.toISOString().split('T')[0];}catch(e){}
+  // Past-date guard: block the native date pickers from even offering
+  // yesterday-or-earlier (min = tomorrow, matching the existing urgent-
+  // booking threshold). This only stops the picker UI — typed-in dates can
+  // still slip past it in some browsers, so checkUrgentDate()/isPastDate()
+  // hard-block on submit too (see doS0/doCo/doLead) as the real guard.
+  try{
+    const td=new Date();td.setDate(td.getDate()+1);
+    const minStr=td.toISOString().split('T')[0];
+    document.getElementById('f-date').min=minStr;
+    document.getElementById('co-date').min=minStr;
+    document.getElementById('ld-date').min=minStr;
+    document.getElementById('f-gdate').min=new Date().toISOString().split('T')[0];
+  }catch(e){}
   // Prefill pincode if the user already entered it on the home page (or an
   // earlier visit) — same localStorage key the homepage's area picker uses.
   // Left blank for anyone landing here directly; still mandatory to proceed.
