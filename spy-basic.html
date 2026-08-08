@@ -124,7 +124,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .act-badge{display:inline-flex;align-items:center;background:var(--syl);color:#78350F;font-size:11px;font-weight:700;border-radius:20px;padding:4px 12px;letter-spacing:.6px;white-space:nowrap}
 .act-badge.grn{background:var(--sgr);color:#166534}
 .act-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
-.act-card{border:2px solid var(--li2);border-radius:16px;padding:18px 16px;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s;text-align:left;background:#fff;position:relative;-webkit-tap-highlight-color:transparent}
+.act-card{border:2px solid var(--li2);border-radius:16px;padding:18px 16px;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s;text-align:left;background:#fff;position:relative;-webkit-tap-highlight-color:transparent;min-width:0}
 .act-card:hover{border-color:var(--li);background:var(--li3)}
 .act-card.sel{border-color:var(--li);background:var(--li3);box-shadow:0 0 0 3px rgba(181,157,222,.2)}
 .act-card.sel::after{content:'✓';position:absolute;top:-1px;right:-1px;width:24px;height:24px;background:var(--li);color:#fff;border-radius:0 14px 0 12px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;line-height:24px;text-align:center}
@@ -137,7 +137,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .act-card-spec b{color:var(--bk);font-weight:600}
 
 /* Add-on cards (stations + services) */
-.addon-act-card{border:2px solid var(--li2);border-radius:16px;padding:16px;background:#fff;transition:border-color .15s,background .15s;position:relative;display:flex;flex-direction:column;height:100%}
+.addon-act-card{border:2px solid var(--li2);border-radius:16px;padding:16px;background:#fff;transition:border-color .15s,background .15s;position:relative;display:flex;flex-direction:column;height:100%;min-width:0}
 .addon-act-card.added{border-color:var(--gr);background:var(--sgr)}
 .addon-act-top{display:flex;align-items:flex-start;gap:12px}
 .addon-act-ic{font-size:24px;flex-shrink:0;margin-top:2px}
