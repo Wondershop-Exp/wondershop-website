@@ -458,7 +458,6 @@ button{cursor:pointer;font-family:var(--fb)}
         <span class="act-badge grn">Optional · pick one</span>
       </div>
       <div class="act-grid" id="photoGrid"></div>
-      <div class="act-grid" id="reelGrid" style="margin-top:12px"></div>
     </div>
   </section>
 
@@ -612,9 +611,6 @@ const EINVITE_TIERS = [
   {id:'e1', name:'Static', price:500, d:'Personalized digital invite card.'},
   {id:'e2', name:'Video + Reminder', price:2000, d:'Video invite plus a reminder message closer to the date.'},
 ];
-// Birthday Reel — independent single toggle addon.
-// Matches the site's existing Photographer-step reel add-on price (₹1,000).
-const REEL_ADDON = {id:'o8', ic:'📱', name:'Birthday Reel', d:'A shareable highlight reel.', flat:1000};
 // Pinata — single-select, optional. Real catalogue (2026-08-07): same 3
 // shapes/prices/photos used across every package page & the main builder
 // (see builder.html's PINATAS). The piñata itself is generic — it gets
@@ -639,13 +635,14 @@ const ENTRY_TIERS = [
 ];
 // Photographer — single-select, optional. Same tiers/prices as the site's
 // standard photographer step.
-// Real catalogue (2026-08-07), matches builder.html's Photographer step.
-// Premium & Signature already include a highlight reel in their output, so
-// the paid Reel add-on below is gated to Classic only (see renderReel()).
+// Real catalogue (2026-08-08), matches builder.html's Photographer step.
+// Bulletized like Decor/Music; the standalone Birthday Reel add-on was
+// removed site-wide (see 2026-08-08 removal), so "highlight reel" no
+// longer appears in Premium/Signature's output.
 const PHOTO_TIERS = [
-  {id:'ph1', name:'Classic', price:6000, d:'1 photographer. Output: edited photos over drive link.'},
-  {id:'ph2', name:'Premium', price:10000, d:'1 photographer, photo + video content shoot. Output: edited photos, 1 highlight reel, candid photos.'},
-  {id:'ph3', name:'Signature', price:18000, d:'1 photographer + 1 videographer, photo + video content shoot. Output: edited photos, highlight reel, full event video (captured moments), candid photos.'},
+  {id:'ph1', name:'Classic', price:6000, bullets:['1 photographer', 'Output: edited photos over drive link']},
+  {id:'ph2', name:'Premium', price:10000, bullets:['1 photographer', 'Photo + video content shoot', 'Output: edited photos, candid photos']},
+  {id:'ph3', name:'Signature', price:18000, bullets:['1 photographer + 1 videographer', 'Photo + video content shoot', 'Output: edited photos, full event video (captured moments), candid photos']},
 ];
 
 const MIN_KIDS = 12, MAX_KIDS = 60, MIN_BILL = 25000;
@@ -656,7 +653,6 @@ let selectedDecor = null;
 let selectedStations = [];      // array of ADDON_STATIONS ids
 let selectedMusic = null;       // one of MUSIC_TIERS or null
 let selectedEinvite = null;     // one of EINVITE_TIERS or null
-let selectedReel = false;       // Birthday Reel toggle
 let selectedPinata = null;      // one of PINATA_TIERS or null
 let selectedProps = [];         // array of PROPS_ADDONS ids
 let selectedEntry = null;       // one of ENTRY_TIERS or null
@@ -786,52 +782,11 @@ function musicGridSelect(id) {
   updateSticky();
 }
 
-// ── E-INVITE + REEL ──
+// ── E-INVITE ──
 function renderEinvite() { renderTierGrid('einviteGrid', EINVITE_TIERS, selectedEinvite); }
 function einviteGridSelect(id) {
   selectedEinvite = (selectedEinvite && selectedEinvite.id === id) ? null : EINVITE_TIERS.find(t => t.id === id);
   renderEinvite();
-  updateSticky();
-}
-function reelPrice() { return REEL_ADDON.flat; }
-// Reel is an add-on to photography — disabled with an explanatory message
-// until a Photographer tier is selected.
-function renderReel() {
-  const grid = document.getElementById('reelGrid');
-  if (!selectedPhotographer) {
-    selectedReel = false;
-    grid.innerHTML =
-      '<div class="addon-act-card" style="opacity:.65;background:var(--li3)">' +
-        '<div class="addon-act-top">' +
-          '<div class="addon-act-ic">' + REEL_ADDON.ic + '</div>' +
-          '<div class="addon-act-info">' +
-            '<div class="addon-act-n" style="color:var(--gy)">' + REEL_ADDON.name + '</div>' +
-            '<div class="addon-act-d" style="color:var(--gy)">This addon is available only if you add a photographer to your package.</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-    return;
-  }
-  if (selectedPhotographer.id !== 'ph1') {
-    selectedReel = false;
-    grid.innerHTML =
-      '<div class="addon-act-card" style="opacity:.65;background:var(--li3)">' +
-        '<div class="addon-act-top">' +
-          '<div class="addon-act-ic">' + REEL_ADDON.ic + '</div>' +
-          '<div class="addon-act-info">' +
-            '<div class="addon-act-n" style="color:var(--gy)">' + REEL_ADDON.name + '</div>' +
-            '<div class="addon-act-d" style="color:var(--gy)">Already included with your ' + selectedPhotographer.name + ' package.</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-    return;
-  }
-  renderToggleGrid('reelGrid', [REEL_ADDON], selectedReel ? [REEL_ADDON.id] : [], () => REEL_ADDON.flat, 'toggleReel');
-}
-function toggleReel() {
-  if (!selectedPhotographer || selectedPhotographer.id !== 'ph1') return;
-  selectedReel = !selectedReel;
-  renderReel();
   updateSticky();
 }
 
@@ -882,7 +837,6 @@ function renderPhoto() { renderTierGrid('photoGrid', PHOTO_TIERS, selectedPhotog
 function photoGridSelect(id) {
   selectedPhotographer = (selectedPhotographer && selectedPhotographer.id === id) ? null : PHOTO_TIERS.find(t => t.id === id);
   renderPhoto();
-  renderReel();
   updateSticky();
 }
 
@@ -896,7 +850,6 @@ function totalPrice() {
   });
   if (selectedMusic) t += selectedMusic.price;
   if (selectedEinvite) t += selectedEinvite.price;
-  if (selectedReel) t += REEL_ADDON.flat;
   if (selectedPinata) t += selectedPinata.price;
   selectedProps.forEach(id => {
     const item = PROPS_ADDONS.find(a => a.id === id);
@@ -915,7 +868,7 @@ function updateSticky() {
   const t = stationTier(kidsCount);
   const parts = [kidsCount + ' kids', t.stations + ' stations', selectedDecor ? (selectedDecor.name + ' decor') : 'No decor'];
   const extrasCount = selectedStations.length + selectedProps.length +
-    (selectedMusic ? 1 : 0) + (selectedEinvite ? 1 : 0) + (selectedReel ? 1 : 0) +
+    (selectedMusic ? 1 : 0) + (selectedEinvite ? 1 : 0) +
     (selectedPinata ? 1 : 0) + (selectedEntry ? 1 : 0) + (selectedPhotographer ? 1 : 0);
   if (extrasCount) parts.push('+' + extrasCount + ' add-on' + (extrasCount > 1 ? 's' : ''));
   document.getElementById('stickyDetails').textContent = parts.join(' · ');
@@ -943,7 +896,6 @@ function proceedToBuilder() {
       addonStations: selectedStations,
       music: selectedMusic,
       einvite: selectedEinvite,
-      reel: selectedReel,
       pinata: selectedPinata,
       props: selectedProps,
       entry: selectedEntry,
@@ -994,7 +946,6 @@ renderDecor();
 renderAddonStations();
 renderMusic();
 renderEinvite();
-renderReel();
 renderPinata();
 renderProps();
 renderEntry();

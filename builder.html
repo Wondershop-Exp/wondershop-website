@@ -777,15 +777,6 @@ input,textarea,select{font-family:var(--fb)}
 #inv-custom.sel{border-color:var(--li);background:var(--li3)}
 .tier-price{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--li)}
 
-/* Reel toggle */
-.reel-row{display:flex;align-items:center;justify-content:space-between;background:var(--li3);border-radius:var(--r);padding:12px 14px;margin-top:12px;border:1.5px solid var(--li2)}
-.reel-info{font-size:13px;font-weight:600;color:var(--bk)}
-.reel-price{font-size:11px;color:var(--gy)}
-.reel-tog{width:44px;height:24px;border-radius:12px;border:none;background:#D1D5DB;position:relative;transition:background .2s;flex-shrink:0}
-.reel-tog::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
-.reel-tog.on{background:var(--li)}
-.reel-tog.on::after{transform:translateX(20px)}
-
 /* E-invite detail form */
 #eiDetail{margin-top:14px;background:var(--li3);border-radius:var(--r);padding:14px;border:1.5px solid var(--li2)}
 #eiDetail .sec-lbl{font-size:13px;margin-bottom:10px}
@@ -1666,7 +1657,7 @@ input,textarea,select{font-family:var(--fb)}
         <div class="tc-feats">
           <div class="tc-feat">1 photographer</div>
           <div class="tc-feat">Photo + video content shoot</div>
-          <div class="tc-feat">Output: Edited photos, 1 highlight reel, candid photos</div>
+          <div class="tc-feat">Output: Edited photos, candid photos</div>
         </div>
       </div>
       <div class="tier-card" onclick="selTier(this,'photo','Signature',18000)">
@@ -1676,20 +1667,9 @@ input,textarea,select{font-family:var(--fb)}
         <div class="tc-feats">
           <div class="tc-feat">1 photographer + 1 videographer</div>
           <div class="tc-feat">Photo + video content shoot</div>
-          <div class="tc-feat">Output: Edited photos, highlight reel, full event video (captured moments), candid photos</div>
+          <div class="tc-feat">Output: Edited photos, full event video (captured moments), candid photos</div>
         </div>
       </div>
-    </div>
-    <!-- Only shown for the Classic tier — Premium & Signature already
-         include a highlight reel in their output, so the paid add-on would
-         double up. Gated in JS via S.photo.tier==='Classic' (see id==='s7'
-         handler and selTier()). -->
-    <div class="reel-row" id="reelRow" style="display:none">
-      <div>
-        <div class="reel-info">Add 30-second Instagram Reel</div>
-        <div class="reel-price">Edited highlights reel · ₹1,000 add-on</div>
-      </div>
-      <button class="reel-tog" id="reelTog" onclick="togReel()"></button>
     </div>
   </div>
 </div>
@@ -2102,7 +2082,7 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Logs to the "Website Orders and Leads" Google Sheet.
 window.WS_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyVQ_8aZQS2hE5t9-1ceC5ttHeD7DSr0NQmKzYAdxkyRK4eqwgWAG_UnM_iZZmyxY8z4Q/exec';
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,pinata:null,einvite:null,photo:null,addReel:false,gifts:[],spyExtras:[],packaging:'',tagType:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FGT:40000,FPT:50000,remarks:{}};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FGT:40000,FPT:50000,remarks:{}};
 
 // ── Sends a lead or booking row to the Google Sheet, fire-and-forget. ──
 // Uses mode:'no-cors' + text/plain so the browser never sends a CORS
@@ -2399,7 +2379,7 @@ function cItems(){
   if(S.dj)items.push({cat:'DJ',n:S.dj.tier+' DJ',p:S.dj.p,id:S.dj.tier});
   if(S.pinata){const pt=rawNoInv();const isFree=pt>=S.FPT;const fp=isFree?0:S.pinata.p;const pItem={cat:'Pinata',n:S.pinata.n+(isFree?' (FREE)':''),p:fp,id:S.pinata.id};if(isFree&&S.pinata.p>0)pItem.wasP=S.pinata.p;items.push(pItem);}
   if(S.einvite){const gt=rawNoInv();const isFree=gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n+(isFree?' (FREE)':''),p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
-  if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});if(S.addReel)items.push({cat:'Photographer',n:'30-sec Reel',p:1000,id:'reel'});}
+  if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});}
   S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty,id:g.id}));
   S.spyExtras.forEach(x=>items.push({cat:'Addons',n:x.n,p:x.p,id:x.id}));
   return items;
@@ -2444,7 +2424,7 @@ function thumbFor(cat,id){
   if(cat==='DJ'){const map={Classic:'dj-classic',Premium:'dj-premium',Signature:'dj-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎧');}
   if(cat==='Pinata'){if(id==='custom')return e('🪅');const p=PINATAS.find(x=>x.id===id);if(!p)return e('🪅');return p.realImg?{type:'img',src:'img/'+p.img+'.jpg'}:e(p.e);}
   if(cat==='E-Invite'){const inv=INVITES.find(x=>x.id===id);return inv?{type:'img',src:'einvites/'+inv.file}:e('💌');}
-  if(cat==='Photographer'){if(id==='reel')return e('🎬');const map={Classic:'photo-classic',Premium:'photo-premium',Signature:'photo-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('📷');}
+  if(cat==='Photographer'){const map={Classic:'photo-classic',Premium:'photo-premium',Signature:'photo-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('📷');}
   if(cat==='Return Gifts'){
     if(id==='prop-pr1')return{type:'img',src:'img/packages/spy/spy-prop-sunglasses.jpg'};
     if(id==='prop-pr2')return e('🧢'); // no real Caps photo uploaded yet — placeholder emoji
@@ -2455,7 +2435,7 @@ function thumbFor(cat,id){
   return e('✨');
 }
 function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e');box.style.background='var(--li2)';box.textContent='✨';}
-function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p+(S.addReel?1000:0);S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
+function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p;S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
 function rawT(){return cItems().reduce((s,i)=>s+i.p,0)}
 function svcC(){let c=0;if(S.decor)c++;if(S.activities.length)c++;if(S.host)c++;if(S.dj)c++;if(S.pinata)c++;if(S.einvite)c++;if(S.photo)c++;if(S.gifts.length)c++;if(S.spyExtras.length)c++;return c}
 function autoDp(){const c=svcC();if(c>=6)return 10;if(c>=4)return 8;if(c>=2)return 5;return 0}
@@ -2523,7 +2503,6 @@ function goTo(id){
   if(id==='s9')buildRev();
   if(id==='s6'){chkFreeInv();buildInvs();}
   if(id==='s8')chkFreeTag();
-  if(id==='s7')document.getElementById('reelRow').style.display=(S.photo&&S.photo.tier==='Classic')?'flex':'none';
   if(id==='s3')syncHostDom();
   if(id==='s2'){try{document.getElementById('kDisp2').textContent=S.kidsCount;}catch(e){}}
   if(id==='sco'&&S._pkgCoupon){setTimeout(()=>{const el=document.getElementById('co-coupon');const ok=document.getElementById('couponOk');if(el&&!el.value){el.value=S._pkgCoupon;if(ok){ok.textContent='🎉 '+S._pkgCoupon+' applied — 15% off package price!';ok.classList.add('show');}}},50);}
@@ -2937,7 +2916,7 @@ function renderGalThumbs(){
 }
 
 // ── HOST & DJ ──
-function selTier(card,type,tier,p){const wasSel=card.classList.contains('sel');document.querySelectorAll('#'+type+'Cards .tier-card').forEach(c=>c.classList.remove('sel'));if(wasSel){S[type]=null;}else{card.classList.add('sel');S[type]={tier,p};}updBB(S.screen);if(type==='photo'){const rr=document.getElementById('reelRow');rr.style.display=(S.photo&&S.photo.tier==='Classic')?'flex':'none';if(!(S.photo&&S.photo.tier==='Classic')&&S.addReel){S.addReel=false;document.getElementById('reelTog')?.classList.remove('on');}}}
+function selTier(card,type,tier,p){const wasSel=card.classList.contains('sel');document.querySelectorAll('#'+type+'Cards .tier-card').forEach(c=>c.classList.remove('sel'));if(wasSel){S[type]=null;}else{card.classList.add('sel');S[type]={tier,p};}updBB(S.screen);}
 function syncHostDom(){if(!S.host)return;const map={'Classic':0,'Premium':1,'Signature':2};const idx=map[S.host.tier];if(idx===undefined)return;const cards=document.querySelectorAll('#hostCards .tier-card');cards.forEach((c,i)=>c.classList.toggle('sel',i===idx));}
 
 // ── PINATA ──
@@ -3070,9 +3049,6 @@ function validateInvite(){
   return true;
 }
 
-// ── PHOTOGRAPHER ──
-function togReel(){S.addReel=!S.addReel;document.getElementById('reelTog').classList.toggle('on',S.addReel);updBB(S.screen);document.getElementById('cartTH').textContent='₹'+tp().toLocaleString('en-IN');}
-
 // ── GIFTS ──
 // Map a decor theme id (Step 0/1) to the closest matching gift theme, if any.
 // Only Space has a real matching product (Space Rocket Piggy Bank) since the
@@ -3166,7 +3142,7 @@ function rmRevItem(cat,id){
   else if(cat==='DJ')S.dj=null;
   else if(cat==='Pinata')S.pinata=null;
   else if(cat==='E-Invite')S.einvite=null;
-  else if(cat==='Photographer'){if(id==='reel')S.addReel=false;else{S.photo=null;S.addReel=false;}}
+  else if(cat==='Photographer'){S.photo=null;}
   else if(cat==='Return Gifts')S.gifts=S.gifts.filter(g=>g.id!==id);
   else if(cat==='Addons')S.spyExtras=S.spyExtras.filter(x=>x.id!==id);
   buildRev();
@@ -3977,9 +3953,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
       // Photographer — same tier names as the site's standard photographer step.
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
-      // Birthday Reel — tied to the site's existing Photographer-step reel
-      // add-on (S.addReel, ₹1,000), only shows if a Photographer is also selected.
-      if(pkgData.reel)S.addReel=true;
       // Pinata — this package's PINATA_TIERS now uses the same real
       // Square/Circle/Number ids as builder.html's PINATAS (2026-08-07), so
       // the review-page thumbnail resolves to the correct real photo.
@@ -4013,11 +3986,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(pkgData.music)S.dj={tier:pkgData.music.name,p:pkgData.music.price};
       // E-Invite
       if(pkgData.einvite)S.einvite={id:'spy-'+pkgData.einvite.id,n:pkgData.einvite.name,p:pkgData.einvite.price};
-      // Birthday Reel — tied to the site's existing Photographer-step reel
-      // add-on (S.addReel, ₹1,000), not a separate spy-specific price. Note:
-      // like the generic builder, this only shows on the review page if a
-      // Photographer tier is also selected (cItems() nests it under S.photo).
-      if(pkgData.reel)S.addReel=true;
       // Pinata
       if(pkgData.pinata)S.pinata={id:'spy-'+pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
       // Props (per-child) — shown under Return Gifts, same {id,n,unit,qty} shape
@@ -4076,7 +4044,6 @@ document.addEventListener('DOMContentLoaded',()=>{
         pkgData.gifts.forEach(gid=>{const key=gid==='g1'?'turf-artkit':gid;const item=GIFT_MAP[key];if(item)S.gifts.push({id:key,n:item.n,unit:item.perChild,qty:kids});});
       }
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
-      if(pkgData.reel)S.addReel=true;
       // Pinata — real Square/Circle/Number ids (see note above the first
       // occurrence of this pattern).
       if(pkgData.pinata)S.pinata={id:pkgData.pinata.id,n:pkgData.pinata.name,p:pkgData.pinata.price};
