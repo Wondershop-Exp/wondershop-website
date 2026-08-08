@@ -2207,7 +2207,7 @@ function themeTierEntries(t){
     const extra=(t.tierExtraPhotos&&t.tierExtraPhotos[tm.tier])||[];
     return {
       id:t.id+'-'+tm.tier.toLowerCase(), themeId:t.id, themeName:t.n, tier:tm.tier,
-      n:t.n+' · '+tm.tier, e:t.e, bg:t.bg, age:t.age, gn:t.gn, tag:t.tag, s:t.s, ni:t.ni,
+      n:t.n+' - '+tm.tier, e:t.e, bg:t.bg, age:t.age, gn:t.gn, tag:t.tag, s:t.s, ni:t.ni,
       p:tm.price, spec,
       gallery:[{type:'img',src:t.tierPhotos[tm.tier]}].concat(extra.map(src=>({type:'img',src}))),
     };
@@ -2779,7 +2779,7 @@ function makeTC(t){
   const added=S.decor&&S.decor.id===t.id;
   const tierPill='<span class="tag" style="'+(TIER_TAG_STYLE[t.tier]||'')+'">'+t.tier+'</span>';
   const specHtml='<ul class="act-card-spec">'+t.spec.map(s=>'<li'+(s.na?' class="na"':'')+'><b>'+s.l+':</b> '+s.v+'</li>').join('')+'</ul>';
-  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+t.gallery[0].src+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.themeName+'</div><div class="ctags">'+tierPill+tagHtml+'<span class="tag pk">'+t.gn+'</span></div>'+specHtml+'<div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+t.gallery[0].src+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tierPill+tagHtml+'<span class="tag pk">'+t.gn+'</span></div>'+specHtml+'<div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
 }
 function buildDec(){
   const tc=document.getElementById('thCards');tc.innerHTML='';
