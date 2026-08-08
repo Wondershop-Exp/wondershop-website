@@ -22,7 +22,9 @@ var HEADERS = [
   "Parent Name", "Phone", "Email",
   "Event Date", "Kids Count", "Child Names", "Child Ages", "Child Genders",
   "Theme", "Venue", "Location Type", "City", "Pincode", "Budget (₹)",
-  "Lead Source", "Referred By"
+  "Lead Source", "Referred By",
+  "Gift Delivery Address", "Gift Delivery Maps Link", "Gift Delivery Address Type",
+  "Gift Delivery Contact", "Gift Required By Date"
 ];
 
 function doPost(e) {
@@ -62,6 +64,11 @@ function doPost(e) {
       d.client_budget  || "",
       d.lead_source    || "",
       d.referred_by    || "",
+      d.gift_delivery_address      || "",
+      d.gift_delivery_maps_link    || "",
+      d.gift_delivery_address_type || "",
+      d.gift_delivery_contact      || "",
+      d.gift_required_by_date      || "",
     ]);
 
     return ContentService

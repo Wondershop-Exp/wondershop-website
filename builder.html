@@ -389,6 +389,10 @@ input,textarea,select{font-family:var(--fb)}
 .tag.trend{background:var(--sbl);color:#2563b0;border:1px solid var(--bl)}
 .tag.rec{background:var(--sgr);color:#1a6630;border:1px solid var(--gr)}
 .card-detail{font-size:10px;color:var(--gy);line-height:1.6;margin-bottom:8px}
+.act-card-spec{margin:0 0 8px;padding-left:16px;font-size:10px;color:var(--gy);line-height:1.55;text-align:left}
+.act-card-spec li{margin-bottom:2px}
+.act-card-spec li.na{opacity:.5}
+.act-card-spec b{color:var(--bk);font-weight:600}
 .card-pr-row{display:flex;align-items:center;justify-content:space-between}
 .card-price{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--bk)}
 .card-ppc{font-size:9px;color:var(--gy)}
@@ -2081,7 +2085,7 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Logs to the "Website Orders and Leads" Google Sheet.
 window.WS_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyVQ_8aZQS2hE5t9-1ceC5ttHeD7DSr0NQmKzYAdxkyRK4eqwgWAG_UnM_iZZmyxY8z4Q/exec';
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FPT:50000,remarks:{}};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FPT:50000,remarks:{}};
 
 // ── Sends a lead or booking row to the Google Sheet, fire-and-forget. ──
 // Uses mode:'no-cors' + text/plain so the browser never sends a CORS
@@ -2126,39 +2130,93 @@ function wsBuilderSnapshotForSheet(){
 // "Remove 16 photo-less decor themes" commit — so nothing needs to be
 // re-typed from scratch when photos arrive.
 //
-// TODO — tier naming review (added 2026-08-07, still open): each decor
-// variant (arch/1-panel/2-panel/3-panel) will need its own tier name once
-// real per-variant pricing arrives (see the pricing-sheet discussion in
-// chat). Host, DJ and Photographer were unified to Classic/Premium/
-// Signature on 2026-08-07 (see id="hostCards"/"djCards" and the
-// Photographer tier-card block) — match Decor's naming to that same
-// vocabulary/rank order once its per-variant pricing lands, rather than
-// inventing a fourth scheme.
-const THEMES=[
-  {id:'uni',n:'Unicorn Magic',e:'🦄',bg:'linear-gradient(135deg,#F5C3D7,#EDE6FA)',age:'3-5',gn:'Girl',p:8000,b:'150 (Pink, Purple, White)',panels:'1 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'pop',gallery:[{type:'img',src:'img/Decor/decor-uni-arch.jpg'},{type:'img',src:'img/Decor/decor-uni-1panel.jpg'},{type:'img',src:'img/Decor/decor-uni-2panel.jpg'},{type:'img',src:'img/Decor/decor-uni-3panel.jpg'}]},
-  {id:'jungle',n:'Jungle Safari',e:'🌴',bg:'linear-gradient(135deg,#52C470,#B7E0B8)',age:'3-8',gn:'Both',p:9000,b:'200 (Green, Yellow, Orange)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Tables, chairs, props',tag:'trend',gallery:[{type:'img',src:'img/Decor/decor-jungle-3panel.jpg'}]},
-  {id:'hero',n:'Superhero',e:'🦸',bg:'linear-gradient(135deg,#5B8EDD,#BCD8E8)',age:'6-8',gn:'Both',p:8500,b:'150 (Red, Blue, Yellow)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'rec',gallery:[{type:'img',src:'img/Decor/decor-hero-arch.jpg'},{type:'img',src:'img/Decor/decor-hero-1panel.jpg'},{type:'img',src:'img/Decor/decor-hero-2panel.jpg'},{type:'img',src:'img/Decor/decor-hero-extra1.jpg'}]},
-  {id:'space',n:'Space Explorer',e:'🚀',bg:'linear-gradient(135deg,#B59DDE,#BCD8E8)',age:'6-12',gn:'Both',p:9500,b:'180 (Blue, Purple, Silver)',panels:'2 flex + 1 arch + LED',s:'4 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-space-arch.jpg'},{type:'img',src:'img/Decor/decor-space-1panel.jpg'}]},
-  {id:'spy',n:'Mystery & Spy',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',p:9000,b:'120 (Black, Gold, Red)',panels:'2 flex + arch',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',gallery:[{type:'img',src:'img/Decor/decor-spy-arch.jpg'},{type:'img',src:'img/Decor/decor-spy-1panel.jpg'},{type:'img',src:'img/Decor/decor-spy-2panel.jpg'},{type:'img',src:'img/Decor/decor-spy-3panel.jpg'}]},
-  {id:'kpop',n:'K-Pop Party',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-14',gn:'Girls',p:9500,b:'180 (Purple, Pink, Black)',panels:'2 flex + arch + LED',s:'4 hrs',ni:'Open area, mini stage',tag:'trend',gallery:[{type:'img',src:'img/Decor/decor-kpop-arch.jpg'},{type:'img',src:'img/Decor/decor-kpop-1panel.jpg'},{type:'img',src:'img/Decor/decor-kpop-2panel.jpg'},{type:'img',src:'img/Decor/decor-kpop-3panel.jpg'}]},
-  {id:'hp',n:'Harry Potter',e:'⚡',bg:'linear-gradient(135deg,#374151,#B59DDE)',age:'7-14',gn:'Both',p:9500,b:'180 (Black, Gold, Red)',panels:'2 flex + arch',s:'4 hrs',ni:'Tables, chairs',tag:'trend',gallery:[{type:'img',src:'img/Decor/decor-hp-1panel.jpg'},{type:'img',src:'img/Decor/decor-hp-3panel.jpg'}]},
-  {id:'art',n:'Art & Paint Party',e:'🎨',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',age:'4-10',gn:'Both',p:8500,b:'150 (Colorful mix)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-art-1panel.jpg'},{type:'img',src:'img/Decor/decor-art-2panel.jpg'}]},
-  {id:'science',n:'Science Party',e:'🔬',bg:'linear-gradient(135deg,#BCD8E8,#52C470)',age:'6-12',gn:'Both',p:9000,b:'150 (Blue, Green, White)',panels:'2 flex + 1 arch',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-science-1panel.jpg'}]},
-  {id:'racing',n:'Race Track & Cars',e:'🏎️',bg:'linear-gradient(135deg,#F57A1A,#374151)',age:'3-8',gn:'Boys',p:8500,b:'150 (Black, Red, Yellow)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'pop',gallery:[{type:'img',src:'img/Decor/decor-racing-2panel.jpg'}]},
-  {id:'football',n:'Football Party',e:'⚽',bg:'linear-gradient(135deg,#52C470,#374151)',age:'5-12',gn:'Both',p:8500,b:'150 (Green, Black, White)',panels:'2 flex + 1 arch',s:'3 hrs',ni:'Tables',tag:'pop',gallery:[{type:'img',src:'img/Decor/decor-football-arch.jpg'},{type:'img',src:'img/Decor/decor-football-1panel.jpg'},{type:'img',src:'img/Decor/decor-football-2panel.jpg'},{type:'img',src:'img/Decor/decor-football-3panel.jpg'}]},
-  // ── NEW (added from the latest img/Decor photo batch) — pricing, age
-  // range, gender and balloon/exclusion details below are provisional
-  // placeholders pending confirmation; update once real details are shared.
-  {id:'craftbazaar',n:'Indian Craft Bazaar',e:'🪅',bg:'linear-gradient(135deg,#F2D147,#F57A1A)',age:'5-12',gn:'Both',p:9000,b:'180 (mixed colours)',panels:'3 flex panels',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-craftbazaar-3panel.jpg'},{type:'img',src:'img/Decor/decor-craftbazaar-3panel-alt.jpg'}]},
-  {id:'indianpalace',n:'Indian Palace',e:'🏯',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',age:'4-10',gn:'Both',p:9000,b:'180 (mixed colours)',panels:'3 flex panels',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-indianpalace-3panel.jpg'}]},
-  {id:'railways',n:'Indian Railways',e:'🚂',bg:'linear-gradient(135deg,#5B8EDD,#374151)',age:'3-8',gn:'Both',p:9000,b:'180 (mixed colours)',panels:'3 flex panels',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-railways-3panel.jpg'}]},
-  {id:'katseye',n:'Katseye',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-16',gn:'Girls',p:9000,b:'150 (mixed colours)',panels:'3 flex panels',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-katseye-3panel.jpg'}]},
-  {id:'stitch',n:'Lilo & Stitch',e:'🌺',bg:'linear-gradient(135deg,#5B8EDD,#B7E0B8)',age:'2-6',gn:'Both',p:8000,b:'150 (Blue, Turquoise, White)',panels:'1 shimmer flex panel',s:'2.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-stitch-1panel.jpg'}]},
-  {id:'malgudi',n:'Malgudi Days',e:'📖',bg:'linear-gradient(135deg,#F2D147,#B7E0B8)',age:'4-10',gn:'Both',p:9000,b:'180 (mixed colours)',panels:'3 flex panels',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-malgudi-3panel.jpg'},{type:'img',src:'img/Decor/decor-malgudi-3panel-alt.jpg'}]},
-  {id:'mithai',n:'Mithai Theme',e:'🍬',bg:'linear-gradient(135deg,#F57A1A,#F2D147)',age:'2-8',gn:'Both',p:9000,b:'180 (mixed colours)',panels:'3 flex panels',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-mithai-3panel.jpg'}]},
-  {id:'nanighar',n:'Nani ka Ghar',e:'👵',bg:'linear-gradient(135deg,#F5C3D7,#F7F296)',age:'3-8',gn:'Both',p:8500,b:'150 (mixed colours)',panels:'3 flex panels',s:'3 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-nanighar-3panel.jpg'}]},
-  {id:'treasure',n:'The Great Ancient Indian Treasure',e:'🏺',bg:'linear-gradient(135deg,#F2D147,#374151)',age:'6-12',gn:'Both',p:9500,b:'200 (mixed colours)',panels:'3 flex panels',s:'4 hrs',ni:'Tables, chairs',tag:'new',gallery:[{type:'img',src:'img/Decor/decor-treasure-3panel.jpg'}]}
+// Tier naming review (opened 2026-08-07): RESOLVED 2026-08-08 — Decor now
+// uses the same Classic/Premium/Luxury/Signature tiers as the package
+// pages, each theme's arch/1-panel/2-panel/3-panel variants un-clubbed into
+// their own separately-priced tier cards. See DECOR_TIER_META below.
+// ── DECOR TIER SYSTEM ──
+// Every theme below is now offered at up to 4 tiers — Classic/Premium/
+// Luxury/Signature — matching the tier system already live on the package
+// pages (spy/unicorn/turf-basic.html). Pricing and the included/not-included
+// spec are the SAME across every theme (a Luxury decor is a Luxury decor
+// regardless of theme) — only Balloon Colours varies, pulled from each
+// theme's own `b` field. `tierPhotos` maps tier name -> real reference photo;
+// a theme only gets a tier card for tiers it actually has a photo for (2026-
+// 08-08, at Shruti's request — no fabricated tiers for themes without a
+// matching photo yet).
+const DECOR_TIER_META=[
+  {tier:'Classic',price:5000,spec:[
+    {l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'Up to 2'},
+    {l:'Happy Birthday, Name & Age',v:'Paper bunting (HBD & name), foil balloon (age)'},
+    {l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},
+    {l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'},
+  ]},
+  {tier:'Premium',price:8000,spec:[
+    {l:'Panels',v:'1'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},
+    {l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), foil balloon (age)'},
+    {l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},
+    {l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'},
+  ]},
+  {tier:'Luxury',price:15000,spec:[
+    {l:'Panels',v:'2'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'__THEME__'},
+    {l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},
+    {l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},
+    {l:'Cake Table',v:'Included'},{l:'Decor Width',v:'8-9 ft'},
+  ]},
+  {tier:'Signature',price:25000,spec:[
+    {l:'Panels',v:'3'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'__THEME__'},
+    {l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},
+    {l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + welcome arch'},
+    {l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-14 ft'},
+  ]},
 ];
+const THEMES=[
+  {id:'uni',n:'Unicorn Magic',e:'🦄',bg:'linear-gradient(135deg,#F5C3D7,#EDE6FA)',age:'3-5',gn:'Girl',b:'150 (Pink, Purple, White)',s:'3 hrs',ni:'Tables, chairs',tag:'pop',tierPhotos:{Classic:'img/Decor/decor-uni-arch.jpg',Premium:'img/Decor/decor-uni-1panel.jpg',Luxury:'img/Decor/decor-uni-2panel.jpg',Signature:'img/Decor/decor-uni-3panel.jpg'}},
+  {id:'jungle',n:'Jungle Safari',e:'🌴',bg:'linear-gradient(135deg,#52C470,#B7E0B8)',age:'3-8',gn:'Both',b:'200 (Green, Yellow, Orange)',s:'3.5 hrs',ni:'Tables, chairs, props',tag:'trend',tierPhotos:{Signature:'img/Decor/decor-jungle-3panel.jpg'}},
+  {id:'hero',n:'Superhero',e:'🦸',bg:'linear-gradient(135deg,#5B8EDD,#BCD8E8)',age:'6-8',gn:'Both',b:'150 (Red, Blue, Yellow)',s:'3 hrs',ni:'Tables',tag:'rec',tierPhotos:{Classic:'img/Decor/decor-hero-arch.jpg',Premium:'img/Decor/decor-hero-1panel.jpg',Luxury:'img/Decor/decor-hero-2panel.jpg',Signature:'img/Decor/decor-hero-extra1.jpg'}},
+  {id:'space',n:'Space Explorer',e:'🚀',bg:'linear-gradient(135deg,#B59DDE,#BCD8E8)',age:'6-12',gn:'Both',b:'180 (Blue, Purple, Silver)',s:'4 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Classic:'img/Decor/decor-space-arch.jpg',Premium:'img/Decor/decor-space-1panel.jpg'}},
+  {id:'spy',n:'Mystery & Spy',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',b:'120 (Black, Gold, Red)',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',tierPhotos:{Classic:'img/Decor/decor-spy-arch.jpg',Premium:'img/Decor/decor-spy-1panel.jpg',Luxury:'img/Decor/decor-spy-2panel.jpg',Signature:'img/Decor/decor-spy-3panel.jpg'}},
+  {id:'kpop',n:'K-Pop Party',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-14',gn:'Girls',b:'180 (Purple, Pink, Black)',s:'4 hrs',ni:'Open area, mini stage',tag:'trend',tierPhotos:{Classic:'img/Decor/decor-kpop-arch.jpg',Premium:'img/Decor/decor-kpop-1panel.jpg',Luxury:'img/Decor/decor-kpop-2panel.jpg',Signature:'img/Decor/decor-kpop-3panel.jpg'}},
+  {id:'hp',n:'Harry Potter',e:'⚡',bg:'linear-gradient(135deg,#374151,#B59DDE)',age:'7-14',gn:'Both',b:'180 (Black, Gold, Red)',s:'4 hrs',ni:'Tables, chairs',tag:'trend',tierPhotos:{Premium:'img/Decor/decor-hp-1panel.jpg',Signature:'img/Decor/decor-hp-3panel.jpg'}},
+  {id:'art',n:'Art & Paint Party',e:'🎨',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',age:'4-10',gn:'Both',b:'150 (Colorful mix)',s:'3 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Premium:'img/Decor/decor-art-1panel.jpg',Luxury:'img/Decor/decor-art-2panel.jpg'}},
+  {id:'science',n:'Science Party',e:'🔬',bg:'linear-gradient(135deg,#BCD8E8,#52C470)',age:'6-12',gn:'Both',b:'150 (Blue, Green, White)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Premium:'img/Decor/decor-science-1panel.jpg'}},
+  {id:'racing',n:'Race Track & Cars',e:'🏎️',bg:'linear-gradient(135deg,#F57A1A,#374151)',age:'3-8',gn:'Boys',b:'150 (Black, Red, Yellow)',s:'3 hrs',ni:'Tables',tag:'pop',tierPhotos:{Luxury:'img/Decor/decor-racing-2panel.jpg'}},
+  {id:'football',n:'Football Party',e:'⚽',bg:'linear-gradient(135deg,#52C470,#374151)',age:'5-12',gn:'Both',b:'150 (Green, Black, White)',s:'3 hrs',ni:'Tables',tag:'pop',tierPhotos:{Classic:'img/Decor/decor-football-arch.jpg',Premium:'img/Decor/decor-football-1panel.jpg',Luxury:'img/Decor/decor-football-2panel.jpg',Signature:'img/Decor/decor-football-3panel.jpg'}},
+  // ── NEW (added from the latest img/Decor photo batch) — age range, gender
+  // and balloon-colour details below are provisional placeholders pending
+  // confirmation; update once real details are shared.
+  {id:'craftbazaar',n:'Indian Craft Bazaar',e:'🪅',bg:'linear-gradient(135deg,#F2D147,#F57A1A)',age:'5-12',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-craftbazaar-3panel.jpg'},tierExtraPhotos:{Signature:['img/Decor/decor-craftbazaar-3panel-alt.jpg']}},
+  {id:'indianpalace',n:'Indian Palace',e:'🏯',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',age:'4-10',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-indianpalace-3panel.jpg'}},
+  {id:'railways',n:'Indian Railways',e:'🚂',bg:'linear-gradient(135deg,#5B8EDD,#374151)',age:'3-8',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-railways-3panel.jpg'}},
+  {id:'katseye',n:'Katseye',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-16',gn:'Girls',b:'150 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-katseye-3panel.jpg'}},
+  {id:'stitch',n:'Lilo & Stitch',e:'🌺',bg:'linear-gradient(135deg,#5B8EDD,#B7E0B8)',age:'2-6',gn:'Both',b:'150 (Blue, Turquoise, White)',s:'2.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Premium:'img/Decor/decor-stitch-1panel.jpg'}},
+  {id:'malgudi',n:'Malgudi Days',e:'📖',bg:'linear-gradient(135deg,#F2D147,#B7E0B8)',age:'4-10',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-malgudi-3panel.jpg'},tierExtraPhotos:{Signature:['img/Decor/decor-malgudi-3panel-alt.jpg']}},
+  {id:'mithai',n:'Mithai Theme',e:'🍬',bg:'linear-gradient(135deg,#F57A1A,#F2D147)',age:'2-8',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-mithai-3panel.jpg'}},
+  {id:'nanighar',n:'Nani ka Ghar',e:'👵',bg:'linear-gradient(135deg,#F5C3D7,#F7F296)',age:'3-8',gn:'Both',b:'150 (mixed colours)',s:'3 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-nanighar-3panel.jpg'}},
+  {id:'treasure',n:'The Great Ancient Indian Treasure',e:'🏺',bg:'linear-gradient(135deg,#F2D147,#374151)',age:'6-12',gn:'Both',b:'200 (mixed colours)',s:'4 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-treasure-3panel.jpg'}}
+];
+// Extracts the balloon-colour list out of a theme's `b` field, e.g.
+// "150 (Pink, Purple, White)" -> "Pink, Purple, White".
+function extractColors(b){const m=(b||'').match(/\(([^)]+)\)/);return m?m[1]:'As per theme';}
+// Expands one theme into its available tier-cards (only tiers with a real
+// photo in tierPhotos get a card — see DECOR_TIER_META note above).
+function themeTierEntries(t){
+  const colors=extractColors(t.b);
+  return DECOR_TIER_META.filter(tm=>t.tierPhotos&&t.tierPhotos[tm.tier]).map(tm=>{
+    const spec=tm.spec.map(s=>s.v==='__THEME__'?Object.assign({},s,{v:colors}):s);
+    const extra=(t.tierExtraPhotos&&t.tierExtraPhotos[tm.tier])||[];
+    return {
+      id:t.id+'-'+tm.tier.toLowerCase(), themeId:t.id, themeName:t.n, tier:tm.tier,
+      n:t.n+' · '+tm.tier, e:t.e, bg:t.bg, age:t.age, gn:t.gn, tag:t.tag, s:t.s, ni:t.ni,
+      p:tm.price, spec,
+      gallery:[{type:'img',src:t.tierPhotos[tm.tier]}].concat(extra.map(src=>({type:'img',src}))),
+    };
+  });
+}
+// Flattened list of every theme x tier combo actually available — this is
+// what the "Set the Scene" grid renders, one card per tier (no more
+// clubbing multiple tiers' photos into a single card/price).
+const THEME_TIERS=THEMES.reduce((acc,t)=>acc.concat(themeTierEntries(t)),[]);
 const STD=[
   {id:'std1',n:'Home Balloon Arch',e:'🎈',img:'std-home',bg:'linear-gradient(135deg,#F5C3D7,#FAFAFA)',p:5000,d:'200 balloons · 1 arch · Ideal for homes · Setup 2 hrs'},
   {id:'std2',n:'Banquet Arch + Bunches',e:'🎊',img:'std-banquet',bg:'linear-gradient(135deg,#BCD8E8,#FAFAFA)',p:7500,d:'300 balloons · 1 arch + bunches · Setup 2.5 hrs'},
@@ -2393,12 +2451,13 @@ function thumbFor(cat,id){
       const f=map[id];return f?{type:'img',src:'img/'+f+'.jpg'}:e('🎈');
     }
     if(id&&id.indexOf('std')===0){const s=STD.find(x=>x.id===id);return s?{type:'img',src:'img/'+s.img+'.jpg'}:e('🎈');}
-    // Falls back to the legacy img/theme-<id>.jpg convention even for theme
-    // ids no longer in the live THEMES catalogue (e.g. leftover ids like
-    // 'princess'/'hero' from the now-deleted princess-basic.html /
-    // superhero-basic.html package pages — see 2026-08-07 removal) — the
-    // photo files themselves still exist on disk, so there's no need to
-    // show a bare emoji tile.
+    // Theme+tier ids (e.g. 'uni-classic') from the current catalogue first;
+    // falls back to the legacy plain theme-<id>.jpg convention for older/
+    // leftover ids no longer in THEME_TIERS (e.g. ids from now-deleted
+    // package pages) — the photo files themselves still exist on disk, so
+    // there's no need to show a bare emoji tile.
+    const tt=THEME_TIERS.find(x=>x.id===id);
+    if(tt)return{type:'img',src:tt.gallery[0].src};
     const t=THEMES.find(x=>x.id===id);
     if(t)return{type:'img',src:themeThumb(t)};
     if(id)return{type:'img',src:'img/theme-'+id+'.jpg'};
@@ -2695,34 +2754,39 @@ function doS0(){
 
 // ── DECOR ──
 const TAG_MAP={pop:'<span class="tag pop">Most Popular</span>',new:'<span class="tag new">New Launch</span>',trend:'<span class="tag trend">Trending</span>',rec:'<span class="tag rec">WS Recommends</span>'};
+const TIER_TAG_STYLE={Classic:'background:#EEF2FF;color:#4338CA',Premium:'background:#EDE6FA;color:#5B3FA0',Luxury:'background:#FEF3C7;color:#92400E',Signature:'background:#FCE7F3;color:#9D174D'};
 // Grid-card thumbnail: prefer the entry's real gallery photo (if wired via
 // t.gallery) over the old single theme-<id>.jpg/std-<name>.jpg fallback —
 // otherwise newly-added decor photos only ever showed up inside the click
 // modal, never on the card itself (and brand-new theme ids with no legacy
 // theme-<id>.jpg at all would just show a broken image).
-function themeThumb(t){return (t.gallery&&t.gallery[0]&&t.gallery[0].type!=='video')?t.gallery[0].src:'img/theme-'+t.id+'.jpg';}
+function themeThumb(t){
+  if(t.tierPhotos){const tm=DECOR_TIER_META.find(x=>t.tierPhotos[x.tier]);if(tm)return t.tierPhotos[tm.tier];}
+  return 'img/theme-'+t.id+'.jpg';
+}
 function stdThumb(t){return (t.gallery&&t.gallery[0]&&t.gallery[0].type!=='video')?t.gallery[0].src:'img/'+t.img+'.jpg';}
-// Small overlay on the card thumbnail flagging that this decor has more
-// than one real photo variant (arch/1-panel/2-panel/3-panel, etc.) to
-// browse — shown only when there's genuinely more than one photo to see;
-// doesn't imply anything about pricing (all variants of a theme are still
-// priced the same today — see TODO near const THEMES for per-variant
-// pricing, pending a pricing sheet).
+// Small overlay on the card thumbnail flagging that this decor tier has
+// more than one real reference photo to browse (e.g. the -alt shots on
+// craftbazaar/malgudi's Signature tier).
 function variantBadge(t){
   const n=t.gallery?t.gallery.length:0;
-  return n>1?'<div class="variant-badge">🖼 '+n+' variants</div>':'';
+  return n>1?'<div class="variant-badge">🖼 '+n+' photos</div>':'';
 }
+// One card per theme x tier (Classic/Premium/Luxury/Signature) — no more
+// clubbing every panel variant of a theme into a single card/price.
 function makeTC(t){
   const tagHtml=t.tag?TAG_MAP[t.tag]:'';
   const added=S.decor&&S.decor.id===t.id;
-  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+themeThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tagHtml+'<span class="tag pk">'+t.gn+'</span><span class="tag gr">'+t.s+'</span></div><div class="card-detail">🎈 '+t.b+'<br>🖼 '+t.panels+'<br>⚠️ Excl: '+t.ni+'</div><div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+  const tierPill='<span class="tag" style="'+(TIER_TAG_STYLE[t.tier]||'')+'">'+t.tier+'</span>';
+  const specHtml='<ul class="act-card-spec">'+t.spec.map(s=>'<li'+(s.na?' class="na"':'')+'><b>'+s.l+':</b> '+s.v+'</li>').join('')+'</ul>';
+  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+t.gallery[0].src+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.themeName+'</div><div class="ctags">'+tierPill+tagHtml+'<span class="tag pk">'+t.gn+'</span></div>'+specHtml+'<div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
 }
 function buildDec(){
   const tc=document.getElementById('thCards');tc.innerHTML='';
-  let fl=THEMES;
-  if(S.theme){fl=THEMES.filter(t=>t.id.toLowerCase().includes(S.theme.toLowerCase())||t.n.toLowerCase().includes(S.theme.toLowerCase()));}
-  else if(S.children.length){const gs=S.children.map(c=>c.gender).filter(Boolean);if(gs.length)fl=THEMES.filter(t=>t.gn==='Both'||gs.some(g=>t.gn===g||g==='Either'));}
-  if(!fl.length)fl=THEMES;
+  let fl=THEME_TIERS;
+  if(S.theme){fl=THEME_TIERS.filter(t=>t.themeId.toLowerCase().includes(S.theme.toLowerCase())||t.themeName.toLowerCase().includes(S.theme.toLowerCase()));}
+  else if(S.children.length){const gs=S.children.map(c=>c.gender).filter(Boolean);if(gs.length)fl=THEME_TIERS.filter(t=>t.gn==='Both'||gs.some(g=>t.gn===g||g==='Either'));}
+  if(!fl.length)fl=THEME_TIERS;
   fl.forEach(t=>tc.innerHTML+=makeTC(t));
   const sc=document.getElementById('stdCards');sc.innerHTML='';
   STD.forEach(t=>{const added=S.decor&&S.decor.id===t.id;sc.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'std\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+stdThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="card-detail">'+t.d+'</div><div class="card-pr-row"><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';});
@@ -2730,7 +2794,7 @@ function buildDec(){
   const dtBtns=document.querySelectorAll('#s1 .dt-tog .dt-btn');
   if(dtBtns.length===2){if(S.decorType==='standard'){dtBtns[0].classList.remove('on');dtBtns[1].classList.add('on');document.getElementById('thSec').style.display='none';document.getElementById('stdSec').style.display='block';}else{dtBtns[0].classList.add('on');dtBtns[1].classList.remove('on');document.getElementById('thSec').style.display='block';document.getElementById('stdSec').style.display='none';}}
 }
-function showAllT(){document.getElementById('fNote').style.display='none';const tc=document.getElementById('thCards');tc.innerHTML='';THEMES.forEach(t=>tc.innerHTML+=makeTC(t));if(S.decor)document.querySelector('#dc-'+S.decor.id)?.classList.add('sel');}
+function showAllT(){document.getElementById('fNote').style.display='none';const tc=document.getElementById('thCards');tc.innerHTML='';THEME_TIERS.forEach(t=>tc.innerHTML+=makeTC(t));if(S.decor)document.querySelector('#dc-'+S.decor.id)?.classList.add('sel');}
 function setDT(type,btn){S.decorType=type;document.querySelectorAll('#s1 .dt-tog .dt-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.getElementById('thSec').style.display=type==='themed'?'block':'none';document.getElementById('stdSec').style.display=type==='standard'?'block':'none';}
 function selDec(btn,id,n,p){
   const card=btn.closest('.pcard');
@@ -2849,20 +2913,25 @@ function buildDecorInfoHTML(kind,obj){
     const inc=splitBits(obj.d);
     return '<h4>✅ What\'s Included</h4><ul>'+inc.map(x=>'<li>'+x+'</li>').join('')+'</ul>'+custNote;
   }
-  const incBits=[obj.panels,obj.b+' balloons','On-site setup in ~'+obj.s,'Flex/panel design customised with your child\'s name &amp; age'].filter(Boolean);
-  return '<h4>✅ What\'s Included</h4><ul>'+incBits.map(x=>'<li>'+x+'</li>').join('')+'</ul>'+
-    (obj.ni?'<h4>🚫 What\'s Not Included</h4><ul><li>'+obj.ni+'</li></ul>':'')+
+  // Theme+tier (kind==='theme') — driven by the tier's own spec array (same
+  // labelled-bullet + `na` system used to bulletize Decor on the package
+  // pages), so Included/Not Included always matches the card's own bullets.
+  const incBits=obj.spec.filter(s=>!s.na).map(s=>'<li><b>'+s.l+':</b> '+s.v+'</li>');
+  const excBits=obj.spec.filter(s=>s.na).map(s=>'<li>'+s.l+'</li>');
+  return '<h4>✅ What\'s Included</h4><ul>'+incBits.join('')+'</ul>'+
+    (excBits.length?'<h4>🚫 What\'s Not Included</h4><ul>'+excBits.join('')+'</ul>':'')+
+    (obj.ni?'<div class="gal-info-note">⚠️ Also not provided: '+obj.ni+'</div>':'')+
     custNote;
 }
 function openGallery(kind,id){
-  const obj=kind==='theme'?THEMES.find(t=>t.id===id):kind==='std'?STD.find(t=>t.id===id):kind==='pinata'?PINATAS.find(p=>p.id===id):kind==='gift'?GIFTS.find(g=>g.id===id):ACTS.find(a=>a.id===id);
+  const obj=kind==='theme'?THEME_TIERS.find(t=>t.id===id):kind==='std'?STD.find(t=>t.id===id):kind==='pinata'?PINATAS.find(p=>p.id===id):kind==='gift'?GIFTS.find(g=>g.id===id):ACTS.find(a=>a.id===id);
   if(!obj)return;
   galKind=kind;galObj=obj;
   galItems=galMediaFor(kind,obj);
   galIdx=0;
   document.getElementById('galName').textContent=obj.n;
   document.getElementById('galDesc').textContent=kind==='theme'
-    ? ('🎈 '+obj.b+'  ·  🖼 '+obj.panels+'  ·  ⏱ '+obj.s)
+    ? ('₹'+obj.p.toLocaleString('en-IN')+'  ·  '+obj.tier+' tier  ·  '+((obj.spec.find(s=>s.l==='Balloons')||{}).v||''))
     : kind==='std'
     ? obj.d
     : kind==='pinata'
@@ -3121,6 +3190,26 @@ function buildRev(){
     });
     html+='</div></div>';
   });
+  // Return-gift delivery details — only shown once gifts have been added,
+  // read live from the Step 8 inputs (S.giftAddr etc. isn't populated until
+  // checkout runs).
+  if(S.gifts.length){
+    const gAddr=(document.getElementById('f-gaddr')||{}).value||'';
+    const gMaps=(document.getElementById('f-gmaps')||{}).value||'';
+    const gType=(document.getElementById('f-gaddrtype')||{}).value||'';
+    const gContact=(document.getElementById('f-gcontact')||{}).value||'';
+    const gDate=(document.getElementById('f-gdate')||{}).value||'';
+    const typeLbl={venue:'Venue',home:'Home',office:'Office',other:'Other'}[gType]||'';
+    const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const rows=['Address: '+esc(gAddr||'Defaults to event venue')];
+    if(typeLbl)rows.push('Address Type: '+typeLbl);
+    if(gMaps)rows.push('Maps Link: '+esc(gMaps));
+    if(gContact)rows.push('Contact Person: '+esc(gContact));
+    if(gDate)rows.push('Required By: '+gDate);
+    html+='<div class="rv-sec"><div class="rv-hdr"><div class="rv-cat">Return Gift Delivery</div><span class="edit-link" onclick="editFR(8)">Edit</span></div>'+
+      '<div class="rv-items" style="padding:14px 16px"><div style="font-size:13px;color:var(--bk);line-height:1.8">'+
+      rows.join('<br>')+'</div></div></div>';
+  }
   const rmk=combinedRemarks();
   if(rmk){
     html+='<div class="rv-sec"><div class="rv-hdr"><div class="rv-cat">Special Requests</div></div>'+
@@ -3225,6 +3314,13 @@ async function doCo(){
   S.mobile=document.getElementById('co-mob').value;S.eventDate=document.getElementById('co-date').value;S.eventTime=document.getElementById('co-time').value;
   S.kidsCount=parseInt(document.getElementById('co-kids').value)||S.kidsCount;
   S.parentName=document.getElementById('co-name').value;S.email=document.getElementById('co-email').value;S.address=document.getElementById('co-addr').value;
+  // Return-gift delivery details (Step 8) — captured here so they reach the
+  // sheet/DB/email even though they were filled in on an earlier step.
+  S.giftAddr=document.getElementById('f-gaddr').value;
+  S.giftMapsLink=document.getElementById('f-gmaps').value;
+  S.giftAddrType=document.getElementById('f-gaddrtype').value;
+  S.giftContact=document.getElementById('f-gcontact').value;
+  S.giftReqDate=document.getElementById('f-gdate').value;
 
   // Event less than 3 days away: no instant confirmation, no advance, no
   // scratch card — the team calls within 24 hours to confirm feasibility.
@@ -3255,6 +3351,9 @@ async function doCo(){
     reward_value: __reward.value || '', reward_terms: __rewardTermsText,
     reward_expiry: __reward.expiryDate || '',
     lead_source: __leadSource,
+    gift_delivery_address: S.giftAddr || '', gift_delivery_maps_link: S.giftMapsLink || '',
+    gift_delivery_address_type: S.giftAddrType || '', gift_delivery_contact: S.giftContact || '',
+    gift_required_by_date: S.giftReqDate || '',
   }, wsBuilderSnapshotForSheet()));
 
   // Railway — WhatsApp + email + DB (fire-and-forget, never blocks confirmation)
@@ -3285,6 +3384,11 @@ async function doCo(){
         reward_expiry:      __reward.expiryISO || null,
         builder_snapshot:   buildSnapshot ? buildSnapshot() : null,
         remarks:            combinedRemarks() || null,
+        gift_delivery_address:      S.giftAddr || null,
+        gift_delivery_maps_link:    S.giftMapsLink || null,
+        gift_delivery_address_type: S.giftAddrType || null,
+        gift_delivery_contact:      S.giftContact || null,
+        gift_required_by_date:      S.giftReqDate || null,
         lead_source:        __leadSource,
       }),
     }).catch(e=>console.error('Booking notify error:',e));
@@ -4057,7 +4161,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const match=THEMES.find(t=>t.id===urlTheme);
     if(match){
       // Pre-select theme in S state and skip to decor step
-      S.theme=match.id;S.themeName=match.n;S.themeEmoji=match.e;S.themePrice=match.p;
+      S.theme=match.id;S.themeName=match.n;S.themeEmoji=match.e;S.themePrice=DECOR_TIER_META[0].price;
       setTimeout(()=>{
         showBuilder();
         // Init all step grids (normally done by s0Next)

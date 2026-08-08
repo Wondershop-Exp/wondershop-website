@@ -60,6 +60,13 @@ class LeadSubmitRequest(BaseModel):
     reward_value:       Optional[float] = None
     reward_terms:       Optional[str]   = None
     reward_expiry:      Optional[date]  = None
+    # Return-gift delivery details — captured on the builder's Return Gifts
+    # step (Delivery Details block); only meaningful when gifts were added.
+    gift_delivery_address:      Optional[str]  = None
+    gift_delivery_maps_link:    Optional[str]  = None
+    gift_delivery_address_type: Optional[str]  = None
+    gift_delivery_contact:      Optional[str]  = None
+    gift_required_by_date:      Optional[date] = None
 
 
 # ─── GMAIL API EMAIL HELPER ──────────────────────────────────────────────────
@@ -128,6 +135,32 @@ def _format_order_summary_block(req: LeadSubmitRequest) -> str:
     lines.append("")
     return "\n".join(lines) + "\n"
 
+def _format_gift_delivery_block(req: LeadSubmitRequest) -> str:
+    """Return-gift delivery details — only present if the customer filled
+    in at least one of the delivery fields on the Return Gifts step."""
+    fields = [
+        req.gift_delivery_address, req.gift_delivery_maps_link,
+        req.gift_delivery_address_type, req.gift_delivery_contact,
+        req.gift_required_by_date,
+    ]
+    if not any(fields):
+        return ""
+    lines = ["\nRETURN GIFT DELIVERY DETAILS"]
+    if req.gift_delivery_address:
+        lines.append(f"  Address        : {req.gift_delivery_address}")
+    if req.gift_delivery_address_type:
+        lines.append(f"  Address Type   : {req.gift_delivery_address_type}")
+    if req.gift_delivery_maps_link:
+        lines.append(f"  Maps Link      : {req.gift_delivery_maps_link}")
+    if req.gift_delivery_contact:
+        lines.append(f"  Contact Person : {req.gift_delivery_contact}")
+    if req.gift_required_by_date:
+        lines.append(f"  Required By    : {req.gift_required_by_date.isoformat()}")
+    lines.append("  Note: delivery timing may shift a few days due to weather/logistics.")
+    lines.append("")
+    return "\n".join(lines) + "\n"
+
+
 def _format_reward_block(req: LeadSubmitRequest) -> str:
     """Scratch-card reward + full terms & conditions — only present if won."""
     if not req.reward_type:
@@ -160,6 +193,7 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest) -> None:
     try:
         remarks_block = f"\nYour special requests / remarks:\n  {req.remarks}\n" if req.remarks else ""
         order_block = _format_order_summary_block(req)
+        gift_delivery_block = _format_gift_delivery_block(req)
         reward_block = _format_reward_block(req)
         body = f"""Hi {req.parent_name.split()[0]}! 🎉
 
@@ -171,7 +205,7 @@ Your details:
   Event Date  : {req.event_date.isoformat() if req.event_date else '—'}
   Theme       : {req.theme or '—'}
   City        : {req.city or '—'}
-{remarks_block}{order_block}{reward_block}
+{remarks_block}{order_block}{gift_delivery_block}{reward_block}
 If you have any questions in the meantime, WhatsApp us at +91 90044 35362.
 
 Warmly,
@@ -200,6 +234,7 @@ async def _send_team_email(lead_id: int, req: LeadSubmitRequest) -> None:
         budget_str = f"Rs.{req.client_budget:,.0f}" if req.client_budget else "—"
         remarks_block = f"\nSPECIAL REQUESTS / REMARKS\n  {req.remarks}\n" if req.remarks else ""
         order_block = _format_order_summary_block(req)
+        gift_delivery_block = _format_gift_delivery_block(req)
         reward_block = ""
         if req.reward_type:
             reward_block = _format_reward_block(req).replace(
@@ -225,7 +260,7 @@ EVENT
   Venue      : {req.venue or '—'} ({req.location_type or '—'})
   City       : {req.city or '—'}   Pincode: {req.pincode or '—'}
   Budget     : {budget_str}
-{remarks_block}{order_block}{reward_block}
+{remarks_block}{order_block}{gift_delivery_block}{reward_block}
 SOURCE
   {req.lead_source or '—'} / {req.lead_source_detail or '—'}
   Referred by: {req.referred_by or '—'}
@@ -273,6 +308,11 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest) -> None:
             "client_budget":req.client_budget or "",
             "lead_source":  req.lead_source or "",
             "referred_by":  req.referred_by or "",
+            "gift_delivery_address":      req.gift_delivery_address or "",
+            "gift_delivery_maps_link":    req.gift_delivery_maps_link or "",
+            "gift_delivery_address_type": req.gift_delivery_address_type or "",
+            "gift_delivery_contact":      req.gift_delivery_contact or "",
+            "gift_required_by_date":      req.gift_required_by_date.isoformat() if req.gift_required_by_date else "",
             "status":       "New",
         }
         async with httpx.AsyncClient(timeout=10) as client:
@@ -375,6 +415,9 @@ async def submit_lead(req: LeadSubmitRequest):
             venue, location_type, theme, city, pincode,
             client_budget, builder_snapshot, remarks,
             lead_source, lead_source_detail, referred_by,
+            gift_delivery_address, gift_delivery_maps_link,
+            gift_delivery_address_type, gift_delivery_contact,
+            gift_required_by_date,
             status
         ) VALUES (
             :parent_name, :phone, :child_names, :email,
@@ -382,6 +425,9 @@ async def submit_lead(req: LeadSubmitRequest):
             :venue, :location_type, :theme, :city, :pincode,
             :client_budget, :builder_snapshot, :remarks,
             :lead_source, :lead_source_detail, :referred_by,
+            :gift_delivery_address, :gift_delivery_maps_link,
+            :gift_delivery_address_type, :gift_delivery_contact,
+            :gift_required_by_date,
             'New'
         )
         RETURNING lead_id
@@ -406,6 +452,11 @@ async def submit_lead(req: LeadSubmitRequest):
             "lead_source":        req.lead_source,
             "lead_source_detail": req.lead_source_detail,
             "referred_by":        req.referred_by,
+            "gift_delivery_address":      req.gift_delivery_address,
+            "gift_delivery_maps_link":    req.gift_delivery_maps_link,
+            "gift_delivery_address_type": req.gift_delivery_address_type,
+            "gift_delivery_contact":      req.gift_delivery_contact,
+            "gift_required_by_date":      req.gift_required_by_date,
         },
     )
 
