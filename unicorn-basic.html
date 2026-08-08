@@ -382,13 +382,14 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="incl-card">
           <div class="incl-card-h">Decor</div>
-          <div class="incl-card-body">Basic is included by default. Upgrade to a bigger tier below if you'd like.</div>
+          <div class="incl-card-body">Classic is included by default. Upgrade to a bigger tier below if you'd like.</div>
           <div class="detail-list show" id="decor">
             <ul>
               <li>Balloon arch</li>
-              <li>Upto 200 Balloons of 2 Colours</li>
-              <li>Age Foil Balloon</li>
-              <li>Happy Birthday Paper Bunting</li>
+              <li>Up to 200 balloons (up to 2 colours)</li>
+              <li>Happy Birthday paper bunting</li>
+              <li>Name paper bunting</li>
+              <li>Age foil balloon</li>
             </ul>
           </div>
           <button class="expand-btn" id="btn-decor-not" onclick="toggleDetail('decor-not','btn-decor-not','Not included')" style="margin-top:6px;color:#9CA3AF">
@@ -489,7 +490,7 @@ button{cursor:pointer;font-family:var(--fb)}
       <span class="act-badge">Included · pick a tier</span>
     </div>
     <div class="container">
-      <p class="sec-sub">Basic is included in the package price. Upgrading to a bigger tier adds the difference to your total.</p>
+      <p class="sec-sub">Classic is included in the package price. Upgrading to a bigger tier adds the difference to your total.</p>
       <div class="act-grid" id="decorGrid"></div>
       <div style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--gy);font-weight:500;margin-top:14px">💬 Want to tweak colours, add-ons, or anything else about the decor? Connect with your party manager after booking to discuss modifications and customizations.</div>
     </div>
@@ -1217,11 +1218,15 @@ function addonActPrice(id, kids) {
 // Decor — same tier structure & pricing as the Spy package (balloon arch up
 // to full flex-panel installs), Unicorn-themed copy. Tier-specific photos
 // haven't been uploaded yet, so all 4 cards use the existing theme photo.
+// Decor tier text standardized 2026-08-08 across spy/unicorn/turf-basic.html —
+// same spec, same wording everywhere (only per-tier photos differ). Tier
+// names renamed: Basic->Classic, 1 Panel->Premium, 2 Panel->Luxury,
+// Signature unchanged (ids kept as-is so nothing else breaks).
 const DECOR_TIERS = [
-  {id:'basic', name:'Basic', price:5000, d:'Balloon arch, Upto 200 Balloons of 2 Colours, Age Foil Balloon, Happy Birthday Paper Bunting.', img:'img/packages/unicorn/unicorn-decor-basic.jpg'},
-  {id:'p1', name:'1 Panel', price:8000, d:'1 Flex Panel (4x7ft) with balloon arch, Happy Birthday LED light, Name on Flex, Age Foil Balloon.', img:'img/packages/unicorn/unicorn-decor-p1.jpg', imgFit:'contain'},
-  {id:'p2', name:'2 Panel', price:15000, d:'2 Panel Decor - 8 Feet Decor Width, 3 Feet Age Light, Theme Based Cutouts.', img:'img/packages/unicorn/unicorn-decor-p2.jpg'},
-  {id:'sig', name:'Signature', price:25000, d:'Welcome Arch, Welcome Board, Theme Based Cutouts, 12ft decor, 3ft Age Light, Cake Table.', img:'img/packages/unicorn/unicorn-decor-sig.jpg'},
+  {id:'basic', name:'Classic', price:5000, d:'Balloon arch, up to 200 balloons (up to 2 colours), Happy Birthday paper bunting, name paper bunting, age foil balloon, 5-6ft decor width', img:'img/packages/unicorn/unicorn-decor-basic.jpg'},
+  {id:'p1', name:'Premium', price:8000, d:'1 flex panel, balloon arch around the panel (as shown in photo), up to 300 balloons (up to 3 colours), Happy Birthday flex print or LED light (as per design), name on flex, age foil balloon, cutouts as per reference photo, 5-6ft decor width', img:'img/packages/unicorn/unicorn-decor-p1.jpg', imgFit:'contain'},
+  {id:'p2', name:'Luxury', price:15000, d:'2 flex panels, balloon arch around the panels (as shown in photo), up to 400 balloons (colours as per theme), Happy Birthday flex print or LED light (as per design), name on flex, 3ft age light, cutouts as per reference photo, welcome board, 8-9ft decor width', img:'img/packages/unicorn/unicorn-decor-p2.jpg'},
+  {id:'sig', name:'Signature', price:25000, d:'3 flex panels, balloon arch around the panels (as shown in photo), up to 500 balloons (colours as per theme), Happy Birthday flex print or LED light (as per design), name on flex, 3ft age light, cutouts as per reference photo, welcome board, welcome arch, 12-14ft decor width', img:'img/packages/unicorn/unicorn-decor-sig.jpg'},
 ];
 // Music — same DJ tier structure & pricing as the Spy package / generic builder.
 // Tier names unified 2026-08-07 to Classic/Premium/Signature (bare, no

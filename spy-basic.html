@@ -534,7 +534,7 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="sticky-price" id="stickyTotal">₹25,000</div>
         <div class="sticky-base" id="stickyBase">· Spy Adventure</div>
       </div>
-      <div class="sticky-details" id="stickyDetails">25 kids · 5 stations · Basic decor</div>
+      <div class="sticky-details" id="stickyDetails">25 kids · 5 stations · Classic decor</div>
     </div>
     <button class="btn-pkg" onclick="proceedToBuilder()">Build This Package →</button>
   </div>
@@ -561,11 +561,15 @@ document.getElementById('nav-ham').addEventListener('click',()=>document.getElem
 // All prices below are exactly as briefed — nothing estimated or invented.
 // Decor is fully optional — clicking a selected tier again deselects it and
 // removes decor from the total (see selectDecor()).
+// Decor tier text standardized 2026-08-08 across spy/unicorn/turf-basic.html —
+// same spec, same wording everywhere (only per-tier photos differ). Tier
+// names renamed: Basic->Classic, 1 Panel->Premium, 2 Panel->Luxury,
+// Signature unchanged (ids kept as-is so nothing else breaks).
 const DECOR_TIERS = [
-  {id:'basic', name:'Basic', price:5000, d:'Balloon arch, Happy Birthday bunting, name bunting, age foil balloons — up to 200 balloons.', img:'img/packages/spy/spy-decor-basic.jpg'},
-  {id:'p1', name:'1 Panel', price:8000, d:'1 flex panel (4x7ft) with a balloon arch, Happy Birthday LED light, name on flex, age foil balloon.', img:'img/packages/spy/spy-decor-1panel.jpg'},
-  {id:'p2', name:'2 Panel', price:15000, d:'2 flex panels — 8ft total decor width, 3ft age light, themed cutouts, welcome board.', img:'img/packages/spy/spy-decor-2panel.jpg'},
-  {id:'sig', name:'Signature', price:25000, d:'Welcome arch, welcome board, spy cutouts, 3 panel decor, 3ft age light, Happy Birthday LED (if needed), name on flex.', img:'img/packages/spy/spy-decor-signature.jpg'},
+  {id:'basic', name:'Classic', price:5000, d:'Balloon arch, up to 200 balloons (up to 2 colours), Happy Birthday paper bunting, name paper bunting, age foil balloon, 5-6ft decor width', img:'img/packages/spy/spy-decor-basic.jpg'},
+  {id:'p1', name:'Premium', price:8000, d:'1 flex panel, balloon arch around the panel (as shown in photo), up to 300 balloons (up to 3 colours), Happy Birthday flex print or LED light (as per design), name on flex, age foil balloon, cutouts as per reference photo, 5-6ft decor width', img:'img/packages/spy/spy-decor-1panel.jpg'},
+  {id:'p2', name:'Luxury', price:15000, d:'2 flex panels, balloon arch around the panels (as shown in photo), up to 400 balloons (colours as per theme), Happy Birthday flex print or LED light (as per design), name on flex, 3ft age light, cutouts as per reference photo, welcome board, 8-9ft decor width', img:'img/packages/spy/spy-decor-2panel.jpg'},
+  {id:'sig', name:'Signature', price:25000, d:'3 flex panels, balloon arch around the panels (as shown in photo), up to 500 balloons (colours as per theme), Happy Birthday flex print or LED light (as per design), name on flex, 3ft age light, cutouts as per reference photo, welcome board, welcome arch, 12-14ft decor width', img:'img/packages/spy/spy-decor-signature.jpg'},
 ];
 
 // Activity Addon Stations — some flat, some tiered above 30 kids.
