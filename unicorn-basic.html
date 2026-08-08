@@ -208,6 +208,10 @@ button{cursor:pointer;font-family:var(--fb)}
 .act-card-n{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:4px}
 .act-card-p{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--li);margin-bottom:6px}
 .act-card-d{font-size:12px;color:var(--gy);line-height:1.5}
+.act-card-spec{margin:0;padding-left:16px;font-size:12px;color:var(--gy);line-height:1.6;text-align:left}
+.act-card-spec li{margin-bottom:3px}
+.act-card-spec li.na{opacity:.5}
+.act-card-spec b{color:var(--bk);font-weight:600}
 .takehome-tag{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#166534;background:var(--sgr);padding:3px 9px;border-radius:20px;letter-spacing:.2px;white-space:nowrap}
 .act-card-tag{position:absolute;top:10px;left:10px;z-index:1}
 
@@ -1222,11 +1226,17 @@ function addonActPrice(id, kids) {
 // same spec, same wording everywhere (only per-tier photos differ). Tier
 // names renamed: Basic->Classic, 1 Panel->Premium, 2 Panel->Luxury,
 // Signature unchanged (ids kept as-is so nothing else breaks).
+// Decor spec restructured 2026-08-08 into a labelled `spec` array (same 11
+// attributes, same order, on every tier — including ones that don't apply,
+// e.g. "Panels: NA" for Classic) so the 4 cards line up for easy
+// side-by-side comparison. renderTierGrid() renders this as a bullet list;
+// `na:true` entries render greyed-out and also drive the decor gallery's
+// "Not Included" list (see updateGalStage below).
 const DECOR_TIERS = [
-  {id:'basic', name:'Classic', price:5000, d:'Balloon arch, up to 200 balloons (up to 2 colours), Happy Birthday paper bunting, name paper bunting, age foil balloon, 5-6ft decor width', img:'img/packages/unicorn/unicorn-decor-basic.jpg'},
-  {id:'p1', name:'Premium', price:8000, d:'1 flex panel, balloon arch around the panel (as shown in photo), up to 300 balloons (up to 3 colours), Happy Birthday flex print or LED light (as per design), name on flex, age foil balloon, cutouts as per reference photo, 5-6ft decor width', img:'img/packages/unicorn/unicorn-decor-p1.jpg', imgFit:'contain'},
-  {id:'p2', name:'Luxury', price:15000, d:'2 flex panels, balloon arch around the panels (as shown in photo), up to 400 balloons (colours as per theme), Happy Birthday flex print or LED light (as per design), name on flex, 3ft age light, cutouts as per reference photo, welcome board, cake table, 8-9ft decor width', img:'img/packages/unicorn/unicorn-decor-p2.jpg'},
-  {id:'sig', name:'Signature', price:25000, d:'3 flex panels, balloon arch around the panels (as shown in photo), up to 500 balloons (colours as per theme), Happy Birthday flex print or LED light (as per design), name on flex, 3ft age light, cutouts as per reference photo, welcome board, welcome arch, cake table, 12-14ft decor width', img:'img/packages/unicorn/unicorn-decor-sig.jpg'},
+  {id:'basic', name:'Classic', price:5000, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'Up to 2'},{l:'Balloon Arch',v:'Yes'},{l:'Happy Birthday',v:'Paper bunting'},{l:'Age',v:'Foil balloon'},{l:'Name',v:'Paper bunting'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/unicorn/unicorn-decor-basic.jpg'},
+  {id:'p1', name:'Premium', price:8000, spec:[{l:'Panels',v:'1'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},{l:'Balloon Arch',v:'Around the panel (as shown in photo)'},{l:'Happy Birthday',v:'Flex print or LED light (as per design)'},{l:'Age',v:'Foil balloon'},{l:'Name',v:'On flex'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/unicorn/unicorn-decor-p1.jpg', imgFit:'contain'},
+  {id:'p2', name:'Luxury', price:15000, spec:[{l:'Panels',v:'2'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per theme'},{l:'Balloon Arch',v:'Around the panels (as shown in photo)'},{l:'Happy Birthday',v:'Flex print or LED light (as per design)'},{l:'Age',v:'3ft age light'},{l:'Name',v:'On flex'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},{l:'Cake Table',v:'Included'},{l:'Decor Width',v:'8-9 ft'}], img:'img/packages/unicorn/unicorn-decor-p2.jpg'},
+  {id:'sig', name:'Signature', price:25000, spec:[{l:'Panels',v:'3'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'As per theme'},{l:'Balloon Arch',v:'Around the panels (as shown in photo)'},{l:'Happy Birthday',v:'Flex print or LED light (as per design)'},{l:'Age',v:'3ft age light'},{l:'Name',v:'On flex'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-14 ft'}], img:'img/packages/unicorn/unicorn-decor-sig.jpg'},
 ];
 // Music — same DJ tier structure & pricing as the Spy package / generic builder.
 // Tier names unified 2026-08-07 to Classic/Premium/Signature (bare, no
@@ -1395,11 +1405,17 @@ function renderTierGrid(gridId, items, selected) {
     const imgBg = fit === 'contain' ? ';background:#F3F1F8' : '';
     const img = t.img ? '<div class="tier-img-wrap"><img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:4/3;object-fit:' + fit + imgBg + ';border-radius:10px;margin-bottom:10px;cursor:zoom-in" onclick="event.stopPropagation();openDecorGallery(\'' + t.id + '\')">' +
       '<button class="gal-trig" onclick="event.stopPropagation();openDecorGallery(\'' + t.id + '\')" aria-label="Zoom ' + t.name + ' photo">🔍 Zoom</button></div>' : '';
+    // Decor tiers carry a structured `spec` array (bullet list, comparable
+    // across tiers); other tier grids (e.g. Music) still just use a plain
+    // `d` description string.
+    const descHtml = t.spec
+      ? '<ul class="act-card-spec">' + t.spec.map(s => '<li' + (s.na ? ' class="na"' : '') + '><b>' + s.l + ':</b> ' + s.v + '</li>').join('') + '</ul>'
+      : (t.d ? '<div class="act-card-d">' + t.d + '</div>' : '');
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
       '<div class="act-card-n">' + t.name + '</div>' +
       '<div class="act-card-p">' + fmtINR(t.price) + '</div>' +
-      (t.d ? '<div class="act-card-d">' + t.d + '</div>' : '') +
+      descHtml +
     '</div>';
   }).join('');
 }
@@ -1444,18 +1460,28 @@ function updateGalStage() {
   document.getElementById('galImg').alt = t.name + ' decor';
   document.getElementById('galNameBadge').textContent = t.name + ' Decor';
 
+  // Decor tiers now carry a structured `spec` array (see DECOR_TIERS) —
+  // Included/Not Included below are derived straight from each entry's
+  // `na` flag instead of the old comma-split-string + DECOR_NOT_INCLUDED
+  // hack. DECOR_NOT_INCLUDED is kept only as a fallback for any tier that
+  // somehow still uses the old plain `d` string.
+  const included = t.spec
+    ? t.spec.filter(s => !s.na).map(s => s.l + ': ' + s.v)
+    : (t.d || '').replace(/\.$/, '').split(',').map(s => s.trim()).filter(Boolean);
+  const excluded = t.spec
+    ? t.spec.filter(s => s.na).map(s => s.l)
+    : DECOR_NOT_INCLUDED.filter(x => !included.some(inc => inc.toLowerCase() === x.toLowerCase()));
+
   if (isPhoto) {
     document.getElementById('galName').textContent = t.name + ' Decor';
-    document.getElementById('galDesc').textContent = t.d || '';
+    document.getElementById('galDesc').textContent = t.spec ? t.spec.filter(s => !s.na).map(s => s.v).join(', ') : (t.d || '');
   } else {
     document.getElementById('galName').textContent = '';
     document.getElementById('galDesc').textContent = '';
   }
 
-  const included = (t.d || '').replace(/\.$/, '').split(',').map(s => s.trim()).filter(Boolean);
   document.getElementById('galDetailTitle').textContent = t.name + ' Decor — What\'s Included';
   document.getElementById('galIncList').innerHTML = included.map(i => '<li>' + i + '</li>').join('');
-  const excluded = DECOR_NOT_INCLUDED.filter(x => !included.some(inc => inc.toLowerCase() === x.toLowerCase()));
   document.getElementById('galExcList').innerHTML = excluded.length
     ? excluded.map(i => '<li>' + i + '</li>').join('')
     : '<li class="gal-empty">Nothing — it\'s all included above.</li>';
