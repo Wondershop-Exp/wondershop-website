@@ -67,6 +67,10 @@ class LeadSubmitRequest(BaseModel):
     gift_delivery_address_type: Optional[str]  = None
     gift_delivery_contact:      Optional[str]  = None
     gift_required_by_date:      Optional[date] = None
+    # DJ add-ons — DJ Lights (Rs.1,500) / Smoke Machine (Rs.2,000). Replaces
+    # the old "Signature DJ" tier, which bundled both at a fixed higher price.
+    dj_lights_addon:            Optional[bool] = False
+    dj_smoke_machine_addon:     Optional[bool] = False
 
 
 # ─── GMAIL API EMAIL HELPER ──────────────────────────────────────────────────
@@ -135,6 +139,18 @@ def _format_order_summary_block(req: LeadSubmitRequest) -> str:
     lines.append("")
     return "\n".join(lines) + "\n"
 
+def _format_dj_addons_block(req: LeadSubmitRequest) -> str:
+    """DJ add-ons — DJ Lights / Smoke Machine — only present if at least one
+    was selected."""
+    lines = []
+    if req.dj_lights_addon:
+        lines.append("  DJ Lights      : Yes (Rs.1,500)")
+    if req.dj_smoke_machine_addon:
+        lines.append("  Smoke Machine  : Yes (Rs.2,000)")
+    if not lines:
+        return ""
+    return "\nDJ ADD-ONS\n" + "\n".join(lines) + "\n"
+
 def _format_gift_delivery_block(req: LeadSubmitRequest) -> str:
     """Return-gift delivery details — only present if the customer filled
     in at least one of the delivery fields on the Return Gifts step."""
@@ -193,6 +209,7 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest) -> None:
     try:
         remarks_block = f"\nYour special requests / remarks:\n  {req.remarks}\n" if req.remarks else ""
         order_block = _format_order_summary_block(req)
+        dj_addons_block = _format_dj_addons_block(req)
         gift_delivery_block = _format_gift_delivery_block(req)
         reward_block = _format_reward_block(req)
         body = f"""Hi {req.parent_name.split()[0]}! 🎉
@@ -205,7 +222,7 @@ Your details:
   Event Date  : {req.event_date.isoformat() if req.event_date else '—'}
   Theme       : {req.theme or '—'}
   City        : {req.city or '—'}
-{remarks_block}{order_block}{gift_delivery_block}{reward_block}
+{remarks_block}{order_block}{dj_addons_block}{gift_delivery_block}{reward_block}
 If you have any questions in the meantime, WhatsApp us at +91 90044 35362.
 
 Warmly,
@@ -234,6 +251,7 @@ async def _send_team_email(lead_id: int, req: LeadSubmitRequest) -> None:
         budget_str = f"Rs.{req.client_budget:,.0f}" if req.client_budget else "—"
         remarks_block = f"\nSPECIAL REQUESTS / REMARKS\n  {req.remarks}\n" if req.remarks else ""
         order_block = _format_order_summary_block(req)
+        dj_addons_block = _format_dj_addons_block(req)
         gift_delivery_block = _format_gift_delivery_block(req)
         reward_block = ""
         if req.reward_type:
@@ -260,7 +278,7 @@ EVENT
   Venue      : {req.venue or '—'} ({req.location_type or '—'})
   City       : {req.city or '—'}   Pincode: {req.pincode or '—'}
   Budget     : {budget_str}
-{remarks_block}{order_block}{gift_delivery_block}{reward_block}
+{remarks_block}{order_block}{dj_addons_block}{gift_delivery_block}{reward_block}
 SOURCE
   {req.lead_source or '—'} / {req.lead_source_detail or '—'}
   Referred by: {req.referred_by or '—'}
@@ -313,6 +331,8 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest) -> None:
             "gift_delivery_address_type": req.gift_delivery_address_type or "",
             "gift_delivery_contact":      req.gift_delivery_contact or "",
             "gift_required_by_date":      req.gift_required_by_date.isoformat() if req.gift_required_by_date else "",
+            "dj_lights_addon":            "Yes" if req.dj_lights_addon else "No",
+            "dj_smoke_machine_addon":     "Yes" if req.dj_smoke_machine_addon else "No",
             "status":       "New",
         }
         async with httpx.AsyncClient(timeout=10) as client:
@@ -418,6 +438,7 @@ async def submit_lead(req: LeadSubmitRequest):
             gift_delivery_address, gift_delivery_maps_link,
             gift_delivery_address_type, gift_delivery_contact,
             gift_required_by_date,
+            dj_lights_addon, dj_smoke_machine_addon,
             status
         ) VALUES (
             :parent_name, :phone, :child_names, :email,
@@ -428,6 +449,7 @@ async def submit_lead(req: LeadSubmitRequest):
             :gift_delivery_address, :gift_delivery_maps_link,
             :gift_delivery_address_type, :gift_delivery_contact,
             :gift_required_by_date,
+            :dj_lights_addon, :dj_smoke_machine_addon,
             'New'
         )
         RETURNING lead_id
@@ -457,6 +479,8 @@ async def submit_lead(req: LeadSubmitRequest):
             "gift_delivery_address_type": req.gift_delivery_address_type,
             "gift_delivery_contact":      req.gift_delivery_contact,
             "gift_required_by_date":      req.gift_required_by_date,
+            "dj_lights_addon":            bool(req.dj_lights_addon),
+            "dj_smoke_machine_addon":     bool(req.dj_smoke_machine_addon),
         },
     )
 

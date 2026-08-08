@@ -24,7 +24,8 @@ var HEADERS = [
   "Theme", "Venue", "Location Type", "City", "Pincode", "Budget (₹)",
   "Lead Source", "Referred By",
   "Gift Delivery Address", "Gift Delivery Maps Link", "Gift Delivery Address Type",
-  "Gift Delivery Contact", "Gift Required By Date"
+  "Gift Delivery Contact", "Gift Required By Date",
+  "DJ Lights Addon", "Smoke Machine Addon"
 ];
 
 function doPost(e) {
@@ -69,6 +70,8 @@ function doPost(e) {
       d.gift_delivery_address_type || "",
       d.gift_delivery_contact      || "",
       d.gift_required_by_date      || "",
+      d.dj_lights_addon            || "",
+      d.dj_smoke_machine_addon     || "",
     ]);
 
     return ContentService

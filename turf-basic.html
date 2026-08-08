@@ -160,6 +160,9 @@ button{cursor:pointer;font-family:var(--fb)}
 .btn-addon-add:hover{background:var(--li);color:#fff}
 .btn-addon-add.added{border-color:var(--gr);background:var(--sgr);color:#166534}
 .btn-addon-add.added:hover{background:#bbf7d0;border-color:#16a34a}
+.dj-addon-btn{background:var(--li3);border:1.5px solid var(--li2);border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--gy);cursor:pointer;transition:all .15s;text-align:left}
+.dj-addon-btn:hover{border-color:var(--li)}
+.dj-addon-btn.on{background:var(--li2);border-color:var(--li);color:#7B5EA7}
 .incl-above-badge{font-size:11px;font-weight:700;color:var(--gy);background:#f3f4f6;border-radius:20px;padding:5px 12px;display:inline-flex;align-items:center;gap:4px}
 
 /* T&C */
@@ -576,6 +579,13 @@ button{cursor:pointer;font-family:var(--fb)}
       </div>
       <p class="sec-sub">Classic DJ is included in the package price. Upgrading adds the difference to your total.</p>
       <div class="act-grid" id="musicGrid"></div>
+      <div style="margin-top:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--gy);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">DJ Add-ons</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="dj-addon-btn" id="djAddonLights" onclick="toggleDjAddon(this,'lights')">💡 DJ Lights<div style="font-size:10px;color:var(--gy)">₹1,500</div></button>
+          <button class="dj-addon-btn" id="djAddonSmoke" onclick="toggleDjAddon(this,'smoke')">💨 Smoke Machine<div style="font-size:10px;color:var(--gy)">₹2,000</div></button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -729,7 +739,6 @@ const DECOR_TIERS = [
 const MUSIC_TIERS = [
   {id:'m1', name:'Classic', price:7000, bullets:['1 speaker · 1 mixer · 2 mics', '1 operator', 'Up to 50 guests', '4 hours']},
   {id:'m2', name:'Premium', price:11000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', '50-200 guests', '4 hours']},
-  {id:'m3', name:'Signature', price:15000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', '50-200 guests', 'DJ lights · smoke machine', '4 hours']},
 ];
 // E-Invite — Static uses a generic personalized invite design (₹500).
 // Video + Reminder is the same paid upgrade price as the Spy package.
@@ -776,6 +785,13 @@ let selectedAct = null;              // {id, name} — the 1 included activity
 let additionalActs = [];             // array of {id, name} — extra paid activities
 let selectedDecor = DECOR_TIERS[0];  // Basic default (included)
 let selectedMusic = MUSIC_TIERS[0];  // Classic DJ default (included)
+let djLightsAddon = false;           // DJ Lights add-on — ₹1,500
+let djSmokeAddon = false;            // Smoke Machine add-on — ₹2,000
+function toggleDjAddon(btn,key){
+  if(key==='lights')djLightsAddon=!djLightsAddon; else djSmokeAddon=!djSmokeAddon;
+  btn.classList.toggle('on', key==='lights'?djLightsAddon:djSmokeAddon);
+  updateSticky();
+}
 let selectedEinvite = EINVITE_TIERS[0]; // Static default (included)
 let selectedEntry = null;            // optional
 let selectedGifts = [];              // array of GIFT_ITEMS ids
@@ -966,6 +982,8 @@ function totalPrice() {
   t += additionalActs.length * EXTRA_ACT_PRICE;
   if (selectedDecor) t += selectedDecor.price;
   if (selectedMusic) t += selectedMusic.price;
+  if (djLightsAddon) t += 1500;
+  if (djSmokeAddon) t += 2000;
   if (selectedEinvite) t += selectedEinvite.price;
   if (selectedEntry) t += selectedEntry.price;
   selectedGifts.forEach(id => {
@@ -990,7 +1008,8 @@ function updateSticky() {
   if (selectedDecor) parts.push(selectedDecor.name + ' decor');
   if (selectedMusic) parts.push(selectedMusic.name);
   const extrasCount = additionalActs.length + selectedGifts.length +
-    (selectedEntry ? 1 : 0) + (selectedPhotographer ? 1 : 0) + (selectedPinata ? 1 : 0);
+    (selectedEntry ? 1 : 0) + (selectedPhotographer ? 1 : 0) + (selectedPinata ? 1 : 0) +
+    (djLightsAddon ? 1 : 0) + (djSmokeAddon ? 1 : 0);
   if (extrasCount) parts.push('+' + extrasCount + ' add-on' + (extrasCount > 1 ? 's' : ''));
   const extraKids = Math.max(0, kidsCount - KIDS_THRESHOLD);
   if (extraKids) parts.push('+' + extraKids + ' extra kids');
@@ -1026,6 +1045,8 @@ function proceedToBuilder() {
       kidsCount: kidsCount,
       decorTier: selectedDecor,
       music: selectedMusic,
+      djLightsAddon: djLightsAddon,
+      djSmokeAddon: djSmokeAddon,
       einvite: selectedEinvite,
       entry: selectedEntry,
       gifts: selectedGifts,

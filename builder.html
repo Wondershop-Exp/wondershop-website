@@ -1532,19 +1532,15 @@ input,textarea,select{font-family:var(--fb)}
           <div class="tc-feat">4 hours</div>
         </div>
       </div>
-      <div class="tier-card" onclick="selTier(this,'dj','Signature',15000)">
-        <img class="tc-img" src="img/dj-signature.jpg" alt="Signature DJ">
-        <div class="tc-check">✓</div>
-        <div class="tc-name">Signature DJ</div>
-        <div class="tc-sub">Premium DJ experience with expert DJ player and full light show</div>
-        <div class="tc-price">₹15,000</div>
-        <div class="tc-feats">
-          <div class="tc-feat">2 big speakers · 1 mixer · 2 mics</div>
-          <div class="tc-feat">1 operator</div>
-          <div class="tc-feat">50-200 guests</div>
-          <div class="tc-feat">DJ lights · smoke machine</div>
-          <div class="tc-feat">4 hours</div>
-        </div>
+    </div>
+
+    <!-- DJ Add-ons -->
+    <div style="margin-top:16px">
+      <div class="sec-lbl" style="font-size:13px;margin-bottom:8px"><span class="dot"></span>DJ Add-ons</div>
+      <div style="font-size:12px;color:var(--gy);margin-bottom:8px">Level up your DJ setup with lights and a smoke machine.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="pkg-btn" id="djAddonLights" onclick="toggleDjAddon(this,'lights')">💡 DJ Lights<div style="font-size:10px;color:var(--gy)">₹1,500</div></button>
+        <button class="pkg-btn" id="djAddonSmoke" onclick="toggleDjAddon(this,'smoke')">💨 Smoke Machine<div style="font-size:10px;color:var(--gy)">₹2,000</div></button>
       </div>
     </div>
   </div>
@@ -2086,7 +2082,7 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Logs to the "Website Orders and Leads" Google Sheet.
 window.WS_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyVQ_8aZQS2hE5t9-1ceC5ttHeD7DSr0NQmKzYAdxkyRK4eqwgWAG_UnM_iZZmyxY8z4Q/exec';
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FPT:50000,remarks:{}};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FPT:50000,remarks:{}};
 
 // ── Sends a lead or booking row to the Google Sheet, fire-and-forget. ──
 // Uses mode:'no-cors' + text/plain so the browser never sends a CORS
@@ -2105,12 +2101,14 @@ function wsSendToSheet(type, payload){
     }).catch(err => console.warn('[Sheet capture] send failed:', err));
   }catch(e){console.warn('[Sheet capture] error:', e);}
 }
+function djAddonsText(){const p=[];if(S.djAddons.lights)p.push('DJ Lights (Rs 1500)');if(S.djAddons.smoke)p.push('Smoke Machine (Rs 2000)');return p.join(', ');}
 function wsBuilderSnapshotForSheet(){
   return {
     decor:       S.decor       ? S.decor.n + ' (Rs ' + S.decor.p + ')'   : '',
     activities:  S.activities.length ? S.activities.map(a=>a.n).join(', ') : '',
     host:        S.host        ? S.host.tier + ' (Rs ' + S.host.p + ')'  : '',
     dj:          S.dj          ? S.dj.tier + ' (Rs ' + S.dj.p + ')'      : '',
+    dj_addons:   djAddonsText(),
     pinata:      S.pinata      ? S.pinata.n + ' (Rs ' + S.pinata.p + ')' : '',
     einvite:     S.einvite     ? S.einvite.n : '',
     photographer:S.photo       ? S.photo.tier + ' (Rs ' + S.photo.p + ')': '',
@@ -2445,6 +2443,8 @@ function cItems(){
     items.push({cat:'Host',n:S.host.tier+' Host'+hostNote,p:S.host.p,id:S.host.tier});
   }
   if(S.dj)items.push({cat:'DJ',n:S.dj.tier+' DJ',p:S.dj.p,id:S.dj.tier});
+  if(S.djAddons.lights)items.push({cat:'Addons',n:'DJ Lights',p:1500,id:'dj-lights'});
+  if(S.djAddons.smoke)items.push({cat:'Addons',n:'Smoke Machine',p:2000,id:'dj-smoke'});
   if(S.pinata){const pt=rawNoInv();const isFree=pt>=S.FPT;const fp=isFree?0:S.pinata.p;const pItem={cat:'Pinata',n:S.pinata.n+(isFree?' (FREE)':''),p:fp,id:S.pinata.id};if(isFree&&S.pinata.p>0)pItem.wasP=S.pinata.p;items.push(pItem);}
   if(S.einvite){const gt=rawNoInv();const isFree=gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n+(isFree?' (FREE)':''),p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
   if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});}
@@ -2500,13 +2500,13 @@ function thumbFor(cat,id){
     if(id==='unicorn-tshirt')return e('👕');
     const g=GIFTS.find(x=>x.id===id);if(!g)return e('🎁');return g.img?{type:'img',src:'img/'+g.img}:e(g.e,g.bg);
   }
-  if(cat==='Addons')return e('🕵️');
+  if(cat==='Addons'){if(id==='dj-lights')return e('💡');if(id==='dj-smoke')return e('💨');return e('🕵️');}
   return e('✨');
 }
 function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e');box.style.background='var(--li2)';box.textContent='✨';}
-function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p;S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
+function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.djAddons.lights)t+=1500;if(S.djAddons.smoke)t+=2000;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p;S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
 function rawT(){return cItems().reduce((s,i)=>s+i.p,0)}
-function svcC(){let c=0;if(S.decor)c++;if(S.activities.length)c++;if(S.host)c++;if(S.dj)c++;if(S.pinata)c++;if(S.einvite)c++;if(S.photo)c++;if(S.gifts.length)c++;if(S.spyExtras.length)c++;return c}
+function svcC(){let c=0;if(S.decor)c++;if(S.activities.length)c++;if(S.host)c++;if(S.dj)c++;if(S.pinata)c++;if(S.einvite)c++;if(S.photo)c++;if(S.gifts.length)c++;if(S.spyExtras.length||S.djAddons.lights||S.djAddons.smoke)c++;return c}
 function autoDp(){const c=svcC();if(c>=6)return 10;if(c>=4)return 8;if(c>=2)return 5;return 0}
 function dp(){return Math.max(S.couponPct,autoDp())}
 function tp(){const gt=rawT();return Math.round(gt*(1-dp()/100))}
@@ -2573,6 +2573,7 @@ function goTo(id){
   if(id==='s6'){chkFreeInv();buildInvs();}
   if(id==='s8')updTagNote();
   if(id==='s3')syncHostDom();
+  if(id==='s4')syncDjAddonsDom();
   if(id==='s2'){try{document.getElementById('kDisp2').textContent=S.kidsCount;}catch(e){}}
   if(id==='sco'&&S._pkgCoupon){setTimeout(()=>{const el=document.getElementById('co-coupon');const ok=document.getElementById('couponOk');if(el&&!el.value){el.value=S._pkgCoupon;if(ok){ok.textContent='🎉 '+S._pkgCoupon+' applied — 15% off package price!';ok.classList.add('show');}}},50);}
 }
@@ -2996,6 +2997,8 @@ function renderGalThumbs(){
 // ── HOST & DJ ──
 function selTier(card,type,tier,p){const wasSel=card.classList.contains('sel');document.querySelectorAll('#'+type+'Cards .tier-card').forEach(c=>c.classList.remove('sel'));if(wasSel){S[type]=null;}else{card.classList.add('sel');S[type]={tier,p};}updBB(S.screen);}
 function syncHostDom(){if(!S.host)return;const map={'Classic':0,'Premium':1,'Signature':2};const idx=map[S.host.tier];if(idx===undefined)return;const cards=document.querySelectorAll('#hostCards .tier-card');cards.forEach((c,i)=>c.classList.toggle('sel',i===idx));}
+function toggleDjAddon(btn,key){S.djAddons[key]=!S.djAddons[key];btn.classList.toggle('on',S.djAddons[key]);updBB(S.screen);}
+function syncDjAddonsDom(){const l=document.getElementById('djAddonLights');const s=document.getElementById('djAddonSmoke');if(l)l.classList.toggle('on',!!S.djAddons.lights);if(s)s.classList.toggle('on',!!S.djAddons.smoke);}
 
 // ── PINATA ──
 function chkFreePinata(){const isFree=rawNoInv()>=S.FPT;document.getElementById('freePinataBadge').style.display=isFree?'block':'none';}
@@ -3244,7 +3247,7 @@ function rmRevItem(cat,id){
   else if(cat==='E-Invite')S.einvite=null;
   else if(cat==='Photographer'){S.photo=null;}
   else if(cat==='Return Gifts')S.gifts=S.gifts.filter(g=>g.id!==id);
-  else if(cat==='Addons')S.spyExtras=S.spyExtras.filter(x=>x.id!==id);
+  else if(cat==='Addons'){if(id==='dj-lights')S.djAddons.lights=false;else if(id==='dj-smoke')S.djAddons.smoke=false;else S.spyExtras=S.spyExtras.filter(x=>x.id!==id);}
   buildRev();
   updBB(S.screen);
 }
@@ -3364,6 +3367,8 @@ async function doCo(){
     gift_delivery_address: S.giftAddr || '', gift_delivery_maps_link: S.giftMapsLink || '',
     gift_delivery_address_type: S.giftAddrType || '', gift_delivery_contact: S.giftContact || '',
     gift_required_by_date: S.giftReqDate || '',
+    dj_lights_addon: S.djAddons.lights ? 'Yes' : 'No',
+    dj_smoke_machine_addon: S.djAddons.smoke ? 'Yes' : 'No',
   }, wsBuilderSnapshotForSheet()));
 
   // Railway — WhatsApp + email + DB (fire-and-forget, never blocks confirmation)
@@ -3399,6 +3404,8 @@ async function doCo(){
         gift_delivery_address_type: S.giftAddrType || null,
         gift_delivery_contact:      S.giftContact || null,
         gift_required_by_date:      S.giftReqDate || null,
+        dj_lights_addon:            !!S.djAddons.lights,
+        dj_smoke_machine_addon:     !!S.djAddons.smoke,
         lead_source:        __leadSource,
       }),
     }).catch(e=>console.error('Booking notify error:',e));
@@ -3495,6 +3502,7 @@ function buildSummaryText(){
   if(S.activities.length)lines.push('Activities: '+S.activities.map(a=>a.n).join(', '));
   if(S.host)lines.push('Host: '+S.host.tier+' (₹'+S.host.p.toLocaleString('en-IN')+')');
   if(S.dj)lines.push('DJ: '+S.dj.tier+' (₹'+S.dj.p.toLocaleString('en-IN')+')');
+  if(S.djAddons.lights||S.djAddons.smoke)lines.push('DJ Add-ons: '+djAddonsText());
   if(S.pinata)lines.push('Pinata: '+S.pinata.n+' (₹'+S.pinata.p.toLocaleString('en-IN')+')');
   if(S.einvite)lines.push('E-Invite: '+S.einvite.n);
   if(S.photo)lines.push('Photographer: '+S.photo.tier+' (₹'+S.photo.p.toLocaleString('en-IN')+')');
@@ -3599,6 +3607,7 @@ function buildSnapshot(){
       decor:       S.decor    ? {id:S.decor.id, n:S.decor.n, p:S.decor.p}    : null,
       host:        S.host     ? {tier:S.host.tier, p:S.host.p}                : null,
       dj:          S.dj       ? {tier:S.dj.tier, p:S.dj.p}                   : null,
+      dj_addons:   {lights:!!S.djAddons.lights, smoke:!!S.djAddons.smoke},
       pinata:      S.pinata   ? {n:S.pinata.n, p:S.pinata.p}                 : null,
       einvite:     S.einvite  ? {n:S.einvite.n}                               : null,
       photo:       S.photo    ? {tier:S.photo.tier, p:S.photo.p}             : null,
@@ -4049,6 +4058,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(pkgData.decorTier)S.decor={n:pkgData.decorTier.name+' Decor',p:pkgData.decorTier.price,id:'uni'};
       // Music (DJ tier) — same tier names as the Spy package.
       if(pkgData.music)S.dj={tier:pkgData.music.name,p:pkgData.music.price};
+      S.djAddons={lights:!!pkgData.djLightsAddon,smoke:!!pkgData.djSmokeAddon};
       // E-Invite — Static reuses the real 'i10' Unicorn invite design so the
       // review page shows the correct real photo; Video + Reminder is a
       // bespoke package upgrade with no matching catalogue design.
@@ -4099,6 +4109,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
       // Music (DJ tier)
       if(pkgData.music)S.dj={tier:pkgData.music.name,p:pkgData.music.price};
+      S.djAddons={lights:!!pkgData.djLightsAddon,smoke:!!pkgData.djSmokeAddon};
       // E-Invite
       if(pkgData.einvite)S.einvite={id:'spy-'+pkgData.einvite.id,n:pkgData.einvite.name,p:pkgData.einvite.price};
       // Pinata
@@ -4142,6 +4153,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       // up the existing theme-jungle.jpg photo.
       if(pkgData.decorTier)S.decor={n:pkgData.decorTier.name+' Decor',p:pkgData.decorTier.price,id:'jungle'};
       if(pkgData.music)S.dj={tier:pkgData.music.name,p:pkgData.music.price};
+      S.djAddons={lights:!!pkgData.djLightsAddon,smoke:!!pkgData.djSmokeAddon};
       // E-Invite — no real Jungle/Turf design in the invite catalogue yet,
       // so Static falls back to the generic envelope thumbnail (still ₹500).
       if(pkgData.einvite){
