@@ -603,9 +603,9 @@ const ADDON_STATIONS = [
 // page's DJ thumbnail resolves to the correct real photo instead of
 // falling back to the emoji tile.
 const MUSIC_TIERS = [
-  {id:'m1', name:'Classic', price:7000, d:'1 speaker, 1 mixer, 2 mics, 1 operator — up to 50 guests, 4 hours.'},
-  {id:'m2', name:'Premium', price:11000, d:'2 big speakers, 1 mixer, 2 mics, 1 operator — 50-200 guests, 4 hours.'},
-  {id:'m3', name:'Signature', price:15000, d:'2 big speakers, 1 mixer, 2 mics, 1 operator, DJ lights — 50-200 guests, 4 hours + smoke machine.'},
+  {id:'m1', name:'Classic', price:7000, bullets:['1 speaker · 1 mixer · 2 mics', '1 operator', 'Up to 50 guests · 4 hours']},
+  {id:'m2', name:'Premium', price:11000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', '50-200 guests · 4 hours']},
+  {id:'m3', name:'Signature', price:15000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator · DJ lights', '50-200 guests · 4 hours + smoke machine']},
 ];
 // E-Invite — single-select, optional.
 const EINVITE_TIERS = [
@@ -696,11 +696,15 @@ function renderTierGrid(gridId, items, selected) {
   const grid = document.getElementById(gridId);
   grid.innerHTML = items.map(t => {
     const img = t.img ? '<img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;margin-bottom:10px">' : '';
-    // Decor tiers carry a structured `spec` array (bullet list, comparable
-    // across tiers); other tier grids (e.g. Music) still just use a plain
-    // `d` description string.
+    // Decor tiers carry a structured `spec` array (labelled bullet list,
+    // comparable across tiers). Music tiers carry a plain `bullets` array
+    // (grouped bullet lines, same style as the DJ cards in Build a
+    // Birthday). Anything else still falls back to a plain `d` description
+    // string.
     const descHtml = t.spec
       ? '<ul class="act-card-spec">' + t.spec.map(s => '<li' + (s.na ? ' class="na"' : '') + '><b>' + s.l + ':</b> ' + s.v + '</li>').join('') + '</ul>'
+      : t.bullets
+      ? '<ul class="act-card-spec">' + t.bullets.map(b => '<li>' + b + '</li>').join('') + '</ul>'
       : (t.d ? '<div class="act-card-d">' + t.d + '</div>' : '');
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
