@@ -84,8 +84,15 @@ button{cursor:pointer;font-family:var(--fb)}
 .btn-pkg-ghost{background:transparent;color:var(--bk);border:1.5px solid #ddd;border-radius:28px;padding:13px 22px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:border-color .15s,background .15s;text-decoration:none}
 .btn-pkg-ghost:hover{border-color:var(--li);background:var(--li3)}
 .pkg-img-wrap{position:relative;border-radius:24px;overflow:hidden;box-shadow:0 24px 64px rgba(181,157,222,.28);aspect-ratio:4/3}
-.pkg-img-wrap img{width:100%;height:100%;object-fit:cover}
+.pkg-img-wrap img{width:100%;height:100%;object-fit:cover;transition:opacity .5s ease}
 .pkg-img-badge{position:absolute;bottom:16px;left:16px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--bk)}
+.pkg-cdots{position:absolute;bottom:16px;right:16px;display:flex;gap:6px;z-index:3}
+.pkg-cdot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.55);border:none;cursor:pointer;padding:0;transition:background .2s,width .2s}
+.pkg-cdot.active{background:#fff;width:18px;border-radius:4px}
+.pkg-carousel-arrow{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.85);border:none;font-size:20px;line-height:1;color:var(--bk);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;transition:background .15s}
+.pkg-carousel-arrow:hover{background:#fff}
+.pkg-carousel-arrow.left{left:12px}
+.pkg-carousel-arrow.right{right:12px}
 
 /* SECTIONS */
 .sec{padding:48px 0}
@@ -309,8 +316,11 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
         <div>
           <div class="pkg-img-wrap">
-            <img src="img/packages/Turf/turf-hero-1.png" alt="Turf Party birthday by Wondershop">
-            <div class="pkg-img-badge">⚽ Turf Theme · Wondershop</div>
+            <img id="pkgHeroImg" src="img/packages/Turf/turf-hero-1.png" alt="Turf Party birthday by Wondershop">
+            <div class="pkg-img-badge" id="pkgHeroBadge">⚽ Turf Theme · Wondershop</div>
+            <button class="pkg-carousel-arrow left" onclick="pkgCGoTo(pkgCCur-1);pkgCReset()" aria-label="Previous photo">‹</button>
+            <button class="pkg-carousel-arrow right" onclick="pkgCGoTo(pkgCCur+1);pkgCReset()" aria-label="Next photo">›</button>
+            <div class="pkg-cdots" id="pkgHeroDots"></div>
           </div>
         </div>
       </div>
@@ -469,12 +479,13 @@ button{cursor:pointer;font-family:var(--fb)}
         <span class="act-badge">Included · pick a duration</span>
       </div>
       <p class="sec-sub">90 minutes is included by default. Our host runs high-energy turf games with props and trainers, scaled to your headcount — upgrading to 120 minutes adds the difference to your total.</p>
-      <div class="act-grid" id="engagementGrid"></div>
 
-      <div style="margin-top:16px;padding:14px 16px;background:var(--li3);border:1.5px solid var(--li2);border-radius:12px">
+      <div style="margin-bottom:16px;padding:14px 16px;background:var(--li3);border:1.5px solid var(--li2);border-radius:12px">
         <div style="font-size:11px;font-weight:700;color:var(--bk);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Games Pool</div>
         <div id="engagementPoolBox" style="font-size:13px;color:var(--gy);line-height:1.7"></div>
       </div>
+
+      <div class="act-grid" id="engagementGrid"></div>
 
       <div style="margin-top:24px">
         <div style="font-size:11px;font-weight:700;color:var(--gy);margin-bottom:10px;text-transform:uppercase;letter-spacing:.8px">Engagement Add-ons</div>
@@ -665,6 +676,37 @@ button{cursor:pointer;font-family:var(--fb)}
 // Nav
 document.getElementById('nav-ham').addEventListener('click',()=>document.getElementById('nav-mob').classList.toggle('open'));
 
+// ── HERO IMAGE CAROUSEL ──
+const PKG_FRAMES = [
+  { src: 'img/packages/Turf/turf-hero-1.png', badge: '⚽ Turf Theme · Wondershop' },
+  { src: 'img/packages/Turf/turf-hero-2.png', badge: '🎈 Decor' },
+];
+let pkgCCur = 0, pkgCTimer;
+const pkgFrontImg = document.getElementById('pkgHeroImg');
+const pkgHeroBadge = document.getElementById('pkgHeroBadge');
+const pkgDots = document.getElementById('pkgHeroDots');
+PKG_FRAMES.forEach((_,i) => {
+  const d = document.createElement('button');
+  d.className = 'pkg-cdot' + (i===0 ? ' active' : '');
+  d.setAttribute('aria-label', 'Show photo '+(i+1));
+  d.onclick = () => { pkgCGoTo(i); pkgCReset(); };
+  pkgDots.appendChild(d);
+});
+function pkgCGoTo(n) {
+  n = (n + PKG_FRAMES.length) % PKG_FRAMES.length;
+  pkgFrontImg.style.opacity = '0';
+  setTimeout(() => {
+    pkgFrontImg.src = PKG_FRAMES[n].src;
+    pkgHeroBadge.textContent = PKG_FRAMES[n].badge;
+    pkgFrontImg.style.opacity = '1';
+  }, 250);
+  Array.from(pkgDots.children).forEach((d,i) => d.classList.toggle('active', i===n));
+  pkgCCur = n;
+}
+function pkgCNext() { pkgCGoTo(pkgCCur + 1); }
+function pkgCReset() { clearInterval(pkgCTimer); pkgCTimer = setInterval(pkgCNext, 4500); }
+pkgCReset();
+
 // ── DATA ──
 // Decor — same tier structure & pricing as the Spy/Unicorn packages (balloon
 // arch up to full flex-panel installs), Turf-themed copy. All 4 tiers now
@@ -717,13 +759,13 @@ const ENGAGEMENT_ADDONS = [
 // removable. Cupcake Decor is the live default. Boys Hair Styling uses a
 // tiered flat price (2026-08-10): ≤20 kids ₹4,500, 21-30 kids ₹5,000, >30 kids ₹6,000.
 const ACTIVITY_OPTIONS = [
+  {id:'a8', name:'Cupcake Decor', img:'img/activity/act-cupcake-decor-sq.jpg', r1:90, r2:85, r3:80, d:'Kids decorate their own cupcakes with icing and sprinkles. A sweet creation they get to eat!'},
   {id:'a9', name:'Cap Decoration', img:'img/activity/act-cap-decoration.jpg', r1:850, r2:800, r3:750, d:'Kids decorate their own cap with patches, pins and paint.'},
   {id:'a15', name:'Tattoo Station', img:'img/activity/act-tattoo-station.jpg', flat:2500, d:'Temporary tattoo artist on-site for every child.'},
   {id:'glitter', name:'Glitter Station', img:'img/activity/act-glitter.jpg', flat:4000, d:'Skin-safe glitter and gems for a glamorous party look kids love.'},
   {id:'hair-styling', name:'Boys Hair Styling', img:null, hairBand:true, d:'Fun styling looks for the boys at the party — mohawks, spikes and more.'},
   {id:'a22', name:'Sunglasses Decor', img:'img/activity/act-sunglasses-decor-sq.jpg', r1:350, r2:320, r3:300, d:'Plain sunnies + stickers, gems & paint pens. Kids customise and take home their unique pair.'},
   {id:'a23', name:'Fridge Magnet', img:'img/activity/act-fridge-magnet-sq.jpg', r1:320, r2:290, r3:270, d:'Each child creates their own painted fridge magnet — a little party memory to take home.'},
-  {id:'a8', name:'Cupcake Decor', img:'img/activity/act-cupcake-decor-sq.jpg', r1:90, r2:85, r3:80, d:'Kids decorate their own cupcakes with icing and sprinkles. A sweet creation they get to eat!'},
   {id:'bubble-show', name:'Bubble Show', img:'img/activity/act-bubble-show.jpg', flat:9000, d:'A giant-bubble performance and hands-on bubble play.'},
   {id:'magic-show', name:'Magic Show', img:'img/activity/act-magic-show.jpg', flat:9000, d:'An interactive magic performance with birthday-kid participation.'},
   {id:'science-show', name:'Science Show', img:'img/activity/act-science-show.jpg', flat:20000, d:'A hands-on science performance full of wow-moments.'},
@@ -757,8 +799,13 @@ const ENTRY_TIERS = [
   {id:'en4', name:'Bubbles', price:6000, d:'Bubble-machine grand entry.'},
 ];
 // Return Gift — Personalized Football, the real catalogue entry (₹600/child).
+// Personalized Cap and Live T-shirt Printing have no real product photos
+// uploaded yet (site-wide convention elsewhere is an emoji placeholder for
+// both), so they use emoji icons until real photos are available.
 const GIFT_ITEMS = [
-  {id:'g18', ic:'⚽', img:'img/return-gifts/personalized-football.jpg', name:'Personalized Football', d:'A personalized football for every guest to take home.', perChild:600},
+  {id:'cap1', ic:'🧢', name:'Personalized Cap', d:'A personalized cap for every guest to take home.', perChild:300},
+  {id:'tshirt1', ic:'👕', name:'Live T-shirt Printing', d:'Live on-site printing — each guest gets a custom-printed tee.', perChild:500},
+  {id:'g18', ic:'⚽', img:'img/return-gifts/personalized-football.jpg', name:'Personalized Football', d:'A personalized football for every guest to take home.', perChild:500},
 ];
 // Photographer — same tiers/prices as the site's standard photographer step.
 // Real catalogue (2026-08-08), matches builder.html's Photographer step.
