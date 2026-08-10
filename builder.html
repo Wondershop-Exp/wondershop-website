@@ -2318,6 +2318,11 @@ function actPriceRaw(a,kids){
   if(a.id==='photoframe-decor')return kids*400;
   if(a.id==='mirror-decor')return kids*750;
   if(a.id==='a25')return kids<=30?4500:kids<=50?5500:6500;
+  // Hair Styling for Girls / Face Painting — same real banded pricing
+  // (given directly by Shruti, 2026-08-11), added as Unicorn Basic
+  // included-activity options. Hit the Cans is flat regardless of kids.
+  if(a.id==='hair-styling-girls'||a.id==='face-painting')return kids<=20?3500:kids<=30?4500:kids<=40?5500:7000;
+  if(a.id==='hit-the-cans')return 5000;
   // Turf Basic package-exclusive activities with no ACTS catalogue entry
   // (real pricing matches turf-basic.html's own ACTIVITY_OPTIONS/activityPrice()
   // and ENGAGEMENT_BANDS/engagementPrice(), 2026-08-10).
@@ -4144,6 +4149,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       else if(actId==='glitter')S.activities=[{id:'glitter',n:pkgData.actName||'Glitter Station',minPrice:UNI_INCL_BUDGET}];
       else if(actId==='a25')S.activities=[{id:'a25',n:pkgData.actName||'Colouring Station',minPrice:UNI_INCL_BUDGET}];
       else if(actId==='hair-styling')S.activities=[{id:'hair-styling',n:pkgData.actName||'Hair Styling for Boys',minPrice:UNI_INCL_BUDGET}];
+      else if(actId==='hair-styling-girls')S.activities=[{id:'hair-styling-girls',n:pkgData.actName||'Hair Styling for Girls',minPrice:UNI_INCL_BUDGET}];
+      else if(actId==='hit-the-cans')S.activities=[{id:'hit-the-cans',n:pkgData.actName||'Hit the Cans',minPrice:UNI_INCL_BUDGET}];
+      else if(actId==='face-painting')S.activities=[{id:'face-painting',n:pkgData.actName||'Face Painting',minPrice:UNI_INCL_BUDGET}];
       // Pre-select additional paid activities
       if(pkgData.additionalActs&&pkgData.additionalActs.length){
         pkgData.additionalActs.forEach(pa=>{

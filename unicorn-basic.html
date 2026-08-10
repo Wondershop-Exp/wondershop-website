@@ -617,6 +617,13 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="act-card-extra" id="actExtraGlitter" style="display:none"></div>
         </div>
 
+        <div class="act-card" data-act="hair-styling-girls" data-name="Hair Styling for Girls" onclick="selectAct(this)">
+          <img class="act-card-ic-img" src="img/activity/act-hair-styling-girls.jpg" alt="Hair Styling for Girls" onerror="this.src='img/theme-uni.jpg'">
+          <div class="act-card-n">Hair Styling for Girls</div>
+          <div class="act-card-d">Braids, curls and fun styled looks with hair-safe accessories for the girls at the party.</div>
+          <div class="act-card-extra" id="actExtraHairGirls" style="display:none"></div>
+        </div>
+
         <div class="act-card" data-act="hair-styling" data-name="Hair Styling for Boys" onclick="selectAct(this)">
           <img class="act-card-ic-img" src="img/activity/act-boys-hair-styling.jpg" alt="Hair Styling for Boys">
           <div class="act-card-n">Hair Styling for Boys</div>
@@ -624,10 +631,19 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="act-card-extra" id="actExtraHairBoys" style="display:none"></div>
         </div>
 
-        <!-- TODO (2026-08-11): Hair Styling for Girls, Hit the Cans, Face
-             Painting — added to this grid once Shruti confirms real pricing
-             (and sends photos, per her note) for each. Placeholder pricing
-             is deliberately NOT used here — see chat for the ask. -->
+        <div class="act-card" data-act="hit-the-cans" data-name="Hit the Cans" onclick="selectAct(this)">
+          <img class="act-card-ic-img" src="img/activity/act-hit-the-cans.jpg" alt="Hit the Cans" onerror="this.src='img/theme-uni.jpg'">
+          <div class="act-card-n">Hit the Cans</div>
+          <div class="act-card-d">A classic carnival can-toss game — knock the stack down for a prize.</div>
+          <div class="act-card-extra" id="actExtraHitCans" style="display:none"></div>
+        </div>
+
+        <div class="act-card" data-act="face-painting" data-name="Face Painting" onclick="selectAct(this)">
+          <img class="act-card-ic-img" src="img/activity/act-face-painting.jpg" alt="Face Painting" onerror="this.src='img/theme-uni.jpg'">
+          <div class="act-card-n">Face Painting</div>
+          <div class="act-card-d">A face-painting artist on-site, turning kids into their favourite characters and creatures.</div>
+          <div class="act-card-extra" id="actExtraFacePaint" style="display:none"></div>
+        </div>
 
       </div>
       <div class="act-req-note" id="actReqNote">Please select an activity to continue.</div>
@@ -1304,6 +1320,15 @@ function addonActPrice(id, kids) {
   // builder.html's actPrice()), added to this page's included-activity list
   // 2026-08-11 per Shruti.
   if (id === 'hair-styling') return kids <= 20 ? 4500 : kids <= 30 ? 5000 : 6000;
+  // Hair Styling for Girls / Face Painting share the same real banded
+  // pricing, given directly by Shruti (2026-08-11). Note: her message said
+  // "above 50" for the top band but only gave 4 bands total (20/30/40/top)
+  // with no rate for 41-50 — read as a typo for "above 40", matching the
+  // clean 4-band pattern every other banded activity on this site uses.
+  if (id === 'hair-styling-girls' || id === 'face-painting') {
+    return kids <= 20 ? 3500 : kids <= 30 ? 4500 : kids <= 40 ? 5500 : 7000;
+  }
+  if (id === 'hit-the-cans') return 5000; // flat, regardless of kids
   if (id === 'slime') {
     if (kids <= 15) return 6300;
     if (kids <= 30) return 11000;
@@ -1480,7 +1505,7 @@ function updateDynamicAddonPrices() {
 // regardless of which is currently selected, so customers can compare
 // before picking.
 function updateInclActExtraNotes() {
-  const map = {a8: 'actExtraA8', a22: 'actExtraA22', a23: 'actExtraA23', a25: 'actExtraA25', glitter: 'actExtraGlitter', 'hair-styling': 'actExtraHairBoys'};
+  const map = {a8: 'actExtraA8', a22: 'actExtraA22', a23: 'actExtraA23', a25: 'actExtraA25', glitter: 'actExtraGlitter', 'hair-styling': 'actExtraHairBoys', 'hair-styling-girls': 'actExtraHairGirls', 'hit-the-cans': 'actExtraHitCans', 'face-painting': 'actExtraFacePaint'};
   Object.keys(map).forEach(id => {
     const el = document.getElementById(map[id]);
     if (!el) return;
