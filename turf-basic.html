@@ -742,16 +742,13 @@ function engagementPrice(duration, kids) {
   return last[key] + (kids - 50) * marginal;
 }
 // Engagement Add-ons — multi-select, priced flat + 18% GST (computed & shown).
-// Body Zorbing has a real matching photo from the uploaded turf batch.
-// Gymnastics and Mallakhamb show a placeholder: the only "gymnastics"-named
-// upload (turf-carousel-gymnastics-5.jpg) turned out to be a duplicate of
-// the zorbing photo, not an actual gymnastics shot — flagged to the user,
-// swap in a real photo once one is uploaded.
+// Body Zorbing and Gymnastics have real matching photos from the uploaded
+// turf batch. Mallakhamb still has no photo, so it shows a placeholder.
 const GST_RATE = 0.18;
 function engagementAddonGST(price) { return Math.round(price * GST_RATE); }
 const ENGAGEMENT_ADDONS = [
   {id:'zorb', name:'Body Zorbing', ageYears:8, price:8000, img:'img/packages/Turf/turf-carousal-zorb-4.jpg', d:'Roll, bounce, and bump safely inside inflatable zorb balls for active fun.'},
-  {id:'gym', name:'Gymnastics', ageYears:5, price:10000, img:null, d:'A dynamic activity focusing on flexibility, strength, and body control through various movements.'},
+  {id:'gym', name:'Gymnastics', ageYears:5, price:10000, img:'img/packages/Turf/gymnastics.jpg', d:'A dynamic activity focusing on flexibility, strength, and body control through various movements.'},
   {id:'malla', name:'Mallakhamb', ageYears:8, price:8000, img:null, d:'A traditional Indian sport combining strength and agility through acrobatic poses on a vertical pole or rope.'},
 ];
 
@@ -1129,6 +1126,7 @@ const FILM_FRAMES = [
   { src: 'img/packages/Turf/turf-hero-2.png', tag: 'Birthday Backdrop' },
   { src: 'img/packages/Turf/turf-carousel-football-2.jpg', tag: 'Match in Action' },
   { src: 'img/packages/Turf/turf-carousal-zorb-4.jpg', tag: 'Body Zorbing' },
+  { src: 'img/packages/Turf/gymnastics.jpg', tag: 'Gymnastics' },
   { src: 'img/packages/Turf/turf-carousal-obstacle-1.png', tag: 'Footie Obstacle Race' },
   { src: 'img/packages/Turf/turf-carousal-tug-of-war-7.jpg', tag: 'Tug of War' },
   { src: 'img/packages/Turf/turf-carousal-laser-beam-3.jpg', tag: 'Laser Beam Challenge' },
