@@ -699,11 +699,18 @@ function engagementPrice(duration, kids) {
   const marginal = duration === 120 ? 750 : 600;
   return last[key] + (kids - 50) * marginal;
 }
-// Engagement Add-ons — multi-select, priced flat + GST (displayed, not computed).
+// Engagement Add-ons — multi-select, priced flat + 18% GST (computed & shown).
+// Body Zorbing has a real matching photo from the uploaded turf batch.
+// Gymnastics and Mallakhamb show a placeholder: the only "gymnastics"-named
+// upload (turf-carousel-gymnastics-5.jpg) turned out to be a duplicate of
+// the zorbing photo, not an actual gymnastics shot — flagged to the user,
+// swap in a real photo once one is uploaded.
+const GST_RATE = 0.18;
+function engagementAddonGST(price) { return Math.round(price * GST_RATE); }
 const ENGAGEMENT_ADDONS = [
-  {id:'zorb', name:'Body Zorbing', age:'8+', price:8000, d:'Roll, bounce, and bump safely inside inflatable zorb balls for active fun.'},
-  {id:'gym', name:'Gymnastics', age:'5+', price:10000, d:'A dynamic activity focusing on flexibility, strength, and body control through various movements.'},
-  {id:'malla', name:'Mallakhamb', age:'8+', price:8000, d:'A traditional Indian sport combining strength and agility through acrobatic poses on a vertical pole or rope.'},
+  {id:'zorb', name:'Body Zorbing', ageYears:8, price:8000, img:'img/packages/Turf/turf-carousal-zorb-4.jpg', d:'Roll, bounce, and bump safely inside inflatable zorb balls for active fun.'},
+  {id:'gym', name:'Gymnastics', ageYears:5, price:10000, img:null, d:'A dynamic activity focusing on flexibility, strength, and body control through various movements.'},
+  {id:'malla', name:'Mallakhamb', ageYears:8, price:8000, img:null, d:'A traditional Indian sport combining strength and agility through acrobatic poses on a vertical pole or rope.'},
 ];
 
 // Activity — single-select, paid (real per-child catalogue rates), and
@@ -830,16 +837,23 @@ function renderEngagementAddons() {
   const grid = document.getElementById('engagementAddonsGrid');
   grid.innerHTML = ENGAGEMENT_ADDONS.map(a => {
     const added = selectedEngagementAddons.includes(a.id);
+    const gst = engagementAddonGST(a.price);
+    const withGst = a.price + gst;
+    const imgHtml = a.img
+      ? '<img src="' + a.img + '" alt="' + a.name + '" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;margin-bottom:10px;display:block">'
+      : '<div style="width:100%;aspect-ratio:4/3;border-radius:10px;margin-bottom:10px;background:var(--li3);border:1.5px dashed var(--li2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px"><span style="font-size:26px">🤸</span><span style="font-size:11px;color:var(--gy);font-weight:600">Photo coming soon</span></div>';
     return '<div class="addon-act-card' + (added ? ' added' : '') + '">' +
+      imgHtml +
       '<div class="addon-act-top">' +
         '<div class="addon-act-info">' +
-          '<div class="addon-act-n">' + a.name + ' <span style="font-size:11px;color:var(--gy);font-weight:600">(' + a.age + ')</span></div>' +
+          '<div class="addon-act-n">' + a.name + '</div>' +
+          '<div style="font-size:11px;color:var(--li);font-weight:700;margin:2px 0 4px">Minimum Age: ' + a.ageYears + ' years old</div>' +
           '<div class="addon-act-d">' + a.d + '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="addon-act-foot">' +
-        '<div class="addon-act-price">' + fmtINR(a.price) + ' <span style="font-size:10px;color:var(--gy);font-weight:600">+ GST</span></div>' +
-        '<button class="btn-addon-add' + (added ? ' added' : '') + '" onclick="toggleEngagementAddon(\'' + a.id + '\')">' + (added ? '✓ Added' : '+ Add') + '</button>' +
+      '<div class="addon-act-foot" style="flex-direction:column;align-items:stretch;gap:8px">' +
+        '<div style="font-size:12px;color:var(--gy)">' + fmtINR(a.price) + ' + 18% GST (' + fmtINR(gst) + ') = <strong style="color:var(--bk);font-size:14px">' + fmtINR(withGst) + '</strong></div>' +
+        '<button class="btn-addon-add' + (added ? ' added' : '') + '" style="align-self:flex-start" onclick="toggleEngagementAddon(\'' + a.id + '\')">' + (added ? '✓ Added' : '+ Add') + '</button>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -980,7 +994,7 @@ function totalPrice() {
   if (selectedEngagement) t += engagementPrice(selectedEngagement.duration, kidsCount);
   selectedEngagementAddons.forEach(id => {
     const a = ENGAGEMENT_ADDONS.find(x => x.id === id);
-    if (a) t += a.price;
+    if (a) t += a.price + engagementAddonGST(a.price);
   });
   if (selectedAct) t += activityPrice(selectedAct, kidsCount);
   if (selectedMusic) t += selectedMusic.price;
@@ -1051,7 +1065,7 @@ function proceedToBuilder() {
       photographer: selectedPhotographer,
       pinata: selectedPinata,
       packagePrice: totalPrice(),
-      host: {tier:'Starter', p: selectedEngagement ? engagementPrice(selectedEngagement.duration, kidsCount) + selectedEngagementAddons.reduce((s,id)=>{const a=ENGAGEMENT_ADDONS.find(x=>x.id===id);return s+(a?a.price:0);},0) : 0},
+      host: {tier:'Starter', p: selectedEngagement ? engagementPrice(selectedEngagement.duration, kidsCount) + selectedEngagementAddons.reduce((s,id)=>{const a=ENGAGEMENT_ADDONS.find(x=>x.id===id);return s+(a?a.price+engagementAddonGST(a.price):0);},0) : 0},
       remarks: (document.getElementById('specialRequest').value || '').trim(),
       coupon: 'PKGTURF',
       couponPct: 15,
@@ -1065,9 +1079,12 @@ function proceedToBuilder() {
 // Real photos from turf/football parties we've run — more will be added over time.
 const FILM_FRAMES = [
   { src: 'img/packages/Turf/turf-hero-1.png', tag: 'Host & Birthday Boy' },
-  { src: 'img/packages/Turf/turf-hero-2.png', tag: 'Team Games on Turf' },
-  { src: 'img/packages/Turf/turf-carousel-1.jpg', tag: 'Gymnastics Activity' },
-  { src: 'img/packages/Turf/turf-carousel-2.jpg', tag: 'Match in Action' },
+  { src: 'img/packages/Turf/turf-hero-2.png', tag: 'Birthday Backdrop' },
+  { src: 'img/packages/Turf/turf-carousel-football-2.jpg', tag: 'Match in Action' },
+  { src: 'img/packages/Turf/turf-carousal-zorb-4.jpg', tag: 'Body Zorbing' },
+  { src: 'img/packages/Turf/turf-carousal-obstacle-1.png', tag: 'Footie Obstacle Race' },
+  { src: 'img/packages/Turf/turf-carousal-tug-of-war-7.jpg', tag: 'Tug of War' },
+  { src: 'img/packages/Turf/turf-carousal-laser-beam-3.jpg', tag: 'Laser Beam Challenge' },
 ];
 const TURF_STRIP_IMAGES = FILM_FRAMES.map(f => f.src);
 (function initFilmstrip(){
