@@ -736,8 +736,14 @@ function engagementPrice(duration, kids) {
 // turf batch. Mallakhamb still has no photo, so it shows a placeholder.
 const GST_RATE = 0.18;
 function engagementAddonGST(price) { return Math.round(price * GST_RATE); }
+// engagementAddonTotal() prefers an explicit postGst override (the real
+// uploaded catalogue price, e.g. Body Zorbing's ₹9,500) over the computed
+// price+18%GST, so the same final number is used everywhere — this page,
+// the general Activities catalogue (builder.html's 'zorb' ACTS entry), and
+// the cart (2026-08-10, keeps package-page and cart totals matching).
+function engagementAddonTotal(a) { return a.postGst != null ? a.postGst : a.price + engagementAddonGST(a.price); }
 const ENGAGEMENT_ADDONS = [
-  {id:'zorb', name:'Body Zorbing', ageYears:8, price:8000, img:'img/packages/Turf/turf-carousal-zorb-4.jpg', d:'Roll, bounce, and bump safely inside inflatable zorb balls for active fun.'},
+  {id:'zorb', name:'Body Zorbing', ageYears:8, price:8000, postGst:9500, img:'img/packages/Turf/turf-carousal-zorb-4.jpg', d:'Roll, bounce, and bump safely inside inflatable zorb balls for active fun.'},
   {id:'gym', name:'Gymnastics', ageYears:5, price:10000, img:'img/packages/Turf/gymnastics.jpg', d:'A dynamic activity focusing on flexibility, strength, and body control through various movements.'},
   {id:'malla', name:'Mallakhamb', ageYears:8, price:8000, img:null, hidden:true, d:'A traditional Indian sport combining strength and agility through acrobatic poses on a vertical pole or rope.'},
 ];
@@ -868,8 +874,7 @@ function renderEngagementAddons() {
   const grid = document.getElementById('engagementAddonsGrid');
   grid.innerHTML = ENGAGEMENT_ADDONS.filter(a => !a.hidden).map(a => {
     const added = selectedEngagementAddons.includes(a.id);
-    const gst = engagementAddonGST(a.price);
-    const withGst = a.price + gst;
+    const withGst = engagementAddonTotal(a);
     const imgHtml = a.img
       ? '<img src="' + a.img + '" alt="' + a.name + '" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;margin-bottom:10px;display:block">'
       : '<div style="width:100%;aspect-ratio:4/3;border-radius:10px;margin-bottom:10px;background:var(--li3);border:1.5px dashed var(--li2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px"><span style="font-size:26px">🤸</span><span style="font-size:11px;color:var(--gy);font-weight:600">Photo coming soon</span></div>';
@@ -1032,7 +1037,7 @@ function totalPrice() {
   if (selectedEngagement) t += engagementPrice(selectedEngagement.duration, kidsCount);
   selectedEngagementAddons.forEach(id => {
     const a = ENGAGEMENT_ADDONS.find(x => x.id === id);
-    if (a) t += a.price + engagementAddonGST(a.price);
+    if (a) t += engagementAddonTotal(a);
   });
   if (selectedAct) t += activityPrice(selectedAct, kidsCount);
   if (selectedMusic) t += selectedMusic.price;
@@ -1108,7 +1113,6 @@ function proceedToBuilder() {
       photographer: selectedPhotographer,
       pinata: selectedPinata,
       packagePrice: totalPrice(),
-      host: {tier:'Starter', p: selectedEngagement ? engagementPrice(selectedEngagement.duration, kidsCount) + selectedEngagementAddons.reduce((s,id)=>{const a=ENGAGEMENT_ADDONS.find(x=>x.id===id);return s+(a?a.price+engagementAddonGST(a.price):0);},0) : 0},
       remarks: (document.getElementById('specialRequest').value || '').trim(),
       coupon: 'PKGTURF',
       couponPct: 15,

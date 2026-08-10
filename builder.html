@@ -2275,6 +2275,18 @@ function spyStationAddonPrice(code,kids){
   if(it.useGenericPrice)return genericActPrice(it.linkAct,kids);
   return it.flat!=null?it.flat:it.base+Math.max(0,kids-it.cap)*it.per;
 }
+// Turf package's Engagement duration pricing — exact same banded table as
+// ENGAGEMENT_BANDS/engagementPrice() in turf-basic.html (2026-08-10). Kept
+// here too so eng90/eng120 price identically whether picked on the package
+// page or the general Activities catalogue.
+const ENGAGEMENT_BANDS=[{max:10,p90:14500,p120:18500},{max:20,p90:24500,p120:32000},{max:30,p90:35000,p120:46000},{max:40,p90:44000,p120:57000},{max:50,p90:50000,p120:64500}];
+function engagementBandPrice(duration,kids){
+  const key=duration===120?'p120':'p90';
+  for(const b of ENGAGEMENT_BANDS){if(kids<=b.max)return b[key];}
+  const last=ENGAGEMENT_BANDS[ENGAGEMENT_BANDS.length-1];
+  const marginal=duration===120?750:600;
+  return last[key]+(kids-50)*marginal;
+}
 function actPrice(a,kids){
   if(a.id==='spy-mission')return spyStationsPrice(kids);
   if(a.id&&a.id.indexOf('station-')===0)return spyStationAddonPrice(a.id.slice(8),kids);
@@ -2288,6 +2300,15 @@ function actPrice(a,kids){
   if(a.id==='jelly-swimbags')return kids*280;
   if(a.id==='hairbrush-decor')return kids*400;
   if(a.id==='photoframe-decor')return kids*400;
+  // Turf Basic package-exclusive activities with no ACTS catalogue entry
+  // (real pricing matches turf-basic.html's own ACTIVITY_OPTIONS/activityPrice()
+  // and ENGAGEMENT_BANDS/engagementPrice(), 2026-08-10).
+  if(a.id==='eng90')return engagementBandPrice(90,kids);
+  if(a.id==='eng120')return engagementBandPrice(120,kids);
+  if(a.id==='hair-styling')return kids<=20?4500:kids<=30?5000:6000;
+  if(a.id==='bubble-show')return 9000;
+  if(a.id==='magic-show')return 9000;
+  if(a.id==='science-show')return 20000;
   const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;
 }
 const ACTS=[
@@ -2314,6 +2335,17 @@ const ACTS=[
   {id:'a22',n:'Sunglasses Decor',e:'🕶️',img:'activity/act-sunglasses-decor',realImg:true,cat:'craft',age:'4-12',dur:'15-20 min',req:'Tables & chairs',r1:350,r2:320,r3:300,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)'],tag:'',pers:true,rating:4.7,cnt:25},
   {id:'a23',n:'Fridge Magnet Making',e:'🧲',img:'activity/act-fridge-magnet',realImg:true,cat:'craft',age:'4-12',dur:'40 min',req:'Tables & chairs',r1:320,r2:290,r3:270,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:20},
   {id:'a24',n:'Coaster Making',e:'☕',img:'activity/act-coaster-making',realImg:true,cat:'craft',age:'5-12',dur:'45 min',req:'Tables & chairs',r1:420,r2:390,r3:370,flat:false,bgs:['linear-gradient(135deg,#F2D147,#B7E0B8)'],tag:'',pers:true,rating:4.6,cnt:18},
+  // ── Sports Engagement (Turf package, 2026-08-10) — banded pricing by kid
+  // count, not the generic r1/r2/r3 3-tier model (see engagementBandPrice()
+  // in actPrice() below). r1/r2/r3 here are just the 20-kid reference price
+  // shown on the card before that override kicks in.
+  {id:'eng90',n:'90 Min Sports Engagement',e:'🏃',img:'activity/act-90-min-engagement',realImg:true,cat:'experience',age:'4-14',dur:'90 min',req:'Turf/open ground',r1:24500,r2:24500,r3:24500,flat:true,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'new',pers:false,rating:4.8,cnt:20},
+  {id:'eng120',n:'120 Min Sports Engagement',e:'🏃',img:'activity/act-120-min-engagement',realImg:true,cat:'experience',age:'4-14',dur:'120 min',req:'Turf/open ground',r1:32000,r2:32000,r3:32000,flat:true,bgs:['linear-gradient(135deg,#52C470,#5B8EDD)'],tag:'new',pers:false,rating:4.8,cnt:15},
+  {id:'zorb',n:'Body Zorbing',e:'🫧',img:'activity/act-body-zorbing',realImg:true,cat:'experience',age:'8-14',dur:'Session',req:'Open ground/turf',r1:9500,r2:9500,r3:9500,flat:true,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:false,rating:4.7,cnt:10},
+  {id:'gym',n:'Gymnastics',e:'🤸',img:'activity/act-gymnastics',realImg:true,cat:'experience',age:'5-14',dur:'Session',req:'Open ground/turf',r1:11800,r2:11800,r3:11800,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#B59DDE)'],tag:'new',pers:false,rating:4.7,cnt:8},
+  // Mallakhamb — hidden (see visibleActs()) until a real photo is available;
+  // data kept in the catalogue so it can be unhidden with one flag flip.
+  {id:'malla',n:'Mallakhamb',e:'🤸',img:'',realImg:false,cat:'experience',age:'8-14',dur:'Session',req:'Open ground/turf',r1:9440,r2:9440,r3:9440,flat:true,bgs:['linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'',pers:false,rating:4.6,cnt:2,hidden:true},
   // ── Theme-restricted (Spy only for now — see themeOnly) ──
   {id:'a26',n:'Laser Tunnel',e:'🔦',img:'packages/spy/spy-laser-tunnel',realImg:true,cat:'experience',age:'6-12',dur:'20 min',req:'Any space',r1:4000,r2:4000,r3:4000,flat:true,wasP:5000,themeOnly:['spy'],bgs:['linear-gradient(135deg,#374151,#6B7280)'],tag:'',pers:false,rating:4.7,cnt:20},
   {id:'a27',n:'Dark Room',e:'🌑',img:'packages/spy/act-dark-room',realImg:true,cat:'experience',age:'7-12',dur:'20 min',req:'Blackout-capable space',r1:15000,r2:15000,r3:15000,flat:true,wasP:20000,themeOnly:['spy'],bgs:['linear-gradient(135deg,#191919,#374151)'],tag:'',pers:false,rating:4.8,cnt:15}
@@ -2322,7 +2354,7 @@ const ACTS=[
 // the current build's theme is one of the ids listed in that activity's
 // themeOnly array. Used everywhere the Activities step lists ACTS so those
 // two only ever appear for a Spy build.
-function visibleActs(){return ACTS.filter(a=>!a.themeOnly||a.themeOnly.includes(S.theme));}
+function visibleActs(){return ACTS.filter(a=>(!a.themeOnly||a.themeOnly.includes(S.theme))&&!a.hidden);}
 // Pinata catalogue rebuilt 2026-08-07 at Shruti's request around the 3
 // shape categories we actually offer (Square/Circle/Number), each with
 // its own price and a 3-photo gallery of real reference pinatas (each
@@ -2416,7 +2448,9 @@ const GIFTS=[
   {id:'g21',n:'Theme Based Penstand',img:'return-gifts/theme-penstand.jpg',e:'✏️',type:'stationery',gtheme:'generic',age:'5-12',unit:450,bg:'#FFFBDC',tag:''},
   {id:'g22',n:'Toy Storage Box',img:'return-gifts/toy-storage-box.jpg',e:'📦',type:'home',gtheme:'generic',age:'3-10',unit:375,bg:'#F0FDF4',tag:''},
   {id:'g23',n:'Train Night Lamp',img:'return-gifts/train-night-lamp.jpg',e:'🚂',type:'home',gtheme:'generic',age:'3-8',unit:300,bg:'#F0FDF4',tag:''},
-  {id:'g24',n:'5 Pcs Steel Straw Set',img:'return-gifts/steel-straw-set.jpg',e:'🥤',type:'home',gtheme:'generic',age:'3-12',unit:190,bg:'#F0FDF4',tag:''}
+  {id:'g24',n:'5 Pcs Steel Straw Set',img:'return-gifts/steel-straw-set.jpg',e:'🥤',type:'home',gtheme:'generic',age:'3-12',unit:190,bg:'#F0FDF4',tag:''},
+  {id:'g25',n:'Personalized Cap',img:'return-gifts/personalized-cap.png',e:'🧢',type:'personalized',gtheme:'generic',age:'3-12',unit:500,bg:'#F0F7FF',tag:''},
+  {id:'g26',n:'Live T-shirt Printing',img:'return-gifts/live-tshirt-printing.png',e:'👕',type:'personalized',gtheme:'generic',age:'5-14',unit:550,bg:'#F0F7FF',tag:''}
 ];
 let gF={type:'all',budget:'all',gtheme:'all'};
 let actFilter='all';
@@ -2445,8 +2479,14 @@ function cItems(){
   if(S.dj)items.push({cat:'DJ',n:S.dj.tier+' DJ',p:S.dj.p,id:S.dj.tier});
   if(S.djAddons.lights)items.push({cat:'Addons',n:'DJ Lights',p:1500,id:'dj-lights'});
   if(S.djAddons.smoke)items.push({cat:'Addons',n:'Smoke Machine',p:2000,id:'dj-smoke'});
-  if(S.pinata){const pt=rawNoInv();const isFree=pt>=S.FPT;const fp=isFree?0:S.pinata.p;const pItem={cat:'Pinata',n:S.pinata.n+(isFree?' (FREE)':''),p:fp,id:S.pinata.id};if(isFree&&S.pinata.p>0)pItem.wasP=S.pinata.p;items.push(pItem);}
-  if(S.einvite){const gt=rawNoInv();const isFree=gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n+(isFree?' (FREE)':''),p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
+  // Free-Pinata/Free-E-Invite spend thresholds are a Build-a-Birthday promo
+  // only — fixed-price package pages (spy/unicorn/turf-basic.html) always
+  // charge full price for these in their own displayed total, with no
+  // threshold logic at all. Applying the promo here for a package-page cart
+  // would silently undercharge relative to what the package page showed the
+  // customer (fixed 2026-08-10, see S._pkgOrigin).
+  if(S.pinata){const pt=rawNoInv();const isFree=!S._pkgOrigin&&pt>=S.FPT;const fp=isFree?0:S.pinata.p;const pItem={cat:'Pinata',n:S.pinata.n+(isFree?' (FREE)':''),p:fp,id:S.pinata.id};if(isFree&&S.pinata.p>0)pItem.wasP=S.pinata.p;items.push(pItem);}
+  if(S.einvite){const gt=rawNoInv();const isFree=!S._pkgOrigin&&gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n+(isFree?' (FREE)':''),p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
   if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});}
   S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty,id:g.id}));
   S.spyExtras.forEach(x=>items.push({cat:'Addons',n:x.n,p:x.p,id:x.id}));
@@ -2835,7 +2875,7 @@ function renderActs(list){
     const tagHtml=a.tag?TAG_MAP[a.tag]:'';
     const persHtml=a.pers?'<span class="tag" style="background:#F0FDF4;color:#1a6630">✦ Take-home</span>':'';
     const flatTag=a.flat?'<span class="tag" style="background:#FEF9C3;color:#92400E">Flat rate</span>':'';
-    const priceNote=a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child';
+    const priceNote=(a.id==='eng90'||a.id==='eng120')?('for '+k+' kids · scales with headcount'):a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child';
     const priceHtml=(a.wasP&&a.wasP>tot)?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:13px">₹'+a.wasP.toLocaleString('en-IN')+'</s>₹'+tot.toLocaleString('en-IN'):'₹'+tot.toLocaleString('en-IN');
     const fieldsHtml='👶 Suitable for: Ages '+a.age+'<br>📦 Packaging: '+(a.pers?'Included':'Not applicable')+'<br>🎨 Personalization Possible: '+(a.pers?'Yes':'No');
     // Most activities are still on the emoji/gradient fallback (see
@@ -4139,13 +4179,43 @@ document.addEventListener('DOMContentLoaded',()=>{
       S._pkgOrigin='turf-basic';
       const pkgData=JSON.parse(localStorage.getItem('ws_pkg')||'{}');
       const kids=pkgData.kidsCount||25;
-      const actId=pkgData.actId||'a8';
-      const act=ACTS.find(a=>a.id===actId);
-      S.host={tier:'Classic',p:10000};
+      const actId=pkgData.actId||null;
+      const act=actId?ACTS.find(a=>a.id===actId):null;
+      // No bundled "Host" concept on Turf — it has Engagement instead (see
+      // below). Fixed 2026-08-10: this used to hardcode S.host to a flat
+      // ₹10,000 regardless of what Engagement duration/add-ons were actually
+      // picked on the package page, which silently made the cart total not
+      // match the package page total.
       S.couponPct=15;
       S._pkgCoupon='PKGTURF';
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
-      if(act)S.activities=[{id:act.id,n:act.n,r1:act.r1,r2:act.r2,r3:act.r3,flat:act.flat}];
+      S.activities=[];
+      // Activity is optional on Turf (see 2026-08-05 change) — only add it
+      // if one was actually picked.
+      if(act)S.activities.push({id:act.id,n:act.n,r1:act.r1,r2:act.r2,r3:act.r3,flat:act.flat});
+      // Glitter Station / Boys Hair Styling / Bubble / Magic / Science Show
+      // have no ACTS catalogue entry (real pricing handled in actPrice()) —
+      // fixed 2026-08-10: previously silently dropped from the cart entirely
+      // if picked as the Activity, since ACTS.find(actId) returned undefined.
+      else if(actId&&['glitter','hair-styling','bubble-show','magic-show','science-show'].includes(actId)){
+        S.activities.push({id:actId,n:pkgData.actName||actId});
+      }
+      // Engagement (90/120 min) — real ACTS entries added 2026-08-10
+      // (eng90/eng120), banded pricing matches turf-basic.html exactly (see
+      // engagementBandPrice() in actPrice() above). Fixed 2026-08-10: this
+      // used to be silently replaced by the hardcoded S.host above instead.
+      if(pkgData.engagement){
+        const engId=pkgData.engagement.duration===120?'eng120':'eng90';
+        const ea=ACTS.find(a=>a.id===engId);
+        if(ea)S.activities.push({id:ea.id,n:ea.n,r1:ea.r1,r2:ea.r2,r3:ea.r3,flat:ea.flat});
+      }
+      // Engagement Add-ons (Body Zorbing / Gymnastics / Mallakhamb) — real
+      // ACTS entries added 2026-08-10 (zorb/gym/malla), flat GST-inclusive
+      // pricing matching turf-basic.html's ENGAGEMENT_ADDONS. Fixed
+      // 2026-08-10: previously not read from pkgData at all.
+      if(pkgData.engagementAddons&&pkgData.engagementAddons.length){
+        pkgData.engagementAddons.forEach(id=>{const a=ACTS.find(x=>x.id===id);if(a&&!S.activities.find(x=>x.id===a.id))S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat});});
+      }
       if(pkgData.additionalActs&&pkgData.additionalActs.length){
         pkgData.additionalActs.forEach(pa=>{const xa=ACTS.find(x=>x.id===pa.id);if(xa&&!S.activities.find(x=>x.id===xa.id))S.activities.push({id:xa.id,n:xa.n,r1:xa.r1,r2:xa.r2,r3:xa.r3,flat:xa.flat});});
       }
@@ -4161,14 +4231,17 @@ document.addEventListener('DOMContentLoaded',()=>{
         else S.einvite={id:'turf-'+pkgData.einvite.id,n:'Turf Party '+pkgData.einvite.name,p:pkgData.einvite.price};
       }
       if(pkgData.entry)S.spyExtras.push({id:'entry-'+pkgData.entry.id,n:pkgData.entry.name+' Entry',p:pkgData.entry.price});
-      // Return Gift — turf-basic.html's GIFT_ITEMS is its own small local
-      // catalogue (not the main builder GIFTS array), so this is a local
-      // map with a 'turf-*' namespaced id — keeps working regardless of
-      // what's in the real Return Gifts catalogue (see 2026-08-07 refresh),
-      // and can't collide with a real GIFTS id in thumbFor's lookup.
+      // Return Gifts — turf-basic.html's GIFT_ITEMS (g18/cap1/tshirt1) now
+      // map onto the real GIFTS catalogue ids (g18 Football, g25 Cap, g26
+      // T-shirt — g25/g26 added 2026-08-10) so thumbFor resolves the correct
+      // real photo. unit is still the package's own discounted per-child
+      // price (not the catalogue's undiscounted default). Fixed 2026-08-10:
+      // this previously only recognized a nonexistent 'g1'/'turf-artkit' id
+      // that doesn't match any current GIFT_ITEMS id, so every real gift
+      // pick (Football/Cap/T-shirt) was silently dropped from the cart.
       if(pkgData.gifts&&pkgData.gifts.length){
-        const GIFT_MAP={'turf-artkit':{n:'DIY Art Kit',perChild:300}};
-        pkgData.gifts.forEach(gid=>{const key=gid==='g1'?'turf-artkit':gid;const item=GIFT_MAP[key];if(item)S.gifts.push({id:key,n:item.n,unit:item.perChild,qty:kids});});
+        const GIFT_MAP={'g18':{n:'Personalized Football',perChild:450},'cap1':{id:'g25',n:'Personalized Cap',perChild:350},'tshirt1':{id:'g26',n:'Live T-shirt Printing',perChild:450}};
+        pkgData.gifts.forEach(gid=>{const item=GIFT_MAP[gid];if(item)S.gifts.push({id:item.id||gid,n:item.n,unit:item.perChild,qty:kids});});
       }
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
       // Pinata — real Square/Circle/Number ids (see note above the first
