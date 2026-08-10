@@ -2290,22 +2290,25 @@ function engagementBandPrice(duration,kids){
 function actPrice(a,kids){
   // Generic escape hatch: an activity explicitly flagged free (no current
   // caller sets this) always prices at ₹0 regardless of catalogue pricing.
-  // Unicorn Basic's "1 included activity" is NOT free — its ₹4,999/₹4,000
-  // value counts toward the package MRP, so it's pushed with a flat r1/r2/r3
-  // override instead (see builder.html's unicorn-basic ?pkg= branch, 2026-08-10).
   if(a.free)return 0;
   if(a.id==='spy-mission')return spyStationsPrice(kids);
   if(a.id&&a.id.indexOf('station-')===0)return spyStationAddonPrice(a.id.slice(8),kids);
   // Glitter Station / Slime Making / Jelly Swimbags / Hairbrush Decoration /
-  // Photoframe Decoration — Unicorn Basic add-ons with no ACTS catalogue
-  // entry (real pricing given directly by Shruti, not fabricated). Jelly
-  // Swimbags' +Rs40/alphabet name-personalization charge isn't captured
-  // here — confirmed with the customer at checkout instead.
+  // Photoframe Decoration / Mirror Decoration / Colouring Station — Unicorn
+  // Basic add-ons with no ACTS catalogue entry (real pricing given directly
+  // by Shruti, not fabricated). Jelly Swimbags' +Rs40/alphabet
+  // name-personalization charge isn't captured here — confirmed with the
+  // customer at checkout instead. Colouring Station pricing updated
+  // 2026-08-11 (was a flat ₹4,999 placeholder). mirror-decor added
+  // 2026-08-11 — it was previously pushed into the cart via the package-page
+  // handoff with no matching case here, so it silently priced as NaN.
   if(a.id==='glitter')return 4000;
   if(a.id==='slime')return kids<=15?6300:kids<=30?11000:11000+(kids-30)*350;
   if(a.id==='jelly-swimbags')return kids*280;
   if(a.id==='hairbrush-decor')return kids*400;
   if(a.id==='photoframe-decor')return kids*400;
+  if(a.id==='mirror-decor')return kids*750;
+  if(a.id==='a25')return kids<=30?4500:kids<=50?5500:6500;
   // Turf Basic package-exclusive activities with no ACTS catalogue entry
   // (real pricing matches turf-basic.html's own ACTIVITY_OPTIONS/activityPrice()
   // and ENGAGEMENT_BANDS/engagementPrice(), 2026-08-10).
@@ -2325,12 +2328,12 @@ const ACTS=[
   {id:'a5',n:'Mosaic Art',e:'🔷',img:'activity/act-mosaic-art',realImg:true,cat:'art',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:950,r2:900,r3:850,flat:false,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)','linear-gradient(135deg,#5B8EDD,#B59DDE)'],tag:'new',pers:true,rating:4.8,cnt:35},
   {id:'a6',n:'Tie & Dye',e:'👕',img:'activity/act-tie-dye',realImg:true,cat:'art',age:'6-12',dur:'60 min',req:'Tables & aprons',r1:950,r2:900,r3:850,flat:false,bgs:['linear-gradient(135deg,#E65A96,#F57A1A)','linear-gradient(135deg,#F2D147,#52C470)'],tag:'trend',pers:true,rating:4.8,cnt:50},
   {id:'a7',n:'Mandala Art',e:'🌸',img:'activity/act-mandala-art',realImg:true,cat:'art',age:'7-12',dur:'60 min',req:'Tables & chairs',r1:650,r2:600,r3:550,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#B59DDE)','linear-gradient(135deg,#B59DDE,#E65A96)'],tag:'',pers:true,rating:4.5,cnt:30},
-  {id:'a8',n:'Cupcake Decoration',e:'🧁',img:'activity/act-cupcake-decor',realImg:true,cat:'art',age:'4-10',dur:'45 min',req:'Tables & chairs',r1:90,r2:85,r3:80,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#F57A1A)','linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'pop',pers:false,rating:4.9,cnt:80},
+  {id:'a8',n:'Cupcake Decoration',e:'🧁',img:'activity/act-cupcake-decor',realImg:true,cat:'art',age:'4-10',dur:'45 min',req:'Tables & chairs',r1:200,r2:200,r3:200,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#F57A1A)','linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'pop',pers:false,rating:4.9,cnt:80},
   // ── Craft (per child) ──
   {id:'a9',n:'Cap Decoration',e:'🧢',img:'activity/act-cap-decoration',realImg:true,cat:'craft',age:'5-12',dur:'20-30 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#F2D147,#F57A1A)','linear-gradient(135deg,#F57A1A,#E65A96)'],tag:'pop',pers:true,rating:4.9,cnt:120},
   {id:'a10',n:'Soft Toy Making',e:'🧸',img:'activity/act-soft-toy-making',realImg:true,cat:'craft',age:'4-10',dur:'60 min',req:'Tables & chairs',r1:1000,r2:950,r3:900,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#EDE6FA)','linear-gradient(135deg,#EDE6FA,#B59DDE)'],tag:'rec',pers:true,rating:4.9,cnt:90},
   {id:'a11',n:'Jacket Decoration',e:'🧥',img:'activity/act-jacket-decoration',realImg:true,cat:'craft',age:'7-12',dur:'60 min',req:'Tables & chairs',r1:1150,r2:1100,r3:1050,flat:false,bgs:['linear-gradient(135deg,#374151,#6B7280)','linear-gradient(135deg,#6B7280,#B59DDE)'],tag:'trend',pers:true,rating:4.8,cnt:45},
-  {id:'a12',n:'Dreamcatcher',e:'🌙',img:'activity/act-dreamcatcher',realImg:true,cat:'craft',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)','linear-gradient(135deg,#BCD8E8,#B59DDE)'],tag:'',pers:true,rating:4.7,cnt:35},
+  {id:'a12',n:'Dreamcatcher',e:'🌙',img:'activity/act-dreamcatcher',realImg:true,cat:'craft',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:350,r2:350,r3:350,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)','linear-gradient(135deg,#BCD8E8,#B59DDE)'],tag:'',pers:true,rating:4.7,cnt:35},
   {id:'a13',n:'DIY Clock',e:'⏰',img:'activity/act-diy-clock',realImg:true,cat:'craft',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#F2D147,#B7E0B8)','linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:40},
   // ── Experiences (flat rate) ──
   {id:'a15',n:'Tattoo Station',e:'🖊️',img:'activity/act-tattoo-station',realImg:true,cat:'experience',age:'5-12',dur:'Up to 3 hrs',req:'Any space',r1:2500,r2:2500,r3:2500,flat:true,bgs:['linear-gradient(135deg,#374151,#6B7280)'],tag:'pop',pers:false,rating:4.8,cnt:75},
@@ -2338,8 +2341,8 @@ const ACTS=[
   {id:'a18',n:'Pottery Station',e:'🏺',img:'activity/act-pottery',realImg:true,cat:'experience',age:'5-12',dur:'3 hrs',req:'Tables & aprons',r1:5000,r2:5000,r3:5000,flat:true,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)','linear-gradient(135deg,#52C470,#BCD8E8)'],tag:'new',pers:false,rating:4.7,cnt:30},
   {id:'a21',n:'Nail Art Station',e:'💅',img:'activity/act-nail-art',realImg:true,cat:'experience',age:'6-12',dur:'3 hrs',req:'Any space',r1:3500,r2:3500,r3:3500,flat:true,bgs:['linear-gradient(135deg,#EDE6FA,#F5C3D7)'],tag:'',pers:false,rating:4.7,cnt:40},
   // ── Package craft activities (per child) ──
-  {id:'a22',n:'Sunglasses Decor',e:'🕶️',img:'activity/act-sunglasses-decor',realImg:true,cat:'craft',age:'4-12',dur:'15-20 min',req:'Tables & chairs',r1:350,r2:320,r3:300,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)'],tag:'',pers:true,rating:4.7,cnt:25},
-  {id:'a23',n:'Fridge Magnet Making',e:'🧲',img:'activity/act-fridge-magnet',realImg:true,cat:'craft',age:'4-12',dur:'40 min',req:'Tables & chairs',r1:320,r2:290,r3:270,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:20},
+  {id:'a22',n:'Sunglasses Decor',e:'🕶️',img:'activity/act-sunglasses-decor',realImg:true,cat:'craft',age:'4-12',dur:'15-20 min',req:'Tables & chairs',r1:350,r2:350,r3:350,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)'],tag:'',pers:true,rating:4.7,cnt:25},
+  {id:'a23',n:'Fridge Magnet Making',e:'🧲',img:'activity/act-fridge-magnet',realImg:true,cat:'craft',age:'4-12',dur:'40 min',req:'Tables & chairs',r1:175,r2:175,r3:175,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:20},
   {id:'a24',n:'Coaster Making',e:'☕',img:'activity/act-coaster-making',realImg:true,cat:'craft',age:'5-12',dur:'45 min',req:'Tables & chairs',r1:420,r2:390,r3:370,flat:false,bgs:['linear-gradient(135deg,#F2D147,#B7E0B8)'],tag:'',pers:true,rating:4.6,cnt:18},
   // ── Sports Engagement (Turf package, 2026-08-10) — banded pricing by kid
   // count, not the generic r1/r2/r3 3-tier model (see engagementBandPrice()
@@ -4111,28 +4114,32 @@ document.addEventListener('DOMContentLoaded',()=>{
       // package coupon discount them a second time (2026-08-10).
       S._noGiftDiscount=true;
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
-      // The 1 included activity is bundled into the package price (its
-      // ₹4,999/₹4,000 value counts toward the ₹24,999 MRP shown on the
-      // package page — see unicorn-basic.html totalPrice(), 2026-08-10), so
-      // it's charged here at that same flat value rather than the general
-      // ACTS catalogue's per-child rate (which is a different, unrelated
-      // price for the same activity when picked à la carte elsewhere on the
-      // site — using it here would silently mismatch the package page total).
-      const UNI_INCLUDED_ACT_VALUE=actId==='glitter'?4000:4999;
-      if(act)S.activities=[{id:act.id,n:act.n,r1:UNI_INCLUDED_ACT_VALUE,r2:UNI_INCLUDED_ACT_VALUE,r3:UNI_INCLUDED_ACT_VALUE,flat:true}];
-      // Glitter Station can also be picked as the 1 included activity — it
-      // has no ACTS catalogue entry (real pricing handled in actPrice()'s
-      // 'glitter' special case, which already returns 4000 regardless of
-      // r1/r2/r3, so this is just for consistent shape/display).
-      else if(actId==='glitter')S.activities=[{id:'glitter',n:pkgData.actName||'Glitter Station',r1:UNI_INCLUDED_ACT_VALUE,r2:UNI_INCLUDED_ACT_VALUE,r3:UNI_INCLUDED_ACT_VALUE,flat:true}];
+      // The 1 included activity is bundled into the package price, but its
+      // real value still counts toward the package total (2026-08-11, per
+      // Shruti: the package page's "Choose your Activities" values and the
+      // total/MRP both track live BAB per-child pricing now, not a flat
+      // placeholder) — so it's pushed here with the real ACTS r1/r2/r3/flat
+      // fields, same as any other activity, for exact parity with what
+      // unicorn-basic.html's own totalPrice() computes.
+      if(act)S.activities=[{id:act.id,n:act.n,r1:act.r1,r2:act.r2,r3:act.r3,flat:act.flat}];
+      // Glitter Station / Colouring Station (a25) can also be picked as the
+      // 1 included activity — neither has a real ACTS catalogue entry
+      // (pricing handled by actPrice()'s 'glitter'/'a25' special cases), so
+      // push with just id/n and let actPrice() resolve the amount. Fixed
+      // 2026-08-11: Colouring Station previously matched neither this nor
+      // the glitter branch, so picking it as the included activity silently
+      // dropped it from the cart entirely.
+      else if(actId==='glitter')S.activities=[{id:'glitter',n:pkgData.actName||'Glitter Station'}];
+      else if(actId==='a25')S.activities=[{id:'a25',n:pkgData.actName||'Colouring Station'}];
       // Pre-select additional paid activities
       if(pkgData.additionalActs&&pkgData.additionalActs.length){
         pkgData.additionalActs.forEach(pa=>{
-          // 'mirror-decor' added to this list 2026-08-10 — it was previously
-          // missing here, so selecting it as an addon on the package page
-          // silently dropped it from the cart entirely (ACTS.find() found
-          // nothing and there was no fallback push).
-          if(pa.id==='glitter'||pa.id==='slime'||pa.id==='jelly-swimbags'||pa.id==='hairbrush-decor'||pa.id==='photoframe-decor'||pa.id==='mirror-decor'){
+          // 'mirror-decor' added to this list 2026-08-10, 'a25' (Colouring
+          // Station) added 2026-08-11 — both were previously missing here,
+          // so selecting either as an addon on the package page silently
+          // dropped it from the cart entirely (ACTS.find() found nothing
+          // and there was no fallback push).
+          if(pa.id==='glitter'||pa.id==='slime'||pa.id==='jelly-swimbags'||pa.id==='hairbrush-decor'||pa.id==='photoframe-decor'||pa.id==='mirror-decor'||pa.id==='a25'){
             if(!S.activities.find(x=>x.id===pa.id))S.activities.push({id:pa.id,n:pa.name});
             return;
           }

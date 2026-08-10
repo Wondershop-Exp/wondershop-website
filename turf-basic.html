@@ -751,14 +751,18 @@ const ENGAGEMENT_ADDONS = [
 // Activity — single-select, paid (real per-child catalogue rates), and
 // removable. Cupcake Decor is the live default. Boys Hair Styling uses a
 // tiered flat price (2026-08-10): ≤20 kids ₹4,500, 21-30 kids ₹5,000, >30 kids ₹6,000.
+// Cupcake Decor / Sunglasses Decor / Fridge Magnet rates updated 2026-08-11
+// per Shruti — flat per-child, no headcount tiering (kept in sync with
+// builder.html's ACTS array, which is the source of truth): Cupcake ₹200,
+// Sunglasses ₹350, Fridge Magnet ₹175.
 const ACTIVITY_OPTIONS = [
-  {id:'a8', name:'Cupcake Decor', img:'img/activity/act-cupcake-decor-sq.jpg', r1:90, r2:85, r3:80, d:'Kids decorate their own cupcakes with icing and sprinkles. A sweet creation they get to eat!'},
+  {id:'a8', name:'Cupcake Decor', img:'img/activity/act-cupcake-decor-sq.jpg', r1:200, r2:200, r3:200, d:'Kids decorate their own cupcakes with icing and sprinkles. A sweet creation they get to eat!'},
   {id:'a9', name:'Cap Decoration', img:'img/activity/act-cap-decoration.jpg', r1:850, r2:800, r3:750, d:'Kids decorate their own cap with patches, pins and paint.'},
   {id:'a15', name:'Tattoo Station', img:'img/activity/act-tattoo-station.jpg', flat:2500, d:'Temporary tattoo artist on-site for every child.'},
   {id:'glitter', name:'Glitter Station', img:'img/activity/act-glitter.jpg', flat:4000, d:'Skin-safe glitter and gems for a glamorous party look kids love.'},
   {id:'hair-styling', name:'Boys Hair Styling', img:'img/activity/act-boys-hair-styling.jpg', hairBand:true, d:'Hair gel and hair-safe spray colours used to create spikes and fun styled looks for the boys at the party.'},
-  {id:'a22', name:'Sunglasses Decor', img:'img/activity/act-sunglasses-decor-sq.jpg', r1:350, r2:320, r3:300, d:'Plain sunnies + stickers, gems & paint pens. Kids customise and take home their unique pair.'},
-  {id:'a23', name:'Fridge Magnet', img:'img/activity/act-fridge-magnet-sq.jpg', r1:320, r2:290, r3:270, d:'Each child creates their own painted fridge magnet — a little party memory to take home.'},
+  {id:'a22', name:'Sunglasses Decor', img:'img/activity/act-sunglasses-decor-sq.jpg', r1:350, r2:350, r3:350, d:'Plain sunnies + stickers, gems & paint pens. Kids customise and take home their unique pair.'},
+  {id:'a23', name:'Fridge Magnet', img:'img/activity/act-fridge-magnet-sq.jpg', r1:175, r2:175, r3:175, d:'Each child creates their own painted fridge magnet — a little party memory to take home.'},
   {id:'bubble-show', name:'Bubble Show', img:'img/activity/act-bubble-show.jpg', flat:9000, d:'A giant-bubble performance and hands-on bubble play.'},
   {id:'magic-show', name:'Magic Show', img:'img/activity/act-magic-show.jpg', flat:9000, d:'An interactive magic performance with birthday-kid participation.'},
   {id:'science-show', name:'Science Show', img:'img/activity/act-science-show.jpg', flat:20000, d:'A hands-on science performance full of wow-moments.'},
