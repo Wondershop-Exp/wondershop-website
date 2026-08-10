@@ -98,6 +98,8 @@ button{cursor:pointer;font-family:var(--fb)}
 .incl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .incl-card{background:var(--li3);border:1.5px solid var(--li2);border-radius:16px;padding:20px}
 .incl-card-ic{font-size:28px;margin-bottom:10px}
+.incl-card-ic-img{width:36px;height:36px;object-fit:contain;margin-bottom:10px;display:block}
+.chip-ic-img{width:16px;height:16px;object-fit:contain}
 .incl-card-h{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--bk);margin-bottom:6px}
 .incl-card-body{font-size:13px;color:var(--gy);line-height:1.6}
 .expand-btn{background:none;border:none;font-size:12px;color:var(--li);font-weight:600;cursor:pointer;padding:0;margin-top:10px;display:flex;align-items:center;gap:4px}
@@ -270,7 +272,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <h1 class="pkg-h1">Spy <em>Adventure</em> Package</h1>
           <p class="pkg-desc">A full-blown spy mission — themed stations that scale with your guest list, an energetic host running the operation, and decor you choose to match. Everything handled, mission-ready.</p>
           <div class="pkg-incl-row">
-            <span class="pkg-incl-chip">🕵️ Spy Host</span>
+            <span class="pkg-incl-chip"><img class="chip-ic-img" src="img/icons/icon-host.png" alt="">Spy Host</span>
             <span class="pkg-incl-chip">🎯 4–8 Mission Stations</span>
             <span class="pkg-incl-chip">🎂 Min. age 7</span>
           </div>
@@ -303,7 +305,7 @@ button{cursor:pointer;font-family:var(--fb)}
       <div class="incl-grid">
 
         <div class="incl-card">
-          <div class="incl-card-ic">🕵️</div>
+          <img class="incl-card-ic-img" src="img/icons/icon-host.png" alt="">
           <div class="incl-card-h">Spy Host</div>
           <div class="incl-card-body">An energetic host runs the full spy mission from start to finish — briefing, stations, and the big reveal.</div>
           <button class="expand-btn" id="btn-host" onclick="toggleDetail('host','btn-host','What the host does')">
@@ -497,7 +499,7 @@ button{cursor:pointer;font-family:var(--fb)}
       <h2 class="sec-h2">More to <em>add later</em></h2>
       <p class="sec-sub">Speak with your account manager to add these after order placement.</p>
       <div class="addon-grid">
-        <div class="addon-chip"><span class="addon-chip-ic">🧸</span><span>Mascot</span></div>
+        <div class="addon-chip"><img class="chip-ic-img" src="img/icons/icon-mascot-bw.png" alt=""><span>Mascot</span></div>
         <div class="addon-chip"><span class="addon-chip-ic">🎂</span><span>Cake Table</span></div>
         <div class="addon-chip"><span class="addon-chip-ic">🎊</span><span>Welcome Arch</span></div>
         <div class="addon-chip"><span class="addon-chip-ic">🪧</span><span>Welcome Board</span></div>
