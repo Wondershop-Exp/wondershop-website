@@ -4082,6 +4082,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     setTimeout(()=>{goLead();window.scrollTo(0,0);},150);
   }
 
+  // ?gifts=1 — jump straight to the full Return Gifts catalogue (s8), e.g.
+  // from a "See all return gifts" link on a package page (2026-08-11). Builds
+  // the gifts grid up front (normally only done by doS0()/the ?theme= flow
+  // below) since s8 is otherwise never visited on this path.
+  if(urlParams.get('gifts')==='1'){
+    setTimeout(()=>{showBuilder();try{buildGifts();}catch(e){}goTo('s8');window.scrollTo(0,0);},100);
+  }
+
   // ?pkg= pre-selection from package pages (e.g. unicorn-basic.html)
   const urlPkg=urlParams.get('pkg');
   if(urlPkg==='unicorn-basic'){
@@ -4193,6 +4201,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(pkgData.props&&pkgData.props.length){
         const PROPS_MAP={pr1:{n:'Sunglasses',perChild:75},pr2:{n:'Caps',perChild:75}};
         pkgData.props.forEach(pid=>{const item=PROPS_MAP[pid];if(item)S.gifts.push({id:'prop-'+pid,n:item.n,unit:item.perChild,qty:kids});});
+      }
+      // Return Gifts — maps to real GIFTS catalogue ids so thumbFor() shows
+      // the correct real photo on the review page (2026-08-11).
+      if(pkgData.gifts&&pkgData.gifts.length){
+        const GIFT_MAP={'g10':{n:'LCD Drawing Pen Case',perChild:210},'g25':{n:'Personalized Cap',perChild:500},'g26':{n:'Live T-shirt Printing',perChild:550}};
+        pkgData.gifts.forEach(gid=>{const item=GIFT_MAP[gid];if(item)S.gifts.push({id:gid,n:item.n,unit:item.perChild,qty:kids});});
       }
       // Entry Options — shown under the new Addons section
       if(pkgData.entry)S.spyExtras.push({id:'entry-'+pkgData.entry.id,n:pkgData.entry.name+' Entry',p:pkgData.entry.price});

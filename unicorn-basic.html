@@ -953,24 +953,20 @@ button{cursor:pointer;font-family:var(--fb)}
 
   <hr class="divider">
 
-  <!-- RETURN GIFTS —
-       TODO: hidden for now per Shruti (Aug 2026), revisit later. Section
-       markup is kept in the DOM (just display:none) rather than deleted so
-       #giftsGrid / renderGifts() / selectedGifts still work without errors
-       if anything else on the page references them. Un-hide by removing
-       the style="display:none" below when ready to bring it back. -->
-  <section class="sec" style="display:none">
+  <!-- RETURN GIFTS — restored 2026-08-11 per Shruti's request to add a
+       Return Gifts section to every package page. -->
+  <section class="sec">
     <div class="container">
       <div class="act-section-hdr">
         <h2 class="sec-h2">Return Gifts</h2>
         <span class="act-badge grn">Optional · per child</span>
       </div>
-      <p class="sec-sub">A themed take-home gift for every guest.</p>
+      <p class="sec-sub">A themed take-home gift for every guest. <a href="builder.html?gifts=1" target="_blank" style="color:var(--li);font-weight:700;text-decoration:none">See all return gift options →</a></p>
       <div class="act-grid" id="giftsGrid"></div>
     </div>
   </section>
 
-  <!-- <hr class="divider"> hidden with Return Gifts above, restore together -->
+  <hr class="divider">
 
   <!-- PHOTOGRAPHER -->
   <section class="sec">

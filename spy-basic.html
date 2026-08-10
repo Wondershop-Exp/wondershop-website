@@ -463,6 +463,20 @@ button{cursor:pointer;font-family:var(--fb)}
 
   <hr class="divider">
 
+  <!-- RETURN GIFTS -->
+  <section class="sec">
+    <div class="container">
+      <div class="act-section-hdr">
+        <h2 class="sec-h2">Return Gifts</h2>
+        <span class="act-badge grn">Optional · per child</span>
+      </div>
+      <p class="sec-sub">A themed take-home gift for every guest. <a href="builder.html?gifts=1" target="_blank" style="color:var(--li);font-weight:700;text-decoration:none">See all return gift options →</a></p>
+      <div class="act-grid" id="giftsGrid"></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
   <!-- PHOTOGRAPHER -->
   <section class="sec">
     <div class="container">
@@ -676,6 +690,24 @@ let selectedPinata = null;      // one of PINATA_TIERS or null
 let selectedProps = [];         // array of PROPS_ADDONS ids
 let selectedEntry = null;       // one of ENTRY_TIERS or null
 let selectedPhotographer = null;// one of PHOTO_TIERS or null
+let selectedGifts = [];         // array of GIFT_ITEMS ids
+
+// Return Gift — real catalogue photos/prices (no spy-specific gift SKUs yet,
+// so generic gadget-y/personalized items that fit the theme, 2026-08-11).
+const GIFT_ITEMS = [
+  {id:'g10', ic:'🧮', img:'img/return-gifts/lcd-compass-calculator.jpg', name:'LCD Drawing Pen Case', d:'A gadget-style pen case with LCD drawing pad and calculator — every agent takes one home.', perChild:210},
+  {id:'g25', ic:'🧢', img:'img/return-gifts/personalized-cap.png', name:'Personalized Cap', d:'A personalized cap for every guest to take home.', perChild:500},
+  {id:'g26', ic:'👕', img:'img/return-gifts/live-tshirt-printing.png', name:'Live T-shirt Printing', d:'Live on-site printing — every guest takes home a custom-printed tee.', perChild:550},
+];
+function giftPrice(item, kids) { return item.perChild * kids; }
+function renderGifts() { renderToggleGrid('giftsGrid', GIFT_ITEMS, selectedGifts, giftPrice, 'toggleGift'); }
+function toggleGift(id) {
+  const idx = selectedGifts.indexOf(id);
+  if (idx > -1) selectedGifts.splice(idx, 1);
+  else selectedGifts.push(id);
+  renderGifts();
+  updateSticky();
+}
 
 // ── STATION TIER (host + included mission stations) ──
 function stationTier(kids) {
@@ -878,6 +910,10 @@ function totalPrice() {
   });
   if (selectedEntry) t += selectedEntry.price;
   if (selectedPhotographer) t += selectedPhotographer.price;
+  selectedGifts.forEach(id => {
+    const item = GIFT_ITEMS.find(g => g.id === id);
+    if (item) t += item.perChild * kidsCount;
+  });
   return t;
 }
 
@@ -888,7 +924,7 @@ function updateSticky() {
 
   const t = stationTier(kidsCount);
   const parts = [kidsCount + ' kids', t.stations + ' stations', selectedDecor ? (selectedDecor.name + ' decor') : 'No decor'];
-  const extrasCount = selectedStations.length + selectedProps.length +
+  const extrasCount = selectedStations.length + selectedProps.length + selectedGifts.length +
     (selectedMusic ? 1 : 0) + (djLightsAddon ? 1 : 0) + (djSmokeAddon ? 1 : 0) + (selectedEinvite ? 1 : 0) +
     (selectedPinata ? 1 : 0) + (selectedEntry ? 1 : 0) + (selectedPhotographer ? 1 : 0);
   if (extrasCount) parts.push('+' + extrasCount + ' add-on' + (extrasCount > 1 ? 's' : ''));
@@ -923,6 +959,7 @@ function proceedToBuilder() {
       props: selectedProps,
       entry: selectedEntry,
       photographer: selectedPhotographer,
+      gifts: selectedGifts,
       remarks: (document.getElementById('specialRequest').value || '').trim(),
       packagePrice: totalPrice(),
       ts: Date.now()
@@ -973,6 +1010,7 @@ renderPinata();
 renderProps();
 renderEntry();
 renderPhoto();
+renderGifts();
 changeKids(0);
 </script>
 
