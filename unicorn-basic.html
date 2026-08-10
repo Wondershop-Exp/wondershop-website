@@ -1280,12 +1280,10 @@ const KIDS_THRESHOLD = 25;
 const EXTRA_PER_CHILD = 399;
 const EXTRA_ACT_PRICE = 4999;
 // Budget baked into the package for the 1 included activity — no price is
-// shown on its card. Above 25 kids, a flat ₹300/child surcharge applies to
-// the included activity, the SAME regardless of which of the 9 options is
-// picked (2026-08-11, per Shruti — replaces the earlier "excess over budget
-// based on the specific activity's real per-child value" model).
+// shown on its card, and no separate per-activity surcharge is added above
+// 25 kids either (2026-08-11, per Shruti — the existing EXTRA_PER_CHILD=399
+// general headcount surcharge already covers the extra activity cost).
 const INCL_ACT_BUDGET = 5000;
-const INCL_ACT_EXTRA_PER_CHILD = 300;
 // Tattoo Station — reuses the site's real activity catalogue entry (id 'a15',
 // flat ₹2,500, "Up to 3 hrs", real age range 5–12). Always included in the
 // package price, no tier options, similar to Host.
@@ -1501,26 +1499,17 @@ function updateDynamicAddonPrices() {
   });
 }
 
-// "Choose your Activities" cards show no price (2026-08-11, per Shruti) —
-// only a "+₹X for your group size" note above 25 kids. The surcharge is a
-// flat ₹300/child (INCL_ACT_EXTRA_PER_CHILD) for every kid beyond 25,
-// identical on every card regardless of which activity is picked (per
-// Shruti, 2026-08-11 — no longer tied to each activity's own real per-child
-// BAB rate). Runs for every card regardless of which is currently selected,
-// so customers can see the surcharge before picking.
+// "Choose your Activities" cards show no price and no "+₹X for your group
+// size" note (2026-08-11, per Shruti — the existing EXTRA_PER_CHILD=399
+// general headcount surcharge already covers the extra activity cost above
+// 25 kids, so no separate per-activity note is shown). Kept as a no-op
+// (rather than removed) so the .act-card-extra elements stay hidden even if
+// re-triggered from changeKids().
 function updateInclActExtraNotes() {
   const map = {a8: 'actExtraA8', a22: 'actExtraA22', a23: 'actExtraA23', a25: 'actExtraA25', glitter: 'actExtraGlitter', 'hair-styling': 'actExtraHairBoys', 'hair-styling-girls': 'actExtraHairGirls', 'hit-the-cans': 'actExtraHitCans', 'face-painting': 'actExtraFacePaint'};
-  const extraKidsForAct = Math.max(0, kidsCount - KIDS_THRESHOLD);
-  const extra = extraKidsForAct * INCL_ACT_EXTRA_PER_CHILD;
   Object.keys(map).forEach(id => {
     const el = document.getElementById(map[id]);
-    if (!el) return;
-    if (extra > 0) {
-      el.textContent = '+' + fmtINR(extra) + ' for your group size';
-      el.style.display = 'inline-block';
-    } else {
-      el.style.display = 'none';
-    }
+    if (el) el.style.display = 'none';
   });
 }
 
@@ -1778,14 +1767,12 @@ function totalPrice() {
   t += TATTOO_PRICE;
   // The 1 included activity (Cupcake Decor etc.) is bundled into the
   // package at a flat ₹5,000 budget (INCL_ACT_BUDGET) — no price is shown
-  // on its card, and the total doesn't change if you switch activities.
-  // Above 25 kids, a flat ₹300/child surcharge (INCL_ACT_EXTRA_PER_CHILD)
-  // applies, the same regardless of which activity is picked (2026-08-11,
-  // per Shruti — replaces the previous "excess over budget based on the
-  // specific activity's real per-child value" behaviour; reuses the same
-  // extraKids count as the general per-child surcharge above). See
-  // updateInclActExtraNotes() for the matching "+₹X" note on each card.
-  if (selectedAct) t += INCL_ACT_BUDGET + extraKids * INCL_ACT_EXTRA_PER_CHILD;
+  // on its card, and the total doesn't change no matter which activity is
+  // picked or how many kids are in the party. The general EXTRA_PER_CHILD
+  // (₹399/child above 25) surcharge above already covers the extra activity
+  // cost at higher headcounts, so no separate per-activity surcharge is
+  // added here (2026-08-11, per Shruti).
+  if (selectedAct) t += INCL_ACT_BUDGET;
   if (selectedDecor) t += selectedDecor.price;
   if (selectedMusic) t += selectedMusic.price;
   if (djLightsAddon) t += 1500;

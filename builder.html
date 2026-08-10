@@ -4129,20 +4129,22 @@ document.addEventListener('DOMContentLoaded',()=>{
       S._noGiftDiscount=true;
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
       // The 1 included activity is bundled into the package at a flat
-      // ₹5,000 budget. Above 25 kids, a flat ₹300/child surcharge applies —
-      // the SAME regardless of which of the 9 activities is picked
-      // (2026-08-11, per Shruti — replaces the earlier "excess over budget
-      // based on the specific activity's real per-child value" model, which
-      // used a minPrice floor on top of each activity's real ACTS/special-
-      // case rate). Pushed as a flat r1=r2=r3 amount so actPrice() just
-      // returns it directly no matter which activity id it is — no per-
-      // activity branching needed here any more.
-      const UNI_INCL_BUDGET=5000, UNI_INCL_EXTRA_PER_CHILD=300, UNI_KIDS_THRESHOLD=25;
-      const uniInclActValue=UNI_INCL_BUDGET+Math.max(0,kids-UNI_KIDS_THRESHOLD)*UNI_INCL_EXTRA_PER_CHILD;
+      // ₹5,000 budget, no matter which of the 9 activities is picked or how
+      // many kids are in the party — the page's general EXTRA_PER_CHILD
+      // (₹399/child above 25 kids, see unicorn-basic.html totalPrice())
+      // already covers the extra activity cost at higher headcounts
+      // (2026-08-11, per Shruti). NOTE: that ₹399/child surcharge is NOT
+      // currently mirrored anywhere in this cart (rawNoInv() has no
+      // matching line) — a pre-existing page/cart parity gap, flagged to
+      // Shruti separately rather than fixed here since it wasn't asked for.
+      // Pushed as a flat r1=r2=r3 amount so actPrice() just returns it
+      // directly no matter which activity id it is — no per-activity
+      // branching needed here.
+      const UNI_INCL_BUDGET=5000;
       const UNI_INCL_ACT_NAMES={glitter:'Glitter Station',a25:'Colouring Station','hair-styling':'Hair Styling for Boys','hair-styling-girls':'Hair Styling for Girls','hit-the-cans':'Hit the Cans','face-painting':'Face Painting'};
       if(actId){
         const inclName=act?act.n:(pkgData.actName||UNI_INCL_ACT_NAMES[actId]||actId);
-        S.activities=[{id:actId,n:inclName,r1:uniInclActValue,r2:uniInclActValue,r3:uniInclActValue,flat:true}];
+        S.activities=[{id:actId,n:inclName,r1:UNI_INCL_BUDGET,r2:UNI_INCL_BUDGET,r3:UNI_INCL_BUDGET,flat:true}];
       }
       // Pre-select additional paid activities
       if(pkgData.additionalActs&&pkgData.additionalActs.length){
