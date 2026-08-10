@@ -2287,11 +2287,11 @@ function engagementBandPrice(duration,kids){
   const marginal=duration===120?750:600;
   return last[key]+(kids-50)*marginal;
 }
-// .minPrice (2026-08-11) floors the computed price regardless of which
-// branch below resolves it — used by Unicorn Basic's included activity,
-// whose real per-child value is bundled into the package at a flat
-// INCL_ACT_BUDGET (see unicorn-basic.html), so the cart must never charge
-// less than that budget for it either, no matter which activity was picked.
+// .minPrice floors the computed price regardless of which branch below
+// resolves it. Not currently used by any live package flow (Unicorn Basic's
+// included activity now pushes a flat pre-computed r1/r2/r3 value directly
+// instead — see the unicorn-basic ?pkg= branch below), kept as a generic
+// mechanism for future use.
 function actPrice(a,kids){
   const p=actPriceRaw(a,kids);
   return a.minPrice!=null?Math.max(a.minPrice,p):p;
@@ -4129,29 +4129,21 @@ document.addEventListener('DOMContentLoaded',()=>{
       S._noGiftDiscount=true;
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
       // The 1 included activity is bundled into the package at a flat
-      // ₹5,000 budget (2026-08-11, per Shruti — no price shown on its
-      // card; the total only moves if the activity's real per-child BAB
-      // value exceeds ₹5,000). minPrice:UNI_INCL_BUDGET makes actPrice()
-      // floor the computed price at that budget regardless of which
-      // activity is picked, for exact parity with unicorn-basic.html's own
-      // totalPrice() (Math.max(INCL_ACT_BUDGET, addonActPrice(...))).
-      const UNI_INCL_BUDGET=5000;
-      if(act)S.activities=[{id:act.id,n:act.n,r1:act.r1,r2:act.r2,r3:act.r3,flat:act.flat,minPrice:UNI_INCL_BUDGET}];
-      // Glitter Station / Colouring Station (a25) / Hair Styling for Boys
-      // can also be picked as the 1 included activity — none has a real
-      // ACTS catalogue entry (pricing handled by actPrice()'s 'glitter'/
-      // 'a25'/'hair-styling' special cases), so push with just id/n/minPrice
-      // and let actPrice() resolve the amount. Fixed 2026-08-11: Colouring
-      // Station previously matched neither this nor the glitter branch, so
-      // picking it as the included activity silently dropped it from the
-      // cart entirely; Hair Styling for Boys was missing here altogether
-      // (newly added as an included-activity option on the package page).
-      else if(actId==='glitter')S.activities=[{id:'glitter',n:pkgData.actName||'Glitter Station',minPrice:UNI_INCL_BUDGET}];
-      else if(actId==='a25')S.activities=[{id:'a25',n:pkgData.actName||'Colouring Station',minPrice:UNI_INCL_BUDGET}];
-      else if(actId==='hair-styling')S.activities=[{id:'hair-styling',n:pkgData.actName||'Hair Styling for Boys',minPrice:UNI_INCL_BUDGET}];
-      else if(actId==='hair-styling-girls')S.activities=[{id:'hair-styling-girls',n:pkgData.actName||'Hair Styling for Girls',minPrice:UNI_INCL_BUDGET}];
-      else if(actId==='hit-the-cans')S.activities=[{id:'hit-the-cans',n:pkgData.actName||'Hit the Cans',minPrice:UNI_INCL_BUDGET}];
-      else if(actId==='face-painting')S.activities=[{id:'face-painting',n:pkgData.actName||'Face Painting',minPrice:UNI_INCL_BUDGET}];
+      // ₹5,000 budget. Above 25 kids, a flat ₹300/child surcharge applies —
+      // the SAME regardless of which of the 9 activities is picked
+      // (2026-08-11, per Shruti — replaces the earlier "excess over budget
+      // based on the specific activity's real per-child value" model, which
+      // used a minPrice floor on top of each activity's real ACTS/special-
+      // case rate). Pushed as a flat r1=r2=r3 amount so actPrice() just
+      // returns it directly no matter which activity id it is — no per-
+      // activity branching needed here any more.
+      const UNI_INCL_BUDGET=5000, UNI_INCL_EXTRA_PER_CHILD=300, UNI_KIDS_THRESHOLD=25;
+      const uniInclActValue=UNI_INCL_BUDGET+Math.max(0,kids-UNI_KIDS_THRESHOLD)*UNI_INCL_EXTRA_PER_CHILD;
+      const UNI_INCL_ACT_NAMES={glitter:'Glitter Station',a25:'Colouring Station','hair-styling':'Hair Styling for Boys','hair-styling-girls':'Hair Styling for Girls','hit-the-cans':'Hit the Cans','face-painting':'Face Painting'};
+      if(actId){
+        const inclName=act?act.n:(pkgData.actName||UNI_INCL_ACT_NAMES[actId]||actId);
+        S.activities=[{id:actId,n:inclName,r1:uniInclActValue,r2:uniInclActValue,r3:uniInclActValue,flat:true}];
+      }
       // Pre-select additional paid activities
       if(pkgData.additionalActs&&pkgData.additionalActs.length){
         pkgData.additionalActs.forEach(pa=>{
