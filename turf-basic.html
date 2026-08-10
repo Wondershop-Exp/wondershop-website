@@ -176,6 +176,8 @@ button{cursor:pointer;font-family:var(--fb)}
 .addon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .addon-chip{display:flex;align-items:center;gap:8px;background:#f9f9f9;border:1.5px solid #eee;border-radius:12px;padding:11px 14px;font-size:13px;color:var(--gy);font-weight:500}
 .addon-chip-ic{font-size:18px;flex-shrink:0}
+.rmk-ta{width:100%;border:1.5px solid var(--li2);border-radius:12px;padding:12px 14px;font-family:inherit;font-size:14px;color:var(--bk);resize:vertical;min-height:80px}
+.rmk-note{font-size:12px;color:var(--gy);margin-top:8px;line-height:1.5}
 
 /* STICKY BAR */
 .sticky-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#fff;border-top:1.5px solid var(--li2);box-shadow:0 -4px 20px rgba(181,157,222,.12);padding:12px 24px}
@@ -204,6 +206,32 @@ button{cursor:pointer;font-family:var(--fb)}
   .btn-pkg{justify-content:center}
   .wa-fab{bottom:150px}
 }
+
+/* FILM STRIP */
+.filmstrip-wrap{position:relative;background:#161616;padding:15px 0;overflow:hidden}
+.filmstrip-wrap::before,.filmstrip-wrap::after{content:'';position:absolute;left:0;right:0;height:13px;background-image:repeating-linear-gradient(90deg,#f4f4f4 0 9px,transparent 9px 24px);background-position:12px center;z-index:2}
+.filmstrip-wrap::before{top:0}
+.filmstrip-wrap::after{bottom:0}
+.filmstrip-track{display:flex;width:max-content;animation:filmScroll 85s linear infinite}
+.filmstrip-wrap:hover .filmstrip-track{animation-play-state:paused}
+.film-frame{position:relative;flex-shrink:0;width:210px;height:210px;margin:0 6px;border-radius:6px;overflow:hidden;border:3px solid #000;background:#000;cursor:pointer}
+.film-frame img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease}
+.film-frame:hover img{transform:scale(1.1)}
+.film-tag{position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,.72);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:.2px}
+@keyframes filmScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(max-width:600px){.film-frame{width:150px;height:150px}}
+
+/* LIGHTBOX GALLERY (photo strip) */
+.lb-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);align-items:center;justify-content:center;padding:20px}
+.lb-overlay.open{display:flex}
+.lb-overlay img{max-width:90vw;max-height:85vh;object-fit:contain;border-radius:10px;user-select:none}
+.lb-close{position:absolute;top:18px;right:18px;background:rgba(255,255,255,.14);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:18px;line-height:1;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.lb-close:hover{background:rgba(255,255,255,.26)}
+.lb-arrow{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.14);border:none;color:#fff;font-size:24px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.lb-arrow:hover{background:rgba(255,255,255,.26)}
+.lb-prev{left:14px}
+.lb-next{right:14px}
+@media(max-width:600px){.lb-arrow{width:36px;height:36px;font-size:18px}.lb-close{width:32px;height:32px;font-size:15px}}
 </style>
 </head>
 <body>
@@ -261,18 +289,18 @@ button{cursor:pointer;font-family:var(--fb)}
             <span class="pkg-tag">⭐ Fan Favourite</span>
           </div>
           <h1 class="pkg-h1">Turf Party <em>Basic</em> Package</h1>
-          <p class="pkg-desc">A complete jungle safari birthday — decor you choose, a fun activity the kids will love, music, and an energetic host to keep the energy high. Everything handled. Nothing to worry about.</p>
+          <p class="pkg-desc">A high-energy turf birthday — decor you choose, 90 or 120 minutes of football-ground games run by a trained host, an activity the kids will love, and music. Everything handled. Nothing to worry about.</p>
           <div class="pkg-incl-row">
             <span class="pkg-incl-chip">🎈 Decor</span>
-            <span class="pkg-incl-chip">🎤 Host</span>
-            <span class="pkg-incl-chip">🎉 1 Activity</span>
+            <span class="pkg-incl-chip">🏃 Engagement</span>
+            <span class="pkg-incl-chip">🎉 Activity</span>
             <span class="pkg-incl-chip">🎵 Music</span>
             <span class="pkg-incl-chip">💌 E-Invite</span>
           </div>
           <div class="pkg-price-block">
             <div class="pkg-price-note">Estimated total for your party</div>
             <div class="pkg-price" id="heroPrice">₹22,500</div>
-            <div class="pkg-price-sub">For up to 25 kids · extra kids at ₹399/child</div>
+            <div class="pkg-price-sub">For 20 kids by default · pricing scales with your headcount</div>
           </div>
           <div class="pkg-cta-row">
             <button class="btn-pkg" onclick="proceedToBuilder()">Build This Package →</button>
@@ -281,8 +309,8 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
         <div>
           <div class="pkg-img-wrap">
-            <img src="img/theme-jungle.jpg" alt="Turf Party birthday by Wondershop">
-            <div class="pkg-img-badge">🌴 Turf Theme · Wondershop</div>
+            <img src="img/packages/Turf/turf-hero-1.png" alt="Turf Party birthday by Wondershop">
+            <div class="pkg-img-badge">⚽ Turf Theme · Wondershop</div>
           </div>
         </div>
       </div>
@@ -326,20 +354,18 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
-          <div class="incl-card-ic">🎤</div>
-          <div class="incl-card-h">Host</div>
-          <div class="incl-card-body">Energetic, kid-friendly host who keeps every child engaged for 1 hour — games, activity facilitation, and the birthday sing-along.</div>
-          <button class="expand-btn" id="btn-host" onclick="toggleDetail('host','btn-host','What the host does')">
-            <span>What the host does</span>
+          <div class="incl-card-ic">🏃</div>
+          <div class="incl-card-h">Engagement</div>
+          <div class="incl-card-body">90 minutes of turf games is included by default — host, props and trainers, scaled to your headcount. Upgrade to 120 minutes below.</div>
+          <button class="expand-btn" id="btn-eng" onclick="toggleDetail('eng','btn-eng','What&#39;s included')">
+            <span>What's included</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="detail-list" id="host">
+          <div class="detail-list" id="eng">
             <ul>
-              <li>Welcomes guests &amp; sets the tone</li>
-              <li>Runs party games with the children</li>
-              <li>Facilitates your chosen activity</li>
-              <li>Conducts the Happy Birthday moment</li>
-              <li>1 hour of energetic hosting</li>
+              <li>Trained host, props &amp; trainers</li>
+              <li>Games drawn from: Clap Lap, Snap, Pyramid, Throw, Footie Obstacle Race, Dizzy Football, One-Legged Dog &amp; the Bone, Introduction to Gymnastics, Relay Race, Team Games, Tug of War</li>
+              <li>Scaled to your number of kids</li>
               <li>Mic + speaker included</li>
             </ul>
           </div>
@@ -347,19 +373,24 @@ button{cursor:pointer;font-family:var(--fb)}
 
         <div class="incl-card">
           <div class="incl-card-ic">🎉</div>
-          <div class="incl-card-h">1 Activity</div>
-          <div class="incl-card-body">Pick one activity below — your host runs it, all materials provided. Most include a take-home keepsake for each child.</div>
+          <div class="incl-card-h">Activity</div>
+          <div class="incl-card-body">Cupcake Decor is picked by default below — your host runs it, all materials provided. Priced per child; you can swap it or remove it entirely.</div>
           <button class="expand-btn" id="btn-act" onclick="toggleDetail('act','btn-act','See what\'s available')">
             <span>See what's available</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="detail-list" id="act">
             <ul>
-              <li>Cupcake Decor</li>
+              <li>Cap Decoration</li>
+              <li>Tattoo Station</li>
+              <li>Glitter Station</li>
+              <li>Boys Hair Styling</li>
               <li>Sunglasses Decor</li>
               <li>Fridge Magnet</li>
-              <li>Coaster Making</li>
-              <li>Colouring Station</li>
+              <li>Cupcake Decoration</li>
+              <li>Bubble Show</li>
+              <li>Magic Show</li>
+              <li>Science Show</li>
             </ul>
           </div>
         </div>
@@ -367,20 +398,20 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="incl-card">
           <div class="incl-card-ic">🎵</div>
           <div class="incl-card-h">Music</div>
-          <div class="incl-card-body">Classic DJ included as standard — 1 speaker, 1 mixer, 2 mics, 1 operator, suitable for gatherings up to 50 people. Upgrade to Premium or Signature below.</div>
+          <div class="incl-card-body">Classic DJ included as standard — 1 speaker, 1 mixer, 2 mics, 1 operator, suitable for gatherings up to 50 people. Upgrade to Premium below.</div>
         </div>
 
         <div class="incl-card">
           <div class="incl-card-ic">💌</div>
           <div class="incl-card-h">E-Invite</div>
-          <div class="incl-card-body">Custom digital invite in the jungle theme with your child's name, date, venue and RSVP details. Shareable on WhatsApp.</div>
+          <div class="incl-card-body">Custom digital invite in the turf theme with your child's name, date, venue and RSVP details. Shareable on WhatsApp.</div>
           <button class="expand-btn" id="btn-einv" onclick="toggleDetail('einv','btn-einv','See details')">
             <span>See details</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="detail-list" id="einv">
             <ul>
-              <li>Jungle-themed design</li>
+              <li>Turf-themed design</li>
               <li>Child's name &amp; age personalized</li>
               <li>Date, time &amp; venue details</li>
               <li>RSVP number included</li>
@@ -400,18 +431,17 @@ button{cursor:pointer;font-family:var(--fb)}
   <section class="sec">
     <div class="container">
       <h2 class="sec-h2">How many <em>kids?</em></h2>
-      <p class="sec-sub">Package is flat-priced for up to 25 children. Above 25, we add ₹399 per extra child.</p>
+      <p class="sec-sub">Engagement, activity and return gift pricing scale with your headcount. Defaults to 20 kids.</p>
       <div class="kids-wrap">
         <div class="kids-stepper">
           <button class="kids-btn" onclick="changeKids(-1)">−</button>
-          <div class="kids-num" id="kidsDisp">25</div>
+          <div class="kids-num" id="kidsDisp">20</div>
           <button class="kids-btn" onclick="changeKids(1)">+</button>
         </div>
         <div class="kids-info">
-          <span id="kidsPriceLine"><strong>Up to 25 kids</strong> — no extra charge</span>
+          <span id="kidsPriceLine"><strong>20 kids</strong> — prices below update automatically</span>
         </div>
       </div>
-      <div class="kids-extra-note" id="kidsExtraNote"></div>
     </div>
   </section>
 
@@ -431,140 +461,34 @@ button{cursor:pointer;font-family:var(--fb)}
 
   <hr class="divider">
 
-  <!-- INCLUDED ACTIVITY -->
-  <section class="sec" id="actSection">
+  <!-- ENGAGEMENT -->
+  <section class="sec" id="engagementSection">
     <div class="container">
       <div class="act-section-hdr">
-        <h2 class="sec-h2">Choose your <em>Activity</em></h2>
-        <span class="act-badge">1 included · Pick one</span>
+        <h2 class="sec-h2">Choose your <em>Engagement</em></h2>
+        <span class="act-badge">Included · pick a duration</span>
       </div>
-      <p class="sec-sub">Your host runs the activity. All materials provided. Most activities include a take-home keepsake for each child.</p>
-      <div class="act-grid" id="actGrid">
+      <p class="sec-sub">90 minutes is included by default. Our host runs high-energy turf games with props and trainers, scaled to your headcount — upgrading to 120 minutes adds the difference to your total.</p>
+      <div class="act-grid" id="engagementGrid"></div>
 
-        <div class="act-card" data-act="a8" data-name="Cupcake Decor" onclick="selectAct(this)">
-          <img class="act-card-ic-img" src="img/activity/act-cupcake-decor-sq.jpg" alt="Cupcake Decor">
-          <div class="act-card-n">Cupcake Decor</div>
-          <div class="act-card-d">Kids decorate their own cupcakes with icing and sprinkles. A sweet creation they get to eat!</div>
-        </div>
-
-        <div class="act-card" data-act="a22" data-name="Sunglasses Decor" onclick="selectAct(this)">
-          <div class="act-card-ic">🕶️</div>
-          <div class="act-card-n">Sunglasses Decor</div>
-          <div class="act-card-d">Plain sunnies + stickers, gems &amp; paint pens. Kids customise and take home their unique pair.</div>
-        </div>
-
-        <div class="act-card" data-act="a23" data-name="Fridge Magnet" onclick="selectAct(this)">
-          <img class="act-card-ic-img" src="img/activity/act-fridge-magnet-sq.jpg" alt="Fridge Magnet">
-          <div class="act-card-n">Fridge Magnet</div>
-          <div class="act-card-d">Each child creates their own painted fridge magnet — a little party memory to take home.</div>
-        </div>
-
-        <div class="act-card" data-act="a24" data-name="Coaster Making" onclick="selectAct(this)">
-          <div class="act-card-ic">☕</div>
-          <div class="act-card-n">Coaster Making</div>
-          <div class="act-card-d">Kids decorate ceramic coasters with paints and markers. A creative craft they take home.</div>
-        </div>
-
-        <div class="act-card" data-act="a25" data-name="Colouring Station" onclick="selectAct(this)">
-          <div class="act-card-ic">🎨</div>
-          <div class="act-card-n">Colouring Station</div>
-          <div class="act-card-d">Themed colouring sheets, crayons and markers. Works for any age and always a hit.</div>
-        </div>
-
+      <div style="margin-top:24px">
+        <div style="font-size:11px;font-weight:700;color:var(--gy);margin-bottom:10px;text-transform:uppercase;letter-spacing:.8px">Engagement Add-ons</div>
+        <div class="act-grid" id="engagementAddonsGrid"></div>
       </div>
-      <div class="act-req-note" id="actReqNote">Please select an activity to continue.</div>
     </div>
   </section>
 
   <hr class="divider">
 
-  <!-- ADD-ON ACTIVITIES -->
-  <section class="sec">
+  <!-- ACTIVITY -->
+  <section class="sec" id="actSection">
     <div class="container">
       <div class="act-section-hdr">
-        <h2 class="sec-h2">Add more <em>Activities</em></h2>
-        <span class="act-badge grn">Optional · ₹4,999 each</span>
+        <h2 class="sec-h2">Choose your <em>Activity</em></h2>
+        <span class="act-badge">Cupcake Decor by default · removable</span>
       </div>
-      <p class="sec-sub">Keep the kids engaged longer — add as many extra activities as you like.</p>
-      <div class="act-grid" id="addonActGrid">
-
-        <div class="addon-act-card" id="add-a8" data-act="a8" data-name="Cupcake Decor">
-          <div class="addon-act-top">
-            <img class="addon-act-ic-img" src="img/activity/act-cupcake-decor-sq.jpg" alt="Cupcake Decor">
-            <div class="addon-act-info">
-              <div class="addon-act-n">Cupcake Decor</div>
-              <div class="addon-act-d">Decorate &amp; eat their own cupcakes</div>
-            </div>
-          </div>
-          <div class="addon-act-foot">
-            <div class="addon-act-price">₹4,999</div>
-            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
-            <button class="btn-addon-add" id="abtn-a8" onclick="toggleAddon('a8','Cupcake Decor',this)">+ Add</button>
-          </div>
-        </div>
-
-        <div class="addon-act-card" id="add-a22" data-act="a22" data-name="Sunglasses Decor">
-          <div class="addon-act-top">
-            <div class="addon-act-ic">🕶️</div>
-            <div class="addon-act-info">
-              <div class="addon-act-n">Sunglasses Decor</div>
-              <div class="addon-act-d">Customise &amp; take home a unique pair</div>
-              <div class="addon-act-meta">⏱ 15-20 min</div>
-            </div>
-          </div>
-          <div class="addon-act-foot">
-            <div class="addon-act-price">₹4,999</div>
-            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
-            <button class="btn-addon-add" id="abtn-a22" onclick="toggleAddon('a22','Sunglasses Decor',this)">+ Add</button>
-          </div>
-        </div>
-
-        <div class="addon-act-card" id="add-a23" data-act="a23" data-name="Fridge Magnet">
-          <div class="addon-act-top">
-            <img class="addon-act-ic-img" src="img/activity/act-fridge-magnet-sq.jpg" alt="Fridge Magnet">
-            <div class="addon-act-info">
-              <div class="addon-act-n">Fridge Magnet</div>
-              <div class="addon-act-d">Paint &amp; take home a custom magnet</div>
-            </div>
-          </div>
-          <div class="addon-act-foot">
-            <div class="addon-act-price">₹4,999</div>
-            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
-            <button class="btn-addon-add" id="abtn-a23" onclick="toggleAddon('a23','Fridge Magnet',this)">+ Add</button>
-          </div>
-        </div>
-
-        <div class="addon-act-card" id="add-a24" data-act="a24" data-name="Coaster Making">
-          <div class="addon-act-top">
-            <div class="addon-act-ic">☕</div>
-            <div class="addon-act-info">
-              <div class="addon-act-n">Coaster Making</div>
-              <div class="addon-act-d">Decorate ceramic coasters to take home</div>
-            </div>
-          </div>
-          <div class="addon-act-foot">
-            <div class="addon-act-price">₹4,999</div>
-            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
-            <button class="btn-addon-add" id="abtn-a24" onclick="toggleAddon('a24','Coaster Making',this)">+ Add</button>
-          </div>
-        </div>
-
-        <div class="addon-act-card" id="add-a25" data-act="a25" data-name="Colouring Station">
-          <div class="addon-act-top">
-            <div class="addon-act-ic">🎨</div>
-            <div class="addon-act-info">
-              <div class="addon-act-n">Colouring Station</div>
-              <div class="addon-act-d">Themed sheets, crayons &amp; markers</div>
-            </div>
-          </div>
-          <div class="addon-act-foot">
-            <div class="addon-act-price">₹4,999</div>
-            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
-            <button class="btn-addon-add" id="abtn-a25" onclick="toggleAddon('a25','Colouring Station',this)">+ Add</button>
-          </div>
-        </div>
-
-      </div>
+      <p class="sec-sub">Your host runs the activity. All materials provided. Prices scale with your kid count — click the selected card again to remove the activity and its cost.</p>
+      <div class="act-grid" id="actGrid"></div>
     </div>
   </section>
 
@@ -678,6 +602,31 @@ button{cursor:pointer;font-family:var(--fb)}
       </div>    </div>
   </section>
 
+  <hr class="divider">
+
+  <!-- SPECIAL REQUESTS -->
+  <section class="sec">
+    <div class="container">
+      <h2 class="sec-h2">Special <em>Requests</em></h2>
+      <p class="sec-sub">Anything specific you'd like us to know? <span style="color:var(--gy);font-weight:400">(optional)</span></p>
+      <textarea class="rmk-ta" id="specialRequest" placeholder="e.g. a specific theme detail, allergy info, a surprise moment you'd like..."></textarea>
+      <div class="rmk-note">We'll call you after receiving your details to confirm everything and customize anything you need.</div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- PHOTO STRIP (film strip, auto-scrolling) -->
+  <section class="sec" style="padding-bottom:8px">
+    <div class="container">
+      <h2 class="sec-h2">From real <em>Turf Parties</em></h2>
+      <p class="sec-sub">A few moments from turf-themed parties we've run.</p>
+    </div>
+    <div class="filmstrip-wrap">
+      <div class="filmstrip-track" id="filmTrack"></div>
+    </div>
+  </section>
+
 </div><!-- /page-wrap -->
 
 <!-- STICKY BAR -->
@@ -694,6 +643,14 @@ button{cursor:pointer;font-family:var(--fb)}
   </div>
 </div>
 
+<!-- PHOTO LIGHTBOX (click-to-zoom gallery with left/right navigation) -->
+<div class="lb-overlay" id="lbOverlay" onclick="if(event.target===this)closeLightbox()">
+  <button class="lb-close" onclick="closeLightbox()" aria-label="Close">✕</button>
+  <button class="lb-arrow lb-prev" onclick="lbNav(-1)" aria-label="Previous image">‹</button>
+  <img id="lbImg" src="" alt="">
+  <button class="lb-arrow lb-next" onclick="lbNav(1)" aria-label="Next image">›</button>
+</div>
+
 <!-- WA FAB -->
 <a href="https://wa.me/919742240477" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -704,33 +661,67 @@ button{cursor:pointer;font-family:var(--fb)}
 document.getElementById('nav-ham').addEventListener('click',()=>document.getElementById('nav-mob').classList.toggle('open'));
 
 // ── DATA ──
-// Host is bundled at the site's real Classic Host price (₹10,000) — not
-// separately selectable on this page. Decor/Music/E-Invite each default to
-// their first tier (Basic / Classic DJ / Static), which is what's "included"
-// in the headline price; picking a higher tier adds the difference.
-const HOST_PRICE = 10000;
-const KIDS_THRESHOLD = 25;
-const EXTRA_PER_CHILD = 399;
-const EXTRA_ACT_PRICE = 4999;
-
-// Decor — same tier structure & pricing as the Spy package (balloon arch up
-// to full flex-panel installs), Jungle-themed copy. Tier-specific photos
-// haven't been uploaded yet, so all 4 cards use the existing theme photo.
-// Decor tier text standardized 2026-08-08 across spy/unicorn/turf-basic.html —
-// same spec, same wording everywhere (only per-tier photos differ). Tier
-// names renamed: Basic->Classic, 1 Panel->Premium, 2 Panel->Luxury,
-// Signature unchanged (ids kept as-is so nothing else breaks).
-// Decor spec restructured 2026-08-08 into a labelled `spec` array (same 11
-// attributes, same order, on every tier — including ones that don't apply,
-// e.g. "Panels: NA" for Classic) so the 4 cards line up for easy
-// side-by-side comparison. renderTierGrid() renders this as a bullet list;
-// `na:true` entries render greyed-out.
+// Decor — same tier structure & pricing as the Spy/Unicorn packages (balloon
+// arch up to full flex-panel installs), Turf-themed copy. All 4 tiers now
+// have real uploaded photos (2026-08-10).
 const DECOR_TIERS = [
   {id:'basic', name:'Classic', price:5000, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'Up to 2'},{l:'Happy Birthday, Name & Age',v:'Paper bunting (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/Decor/turf-decor-classic.jpg'},
-  {id:'p1', name:'Premium', price:8000, spec:[{l:'Panels',v:'1'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/theme-jungle.jpg'},
-  {id:'p2', name:'Luxury', price:15000, spec:[{l:'Panels',v:'2'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},{l:'Cake Table',v:'Included'},{l:'Decor Width',v:'8-9 ft'}], img:'img/theme-jungle.jpg'},
-  {id:'sig', name:'Signature', price:25000, spec:[{l:'Panels',v:'3'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-14 ft'}], img:'img/theme-jungle.jpg'},
+  {id:'p1', name:'Premium', price:8000, spec:[{l:'Panels',v:'1'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/Decor/turf-decor-premium.png'},
+  {id:'p2', name:'Luxury', price:15000, spec:[{l:'Panels',v:'2'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},{l:'Cake Table',v:'Included'},{l:'Decor Width',v:'8-9 ft'}], img:'img/Decor/turf-decor-luxury.jpg'},
+  {id:'sig', name:'Signature', price:25000, spec:[{l:'Panels',v:'3'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-14 ft'}], img:'img/Decor/turf-decor-signature.jpg'},
 ];
+
+// Engagement — replaces the flat Host concept. Priced by duration × kid-count
+// slab (2026-08-10 pricing table). 90 minutes is included by default; 120
+// minutes is a paid upgrade. Host, props & trainers are bundled into this price.
+const ENGAGEMENT_POOL = 'Clap Lap, Snap, Pyramid, Throw, Footie Obstacle Race, Dizzy Football, One-Legged Dog & the Bone, Introduction to Gymnastics, Relay Race, Team Games, Tug of War';
+const ENGAGEMENT_TIERS = [
+  {id:'e90', name:'90 Minutes', duration:90, d:'5-6 games from our activity pool: ' + ENGAGEMENT_POOL + '. Host, props &amp; trainers included, scaled to your kid count.'},
+  {id:'e120', name:'120 Minutes', duration:120, d:'7-8 games from our activity pool: ' + ENGAGEMENT_POOL + '. Host, props &amp; trainers included, scaled to your kid count.'},
+];
+const ENGAGEMENT_BANDS = [
+  {max:10, p90:14500, p120:18500},
+  {max:20, p90:24500, p120:32000},
+  {max:30, p90:35000, p120:46000},
+  {max:40, p90:44000, p120:57000},
+  {max:50, p90:50000, p120:64500},
+];
+function engagementPrice(duration, kids) {
+  const key = duration === 120 ? 'p120' : 'p90';
+  for (const b of ENGAGEMENT_BANDS) { if (kids <= b.max) return b[key]; }
+  // Beyond 50 kids: extend using the last band's approximate per-kid marginal rate.
+  const last = ENGAGEMENT_BANDS[ENGAGEMENT_BANDS.length - 1];
+  const marginal = duration === 120 ? 750 : 600;
+  return last[key] + (kids - 50) * marginal;
+}
+// Engagement Add-ons — multi-select, priced flat + GST (displayed, not computed).
+const ENGAGEMENT_ADDONS = [
+  {id:'zorb', name:'Body Zorbing', age:'8+', price:8000, d:'Roll, bounce, and bump safely inside inflatable zorb balls for active fun.'},
+  {id:'gym', name:'Gymnastics', age:'5+', price:10000, d:'A dynamic activity focusing on flexibility, strength, and body control through various movements.'},
+  {id:'malla', name:'Mallakhamb', age:'8+', price:8000, d:'A traditional Indian sport combining strength and agility through acrobatic poses on a vertical pole or rope.'},
+];
+
+// Activity — single-select, paid (real per-child catalogue rates), and
+// removable. Cupcake Decor is the live default. Boys Hair Styling uses a
+// tiered flat price (2026-08-10): ≤20 kids ₹4,500, 21-30 kids ₹5,000, >30 kids ₹6,000.
+const ACTIVITY_OPTIONS = [
+  {id:'a9', name:'Cap Decoration', img:'img/activity/act-cap-decoration.jpg', r1:850, r2:800, r3:750, d:'Kids decorate their own cap with patches, pins and paint.'},
+  {id:'a15', name:'Tattoo Station', img:'img/activity/act-tattoo-station.jpg', flat:2500, d:'Temporary tattoo artist on-site for every child.'},
+  {id:'glitter', name:'Glitter Station', img:'img/activity/act-glitter.jpg', flat:4000, d:'Skin-safe glitter and gems for a glamorous party look kids love.'},
+  {id:'hair-styling', name:'Boys Hair Styling', img:null, hairBand:true, d:'Fun styling looks for the boys at the party — mohawks, spikes and more.'},
+  {id:'a22', name:'Sunglasses Decor', img:'img/activity/act-sunglasses-decor-sq.jpg', r1:350, r2:320, r3:300, d:'Plain sunnies + stickers, gems & paint pens. Kids customise and take home their unique pair.'},
+  {id:'a23', name:'Fridge Magnet', img:'img/activity/act-fridge-magnet-sq.jpg', r1:320, r2:290, r3:270, d:'Each child creates their own painted fridge magnet — a little party memory to take home.'},
+  {id:'a8', name:'Cupcake Decor', img:'img/activity/act-cupcake-decor-sq.jpg', r1:90, r2:85, r3:80, d:'Kids decorate their own cupcakes with icing and sprinkles. A sweet creation they get to eat!'},
+  {id:'bubble-show', name:'Bubble Show', img:'img/activity/act-bubble-show.jpg', flat:9000, d:'A giant-bubble performance and hands-on bubble play.'},
+  {id:'magic-show', name:'Magic Show', img:'img/activity/act-magic-show.jpg', flat:9000, d:'An interactive magic performance with birthday-kid participation.'},
+  {id:'science-show', name:'Science Show', img:'img/activity/act-science-show.jpg', flat:20000, d:'A hands-on science performance full of wow-moments.'},
+];
+function activityPrice(opt, kids) {
+  if (opt.hairBand) return kids <= 20 ? 4500 : kids <= 30 ? 5000 : 6000;
+  if (opt.flat != null) return opt.flat;
+  const r = kids <= 12 ? opt.r1 : kids <= 25 ? opt.r2 : opt.r3;
+  return r * kids;
+}
 // Music — same DJ tier structure & pricing as the Spy package / generic builder.
 // Tier names unified 2026-08-07 to Classic/Premium/Signature (bare, no
 // "DJ" prefix) — matches builder.html's S.dj.tier values so the review
@@ -753,9 +744,9 @@ const ENTRY_TIERS = [
   {id:'en3', name:'Segway', price:7500, d:'Entry on a segway for a big wow moment.'},
   {id:'en4', name:'Bubbles', price:6000, d:'Bubble-machine grand entry.'},
 ];
-// Return Gift — the real "DIY Art Kit" from the gifts catalogue (₹300/child), reused as a generic placeholder until a Turf-specific gift is added.
+// Return Gift — Personalized Football, the real catalogue entry (₹600/child).
 const GIFT_ITEMS = [
-  {id:'g1', ic:'🎨', name:'DIY Art Kit', d:'A creative art kit for every guest to take home.', perChild:300},
+  {id:'g18', ic:'⚽', img:'img/return-gifts/personalized-football.jpg', name:'Personalized Football', d:'A personalized football for every guest to take home.', perChild:600},
 ];
 // Photographer — same tiers/prices as the site's standard photographer step.
 // Real catalogue (2026-08-08), matches builder.html's Photographer step.
@@ -780,10 +771,11 @@ const PINATA_TIERS = [
 ];
 
 // ── STATE ──
-let kidsCount = 25;
-let selectedAct = null;              // {id, name} — the 1 included activity
-let additionalActs = [];             // array of {id, name} — extra paid activities
-let selectedDecor = DECOR_TIERS[0];  // Basic default (included)
+let kidsCount = 20;
+let selectedAct = ACTIVITY_OPTIONS.find(a => a.id === 'a8'); // Cupcake Decor default, removable
+let selectedEngagement = ENGAGEMENT_TIERS[0];  // 90 min default (included)
+let selectedEngagementAddons = [];             // array of ENGAGEMENT_ADDONS ids
+let selectedDecor = DECOR_TIERS[0];  // Classic default (included)
 let selectedMusic = MUSIC_TIERS[0];  // Classic DJ default (included)
 let djLightsAddon = false;           // DJ Lights add-on — ₹1,500
 let djSmokeAddon = false;            // Smoke Machine add-on — ₹2,000
@@ -801,79 +793,80 @@ let selectedPinata = null;           // optional
 function fmtINR(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
 
 // ── KIDS COUNT ──
+// Engagement, activity and return-gift pricing are all functions of kidsCount,
+// so changing it re-renders those three sections.
 function changeKids(d) {
   kidsCount = Math.max(1, Math.min(100, kidsCount + d));
   document.getElementById('kidsDisp').textContent = kidsCount;
-  const extra = Math.max(0, kidsCount - KIDS_THRESHOLD);
-  const note = document.getElementById('kidsExtraNote');
-  const line = document.getElementById('kidsPriceLine');
-  if (extra > 0) {
-    line.innerHTML = '<strong>' + kidsCount + ' kids</strong> · ' + KIDS_THRESHOLD + ' included + <strong>' + extra + ' extra</strong>';
-    note.textContent = extra + ' extra kid' + (extra > 1 ? 's' : '') + ' × ₹399 = +₹' + (extra * EXTRA_PER_CHILD).toLocaleString('en-IN') + ' added to your total.';
-    note.classList.add('show');
-  } else {
-    line.innerHTML = '<strong>Up to 25 kids</strong> — no extra charge';
-    note.classList.remove('show');
-  }
+  document.getElementById('kidsPriceLine').innerHTML = '<strong>' + kidsCount + ' kids</strong> — prices below update automatically';
+  renderEngagement();
+  renderActivity();
   renderGifts();
   updateSticky();
 }
 
-// ── INCLUDED ACTIVITY SELECTION ──
-function selectAct(card) {
-  const prevId = selectedAct ? selectedAct.id : null;
-  document.querySelectorAll('.act-card[data-act]').forEach(c => c.classList.remove('sel'));
-  card.classList.add('sel');
-  selectedAct = {id: card.dataset.act, name: card.dataset.name};
+// ── ENGAGEMENT (included, pick a duration — cannot be removed entirely) ──
+function renderEngagement() {
+  const grid = document.getElementById('engagementGrid');
+  grid.innerHTML = ENGAGEMENT_TIERS.map(t => {
+    const price = engagementPrice(t.duration, kidsCount);
+    const sel = selectedEngagement && selectedEngagement.id === t.id;
+    return '<div class="act-card' + (sel ? ' sel' : '') + '" onclick="engagementSelect(\'' + t.id + '\')">' +
+      '<div class="act-card-n">' + t.name + '</div>' +
+      '<div class="act-card-p">' + fmtINR(price) + '</div>' +
+      '<div class="act-card-d">' + t.d + '</div>' +
+    '</div>';
+  }).join('');
+}
+function engagementSelect(id) { selectedEngagement = ENGAGEMENT_TIERS.find(t => t.id === id); renderEngagement(); updateSticky(); }
 
-  // Remove from add-ons if it was added as extra (can't have same as both)
-  const idx = additionalActs.findIndex(a => a.id === selectedAct.id);
-  if (idx > -1) {
-    additionalActs.splice(idx, 1);
-    const btn = document.getElementById('abtn-' + selectedAct.id);
-    if (btn) { btn.textContent = '+ Add'; btn.classList.remove('added'); }
-    const addonCard = document.getElementById('add-' + selectedAct.id);
-    if (addonCard) addonCard.classList.remove('added');
-  }
-
-  // Update add-on cards to show "Included above" for selected activity
-  document.querySelectorAll('.addon-act-card[data-act]').forEach(c => {
-    const aid = c.dataset.act;
-    const isIncluded = aid === selectedAct.id;
-    c.classList.toggle('incl-above', isIncluded);
-    const lbl = c.querySelector('.addon-incl-lbl');
-    const btn = c.querySelector('.btn-addon-add');
-    if (lbl && btn) {
-      lbl.style.display = isIncluded ? 'block' : 'none';
-      btn.style.display = isIncluded ? 'none' : 'inline-flex';
-    }
-    // Restore previously included card
-    if (prevId && aid === prevId && !isIncluded) {
-      c.classList.remove('incl-above');
-      if (lbl) lbl.style.display = 'none';
-      if (btn) btn.style.display = 'inline-flex';
-    }
-  });
-
-  document.getElementById('actReqNote').classList.remove('show');
+// ── ENGAGEMENT ADD-ONS (optional, multi-select) ──
+function renderEngagementAddons() {
+  const grid = document.getElementById('engagementAddonsGrid');
+  grid.innerHTML = ENGAGEMENT_ADDONS.map(a => {
+    const added = selectedEngagementAddons.includes(a.id);
+    return '<div class="addon-act-card' + (added ? ' added' : '') + '">' +
+      '<div class="addon-act-top">' +
+        '<div class="addon-act-info">' +
+          '<div class="addon-act-n">' + a.name + ' <span style="font-size:11px;color:var(--gy);font-weight:600">(' + a.age + ')</span></div>' +
+          '<div class="addon-act-d">' + a.d + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="addon-act-foot">' +
+        '<div class="addon-act-price">' + fmtINR(a.price) + ' <span style="font-size:10px;color:var(--gy);font-weight:600">+ GST</span></div>' +
+        '<button class="btn-addon-add' + (added ? ' added' : '') + '" onclick="toggleEngagementAddon(\'' + a.id + '\')">' + (added ? '✓ Added' : '+ Add') + '</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+function toggleEngagementAddon(id) {
+  const idx = selectedEngagementAddons.indexOf(id);
+  if (idx > -1) selectedEngagementAddons.splice(idx, 1);
+  else selectedEngagementAddons.push(id);
+  renderEngagementAddons();
   updateSticky();
 }
 
-// ── ADDITIONAL ACTIVITIES ──
-function toggleAddon(actId, actName, btn) {
-  const addonCard = document.getElementById('add-' + actId);
-  const isAdded = additionalActs.findIndex(a => a.id === actId) > -1;
-  if (isAdded) {
-    additionalActs = additionalActs.filter(a => a.id !== actId);
-    btn.textContent = '+ Add';
-    btn.classList.remove('added');
-    addonCard.classList.remove('added');
-  } else {
-    additionalActs.push({id: actId, name: actName});
-    btn.textContent = '✓ Added';
-    btn.classList.add('added');
-    addonCard.classList.add('added');
-  }
+// ── ACTIVITY (single-select, paid, removable) ──
+function renderActivity() {
+  const grid = document.getElementById('actGrid');
+  grid.innerHTML = ACTIVITY_OPTIONS.map(a => {
+    const sel = selectedAct && selectedAct.id === a.id;
+    const price = activityPrice(a, kidsCount);
+    const img = a.img ? '<img class="act-card-ic-img" src="' + a.img + '" alt="' + a.name + '">' : '<div class="act-card-ic">✂️</div>';
+    return '<div class="act-card' + (sel ? ' sel' : '') + '" data-act="' + a.id + '" onclick="selectAct(this)">' +
+      img +
+      '<div class="act-card-n">' + a.name + '</div>' +
+      '<div class="act-card-p">' + fmtINR(price) + '</div>' +
+      '<div class="act-card-d">' + a.d + '</div>' +
+    '</div>';
+  }).join('');
+}
+function selectAct(card) {
+  const id = card.dataset.act;
+  if (selectedAct && selectedAct.id === id) { selectedAct = null; }
+  else { selectedAct = ACTIVITY_OPTIONS.find(a => a.id === id); }
+  renderActivity();
   updateSticky();
 }
 
@@ -909,9 +902,10 @@ function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
     const added = selectedArr.includes(item.id);
     let priceNote = '';
     if (item.perChild != null) priceNote = ' <span style="font-size:11px;color:var(--gy);font-weight:500">(' + fmtINR(item.perChild) + '/child)</span>';
+    const icHtml = item.img ? '<img class="addon-act-ic-img" src="' + item.img + '" alt="' + item.name + '">' : '<div class="addon-act-ic">' + item.ic + '</div>';
     return '<div class="addon-act-card' + (added ? ' added' : '') + '">' +
       '<div class="addon-act-top">' +
-        '<div class="addon-act-ic">' + item.ic + '</div>' +
+        icHtml +
         '<div class="addon-act-info">' +
           '<div class="addon-act-n">' + item.name + '</div>' +
           '<div class="addon-act-d">' + item.d + '</div>' +
@@ -976,11 +970,14 @@ function pinataGridSelect(id) { selectedPinata = (selectedPinata && selectedPina
 
 // ── PRICING ──
 function totalPrice() {
-  let t = HOST_PRICE;
-  const extraKids = Math.max(0, kidsCount - KIDS_THRESHOLD);
-  t += extraKids * EXTRA_PER_CHILD;
-  t += additionalActs.length * EXTRA_ACT_PRICE;
+  let t = 0;
   if (selectedDecor) t += selectedDecor.price;
+  if (selectedEngagement) t += engagementPrice(selectedEngagement.duration, kidsCount);
+  selectedEngagementAddons.forEach(id => {
+    const a = ENGAGEMENT_ADDONS.find(x => x.id === id);
+    if (a) t += a.price;
+  });
+  if (selectedAct) t += activityPrice(selectedAct, kidsCount);
   if (selectedMusic) t += selectedMusic.price;
   if (djLightsAddon) t += 1500;
   if (djSmokeAddon) t += 2000;
@@ -1002,17 +999,16 @@ function updateSticky() {
 
   const details = document.getElementById('stickyDetails');
   const parts = [];
-  if (selectedAct) parts.push('<span class="ok">✓ ' + selectedAct.name + '</span>');
-  else parts.push('Select an activity above to continue');
   parts.push(kidsCount + ' kids');
   if (selectedDecor) parts.push(selectedDecor.name + ' decor');
+  if (selectedEngagement) parts.push(selectedEngagement.name + ' engagement');
+  if (selectedAct) parts.push('<span class="ok">✓ ' + selectedAct.name + '</span>');
+  else parts.push('No activity selected');
   if (selectedMusic) parts.push(selectedMusic.name);
-  const extrasCount = additionalActs.length + selectedGifts.length +
+  const extrasCount = selectedEngagementAddons.length + selectedGifts.length +
     (selectedEntry ? 1 : 0) + (selectedPhotographer ? 1 : 0) + (selectedPinata ? 1 : 0) +
     (djLightsAddon ? 1 : 0) + (djSmokeAddon ? 1 : 0);
   if (extrasCount) parts.push('+' + extrasCount + ' add-on' + (extrasCount > 1 ? 's' : ''));
-  const extraKids = Math.max(0, kidsCount - KIDS_THRESHOLD);
-  if (extraKids) parts.push('+' + extraKids + ' extra kids');
   details.innerHTML = parts.join(' · ');
 
   document.getElementById('stickyBase').textContent = '· Turf Party Basic';
@@ -1030,20 +1026,17 @@ function toggleDetail(elId, btnId, closedLabel) {
 
 // ── PROCEED TO BUILDER ──
 function proceedToBuilder() {
-  if (!selectedAct) {
-    document.getElementById('actReqNote').classList.add('show');
-    document.getElementById('actSection').scrollIntoView({behavior:'smooth', block:'center'});
-    return;
-  }
   try {
     localStorage.setItem('ws_pkg', JSON.stringify({
       type: 'turf-basic',
       theme: 'jungle',
-      actId: selectedAct.id,
-      actName: selectedAct.name,
-      additionalActs: additionalActs,
+      actId: selectedAct ? selectedAct.id : null,
+      actName: selectedAct ? selectedAct.name : null,
+      additionalActs: [],
       kidsCount: kidsCount,
       decorTier: selectedDecor,
+      engagement: selectedEngagement,
+      engagementAddons: selectedEngagementAddons,
       music: selectedMusic,
       djLightsAddon: djLightsAddon,
       djSmokeAddon: djSmokeAddon,
@@ -1053,7 +1046,8 @@ function proceedToBuilder() {
       photographer: selectedPhotographer,
       pinata: selectedPinata,
       packagePrice: totalPrice(),
-      host: {tier:'Starter', p:10000},
+      host: {tier:'Starter', p: selectedEngagement ? engagementPrice(selectedEngagement.duration, kidsCount) + selectedEngagementAddons.reduce((s,id)=>{const a=ENGAGEMENT_ADDONS.find(x=>x.id===id);return s+(a?a.price:0);},0) : 0},
+      remarks: (document.getElementById('specialRequest').value || '').trim(),
       coupon: 'PKGTURF',
       couponPct: 15,
       ts: Date.now()
@@ -1062,8 +1056,59 @@ function proceedToBuilder() {
   window.location.href = 'builder.html?theme=jungle&pkg=turf-basic&review=1';
 }
 
+// ── FILM STRIP (auto-scrolling, tagged) ──
+// Real photos from turf/football parties we've run — more will be added over time.
+const FILM_FRAMES = [
+  { src: 'img/packages/Turf/turf-hero-1.png', tag: 'Host & Birthday Boy' },
+  { src: 'img/packages/Turf/turf-hero-2.png', tag: 'Team Games on Turf' },
+  { src: 'img/packages/Turf/turf-carousel-1.jpg', tag: 'Gymnastics Activity' },
+  { src: 'img/packages/Turf/turf-carousel-2.jpg', tag: 'Match in Action' },
+];
+const TURF_STRIP_IMAGES = FILM_FRAMES.map(f => f.src);
+(function initFilmstrip(){
+  const track = document.getElementById('filmTrack');
+  if (!track) return;
+  const frameHTML = (idx, hidden) => {
+    const f = FILM_FRAMES[idx];
+    return '<div class="film-frame"' + (hidden ? ' aria-hidden="true"' : '') +
+      ' onclick="openLightbox(TURF_STRIP_IMAGES,' + idx + ')">' +
+      '<img src="' + f.src + '" alt="' + (hidden ? '' : f.tag + ' — Turf Party package') + '" loading="lazy">' +
+      '<span class="film-tag">' + f.tag + '</span></div>';
+  };
+  const firstHalf = FILM_FRAMES.map((f,i) => frameHTML(i, false)).join('');
+  const secondHalf = FILM_FRAMES.map((f,i) => frameHTML(i, true)).join('');
+  track.innerHTML = firstHalf + secondHalf;
+})();
+
+// ── PHOTO LIGHTBOX (click-to-zoom gallery, left/right navigation) ──
+let LB_IMAGES = [], LB_IDX = 0;
+function openLightbox(images, idx) {
+  LB_IMAGES = images;
+  LB_IDX = idx;
+  document.getElementById('lbImg').src = LB_IMAGES[LB_IDX];
+  document.getElementById('lbOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function lbNav(dir) {
+  LB_IDX = (LB_IDX + dir + LB_IMAGES.length) % LB_IMAGES.length;
+  document.getElementById('lbImg').src = LB_IMAGES[LB_IDX];
+}
+function closeLightbox() {
+  document.getElementById('lbOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lbOverlay').classList.contains('open')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') lbNav(-1);
+  if (e.key === 'ArrowRight') lbNav(1);
+});
+
 // ── INIT ──
 renderDecor();
+renderEngagement();
+renderEngagementAddons();
+renderActivity();
 renderMusic();
 renderEinvite();
 renderEntry();
