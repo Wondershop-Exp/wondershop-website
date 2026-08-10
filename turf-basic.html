@@ -471,6 +471,11 @@ button{cursor:pointer;font-family:var(--fb)}
       <p class="sec-sub">90 minutes is included by default. Our host runs high-energy turf games with props and trainers, scaled to your headcount — upgrading to 120 minutes adds the difference to your total.</p>
       <div class="act-grid" id="engagementGrid"></div>
 
+      <div style="margin-top:16px;padding:14px 16px;background:var(--li3);border:1.5px solid var(--li2);border-radius:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--bk);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Games Pool</div>
+        <div id="engagementPoolBox" style="font-size:13px;color:var(--gy);line-height:1.7"></div>
+      </div>
+
       <div style="margin-top:24px">
         <div style="font-size:11px;font-weight:700;color:var(--gy);margin-bottom:10px;text-transform:uppercase;letter-spacing:.8px">Engagement Add-ons</div>
         <div class="act-grid" id="engagementAddonsGrid"></div>
@@ -676,8 +681,8 @@ const DECOR_TIERS = [
 // minutes is a paid upgrade. Host, props & trainers are bundled into this price.
 const ENGAGEMENT_POOL = 'Clap Lap, Snap, Pyramid, Throw, Footie Obstacle Race, Dizzy Football, One-Legged Dog & the Bone, Introduction to Gymnastics, Relay Race, Team Games, Tug of War';
 const ENGAGEMENT_TIERS = [
-  {id:'e90', name:'90 Minutes', duration:90, d:'5-6 games from our activity pool: ' + ENGAGEMENT_POOL + '. Host, props &amp; trainers included, scaled to your kid count.'},
-  {id:'e120', name:'120 Minutes', duration:120, d:'7-8 games from our activity pool: ' + ENGAGEMENT_POOL + '. Host, props &amp; trainers included, scaled to your kid count.'},
+  {id:'e90', name:'90 Minutes', duration:90, d:'5-6 games from our activity pool. Host, props &amp; trainers included, scaled to your kid count.'},
+  {id:'e120', name:'120 Minutes', duration:120, d:'7-8 games from our activity pool. Host, props &amp; trainers included, scaled to your kid count.'},
 ];
 const ENGAGEMENT_BANDS = [
   {max:10, p90:14500, p120:18500},
@@ -1105,6 +1110,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ── INIT ──
+document.getElementById('engagementPoolBox').textContent = ENGAGEMENT_POOL.split(', ').join(' · ');
 renderDecor();
 renderEngagement();
 renderEngagementAddons();
