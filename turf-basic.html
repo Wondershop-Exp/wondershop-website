@@ -89,6 +89,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .pkg-img-wrap{position:relative;border-radius:24px;overflow:hidden;box-shadow:0 24px 64px rgba(181,157,222,.28);aspect-ratio:4/3}
 .pkg-img-wrap img{width:100%;height:100%;object-fit:cover;transition:opacity .5s ease}
 .pkg-img-badge{position:absolute;bottom:16px;left:16px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--bk)}
+#pkgHeroBadge img{width:15px !important;height:15px !important;object-fit:contain;vertical-align:-3px;margin-right:3px}
 .pkg-cdots{position:absolute;bottom:16px;right:16px;display:flex;gap:6px;z-index:3}
 .pkg-cdot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.55);border:none;cursor:pointer;padding:0;transition:background .2s,width .2s}
 .pkg-cdot.active{background:#fff;width:18px;border-radius:4px}
@@ -339,8 +340,8 @@ button{cursor:pointer;font-family:var(--fb)}
   <!-- INCLUSIONS -->
   <section class="sec">
     <div class="container">
-      <h2 class="sec-h2">What's <em>included</em></h2>
-      <p class="sec-sub">We bring it, set it up, and take it all down. You just enjoy the party.</p>
+      <h2 class="sec-h2" style="text-align:center">What's <em>included</em></h2>
+      <p class="sec-sub" style="text-align:center">We bring it, set it up, and take it all down. You just enjoy the party.</p>
       <div class="incl-grid">
 
         <div class="incl-card">
@@ -738,7 +739,7 @@ function engagementAddonGST(price) { return Math.round(price * GST_RATE); }
 const ENGAGEMENT_ADDONS = [
   {id:'zorb', name:'Body Zorbing', ageYears:8, price:8000, img:'img/packages/Turf/turf-carousal-zorb-4.jpg', d:'Roll, bounce, and bump safely inside inflatable zorb balls for active fun.'},
   {id:'gym', name:'Gymnastics', ageYears:5, price:10000, img:'img/packages/Turf/gymnastics.jpg', d:'A dynamic activity focusing on flexibility, strength, and body control through various movements.'},
-  {id:'malla', name:'Mallakhamb', ageYears:8, price:8000, img:null, d:'A traditional Indian sport combining strength and agility through acrobatic poses on a vertical pole or rope.'},
+  {id:'malla', name:'Mallakhamb', ageYears:8, price:8000, img:null, hidden:true, d:'A traditional Indian sport combining strength and agility through acrobatic poses on a vertical pole or rope.'},
 ];
 
 // Activity — single-select, paid (real per-child catalogue rates), and
@@ -749,7 +750,7 @@ const ACTIVITY_OPTIONS = [
   {id:'a9', name:'Cap Decoration', img:'img/activity/act-cap-decoration.jpg', r1:850, r2:800, r3:750, d:'Kids decorate their own cap with patches, pins and paint.'},
   {id:'a15', name:'Tattoo Station', img:'img/activity/act-tattoo-station.jpg', flat:2500, d:'Temporary tattoo artist on-site for every child.'},
   {id:'glitter', name:'Glitter Station', img:'img/activity/act-glitter.jpg', flat:4000, d:'Skin-safe glitter and gems for a glamorous party look kids love.'},
-  {id:'hair-styling', name:'Boys Hair Styling', img:'img/activity/act-boys-hair-styling.jpg', hairBand:true, d:'Fun styling looks for the boys at the party — mohawks, spikes and more.'},
+  {id:'hair-styling', name:'Boys Hair Styling', img:'img/activity/act-boys-hair-styling.jpg', hairBand:true, d:'Hair gel and hair-safe spray colours used to create spikes and fun styled looks for the boys at the party.'},
   {id:'a22', name:'Sunglasses Decor', img:'img/activity/act-sunglasses-decor-sq.jpg', r1:350, r2:320, r3:300, d:'Plain sunnies + stickers, gems & paint pens. Kids customise and take home their unique pair.'},
   {id:'a23', name:'Fridge Magnet', img:'img/activity/act-fridge-magnet-sq.jpg', r1:320, r2:290, r3:270, d:'Each child creates their own painted fridge magnet — a little party memory to take home.'},
   {id:'bubble-show', name:'Bubble Show', img:'img/activity/act-bubble-show.jpg', flat:9000, d:'A giant-bubble performance and hands-on bubble play.'},
@@ -784,14 +785,11 @@ const ENTRY_TIERS = [
   {id:'en3', name:'Segway', price:7500, d:'Entry on a segway for a big wow moment.'},
   {id:'en4', name:'Bubbles', price:6000, d:'Bubble-machine grand entry.'},
 ];
-// Return Gift — Personalized Football, the real catalogue entry (₹600/child).
-// Personalized Cap and Live T-shirt Printing have no real product photos
-// uploaded yet (site-wide convention elsewhere is an emoji placeholder for
-// both), so they use emoji icons until real photos are available.
+// Return Gifts — real catalogue photos, all discounted for this package.
 const GIFT_ITEMS = [
   {id:'g18', ic:'⚽', img:'img/return-gifts/personalized-football.jpg', name:'Personalized Football', d:'A personalized football for every guest to take home.', perChild:450, origPerChild:600},
-  {id:'cap1', ic:'🧢', name:'Personalized Cap', d:'A personalized cap for every guest to take home.', perChild:300},
-  {id:'tshirt1', ic:'👕', name:'Live T-shirt Printing', d:'Live on-site printing — each guest gets a custom-printed tee.', perChild:500},
+  {id:'cap1', ic:'🧢', img:'img/return-gifts/personalized-cap.png', name:'Personalized Cap', d:'A personalized cap for every guest to take home.', perChild:350, origPerChild:500},
+  {id:'tshirt1', ic:'👕', img:'img/return-gifts/live-tshirt-printing.png', name:'Live T-shirt Printing', d:'Live on-site printing — each guest gets a custom-printed tee.', perChild:450, origPerChild:550},
 ];
 // Photographer — same tiers/prices as the site's standard photographer step.
 // Real catalogue (2026-08-08), matches builder.html's Photographer step.
@@ -868,7 +866,7 @@ function engagementSelect(id) { selectedEngagement = ENGAGEMENT_TIERS.find(t => 
 // ── ENGAGEMENT ADD-ONS (optional, multi-select) ──
 function renderEngagementAddons() {
   const grid = document.getElementById('engagementAddonsGrid');
-  grid.innerHTML = ENGAGEMENT_ADDONS.map(a => {
+  grid.innerHTML = ENGAGEMENT_ADDONS.filter(a => !a.hidden).map(a => {
     const added = selectedEngagementAddons.includes(a.id);
     const gst = engagementAddonGST(a.price);
     const withGst = a.price + gst;
@@ -957,7 +955,7 @@ function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
     if (item.origPerChild != null) {
       const origTotal = item.origPerChild * kidsCount;
       priceMain = '<span style="text-decoration:line-through;color:var(--gy);font-weight:500;font-size:13px;margin-right:6px">' + fmtINR(origTotal) + '</span>' + fmtINR(price);
-      priceNote = ' <span style="font-size:11px;color:#166534;font-weight:700">(' + fmtINR(item.perChild) + '/child, was ' + fmtINR(item.origPerChild) + ')</span>';
+      priceNote = ' <span style="font-size:11px;color:#166534;font-weight:700">Updated pricing: ' + fmtINR(item.perChild) + '/child</span>';
     } else if (item.perChild != null) {
       priceNote = ' <span style="font-size:11px;color:var(--gy);font-weight:500">(' + fmtINR(item.perChild) + '/child)</span>';
     }
