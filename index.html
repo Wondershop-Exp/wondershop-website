@@ -1140,13 +1140,13 @@
         </div>
       </div>
 
-      <!-- TURF PARTY -->
+      <!-- TURF TAKEOVER PARTY -->
       <div class="pkg-card">
-        <img src="img/theme-jungle.jpg" alt="Turf Party Birthday" class="pkg-img">
+        <img src="img/theme-jungle.jpg" alt="Turf Takeover Party Birthday" class="pkg-img">
         <span class="pkg-badge" style="background:var(--gr);color:var(--bk)">Outdoor</span>
         <span class="pkg-save">From ₹22,500</span>
         <div class="pkg-body">
-          <div class="pkg-name">Turf Party</div>
+          <div class="pkg-name">Turf Takeover</div>
           <div class="pkg-age">Best for ages 3–12 · Boys &amp; Girls · Up to 25 kids</div>
           <div class="pkg-includes">
             <span class="pkg-tag">🎈 Decor</span>
@@ -1576,7 +1576,7 @@ function openCart(){document.getElementById('cartDrawer').classList.add('open');
 function closeCart(){document.getElementById('cartDrawer').classList.remove('open');document.body.style.overflow='';}
 function proceedFromCart(){
   closeCart();
-  const themeMap={'Spy Adventure':'spy','Unicorn Magic':'uni','Princess':'princess','Superhero':'hero','Turf Party':'turf'};
+  const themeMap={'Spy Adventure':'spy','Unicorn Magic':'uni','Princess':'princess','Superhero':'hero','Turf Takeover':'turf'};
   const firstTheme=cart.length?themeMap[cart[0].name]||'':'';
   const dest=firstTheme?'builder.html?theme='+firstTheme+'&lead=1':'builder.html?lead=1';
   window.location.href=dest;
