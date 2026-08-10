@@ -1560,9 +1560,10 @@ function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
     const added = selectedArr.includes(item.id);
     let priceNote = '';
     if (item.perChild != null) priceNote = ' <span style="font-size:11px;color:var(--gy);font-weight:500">(' + fmtINR(item.perChild) + '/child)</span>';
+    const icHtml = item.img ? '<img class="addon-act-ic-img" src="' + item.img + '" alt="' + item.name + '" style="cursor:pointer" onclick="event.stopPropagation();openLightbox([\'' + item.img + '\'],0)">' : '<div class="addon-act-ic">' + item.ic + '</div>';
     return '<div class="addon-act-card' + (added ? ' added' : '') + '">' +
       '<div class="addon-act-top">' +
-        '<div class="addon-act-ic">' + item.ic + '</div>' +
+        icHtml +
         '<div class="addon-act-info">' +
           '<div class="addon-act-n">' + item.name + '</div>' +
           '<div class="addon-act-d">' + item.d + '</div>' +

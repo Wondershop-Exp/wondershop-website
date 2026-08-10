@@ -749,7 +749,7 @@ function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
       priceHtml = '<s style="color:var(--gy);font-weight:500;font-size:13px;margin-right:5px">' + fmtINR(item.wasPrice) + '</s>' + fmtINR(price) + priceNote;
     }
     const iconHtml = item.img
-      ? '<img class="addon-act-ic-img" src="' + item.img + '" alt="' + item.name + '">'
+      ? '<img class="addon-act-ic-img" src="' + item.img + '" alt="' + item.name + '" style="cursor:pointer" onclick="event.stopPropagation();openLightbox([\'' + item.img + '\'],0)">'
       : '<div class="addon-act-ic">' + item.ic + '</div>';
     const durHtml = item.dur ? '<div class="addon-act-meta">⏱ ' + item.dur + '</div>' : '';
     return '<div class="addon-act-card' + (added ? ' added' : '') + '">' +
