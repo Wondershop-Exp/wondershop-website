@@ -637,9 +637,9 @@ button{cursor:pointer;font-family:var(--fb)}
     <div class="container">
       <div class="act-section-hdr">
         <h2 class="sec-h2">Add more <em>Activities</em></h2>
-        <span class="act-badge grn">Optional · ₹4,999 each</span>
+        <span class="act-badge grn">Optional · Priced per activity</span>
       </div>
-      <p class="sec-sub">Keep the kids engaged longer — add as many extra activities as you like.</p>
+      <p class="sec-sub">Keep the kids engaged longer — add as many extra activities as you like. Prices scale with your headcount, same as on Build a Birthday.</p>
       <div class="act-grid" id="addonActGrid">
 
         <div class="addon-act-card" id="add-a8" data-act="a8" data-name="Cupcake Decor">
@@ -651,7 +651,7 @@ button{cursor:pointer;font-family:var(--fb)}
             </div>
           </div>
           <div class="addon-act-foot">
-            <div class="addon-act-price">₹4,999</div>
+            <div class="addon-act-price" id="a8PriceVal">₹2,125</div>
             <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
             <button class="btn-addon-add" id="abtn-a8" onclick="toggleAddon('a8','Cupcake Decor',this)">+ Add</button>
           </div>
@@ -668,7 +668,7 @@ button{cursor:pointer;font-family:var(--fb)}
             </div>
           </div>
           <div class="addon-act-foot">
-            <div class="addon-act-price">₹4,999</div>
+            <div class="addon-act-price" id="a22PriceVal">₹8,000</div>
             <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
             <button class="btn-addon-add" id="abtn-a22" onclick="toggleAddon('a22','Sunglasses Decor',this)">+ Add</button>
           </div>
@@ -684,7 +684,7 @@ button{cursor:pointer;font-family:var(--fb)}
             </div>
           </div>
           <div class="addon-act-foot">
-            <div class="addon-act-price">₹4,999</div>
+            <div class="addon-act-price" id="a23PriceVal">₹7,250</div>
             <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
             <button class="btn-addon-add" id="abtn-a23" onclick="toggleAddon('a23','Fridge Magnet',this)">+ Add</button>
           </div>
@@ -715,7 +715,7 @@ button{cursor:pointer;font-family:var(--fb)}
             </div>
           </div>
           <div class="addon-act-foot">
-            <div class="addon-act-price">₹4,999</div>
+            <div class="addon-act-price" id="a2PriceVal">₹17,500</div>
             <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
             <button class="btn-addon-add" id="abtn-a2" onclick="toggleAddon('a2','Canvas Tote Bag Painting',this)">+ Add</button>
           </div>
@@ -827,7 +827,7 @@ button{cursor:pointer;font-family:var(--fb)}
             </div>
           </div>
           <div class="addon-act-foot">
-            <div class="addon-act-price">₹4,999</div>
+            <div class="addon-act-price" id="a10PriceVal">₹23,750</div>
             <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
             <button class="btn-addon-add" id="abtn-a10" onclick="toggleAddon('a10','Soft Toy Making',this)">+ Add</button>
           </div>
@@ -843,7 +843,7 @@ button{cursor:pointer;font-family:var(--fb)}
             </div>
           </div>
           <div class="addon-act-foot">
-            <div class="addon-act-price">₹4,999</div>
+            <div class="addon-act-price" id="a12PriceVal">₹20,000</div>
             <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
             <button class="btn-addon-add" id="abtn-a12" onclick="toggleAddon('a12','Dreamcatcher',this)">+ Add</button>
           </div>
@@ -1263,14 +1263,27 @@ const EXTRA_ACT_PRICE = 4999;
 // flat ₹2,500, "Up to 3 hrs", real age range 5–12). Always included in the
 // package price, no tier options, similar to Host.
 const TATTOO_PRICE = 2500;
-// Add-on activity pricing — Cupcake Decor / Sunglasses Decor / Fridge Magnet
-// / Colouring Station / Soft Toy Making / Dreamcatcher all use
-// the flat EXTRA_ACT_PRICE markup. Glitter Station and Slime Making have their own
-// real pricing (given directly by Shruti) so they're priced separately.
-// Bubble Show / Magic Show / Science Show are add-on-only performances (too
-// expensive to be the single free included activity) — flat prices supplied
-// directly by Shruti; Science Show's ₹20,000 matches the real catalogue
-// entry used elsewhere on the site (spy-basic.html, builder.html).
+// Add-on Activities pricing (used only for the "Add more Activities" grid —
+// NOT for the 1 included activity's flat package value in totalPrice(),
+// which stays EXTRA_ACT_PRICE/4000 on purpose, see the note there).
+// 2026-08-10: Cupcake Decor / Sunglasses Decor / Fridge Magnet / Canvas Tote
+// Bag Painting / Dreamcatcher / Soft Toy Making all have a real ACTS
+// catalogue entry on the BAB Activities step (builder.html) with their own
+// tiered per-child pricing — previously this page flatly charged ₹4,999 for
+// all of them regardless of kids count, which didn't match what the cart
+// actually billed for the same activity id. Now synced 1:1 with builder.
+// Colouring Station (a25) has no ACTS catalogue match, so it stays flat at
+// EXTRA_ACT_PRICE. Glitter Station / Slime Making / Jelly Swimbags /
+// Hairbrush / Photoframe / Mirror Decoration / Bubble / Magic / Science Show
+// also have no ACTS catalogue entry — real pricing given directly by Shruti.
+const REAL_ACT_RATES = {
+  a8:  {r1:90,   r2:85,  r3:80},   // Cupcake Decoration
+  a22: {r1:350,  r2:320, r3:300},  // Sunglasses Decor
+  a23: {r1:320,  r2:290, r3:270},  // Fridge Magnet Making
+  a2:  {r1:750,  r2:700, r3:650},  // Canvas Tote Bag Painting
+  a12: {r1:850,  r2:800, r3:750},  // Dreamcatcher
+  a10: {r1:1000, r2:950, r3:900},  // Soft Toy Making
+};
 function addonActPrice(id, kids) {
   if (id === 'glitter') return 4000;
   if (id === 'slime') {
@@ -1286,6 +1299,11 @@ function addonActPrice(id, kids) {
   if (id === 'bubble-show') return 9000;
   if (id === 'magic-show') return 9000;
   if (id === 'science-show') return 20000;
+  if (REAL_ACT_RATES[id]) {
+    const r = REAL_ACT_RATES[id];
+    const rate = kids <= 12 ? r.r1 : kids <= 25 ? r.r2 : r.r3;
+    return rate * kids;
+  }
   return EXTRA_ACT_PRICE;
 }
 
@@ -1411,12 +1429,14 @@ function changeKids(d) {
 }
 
 // Slime Making, Personalized Jelly Tote Bags, Hairbrush Decoration,
-// Photoframe Decoration and Mirror Decoration are all priced by headcount
-// (tiered or per-child), so their cards need to refresh whenever kidsCount
-// changes — unlike the other
+// Photoframe Decoration, Mirror Decoration, and the 6 real-ACTS-catalogue
+// activities (Cupcake Decor, Sunglasses Decor, Fridge Magnet, Canvas Tote
+// Bag Painting, Dreamcatcher, Soft Toy Making — synced to BAB pricing
+// 2026-08-10) are all priced by headcount (tiered or per-child), so their
+// cards need to refresh whenever kidsCount changes — unlike the other
 // flat-priced addons.
 function updateDynamicAddonPrices() {
-  const map = {slime:'slimePriceVal', 'jelly-swimbags':'jellySwimbagsPriceVal', 'hairbrush-decor':'hairbrushDecorPriceVal', 'photoframe-decor':'photoframeDecorPriceVal', 'mirror-decor':'mirrorDecorPriceVal'};
+  const map = {slime:'slimePriceVal', 'jelly-swimbags':'jellySwimbagsPriceVal', 'hairbrush-decor':'hairbrushDecorPriceVal', 'photoframe-decor':'photoframeDecorPriceVal', 'mirror-decor':'mirrorDecorPriceVal', a8:'a8PriceVal', a22:'a22PriceVal', a23:'a23PriceVal', a2:'a2PriceVal', a10:'a10PriceVal', a12:'a12PriceVal'};
   Object.keys(map).forEach(id => {
     const el = document.getElementById(map[id]);
     if (el) el.textContent = fmtINR(addonActPrice(id, kidsCount));
@@ -1676,10 +1696,14 @@ function totalPrice() {
   additionalActs.forEach(a => { t += addonActPrice(a.id, kidsCount); });
   t += TATTOO_PRICE;
   // The 1 included activity (Cupcake Decor etc.) is bundled into the package
-  // price, not charged separately — but its real value still counts toward
-  // the package MRP/total (2026-08-10, per Shruti: Decor+Host+Cupcake+Tattoo+
-  // Einvite+Pinata = ₹24,999 MRP → ₹22,499 after the 10% package discount).
-  if (selectedAct) t += addonActPrice(selectedAct.id, kidsCount);
+  // price, not charged separately — but its flat package value (NOT the
+  // real per-child BAB catalogue rate — see addonActPrice() below) still
+  // counts toward the package MRP/total (2026-08-10, per Shruti: Decor+
+  // Host+Cupcake+Tattoo+Einvite+Pinata = ₹24,999 MRP → ₹22,499 after the
+  // 10% package discount). Deliberately NOT addonActPrice() here — that
+  // function now returns the real BAB per-child rate for Add-on Activities
+  // parity (2026-08-10), which would break this fixed MRP figure.
+  if (selectedAct) t += (selectedAct.id === 'glitter' ? 4000 : EXTRA_ACT_PRICE);
   if (selectedDecor) t += selectedDecor.price;
   if (selectedMusic) t += selectedMusic.price;
   if (djLightsAddon) t += 1500;

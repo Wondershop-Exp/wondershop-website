@@ -4128,7 +4128,11 @@ document.addEventListener('DOMContentLoaded',()=>{
       // Pre-select additional paid activities
       if(pkgData.additionalActs&&pkgData.additionalActs.length){
         pkgData.additionalActs.forEach(pa=>{
-          if(pa.id==='glitter'||pa.id==='slime'||pa.id==='jelly-swimbags'||pa.id==='hairbrush-decor'||pa.id==='photoframe-decor'){
+          // 'mirror-decor' added to this list 2026-08-10 — it was previously
+          // missing here, so selecting it as an addon on the package page
+          // silently dropped it from the cart entirely (ACTS.find() found
+          // nothing and there was no fallback push).
+          if(pa.id==='glitter'||pa.id==='slime'||pa.id==='jelly-swimbags'||pa.id==='hairbrush-decor'||pa.id==='photoframe-decor'||pa.id==='mirror-decor'){
             if(!S.activities.find(x=>x.id===pa.id))S.activities.push({id:pa.id,n:pa.name});
             return;
           }
