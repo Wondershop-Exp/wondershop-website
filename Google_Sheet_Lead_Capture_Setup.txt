@@ -233,7 +233,7 @@ function rewardBlock_(data) {
       if (clause) lines.push('    • ' + clause);
     });
   }
-  lines.push('  Your Account Manager will confirm redemption details with you.');
+  lines.push('  Your Party Experience Lead will confirm redemption details with you.');
   return lines.join('\n') + '\n';
 }
 

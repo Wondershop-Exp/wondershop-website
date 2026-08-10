@@ -192,7 +192,7 @@ def _format_reward_block(req: LeadSubmitRequest) -> str:
             clause = clause.strip()
             if clause:
                 lines.append(f"    • {clause}")
-    lines.append("  Your Account Manager will confirm redemption details with you.")
+    lines.append("  Your Party Experience Lead will confirm redemption details with you.")
     lines.append("")
     return "\n".join(lines) + "\n"
 

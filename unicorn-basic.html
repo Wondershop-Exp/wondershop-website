@@ -73,9 +73,9 @@ button{cursor:pointer;font-family:var(--fb)}
 .pkg-h1 em{color:var(--li);font-style:italic}
 .pkg-desc{font-size:15px;color:var(--gy);margin-bottom:22px;line-height:1.65;max-width:460px}
 .pkg-incl-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px}
-.pkg-incl-chip{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600;color:var(--bk);background:#fff;border:1.5px solid var(--li2);border-radius:14px;padding:12px 10px;min-width:74px;text-align:center}
-.pkg-incl-chip img{width:24px;height:24px;object-fit:contain}
-.pkg-incl-chip-emoji{font-size:22px;line-height:1}
+.pkg-incl-chip{display:inline-flex;flex-direction:row;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--bk);background:#fff;border:1.5px solid var(--li2);border-radius:20px;padding:8px 14px}
+.pkg-incl-chip img{width:18px;height:18px;object-fit:contain}
+.pkg-incl-chip-emoji{font-size:15px;line-height:1}
 .pkg-price-block{margin-bottom:20px}
 .pkg-price-note{font-size:11px;color:var(--gy);margin-bottom:2px;letter-spacing:.8px;text-transform:uppercase;font-weight:700}
 .pkg-price-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
@@ -170,10 +170,11 @@ button{cursor:pointer;font-family:var(--fb)}
 .divider{border:none;border-top:1px solid var(--li2);margin:0}
 
 /* INCLUSIONS */
-.incl-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.incl-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
 .incl-card{background:var(--li3);border:1.5px solid var(--li2);border-radius:14px;padding:16px 14px}
-.incl-card-ic-img{width:34px;height:34px;object-fit:contain;margin:0 auto 8px;display:block}
-.incl-card-h{font-family:var(--fd);font-size:13.5px;font-weight:700;color:var(--bk);margin-bottom:5px;text-align:center;text-transform:uppercase;letter-spacing:0.3px}
+.incl-card-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.incl-card-ic-img{width:26px;height:26px;object-fit:contain;flex-shrink:0;display:block}
+.incl-card-h{font-family:var(--fd);font-size:13.5px;font-weight:700;color:var(--bk);text-align:left;text-transform:uppercase;letter-spacing:0.3px}
 .incl-card-body{font-size:11.5px;color:var(--gy);line-height:1.5}
 .expand-btn{background:none;border:none;font-size:12px;color:var(--li);font-weight:600;cursor:pointer;padding:0;margin-top:10px;display:flex;align-items:center;gap:4px}
 .expand-btn svg{transition:transform .2s}
@@ -212,6 +213,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .act-card-ic-img{width:44px;height:44px;object-fit:cover;border-radius:10px;margin:0 auto 8px;display:block}
 .act-card-n{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:4px}
 .act-card-p{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--li);margin-bottom:6px}
+.act-card-p-note{font-family:var(--fb);font-size:11px;font-weight:600;color:var(--gy);text-transform:none;letter-spacing:0}
 .act-card-d{font-size:12px;color:var(--gy);line-height:1.5}
 .act-card-spec{margin:0;padding-left:16px;font-size:12px;color:var(--gy);line-height:1.6;text-align:left}
 .act-card-spec li{margin-bottom:3px}
@@ -400,8 +402,10 @@ button{cursor:pointer;font-family:var(--fb)}
       <div class="incl-grid">
 
         <div class="incl-card">
-          <img class="incl-card-ic-img" src="img/icons/icon-decor.png" alt="">
-          <div class="incl-card-h">Decor</div>
+          <div class="incl-card-top">
+            <img class="incl-card-ic-img" src="img/icons/icon-decor.png" alt="">
+            <div class="incl-card-h">Decor</div>
+          </div>
           <div class="incl-card-body">Classic is included by default. Upgrade to a bigger tier below if you'd like.</div>
           <div class="detail-list show" id="decor">
             <ul>
@@ -424,8 +428,10 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
-          <img class="incl-card-ic-img" src="img/icons/icon-host.png" alt="">
-          <div class="incl-card-h">Host</div>
+          <div class="incl-card-top">
+            <img class="incl-card-ic-img" src="img/icons/icon-host.png" alt="">
+            <div class="incl-card-h">Host</div>
+          </div>
           <div class="incl-card-body">Classic Host is included by default. Upgrade to a bigger tier below if you'd like.</div>
           <div class="detail-list show" id="host">
             <ul>
@@ -438,8 +444,10 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
-          <img class="incl-card-ic-img" src="img/icons/icon-activities.png" alt="">
-          <div class="incl-card-h">1 Activity</div>
+          <div class="incl-card-top">
+            <img class="incl-card-ic-img" src="img/icons/icon-activities.png" alt="">
+            <div class="incl-card-h">1 Activity</div>
+          </div>
           <div class="incl-card-body">Pick one activity below — your host runs it, all materials provided.</div>
           <div class="detail-list show" id="act">
             <ul>
@@ -454,8 +462,10 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
-          <div class="incl-card-ic" style="font-size:22px;margin-bottom:8px">🖊️</div>
-          <div class="incl-card-h">Tattoo Station</div>
+          <div class="incl-card-top">
+            <div class="incl-card-ic" style="font-size:22px">🖊️</div>
+            <div class="incl-card-h">Tattoo Station</div>
+          </div>
           <div class="incl-card-body">Included as standard for every booking.</div>
           <div class="detail-list show" id="tattoo">
             <ul>
@@ -467,8 +477,10 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
-          <img class="incl-card-ic-img" src="img/icons/icon-invite.png" alt="">
-          <div class="incl-card-h">E-Invite</div>
+          <div class="incl-card-top">
+            <img class="incl-card-ic-img" src="img/icons/icon-invite.png" alt="">
+            <div class="incl-card-h">E-Invite</div>
+          </div>
           <div class="incl-card-body">Custom digital invite in the unicorn theme.</div>
           <div class="detail-list show" id="einv">
             <ul>
@@ -481,14 +493,16 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
-          <img class="incl-card-ic-img" src="img/icons/icon-pinata.png" alt="">
-          <div class="incl-card-h">Pinata</div>
+          <div class="incl-card-top">
+            <img class="incl-card-ic-img" src="img/icons/icon-pinata.png" alt="">
+            <div class="incl-card-h">Pinata</div>
+          </div>
           <div class="incl-card-body">Square Pinata is included by default. Switch shapes below if you'd like.</div>
           <div class="detail-list show" id="pinata-incl">
             <ul>
               <li>Personalized with your child's name</li>
               <li>Customised to match the party theme</li>
-              <li>Fillings not included — ask your account manager to add</li>
+              <li>Fillings not included — ask your Party Experience Lead to add</li>
             </ul>
           </div>
         </div>
@@ -562,12 +576,14 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="act-card sel" style="cursor:default" title="Tattoo Station is included in every Unicorn Magic package and can't be removed.">
           <img class="act-card-ic-img" src="img/activity/act-tattoo-station.jpg" alt="Tattoo Station">
           <div class="act-card-n">Tattoo Station</div>
+          <div class="act-card-p">₹2,500 <span class="act-card-p-note">value · included</span></div>
           <div class="act-card-d">Included with every booking — can't be removed.</div>
         </div>
 
         <div class="act-card" data-act="a8" data-name="Cupcake Decor" onclick="selectAct(this)" id="actCard-a8">
           <img class="act-card-ic-img" src="img/activity/act-cupcake-decor-sq.jpg" alt="Cupcake Decor">
           <div class="act-card-n">Cupcake Decor</div>
+          <div class="act-card-p">₹4,999 <span class="act-card-p-note">value · included free</span></div>
           <div class="act-card-d">Kids decorate their own cupcakes with icing and sprinkles. A sweet creation they get to eat!</div>
         </div>
 
@@ -575,6 +591,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="takehome-tag act-card-tag">🏠 Takehome</div>
           <img class="act-card-ic-img" src="img/activity/act-sunglasses-decor-sq.jpg" alt="Sunglasses Decor">
           <div class="act-card-n">Sunglasses Decor</div>
+          <div class="act-card-p">₹4,999 <span class="act-card-p-note">value · included free</span></div>
           <div class="act-card-d">Plain sunnies + stickers, gems &amp; paint pens. Kids customise and take home their unique pair.</div>
         </div>
 
@@ -582,18 +599,21 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="takehome-tag act-card-tag">🏠 Takehome</div>
           <img class="act-card-ic-img" src="img/activity/act-fridge-magnet-sq.jpg" alt="Fridge Magnet">
           <div class="act-card-n">Fridge Magnet</div>
+          <div class="act-card-p">₹4,999 <span class="act-card-p-note">value · included free</span></div>
           <div class="act-card-d">Each child creates their own painted fridge magnet — a little party memory to take home.</div>
         </div>
 
         <div class="act-card" data-act="a25" data-name="Colouring Station" onclick="selectAct(this)">
           <img class="act-card-ic-img" src="img/activity/act-colouring-station.jpg" alt="Colouring Station">
           <div class="act-card-n">Colouring Station</div>
+          <div class="act-card-p">₹4,999 <span class="act-card-p-note">value · included free</span></div>
           <div class="act-card-d">Themed colouring sheets, crayons and markers. Works for any age and always a hit.</div>
         </div>
 
         <div class="act-card" data-act="glitter" data-name="Glitter Station" onclick="selectAct(this)">
           <img class="act-card-ic-img" src="img/activity/act-glitter.jpg" alt="Glitter Station">
           <div class="act-card-n">Glitter Station</div>
+          <div class="act-card-p">₹4,000 <span class="act-card-p-note">value · included free</span></div>
           <div class="act-card-d">Skin-safe glitter and gems for a glamorous party look kids love.</div>
         </div>
 
@@ -601,6 +621,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="takehome-tag act-card-tag">🏠 Takehome</div>
           <img class="act-card-ic-img" src="img/activity/act-dreamcatcher.jpg" alt="Dreamcatcher">
           <div class="act-card-n">Dreamcatcher</div>
+          <div class="act-card-p">₹4,999 <span class="act-card-p-note">value · included free</span></div>
           <div class="act-card-d">Kids craft their own dreamcatcher with beads, feathers and string to take home.</div>
         </div>
 
@@ -974,7 +995,7 @@ button{cursor:pointer;font-family:var(--fb)}
       <p class="sec-sub">Square Pinata is included in the package price by default. Switch shapes below, or click the selected card again to remove it.</p>
       <div style="font-size:13px;color:var(--bk);font-weight:600;margin-bottom:12px">🎨 Every piñata is personalized with your child's name and customised to match this party's theme.</div>
       <div class="act-grid" id="pinataGrid"></div>
-      <div class="tnc-note">📜 <span>T&amp;C: Fillings are not included by default but can be added at an additional cost — speak with your account manager for options. Photos shown are reference images; final look may vary slightly by materials available. Please allow a minimum of 3 working days to prepare your piñata — if your event is sooner, your account manager will confirm feasibility.</span></div>
+      <div class="tnc-note">📜 <span>T&amp;C: Fillings are not included by default but can be added at an additional cost — speak with your Party Experience Lead for options. Photos shown are reference images; final look may vary slightly by materials available. Please allow a minimum of 3 working days to prepare your piñata — if your event is sooner, your Party Experience Lead will confirm feasibility.</span></div>
 
       <div class="tnc-note">📄 <span>By booking this package you agree to our <a href="terms.html">Terms &amp; Conditions</a>.</span></div>
     </div>
@@ -986,7 +1007,7 @@ button{cursor:pointer;font-family:var(--fb)}
   <section class="sec">
     <div class="container">
       <h2 class="sec-h2">More to <em>add later</em></h2>
-      <p class="sec-sub">Speak with your account manager to add these after order placement.</p>
+      <p class="sec-sub">Speak with your Party Experience Lead to add these after order placement.</p>
       <div class="addon-grid">
         <div class="addon-chip"><img class="chip-ic-img" src="img/icons/icon-mascot-bw.png" alt=""><span>Mascot</span></div>
         <div class="addon-chip"><span class="addon-chip-ic">🎂</span><span>Cake Table</span></div>
