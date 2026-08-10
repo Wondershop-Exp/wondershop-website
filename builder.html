@@ -2288,6 +2288,11 @@ function engagementBandPrice(duration,kids){
   return last[key]+(kids-50)*marginal;
 }
 function actPrice(a,kids){
+  // Unicorn Basic's "1 included activity" is free on the package page (its
+  // cost is already folded into Decor/Host/Tattoo/E-Invite/Pinata) — flagged
+  // .free=true when pushed to S.activities so it doesn't get double-charged
+  // here via its normal per-child/flat catalogue pricing (2026-08-10).
+  if(a.free)return 0;
   if(a.id==='spy-mission')return spyStationsPrice(kids);
   if(a.id&&a.id.indexOf('station-')===0)return spyStationAddonPrice(a.id.slice(8),kids);
   // Glitter Station / Slime Making / Jelly Swimbags / Hairbrush Decoration /
@@ -2549,7 +2554,19 @@ function rawT(){return cItems().reduce((s,i)=>s+i.p,0)}
 function svcC(){let c=0;if(S.decor)c++;if(S.activities.length)c++;if(S.host)c++;if(S.dj)c++;if(S.pinata)c++;if(S.einvite)c++;if(S.photo)c++;if(S.gifts.length)c++;if(S.spyExtras.length||S.djAddons.lights||S.djAddons.smoke)c++;return c}
 function autoDp(){const c=svcC();if(c>=6)return 10;if(c>=4)return 8;if(c>=2)return 5;return 0}
 function dp(){return Math.max(S.couponPct,autoDp())}
-function tp(){const gt=rawT();return Math.round(gt*(1-dp()/100))}
+// When S._noGiftDiscount is set (Unicorn Magic package — Return Gifts already
+// carry their own per-item pricing), the cart-wide coupon/auto discount is
+// applied only to the non-gift portion of the total so gifts never get
+// discounted twice. Every other flow (generic Build-a-Birthday, turf, spy)
+// is unaffected since the flag is left unset there.
+function tp(){
+  const gt=rawT();
+  if(S._noGiftDiscount){
+    const gifts=cItems().filter(i=>i.cat==='Return Gifts').reduce((s,i)=>s+i.p,0);
+    return Math.round((gt-gifts)*(1-dp()/100))+gifts;
+  }
+  return Math.round(gt*(1-dp()/100));
+}
 function adv(){return Math.round(tp()*0.5)}
 
 // ── NAVIGATION ──
@@ -2615,7 +2632,7 @@ function goTo(id){
   if(id==='s3')syncHostDom();
   if(id==='s4')syncDjAddonsDom();
   if(id==='s2'){try{document.getElementById('kDisp2').textContent=S.kidsCount;}catch(e){}}
-  if(id==='sco'&&S._pkgCoupon){setTimeout(()=>{const el=document.getElementById('co-coupon');const ok=document.getElementById('couponOk');if(el&&!el.value){el.value=S._pkgCoupon;if(ok){ok.textContent='🎉 '+S._pkgCoupon+' applied — 15% off package price!';ok.classList.add('show');}}},50);}
+  if(id==='sco'&&S._pkgCoupon){setTimeout(()=>{const el=document.getElementById('co-coupon');const ok=document.getElementById('couponOk');if(el&&!el.value){el.value=S._pkgCoupon;if(ok){ok.textContent='🎉 '+S._pkgCoupon+' applied — '+S.couponPct+'% off package price!';ok.classList.add('show');}}},50);}
 }
 function goBack(){
   const prev={s0:'shome',s1:'s0',s2:'s1',s3:'s2',s4:'s3',s5:'s4',s6:'s5',s7:'s6',s8:'s7',s9:'s8',sco:'s9',slead:'s9',sleadsent:'slead',sconf:'shome'};
@@ -4072,13 +4089,23 @@ document.addEventListener('DOMContentLoaded',()=>{
       // (2026-08-10, see HOST_TIERS there), Classic default. Previously
       // hardcoded here regardless of what was actually picked.
       S.host=pkgData.host?{tier:pkgData.host.name,p:pkgData.host.price}:{tier:'Classic',p:10000};
-      S.couponPct=15;
+      S.couponPct=pkgData.couponPct||10;
       S._pkgCoupon='PKGUNICORN';
+      // Return Gifts on this package already carry their own per-item
+      // pricing (see GIFT_ITEMS on unicorn-basic.html) — don't let the 10%
+      // package coupon discount them a second time (2026-08-10).
+      S._noGiftDiscount=true;
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
-      if(act)S.activities=[{id:act.id,n:act.n,r1:act.r1,r2:act.r2,r3:act.r3,flat:act.flat}];
+      // The 1 included activity is free on the package page (its cost is
+      // already folded into the package price) — .free:true stops actPrice()
+      // from charging its normal per-child/flat catalogue price a second
+      // time here (2026-08-10; previously silently overcharged the cart
+      // relative to what the package page showed, e.g. +₹2,125 for Cupcake
+      // Decor at 25 kids).
+      if(act)S.activities=[{id:act.id,n:act.n,r1:act.r1,r2:act.r2,r3:act.r3,flat:act.flat,free:true}];
       // Glitter Station can also be picked as the 1 included activity — it
       // has no ACTS catalogue entry (real pricing handled in actPrice()).
-      else if(actId==='glitter')S.activities=[{id:'glitter',n:pkgData.actName||'Glitter Station'}];
+      else if(actId==='glitter')S.activities=[{id:'glitter',n:pkgData.actName||'Glitter Station',free:true}];
       // Pre-select additional paid activities
       if(pkgData.additionalActs&&pkgData.additionalActs.length){
         pkgData.additionalActs.forEach(pa=>{

@@ -78,7 +78,10 @@ button{cursor:pointer;font-family:var(--fb)}
 .pkg-incl-chip-emoji{font-size:22px;line-height:1}
 .pkg-price-block{margin-bottom:20px}
 .pkg-price-note{font-size:11px;color:var(--gy);margin-bottom:2px;letter-spacing:.8px;text-transform:uppercase;font-weight:700}
+.pkg-price-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .pkg-price{font-family:var(--fd);font-size:38px;font-weight:700;color:var(--bk);line-height:1}
+.pkg-price-orig{font-family:var(--fd);font-size:20px;font-weight:600;color:var(--gy);text-decoration:line-through}
+.pkg-discount-badge{display:inline-flex;align-items:center;background:var(--sgr);color:#166534;font-size:12px;font-weight:700;border-radius:20px;padding:3px 11px}
 .pkg-price-sub{font-size:13px;color:var(--gy);margin-top:4px}
 .pkg-cta-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .btn-pkg{background:var(--li);color:#fff;border:none;border-radius:28px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:background .15s,transform .1s;text-decoration:none}
@@ -357,13 +360,18 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="pkg-incl-row">
             <span class="pkg-incl-chip"><img src="img/icons/icon-decor-bw.png" alt="" loading="lazy"><span>Decor</span></span>
             <span class="pkg-incl-chip"><img src="img/icons/icon-host-bw.png" alt="" loading="lazy"><span>Host</span></span>
-            <span class="pkg-incl-chip"><img src="img/activity/icon-tattoo.png" alt="" loading="lazy"><span>Tattoo</span></span>
+            <span class="pkg-incl-chip"><span class="pkg-incl-chip-emoji">🖊️</span><span>Tattoo</span></span>
             <span class="pkg-incl-chip"><img src="img/icons/icon-activities-bw.png" alt="" loading="lazy"><span>1 Activity</span></span>
             <span class="pkg-incl-chip"><img src="img/icons/icon-invite-bw.png" alt="" loading="lazy"><span>E-Invite</span></span>
+            <span class="pkg-incl-chip"><img src="img/icons/icon-pinata-bw.png" alt="" loading="lazy"><span>Pinata</span></span>
           </div>
           <div class="pkg-price-block">
             <div class="pkg-price-note">Estimated total for your party</div>
-            <div class="pkg-price" id="heroPrice">₹18,000</div>
+            <div class="pkg-price-row">
+              <span class="pkg-price-orig" id="heroPriceOrig"></span>
+              <span class="pkg-price" id="heroPrice">₹18,000</span>
+              <span class="pkg-discount-badge" id="heroDiscountBadge"></span>
+            </div>
             <div class="pkg-price-sub">For up to 25 kids · extra kids at ₹399/child</div>
           </div>
           <div class="pkg-cta-row">
@@ -472,6 +480,19 @@ button{cursor:pointer;font-family:var(--fb)}
           </div>
         </div>
 
+        <div class="incl-card">
+          <img class="incl-card-ic-img" src="img/icons/icon-pinata.png" alt="">
+          <div class="incl-card-h">Pinata</div>
+          <div class="incl-card-body">Square Pinata is included by default. Switch shapes below if you'd like.</div>
+          <div class="detail-list show" id="pinata-incl">
+            <ul>
+              <li>Personalized with your child's name</li>
+              <li>Customised to match the party theme</li>
+              <li>Fillings not included — ask your account manager to add</li>
+            </ul>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
@@ -544,7 +565,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="act-card-d">Included with every booking — can't be removed.</div>
         </div>
 
-        <div class="act-card" data-act="a8" data-name="Cupcake Decor" onclick="selectAct(this)">
+        <div class="act-card" data-act="a8" data-name="Cupcake Decor" onclick="selectAct(this)" id="actCard-a8">
           <img class="act-card-ic-img" src="img/activity/act-cupcake-decor-sq.jpg" alt="Cupcake Decor">
           <div class="act-card-n">Cupcake Decor</div>
           <div class="act-card-d">Kids decorate their own cupcakes with icing and sprinkles. A sweet creation they get to eat!</div>
@@ -948,8 +969,9 @@ button{cursor:pointer;font-family:var(--fb)}
     <div class="container">
       <div class="act-section-hdr">
         <h2 class="sec-h2">Pinata</h2>
-        <span class="act-badge grn">Optional · pick one</span>
+        <span class="act-badge">Included · pick one</span>
       </div>
+      <p class="sec-sub">Square Pinata is included in the package price by default. Switch shapes below, or click the selected card again to remove it.</p>
       <div style="font-size:13px;color:var(--bk);font-weight:600;margin-bottom:12px">🎨 Every piñata is personalized with your child's name and customised to match this party's theme.</div>
       <div class="act-grid" id="pinataGrid"></div>
       <div class="tnc-note">📜 <span>T&amp;C: Fillings are not included by default but can be added at an additional cost — speak with your account manager for options. Photos shown are reference images; final look may vary slightly by materials available. Please allow a minimum of 3 working days to prepare your piñata — if your event is sooner, your account manager will confirm feasibility.</span></div>
@@ -1347,7 +1369,7 @@ let selectedEinvite = EINVITE_TIERS[0]; // Static default (included)
 let selectedEntry = null;            // optional
 let selectedGifts = [];              // array of GIFT_ITEMS ids
 let selectedPhotographer = null;     // optional
-let selectedPinata = null;           // optional
+let selectedPinata = PINATA_TIERS[0]; // Square Pinata — included by default (2026-08-10)
 
 function fmtINR(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
 
@@ -1651,10 +1673,33 @@ function totalPrice() {
   return t;
 }
 
+// ── PACKAGE DISCOUNT (10% off, Return Gifts excluded) ──
+// Matches the 'PKGUNICORN' coupon sent to builder.html. Return Gifts already
+// carry their own per-item pricing (and may already be discounted there in
+// future), so the 10% package-wide discount is applied only to the rest of
+// the total — gifts are never discounted twice.
+const PACKAGE_DISCOUNT_PCT = 10;
+function giftsSubtotal() {
+  let g = 0;
+  selectedGifts.forEach(id => {
+    const item = GIFT_ITEMS.find(x => x.id === id);
+    if (item) g += item.perChild * kidsCount;
+  });
+  return g;
+}
+function discountedTotal() {
+  const total = totalPrice();
+  const gifts = giftsSubtotal();
+  return Math.round((total - gifts) * (1 - PACKAGE_DISCOUNT_PCT / 100)) + gifts;
+}
+
 function updateSticky() {
   const total = totalPrice();
-  document.getElementById('stickyTotal').textContent = fmtINR(total);
-  document.getElementById('heroPrice').textContent = fmtINR(total);
+  const discounted = discountedTotal();
+  document.getElementById('stickyTotal').textContent = fmtINR(discounted);
+  document.getElementById('heroPriceOrig').textContent = fmtINR(total);
+  document.getElementById('heroPrice').textContent = fmtINR(discounted);
+  document.getElementById('heroDiscountBadge').textContent = PACKAGE_DISCOUNT_PCT + '% OFF';
 
   const details = document.getElementById('stickyDetails');
   const parts = [];
@@ -1716,7 +1761,8 @@ function proceedToBuilder() {
       packagePrice: totalPrice(),
       host: selectedHost,
       coupon: 'PKGUNICORN',
-      couponPct: 15,
+      couponPct: PACKAGE_DISCOUNT_PCT,
+      noGiftDiscount: true,
       ts: Date.now()
     }));
   } catch(e) {}
@@ -1732,6 +1778,11 @@ renderEntry();
 renderGifts();
 renderPhoto();
 renderPinata();
+// Cupcake Decor is the default included activity (≤₹5k value) — reuses the
+// same selectAct() flow a click would trigger, so the addon-grid "Included
+// above" sync happens automatically too.
+const defaultActCard = document.getElementById('actCard-a8');
+if (defaultActCard) selectAct(defaultActCard);
 changeKids(0);
 </script>
 
