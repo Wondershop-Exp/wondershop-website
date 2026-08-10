@@ -2288,10 +2288,11 @@ function engagementBandPrice(duration,kids){
   return last[key]+(kids-50)*marginal;
 }
 function actPrice(a,kids){
-  // Unicorn Basic's "1 included activity" is free on the package page (its
-  // cost is already folded into Decor/Host/Tattoo/E-Invite/Pinata) — flagged
-  // .free=true when pushed to S.activities so it doesn't get double-charged
-  // here via its normal per-child/flat catalogue pricing (2026-08-10).
+  // Generic escape hatch: an activity explicitly flagged free (no current
+  // caller sets this) always prices at ₹0 regardless of catalogue pricing.
+  // Unicorn Basic's "1 included activity" is NOT free — its ₹4,999/₹4,000
+  // value counts toward the package MRP, so it's pushed with a flat r1/r2/r3
+  // override instead (see builder.html's unicorn-basic ?pkg= branch, 2026-08-10).
   if(a.free)return 0;
   if(a.id==='spy-mission')return spyStationsPrice(kids);
   if(a.id&&a.id.indexOf('station-')===0)return spyStationAddonPrice(a.id.slice(8),kids);
@@ -4110,16 +4111,20 @@ document.addEventListener('DOMContentLoaded',()=>{
       // package coupon discount them a second time (2026-08-10).
       S._noGiftDiscount=true;
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
-      // The 1 included activity is free on the package page (its cost is
-      // already folded into the package price) — .free:true stops actPrice()
-      // from charging its normal per-child/flat catalogue price a second
-      // time here (2026-08-10; previously silently overcharged the cart
-      // relative to what the package page showed, e.g. +₹2,125 for Cupcake
-      // Decor at 25 kids).
-      if(act)S.activities=[{id:act.id,n:act.n,r1:act.r1,r2:act.r2,r3:act.r3,flat:act.flat,free:true}];
+      // The 1 included activity is bundled into the package price (its
+      // ₹4,999/₹4,000 value counts toward the ₹24,999 MRP shown on the
+      // package page — see unicorn-basic.html totalPrice(), 2026-08-10), so
+      // it's charged here at that same flat value rather than the general
+      // ACTS catalogue's per-child rate (which is a different, unrelated
+      // price for the same activity when picked à la carte elsewhere on the
+      // site — using it here would silently mismatch the package page total).
+      const UNI_INCLUDED_ACT_VALUE=actId==='glitter'?4000:4999;
+      if(act)S.activities=[{id:act.id,n:act.n,r1:UNI_INCLUDED_ACT_VALUE,r2:UNI_INCLUDED_ACT_VALUE,r3:UNI_INCLUDED_ACT_VALUE,flat:true}];
       // Glitter Station can also be picked as the 1 included activity — it
-      // has no ACTS catalogue entry (real pricing handled in actPrice()).
-      else if(actId==='glitter')S.activities=[{id:'glitter',n:pkgData.actName||'Glitter Station',free:true}];
+      // has no ACTS catalogue entry (real pricing handled in actPrice()'s
+      // 'glitter' special case, which already returns 4000 regardless of
+      // r1/r2/r3, so this is just for consistent shape/display).
+      else if(actId==='glitter')S.activities=[{id:'glitter',n:pkgData.actName||'Glitter Station',r1:UNI_INCLUDED_ACT_VALUE,r2:UNI_INCLUDED_ACT_VALUE,r3:UNI_INCLUDED_ACT_VALUE,flat:true}];
       // Pre-select additional paid activities
       if(pkgData.additionalActs&&pkgData.additionalActs.length){
         pkgData.additionalActs.forEach(pa=>{
