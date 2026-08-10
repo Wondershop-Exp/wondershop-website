@@ -168,6 +168,7 @@ button{cursor:pointer;font-family:var(--fb)}
 /* INCLUSIONS */
 .incl-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
 .incl-card{background:var(--li3);border:1.5px solid var(--li2);border-radius:14px;padding:16px 14px}
+.incl-card-ic-img{width:34px;height:34px;object-fit:contain;margin:0 auto 8px;display:block}
 .incl-card-h{font-family:var(--fd);font-size:13.5px;font-weight:700;color:var(--bk);margin-bottom:5px;text-align:center;text-transform:uppercase;letter-spacing:0.3px}
 .incl-card-body{font-size:11.5px;color:var(--gy);line-height:1.5}
 .expand-btn{background:none;border:none;font-size:12px;color:var(--li);font-weight:600;cursor:pointer;padding:0;margin-top:10px;display:flex;align-items:center;gap:4px}
@@ -250,6 +251,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .rmk-ta{width:100%;border:1.5px solid var(--li2);border-radius:12px;padding:12px 14px;font-family:inherit;font-size:14px;color:var(--bk);resize:vertical;min-height:80px}
 .rmk-note{font-size:12px;color:var(--gy);margin-top:8px;line-height:1.5}
 .addon-chip-ic{font-size:18px;flex-shrink:0}
+.chip-ic-img{width:16px;height:16px;object-fit:contain;flex-shrink:0}
 
 /* STICKY BAR */
 .sticky-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#fff;border-top:1.5px solid var(--li2);box-shadow:0 -4px 20px rgba(181,157,222,.12);padding:12px 24px}
@@ -389,6 +391,7 @@ button{cursor:pointer;font-family:var(--fb)}
       <div class="incl-grid">
 
         <div class="incl-card">
+          <img class="incl-card-ic-img" src="img/icons/icon-decor.png" alt="">
           <div class="incl-card-h">Decor</div>
           <div class="incl-card-body">Classic is included by default. Upgrade to a bigger tier below if you'd like.</div>
           <div class="detail-list show" id="decor">
@@ -412,6 +415,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
+          <img class="incl-card-ic-img" src="img/icons/icon-host.png" alt="">
           <div class="incl-card-h">Host</div>
           <div class="incl-card-body">Energetic, kid-friendly host who keeps every child engaged.</div>
           <div class="detail-list show" id="host">
@@ -425,6 +429,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
+          <img class="incl-card-ic-img" src="img/icons/icon-activities.png" alt="">
           <div class="incl-card-h">1 Activity</div>
           <div class="incl-card-body">Pick one activity below — your host runs it, all materials provided.</div>
           <div class="detail-list show" id="act">
@@ -440,6 +445,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
+          <img class="incl-card-ic-img" src="img/activity/icon-tattoo.png" alt="">
           <div class="incl-card-h">Tattoo Station</div>
           <div class="incl-card-body">Included as standard for every booking.</div>
           <div class="detail-list show" id="tattoo">
@@ -452,6 +458,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
+          <img class="incl-card-ic-img" src="img/icons/icon-invite.png" alt="">
           <div class="incl-card-h">E-Invite</div>
           <div class="incl-card-body">Custom digital invite in the unicorn theme.</div>
           <div class="detail-list show" id="einv">
@@ -944,7 +951,7 @@ button{cursor:pointer;font-family:var(--fb)}
       <h2 class="sec-h2">More to <em>add later</em></h2>
       <p class="sec-sub">Speak with your account manager to add these after order placement.</p>
       <div class="addon-grid">
-        <div class="addon-chip"><span class="addon-chip-ic">🧸</span><span>Mascot</span></div>
+        <div class="addon-chip"><img class="chip-ic-img" src="img/icons/icon-mascot-bw.png" alt=""><span>Mascot</span></div>
         <div class="addon-chip"><span class="addon-chip-ic">🎂</span><span>Cake Table</span></div>
         <div class="addon-chip"><span class="addon-chip-ic">🎊</span><span>Welcome Arch</span></div>
         <div class="addon-chip"><span class="addon-chip-ic">🪧</span><span>Welcome Board</span></div>
@@ -1060,9 +1067,9 @@ document.getElementById('nav-ham').addEventListener('click',()=>document.getElem
 // kept in upload order (hero-1 first, etc).
 const PKG_FRAMES = [
   { src: 'img/packages/unicorn/unicorn-hero-1.jpg', badge: '🦄 Unicorn Theme · Wondershop' },
-  { src: 'img/packages/unicorn/unicorn-hero-2.jpg', badge: '🎈 Decor' },
-  { src: 'img/packages/unicorn/unicorn-hero-3.jpg', badge: '🎤 Host' },
-  { src: 'img/packages/unicorn/unicorn-hero-4.jpg', badge: '🖊️ Tattoo Station' },
+  { src: 'img/packages/unicorn/unicorn-hero-2.jpg', icon: 'img/icons/icon-decor-bw.png', badge: 'Decor' },
+  { src: 'img/packages/unicorn/unicorn-hero-3.jpg', icon: 'img/icons/icon-host-bw.png', badge: 'Host' },
+  { src: 'img/packages/unicorn/unicorn-hero-4.jpg', icon: 'img/activity/icon-tattoo.png', badge: 'Tattoo Station' },
 ];
 let pkgCCur = 0, pkgCTimer;
 const pkgFrontImg = document.getElementById('pkgHeroImg');
@@ -1082,7 +1089,8 @@ function pkgCGoTo(n) {
   pkgFrontImg.style.opacity = '0';
   setTimeout(() => {
     pkgFrontImg.src = PKG_FRAMES[n].src;
-    pkgHeroBadge.textContent = PKG_FRAMES[n].badge;
+    const f = PKG_FRAMES[n];
+    pkgHeroBadge.innerHTML = f.icon ? '<img class="chip-ic-img" src="' + f.icon + '" alt="">' + f.badge : f.badge;
     pkgFrontImg.style.opacity = '1';
   }, 250);
   Array.from(pkgDots.children).forEach((d,i) => d.classList.toggle('active', i===n));
