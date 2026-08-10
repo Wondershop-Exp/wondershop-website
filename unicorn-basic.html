@@ -9,7 +9,7 @@
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',window.WS_GA_ID);</script>
 <link rel="icon" type="image/png" href="logo-square.png">
 <link rel="apple-touch-icon" href="logo-square.png">
-<meta name="description" content="Unicorn Magic birthday package by Wondershop — decor, host, tattoo station, e-invite and your choice of activity, from ₹22,499 for up to 25 kids in Mumbai.">
+<meta name="description" content="Unicorn Magic birthday package by Wondershop — decor, host, tattoo station, e-invite and your choice of activity, from ₹19,913 for up to 25 kids in Mumbai.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
@@ -371,7 +371,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="pkg-price-note">Estimated total for your party</div>
             <div class="pkg-price-row">
               <span class="pkg-price-orig" id="heroPriceOrig"></span>
-              <span class="pkg-price" id="heroPrice">₹22,499</span>
+              <span class="pkg-price" id="heroPrice">₹19,913</span>
               <span class="pkg-discount-badge" id="heroDiscountBadge"></span>
             </div>
             <div class="pkg-price-sub">For up to 25 kids · extra kids at ₹399/child</div>
@@ -583,7 +583,7 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="act-card" data-act="a8" data-name="Cupcake Decor" onclick="selectAct(this)" id="actCard-a8">
           <img class="act-card-ic-img" src="img/activity/act-cupcake-decor-sq.jpg" alt="Cupcake Decor">
           <div class="act-card-n">Cupcake Decor</div>
-          <div class="act-card-p">₹4,999 <span class="act-card-p-note">value · included in package</span></div>
+          <div class="act-card-p"><span id="actValA8">₹2,125</span> <span class="act-card-p-note">value · included in package</span></div>
           <div class="act-card-d">Kids decorate their own cupcakes with icing and sprinkles. A sweet creation they get to eat!</div>
         </div>
 
@@ -591,7 +591,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="takehome-tag act-card-tag">🏠 Takehome</div>
           <img class="act-card-ic-img" src="img/activity/act-sunglasses-decor-sq.jpg" alt="Sunglasses Decor">
           <div class="act-card-n">Sunglasses Decor</div>
-          <div class="act-card-p">₹4,999 <span class="act-card-p-note">value · included in package</span></div>
+          <div class="act-card-p"><span id="actValA22">₹8,000</span> <span class="act-card-p-note">value · included in package</span></div>
           <div class="act-card-d">Plain sunnies + stickers, gems &amp; paint pens. Kids customise and take home their unique pair.</div>
         </div>
 
@@ -599,7 +599,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="takehome-tag act-card-tag">🏠 Takehome</div>
           <img class="act-card-ic-img" src="img/activity/act-fridge-magnet-sq.jpg" alt="Fridge Magnet">
           <div class="act-card-n">Fridge Magnet</div>
-          <div class="act-card-p">₹4,999 <span class="act-card-p-note">value · included in package</span></div>
+          <div class="act-card-p"><span id="actValA23">₹7,250</span> <span class="act-card-p-note">value · included in package</span></div>
           <div class="act-card-d">Each child creates their own painted fridge magnet — a little party memory to take home.</div>
         </div>
 
@@ -621,7 +621,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="takehome-tag act-card-tag">🏠 Takehome</div>
           <img class="act-card-ic-img" src="img/activity/act-dreamcatcher.jpg" alt="Dreamcatcher">
           <div class="act-card-n">Dreamcatcher</div>
-          <div class="act-card-p">₹4,999 <span class="act-card-p-note">value · included in package</span></div>
+          <div class="act-card-p"><span id="actValA12">₹20,000</span> <span class="act-card-p-note">value · included in package</span></div>
           <div class="act-card-d">Kids craft their own dreamcatcher with beads, feathers and string to take home.</div>
         </div>
 
@@ -1046,7 +1046,7 @@ button{cursor:pointer;font-family:var(--fb)}
   <div class="sticky-inner">
     <div class="sticky-left">
       <div class="sticky-price-row">
-        <div class="sticky-price" id="stickyTotal">₹22,499</div>
+        <div class="sticky-price" id="stickyTotal">₹19,913</div>
         <div class="sticky-base" id="stickyBase">· Unicorn Magic</div>
       </div>
       <div class="sticky-details" id="stickyDetails">Select an activity above to continue</div>
@@ -1263,19 +1263,22 @@ const EXTRA_ACT_PRICE = 4999;
 // flat ₹2,500, "Up to 3 hrs", real age range 5–12). Always included in the
 // package price, no tier options, similar to Host.
 const TATTOO_PRICE = 2500;
-// Add-on Activities pricing (used only for the "Add more Activities" grid —
-// NOT for the 1 included activity's flat package value in totalPrice(),
-// which stays EXTRA_ACT_PRICE/4000 on purpose, see the note there).
-// 2026-08-10: Cupcake Decor / Sunglasses Decor / Fridge Magnet / Canvas Tote
-// Bag Painting / Dreamcatcher / Soft Toy Making all have a real ACTS
-// catalogue entry on the BAB Activities step (builder.html) with their own
-// tiered per-child pricing — previously this page flatly charged ₹4,999 for
-// all of them regardless of kids count, which didn't match what the cart
-// actually billed for the same activity id. Now synced 1:1 with builder.
-// Colouring Station (a25) has no ACTS catalogue match, so it stays flat at
-// EXTRA_ACT_PRICE. Glitter Station / Slime Making / Jelly Swimbags /
-// Hairbrush / Photoframe / Mirror Decoration / Bubble / Magic / Science Show
-// also have no ACTS catalogue entry — real pricing given directly by Shruti.
+// Activity pricing — shared by BOTH the "Choose your Activities" grid (the
+// 1 included activity, whose real value now feeds directly into
+// totalPrice()/the package MRP, 2026-08-11 per Shruti) and the "Add more
+// Activities" addon grid. Cupcake Decor / Sunglasses Decor / Fridge Magnet /
+// Canvas Tote Bag Painting / Dreamcatcher / Soft Toy Making all have a real
+// ACTS catalogue entry on the BAB Activities step (builder.html) with their
+// own tiered per-child pricing — previously this page flatly charged ₹4,999
+// for all of them regardless of kids count or which was picked, which
+// didn't match what the cart actually billed for the same activity id
+// (2026-08-10 fix). Now synced 1:1 with builder, in both places, and the
+// package total/MRP moves with kids count and the chosen activity — it is
+// no longer a fixed ₹24,999/₹22,499 headline. Colouring Station (a25) has
+// no ACTS catalogue match, so it stays flat at EXTRA_ACT_PRICE. Glitter
+// Station / Slime Making / Jelly Swimbags / Hairbrush / Photoframe / Mirror
+// Decoration / Bubble / Magic / Science Show also have no ACTS catalogue
+// entry — real pricing given directly by Shruti.
 const REAL_ACT_RATES = {
   a8:  {r1:90,   r2:85,  r3:80},   // Cupcake Decoration
   a22: {r1:350,  r2:320, r3:300},  // Sunglasses Decor
@@ -1434,12 +1437,24 @@ function changeKids(d) {
 // Bag Painting, Dreamcatcher, Soft Toy Making — synced to BAB pricing
 // 2026-08-10) are all priced by headcount (tiered or per-child), so their
 // cards need to refresh whenever kidsCount changes — unlike the other
-// flat-priced addons.
+// flat-priced addons. a8/a22/a23/a12 also appear as candidates in the
+// "Choose your Activities" grid (actValA8 etc.) — 2026-08-11, that value
+// now feeds the package total too, so it must refresh in lockstep with the
+// Add-on Activities card for the same id.
 function updateDynamicAddonPrices() {
-  const map = {slime:'slimePriceVal', 'jelly-swimbags':'jellySwimbagsPriceVal', 'hairbrush-decor':'hairbrushDecorPriceVal', 'photoframe-decor':'photoframeDecorPriceVal', 'mirror-decor':'mirrorDecorPriceVal', a8:'a8PriceVal', a22:'a22PriceVal', a23:'a23PriceVal', a2:'a2PriceVal', a10:'a10PriceVal', a12:'a12PriceVal'};
+  const map = {
+    slime: ['slimePriceVal'], 'jelly-swimbags': ['jellySwimbagsPriceVal'],
+    'hairbrush-decor': ['hairbrushDecorPriceVal'], 'photoframe-decor': ['photoframeDecorPriceVal'],
+    'mirror-decor': ['mirrorDecorPriceVal'],
+    a8: ['a8PriceVal', 'actValA8'], a22: ['a22PriceVal', 'actValA22'], a23: ['a23PriceVal', 'actValA23'],
+    a2: ['a2PriceVal'], a10: ['a10PriceVal'], a12: ['a12PriceVal', 'actValA12'],
+  };
   Object.keys(map).forEach(id => {
-    const el = document.getElementById(map[id]);
-    if (el) el.textContent = fmtINR(addonActPrice(id, kidsCount));
+    const price = fmtINR(addonActPrice(id, kidsCount));
+    map[id].forEach(elId => {
+      const el = document.getElementById(elId);
+      if (el) el.textContent = price;
+    });
   });
 }
 
@@ -1695,15 +1710,13 @@ function totalPrice() {
   t += extraKids * EXTRA_PER_CHILD;
   additionalActs.forEach(a => { t += addonActPrice(a.id, kidsCount); });
   t += TATTOO_PRICE;
-  // The 1 included activity (Cupcake Decor etc.) is bundled into the package
-  // price, not charged separately — but its flat package value (NOT the
-  // real per-child BAB catalogue rate — see addonActPrice() below) still
-  // counts toward the package MRP/total (2026-08-10, per Shruti: Decor+
-  // Host+Cupcake+Tattoo+Einvite+Pinata = ₹24,999 MRP → ₹22,499 after the
-  // 10% package discount). Deliberately NOT addonActPrice() here — that
-  // function now returns the real BAB per-child rate for Add-on Activities
-  // parity (2026-08-10), which would break this fixed MRP figure.
-  if (selectedAct) t += (selectedAct.id === 'glitter' ? 4000 : EXTRA_ACT_PRICE);
+  // The 1 included activity (Cupcake Decor etc.) is bundled into the
+  // package price, not charged as a separate line item — but its real
+  // value still counts toward the package total, and (2026-08-11, per
+  // Shruti) that value must match the live per-child BAB Activities
+  // pricing shown in "Choose your Activities" and Add-on Activities alike,
+  // updating as kids count changes — not a flat placeholder number.
+  if (selectedAct) t += addonActPrice(selectedAct.id, kidsCount);
   if (selectedDecor) t += selectedDecor.price;
   if (selectedMusic) t += selectedMusic.price;
   if (djLightsAddon) t += 1500;
