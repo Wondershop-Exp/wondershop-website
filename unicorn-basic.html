@@ -418,7 +418,7 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="incl-card">
           <img class="incl-card-ic-img" src="img/icons/icon-host.png" alt="">
           <div class="incl-card-h">Host</div>
-          <div class="incl-card-body">Energetic, kid-friendly host who keeps every child engaged.</div>
+          <div class="incl-card-body">Classic Host is included by default. Upgrade to a bigger tier below if you'd like.</div>
           <div class="detail-list show" id="host">
             <ul>
               <li>Welcomes guests &amp; sets the tone</li>
@@ -509,6 +509,20 @@ button{cursor:pointer;font-family:var(--fb)}
       <p class="sec-sub">Classic is included in the package price. Upgrading to a bigger tier adds the difference to your total.</p>
       <div class="act-grid" id="decorGrid"></div>
       <div style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--gy);font-weight:500;margin-top:14px">💬 Want to tweak colours, add-ons, or anything else about the decor? Connect with your party manager after booking to discuss modifications and customizations.</div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- HOST -->
+  <section class="sec" id="hostSection">
+    <div class="act-section-hdr container">
+      <h2 class="sec-h2">Choose your <em>Host</em></h2>
+      <span class="act-badge">Included · pick a tier</span>
+    </div>
+    <div class="container">
+      <p class="sec-sub">Classic Host is included in the package price. Upgrading to a bigger tier adds the difference to your total.</p>
+      <div class="act-grid" id="hostGrid"></div>
     </div>
   </section>
 
@@ -1198,13 +1212,11 @@ document.addEventListener('keydown', e => {
 });
 
 // ── DATA ──
-// Host is bundled at the site's real Classic Host price (₹10,000) — not
-// separately selectable on this page. Decor/E-Invite each default to their
-// first tier (Basic / Static), which is what's "included" in the headline
-// price; picking a higher tier adds the difference. Music is NOT included by
-// default (optional add-on, selectedMusic starts null) — Tattoo Station is
-// the included add-on instead.
-const HOST_PRICE = 10000;
+// Host is now its own selectable section (2026-08-10, see HOST_TIERS above)
+// — Classic is the included default, same as Decor/E-Invite defaulting to
+// their first tier; picking a higher tier adds the difference. Music is NOT
+// included by default (optional add-on, selectedMusic starts null) — Tattoo
+// Station is the included add-on instead.
 const KIDS_THRESHOLD = 25;
 const EXTRA_PER_CHILD = 399;
 const EXTRA_ACT_PRICE = 4999;
@@ -1256,6 +1268,16 @@ const DECOR_TIERS = [
   {id:'p1', name:'Premium', price:8000, spec:[{l:'Panels',v:'1'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/unicorn/unicorn-decor-p1.jpg', imgFit:'contain'},
   {id:'p2', name:'Luxury', price:15000, spec:[{l:'Panels',v:'2'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},{l:'Cake Table',v:'Included'},{l:'Decor Width',v:'8-9 ft'}], img:'img/packages/unicorn/unicorn-decor-p2.jpg'},
   {id:'sig', name:'Signature', price:25000, spec:[{l:'Panels',v:'3'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-14 ft'}], img:'img/packages/unicorn/unicorn-decor-sig.jpg'},
+];
+// Host — added as its own selectable section 2026-08-10 (previously bundled
+// non-selectably at the Classic price via the HOST_PRICE constant below).
+// Real tier names/prices/bullets match builder.html's own Host step exactly
+// (Classic/Premium/Signature, ₹10,000/₹12,000/₹15,000) so pricing is
+// consistent site-wide.
+const HOST_TIERS = [
+  {id:'h1', name:'Classic', price:10000, bullets:['60 mins engagement', 'Games + prizes management', 'Cake-cutting moment coordination']},
+  {id:'h2', name:'Premium', price:12000, bullets:['85 mins engagement', 'Theme-integrated programme', 'Interactive storytelling']},
+  {id:'h3', name:'Signature', price:15000, bullets:['90 mins engagement', 'Premium props included', 'Signature-category host']},
 ];
 // Music — same DJ tier structure & pricing as the Spy package / generic builder.
 // Tier names unified 2026-08-07 to Classic/Premium/Signature (bare, no
@@ -1312,6 +1334,7 @@ let kidsCount = 25;
 let selectedAct = null;              // {id, name} — the 1 included activity
 let additionalActs = [];             // array of {id, name} — extra paid activities
 let selectedDecor = DECOR_TIERS[0];  // Basic default (included)
+let selectedHost = HOST_TIERS[0];    // Classic default (included)
 let selectedMusic = null;            // optional add-on, not included by default
 let djLightsAddon = false;           // DJ Lights add-on — ₹1,500
 let djSmokeAddon = false;            // Smoke Machine add-on — ₹2,000
@@ -1556,6 +1579,8 @@ function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
 // ── DECOR (included, pick a tier — cannot be removed entirely) ──
 function renderDecor() { renderTierGrid('decorGrid', DECOR_TIERS, selectedDecor); }
 function decorGridSelect(id) { selectedDecor = DECOR_TIERS.find(t => t.id === id); renderDecor(); updateSticky(); }
+function renderHost() { renderTierGrid('hostGrid', HOST_TIERS, selectedHost); }
+function hostGridSelect(id) { selectedHost = HOST_TIERS.find(t => t.id === id); renderHost(); updateSticky(); }
 
 // ── MUSIC (optional, removable) ──
 function renderMusic() { renderTierGrid('musicGrid', MUSIC_TIERS, selectedMusic); }
@@ -1605,7 +1630,7 @@ function pinataGridSelect(id) { selectedPinata = (selectedPinata && selectedPina
 
 // ── PRICING ──
 function totalPrice() {
-  let t = HOST_PRICE;
+  let t = selectedHost ? selectedHost.price : 0;
   const extraKids = Math.max(0, kidsCount - KIDS_THRESHOLD);
   t += extraKids * EXTRA_PER_CHILD;
   additionalActs.forEach(a => { t += addonActPrice(a.id, kidsCount); });
@@ -1636,6 +1661,7 @@ function updateSticky() {
   else parts.push('Select an activity above to continue');
   parts.push(kidsCount + ' kids');
   if (selectedDecor) parts.push(selectedDecor.name + ' decor');
+  if (selectedHost) parts.push(selectedHost.name + ' host');
   parts.push('Tattoo Station');
   if (selectedMusic) parts.push(selectedMusic.name);
   if (djLightsAddon) parts.push('DJ Lights');
@@ -1687,7 +1713,7 @@ function proceedToBuilder() {
       pinata: selectedPinata,
       remarks: (document.getElementById('specialRequest').value || '').trim(),
       packagePrice: totalPrice(),
-      host: {tier:'Starter', p:10000},
+      host: selectedHost,
       coupon: 'PKGUNICORN',
       couponPct: 15,
       ts: Date.now()
@@ -1698,6 +1724,7 @@ function proceedToBuilder() {
 
 // ── INIT ──
 renderDecor();
+renderHost();
 renderMusic();
 renderEinvite();
 renderEntry();

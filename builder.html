@@ -4068,8 +4068,10 @@ document.addEventListener('DOMContentLoaded',()=>{
       const kids=pkgData.kidsCount||25;
       const actId=pkgData.actId||'a8';
       const act=ACTS.find(a=>a.id===actId);
-      // Host — bundled at the real Classic Host price, always included.
-      S.host={tier:'Classic',p:10000};
+      // Host — now a real selectable section on unicorn-basic.html
+      // (2026-08-10, see HOST_TIERS there), Classic default. Previously
+      // hardcoded here regardless of what was actually picked.
+      S.host=pkgData.host?{tier:pkgData.host.name,p:pkgData.host.price}:{tier:'Classic',p:10000};
       S.couponPct=15;
       S._pkgCoupon='PKGUNICORN';
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
