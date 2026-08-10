@@ -108,6 +108,8 @@ button{cursor:pointer;font-family:var(--fb)}
 .incl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .incl-card{background:var(--li3);border:1.5px solid var(--li2);border-radius:14px;padding:16px 14px}
 .incl-card-ic{font-size:22px;margin-bottom:8px}
+.incl-card-ic-img{width:34px;height:34px;object-fit:contain;margin-bottom:8px;display:block}
+.chip-ic-img{width:15px;height:15px;object-fit:contain;vertical-align:-3px;margin-right:3px}
 .incl-card-h{font-family:var(--fd);font-size:13.5px;font-weight:700;color:var(--bk);margin-bottom:5px}
 .incl-card-body{font-size:11.5px;color:var(--gy);line-height:1.5}
 .expand-btn{background:none;border:none;font-size:12px;color:var(--li);font-weight:600;cursor:pointer;padding:0;margin-top:10px;display:flex;align-items:center;gap:4px}
@@ -302,10 +304,10 @@ button{cursor:pointer;font-family:var(--fb)}
           <h1 class="pkg-h1">Turf <em>Takeover</em> Party</h1>
           <p class="pkg-desc">A high-energy turf birthday — decor you choose, 90 or 120 minutes of football-ground games run by a trained host, music, and an optional activity. Everything handled. Nothing to worry about.</p>
           <div class="pkg-incl-row">
-            <span class="pkg-incl-chip">🎈 Decor</span>
+            <span class="pkg-incl-chip"><img class="chip-ic-img" src="img/icons/icon-decor-bw.png" alt="">Decor</span>
             <span class="pkg-incl-chip">🏃 Engagement</span>
-            <span class="pkg-incl-chip">🎵 Music</span>
-            <span class="pkg-incl-chip">💌 E-Invite</span>
+            <span class="pkg-incl-chip"><img class="chip-ic-img" src="img/icons/icon-dj-bw.png" alt="">Music</span>
+            <span class="pkg-incl-chip"><img class="chip-ic-img" src="img/icons/icon-invite-bw.png" alt="">E-Invite</span>
           </div>
           <div class="pkg-price-block">
             <div class="pkg-price-note">Estimated total for your party</div>
@@ -342,7 +344,7 @@ button{cursor:pointer;font-family:var(--fb)}
       <div class="incl-grid">
 
         <div class="incl-card">
-          <div class="incl-card-ic">🎈</div>
+          <img class="incl-card-ic-img" src="img/icons/icon-decor.png" alt="">
           <div class="incl-card-h">Decor</div>
           <div class="incl-card-body">Premium is included by default — a 1-panel balloon arch (up to 300 balloons, up to 3 colours) with a flex print or LED Happy Birthday + name and an age foil balloon. Switch to a different tier below if you'd like.</div>
           <button class="expand-btn" id="btn-decor" onclick="toggleDetail('decor','btn-decor','See full list')">
@@ -389,13 +391,13 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
-          <div class="incl-card-ic">🎵</div>
+          <img class="incl-card-ic-img" src="img/icons/icon-dj.png" alt="">
           <div class="incl-card-h">Music</div>
           <div class="incl-card-body">Classic DJ included as standard — 1 speaker, 1 mixer, 2 mics, 1 operator, suitable for gatherings up to 50 people. Upgrade to Premium below.</div>
         </div>
 
         <div class="incl-card">
-          <div class="incl-card-ic">💌</div>
+          <img class="incl-card-ic-img" src="img/icons/icon-invite.png" alt="">
           <div class="incl-card-h">E-Invite</div>
           <div class="incl-card-body">Custom digital invite in the turf theme with your child's name, date, venue and RSVP details. Shareable on WhatsApp.</div>
           <button class="expand-btn" id="btn-einv" onclick="toggleDetail('einv','btn-einv','See details')">
@@ -592,7 +594,7 @@ button{cursor:pointer;font-family:var(--fb)}
       <h2 class="sec-h2">More to <em>add later</em></h2>
       <p class="sec-sub">Speak with your account manager to add these after order placement.</p>
       <div class="addon-grid">
-        <div class="addon-chip"><span class="addon-chip-ic">🧸</span><span>Mascot</span></div>
+        <div class="addon-chip"><img class="chip-ic-img" src="img/icons/icon-mascot-bw.png" alt=""><span>Mascot</span></div>
         <div class="addon-chip"><span class="addon-chip-ic">🎂</span><span>Cake Table</span></div>
         <div class="addon-chip"><span class="addon-chip-ic">🎊</span><span>Welcome Arch</span></div>
         <div class="addon-chip"><span class="addon-chip-ic">🪧</span><span>Welcome Board</span></div>
@@ -663,9 +665,9 @@ document.getElementById('nav-ham').addEventListener('click',()=>document.getElem
 // ── HERO IMAGE CAROUSEL ──
 const PKG_FRAMES = [
   { src: 'img/packages/Turf/turf-hero-1.png', badge: '⚽ Turf Theme · Wondershop' },
-  { src: 'img/packages/Turf/turf-hero-2.png', badge: '🎈 Decor' },
+  { src: 'img/packages/Turf/turf-hero-2.png', icon: 'img/icons/icon-decor-bw.png', badge: 'Decor' },
   { src: 'img/packages/Turf/turf-carousel-football-2.jpg', badge: '🏃 Engagement' },
-  { src: 'img/packages/Turf/turf-carousal-obstacle-1.png', badge: '🎉 Activities' },
+  { src: 'img/packages/Turf/turf-carousal-obstacle-1.png', icon: 'img/icons/icon-activities-bw.png', badge: 'Activities' },
 ];
 let pkgCCur = 0, pkgCTimer;
 const pkgFrontImg = document.getElementById('pkgHeroImg');
@@ -683,7 +685,8 @@ function pkgCGoTo(n) {
   pkgFrontImg.style.opacity = '0';
   setTimeout(() => {
     pkgFrontImg.src = PKG_FRAMES[n].src;
-    pkgHeroBadge.textContent = PKG_FRAMES[n].badge;
+    const f = PKG_FRAMES[n];
+    pkgHeroBadge.innerHTML = f.icon ? '<img class="chip-ic-img" src="' + f.icon + '" alt="">' + f.badge : f.badge;
     pkgFrontImg.style.opacity = '1';
   }, 250);
   Array.from(pkgDots.children).forEach((d,i) => d.classList.toggle('active', i===n));
