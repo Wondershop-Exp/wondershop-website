@@ -2287,7 +2287,16 @@ function engagementBandPrice(duration,kids){
   const marginal=duration===120?750:600;
   return last[key]+(kids-50)*marginal;
 }
+// .minPrice (2026-08-11) floors the computed price regardless of which
+// branch below resolves it — used by Unicorn Basic's included activity,
+// whose real per-child value is bundled into the package at a flat
+// INCL_ACT_BUDGET (see unicorn-basic.html), so the cart must never charge
+// less than that budget for it either, no matter which activity was picked.
 function actPrice(a,kids){
+  const p=actPriceRaw(a,kids);
+  return a.minPrice!=null?Math.max(a.minPrice,p):p;
+}
+function actPriceRaw(a,kids){
   // Generic escape hatch: an activity explicitly flagged free (no current
   // caller sets this) always prices at ₹0 regardless of catalogue pricing.
   if(a.free)return 0;
@@ -4114,23 +4123,27 @@ document.addEventListener('DOMContentLoaded',()=>{
       // package coupon discount them a second time (2026-08-10).
       S._noGiftDiscount=true;
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
-      // The 1 included activity is bundled into the package price, but its
-      // real value still counts toward the package total (2026-08-11, per
-      // Shruti: the package page's "Choose your Activities" values and the
-      // total/MRP both track live BAB per-child pricing now, not a flat
-      // placeholder) — so it's pushed here with the real ACTS r1/r2/r3/flat
-      // fields, same as any other activity, for exact parity with what
-      // unicorn-basic.html's own totalPrice() computes.
-      if(act)S.activities=[{id:act.id,n:act.n,r1:act.r1,r2:act.r2,r3:act.r3,flat:act.flat}];
-      // Glitter Station / Colouring Station (a25) can also be picked as the
-      // 1 included activity — neither has a real ACTS catalogue entry
-      // (pricing handled by actPrice()'s 'glitter'/'a25' special cases), so
-      // push with just id/n and let actPrice() resolve the amount. Fixed
-      // 2026-08-11: Colouring Station previously matched neither this nor
-      // the glitter branch, so picking it as the included activity silently
-      // dropped it from the cart entirely.
-      else if(actId==='glitter')S.activities=[{id:'glitter',n:pkgData.actName||'Glitter Station'}];
-      else if(actId==='a25')S.activities=[{id:'a25',n:pkgData.actName||'Colouring Station'}];
+      // The 1 included activity is bundled into the package at a flat
+      // ₹5,000 budget (2026-08-11, per Shruti — no price shown on its
+      // card; the total only moves if the activity's real per-child BAB
+      // value exceeds ₹5,000). minPrice:UNI_INCL_BUDGET makes actPrice()
+      // floor the computed price at that budget regardless of which
+      // activity is picked, for exact parity with unicorn-basic.html's own
+      // totalPrice() (Math.max(INCL_ACT_BUDGET, addonActPrice(...))).
+      const UNI_INCL_BUDGET=5000;
+      if(act)S.activities=[{id:act.id,n:act.n,r1:act.r1,r2:act.r2,r3:act.r3,flat:act.flat,minPrice:UNI_INCL_BUDGET}];
+      // Glitter Station / Colouring Station (a25) / Hair Styling for Boys
+      // can also be picked as the 1 included activity — none has a real
+      // ACTS catalogue entry (pricing handled by actPrice()'s 'glitter'/
+      // 'a25'/'hair-styling' special cases), so push with just id/n/minPrice
+      // and let actPrice() resolve the amount. Fixed 2026-08-11: Colouring
+      // Station previously matched neither this nor the glitter branch, so
+      // picking it as the included activity silently dropped it from the
+      // cart entirely; Hair Styling for Boys was missing here altogether
+      // (newly added as an included-activity option on the package page).
+      else if(actId==='glitter')S.activities=[{id:'glitter',n:pkgData.actName||'Glitter Station',minPrice:UNI_INCL_BUDGET}];
+      else if(actId==='a25')S.activities=[{id:'a25',n:pkgData.actName||'Colouring Station',minPrice:UNI_INCL_BUDGET}];
+      else if(actId==='hair-styling')S.activities=[{id:'hair-styling',n:pkgData.actName||'Hair Styling for Boys',minPrice:UNI_INCL_BUDGET}];
       // Pre-select additional paid activities
       if(pkgData.additionalActs&&pkgData.additionalActs.length){
         pkgData.additionalActs.forEach(pa=>{
