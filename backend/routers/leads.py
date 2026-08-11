@@ -7,12 +7,19 @@ On every new lead submission, four things fire in parallel (fire-and-forget):
   2. Team notification email     → settings.EMAIL_TEAM
   3. Google Sheet row append     → settings.GOOGLE_SHEET_WEBHOOK_URL
   4. WhatsApp alert              → WS_PHONE_1 + WS_PHONE_2 via Meta Cloud API
+
+req.is_booking distinguishes a CONFIRMED BOOKING (from builder.html's
+checkout step, doCo()) from an unconfirmed LEAD (custom-request form,
+doLead()) — this drives email tone/content, the Sheet Status column, and
+the DB status value (2026-08-11, per Shruti).
 """
 import json
+import random
+import string
 import asyncio
 import logging
 import httpx
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -23,6 +30,17 @@ from config import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# Live site — used to build absolute links (T&C) and inline email images.
+SITE_BASE_URL = "https://wondershop-exp.github.io/wondershop-website"
+MASCOT_URL    = f"{SITE_BASE_URL}/img/icons/icon-mascot.png"
+LOGO_URL      = f"{SITE_BASE_URL}/logo-horizontal.png"
+TERMS_URL     = f"{SITE_BASE_URL}/terms.html"
+
+BRAND_PINK   = "#E65A96"
+BRAND_PURPLE = "#8A67BE"
+BRAND_DARK   = "#2D2140"
+BRAND_LIGHT  = "#FBF6FF"
 
 
 # ─── SCHEMA ──────────────────────────────────────────────────────────────────
@@ -51,6 +69,10 @@ class LeadSubmitRequest(BaseModel):
     lead_source:        Optional[str]   = "Website"
     lead_source_detail: Optional[str]   = None
     referred_by:        Optional[str]   = None
+    # True only for a confirmed checkout submission (doCo()) — False/omitted
+    # for an unconfirmed enquiry (doLead()). Drives email tone, Sheet Status
+    # column ("Confirmed" vs "Lead"), and DB status ("Booked" vs "New").
+    is_booking:         Optional[bool]  = False
     # Order summary — sent from the checkout step so the confirmation email
     # can show a full bill, not just the payable total (client_budget).
     order_grand_total:  Optional[float] = None
@@ -64,6 +86,11 @@ class LeadSubmitRequest(BaseModel):
     reward_value:       Optional[float] = None
     reward_terms:       Optional[str]   = None
     reward_expiry:      Optional[date]  = None
+    # A previously-issued reward coupon code being redeemed on THIS booking
+    # (entered in the checkout "Coupon / Referral Code" box). Only honoured
+    # if it matches the mobile number it was issued to, isn't expired, and
+    # hasn't been used before.
+    redeemed_coupon_code: Optional[str] = None
     # Return-gift delivery details — captured on the builder's Return Gifts
     # step (Delivery Details block); only meaningful when gifts were added.
     gift_delivery_address:      Optional[str]  = None
@@ -76,6 +103,29 @@ class LeadSubmitRequest(BaseModel):
     # the old "Signature DJ" tier, which bundled both at a fixed higher price.
     dj_lights_addon:            Optional[bool] = False
     dj_smoke_machine_addon:     Optional[bool] = False
+
+
+class CouponValidateRequest(BaseModel):
+    code:  str
+    phone: str    # normalised +91XXXXXXXXXX, matching how it was issued
+
+
+# ─── FORMAT HELPERS ──────────────────────────────────────────────────────────
+
+def _fmt_rupees(amount: Optional[float]) -> str:
+    return f"Rs.{amount:,.0f}" if amount is not None else "—"
+
+def _fmt_date_long(d: Optional[date]) -> str:
+    """'11 August 2026' — no leading zero on the day."""
+    if not d:
+        return "—"
+    return f"{d.day} {d.strftime('%B %Y')}"
+
+def _html_escape(s) -> str:
+    if s is None:
+        return ""
+    return (str(s).replace("&", "&amp;").replace("<", "&lt;")
+            .replace(">", "&gt;").replace('"', "&quot;"))
 
 
 # ─── GMAIL API EMAIL HELPER ──────────────────────────────────────────────────
@@ -95,8 +145,11 @@ async def _get_gmail_access_token() -> str:
     r.raise_for_status()
     return r.json()["access_token"]
 
-async def _gmail_send(to_email: str, subject: str, body: str) -> None:
-    """Send email via Gmail API (HTTPS — no SMTP port issues)."""
+async def _gmail_send(to_email: str, subject: str, body: str, html_body: Optional[str] = None) -> None:
+    """Send email via Gmail API (HTTPS — no SMTP port issues).
+    Sends a plain-text + HTML multipart/alternative message when html_body
+    is given, so clients that render HTML get the formatted version and
+    everything else still gets a readable plain-text fallback."""
     import base64
     from email.message import EmailMessage
     msg = EmailMessage()
@@ -104,6 +157,8 @@ async def _gmail_send(to_email: str, subject: str, body: str) -> None:
     msg["To"] = to_email
     msg["Subject"] = subject
     msg.set_content(body)
+    if html_body:
+        msg.add_alternative(html_body, subtype="html")
     encoded = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
     token = await _get_gmail_access_token()
     async with httpx.AsyncClient(timeout=15) as client:
@@ -116,12 +171,88 @@ async def _gmail_send(to_email: str, subject: str, body: str) -> None:
         raise Exception(f"Gmail API error {r.status_code}: {r.text}")
 
 
-# ─── ORDER SUMMARY / REWARD EMAIL BLOCKS ─────────────────────────────────────
-# Shared by the user ack email and (for the reward) the internal team email,
-# so the customer's "bill" and the ops team's alert always agree.
+# ─── REWARD CODE ISSUE / REDEMPTION ──────────────────────────────────────────
+# Only "discount" rewards (10% off next booking) get an actual redeemable
+# code — the other reward types (tattoo/bubble/refund) are honoured manually
+# by the Party Experience Lead against the booking itself, no code needed.
 
-def _fmt_rupees(amount: Optional[float]) -> str:
-    return f"Rs.{amount:,.0f}" if amount is not None else "—"
+def _generate_reward_code() -> str:
+    # No 0/O/1/I/L — avoids characters that are easy to misread.
+    chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+    return "WS" + "".join(random.choices(chars, k=6))
+
+async def _issue_reward_code(lead_id: int, phone: str, expiry: Optional[date]) -> Optional[str]:
+    for _ in range(5):
+        code = _generate_reward_code()
+        try:
+            await database.execute(
+                """
+                INSERT INTO reward_codes (code, phone, discount_pct, min_spend, issued_lead_id, expiry_date)
+                VALUES (:code, :phone, 10, 15000, :lead_id, :expiry)
+                """,
+                values={"code": code, "phone": phone, "lead_id": lead_id, "expiry": expiry},
+            )
+            return code
+        except Exception:
+            continue  # extremely rare collision — try again with a fresh code
+    logger.error(f"Lead #{lead_id}: could not issue a unique reward code after 5 attempts")
+    return None
+
+async def _redeem_coupon_code(code: str, phone: str, lead_id: int) -> bool:
+    """Marks a reward code as redeemed. Only succeeds if it exists, is
+    unused, isn't expired, and the phone number matches the one it was
+    issued to (this is the enforcement of the 'same mobile number' rule)."""
+    row = await database.fetch_one(
+        "SELECT * FROM reward_codes WHERE code = :code", values={"code": code},
+    )
+    if not row:
+        logger.warning(f"Lead #{lead_id}: coupon redemption failed — code {code} not found")
+        return False
+    if row["redeemed"]:
+        logger.warning(f"Lead #{lead_id}: coupon redemption failed — code {code} already redeemed")
+        return False
+    if row["phone"] != phone:
+        logger.warning(f"Lead #{lead_id}: coupon redemption failed — code {code} phone mismatch")
+        return False
+    if row["expiry_date"] and row["expiry_date"] < date.today():
+        logger.warning(f"Lead #{lead_id}: coupon redemption failed — code {code} expired")
+        return False
+    await database.execute(
+        "UPDATE reward_codes SET redeemed = TRUE, redeemed_lead_id = :lead_id, redeemed_at = NOW() WHERE code = :code",
+        values={"lead_id": lead_id, "code": code},
+    )
+    logger.info(f"Lead #{lead_id}: coupon {code} redeemed successfully")
+    return True
+
+
+@router.post("/validate-coupon")
+async def validate_coupon(req: CouponValidateRequest):
+    """Live-validated Apply button check for scratch-card reward codes
+    (WS-prefixed). Static promo codes (WONDER10 etc.) are still validated
+    client-side only — this endpoint is only hit for codes not in that
+    hardcoded list."""
+    code = req.code.strip().upper()
+    phone = req.phone.strip()
+    row = await database.fetch_one("SELECT * FROM reward_codes WHERE code = :code", values={"code": code})
+    if not row:
+        return {"valid": False, "message": "Invalid code."}
+    if row["redeemed"]:
+        return {"valid": False, "message": "This code has already been used."}
+    if row["phone"] != phone:
+        return {"valid": False, "message": "This code can only be used with the mobile number it was issued to."}
+    if row["expiry_date"] and row["expiry_date"] < date.today():
+        return {"valid": False, "message": "This code has expired."}
+    pct = float(row["discount_pct"])
+    min_spend = float(row["min_spend"] or 0)
+    return {
+        "valid": True,
+        "discount_pct": pct,
+        "min_spend": min_spend,
+        "message": f"🎉 {code} applied — {pct:.0f}% off! (min. spend {_fmt_rupees(min_spend)})",
+    }
+
+
+# ─── ORDER SUMMARY / REWARD / DETAIL BLOCKS (plain-text, used as email fallback) ──
 
 def _format_order_summary_block(req: LeadSubmitRequest) -> str:
     """Itemised order summary — acts as the customer's on-email bill."""
@@ -136,17 +267,22 @@ def _format_order_summary_block(req: LeadSubmitRequest) -> str:
     if req.order_advance is not None:
         lines.append(f"  Advance Paid    : {_fmt_rupees(req.order_advance)}")
     if req.order_balance is not None:
-        lines.append(f"  Balance Due     : {_fmt_rupees(req.order_balance)} (before event)")
+        if req.event_date:
+            due = req.event_date - timedelta(days=2)
+            lines.append(
+                f"  Balance Due     : {_fmt_rupees(req.order_balance)} "
+                f"(due by {_fmt_date_long(due)} — 2 days before your event on {_fmt_date_long(req.event_date)})"
+            )
+        else:
+            lines.append(f"  Balance Due     : {_fmt_rupees(req.order_balance)} (before your event)")
     if req.reward_type == "refund" and req.reward_value and req.order_balance is not None:
         adjusted_balance = max(0.0, req.order_balance - req.reward_value)
         lines.append(f"  Scratch Card Refund : -{_fmt_rupees(req.reward_value)}")
-        lines.append(f"  Final Balance Due    : {_fmt_rupees(adjusted_balance)} (before event)")
+        lines.append(f"  Final Balance Due    : {_fmt_rupees(adjusted_balance)}")
     lines.append("")
     return "\n".join(lines) + "\n"
 
 def _format_dj_addons_block(req: LeadSubmitRequest) -> str:
-    """DJ add-ons — DJ Lights / Smoke Machine — only present if at least one
-    was selected."""
     lines = []
     if req.dj_lights_addon:
         lines.append("  DJ Lights      : Yes (Rs.1,500)")
@@ -157,8 +293,6 @@ def _format_dj_addons_block(req: LeadSubmitRequest) -> str:
     return "\nDJ ADD-ONS\n" + "\n".join(lines) + "\n"
 
 def _format_venue_block(req: LeadSubmitRequest) -> str:
-    """Venue Google Maps link + on-site contact person — only present if the
-    customer filled in at least one (both optional on the checkout step)."""
     if not any([req.venue_maps_link, req.venue_contact_name, req.venue_contact_phone]):
         return ""
     lines = ["\nVENUE DETAILS"]
@@ -174,8 +308,6 @@ def _format_venue_block(req: LeadSubmitRequest) -> str:
     return "\n".join(lines) + "\n"
 
 def _format_gift_delivery_block(req: LeadSubmitRequest) -> str:
-    """Return-gift delivery details — only present if the customer filled
-    in at least one of the delivery fields on the Return Gifts step."""
     fields = [
         req.gift_delivery_address, req.gift_delivery_maps_link,
         req.gift_delivery_address_type, req.gift_delivery_contact,
@@ -202,14 +334,16 @@ def _format_gift_delivery_block(req: LeadSubmitRequest) -> str:
     lines.append("")
     return "\n".join(lines) + "\n"
 
-
-def _format_reward_block(req: LeadSubmitRequest) -> str:
+def _format_reward_block(req: LeadSubmitRequest, reward_code: Optional[str]) -> str:
     """Scratch-card reward + full terms & conditions — only present if won."""
     if not req.reward_type:
         return ""
     lines = ["\nYOUR REWARD 🎁", f"  {req.reward_label or req.reward_type}"]
     if req.reward_value:
         lines.append(f"  Value: Rs.{req.reward_value:,.0f}")
+    if reward_code:
+        lines.append(f"  Your Code: {reward_code}")
+        lines.append(f"  Redeemable only on a future booking made from mobile number {req.phone}.")
     if req.reward_expiry:
         lines.append(f"  Valid until: {req.reward_expiry.isoformat()}")
     if req.reward_terms:
@@ -223,44 +357,247 @@ def _format_reward_block(req: LeadSubmitRequest) -> str:
     return "\n".join(lines) + "\n"
 
 
+# ─── HTML EMAIL TEMPLATE ─────────────────────────────────────────────────────
+# Table-based layout with inline styles throughout (required for consistent
+# rendering across Gmail/Outlook/Apple Mail). Images are hosted on the live
+# site rather than attached, so the email stays small and simple.
+
+def _html_details_table(rows) -> str:
+    """rows: list of (label, value) tuples. Skips rows with an empty value."""
+    trs = []
+    for label, value in rows:
+        if not value:
+            continue
+        trs.append(
+            f'<tr>'
+            f'<td style="padding:8px 14px;border-bottom:1px solid #F0E9FA;color:#8B7FA0;'
+            f'font-size:13px;font-weight:600;white-space:nowrap;vertical-align:top">{_html_escape(label)}</td>'
+            f'<td style="padding:8px 14px;border-bottom:1px solid #F0E9FA;color:#2D2140;font-size:13.5px">{_html_escape(value)}</td>'
+            f'</tr>'
+        )
+    if not trs:
+        return ""
+    return (
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        f'style="border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;'
+        f'border:1px solid #F0E9FA;margin:14px 0">{"".join(trs)}</table>'
+    )
+
+def _html_section_title(text: str) -> str:
+    return (
+        f'<div style="font-size:13px;font-weight:700;letter-spacing:.4px;color:{BRAND_PURPLE};'
+        f'text-transform:uppercase;margin:22px 0 8px">{_html_escape(text)}</div>'
+    )
+
+def _html_reward_card(req: LeadSubmitRequest, reward_code: Optional[str]) -> str:
+    if not req.reward_type:
+        return ""
+    parts = [
+        f'<div style="font-family:Georgia,serif;font-size:17px;font-weight:700;margin-bottom:4px">'
+        f'🎁 {_html_escape(req.reward_label or req.reward_type)}</div>'
+    ]
+    if req.reward_value:
+        parts.append(f'<div style="font-size:13.5px;opacity:.95;margin-bottom:8px">Value: Rs.{req.reward_value:,.0f}</div>')
+    if reward_code:
+        parts.append(
+            f'<div style="margin:10px 0;padding:10px 16px;background:rgba(255,255,255,.18);'
+            f'border:1.5px dashed rgba(255,255,255,.65);border-radius:8px;display:inline-block;'
+            f'font-family:monospace;font-size:19px;font-weight:700;letter-spacing:2px">{_html_escape(reward_code)}</div>'
+            f'<div style="font-size:12px;opacity:.9;margin-bottom:4px">Valid only when your next booking is made from mobile number {_html_escape(req.phone)}.</div>'
+        )
+    if req.reward_expiry:
+        parts.append(f'<div style="font-size:12px;opacity:.9">Valid until {_html_escape(_fmt_date_long(req.reward_expiry))}</div>')
+    if req.reward_terms:
+        clauses = "".join(f'<li style="margin-bottom:4px">{_html_escape(c.strip())}</li>' for c in req.reward_terms.split(" | ") if c.strip())
+        parts.append(f'<ul style="margin:10px 0 0;padding-left:18px;font-size:11.5px;line-height:1.6;opacity:.9">{clauses}</ul>')
+    body = "".join(parts)
+    return (
+        f'<div style="margin:18px 0;padding:18px 20px;border-radius:12px;color:#fff;'
+        f'background:linear-gradient(135deg,{BRAND_PINK} 0%,{BRAND_PURPLE} 100%)">{body}</div>'
+    )
+
+def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
+                       reward_code: Optional[str], recipient_kind: str) -> str:
+    """recipient_kind: 'customer' or 'team' — team version skips the welcome
+    fluff and T&C footer link but keeps the same details table + styling."""
+    first_name = (req.parent_name or "there").split()[0]
+
+    if recipient_kind == "customer":
+        if is_booking:
+            heading = "Welcome to the Wondershop Family! 🎉"
+            intro = (
+                f"Hi {_html_escape(first_name)}, your booking is confirmed — we're absolutely thrilled to be part of "
+                f"your child's big day. Our Party Experience Lead will be in touch shortly to walk through every detail."
+            )
+        else:
+            heading = f"We Got Your Enquiry, {_html_escape(first_name)}! 🎈"
+            intro = (
+                "Thank you for reaching out to Wondershop Experiences. Our team will call you within a few hours "
+                "to help plan your child's perfect birthday."
+            )
+    else:
+        heading = ("New Booking Confirmed 🎉" if is_booking else "New Lead Received")
+        intro = f"Reference #{lead_id} — {'a booking has been confirmed' if is_booking else 'a new enquiry has come in'} on the website."
+
+    detail_rows = [
+        ("Parent Name", req.parent_name),
+        ("Mobile", req.phone),
+        ("Email", req.email),
+        ("Child(ren)", req.child_names),
+        ("Child Age(s)", req.child_ages),
+        ("Event Date", _fmt_date_long(req.event_date) if req.event_date else None),
+        ("Kids Count", req.kids_count),
+        ("Theme", req.theme),
+        ("Venue", req.venue),
+        ("City / Pincode", " / ".join(filter(None, [req.city, req.pincode])) or None),
+    ]
+    details_html = _html_details_table(detail_rows)
+
+    order_rows = []
+    if req.order_grand_total is not None:
+        order_rows.append(("Grand Total", _fmt_rupees(req.order_grand_total)))
+    if req.order_discount_pct:
+        order_rows.append(("Discount", f"{req.order_discount_pct:.0f}%"))
+    if req.client_budget is not None:
+        order_rows.append(("Payable Total", _fmt_rupees(req.client_budget)))
+    if req.order_advance is not None:
+        order_rows.append(("Advance Paid", _fmt_rupees(req.order_advance)))
+    if req.order_balance is not None:
+        due_str = ""
+        if req.event_date:
+            due = req.event_date - timedelta(days=2)
+            due_str = f" — due by {_fmt_date_long(due)} (2 days before your event on {_fmt_date_long(req.event_date)})"
+        order_rows.append(("Balance Due", f"{_fmt_rupees(req.order_balance)}{due_str}"))
+    order_html = _html_details_table(order_rows)
+
+    dj_rows = []
+    if req.dj_lights_addon:
+        dj_rows.append(("DJ Lights", "Yes (Rs.1,500)"))
+    if req.dj_smoke_machine_addon:
+        dj_rows.append(("Smoke Machine", "Yes (Rs.2,000)"))
+    dj_html = _html_details_table(dj_rows)
+
+    venue_rows = [
+        ("Maps Link", req.venue_maps_link),
+        ("Contact Person", " ".join(filter(None, [req.venue_contact_name, f"({req.venue_contact_phone})" if req.venue_contact_phone else None])) or None),
+    ]
+    venue_html = _html_details_table(venue_rows)
+
+    gift_rows = [
+        ("Address", req.gift_delivery_address),
+        ("Address Type", req.gift_delivery_address_type),
+        ("Maps Link", req.gift_delivery_maps_link),
+        ("Contact Person", " ".join(filter(None, [req.gift_delivery_contact, f"({req.gift_delivery_contact_phone})" if req.gift_delivery_contact_phone else None])) or None),
+        ("Required By", _fmt_date_long(req.gift_required_by_date) if req.gift_required_by_date else None),
+    ]
+    gift_html = _html_details_table(gift_rows)
+
+    remarks_html = ""
+    if req.remarks:
+        remarks_html = (
+            _html_section_title("Special Requests / Remarks")
+            + f'<div style="background:#fff;border:1px solid #F0E9FA;border-radius:10px;padding:12px 14px;'
+              f'font-size:13.5px;color:#2D2140;white-space:pre-wrap">{_html_escape(req.remarks)}</div>'
+        )
+
+    reward_html = _html_reward_card(req, reward_code)
+
+    tnc_html = ""
+    if is_booking and recipient_kind == "customer":
+        tnc_html = (
+            f'<div style="margin:20px 0;font-size:12.5px;color:#8B7FA0">'
+            f'By confirming this booking you agree to our '
+            f'<a href="{TERMS_URL}" style="color:{BRAND_PURPLE};font-weight:700">Terms &amp; Conditions</a>.</div>'
+        )
+
+    sections = "".join(filter(None, [
+        _html_section_title("Booking Details" if is_booking else "Enquiry Details") + details_html,
+        (_html_section_title("Order Summary") + order_html) if order_rows else "",
+        (_html_section_title("DJ Add-ons") + dj_html) if dj_rows else "",
+        (_html_section_title("Venue Details") + venue_html) if any(r[1] for r in venue_rows) else "",
+        (_html_section_title("Return Gift Delivery") + gift_html) if any(r[1] for r in gift_rows) else "",
+        remarks_html,
+        reward_html,
+        tnc_html,
+    ]))
+
+    footer = (
+        '<div style="margin-top:26px;padding-top:18px;border-top:1px solid #F0E9FA;font-size:12.5px;color:#8B7FA0;text-align:center">'
+        'Need anything? We\'re here: <b style="color:#2D2140">+91 90044 35362 · +91 97422 40477</b><br>'
+        '<a href="mailto:contact@wondershopexperiences.com" style="color:' + BRAND_PURPLE + '">contact@wondershopexperiences.com</a>'
+        '</div>'
+    ) if recipient_kind == "customer" else ""
+
+    return f"""<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:{BRAND_LIGHT};font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{BRAND_LIGHT};padding:28px 12px">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(45,33,64,.08)">
+<tr><td style="background:linear-gradient(135deg,{BRAND_PINK} 0%,{BRAND_PURPLE} 100%);padding:28px 26px;text-align:center">
+<img src="{MASCOT_URL}" width="56" height="56" alt="Wondershop mascot" style="display:block;margin:0 auto 10px;border-radius:50%;background:#fff;padding:4px">
+<div style="font-family:Georgia,serif;font-size:21px;font-weight:700;color:#fff">{heading}</div>
+</td></tr>
+<tr><td style="padding:24px 26px 8px">
+<div style="font-size:14.5px;line-height:1.6;color:#2D2140">{intro}</div>
+{sections}
+</td></tr>
+<tr><td style="padding:0 26px 26px">{footer}</td></tr>
+</table>
+<div style="font-size:11px;color:#B3A7C4;margin-top:14px">Wondershop Experiences · Godrej Platinum, Vikhroli East, Mumbai</div>
+</td></tr>
+</table>
+</body></html>"""
+
+
 # ─── 1. USER ACK EMAIL ───────────────────────────────────────────────────────
 
-async def _send_user_ack(lead_id: int, req: LeadSubmitRequest) -> None:
-    """Confirmation email to the parent who submitted the form."""
+async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str]) -> None:
+    """Confirmation email to the parent who submitted the form. Content and
+    subject vary depending on whether this was a confirmed booking or an
+    unconfirmed enquiry (2026-08-11, per Shruti)."""
     if not req.email or "@" not in req.email or "." not in req.email.split("@")[-1]:
         return   # skip if no email or obviously invalid (e.g. test placeholder "string")
     if not settings.GMAIL_CLIENT_ID:
         return
 
     try:
+        first_name = req.parent_name.split()[0]
+        is_booking = bool(req.is_booking)
+
+        if is_booking:
+            subject = f"🎉 Your Wondershop Booking is Confirmed, {first_name}!"
+            intro_line = "Welcome to the Wondershop family! Your party is officially booked — we can't wait to celebrate with you."
+        else:
+            subject = f"We got your enquiry, {first_name}! 🎈"
+            intro_line = "We've received your enquiry and our team will call you within a few hours to discuss your child's birthday party."
+
         remarks_block = f"\nYour special requests / remarks:\n  {req.remarks}\n" if req.remarks else ""
         order_block = _format_order_summary_block(req)
         dj_addons_block = _format_dj_addons_block(req)
         venue_block = _format_venue_block(req)
         gift_delivery_block = _format_gift_delivery_block(req)
-        reward_block = _format_reward_block(req)
-        body = f"""Hi {req.parent_name.split()[0]}! 🎉
+        reward_block = _format_reward_block(req, reward_code)
+        tnc_line = f"\nPlease review our Terms & Conditions: {TERMS_URL}\n" if is_booking else ""
+        body = f"""Hi {first_name}! 🎉
 
-Thank you for reaching out to Wondershop Experiences.
-
-We've received your enquiry (Ref #{lead_id}) and our team will call you within a few hours to discuss your child's birthday party.
+{intro_line} (Ref #{lead_id})
 
 Your details:
   Event Date  : {req.event_date.isoformat() if req.event_date else '—'}
   Theme       : {req.theme or '—'}
   City        : {req.city or '—'}
-{remarks_block}{order_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}
+{remarks_block}{order_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{tnc_line}
 If you have any questions in the meantime, WhatsApp us at +91 90044 35362.
 
 Warmly,
 Team Wondershop 🎈
 wondershopexperiences.com
 """
-        await _gmail_send(
-            to_email=req.email,
-            subject=f"We got your enquiry, {req.parent_name.split()[0]}! 🎈",
-            body=body,
+        html_body = _build_html_email(
+            is_booking=is_booking, lead_id=lead_id, req=req,
+            reward_code=reward_code, recipient_kind="customer",
         )
+        await _gmail_send(to_email=req.email, subject=subject, body=body, html_body=html_body)
         logger.info(f"Lead #{lead_id}: user ACK sent to {req.email}")
     except Exception as exc:
         logger.error(f"Lead #{lead_id}: user ACK email failed — {exc}")
@@ -268,13 +605,14 @@ wondershopexperiences.com
 
 # ─── 2. TEAM NOTIFICATION EMAIL ──────────────────────────────────────────────
 
-async def _send_team_email(lead_id: int, req: LeadSubmitRequest) -> None:
+async def _send_team_email(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str]) -> None:
     """Alert email to the Wondershop team."""
     if not settings.GMAIL_CLIENT_ID:
         logger.warning("GMAIL credentials not configured — skipping team email")
         return
 
     try:
+        is_booking = bool(req.is_booking)
         budget_str = f"Rs.{req.client_budget:,.0f}" if req.client_budget else "—"
         remarks_block = f"\nSPECIAL REQUESTS / REMARKS\n  {req.remarks}\n" if req.remarks else ""
         order_block = _format_order_summary_block(req)
@@ -283,11 +621,13 @@ async def _send_team_email(lead_id: int, req: LeadSubmitRequest) -> None:
         gift_delivery_block = _format_gift_delivery_block(req)
         reward_block = ""
         if req.reward_type:
-            reward_block = _format_reward_block(req).replace(
+            reward_block = _format_reward_block(req, reward_code).replace(
                 "YOUR REWARD 🎁",
                 "SCRATCH-CARD REWARD WON — please action this on the account ⚠️",
             )
-        body = f"""New lead #{lead_id} received on Wondershop website.
+        redeemed_line = f"\nCoupon Redeemed: {req.redeemed_coupon_code}\n" if req.redeemed_coupon_code else ""
+        kind = "BOOKING" if is_booking else "LEAD"
+        body = f"""New {kind.lower()} #{lead_id} received on Wondershop website.
 
 PARENT
   Name   : {req.parent_name}
@@ -306,17 +646,23 @@ EVENT
   Venue      : {req.venue or '—'} ({req.location_type or '—'})
   City       : {req.city or '—'}   Pincode: {req.pincode or '—'}
   Budget     : {budget_str}
-{remarks_block}{order_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}
+{remarks_block}{order_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{redeemed_line}
 SOURCE
   {req.lead_source or '—'} / {req.lead_source_detail or '—'}
   Referred by: {req.referred_by or '—'}
 
 — Wondershop Lead System
 """
+        html_body = _build_html_email(
+            is_booking=is_booking, lead_id=lead_id, req=req,
+            reward_code=reward_code, recipient_kind="team",
+        )
+        subj_prefix = "🎉 New Booking" if is_booking else "📩 New Lead"
         await _gmail_send(
             to_email=settings.EMAIL_TEAM,
-            subject=f"New Lead #{lead_id} — {req.parent_name} ({req.phone})",
+            subject=f"{subj_prefix} #{lead_id} — {req.parent_name} ({req.phone})",
             body=body,
+            html_body=html_body,
         )
         logger.info(f"Lead #{lead_id}: team email sent to {settings.EMAIL_TEAM}")
     except Exception as exc:
@@ -325,7 +671,7 @@ SOURCE
 
 # ─── 3. GOOGLE SHEET ─────────────────────────────────────────────────────────
 
-async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest) -> None:
+async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str]) -> None:
     """
     POST to the Google Apps Script webhook.
     The Apps Script appends one row to the sheet.
@@ -366,6 +712,8 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest) -> None:
             "reward_value":       req.reward_value or "",
             "reward_terms":       req.reward_terms or "",
             "reward_expiry":      req.reward_expiry.isoformat() if req.reward_expiry else "",
+            "reward_code":        reward_code or "",
+            "redeemed_coupon_code": req.redeemed_coupon_code or "",
             "remarks":            req.remarks or "",
             "lead_source_detail": req.lead_source_detail or "",
             "gift_delivery_address":      req.gift_delivery_address or "",
@@ -377,7 +725,7 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest) -> None:
             "dj_lights_addon":            "Yes" if req.dj_lights_addon else "No",
             "dj_smoke_machine_addon":     "Yes" if req.dj_smoke_machine_addon else "No",
             "cart_snapshot":      json.dumps(req.builder_snapshot) if req.builder_snapshot else "",
-            "status":       "Lead",
+            "status":       "Confirmed" if req.is_booking else "Lead",
         }
         async with httpx.AsyncClient(timeout=10) as client:
             r = await client.post(settings.GOOGLE_SHEET_WEBHOOK_URL, json=payload)
@@ -452,12 +800,12 @@ async def _send_whatsapp_alerts(lead_id: int, req: LeadSubmitRequest) -> None:
 
 # ─── FIRE ALL FOUR IN PARALLEL ───────────────────────────────────────────────
 
-async def _notify_all(lead_id: int, req: LeadSubmitRequest) -> None:
+async def _notify_all(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str]) -> None:
     """Runs all four notifications concurrently. Never raises."""
     await asyncio.gather(
-        _send_user_ack(lead_id, req),
-        _send_team_email(lead_id, req),
-        _append_to_sheet(lead_id, req),
+        _send_user_ack(lead_id, req, reward_code),
+        _send_team_email(lead_id, req, reward_code),
+        _append_to_sheet(lead_id, req, reward_code),
         _send_whatsapp_alerts(lead_id, req),
         return_exceptions=True,   # one failure must never cancel the others
     )
@@ -468,9 +816,12 @@ async def _notify_all(lead_id: int, req: LeadSubmitRequest) -> None:
 @router.post("/submit")
 async def submit_lead(req: LeadSubmitRequest):
     """
-    1. Saves lead to DB (status = New).
-    2. Fires all four notifications in parallel (fire-and-forget).
+    1. Saves lead to DB (status = Booked for confirmed bookings, New for leads).
+    2. Issues a reward code if the customer won the "discount" scratch-card
+       reward, and/or redeems one if they applied a previously-issued code.
+    3. Fires all four notifications in parallel (fire-and-forget).
     """
+    status = "Booked" if req.is_booking else "New"
     lead_id = await database.execute(
         """
         INSERT INTO leads (
@@ -485,6 +836,7 @@ async def submit_lead(req: LeadSubmitRequest):
             gift_delivery_contact_phone,
             gift_required_by_date,
             dj_lights_addon, dj_smoke_machine_addon,
+            redeemed_coupon_code,
             status
         ) VALUES (
             :parent_name, :phone, :child_names, :email,
@@ -498,7 +850,8 @@ async def submit_lead(req: LeadSubmitRequest):
             :gift_delivery_contact_phone,
             :gift_required_by_date,
             :dj_lights_addon, :dj_smoke_machine_addon,
-            'New'
+            :redeemed_coupon_code,
+            :status
         )
         RETURNING lead_id
         """,
@@ -533,15 +886,28 @@ async def submit_lead(req: LeadSubmitRequest):
             "gift_required_by_date":      req.gift_required_by_date,
             "dj_lights_addon":            bool(req.dj_lights_addon),
             "dj_smoke_machine_addon":     bool(req.dj_smoke_machine_addon),
+            "redeemed_coupon_code":       req.redeemed_coupon_code,
+            "status":                     status,
         },
     )
 
+    # Reward code issue/redeem — best-effort, never blocks the booking itself.
+    reward_code = None
+    try:
+        if req.reward_type == "discount":
+            reward_code = await _issue_reward_code(lead_id, req.phone, req.reward_expiry)
+        if req.redeemed_coupon_code:
+            await _redeem_coupon_code(req.redeemed_coupon_code.strip().upper(), req.phone, lead_id)
+    except Exception as exc:
+        logger.error(f"Lead #{lead_id}: reward code handling failed — {exc}")
+
     # Fire-and-forget — DB save already succeeded before this runs
-    await _notify_all(lead_id, req)
+    await _notify_all(lead_id, req, reward_code)
 
     return {
         "success": True,
         "lead_id": lead_id,
+        "reward_code": reward_code,
         "message": "We'll be in touch within a few hours!",
     }
 

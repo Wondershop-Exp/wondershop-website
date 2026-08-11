@@ -3418,12 +3418,43 @@ function coKidsChanged(val){
   setTimeout(()=>{document.getElementById('co-kids-popup').style.display='none';},4000);
   updCoAmt();
 }
-function applyCoupon(){
+async function applyCoupon(){
   const code=document.getElementById('co-coupon').value.toUpperCase().trim();
   const ok=document.getElementById('couponOk');
   const codes={WONDER10:10,BIRTHDAY5:5,FIRST15:15,PKGUNICORN:15,PKGPRINCESS:15,PKGSUPERHERO:15,PKGTURF:15};
-  if(codes[code]){S.couponPct=codes[code];ok.textContent='🎉 '+code+' applied — '+codes[code]+'% off!';ok.classList.add('show');}
-  else{S.couponPct=0;ok.textContent='Invalid code. Try WONDER10';ok.classList.add('show');}
+  S._redeemedRewardCode=null;
+  if(codes[code]){
+    S.couponPct=codes[code];ok.textContent='🎉 '+code+' applied — '+codes[code]+'% off!';ok.classList.add('show');
+    updCoAmt();
+    return;
+  }
+  // Not a static promo code — check if it's a real, unique scratch-card
+  // reward code (WS-prefixed, issued server-side on a previous booking).
+  // Those are only valid against the same mobile number that won them.
+  const mobRaw=(document.getElementById('co-mob')?.value||'').replace(/\D/g,'');
+  const phone=mobRaw.length===10?('+91'+mobRaw):(mobRaw?('+'+mobRaw):'');
+  if(!code){S.couponPct=0;ok.textContent='Enter a code to apply.';ok.classList.add('show');updCoAmt();return;}
+  if(!phone){S.couponPct=0;ok.textContent='Enter your mobile number above first, then apply the code.';ok.classList.add('show');updCoAmt();return;}
+  if(!window.WS_API_BASE){S.couponPct=0;ok.textContent='Invalid code. Try WONDER10';ok.classList.add('show');updCoAmt();return;}
+  try{
+    const r=await fetch(window.WS_API_BASE+'/api/leads/validate-coupon',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code,phone}),
+    });
+    const data=await r.json();
+    if(data.valid){
+      if(data.min_spend && tp()<data.min_spend){
+        S.couponPct=0;ok.textContent='This code needs a minimum spend of ₹'+data.min_spend.toLocaleString('en-IN')+'.';ok.classList.add('show');
+      }else{
+        S.couponPct=data.discount_pct;S._redeemedRewardCode=code;
+        ok.textContent=data.message||('🎉 '+code+' applied — '+data.discount_pct+'% off!');ok.classList.add('show');
+      }
+    }else{
+      S.couponPct=0;ok.textContent=data.message||'Invalid code.';ok.classList.add('show');
+    }
+  }catch(e){
+    S.couponPct=0;ok.textContent='Could not verify that code right now — please try again.';ok.classList.add('show');
+  }
   updCoAmt();
 }
 function selPay(el,method){document.querySelectorAll('.pay-opt').forEach(p=>p.classList.remove('on'));el.classList.add('on');S.payMethod=method;const qr=document.getElementById('payOnlineDetails');if(qr)qr.style.display=method==='online'?'block':'none';}
@@ -3564,6 +3595,8 @@ async function doCo(){
     dj_lights_addon:            !!S.djAddons.lights,
     dj_smoke_machine_addon:     !!S.djAddons.smoke,
     lead_source:        __leadSource,
+    is_booking:          true,
+    redeemed_coupon_code: S._redeemedRewardCode || null,
   };
 
   let __coOk=false;
@@ -3575,7 +3608,18 @@ async function doCo(){
         body:JSON.stringify(__coPayload),
       });
       __coOk=__r.ok;
-      if(!__r.ok) console.error('Booking submit failed, status', __r.status);
+      if(!__r.ok){console.error('Booking submit failed, status', __r.status);}
+      else{
+        // Backend may have issued a real, unique redeemable code for the
+        // "10% off next booking" reward — show that instead of a generic label.
+        try{
+          const __rj=await __r.json();
+          if(__rj && __rj.reward_code && __reward){
+            __reward.code=__rj.reward_code;
+            __reward.sub='Your code: '+__rj.reward_code+'. '+__reward.sub;
+          }
+        }catch(e){/* non-JSON or empty response — fine, just no code to show */}
+      }
     }catch(e){
       console.error('Booking submit error:', e);
     }
@@ -3759,6 +3803,7 @@ async function doLead(){
     builder_snapshot:   buildSnapshot(),
     lead_source:        'Website - Custom Request',
     lead_source_detail: new URLSearchParams(location.search).get('utm_source')||null,
+    is_booking:          false,
   };
 
   // Sheet write consolidated (2026-08-11, per Shruti) — same reasoning as
@@ -3896,6 +3941,7 @@ const SCRATCH_REWARDS=[
     terms:[
       'Valid for your next new Wondershop booking made within the validity period — including play dates, family gatherings, and other celebrations, not just birthday parties.',
       'Minimum spend of ₹15,000 on the next booking required.',
+      'Your code is tied to the mobile number used on this booking — it can only be redeemed on a future booking made from that same number.',
       'Cannot be combined with other offers, coupons or discounts. One-time use, non-transferable.',
     ]},
   {type:'none',weight:38,icon:'🎈',label:'Better Luck Next Time!',badge:'',dark:true,
