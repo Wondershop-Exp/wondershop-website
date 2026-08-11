@@ -646,6 +646,12 @@ input,textarea,select{font-family:var(--fb)}
 .free-inv-toast{position:fixed;top:calc(var(--bh-h, 60px) + 16px);left:50%;transform:translateX(-50%) translateY(-8px) scale(.92);background:linear-gradient(90deg,var(--li),var(--pk));color:#fff;font-family:var(--fd);font-weight:700;font-size:15px;padding:13px 26px;border-radius:30px;box-shadow:0 10px 30px rgba(0,0,0,.28);z-index:9999;opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease;white-space:nowrap}
 .free-inv-toast.show{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
 
+/* Generic error toast — top-center, above everything, visible no matter
+   how far down the page the user has scrolled or which step they're on. */
+.err-toast{position:fixed;top:calc(var(--bh-h, 60px) + 16px);left:50%;transform:translateX(-50%) translateY(-8px) scale(.92);background:linear-gradient(90deg,#E65A96,#D63B7A);color:#fff;font-family:var(--fb);font-weight:700;font-size:14px;padding:13px 22px;border-radius:14px;box-shadow:0 10px 30px rgba(214,59,122,.35);z-index:10000;opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease;max-width:min(420px,90vw);text-align:center;line-height:1.4}
+.err-toast.show{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+@media(max-width:660px){.err-toast{top:16px;font-size:13.5px;padding:12px 18px}}
+
 /* ── SCRATCH CARD (post-booking reward, GPay-style reveal) ── */
 .scratch-overlay{display:none;position:fixed;inset:0;z-index:10000;background:rgba(15,10,25,.8);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px}
 .scratch-overlay.show{display:flex}
@@ -2084,6 +2090,10 @@ input,textarea,select{font-family:var(--fb)}
      already-qualified free E-Invite on Step 6. -->
 <div class="confetti-container" id="confettiContainer"></div>
 <div class="free-inv-toast" id="freeInvToast">🎉 FREE E-Invite unlocked!</div>
+<!-- Generic error toast — pops in at the top of the viewport regardless of
+     scroll position, so a validation error is never missed just because the
+     offending field/checkbox is off-screen (e.g. T&C on the review page). -->
+<div class="err-toast" id="errToast" role="alert"></div>
 
 <!-- SCRATCH CARD — post-booking reward (page-level, not nested in any .step) -->
 <div class="scratch-overlay" id="scratchOverlay">
@@ -2282,8 +2292,10 @@ const STD=STD_META.map(m=>{
 // Spy package "Mission Stations" pricing — same tiers/minimum-bill formula as
 // spy-basic.html's stationTier()/stationsPrice(), kept here so the review-page
 // line item stays live if S.kidsCount changes after the package hand-off.
+// Minimum 5 stations on every booking, even at the smallest guest counts
+// (e.g. 15 kids) — per Shruti, 2026-08-12.
 function spyStationTier(kids){
-  if(kids<=20)return{stations:4,rate:1250};
+  if(kids<=20)return{stations:5,rate:1250};
   if(kids<=30)return{stations:5,rate:1200};
   if(kids<=40)return{stations:6,rate:1200};
   if(kids<=50)return{stations:7,rate:1200};
@@ -3171,6 +3183,22 @@ function selPin(btn,id,p,n){
 }
 function selPinataC(card){const wasSel=card.classList.contains('sel');document.querySelectorAll('#pinCards .pcard,#pn-custom').forEach(c=>{c.classList.remove('sel');const b=c.querySelector('.card-btn');if(b){b.classList.remove('added');b.textContent='Select';}});if(wasSel){S.pinata=null;}else{card.classList.add('sel');S.pinata={id:'custom',n:'Custom Design',p:0};}updBB(S.screen);}
 
+// ── ERROR TOAST ──
+// Generic top-center popup for validation errors — used anywhere a check
+// currently only shows/highlights an inline message, so the customer sees
+// it even if the offending field is scrolled off-screen (e.g. the T&C
+// checkbox on the review/checkout page, reachable only after scrolling
+// past the whole order summary).
+let _errToastTimer=null;
+function showErrorToast(msg){
+  const t=document.getElementById('errToast');
+  if(!t)return;
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(_errToastTimer);
+  _errToastTimer=setTimeout(()=>t.classList.remove('show'),4200);
+}
+
 // ── E-INVITE ──
 let invConfettiShown=false;
 function showFreeInvToast(){
@@ -3258,12 +3286,12 @@ function validateInvite(){
   if(!S.einvite){if(errEl)errEl.style.display='none';return true;}
   if(S.einvite.id==='custom'){
     const ok=!!document.getElementById('ei-ctheme')?.value.trim();
-    if(!ok){document.getElementById('invCustomThemeWrap').scrollIntoView({behavior:'smooth',block:'center'});return false;}
+    if(!ok){document.getElementById('invCustomThemeWrap').scrollIntoView({behavior:'smooth',block:'center'});showErrorToast('Please fill in your custom E-Invite theme to continue.');return false;}
     return true;
   }
   const req=['ei-names','ei-age','ei-date','ei-start','ei-venue'];
   const missing=req.some(id=>!document.getElementById(id)?.value.trim());
-  if(missing){if(errEl){errEl.style.display='block';errEl.scrollIntoView({behavior:'smooth',block:'center'});}return false;}
+  if(missing){if(errEl){errEl.style.display='block';errEl.scrollIntoView({behavior:'smooth',block:'center'});}showErrorToast('Please fill all required (*) E-Invite fields to continue.');return false;}
   if(errEl)errEl.style.display='none';
   return true;
 }
@@ -3521,9 +3549,15 @@ async function doCo(){
   if(isPastDate(document.getElementById('co-date').value)){
     checkUrgentDate('co-date','co-urgent-warn');
     document.getElementById('co-date').focus();
+    showErrorToast('That date has already passed — please pick today or a later date.');
     return;
   }
-  if(!S.tncOk){document.getElementById('e-tnc').classList.add('show');return;}
+  if(!S.tncOk){
+    document.getElementById('e-tnc').classList.add('show');
+    document.getElementById('e-tnc').scrollIntoView({behavior:'smooth',block:'center'});
+    showErrorToast('Please accept the Terms & Conditions to continue.');
+    return;
+  }
   document.getElementById('e-tnc').classList.remove('show');
   S.mobile=document.getElementById('co-mob').value;S.eventDate=document.getElementById('co-date').value;S.eventTime=document.getElementById('co-time').value;
   S.kidsCount=parseInt(document.getElementById('co-kids').value)||S.kidsCount;
@@ -3789,16 +3823,19 @@ async function doLead(){
   if(!name){
     const el=document.getElementById('ld-name');
     el.style.borderColor='#E65A96';el.focus();
+    showErrorToast('Please enter your name to continue.');
     return;
   }
   if(phone.length!==10){
     const el=document.getElementById('ld-phone');
     el.style.borderColor='#E65A96';el.focus();
+    showErrorToast('Please enter a valid 10-digit mobile number.');
     return;
   }
   if(isPastDate(date)){
     checkUrgentDate('ld-date');
     document.getElementById('ld-date').focus();
+    showErrorToast('That date has already passed — please pick today or a later date.');
     return;
   }
 
