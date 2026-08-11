@@ -203,6 +203,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .sticky-price-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .sticky-price{font-family:var(--fd);font-size:22px;font-weight:700;color:var(--bk);white-space:nowrap}
 .sticky-price-orig{font-family:var(--fd);font-size:14px;font-weight:600;color:var(--gy);text-decoration:line-through;white-space:nowrap}
+.sticky-discount-badge{display:inline-flex;align-items:center;background:var(--sgr);color:#166534;font-size:11px;font-weight:700;border-radius:20px;padding:2px 9px;white-space:nowrap}
 .sticky-base{font-size:12px;color:var(--gy);white-space:nowrap}
 .sticky-details{font-size:12px;color:var(--gy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sticky-details .ok{color:var(--li);font-weight:600}
@@ -642,6 +643,7 @@ button{cursor:pointer;font-family:var(--fb)}
       <div class="sticky-price-row">
         <div class="sticky-price-orig" id="stickyOrig"></div>
         <div class="sticky-price" id="stickyTotal">₹35,700</div>
+        <span class="sticky-discount-badge" id="stickyDiscountBadge"></span>
         <div class="sticky-base" id="stickyBase">· Turf Takeover Party</div>
       </div>
       <div class="sticky-details" id="stickyDetails">Select an activity above to continue</div>
@@ -1080,6 +1082,7 @@ function updateSticky() {
   document.getElementById('heroPriceOrig').textContent = fmtINR(total);
   document.getElementById('heroPrice').textContent = fmtINR(discounted);
   document.getElementById('heroDiscountBadge').textContent = PACKAGE_DISCOUNT_PCT + '% OFF';
+  document.getElementById('stickyDiscountBadge').textContent = PACKAGE_DISCOUNT_PCT + '% OFF';
 
   const details = document.getElementById('stickyDetails');
   const parts = [];
