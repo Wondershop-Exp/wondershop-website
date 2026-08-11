@@ -265,14 +265,6 @@
       width: 100%; height: 100%; object-fit: cover;
       transition: opacity .6s ease;
     }
-    .hero-card-badge {
-      position: absolute; bottom: 16px; left: 16px; z-index: 3;
-      background: rgba(255,255,255,.93); border-radius: 10px;
-      padding: 8px 12px; display: flex; align-items: center; gap: 8px;
-      backdrop-filter: blur(4px);
-    }
-    .hcb-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gr); flex-shrink: 0; }
-    .hcb-txt { font-family: var(--fb); font-size: 11px; font-weight: 600; color: var(--bk); }
     .hero-cdots {
       position: absolute; bottom: -28px; right: 4px;
       display: flex; gap: 7px;
@@ -930,10 +922,6 @@
           <div class="hero-deco-circle" style="width:100px;height:100px;background:var(--li2);opacity:.6;bottom:40px;left:-16px;"></div>
           <div style="position:relative;border-radius:24px;overflow:hidden;box-shadow:0 24px 64px rgba(181,157,222,.28);flex:1">
             <img src="img/hero-banner-1.jpg" alt="Wondershop birthday celebration" id="hc-front-img" loading="eager" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block;transition:opacity .6s ease">
-            <div class="hero-card-badge" style="position:absolute;bottom:16px;left:16px">
-              <div class="hcb-dot"></div>
-              <div class="hcb-txt" id="hcb-txt">Wondershop Experiences</div>
-            </div>
             <button type="button" class="hero-arrow hero-arrow-left" aria-label="Previous photo" onclick="cPrev(); cReset();">
               <svg viewBox="0 0 24 24" fill="none" stroke="#191919" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
@@ -1592,14 +1580,13 @@ function proceedFromCart(){
 
 // ── HERO IMAGE CAROUSEL ──
 const FRAMES = [
-  { src: 'img/hero-banner-1.jpg', badge: 'Wondershop Experiences' },
-  { src: 'img/hero-banner-2.jpg', badge: 'Wondershop Experiences' },
-  { src: 'img/hero-banner-3.jpg', badge: 'Wondershop Experiences' },
-  { src: 'img/hero-banner-4.jpg', badge: 'Wondershop Experiences' },
+  { src: 'img/hero-banner-1.jpg' },
+  { src: 'img/hero-banner-2.jpg' },
+  { src: 'img/hero-banner-3.jpg' },
+  { src: 'img/hero-banner-4.jpg' },
 ];
 let cCur = 0, cTimer;
 const frontImg = document.getElementById('hc-front-img');
-const hcbTxt   = document.getElementById('hcb-txt');
 const cdots    = document.getElementById('hero-cdots');
 
 FRAMES.forEach((_,i) => {
@@ -1614,7 +1601,6 @@ function cGoTo(n) {
   frontImg.style.opacity = '0';
   setTimeout(() => {
     frontImg.src = FRAMES[n].src;
-    hcbTxt.textContent = FRAMES[n].badge;
     frontImg.style.opacity = '1';
   }, 320);
   Array.from(cdots.children).forEach((d,i) => d.classList.toggle('active', i===n));
