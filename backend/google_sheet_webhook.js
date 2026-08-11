@@ -41,7 +41,7 @@ var HEADERS = [
   "Location Type", "City", "Pincode", "Budget (₹)",
   "Grand Total (₹)", "Discount %", "Advance Paid (₹)", "Balance Due (₹)",
   "Reward Type", "Reward Label", "Reward Value (₹)", "Reward Terms", "Reward Expiry",
-  "Reward Code Issued", "Coupon Code Redeemed",
+  "Reward Code Issued", "Coupon Code Redeemed", "Referral Code Issued",
   "Remarks",
   "Lead Source", "Lead Source Detail", "Referred By",
   "Gift Delivery Address", "Gift Delivery Maps Link", "Gift Delivery Address Type",
@@ -99,6 +99,7 @@ function doPost(e) {
       d.reward_expiry  || "",
       d.reward_code    || "",
       d.redeemed_coupon_code || "",
+      d.referral_code  || "",
       d.remarks        || "",
       d.lead_source        || "",
       d.lead_source_detail || "",
@@ -238,6 +239,7 @@ function doPost_test() {
         referred_by:  "",
         reward_code:  "",
         redeemed_coupon_code: "",
+        referral_code: "",
         status:       "Lead"
       })
     }

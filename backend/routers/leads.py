@@ -15,6 +15,7 @@ the DB status value (2026-08-11, per Shruti).
 """
 import json
 import random
+import re
 import string
 import asyncio
 import logging
@@ -227,29 +228,142 @@ async def _redeem_coupon_code(code: str, phone: str, lead_id: int) -> bool:
 
 @router.post("/validate-coupon")
 async def validate_coupon(req: CouponValidateRequest):
-    """Live-validated Apply button check for scratch-card reward codes
-    (WS-prefixed). Static promo codes (WONDER10 etc.) are still validated
-    client-side only — this endpoint is only hit for codes not in that
-    hardcoded list."""
+    """Live-validated Apply button check. Tries a scratch-card reward code
+    (WS-prefixed) first, then a Refer & Earn referral code. Static promo
+    codes (WONDER10 etc.) are still validated client-side only — this
+    endpoint is only hit for codes not in that hardcoded list."""
     code = req.code.strip().upper()
     phone = req.phone.strip()
+
     row = await database.fetch_one("SELECT * FROM reward_codes WHERE code = :code", values={"code": code})
+    if row:
+        if row["redeemed"]:
+            return {"valid": False, "message": "This code has already been used."}
+        if row["phone"] != phone:
+            return {"valid": False, "message": "This code can only be used with the mobile number it was issued to."}
+        if row["expiry_date"] and row["expiry_date"] < date.today():
+            return {"valid": False, "message": "This code has expired."}
+        pct = float(row["discount_pct"])
+        min_spend = float(row["min_spend"] or 0)
+        return {
+            "valid": True,
+            "discount_pct": pct,
+            "min_spend": min_spend,
+            "message": f"🎉 {code} applied — {pct:.0f}% off! (min. spend {_fmt_rupees(min_spend)})",
+        }
+
+    return await _check_referral_code(code, phone)
+
+
+# ─── REFER & EARN ─────────────────────────────────────────────────────────────
+# Every confirmed booking gets a personal, easy-to-remember referral code
+# (first name + last 4 digits of their mobile — reused across every booking
+# they make). Friends apply it at checkout for 10% off (min spend ₹15,000),
+# same as the scratch-card discount. Rules (2026-08-11, per Shruti):
+#   - A code can be used by many different friends (not single-use overall).
+#   - Each phone number can redeem a referral code only once, ever.
+#   - You cannot redeem your own code.
+#   - The referrer earns ₹500 credit (applied manually by the Party
+#     Experience Lead against their next booking) every time their code is
+#     successfully used — tracked in referral_redemptions for ops to action.
+
+REFERRAL_REWARD_AMOUNT = 500
+
+def _generate_referral_base(name: str, phone: str) -> str:
+    first = re.sub(r"[^A-Za-z]", "", (name or "FRIEND").split()[0] if name else "FRIEND").upper()[:10] or "FRIEND"
+    digits = re.sub(r"\D", "", phone or "")
+    suffix = digits[-4:] if len(digits) >= 4 else digits.zfill(4)
+    return first + suffix
+
+async def _get_or_create_referral_code(lead_id: int, name: str, phone: str) -> Optional[str]:
+    existing = await database.fetch_one(
+        "SELECT code FROM referral_codes WHERE owner_phone = :phone ORDER BY created_at LIMIT 1",
+        values={"phone": phone},
+    )
+    if existing:
+        return existing["code"]
+    base = _generate_referral_base(name, phone)
+    code = base
+    for n in range(2, 8):
+        try:
+            await database.execute(
+                "INSERT INTO referral_codes (code, owner_lead_id, owner_name, owner_phone) VALUES (:code, :lead_id, :name, :phone)",
+                values={"code": code, "lead_id": lead_id, "name": name, "phone": phone},
+            )
+            return code
+        except Exception:
+            code = f"{base}{n}"  # collision (two people with the same first name + last-4) — retry with a suffix
+    logger.error(f"Lead #{lead_id}: could not issue a unique referral code after several attempts")
+    return None
+
+async def _check_referral_code(code: str, phone: str) -> dict:
+    row = await database.fetch_one("SELECT * FROM referral_codes WHERE code = :code", values={"code": code})
     if not row:
         return {"valid": False, "message": "Invalid code."}
-    if row["redeemed"]:
-        return {"valid": False, "message": "This code has already been used."}
-    if row["phone"] != phone:
-        return {"valid": False, "message": "This code can only be used with the mobile number it was issued to."}
-    if row["expiry_date"] and row["expiry_date"] < date.today():
-        return {"valid": False, "message": "This code has expired."}
-    pct = float(row["discount_pct"])
-    min_spend = float(row["min_spend"] or 0)
+    if row["owner_phone"] == phone:
+        return {"valid": False, "message": "You can't use your own referral code."}
+    already = await database.fetch_one(
+        "SELECT 1 FROM referral_redemptions WHERE redeemed_by_phone = :phone", values={"phone": phone},
+    )
+    if already:
+        return {"valid": False, "message": "You've already used a referral code before — this offer is for first-time referrals only."}
     return {
         "valid": True,
-        "discount_pct": pct,
-        "min_spend": min_spend,
-        "message": f"🎉 {code} applied — {pct:.0f}% off! (min. spend {_fmt_rupees(min_spend)})",
+        "discount_pct": 10,
+        "min_spend": 15000,
+        "message": f"🎉 {code} applied — 10% off! (min. spend {_fmt_rupees(15000)})",
     }
+
+async def _redeem_referral_code(code: str, phone: str, lead_id: int) -> bool:
+    """Marks a referral code as used by this phone number and credits the
+    referrer's reward. Enforces: not self-referral, not already used by
+    this phone before. Never blocks the booking on failure."""
+    row = await database.fetch_one("SELECT * FROM referral_codes WHERE code = :code", values={"code": code})
+    if not row:
+        return False
+    if row["owner_phone"] == phone:
+        logger.warning(f"Lead #{lead_id}: referral redemption blocked — self-referral attempt on {code}")
+        return False
+    already = await database.fetch_one(
+        "SELECT 1 FROM referral_redemptions WHERE redeemed_by_phone = :phone", values={"phone": phone},
+    )
+    if already:
+        logger.warning(f"Lead #{lead_id}: referral redemption blocked — {phone} already used a referral code")
+        return False
+    await database.execute(
+        """
+        INSERT INTO referral_redemptions (code, redeemed_by_phone, redeemed_lead_id, referrer_reward_amount)
+        VALUES (:code, :phone, :lead_id, :amount)
+        """,
+        values={"code": code, "phone": phone, "lead_id": lead_id, "amount": REFERRAL_REWARD_AMOUNT},
+    )
+    logger.info(f"Lead #{lead_id}: referral code {code} redeemed — referrer earns Rs.{REFERRAL_REWARD_AMOUNT}")
+    # Best-effort nudge to the referrer that they earned a reward.
+    try:
+        owner = await database.fetch_one(
+            "SELECT parent_name, email FROM leads WHERE lead_id = :lid", values={"lid": row["owner_lead_id"]},
+        )
+        if owner and owner["email"] and "@" in owner["email"] and settings.GMAIL_CLIENT_ID:
+            first = (owner["parent_name"] or "there").split()[0]
+            body = (
+                f"Hi {first}! 🎉\n\nGreat news — someone just booked with Wondershop using your referral code "
+                f"{code}. You've earned Rs.{REFERRAL_REWARD_AMOUNT} credit, which your Party Experience Lead "
+                f"will apply against your next Wondershop booking.\n\n"
+                f"Keep sharing your code with friends — there's no limit to how many times you can earn!\n\n"
+                f"Warmly,\nTeam Wondershop 🎈"
+            )
+            await _gmail_send(to_email=owner["email"], subject=f"You just earned Rs.{REFERRAL_REWARD_AMOUNT}! 🎉", body=body)
+    except Exception as exc:
+        logger.error(f"Lead #{lead_id}: referral-earned notification failed — {exc}")
+    return True
+
+async def _redeem_any_code(code: str, phone: str, lead_id: int) -> None:
+    """Tries the code against reward_codes first, then referral_codes.
+    Best-effort — a failed/invalid code never blocks the booking, since the
+    price was already computed client-side at Apply time."""
+    if await _redeem_coupon_code(code, phone, lead_id):
+        return
+    await _redeem_referral_code(code, phone, lead_id)
 
 
 # ─── ORDER SUMMARY / REWARD / DETAIL BLOCKS (plain-text, used as email fallback) ──
@@ -416,8 +530,25 @@ def _html_reward_card(req: LeadSubmitRequest, reward_code: Optional[str]) -> str
         f'background:linear-gradient(135deg,{BRAND_PINK} 0%,{BRAND_PURPLE} 100%)">{body}</div>'
     )
 
+def _html_referral_card(req: LeadSubmitRequest, referral_code: Optional[str]) -> str:
+    if not referral_code:
+        return ""
+    return (
+        f'<div style="margin:18px 0;padding:18px 20px;border-radius:12px;color:#fff;'
+        f'background:linear-gradient(135deg,#52C470 0%,#2E9E52 100%)">'
+        f'<div style="font-family:Georgia,serif;font-size:17px;font-weight:700;margin-bottom:4px">🎁 Refer &amp; Earn</div>'
+        f'<div style="font-size:13.5px;line-height:1.6;opacity:.95;margin-bottom:10px">'
+        f'Share your code with friends — they get 10% off their booking (min. spend ₹15,000), '
+        f'and you earn ₹{REFERRAL_REWARD_AMOUNT} credit towards your next Wondershop booking, every single time it\'s used.</div>'
+        f'<div style="padding:10px 16px;background:rgba(255,255,255,.18);border:1.5px dashed rgba(255,255,255,.65);'
+        f'border-radius:8px;display:inline-block;font-family:monospace;font-size:19px;font-weight:700;letter-spacing:2px">'
+        f'{_html_escape(referral_code)}</div>'
+        f'</div>'
+    )
+
 def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
-                       reward_code: Optional[str], recipient_kind: str) -> str:
+                       reward_code: Optional[str], referral_code: Optional[str] = None,
+                       recipient_kind: str) -> str:
     """recipient_kind: 'customer' or 'team' — team version skips the welcome
     fluff and T&C footer link but keeps the same details table + styling."""
     first_name = (req.parent_name or "there").split()[0]
@@ -501,6 +632,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
         )
 
     reward_html = _html_reward_card(req, reward_code)
+    referral_html = _html_referral_card(req, referral_code) if recipient_kind == "customer" else ""
 
     tnc_html = ""
     if is_booking and recipient_kind == "customer":
@@ -518,6 +650,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
         (_html_section_title("Return Gift Delivery") + gift_html) if any(r[1] for r in gift_rows) else "",
         remarks_html,
         reward_html,
+        referral_html,
         tnc_html,
     ]))
 
@@ -551,7 +684,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
 
 # ─── 1. USER ACK EMAIL ───────────────────────────────────────────────────────
 
-async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str]) -> None:
+async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str] = None) -> None:
     """Confirmation email to the parent who submitted the form. Content and
     subject vary depending on whether this was a confirmed booking or an
     unconfirmed enquiry (2026-08-11, per Shruti)."""
@@ -577,6 +710,14 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Opti
         venue_block = _format_venue_block(req)
         gift_delivery_block = _format_gift_delivery_block(req)
         reward_block = _format_reward_block(req, reward_code)
+        referral_block = ""
+        if referral_code:
+            referral_block = (
+                f"\nREFER & EARN 🎁\n"
+                f"  Your code: {referral_code}\n"
+                f"  Share it with friends — they get 10% off (min. spend Rs.15,000), and you earn "
+                f"Rs.{REFERRAL_REWARD_AMOUNT} credit towards your next booking every time it's used.\n"
+            )
         tnc_line = f"\nPlease review our Terms & Conditions: {TERMS_URL}\n" if is_booking else ""
         body = f"""Hi {first_name}! 🎉
 
@@ -586,7 +727,7 @@ Your details:
   Event Date  : {req.event_date.isoformat() if req.event_date else '—'}
   Theme       : {req.theme or '—'}
   City        : {req.city or '—'}
-{remarks_block}{order_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{tnc_line}
+{remarks_block}{order_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{referral_block}{tnc_line}
 If you have any questions in the meantime, WhatsApp us at +91 90044 35362.
 
 Warmly,
@@ -595,7 +736,7 @@ wondershopexperiences.com
 """
         html_body = _build_html_email(
             is_booking=is_booking, lead_id=lead_id, req=req,
-            reward_code=reward_code, recipient_kind="customer",
+            reward_code=reward_code, referral_code=referral_code, recipient_kind="customer",
         )
         await _gmail_send(to_email=req.email, subject=subject, body=body, html_body=html_body)
         logger.info(f"Lead #{lead_id}: user ACK sent to {req.email}")
@@ -605,7 +746,7 @@ wondershopexperiences.com
 
 # ─── 2. TEAM NOTIFICATION EMAIL ──────────────────────────────────────────────
 
-async def _send_team_email(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str]) -> None:
+async def _send_team_email(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str] = None) -> None:
     """Alert email to the Wondershop team."""
     if not settings.GMAIL_CLIENT_ID:
         logger.warning("GMAIL credentials not configured — skipping team email")
@@ -626,6 +767,7 @@ async def _send_team_email(lead_id: int, req: LeadSubmitRequest, reward_code: Op
                 "SCRATCH-CARD REWARD WON — please action this on the account ⚠️",
             )
         redeemed_line = f"\nCoupon Redeemed: {req.redeemed_coupon_code}\n" if req.redeemed_coupon_code else ""
+        referral_line = f"\nReferral Code Issued: {referral_code}\n" if referral_code else ""
         kind = "BOOKING" if is_booking else "LEAD"
         body = f"""New {kind.lower()} #{lead_id} received on Wondershop website.
 
@@ -646,7 +788,7 @@ EVENT
   Venue      : {req.venue or '—'} ({req.location_type or '—'})
   City       : {req.city or '—'}   Pincode: {req.pincode or '—'}
   Budget     : {budget_str}
-{remarks_block}{order_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{redeemed_line}
+{remarks_block}{order_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{redeemed_line}{referral_line}
 SOURCE
   {req.lead_source or '—'} / {req.lead_source_detail or '—'}
   Referred by: {req.referred_by or '—'}
@@ -655,7 +797,7 @@ SOURCE
 """
         html_body = _build_html_email(
             is_booking=is_booking, lead_id=lead_id, req=req,
-            reward_code=reward_code, recipient_kind="team",
+            reward_code=reward_code, referral_code=referral_code, recipient_kind="team",
         )
         subj_prefix = "🎉 New Booking" if is_booking else "📩 New Lead"
         await _gmail_send(
@@ -671,7 +813,7 @@ SOURCE
 
 # ─── 3. GOOGLE SHEET ─────────────────────────────────────────────────────────
 
-async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str]) -> None:
+async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str] = None) -> None:
     """
     POST to the Google Apps Script webhook.
     The Apps Script appends one row to the sheet.
@@ -714,6 +856,7 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Op
             "reward_expiry":      req.reward_expiry.isoformat() if req.reward_expiry else "",
             "reward_code":        reward_code or "",
             "redeemed_coupon_code": req.redeemed_coupon_code or "",
+            "referral_code":      referral_code or "",
             "remarks":            req.remarks or "",
             "lead_source_detail": req.lead_source_detail or "",
             "gift_delivery_address":      req.gift_delivery_address or "",
@@ -800,15 +943,17 @@ async def _send_whatsapp_alerts(lead_id: int, req: LeadSubmitRequest) -> None:
 
 # ─── FIRE ALL FOUR IN PARALLEL ───────────────────────────────────────────────
 
-async def _notify_all(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str]) -> None:
+async def _notify_all(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str]) -> None:
     """Runs all four notifications concurrently. Never raises."""
     await asyncio.gather(
-        _send_user_ack(lead_id, req, reward_code),
-        _send_team_email(lead_id, req, reward_code),
-        _append_to_sheet(lead_id, req, reward_code),
+        _send_user_ack(lead_id, req, reward_code, referral_code),
+        _send_team_email(lead_id, req, reward_code, referral_code),
+        _append_to_sheet(lead_id, req, reward_code, referral_code),
         _send_whatsapp_alerts(lead_id, req),
         return_exceptions=True,   # one failure must never cancel the others
     )
+    # (signature already threaded referral_code through above — kept as one
+    # block so the four notification calls stay easy to scan together.)
 
 
 # ─── ENDPOINTS ───────────────────────────────────────────────────────────────
@@ -893,21 +1038,26 @@ async def submit_lead(req: LeadSubmitRequest):
 
     # Reward code issue/redeem — best-effort, never blocks the booking itself.
     reward_code = None
+    referral_code = None
     try:
         if req.reward_type == "discount":
             reward_code = await _issue_reward_code(lead_id, req.phone, req.reward_expiry)
         if req.redeemed_coupon_code:
-            await _redeem_coupon_code(req.redeemed_coupon_code.strip().upper(), req.phone, lead_id)
+            await _redeem_any_code(req.redeemed_coupon_code.strip().upper(), req.phone, lead_id)
+        if req.is_booking:
+            # Every confirmed booking gets (or reuses) their own Refer & Earn code.
+            referral_code = await _get_or_create_referral_code(lead_id, req.parent_name, req.phone)
     except Exception as exc:
-        logger.error(f"Lead #{lead_id}: reward code handling failed — {exc}")
+        logger.error(f"Lead #{lead_id}: reward/referral code handling failed — {exc}")
 
     # Fire-and-forget — DB save already succeeded before this runs
-    await _notify_all(lead_id, req, reward_code)
+    await _notify_all(lead_id, req, reward_code, referral_code)
 
     return {
         "success": True,
         "lead_id": lead_id,
         "reward_code": reward_code,
+        "referral_code": referral_code,
         "message": "We'll be in touch within a few hours!",
     }
 

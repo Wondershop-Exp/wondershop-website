@@ -1937,6 +1937,7 @@ input,textarea,select{font-family:var(--fb)}
     </div>
   </div>
   <div id="confReward"></div>
+  <div id="confReferral"></div>
   <div class="conf-share-btns" id="confShareBtns">
     <button class="conf-share-btn conf-wa" onclick="shareWA()">💬 Share on WhatsApp</button>
     <button class="conf-share-btn conf-ref" onclick="referWS()">🎁 Refer &amp; Earn</button>
@@ -3618,6 +3619,7 @@ async function doCo(){
             __reward.code=__rj.reward_code;
             __reward.sub='Your code: '+__rj.reward_code+'. '+__reward.sub;
           }
+          if(__rj && __rj.referral_code){S._myReferralCode=__rj.referral_code;}
         }catch(e){/* non-JSON or empty response — fine, just no code to show */}
       }
     }catch(e){
@@ -3701,6 +3703,7 @@ async function doCo(){
     document.getElementById('confFinalBalRow').style.display='none';
   }
 
+  showReferralOnConfirmation();
   goTo('sconf');
   if(!__urgent){
     launchConfetti();
@@ -4151,9 +4154,27 @@ function showRewardOnConfirmation(reward){
   el.innerHTML='<div class="reward-box" style="background:'+reward.grad+'"><div class="rb-ic">'+reward.icon+'</div><div class="rb-txt"><b>'+reward.label+'</b>'+reward.sub+termsHtml+'</div></div>';
 }
 
+function showReferralOnConfirmation(){
+  const el=document.getElementById('confReferral');
+  if(!el)return;
+  if(!S._myReferralCode){el.innerHTML='';return;}
+  el.innerHTML='<div class="reward-box" style="background:linear-gradient(135deg,#52C470 0%,#2E9E52 100%)">'+
+    '<div class="rb-ic">🎁</div><div class="rb-txt"><b>Refer &amp; Earn</b>'+
+    'Share your code — friends get 10% off (min. spend ₹15,000), you earn ₹500 credit every time it\'s used.'+
+    '<div style="margin-top:8px;font-family:monospace;font-size:17px;font-weight:700;letter-spacing:2px;'+
+    'background:rgba(255,255,255,.18);border:1.5px dashed rgba(255,255,255,.65);border-radius:8px;'+
+    'padding:6px 12px;display:inline-block">'+S._myReferralCode+'</div></div></div>';
+}
+
 // ── SHARE ──
 function shareWA(){const msg=encodeURIComponent("🎉 I just booked a birthday with Wondershop Experiences! They're amazing — check them out at wondershopexperiences.com");window.open('https://wa.me/?text='+msg);}
-function referWS(){const msg=encodeURIComponent("Hey! You should plan your child's birthday with Wondershop Experiences. Story-led celebrations for kids 1-12 across Mumbai. wondershopexperiences.com — use my name to get priority booking!");window.open('https://wa.me/?text='+msg);}
+function referWS(){
+  const code=S._myReferralCode;
+  const msg=encodeURIComponent(code
+    ? "Hey! You should plan your child's birthday with Wondershop Experiences. Story-led celebrations for kids 1-12 across Mumbai. Use my referral code "+code+" at checkout for 10% off! wondershopexperiences.com"
+    : "Hey! You should plan your child's birthday with Wondershop Experiences. Story-led celebrations for kids 1-12 across Mumbai. wondershopexperiences.com — use my name to get priority booking!");
+  window.open('https://wa.me/?text='+msg);
+}
 
 // ── CART ──
 function openCart(){
