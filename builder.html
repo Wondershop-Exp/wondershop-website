@@ -735,6 +735,23 @@ input,textarea,select{font-family:var(--fb)}
 .lsc-e{font-size:13px;color:var(--gy);margin-top:4px}
 .wa-btn{background:#25D366;color:#fff;border:none;border-radius:24px;padding:12px 28px;font-size:15px;font-weight:700}
 
+/* Booking-not-confirmed failure screen */
+.bf-body{text-align:center;padding:32px 0}
+.bf-icon{font-size:56px;margin-bottom:16px}
+.bf-body h1{font-family:var(--fd);font-size:24px;font-weight:700;color:var(--bk);margin-bottom:10px}
+.bf-body p{font-size:15px;color:var(--gy);max-width:420px;margin:0 auto 16px}
+.bf-reassure{background:#FEF3C7;color:#92400E;border-radius:12px;padding:12px 16px;font-size:13px;font-weight:600;max-width:420px;margin:0 auto 20px;line-height:1.5}
+.bf-callbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:12px}
+.bf-callbtn{background:var(--pk);color:#fff;border:none;border-radius:24px;padding:12px 22px;font-size:14px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.bf-emailbtn{background:#fff;color:var(--bk);border:1.5px solid var(--li2);border-radius:24px;padding:10px 22px;font-size:13px;font-weight:700;margin-top:12px;cursor:pointer}
+.bf-table-wrap{max-width:460px;margin:24px auto 0;text-align:left;background:var(--li3);border-radius:12px;padding:16px}
+.bf-table-wrap h3{font-size:13px;font-weight:700;color:var(--bk);margin:0 0 10px}
+.bf-table{width:100%;border-collapse:collapse;font-size:13px}
+.bf-table tr:not(:last-child) td{border-bottom:1px solid var(--li2)}
+.bf-table td{padding:6px 4px;vertical-align:top}
+.bf-table td:first-child{color:var(--gy);white-space:nowrap;padding-right:10px;font-weight:600}
+.bf-table td:last-child{color:var(--bk);font-weight:600;text-align:right}
+
 /* Cart overlay */
 .cart-overlay{display:none;position:fixed;inset:0;background:rgba(25,25,25,.5);z-index:300;align-items:flex-start;justify-content:flex-end}
 .cart-overlay.show{display:flex}
@@ -2006,6 +2023,26 @@ input,textarea,select{font-family:var(--fb)}
       <div class="lsc-e">contact@wondershopexperiences.com</div>
     </div>
     <button class="wa-btn" onclick="window.open('https://wa.me/919004435362')">💬 Chat on WhatsApp</button>
+  </div>
+</div>
+
+<!-- ─── BOOKING NOT CONFIRMED (backend unreachable / submit failed) ─── -->
+<div class="step" id="sbookfail">
+  <div class="bf-body">
+    <div class="bf-icon">⚠️</div>
+    <h1>We Couldn't Confirm This Online</h1>
+    <p>Something went wrong submitting this on our end — nothing has been charged, and your date isn't locked in yet.</p>
+    <div class="bf-reassure">📞 Please call or WhatsApp us right now so our team can confirm it manually. We already have all your details below, so nothing's lost.</div>
+    <div class="bf-callbtns">
+      <a href="tel:+919004435362" class="bf-callbtn">📞 Call +91 90044 35362</a>
+      <a href="tel:+919742240477" class="bf-callbtn">📞 Call +91 97422 40477</a>
+    </div>
+    <button class="wa-btn" onclick="window.open('https://wa.me/919004435362')">💬 Chat on WhatsApp</button>
+    <div><button class="bf-emailbtn" onclick="if(window.__bfMailto)window.location.href=window.__bfMailto">📧 Email Us These Details</button></div>
+    <div class="bf-table-wrap">
+      <h3>Your details (also opened in an email draft):</h3>
+      <table class="bf-table" id="bfTable"></table>
+    </div>
   </div>
 </div>
 
@@ -3401,6 +3438,38 @@ const CONF_NEXT_STEPS_URGENT=`<h3>What happens next</h3>
     <div class="ns-item"><div class="ns-num">2</div><div class="ns-txt">You get a call within 24 hours<span>We confirm feasibility and next steps with you directly</span></div></div>
     <div class="ns-item"><div class="ns-num">3</div><div class="ns-txt">Booking confirmed on the call<span>Advance &amp; date-lock happen only once feasibility is confirmed</span></div></div>`;
 
+// ── Shared "booking couldn't be confirmed" failure screen ──────────────
+// Used by doCo() (checkout) and doLead() (custom request) whenever the
+// backend submit fails or is unreachable (2026-08-11, per Shruti) — we
+// never show a false "success" screen. Instead: surface phone numbers to
+// call immediately, and preserve every captured detail both on-screen and
+// in a ready-to-send email draft, so nothing is lost even if the backend
+// itself is down (the customer still needs to hit Send on the email —
+// mailto can't be sent automatically from the browser — but the on-screen
+// table means the info is visible/readable over a call either way).
+function showBookingFailure(rows, subject){
+  const clean = rows.filter(r => r[1] !== undefined && r[1] !== null && String(r[1]).trim() !== '');
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+  const tbl = document.getElementById('bfTable');
+  if(tbl) tbl.innerHTML = clean.map(r => '<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>').join('');
+
+  // Plain-text aligned table for the mailto body — mailto can't render HTML.
+  const labelWidth = clean.reduce((m,r)=>Math.max(m,String(r[0]).length),10);
+  const bodyLines = clean.map(r => (String(r[0])+':').padEnd(labelWidth+2,' ') + String(r[1]));
+  const body = 'A booking/lead submission failed to reach the website backend — please '+
+    'confirm manually and follow up with this customer.\n\n' + bodyLines.join('\n');
+  window.__bfMailto = 'mailto:contact@wondershopexperiences.com'+
+    '?subject='+encodeURIComponent(subject||'URGENT: Website submission not captured')+
+    '&body='+encodeURIComponent(body);
+
+  goTo('sbookfail');
+  // Best-effort auto-open the email draft — a user gesture (the Confirm/
+  // Send click) already happened this call stack, so this isn't treated
+  // as an unsolicited popup by most browsers.
+  try{ window.location.href = window.__bfMailto; }catch(e){}
+}
+
 async function doCo(){
   if(isPastDate(document.getElementById('co-date').value)){
     checkUrgentDate('co-date','co-urgent-warn');
@@ -3446,52 +3515,95 @@ async function doCo(){
   const __leadSource=__urgent?'Website - Checkout (Urgent, <3 days to event)':'Website - Checkout';
 
   // Sheet write consolidated (2026-08-11, per Shruti) — checkout submissions
-  // now go through the single Railway-mediated pipeline below only, so every
+  // go through the single Railway-mediated pipeline below only, so every
   // booking lands in ONE "Leads" sheet with one Status column (Lead →
   // Confirmed), instead of two sheets that could drift out of sync.
 
-  // Railway — WhatsApp + email + DB + Sheet (fire-and-forget, never blocks confirmation)
+  // Railway — WhatsApp + email + DB + Sheet. AWAITED on purpose (2026-08-11,
+  // per Shruti): if this fails or the backend is unreachable, we must NOT
+  // show the customer a false "Booking Confirmed" screen — see
+  // showBookingFailure() below.
+  const __coBtn=document.getElementById('bbCont');
+  const __coBtnLabel=__coBtn?__coBtn.textContent:'';
+  if(__coBtn){__coBtn.disabled=true;__coBtn.textContent='Confirming…';}
+
+  const __coPhone=(()=>{const p=(S.mobile||'').replace(/\D/g,'');return p.length===10?'+91'+p:'+'+p;})();
+  const __coChildNames=S.children.map(c=>c.name||'').filter(Boolean).join(', ');
+  const __coVenue=S.address || S.venue || null;
+  const __coPayload={
+    parent_name:        S.parentName,
+    phone:              __coPhone,
+    email:              S.email || null,
+    event_date:         S.eventDate || null,
+    kids_count:         S.kidsCount || null,
+    child_names:        __coChildNames || null,
+    theme:              S.theme || null,
+    venue:              __coVenue,
+    venue_maps_link:    S.venueMapsLink || null,
+    venue_contact_name: S.venueContactName || null,
+    venue_contact_phone:S.venueContactPhone || null,
+    pincode:            S.pincode || null,
+    client_budget:      __tpv || null,
+    order_grand_total:  __gt || null,
+    order_discount_pct: __dpv || null,
+    order_advance:      __advv || null,
+    order_balance:      __bal || null,
+    reward_type:        __rewardWon ? __reward.type : null,
+    reward_label:       __rewardWon ? __reward.label : null,
+    reward_value:       __reward.value || null,
+    reward_terms:       __rewardWon ? __rewardTermsText : null,
+    reward_expiry:      __reward.expiryISO || null,
+    builder_snapshot:   buildSnapshot ? buildSnapshot() : null,
+    remarks:            combinedRemarks() || null,
+    gift_delivery_address:      S.giftAddr || null,
+    gift_delivery_maps_link:    S.giftMapsLink || null,
+    gift_delivery_address_type: S.giftAddrType || null,
+    gift_delivery_contact:      S.giftContact || null,
+    gift_delivery_contact_phone:S.giftContactPhone || null,
+    gift_required_by_date:      S.giftReqDate || null,
+    dj_lights_addon:            !!S.djAddons.lights,
+    dj_smoke_machine_addon:     !!S.djAddons.smoke,
+    lead_source:        __leadSource,
+  };
+
+  let __coOk=false;
   if(window.WS_API_BASE){
-    const phone = (S.mobile||'').replace(/\D/g,'');
-    fetch(window.WS_API_BASE+'/api/leads/submit', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        parent_name:        S.parentName,
-        phone:              phone.length===10 ? '+91'+phone : '+'+phone,
-        email:              S.email || null,
-        event_date:         S.eventDate || null,
-        kids_count:         S.kidsCount || null,
-        child_names:        S.children.map(c=>c.name||'').filter(Boolean).join(', ') || null,
-        theme:              S.theme || null,
-        venue:              S.address || S.venue || null,
-        venue_maps_link:    S.venueMapsLink || null,
-        venue_contact_name: S.venueContactName || null,
-        venue_contact_phone:S.venueContactPhone || null,
-        pincode:            S.pincode || null,
-        client_budget:      __tpv || null,
-        order_grand_total:  __gt || null,
-        order_discount_pct: __dpv || null,
-        order_advance:      __advv || null,
-        order_balance:      __bal || null,
-        reward_type:        __rewardWon ? __reward.type : null,
-        reward_label:       __rewardWon ? __reward.label : null,
-        reward_value:       __reward.value || null,
-        reward_terms:       __rewardWon ? __rewardTermsText : null,
-        reward_expiry:      __reward.expiryISO || null,
-        builder_snapshot:   buildSnapshot ? buildSnapshot() : null,
-        remarks:            combinedRemarks() || null,
-        gift_delivery_address:      S.giftAddr || null,
-        gift_delivery_maps_link:    S.giftMapsLink || null,
-        gift_delivery_address_type: S.giftAddrType || null,
-        gift_delivery_contact:      S.giftContact || null,
-        gift_delivery_contact_phone:S.giftContactPhone || null,
-        gift_required_by_date:      S.giftReqDate || null,
-        dj_lights_addon:            !!S.djAddons.lights,
-        dj_smoke_machine_addon:     !!S.djAddons.smoke,
-        lead_source:        __leadSource,
-      }),
-    }).catch(e=>console.error('Booking notify error:',e));
+    try{
+      const __r=await fetch(window.WS_API_BASE+'/api/leads/submit',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(__coPayload),
+      });
+      __coOk=__r.ok;
+      if(!__r.ok) console.error('Booking submit failed, status', __r.status);
+    }catch(e){
+      console.error('Booking submit error:', e);
+    }
+  }
+
+  if(!__coOk){
+    if(__coBtn){__coBtn.disabled=false;__coBtn.textContent=__coBtnLabel;}
+    showBookingFailure([
+      ['Parent Name', S.parentName],
+      ['Mobile', __coPhone],
+      ['Email', S.email],
+      ["Child(ren)", __coChildNames],
+      ['Event Date', S.eventDate],
+      ['Event Time', S.eventTime],
+      ['Kids Count', S.kidsCount],
+      ['Theme', S.theme],
+      ['Venue', __coVenue],
+      ['Venue Maps Link', S.venueMapsLink],
+      ['Venue Contact', [S.venueContactName,S.venueContactPhone].filter(Boolean).join(' ')],
+      ['Pincode', S.pincode],
+      ['Grand Total', __gt?('₹'+__gt.toLocaleString('en-IN')):''],
+      ['Discount', __dpv?(__dpv+'%'):''],
+      ['Payable Total', __tpv?('₹'+__tpv.toLocaleString('en-IN')):''],
+      ['Advance', __advv?('₹'+__advv.toLocaleString('en-IN')):''],
+      ['Balance Due', __bal?('₹'+__bal.toLocaleString('en-IN')):''],
+      ['Remarks', combinedRemarks()],
+    ], 'URGENT: Booking not captured — '+(S.parentName||'—'));
+    return;
   }
 
   // Show the customer's special requests back to them on the confirmation
@@ -3653,29 +3765,41 @@ async function doLead(){
   // doCo() above: this now goes through the single Railway-mediated pipeline
   // only, so custom-request leads land in the same one "Leads" sheet as
   // checkout submissions, instead of a separate direct-to-Sheet write.
-  // Trade-off worth knowing: the old direct write was an intentional
-  // fallback so a lead still reached the Sheet even if the Railway backend
-  // was down. Removing it means a backend outage now means no record at
-  // all for this form (same behavior doCo() already had, for consistency).
+  // AWAITED on purpose: if this fails or the backend is unreachable, we must
+  // NOT show a false "Request received" screen — see showBookingFailure().
+  const __failRows=[
+    ['Parent Name', name],
+    ['WhatsApp', phone?('+91'+phone):''],
+    ['Email', email],
+    ['Child', child],
+    ["Child's Age", childAge],
+    ["Child's Gender", childGender],
+    ['Event Date', date],
+    ['Kids Count', kids],
+    ['Venue', venue],
+    ['Theme Preference', theme],
+    ['Budget Range', budget],
+    ['Notes', document.getElementById('ld-msg')?.value],
+  ];
+  const __failSubject='URGENT: Custom request not captured — '+(name||'—');
 
   try{
     const API=window.WS_API_BASE||'';
+    let ok=false;
     if(API){
       const r=await fetch(API+'/api/leads/submit',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify(payload),
       });
-      const data=await r.json();
-      if(!r.ok) throw new Error(data.detail||'Server error');
+      ok=r.ok;
+      if(!r.ok) console.error('Lead submit failed, status', r.status);
     }
-    // Success (or no API configured — form still reaches team via email notification)
-    goTo('sleadsent');
+    if(ok){goTo('sleadsent');}
+    else{showBookingFailure(__failRows, __failSubject);}
   }catch(err){
     console.error('Lead submit error:',err);
-    // Lead was already captured to the Sheet above (fire-and-forget), so still
-    // show the confirmation — never redirect the user out to a mail app.
-    goTo('sleadsent');
+    showBookingFailure(__failRows, __failSubject);
   }finally{
     if(btn){btn.disabled=false;btn.textContent='Send My Details →';}
   }
