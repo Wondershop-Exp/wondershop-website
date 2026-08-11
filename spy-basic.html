@@ -277,7 +277,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <p class="pkg-desc">A full-blown spy mission — themed stations that scale with your guest list, an energetic host running the operation, and decor you choose to match. Everything handled, mission-ready.</p>
           <div class="pkg-incl-row">
             <span class="pkg-incl-chip"><img class="chip-ic-img" src="img/icons/icon-host.png" alt="">Spy Host</span>
-            <span class="pkg-incl-chip">🎯 4–8 Mission Stations</span>
+            <span class="pkg-incl-chip">🎯 5–8 Mission Stations</span>
             <span class="pkg-incl-chip">🎂 Min. age 7</span>
           </div>
           <div style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--gy);font-weight:500;margin-bottom:20px"><span style="color:var(--gr);font-weight:700">✓</span> Age-appropriate stations for your child</div>
@@ -330,14 +330,13 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="incl-card">
           <div class="incl-card-ic">🎯</div>
           <div class="incl-card-h">Mission Stations</div>
-          <div class="incl-card-body">The number of included stations scales automatically with your guest count — from 4 stations up to 8.</div>
+          <div class="incl-card-body">The number of included stations scales automatically with your guest count — a minimum of 5 stations, up to 8.</div>
           <button class="expand-btn" id="btn-stations" onclick="toggleDetail('stations','btn-stations','See station tiers')">
             <span>See station tiers</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="detail-list" id="stations">
             <ul>
-              <li>Up to 20 kids — 4 stations</li>
               <li>Up to 30 kids — 5 stations</li>
               <li>Up to 40 kids — 6 stations</li>
               <li>Up to 50 kids — 7 stations</li>
@@ -714,8 +713,10 @@ function toggleGift(id) {
 }
 
 // ── STATION TIER (host + included mission stations) ──
+// Minimum 5 stations on every booking, even at the smallest guest counts
+// (e.g. 15 kids) — per Shruti, 2026-08-12.
 function stationTier(kids) {
-  if (kids <= 20) return {stations: 4, rate: 1250};
+  if (kids <= 20) return {stations: 5, rate: 1250};
   if (kids <= 30) return {stations: 5, rate: 1200};
   if (kids <= 40) return {stations: 6, rate: 1200};
   if (kids <= 50) return {stations: 7, rate: 1200};
