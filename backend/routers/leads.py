@@ -1068,6 +1068,141 @@ async def submit_lead(req: LeadSubmitRequest):
     }
 
 
+# ─── ADD SCRATCH-CARD SERVICE REWARD TO CURRENT BOOKING ──────────────────────
+# Some rewards (Free Tattoo Artist, Free Bubble Artist) are services that can
+# be tacked onto the booking that just won them, right from the scratch-card
+# reveal screen — instead of only being usable later. Everything else
+# (refund, discount-code) is handled elsewhere and doesn't go through here.
+
+REWARD_SERVICE_LABELS = {
+    "tattoo": "Tattoo Artist",
+    "bubble": "Bubble Artist",
+}
+
+
+class RedeemServiceRequest(BaseModel):
+    lead_id:       int
+    service:       str            # 'tattoo' | 'bubble'
+    service_label: Optional[str] = None   # e.g. "Free Tattoo Artist" — for display in the notifications
+
+
+async def _update_sheet_reward_service(lead_id: int, service_label: str) -> None:
+    """Pushes an update to the customer's EXISTING sheet row (found by Lead
+    ID) rather than appending a new one — see the matching `action` handler
+    in google_sheet_webhook.js."""
+    if not settings.GOOGLE_SHEET_WEBHOOK_URL:
+        logger.warning("GOOGLE_SHEET_WEBHOOK_URL not set — skipping sheet update")
+        return
+    try:
+        payload = {
+            "action": "update_reward_service",
+            "lead_id": lead_id,
+            "service_label": service_label,
+        }
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.post(settings.GOOGLE_SHEET_WEBHOOK_URL, json=payload)
+        logger.info(f"Lead #{lead_id}: sheet reward-service update → {r.status_code}")
+    except Exception as exc:
+        logger.error(f"Lead #{lead_id}: sheet reward-service update failed — {exc}")
+
+
+async def _notify_reward_service_added(lead_id: int, label: str, parent_name: Optional[str],
+                                        first_name: str, email: Optional[str], phone: str,
+                                        event_date_str: str) -> None:
+    """Heads-up to ops (sheet + email) so the addition actually gets
+    arranged, plus a short confirmation to the customer. Best-effort — never
+    blocks the customer-facing response."""
+
+    async def _team_email():
+        if not settings.GMAIL_CLIENT_ID:
+            return
+        body = (
+            f"Booking #{lead_id} ({parent_name or '—'}, {phone}) just added a complimentary "
+            f"{label} to their booking from the scratch-card reveal screen.\n\n"
+            f"Event Date: {event_date_str}\n\n"
+            f"Please arrange this against the booking — no charge to the customer.\n\n"
+            f"— Wondershop Lead System"
+        )
+        await _gmail_send(
+            to_email=settings.EMAIL_TEAM,
+            subject=f"🎁 Reward Added to Booking #{lead_id} — Free {label}",
+            body=body,
+        )
+
+    async def _customer_email():
+        if not email or "@" not in email or "." not in email.split("@")[-1] or not settings.GMAIL_CLIENT_ID:
+            return
+        body = (
+            f"Hi {first_name}! 🎉\n\n"
+            f"Great news — we've added your complimentary {label} to your booking "
+            f"(Order #{lead_id}, {event_date_str}) at no extra cost.\n\n"
+            f"Your Party Experience Lead will confirm the details closer to your event date.\n\n"
+            f"Warmly,\nTeam Wondershop 🎈\nwondershopexperiences.com"
+        )
+        await _gmail_send(
+            to_email=email,
+            subject=f"🎁 {label} added to your booking! (Order #{lead_id})",
+            body=body,
+        )
+
+    await asyncio.gather(
+        _update_sheet_reward_service(lead_id, label),
+        _team_email(),
+        _customer_email(),
+        return_exceptions=True,
+    )
+
+
+@router.post("/redeem-service")
+async def redeem_service_now(req: RedeemServiceRequest):
+    """
+    Customer opted, right from the scratch-card reveal, to add their
+    complimentary service reward (Tattoo Artist / Bubble Artist) onto the
+    CURRENT booking instead of saving it for a future one. Records it on the
+    lead, updates the existing Sheet row in place, and pings both the
+    customer and the team so ops actually arranges it.
+    """
+    service = (req.service or "").strip().lower()
+    if service not in REWARD_SERVICE_LABELS:
+        return {"success": False, "message": "That reward can't be added to a booking directly."}
+
+    row = await database.fetch_one(
+        "SELECT lead_id, parent_name, phone, email, event_date, reward_type, redeemed_reward_service "
+        "FROM leads WHERE lead_id = :id",
+        values={"id": req.lead_id},
+    )
+    if not row:
+        return {"success": False, "message": "We couldn't find that booking."}
+    if row["redeemed_reward_service"]:
+        # Idempotent — customer may have double-tapped the button.
+        return {"success": True, "already": True, "message": "This is already on your booking."}
+    if row["reward_type"] != service:
+        # Safety check: don't let a stale/replayed request tack on a reward
+        # that wasn't actually the one won on this booking.
+        return {"success": False, "message": "This reward isn't linked to this booking."}
+
+    label = req.service_label or f"Free {REWARD_SERVICE_LABELS[service]}"
+
+    await database.execute(
+        "UPDATE leads SET redeemed_reward_service = :service, redeemed_reward_service_at = NOW() "
+        "WHERE lead_id = :id",
+        values={"service": service, "id": req.lead_id},
+    )
+
+    first_name = _cap_first(row["parent_name"].split()[0] if row["parent_name"] else None)
+    event_date_str = _fmt_date_long(row["event_date"])
+    try:
+        await _notify_reward_service_added(
+            lead_id=req.lead_id, label=label, parent_name=row["parent_name"],
+            first_name=first_name, email=row["email"], phone=row["phone"],
+            event_date_str=event_date_str,
+        )
+    except Exception as exc:
+        logger.error(f"Lead #{req.lead_id}: reward-service notify failed — {exc}")
+
+    return {"success": True, "message": f"{label} added to your booking!"}
+
+
 @router.get("/status/{lead_id}")
 async def get_lead_status(lead_id: int):
     """Current lead status — for internal dashboard use."""

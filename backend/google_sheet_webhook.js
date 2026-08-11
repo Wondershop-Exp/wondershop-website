@@ -42,6 +42,7 @@ var HEADERS = [
   "Grand Total (₹)", "Discount %", "Advance Paid (₹)", "Balance Due (₹)",
   "Reward Type", "Reward Label", "Reward Value (₹)", "Reward Terms", "Reward Expiry",
   "Reward Code Issued", "Coupon Code Redeemed", "Referral Code Issued",
+  "Redeemed Reward Service",
   "Remarks",
   "Lead Source", "Lead Source Detail", "Referred By",
   "Gift Delivery Address", "Gift Delivery Maps Link", "Gift Delivery Address Type",
@@ -66,6 +67,13 @@ function doPost(e) {
     }
 
     var d = JSON.parse(e.postData.contents);
+
+    // Reward-service add-on (Free Tattoo/Bubble Artist added to an EXISTING
+    // booking from the scratch-card reveal screen) updates that booking's
+    // row in place rather than appending a new one.
+    if (d.action === "update_reward_service") {
+      return _updateRewardServiceCell(sheet, d);
+    }
 
     sheet.appendRow([
       d.lead_id        || "",
@@ -100,6 +108,7 @@ function doPost(e) {
       d.reward_code    || "",
       d.redeemed_coupon_code || "",
       d.referral_code  || "",
+      "",  // Redeemed Reward Service — only ever set later, via the update_reward_service action
       d.remarks        || "",
       d.lead_source        || "",
       d.lead_source_detail || "",
@@ -128,6 +137,33 @@ function doPost(e) {
       .createTextOutput(JSON.stringify({ success: false, error: err.message }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+/**
+ * Handles the "update_reward_service" action — finds the row matching
+ * d.lead_id (by the Lead ID column) and sets its "Redeemed Reward Service"
+ * cell, instead of appending a new row. Used when a customer adds a
+ * complimentary service reward (Tattoo/Bubble Artist) onto their existing
+ * booking from the scratch-card reveal screen, after that booking's row
+ * already exists in the sheet.
+ */
+function _updateRewardServiceCell(sheet, d) {
+  var leadIdColIdx = HEADERS.indexOf("Lead ID");           // 0-based, for reading getValues()
+  var targetColIdx = HEADERS.indexOf("Redeemed Reward Service") + 1; // 1-based, for getRange()
+  var data = sheet.getDataRange().getValues();
+
+  for (var r = 1; r < data.length; r++) {  // skip header row
+    if (String(data[r][leadIdColIdx]) === String(d.lead_id)) {
+      sheet.getRange(r + 1, targetColIdx).setValue(d.service_label || "");
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, lead_id: d.lead_id, updated_row: r + 1 }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  return ContentService
+    .createTextOutput(JSON.stringify({ success: false, error: "Lead ID " + d.lead_id + " not found in sheet" }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 /**
