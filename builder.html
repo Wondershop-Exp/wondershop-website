@@ -3473,28 +3473,12 @@ async function doCo(){
   const __rewardTermsText=__rewardWon?(__reward.terms||[]).join(' | '):'';
   const __leadSource=__urgent?'Website - Checkout (Urgent, <3 days to event)':'Website - Checkout';
 
-  // Google Sheet — fire-and-forget
-  wsSendToSheet('booking', Object.assign({
-    name: S.parentName, phone: S.mobile, email: S.email,
-    child: S.children.map(c=>c.name||'').filter(Boolean).join(', '),
-    event_date: S.eventDate, event_time: S.eventTime, kids_count: S.kidsCount,
-    venue: S.address || S.venue, pincode: S.pincode, theme: S.theme,
-    venue_maps_link: S.venueMapsLink || '', venue_contact_name: S.venueContactName || '',
-    venue_contact_phone: S.venueContactPhone || '',
-    estimated_total: __tpv, advance: __advv, balance_due: __bal, discount_pct: __dpv,
-    reward_type: __rewardWon ? __reward.type : '', reward_label: __rewardWon ? __reward.label : '',
-    reward_value: __reward.value || '', reward_terms: __rewardTermsText,
-    reward_expiry: __reward.expiryDate || '',
-    lead_source: __leadSource,
-    gift_delivery_address: S.giftAddr || '', gift_delivery_maps_link: S.giftMapsLink || '',
-    gift_delivery_address_type: S.giftAddrType || '', gift_delivery_contact: S.giftContact || '',
-    gift_delivery_contact_phone: S.giftContactPhone || '',
-    gift_required_by_date: S.giftReqDate || '',
-    dj_lights_addon: S.djAddons.lights ? 'Yes' : 'No',
-    dj_smoke_machine_addon: S.djAddons.smoke ? 'Yes' : 'No',
-  }, wsBuilderSnapshotForSheet()));
+  // Sheet write consolidated (2026-08-11, per Shruti) — checkout submissions
+  // now go through the single Railway-mediated pipeline below only, so every
+  // booking lands in ONE "Leads" sheet with one Status column (Lead →
+  // Confirmed), instead of two sheets that could drift out of sync.
 
-  // Railway — WhatsApp + email + DB (fire-and-forget, never blocks confirmation)
+  // Railway — WhatsApp + email + DB + Sheet (fire-and-forget, never blocks confirmation)
   if(window.WS_API_BASE){
     const phone = (S.mobile||'').replace(/\D/g,'');
     fetch(window.WS_API_BASE+'/api/leads/submit', {

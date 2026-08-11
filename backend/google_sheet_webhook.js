@@ -1,21 +1,37 @@
 /**
- * Wondershop Leads — Google Apps Script Webhook
+ * Wondershop Leads & Bookings — Google Apps Script Webhook
  *
  * SETUP (one-time, ~5 minutes):
  *   1. Open your Google Sheet
  *   2. Extensions → Apps Script → paste this entire file → Save
  *   3. Run → doPost_test (first time: grant permissions when prompted)
- *   4. Deploy → New deployment → Type: Web app
+ *   4. Run → setupSheet (adds the Status dropdown, color-coding, and the
+ *        "Confirmed Bookings" tab — safe to re-run any time)
+ *   5. Deploy → New deployment → Type: Web app
  *        Execute as: Me
  *        Who has access: Anyone
- *   5. Copy the deployment URL → paste into .env as GOOGLE_SHEET_WEBHOOK_URL
- *   6. Every time you edit this script, click Deploy → Manage deployments
+ *   6. Copy the deployment URL → paste into .env as GOOGLE_SHEET_WEBHOOK_URL
+ *   7. Every time you edit this script, click Deploy → Manage deployments
  *      → pencil icon → New version → Deploy (URL stays the same)
  *
- * The script appends one row per lead. Column order matches HEADERS below.
+ * The script appends one row per lead to the "Leads" tab. Column order
+ * matches HEADERS below.
+ *
+ * WORKFLOW (single source of truth — no more separate booking/lead sheets):
+ *   - Every submission (checkout or custom request) lands here with
+ *     Status = "Lead". Sales works this "Leads" tab top to bottom.
+ *   - When a booking is actually confirmed (after the feasibility call +
+ *     advance), change that row's Status to "Confirmed" using the
+ *     dropdown. It will automatically appear on the "Confirmed Bookings"
+ *     tab, which ops works from — that tab is a live filter, not a copy,
+ *     so there's nothing to keep in sync by hand.
+ *   - Use "Contacted" for leads sales has reached but not yet closed, and
+ *     "Lost" for leads that won't convert (keeps the main tab honest).
  */
 
-var SHEET_NAME = "Leads";   // Change if your sheet tab has a different name
+var SHEET_NAME = "Leads";                 // Raw feed — every submission lands here
+var CONFIRMED_TAB_NAME = "Confirmed Bookings"; // Live filtered view for ops
+var STATUS_OPTIONS = ["Lead", "Contacted", "Confirmed", "Lost"];
 
 var HEADERS = [
   "Lead ID", "Submitted At", "Status",
@@ -23,10 +39,14 @@ var HEADERS = [
   "Event Date", "Kids Count", "Child Names", "Child Ages", "Child Genders",
   "Theme", "Venue", "Venue Maps Link", "Venue Contact Name", "Venue Contact Phone",
   "Location Type", "City", "Pincode", "Budget (₹)",
-  "Lead Source", "Referred By",
+  "Grand Total (₹)", "Discount %", "Advance Paid (₹)", "Balance Due (₹)",
+  "Reward Type", "Reward Label", "Reward Value (₹)", "Reward Terms", "Reward Expiry",
+  "Remarks",
+  "Lead Source", "Lead Source Detail", "Referred By",
   "Gift Delivery Address", "Gift Delivery Maps Link", "Gift Delivery Address Type",
   "Gift Delivery Contact", "Gift Delivery Contact Phone", "Gift Required By Date",
-  "DJ Lights Addon", "Smoke Machine Addon"
+  "DJ Lights Addon", "Smoke Machine Addon",
+  "Cart Snapshot (JSON)"
 ];
 
 function doPost(e) {
@@ -49,7 +69,7 @@ function doPost(e) {
     sheet.appendRow([
       d.lead_id        || "",
       d.submitted_at   || new Date().toISOString(),
-      d.status         || "New",
+      d.status         || "Lead",
       d.parent_name    || "",
       d.phone          || "",
       d.email          || "",
@@ -67,7 +87,18 @@ function doPost(e) {
       d.city           || "",
       d.pincode        || "",
       d.client_budget  || "",
-      d.lead_source    || "",
+      d.order_grand_total  || "",
+      d.order_discount_pct || "",
+      d.order_advance       || "",
+      d.order_balance       || "",
+      d.reward_type    || "",
+      d.reward_label   || "",
+      d.reward_value   || "",
+      d.reward_terms   || "",
+      d.reward_expiry  || "",
+      d.remarks        || "",
+      d.lead_source        || "",
+      d.lead_source_detail || "",
       d.referred_by    || "",
       d.gift_delivery_address      || "",
       d.gift_delivery_maps_link    || "",
@@ -77,7 +108,12 @@ function doPost(e) {
       d.gift_required_by_date      || "",
       d.dj_lights_addon            || "",
       d.dj_smoke_machine_addon     || "",
+      d.cart_snapshot  || "",
     ]);
+
+    // Keep the Status dropdown + color-coding covering the newly added row
+    // too, so ops/sales never hit a row without the picker.
+    _applyStatusFormatting(sheet, sheet.getLastRow());
 
     return ContentService
       .createTextOutput(JSON.stringify({ success: true, lead_id: d.lead_id }))
@@ -88,6 +124,90 @@ function doPost(e) {
       .createTextOutput(JSON.stringify({ success: false, error: err.message }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+/**
+ * Run this manually, ONCE, from the Apps Script editor (Run → setupSheet)
+ * after pasting/updating this script — and again any time you want to
+ * re-apply formatting. It never touches existing row data.
+ *
+ * Sets up:
+ *   1. Header row styling + frozen row on the "Leads" tab
+ *   2. A Status column dropdown (Lead / Contacted / Confirmed / Lost)
+ *   3. Conditional formatting that color-codes the Status column
+ *   4. A "Confirmed Bookings" tab that live-filters to Status = Confirmed
+ */
+function setupSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(HEADERS);
+  }
+  sheet.getRange(1, 1, 1, HEADERS.length)
+       .setFontWeight("bold")
+       .setBackground("#F4A932")
+       .setFontColor("#FFFFFF");
+  sheet.setFrozenRows(1);
+
+  _applyStatusFormatting(sheet, Math.max(sheet.getLastRow(), 2000));
+
+  // Confirmed Bookings tab — live filtered view, ops works from here.
+  // This is a formula, not a copy, so it always reflects the Leads tab.
+  var confSheet = ss.getSheetByName(CONFIRMED_TAB_NAME) || ss.insertSheet(CONFIRMED_TAB_NAME);
+  confSheet.clear();
+  var statusColLetter = _colLetter(HEADERS.indexOf("Status") + 1);
+  var lastColLetter   = _colLetter(HEADERS.length);
+  confSheet.getRange("A1").setFormula(
+    '=QUERY(' + SHEET_NAME + '!A1:' + lastColLetter + ',' +
+    '"select * where ' + statusColLetter + ' = \'Confirmed\'", 1)'
+  );
+  confSheet.setFrozenRows(1);
+
+  SpreadsheetApp.getUi().alert(
+    'Setup complete: "' + SHEET_NAME + '" now has a Status dropdown + color-coding, ' +
+    'and "' + CONFIRMED_TAB_NAME + '" live-filters to Confirmed rows.'
+  );
+}
+
+/** Applies the Status dropdown + conditional color-coding through row `throughRow`. */
+function _applyStatusFormatting(sheet, throughRow) {
+  var statusCol = HEADERS.indexOf("Status") + 1; // 1-based
+  var numRows = Math.max(throughRow - 1, 1);
+  var statusRange = sheet.getRange(2, statusCol, numRows, 1);
+
+  var rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(STATUS_OPTIONS, true)
+    .setAllowInvalid(false)
+    .build();
+  statusRange.setDataValidation(rule);
+
+  var rules = [
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo("Lead").setBackground("#FEF3C7").setFontColor("#92400E")
+      .setRanges([statusRange]).build(),
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo("Contacted").setBackground("#DBEAFE").setFontColor("#1E40AF")
+      .setRanges([statusRange]).build(),
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo("Confirmed").setBackground("#DCFCE7").setFontColor("#166534")
+      .setRanges([statusRange]).build(),
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo("Lost").setBackground("#FEE2E2").setFontColor("#991B1B")
+      .setRanges([statusRange]).build(),
+  ];
+  sheet.setConditionalFormatRules(rules);
+}
+
+/** Converts a 1-based column number to its A1 letter(s), e.g. 42 → "AP". */
+function _colLetter(n) {
+  var s = "";
+  while (n > 0) {
+    var rem = (n - 1) % 26;
+    s = String.fromCharCode(65 + rem) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
 }
 
 /** Run this manually once to test without an HTTP request */
@@ -113,7 +233,7 @@ function doPost_test() {
         client_budget:25000,
         lead_source:  "Website",
         referred_by:  "",
-        status:       "New"
+        status:       "Lead"
       })
     }
   };

@@ -1,4 +1,21 @@
 /**
+ * ⚠️ DEPRECATED (2026-08-11) — no longer used by the live checkout flow.
+ *
+ * This script wrote to a separate "booking" sheet, which duplicated (and
+ * drifted out of sync with) the "leads" sheet written by the backend via
+ * backend/google_sheet_webhook.js. The two have been consolidated into a
+ * single sheet + Status column (Lead → Contacted → Confirmed / Lost) —
+ * see backend/google_sheet_webhook.js for the current, single source of
+ * truth. builder.html's checkout submit (doCo()) no longer calls this
+ * script. Kept here for reference only; safe to leave un-deployed.
+ *
+ * (The one remaining caller of wsSendToSheet() in builder.html — the
+ * earlier-funnel "Custom Request" lead form — still points at this
+ * script/URL as of this date. That's a similar duplicate-write and a
+ * candidate for the same consolidation; flagged separately, not yet done.)
+ *
+ * ── Original docs below, kept for historical context ──
+ *
  * Wondershop Experiences — Lead & Booking capture into Google Sheets
  * ─────────────────────────────────────────────────────────────────
  * SETUP (one-time, ~10 minutes):

@@ -357,6 +357,17 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest) -> None:
             "client_budget":req.client_budget or "",
             "lead_source":  req.lead_source or "",
             "referred_by":  req.referred_by or "",
+            "order_grand_total":  req.order_grand_total or "",
+            "order_discount_pct": req.order_discount_pct or "",
+            "order_advance":      req.order_advance or "",
+            "order_balance":      req.order_balance or "",
+            "reward_type":        req.reward_type or "",
+            "reward_label":       req.reward_label or "",
+            "reward_value":       req.reward_value or "",
+            "reward_terms":       req.reward_terms or "",
+            "reward_expiry":      req.reward_expiry.isoformat() if req.reward_expiry else "",
+            "remarks":            req.remarks or "",
+            "lead_source_detail": req.lead_source_detail or "",
             "gift_delivery_address":      req.gift_delivery_address or "",
             "gift_delivery_maps_link":    req.gift_delivery_maps_link or "",
             "gift_delivery_address_type": req.gift_delivery_address_type or "",
@@ -365,7 +376,8 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest) -> None:
             "gift_required_by_date":      req.gift_required_by_date.isoformat() if req.gift_required_by_date else "",
             "dj_lights_addon":            "Yes" if req.dj_lights_addon else "No",
             "dj_smoke_machine_addon":     "Yes" if req.dj_smoke_machine_addon else "No",
-            "status":       "New",
+            "cart_snapshot":      json.dumps(req.builder_snapshot) if req.builder_snapshot else "",
+            "status":       "Lead",
         }
         async with httpx.AsyncClient(timeout=10) as client:
             r = await client.post(settings.GOOGLE_SHEET_WEBHOOK_URL, json=payload)
