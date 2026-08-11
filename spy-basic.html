@@ -132,6 +132,10 @@ button{cursor:pointer;font-family:var(--fb)}
 .act-card.sel::after{content:'✓';position:absolute;top:-1px;right:-1px;width:24px;height:24px;background:var(--li);color:#fff;border-radius:0 14px 0 12px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;line-height:24px;text-align:center}
 .act-card-n{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--bk);margin-bottom:4px}
 .act-card-p{font-family:var(--fd);font-size:17px;font-weight:700;color:var(--li);margin-bottom:6px}
+.act-card-p-row{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;margin-bottom:6px}
+.act-card-p-row .act-card-p{margin-bottom:0}
+.act-card-p-orig{font-family:var(--fd);font-size:13px;font-weight:600;color:var(--gy);text-decoration:line-through}
+.act-card-save-badge{font-family:var(--fd);font-size:11px;font-weight:700;color:#166534;background:#DCFCE7;border-radius:8px;padding:3px 8px;display:inline-block}
 .act-card-d{font-size:12px;color:var(--gy);line-height:1.5}
 .act-card-spec{margin:0;padding-left:16px;font-size:12px;color:var(--gy);line-height:1.6;text-align:left}
 .act-card-spec li{margin-bottom:3px}
@@ -602,10 +606,10 @@ document.getElementById('nav-ham').addEventListener('click',()=>document.getElem
 // `na:true` entries render greyed-out and also drive the decor gallery's
 // "Not Included" list (see updateGalStage / DECOR_NOT_INCLUDED below).
 const DECOR_TIERS = [
-  {id:'basic', name:'Classic', price:6500, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'Up to 2'},{l:'Happy Birthday, Name & Age',v:'Paper bunting (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/spy/spy-decor-basic.jpg'},
-  {id:'p1', name:'Premium', price:11000, spec:[{l:'Panels',v:'1'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/spy/spy-decor-1panel.jpg'},
-  {id:'p2', name:'Luxury', price:18000, spec:[{l:'Panels',v:'2'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},{l:'Cake Table',v:'Included'},{l:'Decor Width',v:'8-9 ft'}], img:'img/packages/spy/spy-decor-2panel.jpg'},
-  {id:'sig', name:'Signature', price:25000, spec:[{l:'Panels',v:'3'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-14 ft'}], img:'img/packages/spy/spy-decor-signature.jpg'},
+  {id:'basic', name:'Classic', price:5000, origPrice:6500, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'Up to 2'},{l:'Happy Birthday, Name & Age',v:'Paper bunting (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/spy/spy-decor-basic.jpg'},
+  {id:'p1', name:'Premium', price:10000, origPrice:11000, spec:[{l:'Panels',v:'1'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/spy/spy-decor-1panel.jpg'},
+  {id:'p2', name:'Luxury', price:17000, origPrice:18000, spec:[{l:'Panels',v:'2'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},{l:'Cake Table',v:'Included'},{l:'Decor Width',v:'8-9 ft'}], img:'img/packages/spy/spy-decor-2panel.jpg'},
+  {id:'sig', name:'Signature', price:24000, origPrice:25000, spec:[{l:'Panels',v:'3'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-14 ft'}], img:'img/packages/spy/spy-decor-signature.jpg'},
 ];
 
 // Activity Addon Stations — some flat, some tiered above 30 kids.
@@ -753,10 +757,19 @@ function renderTierGrid(gridId, items, selected) {
       : t.bullets
       ? '<ul class="act-card-spec">' + t.bullets.map(b => '<li>' + b + '</li>').join('') + '</ul>'
       : (t.d ? '<div class="act-card-d">' + t.d + '</div>' : '');
+    // Decor tiers on readymade package pages carry a discounted `price`
+    // against the general Build a Birthday `origPrice` (2026-08-11, per
+    // Shruti — package-exclusive decor discount). Show the strike-through
+    // original + discounted price + a "Save ₹X" callout whenever both are
+    // present; every other tier type has no origPrice and falls back to
+    // the plain price line.
+    const priceHtml = (t.origPrice != null && t.origPrice > t.price)
+      ? '<div class="act-card-p-row"><span class="act-card-p-orig">' + fmtINR(t.origPrice) + '</span><span class="act-card-p">' + fmtINR(t.price) + '</span><span class="act-card-save-badge">Save ' + fmtINR(t.origPrice - t.price) + '</span></div>'
+      : '<div class="act-card-p">' + fmtINR(t.price) + '</div>';
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
       '<div class="act-card-n">' + t.name + '</div>' +
-      '<div class="act-card-p">' + fmtINR(t.price) + '</div>' +
+      priceHtml +
       descHtml +
     '</div>';
   }).join('');

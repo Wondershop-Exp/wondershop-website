@@ -9,7 +9,7 @@
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',window.WS_GA_ID);</script>
 <link rel="icon" type="image/png" href="logo-square.png">
 <link rel="apple-touch-icon" href="logo-square.png">
-<meta name="description" content="Unicorn Magic birthday package by Wondershop — decor, host, tattoo station, e-invite and your choice of activity, from ₹23,850 for up to 25 kids in Mumbai.">
+<meta name="description" content="Unicorn Magic birthday package by Wondershop — decor, host, tattoo station, e-invite and your choice of activity, from ₹22,500 for up to 25 kids in Mumbai.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
@@ -214,6 +214,10 @@ button{cursor:pointer;font-family:var(--fb)}
 .act-card-n{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:4px}
 .act-card-p{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--li);margin-bottom:6px}
 .act-card-p-note{font-family:var(--fb);font-size:11px;font-weight:600;color:var(--gy);text-transform:none;letter-spacing:0}
+.act-card-p-row{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;margin-bottom:6px}
+.act-card-p-row .act-card-p{margin-bottom:0}
+.act-card-p-orig{font-family:var(--fd);font-size:13px;font-weight:600;color:var(--gy);text-decoration:line-through}
+.act-card-save-badge{font-family:var(--fd);font-size:11px;font-weight:700;color:#166534;background:#DCFCE7;border-radius:8px;padding:3px 8px;display:inline-block}
 .act-card-d{font-size:12px;color:var(--gy);line-height:1.5}
 .act-card-extra{font-family:var(--fd);font-size:12px;font-weight:700;color:#B45309;background:#FEF3C7;border-radius:8px;padding:4px 9px;display:inline-block;margin-top:8px}
 .act-card-spec{margin:0;padding-left:16px;font-size:12px;color:var(--gy);line-height:1.6;text-align:left}
@@ -372,7 +376,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="pkg-price-note">Estimated total for your party</div>
             <div class="pkg-price-row">
               <span class="pkg-price-orig" id="heroPriceOrig"></span>
-              <span class="pkg-price" id="heroPrice">₹23,850</span>
+              <span class="pkg-price" id="heroPrice">₹22,500</span>
               <span class="pkg-discount-badge" id="heroDiscountBadge"></span>
             </div>
             <div class="pkg-price-sub">For up to 25 kids · extra kids at ₹399/child</div>
@@ -1066,7 +1070,7 @@ button{cursor:pointer;font-family:var(--fb)}
   <div class="sticky-inner">
     <div class="sticky-left">
       <div class="sticky-price-row">
-        <div class="sticky-price" id="stickyTotal">₹23,850</div>
+        <div class="sticky-price" id="stickyTotal">₹22,500</div>
         <div class="sticky-base" id="stickyBase">· Unicorn Magic</div>
       </div>
       <div class="sticky-details" id="stickyDetails">Select an activity above to continue</div>
@@ -1365,10 +1369,10 @@ function addonActPrice(id, kids) {
 // `na:true` entries render greyed-out and also drive the decor gallery's
 // "Not Included" list (see updateGalStage below).
 const DECOR_TIERS = [
-  {id:'basic', name:'Classic', price:6500, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'Up to 2'},{l:'Happy Birthday, Name & Age',v:'Paper bunting (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/unicorn/unicorn-decor-basic.jpg'},
-  {id:'p1', name:'Premium', price:11000, spec:[{l:'Panels',v:'1'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/unicorn/unicorn-decor-p1.jpg', imgFit:'contain'},
-  {id:'p2', name:'Luxury', price:18000, spec:[{l:'Panels',v:'2'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},{l:'Cake Table',v:'Included'},{l:'Decor Width',v:'8-9 ft'}], img:'img/packages/unicorn/unicorn-decor-p2.jpg'},
-  {id:'sig', name:'Signature', price:25000, spec:[{l:'Panels',v:'3'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-14 ft'}], img:'img/packages/unicorn/unicorn-decor-sig.jpg'},
+  {id:'basic', name:'Classic', price:5000, origPrice:6500, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'Up to 2'},{l:'Happy Birthday, Name & Age',v:'Paper bunting (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/unicorn/unicorn-decor-basic.jpg'},
+  {id:'p1', name:'Premium', price:10000, origPrice:11000, spec:[{l:'Panels',v:'1'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/unicorn/unicorn-decor-p1.jpg', imgFit:'contain'},
+  {id:'p2', name:'Luxury', price:17000, origPrice:18000, spec:[{l:'Panels',v:'2'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},{l:'Cake Table',v:'Included'},{l:'Decor Width',v:'8-9 ft'}], img:'img/packages/unicorn/unicorn-decor-p2.jpg'},
+  {id:'sig', name:'Signature', price:24000, origPrice:25000, spec:[{l:'Panels',v:'3'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-14 ft'}], img:'img/packages/unicorn/unicorn-decor-sig.jpg'},
 ];
 // Host — added as its own selectable section 2026-08-10 (previously bundled
 // non-selectably at the Classic price via the HOST_PRICE constant below).
@@ -1590,10 +1594,19 @@ function renderTierGrid(gridId, items, selected) {
       : t.bullets
       ? '<ul class="act-card-spec">' + t.bullets.map(b => '<li>' + b + '</li>').join('') + '</ul>'
       : (t.d ? '<div class="act-card-d">' + t.d + '</div>' : '');
+    // Decor tiers on readymade package pages carry a discounted `price`
+    // against the general Build a Birthday `origPrice` (2026-08-11, per
+    // Shruti — package-exclusive decor discount). Show the strike-through
+    // original + discounted price + a "Save ₹X" callout whenever both are
+    // present; every other tier type (Host/Music/Photo/Pinata) has no
+    // origPrice and falls back to the plain price line.
+    const priceHtml = (t.origPrice != null && t.origPrice > t.price)
+      ? '<div class="act-card-p-row"><span class="act-card-p-orig">' + fmtINR(t.origPrice) + '</span><span class="act-card-p">' + fmtINR(t.price) + '</span><span class="act-card-save-badge">Save ' + fmtINR(t.origPrice - t.price) + '</span></div>'
+      : '<div class="act-card-p">' + fmtINR(t.price) + '</div>';
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
       '<div class="act-card-n">' + t.name + '</div>' +
-      '<div class="act-card-p">' + fmtINR(t.price) + '</div>' +
+      priceHtml +
       descHtml +
     '</div>';
   }).join('');
