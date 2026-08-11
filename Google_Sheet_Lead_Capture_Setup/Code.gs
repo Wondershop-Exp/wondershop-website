@@ -40,6 +40,9 @@ function doPost(e) {
       data.event_time || '',
       data.kids_count || '',
       data.venue || '',
+      data.venue_maps_link || '',
+      data.venue_contact_name || '',
+      data.venue_contact_phone || '',
       data.pincode || '',
       data.theme || '',
       data.budget || '',
@@ -82,13 +85,14 @@ function getOrCreateSheet_() {
     sheet = ss.insertSheet(SHEET_NAME);
     sheet.appendRow([
       'Timestamp', 'Type', 'Parent Name', 'Phone', 'Email', 'Child Name(s)',
-      'Event Date', 'Event Time', 'Kids Count', 'Venue', 'Pincode',
+      'Event Date', 'Event Time', 'Kids Count', 'Venue',
+      'Venue Maps Link', 'Venue Contact Name', 'Venue Contact Phone', 'Pincode',
       'Theme', 'Budget', 'Estimated Total (Rs)', 'Advance (Rs)',
       'Decor', 'Activities', 'Host', 'DJ', 'Pinata', 'E-Invite',
       'Photographer', 'Return Gifts', 'Notes', 'Lead Source', 'UTM Source', 'Page URL',
     ]);
     sheet.setFrozenRows(1);
-    sheet.getRange(1, 1, 1, 27).setFontWeight('bold');
+    sheet.getRange(1, 1, 1, 30).setFontWeight('bold');
   }
   return sheet;
 }

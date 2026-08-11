@@ -1739,11 +1739,18 @@ input,textarea,select{font-family:var(--fb)}
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">
       <div class="sec-lbl" style="font-size:13px;margin-bottom:10px"><span class="dot"></span>Delivery Details</div>
       <div class="ig"><label>Delivery Address <span class="opt">defaults to event venue</span></label><input type="text" id="f-gaddr" placeholder="Delivery address for return gifts"></div>
-      <div class="ig"><label>Google Maps Link <span class="opt">opt.</span></label><input type="text" id="f-gmaps" placeholder="Paste a Google Maps link to the delivery location"></div>
+      <div class="ig">
+        <label>Google Maps Link <span class="opt">opt.</span></label>
+        <div class="coupon-row" style="margin-bottom:4px">
+          <input type="text" id="f-gmaps" placeholder="Paste a Google Maps link to the delivery location">
+          <a href="https://www.google.com/maps" target="_blank" rel="noopener" class="coupon-btn" style="white-space:nowrap;text-decoration:none;display:flex;align-items:center">🔍 Search Maps</a>
+        </div>
+      </div>
       <div class="row2">
         <div class="ig"><label>Address Type</label><select id="f-gaddrtype"><option value="venue">Venue</option><option value="home">Home</option><option value="office">Office</option><option value="other">Other</option></select></div>
-        <div class="ig"><label>Delivery Contact Person</label><input type="text" id="f-gcontact" placeholder="Name of person coordinating delivery"></div>
+        <div class="ig"><label>Contact Person Name</label><input type="text" id="f-gcontact" placeholder="Name of person coordinating delivery"></div>
       </div>
+      <div class="ig"><label>Contact Person Number <span class="opt">opt.</span></label><div class="pfx-wrap"><span class="pfx">+91</span><input type="tel" id="f-gcontact-phone" class="pi" placeholder="Mobile"></div></div>
       <div class="ig" style="margin-bottom:0"><label>Required By Date</label><input type="date" id="f-gdate"><div class="hint">Must be on or before your event date</div></div>
       <div style="font-size:11px;color:var(--gy);margin-top:8px">📦 Delivery dates may shift by a few days either way due to weather or other logistical factors — we'll keep you posted if that happens.</div>
     </div>
@@ -1793,7 +1800,19 @@ input,textarea,select{font-family:var(--fb)}
       <div class="ig"><label>Start Time</label><input type="time" id="co-time"></div>
     </div>
     <div id="co-urgent-warn" class="urgent-warn" style="display:none"><span class="uw-ic">⚡</span><span>Your event is less than 3 days away — we can't take an advance payment or confirm this booking instantly. Submit your details below and our team will call you within 24 hours to check feasibility.</span></div>
-    <div class="ig"><label>Venue Address</label><input type="text" id="co-addr" placeholder="Full venue address"></div>
+    <div class="ig">
+      <label>Find Your Venue on Google Maps <span class="opt">opt.</span></label>
+      <div class="coupon-row" style="margin-bottom:4px">
+        <input type="text" id="co-maps-link" placeholder="Paste the Google Maps link here">
+        <a href="https://www.google.com/maps" target="_blank" rel="noopener" class="coupon-btn" style="white-space:nowrap;text-decoration:none;display:flex;align-items:center">🔍 Search Maps</a>
+      </div>
+      <div class="hint">Search &amp; pin your exact venue on Google Maps, then copy the share link here so our team can find it instantly.</div>
+    </div>
+    <div class="ig"><label>Exact Venue Address</label><input type="text" id="co-addr" placeholder="Full address incl. building, flat/floor, landmark"></div>
+    <div class="row2">
+      <div class="ig"><label>Venue Contact Person's Name <span class="opt">opt.</span></label><input type="text" id="co-venue-contact-name" placeholder="e.g. watchman, event coordinator"></div>
+      <div class="ig"><label>Venue Contact Person's Number <span class="opt">opt.</span></label><div class="pfx-wrap"><span class="pfx">+91</span><input type="tel" id="co-venue-contact-phone" class="pi" placeholder="Mobile"></div></div>
+    </div>
     <div class="row2">
       <div class="ig"><label>Guest Kids Count</label><input type="number" id="co-kids" placeholder="No. of kids" onchange="coKidsChanged(this.value)"></div>
       <div class="ig"><label>Child Name(s)</label><input type="text" id="co-child" placeholder="Child's name"></div>
@@ -2082,7 +2101,7 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Logs to the "Website Orders and Leads" Google Sheet.
 window.WS_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyVQ_8aZQS2hE5t9-1ceC5ttHeD7DSr0NQmKzYAdxkyRK4eqwgWAG_UnM_iZZmyxY8z4Q/exec';
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FPT:50000,remarks:{}};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FPT:50000,remarks:{}};
 
 // ── Sends a lead or booking row to the Google Sheet, fire-and-forget. ──
 // Uses mode:'no-cors' + text/plain so the browser never sends a CORS
@@ -3421,12 +3440,19 @@ async function doCo(){
   S.mobile=document.getElementById('co-mob').value;S.eventDate=document.getElementById('co-date').value;S.eventTime=document.getElementById('co-time').value;
   S.kidsCount=parseInt(document.getElementById('co-kids').value)||S.kidsCount;
   S.parentName=document.getElementById('co-name').value;S.email=document.getElementById('co-email').value;S.address=document.getElementById('co-addr').value;
+  // Venue Google Maps link + on-site contact person (2026-08-11, per Shruti).
+  S.venueMapsLink=document.getElementById('co-maps-link').value;
+  S.venueContactName=document.getElementById('co-venue-contact-name').value;
+  const __vcp=document.getElementById('co-venue-contact-phone').value.replace(/\D/g,'');
+  S.venueContactPhone=__vcp?('+91'+__vcp):'';
   // Return-gift delivery details (Step 8) — captured here so they reach the
   // sheet/DB/email even though they were filled in on an earlier step.
   S.giftAddr=document.getElementById('f-gaddr').value;
   S.giftMapsLink=document.getElementById('f-gmaps').value;
   S.giftAddrType=document.getElementById('f-gaddrtype').value;
   S.giftContact=document.getElementById('f-gcontact').value;
+  const __gcp=document.getElementById('f-gcontact-phone').value.replace(/\D/g,'');
+  S.giftContactPhone=__gcp?('+91'+__gcp):'';
   S.giftReqDate=document.getElementById('f-gdate').value;
 
   // Event less than 3 days away: no instant confirmation, no advance, no
@@ -3453,6 +3479,8 @@ async function doCo(){
     child: S.children.map(c=>c.name||'').filter(Boolean).join(', '),
     event_date: S.eventDate, event_time: S.eventTime, kids_count: S.kidsCount,
     venue: S.address || S.venue, pincode: S.pincode, theme: S.theme,
+    venue_maps_link: S.venueMapsLink || '', venue_contact_name: S.venueContactName || '',
+    venue_contact_phone: S.venueContactPhone || '',
     estimated_total: __tpv, advance: __advv, balance_due: __bal, discount_pct: __dpv,
     reward_type: __rewardWon ? __reward.type : '', reward_label: __rewardWon ? __reward.label : '',
     reward_value: __reward.value || '', reward_terms: __rewardTermsText,
@@ -3460,6 +3488,7 @@ async function doCo(){
     lead_source: __leadSource,
     gift_delivery_address: S.giftAddr || '', gift_delivery_maps_link: S.giftMapsLink || '',
     gift_delivery_address_type: S.giftAddrType || '', gift_delivery_contact: S.giftContact || '',
+    gift_delivery_contact_phone: S.giftContactPhone || '',
     gift_required_by_date: S.giftReqDate || '',
     dj_lights_addon: S.djAddons.lights ? 'Yes' : 'No',
     dj_smoke_machine_addon: S.djAddons.smoke ? 'Yes' : 'No',
@@ -3480,6 +3509,9 @@ async function doCo(){
         child_names:        S.children.map(c=>c.name||'').filter(Boolean).join(', ') || null,
         theme:              S.theme || null,
         venue:              S.address || S.venue || null,
+        venue_maps_link:    S.venueMapsLink || null,
+        venue_contact_name: S.venueContactName || null,
+        venue_contact_phone:S.venueContactPhone || null,
         pincode:            S.pincode || null,
         client_budget:      __tpv || null,
         order_grand_total:  __gt || null,
@@ -3497,6 +3529,7 @@ async function doCo(){
         gift_delivery_maps_link:    S.giftMapsLink || null,
         gift_delivery_address_type: S.giftAddrType || null,
         gift_delivery_contact:      S.giftContact || null,
+        gift_delivery_contact_phone:S.giftContactPhone || null,
         gift_required_by_date:      S.giftReqDate || null,
         dj_lights_addon:            !!S.djAddons.lights,
         dj_smoke_machine_addon:     !!S.djAddons.smoke,

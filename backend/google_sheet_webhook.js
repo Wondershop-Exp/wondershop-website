@@ -21,10 +21,11 @@ var HEADERS = [
   "Lead ID", "Submitted At", "Status",
   "Parent Name", "Phone", "Email",
   "Event Date", "Kids Count", "Child Names", "Child Ages", "Child Genders",
-  "Theme", "Venue", "Location Type", "City", "Pincode", "Budget (₹)",
+  "Theme", "Venue", "Venue Maps Link", "Venue Contact Name", "Venue Contact Phone",
+  "Location Type", "City", "Pincode", "Budget (₹)",
   "Lead Source", "Referred By",
   "Gift Delivery Address", "Gift Delivery Maps Link", "Gift Delivery Address Type",
-  "Gift Delivery Contact", "Gift Required By Date",
+  "Gift Delivery Contact", "Gift Delivery Contact Phone", "Gift Required By Date",
   "DJ Lights Addon", "Smoke Machine Addon"
 ];
 
@@ -59,6 +60,9 @@ function doPost(e) {
       d.child_genders  || "",
       d.theme          || "",
       d.venue          || "",
+      d.venue_maps_link    || "",
+      d.venue_contact_name || "",
+      d.venue_contact_phone|| "",
       d.location_type  || "",
       d.city           || "",
       d.pincode        || "",
@@ -69,6 +73,7 @@ function doPost(e) {
       d.gift_delivery_maps_link    || "",
       d.gift_delivery_address_type || "",
       d.gift_delivery_contact      || "",
+      d.gift_delivery_contact_phone|| "",
       d.gift_required_by_date      || "",
       d.dj_lights_addon            || "",
       d.dj_smoke_machine_addon     || "",

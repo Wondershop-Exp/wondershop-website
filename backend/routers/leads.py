@@ -37,6 +37,10 @@ class LeadSubmitRequest(BaseModel):
     child_ages:         Optional[str]   = None
     child_genders:      Optional[str]   = None
     venue:              Optional[str]   = None
+    # Venue Google Maps share link + on-site contact person (2026-08-11).
+    venue_maps_link:    Optional[str]   = None
+    venue_contact_name: Optional[str]   = None
+    venue_contact_phone:Optional[str]   = None
     location_type:      Optional[str]   = None
     theme:              Optional[str]   = None
     city:               Optional[str]   = None
@@ -65,7 +69,8 @@ class LeadSubmitRequest(BaseModel):
     gift_delivery_address:      Optional[str]  = None
     gift_delivery_maps_link:    Optional[str]  = None
     gift_delivery_address_type: Optional[str]  = None
-    gift_delivery_contact:      Optional[str]  = None
+    gift_delivery_contact:      Optional[str]  = None   # contact person's name
+    gift_delivery_contact_phone:Optional[str]  = None   # contact person's phone (2026-08-11)
     gift_required_by_date:      Optional[date] = None
     # DJ add-ons — DJ Lights (Rs.1,500) / Smoke Machine (Rs.2,000). Replaces
     # the old "Signature DJ" tier, which bundled both at a fixed higher price.
@@ -151,13 +156,30 @@ def _format_dj_addons_block(req: LeadSubmitRequest) -> str:
         return ""
     return "\nDJ ADD-ONS\n" + "\n".join(lines) + "\n"
 
+def _format_venue_block(req: LeadSubmitRequest) -> str:
+    """Venue Google Maps link + on-site contact person — only present if the
+    customer filled in at least one (both optional on the checkout step)."""
+    if not any([req.venue_maps_link, req.venue_contact_name, req.venue_contact_phone]):
+        return ""
+    lines = ["\nVENUE DETAILS"]
+    if req.venue_maps_link:
+        lines.append(f"  Maps Link      : {req.venue_maps_link}")
+    if req.venue_contact_name or req.venue_contact_phone:
+        contact = " ".join(filter(None, [
+            req.venue_contact_name,
+            f"({req.venue_contact_phone})" if req.venue_contact_phone else None,
+        ]))
+        lines.append(f"  Contact Person : {contact}")
+    lines.append("")
+    return "\n".join(lines) + "\n"
+
 def _format_gift_delivery_block(req: LeadSubmitRequest) -> str:
     """Return-gift delivery details — only present if the customer filled
     in at least one of the delivery fields on the Return Gifts step."""
     fields = [
         req.gift_delivery_address, req.gift_delivery_maps_link,
         req.gift_delivery_address_type, req.gift_delivery_contact,
-        req.gift_required_by_date,
+        req.gift_delivery_contact_phone, req.gift_required_by_date,
     ]
     if not any(fields):
         return ""
@@ -168,8 +190,12 @@ def _format_gift_delivery_block(req: LeadSubmitRequest) -> str:
         lines.append(f"  Address Type   : {req.gift_delivery_address_type}")
     if req.gift_delivery_maps_link:
         lines.append(f"  Maps Link      : {req.gift_delivery_maps_link}")
-    if req.gift_delivery_contact:
-        lines.append(f"  Contact Person : {req.gift_delivery_contact}")
+    if req.gift_delivery_contact or req.gift_delivery_contact_phone:
+        contact = " ".join(filter(None, [
+            req.gift_delivery_contact,
+            f"({req.gift_delivery_contact_phone})" if req.gift_delivery_contact_phone else None,
+        ]))
+        lines.append(f"  Contact Person : {contact}")
     if req.gift_required_by_date:
         lines.append(f"  Required By    : {req.gift_required_by_date.isoformat()}")
     lines.append("  Note: delivery timing may shift a few days due to weather/logistics.")
@@ -210,6 +236,7 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest) -> None:
         remarks_block = f"\nYour special requests / remarks:\n  {req.remarks}\n" if req.remarks else ""
         order_block = _format_order_summary_block(req)
         dj_addons_block = _format_dj_addons_block(req)
+        venue_block = _format_venue_block(req)
         gift_delivery_block = _format_gift_delivery_block(req)
         reward_block = _format_reward_block(req)
         body = f"""Hi {req.parent_name.split()[0]}! 🎉
@@ -222,7 +249,7 @@ Your details:
   Event Date  : {req.event_date.isoformat() if req.event_date else '—'}
   Theme       : {req.theme or '—'}
   City        : {req.city or '—'}
-{remarks_block}{order_block}{dj_addons_block}{gift_delivery_block}{reward_block}
+{remarks_block}{order_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}
 If you have any questions in the meantime, WhatsApp us at +91 90044 35362.
 
 Warmly,
@@ -252,6 +279,7 @@ async def _send_team_email(lead_id: int, req: LeadSubmitRequest) -> None:
         remarks_block = f"\nSPECIAL REQUESTS / REMARKS\n  {req.remarks}\n" if req.remarks else ""
         order_block = _format_order_summary_block(req)
         dj_addons_block = _format_dj_addons_block(req)
+        venue_block = _format_venue_block(req)
         gift_delivery_block = _format_gift_delivery_block(req)
         reward_block = ""
         if req.reward_type:
@@ -278,7 +306,7 @@ EVENT
   Venue      : {req.venue or '—'} ({req.location_type or '—'})
   City       : {req.city or '—'}   Pincode: {req.pincode or '—'}
   Budget     : {budget_str}
-{remarks_block}{order_block}{dj_addons_block}{gift_delivery_block}{reward_block}
+{remarks_block}{order_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}
 SOURCE
   {req.lead_source or '—'} / {req.lead_source_detail or '—'}
   Referred by: {req.referred_by or '—'}
@@ -320,6 +348,9 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest) -> None:
             "child_genders":req.child_genders or "",
             "theme":        req.theme or "",
             "venue":        req.venue or "",
+            "venue_maps_link":    req.venue_maps_link or "",
+            "venue_contact_name": req.venue_contact_name or "",
+            "venue_contact_phone":req.venue_contact_phone or "",
             "location_type":req.location_type or "",
             "city":         req.city or "",
             "pincode":      req.pincode or "",
@@ -330,6 +361,7 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest) -> None:
             "gift_delivery_maps_link":    req.gift_delivery_maps_link or "",
             "gift_delivery_address_type": req.gift_delivery_address_type or "",
             "gift_delivery_contact":      req.gift_delivery_contact or "",
+            "gift_delivery_contact_phone":req.gift_delivery_contact_phone or "",
             "gift_required_by_date":      req.gift_required_by_date.isoformat() if req.gift_required_by_date else "",
             "dj_lights_addon":            "Yes" if req.dj_lights_addon else "No",
             "dj_smoke_machine_addon":     "Yes" if req.dj_smoke_machine_addon else "No",
@@ -432,22 +464,26 @@ async def submit_lead(req: LeadSubmitRequest):
         INSERT INTO leads (
             parent_name, phone, child_names, email,
             event_date, kids_count, child_ages, child_genders,
-            venue, location_type, theme, city, pincode,
+            venue, venue_maps_link, venue_contact_name, venue_contact_phone,
+            location_type, theme, city, pincode,
             client_budget, builder_snapshot, remarks,
             lead_source, lead_source_detail, referred_by,
             gift_delivery_address, gift_delivery_maps_link,
             gift_delivery_address_type, gift_delivery_contact,
+            gift_delivery_contact_phone,
             gift_required_by_date,
             dj_lights_addon, dj_smoke_machine_addon,
             status
         ) VALUES (
             :parent_name, :phone, :child_names, :email,
             :event_date, :kids_count, :child_ages, :child_genders,
-            :venue, :location_type, :theme, :city, :pincode,
+            :venue, :venue_maps_link, :venue_contact_name, :venue_contact_phone,
+            :location_type, :theme, :city, :pincode,
             :client_budget, :builder_snapshot, :remarks,
             :lead_source, :lead_source_detail, :referred_by,
             :gift_delivery_address, :gift_delivery_maps_link,
             :gift_delivery_address_type, :gift_delivery_contact,
+            :gift_delivery_contact_phone,
             :gift_required_by_date,
             :dj_lights_addon, :dj_smoke_machine_addon,
             'New'
@@ -464,6 +500,9 @@ async def submit_lead(req: LeadSubmitRequest):
             "child_ages":         req.child_ages,
             "child_genders":      req.child_genders,
             "venue":              req.venue,
+            "venue_maps_link":    req.venue_maps_link,
+            "venue_contact_name": req.venue_contact_name,
+            "venue_contact_phone":req.venue_contact_phone,
             "location_type":      req.location_type,
             "theme":              req.theme,
             "city":               req.city,
@@ -478,6 +517,7 @@ async def submit_lead(req: LeadSubmitRequest):
             "gift_delivery_maps_link":    req.gift_delivery_maps_link,
             "gift_delivery_address_type": req.gift_delivery_address_type,
             "gift_delivery_contact":      req.gift_delivery_contact,
+            "gift_delivery_contact_phone":req.gift_delivery_contact_phone,
             "gift_required_by_date":      req.gift_required_by_date,
             "dj_lights_addon":            bool(req.dj_lights_addon),
             "dj_smoke_machine_addon":     bool(req.dj_smoke_machine_addon),
