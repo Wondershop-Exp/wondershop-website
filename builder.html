@@ -2096,44 +2096,16 @@ input,textarea,select{font-family:var(--fb)}
 // ── API config — set this once Railway backend is live ──
 window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 
-// ── Google Sheet lead/booking capture — works today, no backend needed ──
-// Set up: see Google_Sheet_Lead_Capture_Setup.txt in this folder.
-// Logs to the "Website Orders and Leads" Google Sheet.
-window.WS_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyVQ_8aZQS2hE5t9-1ceC5ttHeD7DSr0NQmKzYAdxkyRK4eqwgWAG_UnM_iZZmyxY8z4Q/exec';
+// ── Google Sheet lead/booking capture — now handled entirely by the
+// backend (Railway → backend/google_sheet_webhook.js → single "Leads"
+// sheet with Status tracking). The old direct-from-browser path
+// (WS_SHEET_URL / wsSendToSheet / Google_Sheet_Lead_Capture_Setup's
+// Code.gs) was retired 2026-08-11 to stop writing duplicate, drifting
+// rows — see the "Consolidate leads + bookings" commits.
 
 const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FPT:50000,remarks:{}};
 
-// ── Sends a lead or booking row to the Google Sheet, fire-and-forget. ──
-// Uses mode:'no-cors' + text/plain so the browser never sends a CORS
-// preflight (Apps Script Web Apps don't handle OPTIONS well) — this means
-// we can't read the response, so we just log locally and move on; the
-// mailto/WhatsApp fallbacks already in place still guarantee nothing is lost.
-function wsSendToSheet(type, payload){
-  try{
-    const url = window.WS_SHEET_URL || '';
-    if(!url) return;
-    fetch(url, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {'Content-Type': 'text/plain;charset=utf-8'},
-      body: JSON.stringify(Object.assign({type, page_url: location.href}, payload)),
-    }).catch(err => console.warn('[Sheet capture] send failed:', err));
-  }catch(e){console.warn('[Sheet capture] error:', e);}
-}
 function djAddonsText(){const p=[];if(S.djAddons.lights)p.push('DJ Lights (Rs 1500)');if(S.djAddons.smoke)p.push('Smoke Machine (Rs 2000)');return p.join(', ');}
-function wsBuilderSnapshotForSheet(){
-  return {
-    decor:       S.decor       ? S.decor.n + ' (Rs ' + S.decor.p + ')'   : '',
-    activities:  S.activities.length ? S.activities.map(a=>a.n).join(', ') : '',
-    host:        S.host        ? S.host.tier + ' (Rs ' + S.host.p + ')'  : '',
-    dj:          S.dj          ? S.dj.tier + ' (Rs ' + S.dj.p + ')'      : '',
-    dj_addons:   djAddonsText(),
-    pinata:      S.pinata      ? S.pinata.n + ' (Rs ' + S.pinata.p + ')' : '',
-    einvite:     S.einvite     ? S.einvite.n : '',
-    photographer:S.photo       ? S.photo.tier + ' (Rs ' + S.photo.p + ')': '',
-    return_gifts:S.gifts.length ? S.gifts.map(g=>g.n+' x'+g.qty).join(', ') : '',
-  };
-}
 
 // ── DATA ──
 // ── TODO — parked, no real decor photos yet (removed from the live catalogue
@@ -3673,20 +3645,18 @@ async function doLead(){
     venue:              venue   || null,
     client_budget:      budget ? parseFloat(budget.replace(/[^\d.]/g,'')) || null : null,
     builder_snapshot:   buildSnapshot(),
-    lead_source:        'Website',
+    lead_source:        'Website - Custom Request',
     lead_source_detail: new URLSearchParams(location.search).get('utm_source')||null,
   };
 
-  // Google Sheet capture — fires independently of the Railway API below,
-  // so leads land in the Sheet even before the backend is live.
-  wsSendToSheet('lead', Object.assign({
-    name: name, phone: phone, email: email, child: child,
-    child_age: childAge, child_gender: childGender,
-    event_date: date, kids_count: kids, venue: venue, theme: theme,
-    budget: budget, estimated_total: rawT(),
-    lead_source: 'Website - Custom Request',
-    utm_source: new URLSearchParams(location.search).get('utm_source') || '',
-  }, wsBuilderSnapshotForSheet()));
+  // Sheet write consolidated (2026-08-11, per Shruti) — same reasoning as
+  // doCo() above: this now goes through the single Railway-mediated pipeline
+  // only, so custom-request leads land in the same one "Leads" sheet as
+  // checkout submissions, instead of a separate direct-to-Sheet write.
+  // Trade-off worth knowing: the old direct write was an intentional
+  // fallback so a lead still reached the Sheet even if the Railway backend
+  // was down. Removing it means a backend outage now means no record at
+  // all for this form (same behavior doCo() already had, for consistency).
 
   try{
     const API=window.WS_API_BASE||'';
