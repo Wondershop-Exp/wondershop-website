@@ -122,6 +122,12 @@ def _fmt_date_long(d: Optional[date]) -> str:
         return "—"
     return f"{d.day} {d.strftime('%B %Y')}"
 
+def _cap_first(s: Optional[str]) -> str:
+    """Capitalises only the first letter, leaving the rest of the name's
+    casing untouched (so 'test' -> 'Test', 'McDonald' stays 'McDonald')."""
+    s = (s or "").strip()
+    return (s[:1].upper() + s[1:]) if s else "there"
+
 def _html_escape(s) -> str:
     if s is None:
         return ""
@@ -344,7 +350,7 @@ async def _redeem_referral_code(code: str, phone: str, lead_id: int) -> bool:
             "SELECT parent_name, email FROM leads WHERE lead_id = :lid", values={"lid": row["owner_lead_id"]},
         )
         if owner and owner["email"] and "@" in owner["email"] and settings.GMAIL_CLIENT_ID:
-            first = (owner["parent_name"] or "there").split()[0]
+            first = _cap_first(owner["parent_name"].split()[0] if owner["parent_name"] else None)
             body = (
                 f"Hi {first}! 🎉\n\nGreat news — someone just booked with Wondershop using your referral code "
                 f"{code}. You've earned Rs.{REFERRAL_REWARD_AMOUNT} credit, which your Party Experience Lead "
@@ -551,7 +557,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
                        recipient_kind: str) -> str:
     """recipient_kind: 'customer' or 'team' — team version skips the welcome
     fluff and T&C footer link but keeps the same details table + styling."""
-    first_name = (req.parent_name or "there").split()[0]
+    first_name = _cap_first(req.parent_name.split()[0] if req.parent_name else None)
 
     if recipient_kind == "customer":
         if is_booking:
@@ -694,14 +700,14 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Opti
         return
 
     try:
-        first_name = req.parent_name.split()[0]
+        first_name = _cap_first(req.parent_name.split()[0] if req.parent_name else None)
         is_booking = bool(req.is_booking)
 
         if is_booking:
-            subject = f"🎉 Your Wondershop Booking is Confirmed, {first_name}!"
+            subject = f"🎉 Your Wondershop Booking is Confirmed, {first_name}! (Order #{lead_id})"
             intro_line = "Welcome to the Wondershop family! Your party is officially booked — we can't wait to celebrate with you."
         else:
-            subject = f"We got your enquiry, {first_name}! 🎈"
+            subject = f"We got your enquiry, {first_name}! 🎈 (Ref #{lead_id})"
             intro_line = "We've received your enquiry and our team will call you within a few hours to discuss your child's birthday party."
 
         remarks_block = f"\nYour special requests / remarks:\n  {req.remarks}\n" if req.remarks else ""
