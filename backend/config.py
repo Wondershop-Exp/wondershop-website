@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     WHATSAPP_PHONE_NUMBER_ID: str = ""
     WHATSAPP_ACCESS_TOKEN: str = ""
 
+    # AiSensy (WhatsApp BSP) — replaces direct Meta Cloud API calls above.
+    # API key: AiSensy dashboard → Manage → API Key.
+    # Campaign name: an "API Campaign" in AiSensy linked to the approved
+    # wondershop_new_lead template — must be live, not draft.
+    AISENSY_API_KEY: str = ""
+    AISENSY_CAMPAIGN_NAME: str = ""
+
     # Google Sheets — Apps Script webhook URL (no service account needed)
     GOOGLE_SHEET_WEBHOOK_URL: str = ""
 
