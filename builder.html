@@ -3935,11 +3935,16 @@ function buildSnapshot(){
       host:        S.host     ? {tier:S.host.tier, p:S.host.p}                : null,
       dj:          S.dj       ? {tier:S.dj.tier, p:S.dj.p}                   : null,
       dj_addons:   {lights:!!S.djAddons.lights, smoke:!!S.djAddons.smoke},
-      pinata:      S.pinata   ? {n:S.pinata.n, p:S.pinata.p}                 : null,
-      einvite:     S.einvite  ? {n:S.einvite.n}                               : null,
+      pinata:      S.pinata   ? {id:S.pinata.id, n:S.pinata.n, p:S.pinata.p} : null,
+      einvite:     S.einvite  ? {id:S.einvite.id, n:S.einvite.n}              : null,
       photo:       S.photo    ? {tier:S.photo.tier, p:S.photo.p}             : null,
       activities:  S.activities.map(a=>({id:a.id,n:a.n,p:a.p})),
-      gifts:       S.gifts.map(g=>({id:g.id,n:g.n,qty:g.qty,p:g.p})),
+      // gift objects carry `.unit` (per-item price), not `.p` — this used to
+      // read g.p (always undefined) so gift pricing never actually made it
+      // into the snapshot; fixed 2026-08-12.
+      gifts:       S.gifts.map(g=>({id:g.id,n:g.n,qty:g.qty,unit:g.unit})),
+      gift_packaging:    S.packaging || null,
+      gift_thank_you_note: S.tagType==='note',
       estimated_total: rawT(),
       pincode:     S.pincode,
       kids_count:  S.kidsCount,

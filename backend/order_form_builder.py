@@ -11,7 +11,13 @@ live and being used.
 """
 import io
 import re
+import asyncio
+import logging
+import urllib.parse
 from typing import Optional
+
+import catalogue_data as cat
+from catalogue_data import SITE_BASE_URL
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
@@ -22,6 +28,8 @@ from reportlab.lib.units import mm
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, KeepInFrame
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+logger = logging.getLogger(__name__)
 
 
 # ─── formatting helpers ──────────────────────────────────────────────────
@@ -102,6 +110,33 @@ def assemble_order_form_data(req, lead_id: int, event_sales_lead: Optional[str],
     coupon = req.redeemed_coupon_code or getattr(req, "sales_lead_code", None) or None
     child_name = (req.child_names or "").split(",")[0].strip() or req.parent_name or "Guest"
 
+    # ── catalogue lookups — reference photos + inclusion lists for whatever
+    # was actually chosen on the booking. Anything that doesn't resolve to a
+    # confident catalogue match (custom design, package-specific id, etc.)
+    # is left out rather than guessed.
+    decor_ref = cat.resolve_decor(decor.get("id"), decor.get("p"))
+    photo_features = cat.PHOTO_TIER_FEATURES.get(photo.get("tier"), [])
+    einvite_image_path = cat.resolve_einvite_image(einvite.get("id")) if einvite else None
+    pinata_image_path = cat.resolve_pinata_image(pinata.get("id")) if pinata else None
+
+    gifts_detail = []
+    for g in gifts:
+        ref = cat.resolve_gift(g.get("id"))
+        unit = g.get("unit")
+        if unit is None and ref:
+            unit = ref["catalogue_unit"]
+        qty = g.get("qty") or 0
+        gifts_detail.append({
+            "name": g.get("n") or "—",
+            "qty": qty,
+            "unit": unit,
+            "total": (unit * qty) if (unit is not None and qty) else None,
+            "image_path": ref["image_path"] if ref else None,
+        })
+
+    packaging_label = cat.PACKAGING_LABELS.get(snap.get("gift_packaging"), "None selected")
+    thank_you_note = "Yes" if snap.get("gift_thank_you_note") else "No"
+
     return {
         "lead_id": lead_id,
         "child_name": child_name,
@@ -130,10 +165,60 @@ def assemble_order_form_data(req, lead_id: int, event_sales_lead: Optional[str],
         "pinata_name": pinata.get("n") or "—",
         "einvite_name": einvite.get("n") or "—",
         "activities": [a.get("n") for a in activities if a.get("n")] or ["—"],
-        "gifts": [f"{g.get('n')} x{g.get('qty')}" for g in gifts if g.get("n")] or ["—"],
         "reward_code": reward_code or "—",
         "location": req.city or req.venue or "",
+        "decor_image_path": decor_ref["image_path"] if decor_ref else None,
+        "decor_spec": decor_ref["spec"] if decor_ref else [],
+        "photo_features": photo_features,
+        "einvite_image_path": einvite_image_path,
+        "pinata_image_path": pinata_image_path,
+        "gifts_detail": gifts_detail,
+        "gift_packaging_label": packaging_label,
+        "gift_thank_you_note": thank_you_note,
     }
+
+
+async def fetch_order_form_images(data: dict) -> dict:
+    """Downloads whatever reference images resolved during assembly (decor,
+    e-invite, pinata, per-gift thumbnails) from the live site so they can be
+    embedded in the xlsx/pdf. Best-effort — a failed fetch just means that
+    one slot stays blank on the form, never blocks the email."""
+    urls = {}
+    if data.get("decor_image_path"):
+        urls["decor"] = data["decor_image_path"]
+    if data.get("einvite_image_path"):
+        urls["einvite"] = data["einvite_image_path"]
+    if data.get("pinata_image_path"):
+        urls["pinata"] = data["pinata_image_path"]
+    for i, g in enumerate(data.get("gifts_detail", [])):
+        if g.get("image_path"):
+            urls[f"gift{i}"] = g["image_path"]
+
+    if not urls:
+        return data
+
+    import httpx
+
+    async def _fetch(key, path):
+        url = f"{SITE_BASE_URL}/img/{urllib.parse.quote(path)}"
+        try:
+            async with httpx.AsyncClient(timeout=8) as client:
+                r = await client.get(url)
+            if r.status_code == 200:
+                return key, r.content
+        except Exception as exc:
+            logger.warning(f"order form: image fetch failed for {path} — {exc}")
+        return key, None
+
+    results = await asyncio.gather(*(_fetch(k, v) for k, v in urls.items()))
+    bytes_by_key = dict(results)
+
+    data["decor_image_bytes"] = bytes_by_key.get("decor")
+    data["einvite_image_bytes"] = bytes_by_key.get("einvite")
+    data["pinata_image_bytes"] = bytes_by_key.get("pinata")
+    for i, g in enumerate(data.get("gifts_detail", [])):
+        g["image_bytes"] = bytes_by_key.get(f"gift{i}")
+    return data
 
 
 def order_form_filename(data: dict, ext: str) -> str:
@@ -160,13 +245,9 @@ _DETAIL_ROWS = [
 ]
 
 _SERVICE_ROWS = [
-    ("Decor",         "decor_name"),
     ("Host",          "host_tier"),
     ("Music (DJ)",    "dj_tier"),
     ("DJ Add-ons",    "dj_addons"),
-    ("Photographer",  "photo_tier"),
-    ("Piñata",        "pinata_name"),
-    ("E-Invite",      "einvite_name"),
 ]
 
 _BILLING_ROWS = [
@@ -188,6 +269,19 @@ _MANUAL_ROWS = [
 
 
 # ─── EXCEL (openpyxl) ─────────────────────────────────────────────────────
+
+def _xl_image(image_bytes, width, height):
+    if not image_bytes:
+        return None
+    try:
+        from openpyxl.drawing.image import Image as XLImage
+        img = XLImage(io.BytesIO(image_bytes))
+        img.width, img.height = width, height
+        return img
+    except Exception as exc:
+        logger.warning(f"order form: couldn't load image into xlsx — {exc}")
+        return None
+
 
 def build_order_form_xlsx(data: dict) -> bytes:
     wb = Workbook()
@@ -316,10 +410,117 @@ def build_order_form_xlsx(data: dict) -> bytes:
         ws.cell(row=right_row, column=7, value="").border = border
         right_row += 1
 
-    last_row = max(left_row, right_row) + 1
+    band_row = max(left_row, right_row) + 1
+
+    # ── Decor reference photo + included/not-included spec ──
+    decor_title = data.get("decor_name") or "—"
+    band_row = section(band_row, 1, 9, f"Decor Reference — {decor_title}")
+    img_row = band_row
+    img = _xl_image(data.get("decor_image_bytes"), 190, 130)
+    if img:
+        ws.add_image(img, f"A{img_row}")
+    spec = data.get("decor_spec") or []
+    spec_row = band_row
+    if spec:
+        for label, value, na in spec:
+            ws.merge_cells(start_row=spec_row, start_column=4, end_row=spec_row, end_column=5)
+            lc = ws.cell(row=spec_row, column=4, value=label)
+            lc.font = label_font
+            lc.border = border
+            ws.merge_cells(start_row=spec_row, start_column=6, end_row=spec_row, end_column=9)
+            vc = ws.cell(row=spec_row, column=6, value=("✗ " + value if na else value))
+            vc.font = Font(size=10, color="B00020" if na else "000000", italic=na)
+            vc.border = border
+            spec_row += 1
+    else:
+        ws.merge_cells(start_row=spec_row, start_column=4, end_row=spec_row, end_column=9)
+        ws.cell(row=spec_row, column=4, value="No matching reference photo/inclusion list — Ops to confirm manually").font = value_font
+        spec_row += 1
+    band_row = max(spec_row, img_row + 9) + 1
+
+    # ── Photographer inclusions ──
+    photo_tier = data.get("photo_tier") or "—"
+    band_row = section(band_row, 1, 9, f"Photographer — {photo_tier} Package Includes")
+    features = data.get("photo_features") or ["—"]
+    ws.merge_cells(start_row=band_row, start_column=1, end_row=band_row + max(1, len(features)) - 1, end_column=9)
+    fc = ws.cell(row=band_row, column=1, value="\n".join(f"• {f}" for f in features))
+    fc.font = value_font
+    fc.border = border
+    fc.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
+    band_row += max(2, len(features)) + 1
+
+    # ── E-Invite + Piñata reference photos ──
+    band_row = section(band_row, 1, 9, "E-Invite Template & Piñata Reference")
+    ws.cell(row=band_row, column=1, value="E-Invite:").font = label_font
+    ws.cell(row=band_row, column=6, value="Piñata:").font = label_font
+    ei_img = _xl_image(data.get("einvite_image_bytes"), 110, 150)
+    pin_img = _xl_image(data.get("pinata_image_bytes"), 130, 130)
+    if ei_img:
+        ws.add_image(ei_img, f"A{band_row + 1}")
+    else:
+        ws.cell(row=band_row + 1, column=1, value="(no existing template chosen)").font = Font(size=9, italic=True, color="808080")
+    if pin_img:
+        ws.add_image(pin_img, f"F{band_row + 1}")
+    else:
+        ws.cell(row=band_row + 1, column=6, value="(custom design / not in catalogue)").font = Font(size=9, italic=True, color="808080")
+    band_row += 10
+
+    # ── Return Gifts — image, per-item value, packaging ──
+    band_row = section(band_row, 1, 9, "Return Gifts")
+    hdr = band_row
+    for label, cs, ce in [("Photo", 1, 2), ("Item", 3, 5), ("Qty", 6, 6), ("Unit ₹", 7, 7), ("Total ₹", 8, 9)]:
+        ws.merge_cells(start_row=hdr, start_column=cs, end_row=hdr, end_column=ce)
+        hc = ws.cell(row=hdr, column=cs, value=label)
+        hc.font = label_font
+        hc.border = border
+        hc.alignment = Alignment(horizontal="center")
+    band_row += 1
+    gifts_detail = data.get("gifts_detail") or []
+    if not gifts_detail:
+        ws.merge_cells(start_row=band_row, start_column=1, end_row=band_row, end_column=9)
+        ws.cell(row=band_row, column=1, value="No return gifts on this booking").font = value_font
+        band_row += 1
+    for g in gifts_detail:
+        ws.row_dimensions[band_row].height = 40
+        ws.merge_cells(start_row=band_row, start_column=1, end_row=band_row, end_column=2)
+        ws.cell(row=band_row, column=1).border = border
+        gimg = _xl_image(g.get("image_bytes"), 45, 45)
+        if gimg:
+            ws.add_image(gimg, f"A{band_row}")
+        ws.merge_cells(start_row=band_row, start_column=3, end_row=band_row, end_column=5)
+        ic = ws.cell(row=band_row, column=3, value=g["name"])
+        ic.font = value_font
+        ic.border = border
+        ic.alignment = Alignment(vertical="center", wrap_text=True)
+        qc = ws.cell(row=band_row, column=6, value=g["qty"])
+        qc.border = border
+        qc.alignment = Alignment(horizontal="center", vertical="center")
+        ws.merge_cells(start_row=band_row, start_column=7, end_row=band_row, end_column=7)
+        uc = ws.cell(row=band_row, column=7, value=(f"₹{g['unit']:,.0f}" if g.get("unit") is not None else "—"))
+        uc.border = border
+        uc.alignment = Alignment(horizontal="center", vertical="center")
+        ws.merge_cells(start_row=band_row, start_column=8, end_row=band_row, end_column=9)
+        tc = ws.cell(row=band_row, column=8, value=(f"₹{g['total']:,.0f}" if g.get("total") is not None else "—"))
+        tc.border = border
+        tc.alignment = Alignment(horizontal="center", vertical="center")
+        band_row += 1
+
+    band_row = kv(band_row, 1, 3, 4, "Packaging", data.get("gift_packaging_label", "—"))
+    ws.merge_cells(start_row=band_row - 1, start_column=6, end_row=band_row - 1, end_column=6)
+    lc2 = ws.cell(row=band_row - 1, column=6, value="Personalized Thank You Note")
+    lc2.font = label_font
+    lc2.border = border
+    ws.merge_cells(start_row=band_row - 1, start_column=7, end_row=band_row - 1, end_column=9)
+    vc2 = ws.cell(row=band_row - 1, column=7, value=data.get("gift_thank_you_note", "—"))
+    vc2.font = value_font
+    vc2.border = border
+
+    last_row = band_row + 1
     ws.row_dimensions[last_row].height = 8
 
-    # Printer-friendly A4 landscape, fit to one page wide.
+    # Printer-friendly A4 landscape, fit to page width (content now spans
+    # more than one printed page for bookings with several reference photos
+    # — that's fine, each page is still clean and readable).
     ws.page_setup.orientation = "landscape"
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
     ws.page_setup.fitToWidth = 1
@@ -404,7 +605,6 @@ def build_order_form_pdf(data: dict) -> bytes:
     left_flow.append(_section_header("Services (as booked)", left_w))
     svc_rows = [(l, data.get(k, "—")) for l, k in _SERVICE_ROWS]
     svc_rows.append(("Engagement Activities", ", ".join(data.get("activities", ["—"]))))
-    svc_rows.append(("Return Gifts", ", ".join(data.get("gifts", ["—"]))))
     left_flow.append(_kv_table(svc_rows, [left_w * 0.4, left_w * 0.6], []))
     left_flow.append(Spacer(1, 4))
     left_flow.append(_section_header("Billing", left_w))
@@ -464,5 +664,124 @@ def build_order_form_pdf(data: dict) -> bytes:
         ("LEFTPADDING", (1, 0), (1, 0), 8),
     ]))
 
-    doc.build([title_tbl, Spacer(1, 6), outer])
+    story = [title_tbl, Spacer(1, 6), outer, Spacer(1, 8)]
+    story.extend(_build_reference_bands(data, usable_w, styles, body))
+
+    doc.build(story)
     return buf.getvalue()
+
+
+def _rl_image(image_bytes, max_w, max_h):
+    """Aspect-ratio-preserving Image flowable from raw bytes, or None if
+    there's nothing to show / the bytes can't be decoded."""
+    if not image_bytes:
+        return None
+    try:
+        from PIL import Image as PILImage
+        from reportlab.platypus import Image as RLImage
+        pil_img = PILImage.open(io.BytesIO(image_bytes))
+        w, h = pil_img.size
+        scale = min(max_w / w, max_h / h)
+        return RLImage(io.BytesIO(image_bytes), width=w * scale, height=h * scale)
+    except Exception as exc:
+        logger.warning(f"order form: couldn't load image into pdf — {exc}")
+        return None
+
+
+def _build_reference_bands(data, usable_w, styles, body):
+    """Decor reference photo + inclusions, Photographer inclusions,
+    E-Invite/Piñata photos, and the Return Gifts table — flows naturally
+    onto a second page if it doesn't fit under the details band above."""
+    flow = []
+
+    # ── Decor ──
+    decor_title = data.get("decor_name") or "—"
+    flow.append(_section_header(f"Decor Reference — {decor_title}", usable_w))
+    img = _rl_image(data.get("decor_image_bytes"), usable_w * 0.28, 150)
+    spec = data.get("decor_spec") or []
+    if spec:
+        spec_rows = []
+        for label, value, na in spec:
+            v = ("✗ " + value) if na else value
+            spec_rows.append([Paragraph(f"<b>{label}</b>", body),
+                               Paragraph(f'<font color="{"#B00020" if na else "#000000"}">{v}</font>', body)])
+        spec_tbl = Table(spec_rows, colWidths=[usable_w * 0.28, usable_w * 0.44])
+        spec_tbl.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#DDDDDD")),
+            ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ]))
+    else:
+        spec_tbl = Paragraph("No matching reference photo/inclusion list — Ops to confirm manually", body)
+    row = [[img if img else Paragraph("(no reference photo matched)", body), spec_tbl]]
+    decor_row_tbl = Table(row, colWidths=[usable_w * 0.30, usable_w * 0.70])
+    decor_row_tbl.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
+    flow.append(decor_row_tbl)
+    flow.append(Spacer(1, 6))
+
+    # ── Photographer ──
+    photo_tier = data.get("photo_tier") or "—"
+    flow.append(_section_header(f"Photographer — {photo_tier} Package Includes", usable_w))
+    features = data.get("photo_features") or ["—"]
+    feat_tbl = Table([[Paragraph("<br/>".join(f"• {f}" for f in features), body)]], colWidths=[usable_w])
+    feat_tbl.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#DDDDDD")),
+        ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    flow.append(feat_tbl)
+    flow.append(Spacer(1, 6))
+
+    # ── E-Invite + Piñata ──
+    flow.append(_section_header("E-Invite Template & Piñata Reference", usable_w))
+    ei_img = _rl_image(data.get("einvite_image_bytes"), usable_w * 0.20, 150)
+    pin_img = _rl_image(data.get("pinata_image_bytes"), usable_w * 0.20, 150)
+    ei_cell = ei_img if ei_img else Paragraph("(no existing template chosen)", body)
+    pin_cell = pin_img if pin_img else Paragraph("(custom design / not in catalogue)", body)
+    ei_pin_tbl = Table([[Paragraph("<b>E-Invite</b>", body), Paragraph("<b>Piñata</b>", body)],
+                         [ei_cell, pin_cell]], colWidths=[usable_w * 0.5, usable_w * 0.5])
+    ei_pin_tbl.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#DDDDDD")),
+        ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    flow.append(ei_pin_tbl)
+    flow.append(Spacer(1, 6))
+
+    # ── Return Gifts ──
+    flow.append(_section_header("Return Gifts", usable_w))
+    gifts_detail = data.get("gifts_detail") or []
+    gift_rows = [[Paragraph("<b>Photo</b>", body), Paragraph("<b>Item</b>", body),
+                  Paragraph("<b>Qty</b>", body), Paragraph("<b>Unit (Rs.)</b>", body),
+                  Paragraph("<b>Total (Rs.)</b>", body)]]
+    if not gifts_detail:
+        gift_rows.append([Paragraph("No return gifts on this booking", body), "", "", "", ""])
+    for g in gifts_detail:
+        thumb = _rl_image(g.get("image_bytes"), 40, 40) or Paragraph("—", body)
+        unit_s = f"Rs. {g['unit']:,.0f}" if g.get("unit") is not None else "—"
+        total_s = f"Rs. {g['total']:,.0f}" if g.get("total") is not None else "—"
+        gift_rows.append([thumb, Paragraph(g["name"], body), Paragraph(str(g["qty"]), body),
+                           Paragraph(unit_s, body), Paragraph(total_s, body)])
+    gift_tbl = Table(gift_rows, colWidths=[usable_w * 0.10, usable_w * 0.50, usable_w * 0.12,
+                                            usable_w * 0.14, usable_w * 0.14])
+    gift_tbl.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#DDDDDD")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F2F2F2")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    flow.append(gift_tbl)
+    flow.append(Spacer(1, 4))
+    pack_tbl = Table([[Paragraph("<b>Packaging</b>", body), Paragraph(data.get("gift_packaging_label", "—"), body),
+                        Paragraph("<b>Personalized Thank You Note</b>", body),
+                        Paragraph(str(data.get("gift_thank_you_note", "—")), body)]],
+                      colWidths=[usable_w * 0.15, usable_w * 0.35, usable_w * 0.25, usable_w * 0.25])
+    pack_tbl.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#DDDDDD")),
+        ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    flow.append(pack_tbl)
+
+    return flow
