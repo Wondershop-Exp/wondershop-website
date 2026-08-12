@@ -6,7 +6,7 @@ On every new lead submission, four things fire in parallel (fire-and-forget):
   1. User acknowledgement email  → req.email
   2. Team notification email     → settings.EMAIL_TEAM
   3. Google Sheet row append     → settings.GOOGLE_SHEET_WEBHOOK_URL
-  4. WhatsApp alert              → WS_PHONE_1 + WS_PHONE_2 via Meta Cloud API
+  4. WhatsApp alert              → WS_PHONE_1 + WS_PHONE_2 via AiSensy
 
 req.is_booking distinguishes a CONFIRMED BOOKING (from builder.html's
 checkout step, doCo()) from an unconfirmed LEAD (custom-request form,
@@ -20,6 +20,7 @@ import string
 import asyncio
 import logging
 import httpx
+import urllib.parse
 from datetime import datetime, date, timedelta
 
 from fastapi import APIRouter
@@ -32,6 +33,7 @@ from order_form_builder import (
     assemble_order_form_data, fetch_order_form_images, build_order_form_xlsx,
     build_order_form_pdf, order_form_filename,
 )
+import catalogue_data as cat
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -85,6 +87,12 @@ class LeadSubmitRequest(BaseModel):
     order_discount_pct: Optional[float] = None
     order_advance:      Optional[float] = None
     order_balance:      Optional[float] = None
+    # We don't process any payment automatically on the website — every
+    # method is self-reported by the customer and manually reconciled by
+    # the team (2026-08-12, per Shruti). payment_status is always a
+    # "pending" value at submit time; nothing is ever auto-marked Paid.
+    payment_method:     Optional[str]   = None
+    payment_status:     Optional[str]   = None
     # Post-booking scratch-card reward — only set when the customer won
     # something (reward_type is None/omitted for "better luck next time").
     reward_type:        Optional[str]   = None
@@ -121,6 +129,25 @@ class CouponValidateRequest(BaseModel):
 
 # ─── FORMAT HELPERS ──────────────────────────────────────────────────────────
 
+# S.payMethod values from builder.html's checkout -> human-readable labels
+# for the order-summary email/order-form (2026-08-12, per Shruti).
+_PAYMENT_METHOD_LABELS = {
+    "online":  "UPI / Bank Transfer",
+    "branch":  "Cash Deposit at Branch",
+    "collect": "Cash Collection at Venue",
+}
+
+# "Cash Collection at Venue" means nothing has been paid yet at all — the
+# generic "Pending Verification" wording (written for online/branch, where
+# something HAS actually been paid and just needs the team to check it) is
+# misleading there. Cash-collection orders get their own plain "Pending"
+# status instead (2026-08-12, per Shruti).
+def _payment_status_text(req: LeadSubmitRequest) -> str:
+    if req.payment_method == "collect":
+        return "⏳ Pending — to be collected at your event venue"
+    return "⏳ Pending Verification — team will confirm once payment is checked"
+
+
 def _fmt_rupees(amount: Optional[float]) -> str:
     return f"Rs.{amount:,.0f}" if amount is not None else "—"
 
@@ -141,6 +168,19 @@ def _html_escape(s) -> str:
         return ""
     return (str(s).replace("&", "&amp;").replace("<", "&lt;")
             .replace(">", "&gt;").replace('"', "&quot;"))
+
+
+def _booking_subject_line(lead_id: int, req: "LeadSubmitRequest") -> str:
+    """Internal team subject line for a CONFIRMED booking — format requested
+    by Shruti (2026-08-12): "booking confirmed-date-location-theme-age
+    gender". Degrades to '—' for any missing piece rather than dropping the
+    whole subject."""
+    date_bit = req.event_date.isoformat() if req.event_date else "—"
+    location_bit = req.city or req.venue or "—"
+    theme_bit = req.theme or "—"
+    first_age = (req.child_ages or "").split(",")[0].strip() or "—"
+    first_gender = (req.child_genders or "").split(",")[0].strip() or "—"
+    return f"Booking Confirmed - {date_bit} - {location_bit} - {theme_bit} - {first_age} {first_gender} (#{lead_id})"
 
 
 # ─── GMAIL API EMAIL HELPER ──────────────────────────────────────────────────
@@ -431,17 +471,12 @@ def _format_order_summary_block(req: LeadSubmitRequest) -> str:
     if req.order_discount_pct:
         lines.append(f"  Discount        : {req.order_discount_pct:.0f}%")
     lines.append(f"  Payable Total   : {_fmt_rupees(req.client_budget)}")
-    if req.order_advance is not None:
-        lines.append(f"  Advance Paid    : {_fmt_rupees(req.order_advance)}")
-    if req.order_balance is not None:
-        if req.event_date:
-            due = req.event_date - timedelta(days=2)
-            lines.append(
-                f"  Balance Due     : {_fmt_rupees(req.order_balance)} "
-                f"(due by {_fmt_date_long(due)} — 2 days before your event on {_fmt_date_long(req.event_date)})"
-            )
-        else:
-            lines.append(f"  Balance Due     : {_fmt_rupees(req.order_balance)} (before your event)")
+    # No payment method is auto-verified — never claim an advance was
+    # "Paid" here (2026-08-12, per Shruti).
+    pay_method_label = _PAYMENT_METHOD_LABELS.get(req.payment_method or "", req.payment_method)
+    if pay_method_label:
+        lines.append(f"  Payment Method  : {pay_method_label}")
+    lines.append(f"  Payment Status  : {_payment_status_text(req)}")
     if req.reward_type == "refund" and req.reward_value and req.order_balance is not None:
         adjusted_balance = max(0.0, req.order_balance - req.reward_value)
         lines.append(f"  Scratch Card Refund : -{_fmt_rupees(req.reward_value)}")
@@ -524,6 +559,231 @@ def _format_reward_block(req: LeadSubmitRequest, reward_code: Optional[str]) -> 
     return "\n".join(lines) + "\n"
 
 
+# ─── FULL SERVICES SUMMARY (all chosen services, w/ decor + photography
+#     inclusions) ────────────────────────────────────────────────────────────
+# Built from req.builder_snapshot (captured client-side by buildSnapshot()
+# in builder.html) + the catalogue_data resolvers already used for the order
+# form, so the customer/team emails and the order form always agree on what
+# was actually chosen. A booking made before builder_snapshot existed, or
+# via a flow that doesn't populate it, simply shows no services block rather
+# than guessing (2026-08-12, per Shruti — "include the complete list of
+# chosen services with images; for decor and photography specifically list
+# inclusions").
+
+def _services_detail_list(req: LeadSubmitRequest) -> list:
+    """Always returns one entry per builder step (Decor, Activities, Host,
+    DJ, Pinata, E-Invite, Photographer, Return Gifts), in that order, even
+    when the customer didn't opt into a given step — those come back as
+    {"label": ..., "not_selected": True} so the confirmation email shows an
+    explicit "Not selected" row instead of silently dropping the category
+    (2026-08-12, per Shruti — team couldn't tell what was and wasn't chosen
+    from the email alone). Only skipped entirely when there's no builder
+    snapshot at all (a plain enquiry/callback lead that never went through
+    the package builder) — nothing was "not selected" there, there's simply
+    no order to itemise."""
+    snap = req.builder_snapshot or {}
+    if not snap:
+        return []
+    out = []
+
+    decor = snap.get("decor") or {}
+    if decor.get("n"):
+        decor_ref = cat.resolve_decor(decor.get("id"), decor.get("p"))
+        out.append({
+            "label": "Decor", "name": decor.get("n"), "price": decor.get("p"),
+            "image_path": decor_ref["image_path"] if decor_ref else None,
+            "inclusions": [(l, v) for l, v, na in (decor_ref["spec"] if decor_ref else []) if not na],
+        })
+    else:
+        out.append({"label": "Decor", "not_selected": True})
+
+    activities = snap.get("activities") or []
+    acts_named = [a for a in activities if a.get("n")]
+    if acts_named:
+        out.append({
+            "label": "Activities",
+            "items": [{"name": a["n"], "price": a.get("p")} for a in acts_named],
+        })
+    else:
+        out.append({"label": "Activities", "not_selected": True})
+
+    host = snap.get("host") or {}
+    if host.get("tier"):
+        out.append({"label": "Host", "name": f"{host['tier']} Host", "price": host.get("p")})
+    else:
+        out.append({"label": "Host", "not_selected": True})
+
+    dj = snap.get("dj") or {}
+    if dj.get("tier"):
+        addons = snap.get("dj_addons") or {}
+        addon_bits = []
+        if addons.get("lights"):
+            addon_bits.append("DJ Lights")
+        if addons.get("smoke"):
+            addon_bits.append("Smoke Machine")
+        out.append({
+            "label": "DJ / Music", "name": f"{dj['tier']} DJ", "price": dj.get("p"),
+            "inclusions": [("Add-ons", ", ".join(addon_bits))] if addon_bits else [],
+        })
+    else:
+        out.append({"label": "DJ / Music", "not_selected": True})
+
+    pinata = snap.get("pinata") or {}
+    if pinata.get("n"):
+        out.append({
+            "label": "Pinata", "name": pinata.get("n"), "price": pinata.get("p"),
+            "image_path": cat.resolve_pinata_image(pinata.get("id")),
+        })
+    else:
+        out.append({"label": "Pinata", "not_selected": True})
+
+    einvite = snap.get("einvite") or {}
+    if einvite.get("n"):
+        out.append({
+            "label": "E-Invite", "name": einvite.get("n"),
+            "image_path": cat.resolve_einvite_image(einvite.get("id")),
+        })
+    else:
+        out.append({"label": "E-Invite", "not_selected": True})
+
+    photo = snap.get("photo") or {}
+    if photo.get("tier"):
+        out.append({
+            "label": "Photographer", "name": f"{photo['tier']} Photography", "price": photo.get("p"),
+            "inclusions": [(f, "") for f in cat.PHOTO_TIER_FEATURES.get(photo["tier"], [])],
+        })
+    else:
+        out.append({"label": "Photographer", "not_selected": True})
+
+    gifts = snap.get("gifts") or []
+    gifts_named = [g for g in gifts if g.get("n")]
+    if gifts_named:
+        packaging = cat.PACKAGING_LABELS.get(snap.get("gift_packaging"), None)
+        gift_items = []
+        for g in gifts_named:
+            ref = cat.resolve_gift(g.get("id"))
+            unit = g.get("unit")
+            if unit is None and ref:
+                unit = ref["catalogue_unit"]
+            qty = g.get("qty") or 0
+            gift_items.append({
+                "name": g["n"], "qty": qty, "unit": unit,
+                "total": (unit * qty) if (unit is not None and qty) else None,
+                "image_path": ref["image_path"] if ref else None,
+            })
+        out.append({
+            "label": "Return Gifts", "items": gift_items,
+            "note": f"Packaging: {packaging}" if packaging else None,
+        })
+    else:
+        out.append({"label": "Return Gifts", "not_selected": True})
+
+    return out
+
+
+def _format_services_block(req: LeadSubmitRequest) -> str:
+    """Plain-text itemised list of every chosen service — decor & photography
+    show their inclusions so there's no ambiguity later about what was
+    promised."""
+    services = _services_detail_list(req)
+    if not services:
+        return ""
+    lines = ["\nSERVICES BOOKED"]
+    for svc in services:
+        if svc.get("not_selected"):
+            lines.append(f"  {svc['label']}: Not selected")
+            continue
+        if svc.get("items"):
+            lines.append(f"  {svc['label']}:")
+            for it in svc["items"]:
+                if "qty" in it:
+                    price_bit = f" — {_fmt_rupees(it['total'])} ({it['qty']} x {_fmt_rupees(it['unit'])})" if it.get("total") is not None else ""
+                else:
+                    price_bit = f" — {_fmt_rupees(it['price'])}" if it.get("price") else ""
+                lines.append(f"    • {it['name']}{price_bit}")
+            if svc.get("note"):
+                lines.append(f"    ({svc['note']})")
+            continue
+        price_bit = f" — {_fmt_rupees(svc['price'])}" if svc.get("price") else ""
+        lines.append(f"  {svc['label']}: {svc['name']}{price_bit}")
+        for label, val in svc.get("inclusions", []):
+            lines.append(f"      - {label}{': ' + val if val else ''}")
+    lines.append("")
+    return "\n".join(lines) + "\n"
+
+
+def _html_services_section(req: LeadSubmitRequest) -> str:
+    """HTML version of _format_services_block, with reference images pulled
+    from the live site (hotlinked, not attached, per the file's existing
+    image-hosting convention) for decor/pinata/e-invite/gifts."""
+    services = _services_detail_list(req)
+    if not services:
+        return ""
+    cards = []
+    for svc in services:
+        if svc.get("not_selected"):
+            cards.append(
+                f'<div style="padding:12px 0;border-bottom:1px solid #F0E9FA">'
+                f'<div style="font-size:14px;font-weight:700;color:{BRAND_PURPLE}">{_html_escape(svc["label"])}</div>'
+                f'<div style="font-size:13.5px;color:#9CA3AF">Not selected</div>'
+                f'</div>'
+            )
+            continue
+        img_html = ""
+        img_path = svc.get("image_path")
+        if img_path:
+            img_url = f"{SITE_BASE_URL}/img/{urllib.parse.quote(img_path)}"
+            img_html = (
+                f'<img src="{img_url}" width="72" height="72" alt="{_html_escape(svc["label"])}" '
+                f'style="width:72px;height:72px;object-fit:cover;border-radius:8px;flex-shrink:0;margin-right:12px">'
+            )
+        if svc.get("items"):
+            item_lines = []
+            for it in svc["items"]:
+                it_img = ""
+                if it.get("image_path"):
+                    it_url = f"{SITE_BASE_URL}/img/{urllib.parse.quote(it['image_path'])}"
+                    it_img = f'<img src="{it_url}" width="40" height="40" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:6px;margin-right:8px;vertical-align:middle">'
+                if "qty" in it:
+                    price_bit = f" — {_html_escape(_fmt_rupees(it['total']))} ({it['qty']} × {_html_escape(_fmt_rupees(it['unit']))})" if it.get("total") is not None else ""
+                else:
+                    price_bit = f" — {_html_escape(_fmt_rupees(it['price']))}" if it.get("price") else ""
+                item_lines.append(
+                    f'<div style="display:flex;align-items:center;padding:5px 0;font-size:13px;color:#2D2140">'
+                    f'{it_img}<span>{_html_escape(it["name"])}{price_bit}</span></div>'
+                )
+            note_html = f'<div style="font-size:12px;color:#8B7FA0;margin-top:4px">{_html_escape(svc["note"])}</div>' if svc.get("note") else ""
+            body = (
+                f'<div style="font-size:14px;font-weight:700;color:{BRAND_PURPLE};margin-bottom:4px">{_html_escape(svc["label"])}</div>'
+                f'{"".join(item_lines)}{note_html}'
+            )
+            cards.append(f'<div style="padding:12px 0;border-bottom:1px solid #F0E9FA">{body}</div>')
+            continue
+        price_bit = f" — {_html_escape(_fmt_rupees(svc['price']))}" if svc.get("price") else ""
+        incl_html = ""
+        incl = svc.get("inclusions") or []
+        if incl:
+            incl_items = "".join(
+                f'<li style="margin-bottom:2px">{_html_escape(label)}{": " + _html_escape(val) if val else ""}</li>'
+                for label, val in incl
+            )
+            incl_html = f'<ul style="margin:6px 0 0;padding-left:16px;font-size:12px;color:#5B5169;line-height:1.5">{incl_items}</ul>'
+        text_html = (
+            f'<div style="font-size:14px;font-weight:700;color:{BRAND_PURPLE}">{_html_escape(svc["label"])}</div>'
+            f'<div style="font-size:13.5px;color:#2D2140">{_html_escape(svc["name"])}{price_bit}</div>'
+            f'{incl_html}'
+        )
+        cards.append(
+            f'<div style="display:flex;align-items:flex-start;padding:12px 0;border-bottom:1px solid #F0E9FA">'
+            f'{img_html}<div style="flex:1">{text_html}</div></div>'
+        )
+    return (
+        _html_section_title("Services Booked")
+        + f'<div style="background:#fff;border:1px solid #F0E9FA;border-radius:10px;padding:4px 14px;margin:14px 0">'
+        + "".join(cards) + '</div>'
+    )
+
+
 # ─── HTML EMAIL TEMPLATE ─────────────────────────────────────────────────────
 # Table-based layout with inline styles throughout (required for consistent
 # rendering across Gmail/Outlook/Apple Mail). Images are hosted on the live
@@ -601,17 +861,18 @@ def _html_referral_card(req: LeadSubmitRequest, referral_code: Optional[str]) ->
 
 def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
                        reward_code: Optional[str], referral_code: Optional[str] = None,
-                       recipient_kind: str) -> str:
+                       recipient_kind: str, event_sales_lead: Optional[str] = None) -> str:
     """recipient_kind: 'customer' or 'team' — team version skips the welcome
     fluff and T&C footer link but keeps the same details table + styling."""
     first_name = _cap_first(req.parent_name.split()[0] if req.parent_name else None)
 
     if recipient_kind == "customer":
         if is_booking:
-            heading = "Welcome to the Wondershop Family! 🎉"
+            heading = "Thank You For Your Booking! 🎉"
             intro = (
-                f"Hi {_html_escape(first_name)}, your booking is confirmed — we're absolutely thrilled to be part of "
-                f"your child's big day. Our Party Experience Lead will be in touch shortly to walk through every detail."
+                f"Hi {_html_escape(first_name)}, thank you for your query — we've received your booking. Our team will "
+                f"check the payment details and confirm your booking shortly. Your Party Experience Lead will be in "
+                f"touch soon to walk through every detail."
             )
         else:
             heading = f"We Got Your Enquiry, {_html_escape(first_name)}! 🎈"
@@ -620,8 +881,8 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
                 "to help plan your child's perfect birthday."
             )
     else:
-        heading = ("New Booking Confirmed 🎉" if is_booking else "New Lead Received")
-        intro = f"Reference #{lead_id} — {'a booking has been confirmed' if is_booking else 'a new enquiry has come in'} on the website."
+        heading = ("New Booking Request — Payment Pending Verification 🎉" if is_booking else "New Lead Received")
+        intro = f"Reference #{lead_id} — {'a booking request has come in and needs payment verification before it is confirmed' if is_booking else 'a new enquiry has come in'} on the website."
 
     detail_rows = [
         ("Parent Name", req.parent_name),
@@ -644,14 +905,24 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
         order_rows.append(("Discount", f"{req.order_discount_pct:.0f}%"))
     if req.client_budget is not None:
         order_rows.append(("Payable Total", _fmt_rupees(req.client_budget)))
-    if req.order_advance is not None:
-        order_rows.append(("Advance Paid", _fmt_rupees(req.order_advance)))
-    if req.order_balance is not None:
-        due_str = ""
-        if req.event_date:
-            due = req.event_date - timedelta(days=2)
-            due_str = f" — due by {_fmt_date_long(due)} (2 days before your event on {_fmt_date_long(req.event_date)})"
-        order_rows.append(("Balance Due", f"{_fmt_rupees(req.order_balance)}{due_str}"))
+    # We don't auto-verify any payment method — nothing is ever shown as
+    # "Paid" here. The pledged 50% advance is still shown to the TEAM
+    # (recipient_kind=='team') as a reference figure for reconciliation,
+    # clearly labelled pending; the customer copy only shows method + status
+    # (2026-08-12, per Shruti — "show complete payment pending and advance = 0").
+    pay_method_label = _PAYMENT_METHOD_LABELS.get(req.payment_method or "", req.payment_method)
+    if pay_method_label:
+        order_rows.append(("Payment Method", pay_method_label))
+    order_rows.append(("Payment Status", _payment_status_text(req)))
+    if recipient_kind == "team" and req.order_advance is not None:
+        order_rows.append(("Advance (Pledged, Unverified)", _fmt_rupees(req.order_advance)))
+        if req.order_balance is not None:
+            order_rows.append(("Balance (2nd 50%, Unverified)", _fmt_rupees(req.order_balance)))
+    if recipient_kind == "team":
+        if req.redeemed_coupon_code:
+            order_rows.append(("Coupon Redeemed", req.redeemed_coupon_code))
+        if event_sales_lead:
+            order_rows.append(("Event Sales Lead", event_sales_lead))
     order_html = _html_details_table(order_rows)
 
     dj_rows = []
@@ -676,6 +947,8 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
     ]
     gift_html = _html_details_table(gift_rows)
 
+    services_html = _html_services_section(req)
+
     remarks_html = ""
     if req.remarks:
         remarks_html = (
@@ -688,16 +961,21 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
     referral_html = _html_referral_card(req, referral_code) if recipient_kind == "customer" else ""
 
     tnc_html = ""
-    if is_booking and recipient_kind == "customer":
+    if is_booking:
+        tnc_text = (
+            "By confirming this booking you agree to our" if recipient_kind == "customer"
+            else "Full Terms &amp; Conditions for this booking"
+        )
         tnc_html = (
             f'<div style="margin:20px 0;font-size:12.5px;color:#8B7FA0">'
-            f'By confirming this booking you agree to our '
+            f'{tnc_text} '
             f'<a href="{TERMS_URL}" style="color:{BRAND_PURPLE};font-weight:700">Terms &amp; Conditions</a>.</div>'
         )
 
     sections = "".join(filter(None, [
         _html_section_title("Booking Details" if is_booking else "Enquiry Details") + details_html,
         (_html_section_title("Order Summary") + order_html) if order_rows else "",
+        services_html,
         (_html_section_title("DJ Add-ons") + dj_html) if dj_rows else "",
         (_html_section_title("Venue Details") + venue_html) if any(r[1] for r in venue_rows) else "",
         (_html_section_title("Return Gift Delivery") + gift_html) if any(r[1] for r in gift_rows) else "",
@@ -759,6 +1037,7 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Opti
 
         remarks_block = f"\nYour special requests / remarks:\n  {req.remarks}\n" if req.remarks else ""
         order_block = _format_order_summary_block(req)
+        services_block = _format_services_block(req)
         dj_addons_block = _format_dj_addons_block(req)
         venue_block = _format_venue_block(req)
         gift_delivery_block = _format_gift_delivery_block(req)
@@ -780,7 +1059,7 @@ Your details:
   Event Date  : {req.event_date.isoformat() if req.event_date else '—'}
   Theme       : {req.theme or '—'}
   City        : {req.city or '—'}
-{remarks_block}{order_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{referral_block}{tnc_line}
+{remarks_block}{order_block}{services_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{referral_block}{tnc_line}
 If you have any questions in the meantime, WhatsApp us at +91 90044 35362.
 
 Warmly,
@@ -811,6 +1090,7 @@ async def _send_team_email(lead_id: int, req: LeadSubmitRequest, reward_code: Op
         budget_str = f"Rs.{req.client_budget:,.0f}" if req.client_budget else "—"
         remarks_block = f"\nSPECIAL REQUESTS / REMARKS\n  {req.remarks}\n" if req.remarks else ""
         order_block = _format_order_summary_block(req)
+        services_block = _format_services_block(req)
         dj_addons_block = _format_dj_addons_block(req)
         venue_block = _format_venue_block(req)
         gift_delivery_block = _format_gift_delivery_block(req)
@@ -822,6 +1102,8 @@ async def _send_team_email(lead_id: int, req: LeadSubmitRequest, reward_code: Op
             )
         redeemed_line = f"\nCoupon Redeemed: {req.redeemed_coupon_code}\n" if req.redeemed_coupon_code else ""
         referral_line = f"\nReferral Code Issued: {referral_code}\n" if referral_code else ""
+        sales_lead_line = f"\nEvent Sales Lead: {event_sales_lead}\n" if event_sales_lead else ""
+        tnc_line = f"\nTerms & Conditions: {TERMS_URL}\n" if is_booking else ""
         kind = "BOOKING" if is_booking else "LEAD"
         body = f"""New {kind.lower()} #{lead_id} received on Wondershop website.
 
@@ -842,7 +1124,7 @@ EVENT
   Venue      : {req.venue or '—'} ({req.location_type or '—'})
   City       : {req.city or '—'}   Pincode: {req.pincode or '—'}
   Budget     : {budget_str}
-{remarks_block}{order_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{redeemed_line}{referral_line}
+{remarks_block}{order_block}{services_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{redeemed_line}{referral_line}{sales_lead_line}{tnc_line}
 SOURCE
   {req.lead_source or '—'} / {req.lead_source_detail or '—'}
   Referred by: {req.referred_by or '—'}
@@ -852,8 +1134,10 @@ SOURCE
         html_body = _build_html_email(
             is_booking=is_booking, lead_id=lead_id, req=req,
             reward_code=reward_code, referral_code=referral_code, recipient_kind="team",
+            event_sales_lead=event_sales_lead,
         )
         subj_prefix = "🎉 New Booking" if is_booking else "📩 New Lead"
+        team_subject = _booking_subject_line(lead_id, req) if is_booking else f"{subj_prefix} #{lead_id} — {req.parent_name} ({req.phone})"
 
         attachments = []
         if is_booking:
@@ -872,7 +1156,7 @@ SOURCE
 
         await _gmail_send(
             to_email=settings.EMAIL_TEAM,
-            subject=f"{subj_prefix} #{lead_id} — {req.parent_name} ({req.phone})",
+            subject=team_subject,
             body=body,
             html_body=html_body,
             attachments=attachments,
@@ -949,49 +1233,60 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Op
         logger.error(f"Lead #{lead_id}: sheet append failed — {exc}")
 
 
-# ─── 4. WHATSAPP ─────────────────────────────────────────────────────────────
+# ─── 4. WHATSAPP (via AiSensy) ───────────────────────────────────────────────
+#
+# AiSensy is a WhatsApp BSP (Business Solution Provider) — it sits on top of
+# Meta's WhatsApp Business API but replaces the raw Graph API call with a
+# simple API-key-authenticated POST, and gives a dashboard for managing/
+# approving templates instead of Meta Business Manager directly.
+#
+# Prereqs on the AiSensy side (one-time setup, in the AiSensy dashboard):
+#   1. Get the API key: Manage → API Key.
+#   2. Create the template (Templates → Create) with the same content as the
+#      old wondershop_new_lead draft, e.g.:
+#        "New booking lead:\nName: {{1}}\nPhone: {{2}}\nTheme: {{3}}\n
+#         City: {{4}}\nBudget: {{5}}"
+#      — submit for Meta approval (usually minutes to a few hours).
+#   3. Once approved: Campaigns → Launch campaign → API Campaign → link it to
+#      that template → set the campaign live. Its name is AISENSY_CAMPAIGN_NAME.
+#   4. Put both values in Railway env vars: AISENSY_API_KEY, AISENSY_CAMPAIGN_NAME.
+
+AISENSY_SEND_URL = "https://backend.aisensy.com/campaign/t1/api/v2"
+
 
 async def _send_whatsapp(to_number: str, text: dict) -> None:
-    """
-    Sends a text message via Meta Cloud API to a single number.
-    Requires an approved message template in production.
-    During development, add numbers as test recipients in Meta Business Manager.
-    """
-    if not settings.WHATSAPP_API_URL or not settings.WHATSAPP_ACCESS_TOKEN:
+    """Sends the new-lead template message via AiSensy to a single number."""
+    if not settings.AISENSY_API_KEY or not settings.AISENSY_CAMPAIGN_NAME:
         return
 
-    url = f"{settings.WHATSAPP_API_URL}/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
-    headers = {
-        "Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}",
-        "Content-Type":  "application/json",
-    }
-    # Strip leading + for Meta API
+    # AiSensy wants the number WITH country code, no leading +/00.
     phone = to_number.lstrip("+")
-    # WhatsApp Business API requires approved templates for outbound messages.
-    # Using wondershop_new_lead template (custom). Falls back to hello_world
-    # if the custom template isn't approved yet.
     payload = {
-        "messaging_product": "whatsapp",
-        "to":                phone,
-        "type":              "template",
-        "template": {
-            "name":     "hello_world",   # TODO: switch to wondershop_new_lead once approved
-            "language": {"code": "en_US"},
-        },
+        "apiKey":          settings.AISENSY_API_KEY,
+        "campaignName":    settings.AISENSY_CAMPAIGN_NAME,
+        "destination":     phone,
+        "userName":        text["name"] or "Wondershop Team",
+        "templateParams": [
+            text["name"],
+            text["phone"],
+            text["theme"],
+            text["city"],
+            text["budget"],
+        ],
     }
     async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.post(url, headers=headers, json=payload)
+        r = await client.post(AISENSY_SEND_URL, json=payload)
     if r.status_code == 200:
-        logger.info(f"WhatsApp sent to +{phone} ✅")
+        logger.info(f"WhatsApp (AiSensy) sent to +{phone} ✅")
     else:
-        logger.error(f"WhatsApp failed to +{phone}: {r.status_code} — {r.text}")
+        logger.error(f"WhatsApp (AiSensy) failed to +{phone}: {r.status_code} — {r.text}")
     return r
 
 
 async def _send_whatsapp_alerts(lead_id: int, req: LeadSubmitRequest) -> None:
     """Sends the same lead alert to both team numbers."""
-    if not settings.WHATSAPP_API_URL or not settings.WHATSAPP_ACCESS_TOKEN:
-        logger.warning("WhatsApp not configured — skipping")
+    if not settings.AISENSY_API_KEY or not settings.AISENSY_CAMPAIGN_NAME:
+        logger.warning("AiSensy not configured — skipping WhatsApp alert")
         return
 
     try:
@@ -1048,7 +1343,7 @@ async def submit_lead(req: LeadSubmitRequest):
             event_date, event_time, kids_count, child_ages, child_genders,
             venue, venue_maps_link, venue_contact_name, venue_contact_phone,
             location_type, theme, city, pincode,
-            client_budget, builder_snapshot, remarks,
+            client_budget, payment_method, builder_snapshot, remarks,
             lead_source, lead_source_detail, referred_by,
             gift_delivery_address, gift_delivery_maps_link,
             gift_delivery_address_type, gift_delivery_contact,
@@ -1056,13 +1351,14 @@ async def submit_lead(req: LeadSubmitRequest):
             gift_required_by_date,
             dj_lights_addon, dj_smoke_machine_addon,
             redeemed_coupon_code, event_sales_lead,
+            reward_type, reward_label, reward_value, reward_expiry,
             status
         ) VALUES (
             :parent_name, :phone, :child_names, :email,
             :event_date, :event_time, :kids_count, :child_ages, :child_genders,
             :venue, :venue_maps_link, :venue_contact_name, :venue_contact_phone,
             :location_type, :theme, :city, :pincode,
-            :client_budget, :builder_snapshot, :remarks,
+            :client_budget, :payment_method, :builder_snapshot, :remarks,
             :lead_source, :lead_source_detail, :referred_by,
             :gift_delivery_address, :gift_delivery_maps_link,
             :gift_delivery_address_type, :gift_delivery_contact,
@@ -1070,6 +1366,7 @@ async def submit_lead(req: LeadSubmitRequest):
             :gift_required_by_date,
             :dj_lights_addon, :dj_smoke_machine_addon,
             :redeemed_coupon_code, :event_sales_lead,
+            :reward_type, :reward_label, :reward_value, :reward_expiry,
             :status
         )
         RETURNING lead_id
@@ -1093,6 +1390,7 @@ async def submit_lead(req: LeadSubmitRequest):
             "city":               req.city,
             "pincode":            req.pincode,
             "client_budget":      req.client_budget,
+            "payment_method":     req.payment_method,
             "builder_snapshot":   json.dumps(req.builder_snapshot) if req.builder_snapshot else None,
             "remarks":            req.remarks,
             "lead_source":        req.lead_source,
@@ -1108,6 +1406,15 @@ async def submit_lead(req: LeadSubmitRequest):
             "dj_smoke_machine_addon":     bool(req.dj_smoke_machine_addon),
             "redeemed_coupon_code":       req.redeemed_coupon_code,
             "event_sales_lead":           event_sales_lead,
+            # Persisted so /api/leads/redeem-service (the tattoo/bubble
+            # "add to today's booking" button on the scratch-card reveal)
+            # can verify the redemption against what was actually won —
+            # see migrations/011_add_reward_type_to_leads.sql (2026-08-12
+            # bugfix).
+            "reward_type":                req.reward_type,
+            "reward_label":               req.reward_label,
+            "reward_value":               req.reward_value,
+            "reward_expiry":              req.reward_expiry,
             "status":                     status,
         },
     )

@@ -1882,6 +1882,7 @@ input,textarea,select{font-family:var(--fb)}
     <div class="amt-box">
       <div class="amt-row"><span>Grand Total</span><span id="co-gt">₹0</span></div>
       <div class="amt-row" id="co-dr" style="display:none"><span>Discount</span><span id="co-disc" style="color:var(--gr)"></span></div>
+      <div class="amt-row" id="coFeeRow" style="display:none"><span>Cash Collection Fee</span><span id="co-fee">₹100</span></div>
       <div class="amt-row tot"><span>Payable Total</span><span id="co-pt">₹0</span></div>
       <div class="amt-row adv" id="coAdvRow"><span>⚡ 50% Advance</span><span id="co-adv">₹0</span></div>
       <div class="amt-row" id="coBalRow"><span style="font-size:11px;color:var(--gy)">Balance due before event</span><span id="co-bal" style="font-size:12px;color:var(--gy)">₹0</span></div>
@@ -1942,7 +1943,10 @@ input,textarea,select{font-family:var(--fb)}
     <div class="amt-box">
       <div class="amt-row"><span>Grand Total</span><span id="confGt">₹0</span></div>
       <div class="amt-row" id="confDr" style="display:none"><span>Discount</span><span id="confDisc" style="color:var(--gr)"></span></div>
+      <div class="amt-row" id="confFeeRow" style="display:none"><span>Cash Collection Fee</span><span id="confFee">₹100</span></div>
       <div class="amt-row tot"><span>Payable Total</span><span id="confPt">₹0</span></div>
+      <div class="amt-row"><span style="font-size:11px;color:var(--gy)">Payment Method</span><span id="confPayMethod" style="font-size:12px;color:var(--gy)">—</span></div>
+      <div class="amt-row"><span style="font-size:11px;color:var(--gy)">Payment Status</span><span id="confPayStatus" style="font-size:12px;color:#92400E">—</span></div>
       <div class="amt-row adv"><span>⚡ Advance Paid</span><span id="confAdv">₹0</span></div>
       <div class="amt-row"><span style="font-size:11px;color:var(--gy)">Balance due before event</span><span id="confBal" style="font-size:12px;color:var(--gy)">₹0</span></div>
       <div class="amt-row" id="confRefundRow" style="display:none"><span style="font-size:11px;color:var(--gr)">🎁 Scratch card refund</span><span id="confRefundVal" style="font-size:12px;color:var(--gr)"></span></div>
@@ -2660,7 +2664,23 @@ function tp(){
   }
   return Math.round(gt*(1-dp()/100));
 }
-function adv(){return Math.round(tp()*0.5)}
+// "Cash Collection at Venue" means nothing is paid up front — the team
+// collects everything on-site, so there's no advance and the full payable
+// total is the balance due. Every other payment method keeps the normal
+// 50% advance / 50% balance split.
+function adv(){if(S.payMethod==='collect')return 0;return Math.round(tp()*0.5)}
+// ₹100 surcharge for "Cash Collection at Venue" (see the pay-opt copy) —
+// added on top of the already-discounted total, not before it, so the
+// discount % shown elsewhere never shrinks because of this fee. Kept
+// separate from tp() itself so every existing "gt - tp()" discount-amount
+// calculation around the file stays correct without having to touch it.
+function collectFee(){return S.payMethod==='collect'?100:0}
+function payTotal(){return tp()+collectFee()}
+// Mirrors backend leads.py's _PAYMENT_METHOD_LABELS / _payment_status_text
+// exactly — keep these two in sync if either side changes (2026-08-12, per
+// Shruti — "save and display payment method").
+const PAY_METHOD_LABELS={online:'UPI / Bank Transfer',branch:'Cash Deposit at Branch',collect:'Cash Collection at Venue'};
+function payStatusText(){return S.payMethod==='collect'?'⏳ Pending — to be collected at venue':'⏳ Pending Verification';}
 
 // ── NAVIGATION ──
 const SIDS=['s0','s1','s2','s3','s4','s5','s6','s7','s8','s9'];
@@ -2797,7 +2817,7 @@ function updBB(id){
     return;
   }
   const gt=rawT();const tpv=tp();const dpv=dp();const sc=svcC();
-  document.getElementById('bbTotal').textContent='₹'+tpv.toLocaleString('en-IN');
+  document.getElementById('bbTotal').textContent='₹'+payTotal().toLocaleString('en-IN');
   // Show 50% advance only on the review page — checkout already has its
   // own "⚡ 50% Advance" line in the Order Summary box, so showing it here
   // too on 'sco' was redundant (and this bit of code didn't actually match
@@ -2844,7 +2864,7 @@ function appendC(i){
 function rmC(btn){btn.closest('.child-card').remove();reIdxC();syncC();}
 function reIdxC(){const ords=['First','Second','Third','Fourth'];document.querySelectorAll('.child-card').forEach((c,i)=>{c.querySelector('.child-title').textContent=ords[i]+' Child';if(i===0&&c.querySelector('.rm-btn'))c.querySelector('.rm-btn').remove();});}
 function selG(btn,val){btn.closest('.g-sel').querySelectorAll('.g-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');syncC();}
-function syncC(){S.children=[];document.querySelectorAll('.child-card').forEach(c=>{const gBtn=c.querySelector('.g-btn.on');S.children.push({name:c.querySelector('.c-name')?.value||'',dob:c.querySelector('.c-dob')?.value||'',gender:gBtn?gBtn.textContent.trim().replace(/./u,'').trim():''});});}
+function syncC(){S.children=[];document.querySelectorAll('.child-card').forEach(c=>{const gBtn=c.querySelector('.g-btn.on');S.children.push({name:c.querySelector('.c-name')?.value||'',dob:c.querySelector('.c-dob')?.value||'',gender:gBtn?gBtn.textContent.trim().replace(/./,'').trim():''});});}
 function selV(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('.v-btn').forEach(b=>b.classList.remove('on'));if(wasSel){S.venue='';document.getElementById('v-other-wrap').style.display='none';}else{btn.classList.add('on');S.venue=val;document.getElementById('e-ven').classList.remove('show');document.getElementById('v-other-wrap').style.display=val==='Other'?'block':'none';}}
 function selBudget(btn,val){document.querySelectorAll('.budget-chip').forEach(b=>b.classList.remove('on'));btn.classList.add('on');S.budget=val;}
 
@@ -3446,13 +3466,14 @@ function updCoUrgent(){
   updBB(S.screen);
 }
 function updCoAmt(){
-  const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();
+  const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();const fee=collectFee();const payv=tpv+fee;
   document.getElementById('co-gt').textContent='₹'+gt.toLocaleString('en-IN');
   if(dpv>0){document.getElementById('co-dr').style.display='flex';document.getElementById('co-disc').textContent='-₹'+(gt-tpv).toLocaleString('en-IN')+' ('+dpv+'%)';}
   else document.getElementById('co-dr').style.display='none';
-  document.getElementById('co-pt').textContent='₹'+tpv.toLocaleString('en-IN');
+  document.getElementById('coFeeRow').style.display=fee>0?'flex':'none';
+  document.getElementById('co-pt').textContent='₹'+payv.toLocaleString('en-IN');
   document.getElementById('co-adv').textContent='₹'+advv.toLocaleString('en-IN');
-  document.getElementById('co-bal').textContent='₹'+(tpv-advv).toLocaleString('en-IN');
+  document.getElementById('co-bal').textContent='₹'+(payv-advv).toLocaleString('en-IN');
 }
 function coKidsChanged(val){
   const newK=parseInt(val);if(!newK||newK===S.kidsCount)return;
@@ -3507,7 +3528,7 @@ async function applyCoupon(){
   }
   updCoAmt();
 }
-function selPay(el,method){document.querySelectorAll('.pay-opt').forEach(p=>p.classList.remove('on'));el.classList.add('on');S.payMethod=method;const qr=document.getElementById('payOnlineDetails');if(qr)qr.style.display=method==='online'?'block':'none';}
+function selPay(el,method){document.querySelectorAll('.pay-opt').forEach(p=>p.classList.remove('on'));el.classList.add('on');S.payMethod=method;const qr=document.getElementById('payOnlineDetails');if(qr)qr.style.display=method==='online'?'block':'none';updCoAmt();updBB(S.screen);}
 function togTNC(){S.tncOk=!S.tncOk;const cb=document.getElementById('tncCb');cb.classList.toggle('checked',S.tncOk);cb.textContent=S.tncOk?'✓':'';}
 const CONF_NEXT_STEPS_NORMAL=`<h3>What happens next</h3>
     <div class="ns-item"><div class="ns-num">1</div><div class="ns-txt">Party Experience Lead assigned<span>They'll discuss your vision, decor references, and all the details</span></div></div>
@@ -3594,8 +3615,9 @@ async function doCo(){
   // there's nothing to reward yet.
   const __reward=__urgent?{type:'none'}:pickScratchReward();
   const __gt=rawT(),__dpv=dp(),__tpv=tp();
+  const __fee=collectFee();const __payTotal=__tpv+__fee;
   const __advv=__urgent?0:adv();
-  const __bal=__tpv-__advv;
+  const __bal=__payTotal-__advv;
   const __rewardWon=__reward.type!=='none';
   // Expiry is sent separately as reward_expiry — kept out of this string to avoid duplication.
   const __rewardTermsText=__rewardWon?(__reward.terms||[]).join(' | '):'';
@@ -3644,7 +3666,11 @@ async function doCo(){
     venue_contact_name: S.venueContactName || null,
     venue_contact_phone:S.venueContactPhone || null,
     pincode:            S.pincode || null,
-    client_budget:      __tpv || null,
+    client_budget:      __payTotal || null,
+    // Urgent (<3-days-away) bookings never show the payment-method picker —
+    // nothing was actually chosen, it's deferred to the team's callback — so
+    // don't send a default 'online' that was never really selected.
+    payment_method:     __urgent ? null : (S.payMethod || null),
     order_grand_total:  __gt || null,
     order_discount_pct: __dpv || null,
     order_advance:      __advv || null,
@@ -3765,7 +3791,10 @@ async function doCo(){
     document.getElementById('confGt').textContent='₹'+__gt.toLocaleString('en-IN');
     if(__dpv>0){document.getElementById('confDr').style.display='flex';document.getElementById('confDisc').textContent='-₹'+(__gt-__tpv).toLocaleString('en-IN')+' ('+__dpv+'%)';}
     else document.getElementById('confDr').style.display='none';
-    document.getElementById('confPt').textContent='₹'+__tpv.toLocaleString('en-IN');
+    document.getElementById('confFeeRow').style.display=__fee>0?'flex':'none';
+    document.getElementById('confPt').textContent='₹'+__payTotal.toLocaleString('en-IN');
+    document.getElementById('confPayMethod').textContent=PAY_METHOD_LABELS[S.payMethod]||'—';
+    document.getElementById('confPayStatus').textContent=payStatusText();
     document.getElementById('confAdv').textContent='₹'+__advv.toLocaleString('en-IN');
     const confBalEl=document.getElementById('confBal');
     confBalEl.textContent='₹'+__bal.toLocaleString('en-IN');
