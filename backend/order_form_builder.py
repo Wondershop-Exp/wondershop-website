@@ -22,11 +22,12 @@ from catalogue_data import SITE_BASE_URL
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.pagebreak import Break
 
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import mm
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, KeepInFrame
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, KeepInFrame, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 logger = logging.getLogger(__name__)
@@ -365,30 +366,12 @@ def build_order_form_xlsx(data: dict) -> bytes:
     rc.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
     left_row += 3
 
-    # ── RIGHT column: to-be-filled-by-ops, inventory, schedule ──
+    # ── RIGHT column: to-be-filled-by-ops, event schedule (page 1) ──
+    # Inventory To Be Packed moves to its own page 3 (see below); reference
+    # photos + return gifts move to page 2.
     right_row = section(right_row, 5, 9, "To Be Filled By Ops")
     for label in _MANUAL_ROWS:
         right_row = kv(right_row, 5, 7, 9, label, "", fill=manual_fill)
-
-    right_row += 1
-    right_row = section(right_row, 5, 9, "Inventory To Be Packed")
-    hdr_row = right_row
-    headers = ["Type", "Item", "Qty", "Remarks"]
-    cols = [5, 6, 8, 9]
-    ends = [5, 7, 8, 9]
-    for h, cs, ce in zip(headers, cols, ends):
-        ws.merge_cells(start_row=hdr_row, start_column=cs, end_row=hdr_row, end_column=ce)
-        hc = ws.cell(row=hdr_row, column=cs, value=h)
-        hc.font = label_font
-        hc.border = border
-        hc.alignment = Alignment(horizontal="center")
-    right_row += 1
-    for _ in range(10):
-        for cs, ce in zip(cols, ends):
-            ws.merge_cells(start_row=right_row, start_column=cs, end_row=right_row, end_column=ce)
-            cell = ws.cell(row=right_row, column=cs, value="")
-            cell.border = border
-        right_row += 1
 
     right_row += 1
     right_row = section(right_row, 5, 9, "Event Schedule")
@@ -410,7 +393,11 @@ def build_order_form_xlsx(data: dict) -> bytes:
         ws.cell(row=right_row, column=7, value="").border = border
         right_row += 1
 
-    band_row = max(left_row, right_row) + 1
+    # Page break: Event Details / Ops / Billing / Remarks / Event Schedule
+    # stay on page 1 — reference photos + return gifts start fresh on page 2.
+    page1_end_row = max(left_row, right_row)
+    ws.row_breaks.append(Break(id=page1_end_row))
+    band_row = page1_end_row + 1
 
     # ── Decor reference photo + included/not-included spec ──
     decor_title = data.get("decor_name") or "—"
@@ -514,6 +501,31 @@ def build_order_form_xlsx(data: dict) -> bytes:
     vc2 = ws.cell(row=band_row - 1, column=7, value=data.get("gift_thank_you_note", "—"))
     vc2.font = value_font
     vc2.border = border
+
+    # Page break: reference photos + return gifts end here — inventory
+    # checklist starts fresh on page 3.
+    page2_end_row = band_row
+    ws.row_breaks.append(Break(id=page2_end_row))
+    band_row = page2_end_row + 2
+
+    # ── Inventory To Be Packed (page 3) ──
+    band_row = section(band_row, 1, 9, "Inventory To Be Packed")
+    hdr_row = band_row
+    headers = ["Type", "Item", "Qty", "Remarks"]
+    cols = [1, 3, 7, 8]
+    ends = [2, 6, 7, 9]
+    for h, cs, ce in zip(headers, cols, ends):
+        ws.merge_cells(start_row=hdr_row, start_column=cs, end_row=hdr_row, end_column=ce)
+        hc = ws.cell(row=hdr_row, column=cs, value=h)
+        hc.font = label_font
+        hc.border = border
+        hc.alignment = Alignment(horizontal="center")
+    band_row += 1
+    for _ in range(15):
+        for cs, ce in zip(cols, ends):
+            ws.merge_cells(start_row=band_row, start_column=cs, end_row=band_row, end_column=ce)
+            ws.cell(row=band_row, column=cs, value="").border = border
+        band_row += 1
 
     last_row = band_row + 1
     ws.row_dimensions[last_row].height = 8
@@ -628,18 +640,6 @@ def build_order_form_pdf(data: dict) -> bytes:
                                  [("BACKGROUND", (1, 0), (1, -1), _MANUAL_BG),
                                   ("BOTTOMPADDING", (1, 0), (1, -1), 10)]))
     right_flow.append(Spacer(1, 4))
-    right_flow.append(_section_header("Inventory To Be Packed", right_w))
-    inv_header = [Paragraph(f"<b>{h}</b>", body) for h in ["Type", "Item", "Qty", "Remarks"]]
-    inv_data = [inv_header] + [["", "", "", ""] for _ in range(9)]
-    inv_tbl = Table(inv_data, colWidths=[right_w * 0.22, right_w * 0.34, right_w * 0.14, right_w * 0.30])
-    inv_tbl.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#DDDDDD")),
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F2F2F2")),
-        ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4),
-    ]))
-    right_flow.append(inv_tbl)
-    right_flow.append(Spacer(1, 4))
     right_flow.append(_section_header("Event Schedule", right_w))
     sched_header = [Paragraph("<b>Time</b>", body), Paragraph("<b>Activity</b>", body)]
     sched_data = [sched_header] + [["", ""] for _ in range(7)]
@@ -664,8 +664,26 @@ def build_order_form_pdf(data: dict) -> bytes:
         ("LEFTPADDING", (1, 0), (1, 0), 8),
     ]))
 
-    story = [title_tbl, Spacer(1, 6), outer, Spacer(1, 8)]
+    # Page 1: Event Details / Services / Billing / Remarks / Ops / Schedule.
+    story = [title_tbl, Spacer(1, 6), outer]
+
+    # Page 2: reference photos + return gifts.
+    story.append(PageBreak())
     story.extend(_build_reference_bands(data, usable_w, styles, body))
+
+    # Page 3: inventory checklist.
+    story.append(PageBreak())
+    story.append(_section_header("Inventory To Be Packed", usable_w))
+    inv_header = [Paragraph(f"<b>{h}</b>", body) for h in ["Type", "Item", "Qty", "Remarks"]]
+    inv_data = [inv_header] + [["", "", "", ""] for _ in range(15)]
+    inv_tbl = Table(inv_data, colWidths=[usable_w * 0.18, usable_w * 0.37, usable_w * 0.12, usable_w * 0.33], repeatRows=1)
+    inv_tbl.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#DDDDDD")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F2F2F2")),
+        ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    story.append(inv_tbl)
 
     doc.build(story)
     return buf.getvalue()
