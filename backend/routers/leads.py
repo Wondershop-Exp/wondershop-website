@@ -29,7 +29,8 @@ from typing import Optional
 from database import database
 from config import settings
 from order_form_builder import (
-    assemble_order_form_data, build_order_form_xlsx, build_order_form_pdf, order_form_filename,
+    assemble_order_form_data, fetch_order_form_images, build_order_form_xlsx,
+    build_order_form_pdf, order_form_filename,
 )
 
 router = APIRouter()
@@ -858,6 +859,7 @@ SOURCE
         if is_booking:
             try:
                 form_data = assemble_order_form_data(req, lead_id, event_sales_lead, reward_code)
+                form_data = await fetch_order_form_images(form_data)
                 xlsx_bytes = build_order_form_xlsx(form_data)
                 pdf_bytes = build_order_form_pdf(form_data)
                 attachments = [
