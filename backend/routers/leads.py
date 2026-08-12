@@ -28,6 +28,9 @@ from typing import Optional
 
 from database import database
 from config import settings
+from order_form_builder import (
+    assemble_order_form_data, build_order_form_xlsx, build_order_form_pdf, order_form_filename,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -52,6 +55,7 @@ class LeadSubmitRequest(BaseModel):
     child_names:        Optional[str]   = None
     email:              Optional[str]   = None
     event_date:         Optional[date]  = None
+    event_time:         Optional[str]   = None
     kids_count:         Optional[int]   = None
     child_ages:         Optional[str]   = None
     child_genders:      Optional[str]   = None
@@ -104,6 +108,9 @@ class LeadSubmitRequest(BaseModel):
     # the old "Signature DJ" tier, which bundled both at a fixed higher price.
     dj_lights_addon:            Optional[bool] = False
     dj_smoke_machine_addon:     Optional[bool] = False
+    # Personal attribution code for a team member (see _check_sales_lead_code)
+    # — no discount, just credits them as Event Sales Lead on the order form.
+    sales_lead_code:            Optional[str]  = None
 
 
 class CouponValidateRequest(BaseModel):
@@ -152,11 +159,14 @@ async def _get_gmail_access_token() -> str:
     r.raise_for_status()
     return r.json()["access_token"]
 
-async def _gmail_send(to_email: str, subject: str, body: str, html_body: Optional[str] = None) -> None:
+async def _gmail_send(to_email: str, subject: str, body: str, html_body: Optional[str] = None,
+                       attachments: Optional[list] = None) -> None:
     """Send email via Gmail API (HTTPS — no SMTP port issues).
     Sends a plain-text + HTML multipart/alternative message when html_body
     is given, so clients that render HTML get the formatted version and
-    everything else still gets a readable plain-text fallback."""
+    everything else still gets a readable plain-text fallback.
+    `attachments` is an optional list of (filename, bytes, mime_maintype,
+    mime_subtype) tuples — e.g. the order form Excel/PDF."""
     import base64
     from email.message import EmailMessage
     msg = EmailMessage()
@@ -166,6 +176,8 @@ async def _gmail_send(to_email: str, subject: str, body: str, html_body: Optiona
     msg.set_content(body)
     if html_body:
         msg.add_alternative(html_body, subtype="html")
+    for filename, file_bytes, maintype, subtype in (attachments or []):
+        msg.add_attachment(file_bytes, maintype=maintype, subtype=subtype, filename=filename)
     encoded = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
     token = await _get_gmail_access_token()
     async with httpx.AsyncClient(timeout=15) as client:
@@ -258,7 +270,41 @@ async def validate_coupon(req: CouponValidateRequest):
             "message": f"🎉 {code} applied — {pct:.0f}% off! (min. spend {_fmt_rupees(min_spend)})",
         }
 
-    return await _check_referral_code(code, phone)
+    referral_result = await _check_referral_code(code, phone)
+    if referral_result["valid"]:
+        return referral_result
+
+    return await _check_sales_lead_code(code)
+
+
+# ─── SALES LEAD ATTRIBUTION CODES ──────────────────────────────────────────────
+# Personal codes given to each team member to share with prospects — entered
+# in the same "Coupon / Referral Code" box. Give the customer NO discount;
+# they only attribute the booking to that person for the order form's
+# "Event Sales Lead" field (2026-08-12, per Shruti).
+
+async def _check_sales_lead_code(code: str) -> dict:
+    row = await database.fetch_one(
+        "SELECT lead_name FROM sales_lead_codes WHERE code = :code AND active = TRUE",
+        values={"code": code},
+    )
+    if not row:
+        return {"valid": False, "message": "Invalid code."}
+    return {
+        "valid": True,
+        "is_sales_lead": True,
+        "discount_pct": 0,
+        "message": f"Code applied — {row['lead_name']} will be your Party Experience Lead!",
+    }
+
+async def _resolve_sales_lead_name(code: Optional[str]) -> Optional[str]:
+    if not code:
+        return None
+    row = await database.fetch_one(
+        "SELECT lead_name FROM sales_lead_codes WHERE code = :code AND active = TRUE",
+        values={"code": code.strip().upper()},
+    )
+    return row["lead_name"] if row else None
 
 
 # ─── REFER & EARN ─────────────────────────────────────────────────────────────
@@ -752,7 +798,8 @@ wondershopexperiences.com
 
 # ─── 2. TEAM NOTIFICATION EMAIL ──────────────────────────────────────────────
 
-async def _send_team_email(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str] = None) -> None:
+async def _send_team_email(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str] = None,
+                            event_sales_lead: Optional[str] = None) -> None:
     """Alert email to the Wondershop team."""
     if not settings.GMAIL_CLIENT_ID:
         logger.warning("GMAIL credentials not configured — skipping team email")
@@ -806,13 +853,30 @@ SOURCE
             reward_code=reward_code, referral_code=referral_code, recipient_kind="team",
         )
         subj_prefix = "🎉 New Booking" if is_booking else "📩 New Lead"
+
+        attachments = []
+        if is_booking:
+            try:
+                form_data = assemble_order_form_data(req, lead_id, event_sales_lead, reward_code)
+                xlsx_bytes = build_order_form_xlsx(form_data)
+                pdf_bytes = build_order_form_pdf(form_data)
+                attachments = [
+                    (order_form_filename(form_data, "xlsx"), xlsx_bytes,
+                     "application", "vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                    (order_form_filename(form_data, "pdf"), pdf_bytes, "application", "pdf"),
+                ]
+            except Exception as exc:
+                logger.error(f"Lead #{lead_id}: order form generation failed — {exc}")
+
         await _gmail_send(
             to_email=settings.EMAIL_TEAM,
             subject=f"{subj_prefix} #{lead_id} — {req.parent_name} ({req.phone})",
             body=body,
             html_body=html_body,
+            attachments=attachments,
         )
-        logger.info(f"Lead #{lead_id}: team email sent to {settings.EMAIL_TEAM}")
+        logger.info(f"Lead #{lead_id}: team email sent to {settings.EMAIL_TEAM}"
+                    f"{' with order form attached' if attachments else ''}")
     except Exception as exc:
         logger.error(f"Lead #{lead_id}: team email failed — {exc}")
 
@@ -949,11 +1013,12 @@ async def _send_whatsapp_alerts(lead_id: int, req: LeadSubmitRequest) -> None:
 
 # ─── FIRE ALL FOUR IN PARALLEL ───────────────────────────────────────────────
 
-async def _notify_all(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str]) -> None:
+async def _notify_all(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str],
+                       event_sales_lead: Optional[str] = None) -> None:
     """Runs all four notifications concurrently. Never raises."""
     await asyncio.gather(
         _send_user_ack(lead_id, req, reward_code, referral_code),
-        _send_team_email(lead_id, req, reward_code, referral_code),
+        _send_team_email(lead_id, req, reward_code, referral_code, event_sales_lead),
         _append_to_sheet(lead_id, req, reward_code, referral_code),
         _send_whatsapp_alerts(lead_id, req),
         return_exceptions=True,   # one failure must never cancel the others
@@ -973,11 +1038,12 @@ async def submit_lead(req: LeadSubmitRequest):
     3. Fires all four notifications in parallel (fire-and-forget).
     """
     status = "Booked" if req.is_booking else "New"
+    event_sales_lead = await _resolve_sales_lead_name(req.sales_lead_code)
     lead_id = await database.execute(
         """
         INSERT INTO leads (
             parent_name, phone, child_names, email,
-            event_date, kids_count, child_ages, child_genders,
+            event_date, event_time, kids_count, child_ages, child_genders,
             venue, venue_maps_link, venue_contact_name, venue_contact_phone,
             location_type, theme, city, pincode,
             client_budget, builder_snapshot, remarks,
@@ -987,11 +1053,11 @@ async def submit_lead(req: LeadSubmitRequest):
             gift_delivery_contact_phone,
             gift_required_by_date,
             dj_lights_addon, dj_smoke_machine_addon,
-            redeemed_coupon_code,
+            redeemed_coupon_code, event_sales_lead,
             status
         ) VALUES (
             :parent_name, :phone, :child_names, :email,
-            :event_date, :kids_count, :child_ages, :child_genders,
+            :event_date, :event_time, :kids_count, :child_ages, :child_genders,
             :venue, :venue_maps_link, :venue_contact_name, :venue_contact_phone,
             :location_type, :theme, :city, :pincode,
             :client_budget, :builder_snapshot, :remarks,
@@ -1001,7 +1067,7 @@ async def submit_lead(req: LeadSubmitRequest):
             :gift_delivery_contact_phone,
             :gift_required_by_date,
             :dj_lights_addon, :dj_smoke_machine_addon,
-            :redeemed_coupon_code,
+            :redeemed_coupon_code, :event_sales_lead,
             :status
         )
         RETURNING lead_id
@@ -1012,6 +1078,7 @@ async def submit_lead(req: LeadSubmitRequest):
             "child_names":        req.child_names,
             "email":              req.email,
             "event_date":         req.event_date,
+            "event_time":         req.event_time,
             "kids_count":         req.kids_count,
             "child_ages":         req.child_ages,
             "child_genders":      req.child_genders,
@@ -1038,6 +1105,7 @@ async def submit_lead(req: LeadSubmitRequest):
             "dj_lights_addon":            bool(req.dj_lights_addon),
             "dj_smoke_machine_addon":     bool(req.dj_smoke_machine_addon),
             "redeemed_coupon_code":       req.redeemed_coupon_code,
+            "event_sales_lead":           event_sales_lead,
             "status":                     status,
         },
     )
@@ -1057,7 +1125,7 @@ async def submit_lead(req: LeadSubmitRequest):
         logger.error(f"Lead #{lead_id}: reward/referral code handling failed — {exc}")
 
     # Fire-and-forget — DB save already succeeded before this runs
-    await _notify_all(lead_id, req, reward_code, referral_code)
+    await _notify_all(lead_id, req, reward_code, referral_code, event_sales_lead)
 
     return {
         "success": True,

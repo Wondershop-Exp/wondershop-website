@@ -3467,6 +3467,7 @@ async function applyCoupon(){
   const ok=document.getElementById('couponOk');
   const codes={WONDER10:10,BIRTHDAY5:5,FIRST15:15,PKGUNICORN:15,PKGPRINCESS:15,PKGSUPERHERO:15,PKGTURF:15};
   S._redeemedRewardCode=null;
+  S._salesLeadCode=null;
   if(codes[code]){
     S.couponPct=codes[code];ok.textContent='🎉 '+code+' applied — '+codes[code]+'% off!';ok.classList.add('show');
     updCoAmt();
@@ -3486,7 +3487,12 @@ async function applyCoupon(){
       body:JSON.stringify({code,phone}),
     });
     const data=await r.json();
-    if(data.valid){
+    if(data.valid&&data.is_sales_lead){
+      // Personal attribution code from a team member — no discount, just
+      // credits them as the Event Sales Lead on the order form.
+      S.couponPct=0;S._salesLeadCode=code;
+      ok.textContent=data.message||('Code applied — thanks!');ok.classList.add('show');
+    }else if(data.valid){
       if(data.min_spend && tp()<data.min_spend){
         S.couponPct=0;ok.textContent='This code needs a minimum spend of ₹'+data.min_spend.toLocaleString('en-IN')+'.';ok.classList.add('show');
       }else{
@@ -3611,15 +3617,29 @@ async function doCo(){
   const __coPhone=(()=>{const p=(S.mobile||'').replace(/\D/g,'');return p.length===10?'+91'+p:'+'+p;})();
   const __coChildNames=S.children.map(c=>c.name||'').filter(Boolean).join(', ');
   const __coVenue=S.address || S.venue || null;
+  // Age/gender per child, computed from DOB at event date — feeds the order
+  // form's "Age & Gender" field (same calc pattern used elsewhere for the
+  // bubble-reward eligibility check and e-invite age auto-fill).
+  const __coChildAges=S.children.map(c=>{
+    if(!c.dob)return '';
+    const bd=new Date(c.dob),ev=new Date(S.eventDate||Date.now());
+    const age=Math.floor((ev-bd)/(365.25*24*3600*1000));
+    return (age>=0&&age<=18)?String(age):'';
+  }).filter(Boolean).join(', ');
+  const __coChildGenders=S.children.map(c=>c.gender||'').filter(Boolean).join(', ');
   const __coPayload={
     parent_name:        S.parentName,
     phone:              __coPhone,
     email:              S.email || null,
     event_date:         S.eventDate || null,
+    event_time:         S.eventTime || null,
     kids_count:         S.kidsCount || null,
     child_names:        __coChildNames || null,
+    child_ages:         __coChildAges || null,
+    child_genders:      __coChildGenders || null,
     theme:              S.theme || null,
     venue:              __coVenue,
+    location_type:      S.venue || null,
     venue_maps_link:    S.venueMapsLink || null,
     venue_contact_name: S.venueContactName || null,
     venue_contact_phone:S.venueContactPhone || null,
@@ -3647,6 +3667,7 @@ async function doCo(){
     lead_source:        __leadSource,
     is_booking:          true,
     redeemed_coupon_code: S._redeemedRewardCode || null,
+    sales_lead_code:      S._salesLeadCode || null,
   };
 
   let __coOk=false;
