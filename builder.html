@@ -3716,6 +3716,10 @@ async function doCo(){
             __reward.code=__rj.reward_code;
             __reward.sub='Your code: '+__rj.reward_code+'. '+__reward.sub;
           }
+          // Held onto for redeemServiceNow()'s upgrade email and
+          // finalizeAndNotify()'s team notification, both sent from
+          // separate calls after this point (2026-08-12, per Shruti).
+          S._pendingRewardCode=(__rj && __rj.reward_code)||null;
           if(__rj && __rj.referral_code){S._myReferralCode=__rj.referral_code;}
         }catch(e){/* non-JSON or empty response — fine, just no code to show */}
       }
@@ -3748,6 +3752,14 @@ async function doCo(){
     ], 'URGENT: Booking not captured — '+(S.parentName||'—'));
     return;
   }
+
+  // Held for redeemServiceNow() and finalizeAndNotify() — the customer was
+  // already emailed above (server sends that immediately from /submit); this
+  // is reused for the "order upgrade" email if a reward service gets added,
+  // and for the team-facing notification once the scratch card is done with.
+  S._pendingNotifyPayload=__coPayload;
+  S._notifyFired=false;
+  if(S._notifyTimeoutId){clearTimeout(S._notifyTimeoutId);S._notifyTimeoutId=null;}
 
   // Show the customer's special requests back to them on the confirmation
   // screen so they can see it was captured.
@@ -3808,6 +3820,17 @@ async function doCo(){
   if(!__urgent){
     launchConfetti();
     setTimeout(()=>openScratchModal(__reward),900);
+    // Safety net: if the customer never interacts with the scratch card at
+    // all and just leaves the tab open (distracted, doesn't notice it, etc.)
+    // send the team notification anyway 5 minutes after order confirmation,
+    // so the booking is never left un-notified to ops (2026-08-12, per
+    // Shruti). Cancelled by finalizeAndNotify() the moment any real trigger
+    // (modal close, or the pagehide fallback below) fires first.
+    S._notifyTimeoutId=setTimeout(finalizeAndNotify,300000);
+  }else{
+    // Urgent (<3-days-away) bookings skip the scratch card entirely —
+    // there's nothing to wait for, so notify the team right away.
+    finalizeAndNotify();
   }
 }
 
@@ -4248,14 +4271,25 @@ function dismissRedeemPrompt(){
 }
 
 async function redeemServiceNow(){
-  if(!__scratchReward||!S._lastLeadId)return;
+  if(!__scratchReward||!S._lastLeadId||!S._pendingNotifyPayload)return;
   const yesBtn=document.getElementById('srnYes'),noBtn=document.getElementById('srnNo'),statusEl=document.getElementById('srnStatus');
   yesBtn.disabled=true;noBtn.disabled=true;yesBtn.textContent='Adding…';
   try{
+    // Resend the full order payload (not just the reward fields) so the
+    // backend can send the customer a complete "order upgrade" email —
+    // everything from the original confirmation plus this service
+    // (2026-08-12, per Shruti).
+    const __redeemPayload=Object.assign({},S._pendingNotifyPayload,{
+      lead_id:S._lastLeadId,
+      service:__scratchReward.type,
+      service_label:__scratchReward.label,
+      reward_code:S._pendingRewardCode||null,
+      referral_code:S._myReferralCode||null,
+    });
     const r=await fetch(window.WS_API_BASE+'/api/leads/redeem-service',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({lead_id:S._lastLeadId,service:__scratchReward.type,service_label:__scratchReward.label}),
+      body:JSON.stringify(__redeemPayload),
     });
     const rj=await r.json().catch(()=>({}));
     if(r.ok&&rj&&rj.success){
@@ -4286,7 +4320,43 @@ function burstScratchCard(){
 
 function closeScratchModal(){
   document.getElementById('scratchOverlay').classList.remove('show');
+  finalizeAndNotify();
 }
+
+// Sends the team-facing "order booking" notification (email with the order
+// form + WhatsApp alert to the Wondershop team) — the customer's own
+// confirmation email already went out immediately from /submit, so this is
+// just the ops side, deliberately held until the scratch-card interaction
+// is over (2026-08-12, per Shruti — "send the order booking to wondershop
+// with order form after the scratch card"). Fired from three places:
+// closeScratchModal() (the normal "Awesome, got it!" / ✕ path), the
+// 5-minute idle-timeout fallback set in doCo(), and the pagehide listener
+// below (covers tab-close/navigate-away before either of those). Whichever
+// fires first wins — S._notifyFired makes the rest no-ops.
+function finalizeAndNotify(){
+  if(S._notifyFired||!S._lastLeadId||!S._pendingNotifyPayload||!window.WS_API_BASE)return;
+  S._notifyFired=true;
+  if(S._notifyTimeoutId){clearTimeout(S._notifyTimeoutId);S._notifyTimeoutId=null;}
+  const payload=Object.assign({},S._pendingNotifyPayload,{
+    lead_id:S._lastLeadId,
+    reward_code:S._pendingRewardCode||null,
+    referral_code:S._myReferralCode||null,
+  });
+  const url=window.WS_API_BASE+'/api/leads/finalize-notify';
+  try{
+    if(document.visibilityState==='hidden'&&navigator.sendBeacon){
+      // Page is being unloaded — a normal fetch can get cancelled mid-flight,
+      // sendBeacon is the browser-guaranteed way to still deliver it.
+      navigator.sendBeacon(url,new Blob([JSON.stringify(payload)],{type:'application/json'}));
+    }else{
+      fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true})
+        .catch(e=>console.error('finalize-notify failed:',e));
+    }
+  }catch(e){console.error('finalize-notify error:',e);}
+}
+// Tab closed / navigated away before the customer ever touched the scratch
+// card — last-resort delivery so the booking still gets notified.
+window.addEventListener('pagehide',finalizeAndNotify);
 
 function toggleScratchTerms(){
   const body=document.getElementById('scratchTermsBody');

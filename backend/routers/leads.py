@@ -536,11 +536,16 @@ def _format_gift_delivery_block(req: LeadSubmitRequest) -> str:
     lines.append("")
     return "\n".join(lines) + "\n"
 
-def _format_reward_block(req: LeadSubmitRequest, reward_code: Optional[str]) -> str:
-    """Scratch-card reward + full terms & conditions — only present if won."""
+def _format_reward_block(req: LeadSubmitRequest, reward_code: Optional[str], added_service_label: Optional[str] = None) -> str:
+    """Scratch-card reward + full terms & conditions — only present if won.
+    added_service_label is set when the customer chose, right from the
+    scratch-card reveal, to add a won Tattoo/Bubble Artist reward onto THIS
+    booking — combined into this same block rather than a separate email."""
     if not req.reward_type:
         return ""
     lines = ["\nYOUR REWARD 🎁", f"  {req.reward_label or req.reward_type}"]
+    if added_service_label:
+        lines.append(f"  ✅ Added to THIS booking, no extra charge — your Party Experience Lead will confirm the details.")
     if req.reward_value:
         lines.append(f"  Value: Rs.{req.reward_value:,.0f}")
     if reward_code:
@@ -554,7 +559,8 @@ def _format_reward_block(req: LeadSubmitRequest, reward_code: Optional[str]) -> 
             clause = clause.strip()
             if clause:
                 lines.append(f"    • {clause}")
-    lines.append("  Your Party Experience Lead will confirm redemption details with you.")
+    if not added_service_label:
+        lines.append("  Your Party Experience Lead will confirm redemption details with you.")
     lines.append("")
     return "\n".join(lines) + "\n"
 
@@ -816,13 +822,18 @@ def _html_section_title(text: str) -> str:
         f'text-transform:uppercase;margin:22px 0 8px">{_html_escape(text)}</div>'
     )
 
-def _html_reward_card(req: LeadSubmitRequest, reward_code: Optional[str]) -> str:
+def _html_reward_card(req: LeadSubmitRequest, reward_code: Optional[str], added_service_label: Optional[str] = None) -> str:
     if not req.reward_type:
         return ""
     parts = [
         f'<div style="font-family:Georgia,serif;font-size:17px;font-weight:700;margin-bottom:4px">'
         f'🎁 {_html_escape(req.reward_label or req.reward_type)}</div>'
     ]
+    if added_service_label:
+        parts.append(
+            f'<div style="margin:6px 0 10px;padding:8px 12px;background:rgba(255,255,255,.18);'
+            f'border-radius:8px;font-size:12.5px;font-weight:700">✅ Added to THIS booking, no extra charge</div>'
+        )
     if req.reward_value:
         parts.append(f'<div style="font-size:13.5px;opacity:.95;margin-bottom:8px">Value: Rs.{req.reward_value:,.0f}</div>')
     if reward_code:
@@ -861,7 +872,8 @@ def _html_referral_card(req: LeadSubmitRequest, referral_code: Optional[str]) ->
 
 def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
                        reward_code: Optional[str], referral_code: Optional[str] = None,
-                       recipient_kind: str, event_sales_lead: Optional[str] = None) -> str:
+                       recipient_kind: str, event_sales_lead: Optional[str] = None,
+                       added_service_label: Optional[str] = None) -> str:
     """recipient_kind: 'customer' or 'team' — team version skips the welcome
     fluff and T&C footer link but keeps the same details table + styling."""
     first_name = _cap_first(req.parent_name.split()[0] if req.parent_name else None)
@@ -957,7 +969,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
               f'font-size:13.5px;color:#2D2140;white-space:pre-wrap">{_html_escape(req.remarks)}</div>'
         )
 
-    reward_html = _html_reward_card(req, reward_code)
+    reward_html = _html_reward_card(req, reward_code, added_service_label)
     referral_html = _html_referral_card(req, referral_code) if recipient_kind == "customer" else ""
 
     tnc_html = ""
@@ -1015,10 +1027,18 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
 
 # ─── 1. USER ACK EMAIL ───────────────────────────────────────────────────────
 
-async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str] = None) -> None:
+async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str] = None,
+                          added_service_label: Optional[str] = None, is_upgrade: bool = False) -> None:
     """Confirmation email to the parent who submitted the form. Content and
     subject vary depending on whether this was a confirmed booking or an
-    unconfirmed enquiry (2026-08-11, per Shruti)."""
+    unconfirmed enquiry (2026-08-11, per Shruti). is_upgrade=True is the
+    "order upgrade" resend triggered by /redeem-service when the customer
+    adds a won Tattoo/Bubble Artist reward to THIS booking from the
+    scratch-card reveal — same full content as the original confirmation
+    (every block below is unchanged), just a different subject/intro so it
+    reads as an update rather than a duplicate booking email (2026-08-12,
+    per Shruti: "send an order upgrade email to the customer... should have
+    all contents from the earlier mail + additional service")."""
     if not req.email or "@" not in req.email or "." not in req.email.split("@")[-1]:
         return   # skip if no email or obviously invalid (e.g. test placeholder "string")
     if not settings.GMAIL_CLIENT_ID:
@@ -1028,7 +1048,11 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Opti
         first_name = _cap_first(req.parent_name.split()[0] if req.parent_name else None)
         is_booking = bool(req.is_booking)
 
-        if is_booking:
+        if is_upgrade:
+            subject = f"🎁 Your Booking is Updated, {first_name}! {added_service_label or 'New addon'} added (Order #{lead_id})"
+            intro_line = (f"Great news — we've added your {added_service_label or 'complimentary reward'} to this booking at no "
+                          f"extra cost. Here's your full, updated booking confirmation:")
+        elif is_booking:
             subject = f"🎉 Your Wondershop Booking is Confirmed, {first_name}! (Order #{lead_id})"
             intro_line = "Welcome to the Wondershop family! Your party is officially booked — we can't wait to celebrate with you."
         else:
@@ -1041,7 +1065,7 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Opti
         dj_addons_block = _format_dj_addons_block(req)
         venue_block = _format_venue_block(req)
         gift_delivery_block = _format_gift_delivery_block(req)
-        reward_block = _format_reward_block(req, reward_code)
+        reward_block = _format_reward_block(req, reward_code, added_service_label)
         referral_block = ""
         if referral_code:
             referral_block = (
@@ -1069,6 +1093,7 @@ wondershopexperiences.com
         html_body = _build_html_email(
             is_booking=is_booking, lead_id=lead_id, req=req,
             reward_code=reward_code, referral_code=referral_code, recipient_kind="customer",
+            added_service_label=added_service_label,
         )
         await _gmail_send(to_email=req.email, subject=subject, body=body, html_body=html_body)
         logger.info(f"Lead #{lead_id}: user ACK sent to {req.email}")
@@ -1079,7 +1104,7 @@ wondershopexperiences.com
 # ─── 2. TEAM NOTIFICATION EMAIL ──────────────────────────────────────────────
 
 async def _send_team_email(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str] = None,
-                            event_sales_lead: Optional[str] = None) -> None:
+                            event_sales_lead: Optional[str] = None, added_service_label: Optional[str] = None) -> None:
     """Alert email to the Wondershop team."""
     if not settings.GMAIL_CLIENT_ID:
         logger.warning("GMAIL credentials not configured — skipping team email")
@@ -1096,7 +1121,7 @@ async def _send_team_email(lead_id: int, req: LeadSubmitRequest, reward_code: Op
         gift_delivery_block = _format_gift_delivery_block(req)
         reward_block = ""
         if req.reward_type:
-            reward_block = _format_reward_block(req, reward_code).replace(
+            reward_block = _format_reward_block(req, reward_code, added_service_label).replace(
                 "YOUR REWARD 🎁",
                 "SCRATCH-CARD REWARD WON — please action this on the account ⚠️",
             )
@@ -1134,7 +1159,7 @@ SOURCE
         html_body = _build_html_email(
             is_booking=is_booking, lead_id=lead_id, req=req,
             reward_code=reward_code, referral_code=referral_code, recipient_kind="team",
-            event_sales_lead=event_sales_lead,
+            event_sales_lead=event_sales_lead, added_service_label=added_service_label,
         )
         subj_prefix = "🎉 New Booking" if is_booking else "📩 New Lead"
         team_subject = _booking_subject_line(lead_id, req) if is_booking else f"{subj_prefix} #{lead_id} — {req.parent_name} ({req.phone})"
@@ -1310,18 +1335,37 @@ async def _send_whatsapp_alerts(lead_id: int, req: LeadSubmitRequest) -> None:
 
 # ─── FIRE ALL FOUR IN PARALLEL ───────────────────────────────────────────────
 
-async def _notify_all(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str],
-                       event_sales_lead: Optional[str] = None) -> None:
-    """Runs all four notifications concurrently. Never raises."""
+async def _notify_customer(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str]) -> None:
+    """Fired synchronously from /submit, always: the ops-facing Google Sheet
+    row (so the live tracker updates instantly) plus the customer's own
+    confirmation email — both go out right away, not held for the
+    scratch-card interaction. Only the team-facing notification waits on
+    that (2026-08-12, per Shruti — see _notify_team() below)."""
     await asyncio.gather(
-        _send_user_ack(lead_id, req, reward_code, referral_code),
-        _send_team_email(lead_id, req, reward_code, referral_code, event_sales_lead),
         _append_to_sheet(lead_id, req, reward_code, referral_code),
-        _send_whatsapp_alerts(lead_id, req),
-        return_exceptions=True,   # one failure must never cancel the others
+        _send_user_ack(lead_id, req, reward_code, referral_code),
+        return_exceptions=True,
     )
-    # (signature already threaded referral_code through above — kept as one
-    # block so the four notification calls stay easy to scan together.)
+
+
+async def _notify_team(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str],
+                        event_sales_lead: Optional[str] = None, added_service_label: Optional[str] = None) -> None:
+    """The ops-facing "order booking" notification — team email (with the
+    order execution form attached) + WhatsApp alert to the Wondershop team
+    numbers (WS_PHONE_1/2 — see _send_whatsapp_alerts, these are internal
+    team phones, not the customer's). For a confirmed booking this is
+    deliberately held back until the scratch-card interaction is over
+    (explicit close, a 5-minute idle-timeout fallback, or a tab-close beacon
+    — see builder.html's finalizeAndNotify()) so it can say whether a
+    Tattoo/Bubble Artist reward was added to the booking (2026-08-12, per
+    Shruti: "send the order booking to wondershop with order form after the
+    scratch card"). Plain enquiries have no scratch card to wait on —
+    /submit fires this immediately for those instead."""
+    await asyncio.gather(
+        _send_team_email(lead_id, req, reward_code, referral_code, event_sales_lead, added_service_label),
+        _send_whatsapp_alerts(lead_id, req),
+        return_exceptions=True,   # one failure must never cancel the other
+    )
 
 
 # ─── ENDPOINTS ───────────────────────────────────────────────────────────────
@@ -1332,7 +1376,9 @@ async def submit_lead(req: LeadSubmitRequest):
     1. Saves lead to DB (status = Booked for confirmed bookings, New for leads).
     2. Issues a reward code if the customer won the "discount" scratch-card
        reward, and/or redeems one if they applied a previously-issued code.
-    3. Fires all four notifications in parallel (fire-and-forget).
+    3. Notifies the customer (sheet row + confirmation email) immediately.
+       Notifies the team (email + WhatsApp) immediately too, but only for
+       plain enquiries — confirmed bookings hold that until /finalize-notify.
     """
     status = "Booked" if req.is_booking else "New"
     event_sales_lead = await _resolve_sales_lead_name(req.sales_lead_code)
@@ -1433,8 +1479,18 @@ async def submit_lead(req: LeadSubmitRequest):
     except Exception as exc:
         logger.error(f"Lead #{lead_id}: reward/referral code handling failed — {exc}")
 
-    # Fire-and-forget — DB save already succeeded before this runs
-    await _notify_all(lead_id, req, reward_code, referral_code, event_sales_lead)
+    # Sheet row + customer confirmation email go out immediately either way
+    # — the customer shouldn't wait on the scratch card for their own
+    # confirmation (2026-08-12, per Shruti).
+    await _notify_customer(lead_id, req, reward_code, referral_code)
+
+    # The team-facing "order booking" notification (email + WhatsApp) is
+    # held back for confirmed bookings until the scratch-card interaction is
+    # over — see /finalize-notify and _notify_team()'s docstring. Plain
+    # enquiries (is_booking=False) never show a scratch card, so there's no
+    # "wait for" event to hold on — notify the team right away, as before.
+    if not req.is_booking:
+        await _notify_team(lead_id, req, reward_code, referral_code, event_sales_lead)
 
     return {
         "success": True,
@@ -1443,6 +1499,47 @@ async def submit_lead(req: LeadSubmitRequest):
         "referral_code": referral_code,
         "message": "We'll be in touch within a few hours!",
     }
+
+
+class FinalizeNotifyRequest(LeadSubmitRequest):
+    """Same shape as the original /submit payload (the frontend just resends
+    it), plus the pieces only known after /submit returned."""
+    lead_id:       int
+    reward_code:   Optional[str] = None
+    referral_code: Optional[str] = None
+
+
+@router.post("/finalize-notify")
+async def finalize_notify(req: FinalizeNotifyRequest):
+    """
+    Sends the team-facing "order booking" notification (email with the order
+    execution form attached + WhatsApp alert to the Wondershop team numbers)
+    for a booking /submit already saved and confirmed to the customer. The
+    customer's own email already went out immediately at /submit — this is
+    just the ops side, deliberately held until the scratch-card interaction
+    is over so it can say whether a Tattoo/Bubble Artist reward was added
+    (2026-08-12, per Shruti). Called from builder.html's finalizeAndNotify():
+    explicit modal close ("Awesome, got it!" / ✕), a 5-minute idle-timeout
+    fallback, or a tab-close/navigate-away beacon — whichever fires first.
+
+    Whether a Tattoo/Bubble Artist reward was added to THIS booking is read
+    straight from the DB (redeemed_reward_service, set by /redeem-service)
+    rather than trusted from the request — so this always matches what's
+    actually on the booking, even if the client's local state is stale.
+    """
+    event_sales_lead = await _resolve_sales_lead_name(req.sales_lead_code)
+
+    added_service_label = None
+    row = await database.fetch_one(
+        "SELECT redeemed_reward_service FROM leads WHERE lead_id = :id",
+        values={"id": req.lead_id},
+    )
+    if row and row["redeemed_reward_service"]:
+        service = row["redeemed_reward_service"]
+        added_service_label = req.reward_label or f"Free {REWARD_SERVICE_LABELS.get(service, service)}"
+
+    await _notify_team(req.lead_id, req, req.reward_code, req.referral_code, event_sales_lead, added_service_label)
+    return {"success": True}
 
 
 # ─── ADD SCRATCH-CARD SERVICE REWARD TO CURRENT BOOKING ──────────────────────
@@ -1457,10 +1554,16 @@ REWARD_SERVICE_LABELS = {
 }
 
 
-class RedeemServiceRequest(BaseModel):
+class RedeemServiceRequest(LeadSubmitRequest):
+    """Same shape as /submit's payload (the frontend resends it, held in
+    S._pendingNotifyPayload) plus the reward-specific fields — needed so the
+    "order upgrade" email below can include the full original booking
+    content, not just a short note (2026-08-12, per Shruti)."""
     lead_id:       int
     service:       str            # 'tattoo' | 'bubble'
     service_label: Optional[str] = None   # e.g. "Free Tattoo Artist" — for display in the notifications
+    reward_code:   Optional[str] = None
+    referral_code: Optional[str] = None
 
 
 async def _update_sheet_reward_service(lead_id: int, service_label: str) -> None:
@@ -1483,69 +1586,26 @@ async def _update_sheet_reward_service(lead_id: int, service_label: str) -> None
         logger.error(f"Lead #{lead_id}: sheet reward-service update failed — {exc}")
 
 
-async def _notify_reward_service_added(lead_id: int, label: str, parent_name: Optional[str],
-                                        first_name: str, email: Optional[str], phone: str,
-                                        event_date_str: str) -> None:
-    """Heads-up to ops (sheet + email) so the addition actually gets
-    arranged, plus a short confirmation to the customer. Best-effort — never
-    blocks the customer-facing response."""
-
-    async def _team_email():
-        if not settings.GMAIL_CLIENT_ID:
-            return
-        body = (
-            f"Booking #{lead_id} ({parent_name or '—'}, {phone}) just added a complimentary "
-            f"{label} to their booking from the scratch-card reveal screen.\n\n"
-            f"Event Date: {event_date_str}\n\n"
-            f"Please arrange this against the booking — no charge to the customer.\n\n"
-            f"— Wondershop Lead System"
-        )
-        await _gmail_send(
-            to_email=settings.EMAIL_TEAM,
-            subject=f"🎁 Reward Added to Booking #{lead_id} — Free {label}",
-            body=body,
-        )
-
-    async def _customer_email():
-        if not email or "@" not in email or "." not in email.split("@")[-1] or not settings.GMAIL_CLIENT_ID:
-            return
-        body = (
-            f"Hi {first_name}! 🎉\n\n"
-            f"Great news — we've added your complimentary {label} to your booking "
-            f"(Order #{lead_id}, {event_date_str}) at no extra cost.\n\n"
-            f"Your Party Experience Lead will confirm the details closer to your event date.\n\n"
-            f"Warmly,\nTeam Wondershop 🎈\nwondershopexperiences.com"
-        )
-        await _gmail_send(
-            to_email=email,
-            subject=f"🎁 {label} added to your booking! (Order #{lead_id})",
-            body=body,
-        )
-
-    await asyncio.gather(
-        _update_sheet_reward_service(lead_id, label),
-        _team_email(),
-        _customer_email(),
-        return_exceptions=True,
-    )
-
-
 @router.post("/redeem-service")
 async def redeem_service_now(req: RedeemServiceRequest):
     """
     Customer opted, right from the scratch-card reveal, to add their
     complimentary service reward (Tattoo Artist / Bubble Artist) onto the
     CURRENT booking instead of saving it for a future one. Records it on the
-    lead, updates the existing Sheet row in place, and pings both the
-    customer and the team so ops actually arranges it.
+    lead, updates the existing Sheet row in place, and sends the customer an
+    "order upgrade" email — the same full booking confirmation content as
+    the original, plus this service — so they have one complete, up-to-date
+    email rather than a separate short follow-up (2026-08-12, per Shruti).
+    The team-facing notification is NOT sent from here — it still waits for
+    /finalize-notify once the scratch-card modal is done with, so it can
+    reflect this addition too.
     """
     service = (req.service or "").strip().lower()
     if service not in REWARD_SERVICE_LABELS:
         return {"success": False, "message": "That reward can't be added to a booking directly."}
 
     row = await database.fetch_one(
-        "SELECT lead_id, parent_name, phone, email, event_date, reward_type, redeemed_reward_service "
-        "FROM leads WHERE lead_id = :id",
+        "SELECT lead_id, reward_type, redeemed_reward_service FROM leads WHERE lead_id = :id",
         values={"id": req.lead_id},
     )
     if not row:
@@ -1565,17 +1625,16 @@ async def redeem_service_now(req: RedeemServiceRequest):
         "WHERE lead_id = :id",
         values={"service": service, "id": req.lead_id},
     )
-
-    first_name = _cap_first(row["parent_name"].split()[0] if row["parent_name"] else None)
-    event_date_str = _fmt_date_long(row["event_date"])
     try:
-        await _notify_reward_service_added(
-            lead_id=req.lead_id, label=label, parent_name=row["parent_name"],
-            first_name=first_name, email=row["email"], phone=row["phone"],
-            event_date_str=event_date_str,
-        )
+        await _update_sheet_reward_service(req.lead_id, label)
     except Exception as exc:
-        logger.error(f"Lead #{req.lead_id}: reward-service notify failed — {exc}")
+        logger.error(f"Lead #{req.lead_id}: sheet reward-service update failed — {exc}")
+
+    try:
+        await _send_user_ack(req.lead_id, req, req.reward_code, req.referral_code,
+                              added_service_label=label, is_upgrade=True)
+    except Exception as exc:
+        logger.error(f"Lead #{req.lead_id}: order-upgrade email failed — {exc}")
 
     return {"success": True, "message": f"{label} added to your booking!"}
 

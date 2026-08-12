@@ -78,6 +78,9 @@ button{cursor:pointer;font-family:var(--fb)}
 .pkg-price-note{font-size:11px;color:rgba(255,255,255,.55);margin-bottom:2px;letter-spacing:.8px;text-transform:uppercase;font-weight:700}
 .pkg-price{font-family:var(--fd);font-size:38px;font-weight:700;color:#fff;line-height:1}
 .pkg-price-sub{font-size:13px;color:rgba(255,255,255,.6);margin-top:4px}
+.pkg-price-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pkg-price-orig{font-family:var(--fd);font-size:20px;font-weight:600;color:rgba(255,255,255,.55);text-decoration:line-through}
+.pkg-discount-badge{display:inline-flex;align-items:center;background:rgba(74,222,128,.18);color:#4ADE80;font-size:12px;font-weight:700;border-radius:20px;padding:3px 11px}
 .pkg-cta-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .btn-pkg{background:var(--li);color:#fff;border:none;border-radius:28px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:background .15s,transform .1s;text-decoration:none}
 .btn-pkg:hover{background:#9d84cc;transform:translateY(-1px)}
@@ -95,7 +98,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .divider{border:none;border-top:1px solid var(--li2);margin:0}
 
 /* INCLUSIONS */
-.incl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.incl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .incl-card{background:var(--li3);border:1.5px solid var(--li2);border-radius:16px;padding:20px}
 .incl-card-ic{font-size:28px;margin-bottom:10px}
 .incl-card-ic-img{width:36px;height:36px;object-fit:contain;margin-bottom:10px;display:block}
@@ -185,6 +188,8 @@ button{cursor:pointer;font-family:var(--fb)}
 .sticky-base{font-size:12px;color:var(--gy);white-space:nowrap}
 .sticky-details{font-size:12px;color:var(--gy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sticky-details .ok{color:var(--li);font-weight:600}
+.sticky-price-orig{font-family:var(--fd);font-size:14px;font-weight:600;color:var(--gy);text-decoration:line-through;white-space:nowrap}
+.sticky-discount-badge{display:inline-flex;align-items:center;background:var(--sgr);color:#166534;font-size:11px;font-weight:700;border-radius:20px;padding:2px 9px;white-space:nowrap}
 
 /* WA FAB */
 .wa-fab{position:fixed;bottom:80px;left:24px;z-index:9999;width:50px;height:50px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s;text-decoration:none}
@@ -279,11 +284,16 @@ button{cursor:pointer;font-family:var(--fb)}
             <span class="pkg-incl-chip"><img class="chip-ic-img" src="img/icons/icon-host.png" alt="">Spy Host</span>
             <span class="pkg-incl-chip">🎯 5–8 Mission Stations</span>
             <span class="pkg-incl-chip">🎂 Min. age 7</span>
+            <span class="pkg-incl-chip">🎉 E-Invite FREE</span>
           </div>
           <div style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--gy);font-weight:500;margin-bottom:20px"><span style="color:var(--gr);font-weight:700">✓</span> Age-appropriate stations for your child</div>
           <div class="pkg-price-block">
             <div class="pkg-price-note">Estimated total for your party</div>
-            <div class="pkg-price" id="heroPrice">₹25,000</div>
+            <div class="pkg-price-row">
+              <span class="pkg-price-orig" id="heroPriceOrig"></span>
+              <span class="pkg-price" id="heroPrice">₹25,000</span>
+              <span class="pkg-discount-badge" id="heroDiscountBadge"></span>
+            </div>
             <div class="pkg-price-sub">Mission stations priced per child · decor priced separately · min. bill ₹25,000</div>
           </div>
           <div class="pkg-cta-row">
@@ -349,6 +359,12 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="incl-card-ic">🪪</div>
           <div class="incl-card-h">Personalized Spy ID Cards</div>
           <div class="incl-card-body">Every agent gets their own Wondershop Spy Academy ID card with photo, name &amp; QR — theirs to keep after the mission.</div>
+        </div>
+
+        <div class="incl-card">
+          <div class="incl-card-ic">🎉</div>
+          <div class="incl-card-h">E-Invite</div>
+          <div class="incl-card-body">A personalized digital spy-mission invite card, free of charge — every Spy Adventure booking clears the ₹25,000 threshold for a complimentary e-invite.</div>
         </div>
 
       </div>
@@ -564,7 +580,9 @@ button{cursor:pointer;font-family:var(--fb)}
   <div class="sticky-inner">
     <div class="sticky-left">
       <div class="sticky-price-row">
+        <div class="sticky-price-orig" id="stickyOrig"></div>
         <div class="sticky-price" id="stickyTotal">₹25,000</div>
+        <span class="sticky-discount-badge" id="stickyDiscountBadge"></span>
         <div class="sticky-base" id="stickyBase">· Spy Adventure</div>
       </div>
       <div class="sticky-details" id="stickyDetails">25 kids · 5 stations · Classic decor</div>
@@ -636,9 +654,16 @@ const MUSIC_TIERS = [
   {id:'m2', name:'Premium', price:11000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', '50-200 guests', '4 hours']},
 ];
 // E-Invite — single-select, optional.
+// Spy Adventure's minimum bill is already ₹25,000 (see MIN_BILL below) —
+// above the site-wide ₹20,000 free-E-Invite threshold, so E-Invite is
+// ALWAYS free on this package (2026-08-12, per Shruti: "since minimum
+// billing is 25k, show einvite as prize unlocked"). Real price kept on
+// the tier (not zeroed here) so totalPrice() below skips it explicitly
+// and builder.html's own free-E-Invite logic still shows the correct
+// "was ₹500" strike-through on the review page.
 const EINVITE_TIERS = [
-  {id:'e1', name:'Static', price:500, d:'Personalized digital invite card.'},
-  {id:'e2', name:'Video + Reminder', price:2000, d:'Video invite plus a reminder message closer to the date.'},
+  {id:'e1', name:'Static', price:500, d:'Personalized digital invite card.', freeForPackage:true},
+  {id:'e2', name:'Video + Reminder', price:2000, d:'Video invite plus a reminder message closer to the date.', freeForPackage:true},
 ];
 // Pinata — single-select, optional. Real catalogue (2026-08-07): same 3
 // shapes/prices/photos used across every package page & the main builder
@@ -764,7 +789,9 @@ function renderTierGrid(gridId, items, selected) {
     // original + discounted price + a "Save ₹X" callout whenever both are
     // present; every other tier type has no origPrice and falls back to
     // the plain price line.
-    const priceHtml = (t.origPrice != null && t.origPrice > t.price)
+    const priceHtml = t.freeForPackage
+      ? '<div class="act-card-p-row"><span class="act-card-p-orig">' + fmtINR(t.price) + '</span><span class="act-card-p" style="color:#166534">FREE</span></div>'
+      : (t.origPrice != null && t.origPrice > t.price)
       ? '<div class="act-card-p-row"><span class="act-card-p-orig">' + fmtINR(t.origPrice) + '</span><span class="act-card-p">' + fmtINR(t.price) + '</span><span class="act-card-save-badge">Save ' + fmtINR(t.origPrice - t.price) + '</span></div>'
       : '<div class="act-card-p">' + fmtINR(t.price) + '</div>';
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
@@ -916,7 +943,7 @@ function totalPrice() {
   if (selectedMusic) t += selectedMusic.price;
   if (djLightsAddon) t += 1500;
   if (djSmokeAddon) t += 2000;
-  if (selectedEinvite) t += selectedEinvite.price;
+  if (selectedEinvite && !selectedEinvite.freeForPackage) t += selectedEinvite.price;
   if (selectedPinata) t += selectedPinata.price;
   selectedProps.forEach(id => {
     const item = PROPS_ADDONS.find(a => a.id === id);
@@ -931,15 +958,36 @@ function totalPrice() {
   return t;
 }
 
+// Spy's minimum bill (₹25,000) already clears the site-wide "orders
+// ₹25,000+ get a free E-Invite" threshold (see builder.html's S.FIT),
+// so every Spy booking qualifies for a complimentary Static e-invite
+// (₹500 value) — always, since stationsPrice() never lets the total
+// fall below MIN_BILL. That freebie is what the strike-through price
+// communicates below.
+//
+// 2026-08-12, per Shruti: this REPLACES the generic value-based
+// %-discount slabs used on some other package pages for Spy specifically
+// — stacking a %-off on top of the e-invite freebie would double-count
+// the same "you're above ₹25k" threshold and produce numbers that don't
+// reconcile with the advertised ₹25,500 → ₹25,000 framing.
+const EINVITE_FREEBIE_VALUE = 500;
 function updateSticky() {
   const total = totalPrice();
+  const gross = total + EINVITE_FREEBIE_VALUE;
+  document.getElementById('stickyOrig').textContent = fmtINR(gross);
   document.getElementById('stickyTotal').textContent = fmtINR(total);
+  document.getElementById('stickyDiscountBadge').textContent = '🎉 FREE E-INVITE';
+  document.getElementById('heroPriceOrig').textContent = fmtINR(gross);
   document.getElementById('heroPrice').textContent = fmtINR(total);
+  document.getElementById('heroDiscountBadge').textContent = '🎉 FREE E-INVITE';
 
   const t = stationTier(kidsCount);
   const parts = [kidsCount + ' kids', t.stations + ' stations', selectedDecor ? (selectedDecor.name + ' decor') : 'No decor'];
+  // selectedEinvite is only counted as an "add-on" here if it's a real
+  // paid pick — the always-included free Static/Video tiers (both
+  // freeForPackage:true for Spy) shouldn't inflate the add-on count.
   const extrasCount = selectedStations.length + selectedProps.length + selectedGifts.length +
-    (selectedMusic ? 1 : 0) + (djLightsAddon ? 1 : 0) + (djSmokeAddon ? 1 : 0) + (selectedEinvite ? 1 : 0) +
+    (selectedMusic ? 1 : 0) + (djLightsAddon ? 1 : 0) + (djSmokeAddon ? 1 : 0) + (selectedEinvite && !selectedEinvite.freeForPackage ? 1 : 0) +
     (selectedPinata ? 1 : 0) + (selectedEntry ? 1 : 0) + (selectedPhotographer ? 1 : 0);
   if (extrasCount) parts.push('+' + extrasCount + ' add-on' + (extrasCount > 1 ? 's' : ''));
   document.getElementById('stickyDetails').textContent = parts.join(' · ');

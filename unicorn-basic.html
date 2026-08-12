@@ -1805,12 +1805,22 @@ function totalPrice() {
   return t;
 }
 
-// ── PACKAGE DISCOUNT (10% off, Return Gifts excluded) ──
-// Matches the 'PKGUNICORN' coupon sent to builder.html. Return Gifts already
-// carry their own per-item pricing (and may already be discounted there in
-// future), so the 10% package-wide discount is applied only to the rest of
-// the total — gifts are never discounted twice.
-const PACKAGE_DISCOUNT_PCT = 10;
+// ── PACKAGE DISCOUNT (value-based slabs, Return Gifts excluded) ──
+// Retires the flat 10% PKGUNICORN coupon 2026-08-12, per Shruti — now uses
+// the same 5/7/9% value-based slabs as builder.html. Return Gifts already
+// carry their own per-item pricing, so the discount is applied only to the
+// rest of the total — gifts are never discounted twice.
+const DISCOUNT_SLABS = [
+  {min:25000, max:30000, pct:5, cap:1500},
+  {min:30000, max:35000, pct:7, cap:2500},
+  {min:35000, max:Infinity, pct:9, cap:3500}
+];
+function autoDiscountInfo(total) {
+  const slab = DISCOUNT_SLABS.find(s => total >= s.min && total < s.max);
+  if (!slab) return {pct:0, amt:0, cap:0};
+  const amt = Math.min(Math.round(total * slab.pct / 100), slab.cap);
+  return {pct:slab.pct, amt, cap:slab.cap};
+}
 function giftsSubtotal() {
   let g = 0;
   selectedGifts.forEach(id => {
@@ -1822,18 +1832,22 @@ function giftsSubtotal() {
 function discountedTotal() {
   const total = totalPrice();
   const gifts = giftsSubtotal();
-  return Math.round((total - gifts) * (1 - PACKAGE_DISCOUNT_PCT / 100)) + gifts;
+  const nonGift = total - gifts;
+  const info = autoDiscountInfo(total);
+  const amt = Math.min(info.amt, nonGift);
+  return Math.round(nonGift - amt) + gifts;
 }
 
 function updateSticky() {
   const total = totalPrice();
   const discounted = discountedTotal();
-  document.getElementById('stickyOrig').textContent = fmtINR(total);
+  const info = autoDiscountInfo(total);
+  document.getElementById('stickyOrig').textContent = info.amt > 0 ? fmtINR(total) : '';
   document.getElementById('stickyTotal').textContent = fmtINR(discounted);
-  document.getElementById('stickyDiscountBadge').textContent = PACKAGE_DISCOUNT_PCT + '% OFF';
-  document.getElementById('heroPriceOrig').textContent = fmtINR(total);
+  document.getElementById('stickyDiscountBadge').textContent = info.amt > 0 ? (info.pct + '% OFF') : '';
+  document.getElementById('heroPriceOrig').textContent = info.amt > 0 ? fmtINR(total) : '';
   document.getElementById('heroPrice').textContent = fmtINR(discounted);
-  document.getElementById('heroDiscountBadge').textContent = PACKAGE_DISCOUNT_PCT + '% OFF';
+  document.getElementById('heroDiscountBadge').textContent = info.amt > 0 ? (info.pct + '% OFF') : '';
 
   const details = document.getElementById('stickyDetails');
   const parts = [];
@@ -1894,8 +1908,10 @@ function proceedToBuilder() {
       remarks: (document.getElementById('specialRequest').value || '').trim(),
       packagePrice: totalPrice(),
       host: selectedHost,
-      coupon: 'PKGUNICORN',
-      couponPct: PACKAGE_DISCOUNT_PCT,
+      // 'coupon'/'couponPct' retired 2026-08-12 — builder.html applies its
+      // own value-based auto-discount now (see DISCOUNT_SLABS above),
+      // doesn't read these fields anymore. noGiftDiscount kept: builder.html
+      // still hardcodes S._noGiftDiscount=true for this package.
       noGiftDiscount: true,
       ts: Date.now()
     }));

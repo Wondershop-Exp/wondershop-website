@@ -1073,16 +1073,30 @@ function totalPrice() {
   return t;
 }
 
-const PACKAGE_DISCOUNT_PCT = 15; // matches the 'PKGTURF' coupon sent to builder.html
+// Value-based discount slabs — retires the flat 15% PKGTURF coupon
+// 2026-08-12, per Shruti. Matches builder.html exactly, applied to the
+// whole total (Turf discounts Return Gifts too, same as before).
+const DISCOUNT_SLABS = [
+  {min:25000, max:30000, pct:5, cap:1500},
+  {min:30000, max:35000, pct:7, cap:2500},
+  {min:35000, max:Infinity, pct:9, cap:3500}
+];
+function autoDiscountInfo(total) {
+  const slab = DISCOUNT_SLABS.find(s => total >= s.min && total < s.max);
+  if (!slab) return {pct:0, amt:0, cap:0};
+  const amt = Math.min(Math.round(total * slab.pct / 100), slab.cap);
+  return {pct:slab.pct, amt, cap:slab.cap};
+}
 function updateSticky() {
   const total = totalPrice();
-  const discounted = Math.round(total * (1 - PACKAGE_DISCOUNT_PCT / 100));
-  document.getElementById('stickyOrig').textContent = fmtINR(total);
+  const info = autoDiscountInfo(total);
+  const discounted = Math.round(total - info.amt);
+  document.getElementById('stickyOrig').textContent = info.amt > 0 ? fmtINR(total) : '';
   document.getElementById('stickyTotal').textContent = fmtINR(discounted);
-  document.getElementById('heroPriceOrig').textContent = fmtINR(total);
+  document.getElementById('heroPriceOrig').textContent = info.amt > 0 ? fmtINR(total) : '';
   document.getElementById('heroPrice').textContent = fmtINR(discounted);
-  document.getElementById('heroDiscountBadge').textContent = PACKAGE_DISCOUNT_PCT + '% OFF';
-  document.getElementById('stickyDiscountBadge').textContent = PACKAGE_DISCOUNT_PCT + '% OFF';
+  document.getElementById('heroDiscountBadge').textContent = info.amt > 0 ? (info.pct + '% OFF') : '';
+  document.getElementById('stickyDiscountBadge').textContent = info.amt > 0 ? (info.pct + '% OFF') : '';
 
   const details = document.getElementById('stickyDetails');
   const parts = [];
@@ -1134,8 +1148,8 @@ function proceedToBuilder() {
       pinata: selectedPinata,
       packagePrice: totalPrice(),
       remarks: (document.getElementById('specialRequest').value || '').trim(),
-      coupon: 'PKGTURF',
-      couponPct: 15,
+      // 'coupon'/'couponPct' retired 2026-08-12 — builder.html applies its
+      // own value-based auto-discount now, doesn't read these anymore.
       ts: Date.now()
     }));
   } catch(e) {}

@@ -1,5 +1,17 @@
 # Wondershop Experiences — Pricing Context Document
-_Last updated: June 2026 · Source: WSR Birthday Brochure v5.pdf + founder inputs_
+_Last updated: August 2026 · Source: WSR Birthday Brochure v5.pdf + founder inputs_
+
+---
+
+## Order-Value Discount Slabs
+_Replaces the old flat/service-count discount logic (2026-08-12, per Shruti). Qualifying value is the cart total before any discount. Only ONE discount ever applies on a booking — whichever is worth more in rupees, the auto-slab discount or a coupon/referral/scratch-card code — never both._
+
+| Order Value | Discount | Capped At |
+|-------------|----------|-----------|
+| ₹25,000 – ₹29,999 | 5% off | up to ₹1,500 |
+| ₹30,000 – ₹34,999 | 7% off | up to ₹2,500 |
+| ₹35,000+ | 9% off | up to ₹3,500 |
+| Below ₹25,000 | No discount | — |
 
 ---
 
@@ -73,14 +85,15 @@ _Last updated: June 2026 · Source: WSR Birthday Brochure v5.pdf + founder input
 
 ## Pinata
 - ₹2,000 for all options
-- **Free** above ₹50,000 order value
+- **Free** above ₹40,000 order value (updated 2026-08-12, was ₹50,000)
+- All pinata options are handmade (readymade pinatas may be added as an option in future)
 
 ## E-Invite
-- **Free** above ₹30,000 order value
-- ₹500 below ₹30,000 order value
+- **Free** above ₹20,000 order value (updated 2026-08-12, was ₹30,000)
+- ₹500 below ₹20,000 order value
 
 ## Return Gift Personalisation
-- **Free** above ₹40,000 order value
+- **Not free at any order value** (2026-08-12, per Shruti — no free-above-threshold offer for this)
 
 ---
 

@@ -19,6 +19,14 @@ from typing import Optional
 import catalogue_data as cat
 from catalogue_data import SITE_BASE_URL
 
+# Mirrors leads.py's _PAYMENT_METHOD_LABELS (kept local to avoid a circular
+# import — leads.py imports FROM this module).
+_PAYMENT_METHOD_LABELS = {
+    "online":  "UPI / Bank Transfer",
+    "branch":  "Cash Deposit at Branch",
+    "collect": "Cash Collection at Venue",
+}
+
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
@@ -154,8 +162,12 @@ def assemble_order_form_data(req, lead_id: int, event_sales_lead: Optional[str],
         "theme": req.theme or "—",
         "event_sales_lead": event_sales_lead or "—",
         "billing_amount": _fmt_money(req.order_grand_total),
+        # Pledged/expected figure, NOT a confirmation of receipt — no payment
+        # method on the site is auto-verified (2026-08-12, per Shruti). Ops
+        # fills in the actual verified amount via the manual rows below.
         "advance_paid": _fmt_money(req.order_advance),
         "pending_amount": _fmt_money(req.order_balance),
+        "payment_method_selected": _PAYMENT_METHOD_LABELS.get(req.payment_method or "", req.payment_method) or "—",
         "coupon_code": coupon or "—",
         "remarks": req.remarks or "—",
         "decor_name": decor.get("n") or "—",
@@ -253,8 +265,9 @@ _SERVICE_ROWS = [
 
 _BILLING_ROWS = [
     ("Billing Amount",  "billing_amount"),
-    ("Advance Paid",    "advance_paid"),
+    ("Advance (Pledged — Pending Verification)", "advance_paid"),
     ("Pending Amount",  "pending_amount"),
+    ("Payment Method (Customer-Selected)", "payment_method_selected"),
     ("Coupon / Referral Code Applied", "coupon_code"),
 ]
 
