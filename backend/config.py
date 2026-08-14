@@ -19,10 +19,19 @@ class Settings(BaseSettings):
 
     # AiSensy (WhatsApp BSP) — replaces direct Meta Cloud API calls above.
     # API key: AiSensy dashboard → Manage → API Key.
-    # Campaign name: an "API Campaign" in AiSensy linked to the approved
-    # wondershop_new_lead template — must be live, not draft.
+    # AISENSY_CAMPAIGN_NAME: the "API Campaign" linked to the CUSTOMER-facing
+    # "Booking Confirmed" template (2026-08-14, per Shruti — confirmed via
+    # the actual approved template screenshot). Sent to the customer's own
+    # WhatsApp number right when their booking is confirmed.
     AISENSY_API_KEY: str = ""
     AISENSY_CAMPAIGN_NAME: str = ""
+
+    # AISENSY_TEAM_CAMPAIGN_NAME: a SEPARATE "API Campaign" + template for
+    # internal team alerts (name/phone/theme/city/budget), still to be
+    # created in AiSensy — leave unset until that template is approved and
+    # its campaign name is added here; team WhatsApp alerts stay a no-op
+    # (team still gets the full email) until then.
+    AISENSY_TEAM_CAMPAIGN_NAME: str = ""
 
     # Google Sheets — Apps Script webhook URL (no service account needed)
     GOOGLE_SHEET_WEBHOOK_URL: str = ""

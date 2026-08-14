@@ -284,7 +284,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <span class="pkg-incl-chip"><img class="chip-ic-img" src="img/icons/icon-host.png" alt="">Spy Host</span>
             <span class="pkg-incl-chip">🎯 5–8 Mission Stations</span>
             <span class="pkg-incl-chip">🎂 Min. age 7</span>
-            <span class="pkg-incl-chip">🎉 E-Invite FREE</span>
+            <span class="pkg-incl-chip">🎉 E-Invite Included</span>
           </div>
           <div style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--gy);font-weight:500;margin-bottom:20px"><span style="color:var(--gr);font-weight:700">✓</span> Age-appropriate stations for your child</div>
           <div class="pkg-price-block">
@@ -364,7 +364,7 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="incl-card">
           <div class="incl-card-ic">🎉</div>
           <div class="incl-card-h">E-Invite</div>
-          <div class="incl-card-body">A personalized digital spy-mission invite card, free of charge — every Spy Adventure booking clears the ₹25,000 threshold for a complimentary e-invite.</div>
+          <div class="incl-card-body">A personalized digital spy-mission invite card, included with every Spy Adventure booking.</div>
         </div>
 
       </div>
@@ -670,11 +670,38 @@ const EINVITE_TIERS = [
 // (see builder.html's PINATAS). The piñata itself is generic — it gets
 // personalised to the child's name & this package's theme, called out in
 // the note under the grid below, not via separate per-theme SKUs.
+//
+// 2026-08-14, per Shruti: "if the total crosses 40k, we'll give the
+// readymade pinata (worth Rs 500) free, instead of the handmade one, which
+// is more expensive. if the user selects the handmade one, then we'll
+// reduce 500 rs. from the pinata value." Readymade Pinata added here at the
+// confirmed ₹500 price (predecided designs, cannot be personalized) — no
+// photo yet, card renders without an image until Shruti sends one. Same
+// item/price also used in builder.html's generic Build-a-Birthday
+// catalogue. See pinataDiscount() below for the ₹40k mechanic.
 const PINATA_TIERS = [
   {id:'square', name:'Square Pinata', price:2000, d:'12" × 12", flat briefcase-style', img:'img/pin-square-1.jpg'},
   {id:'circle', name:'Circle Pinata', price:2100, d:'Round shape', img:'img/pin-circle-1.jpg'},
   {id:'number', name:'Number Pinata', price:2400, d:'Shaped as your child\'s age', img:'img/pin-number-1.jpg'},
+  {id:'readymade', name:'Readymade Pinata', price:500, d:'Predecided designs, cannot be personalized — quickest option'},
 ];
+// Total (raw, face-value prices) needed to unlock the ₹40k pinata mechanic.
+// selectedPinata.id==='readymade' -> its own ₹500 price is waived entirely
+// (FREE). Any handmade pinata (square/circle/number) -> ₹500 is knocked off
+// its price instead, per Shruti's rule above. Below ₹40k, or with no
+// pinata selected, there's no discount at all.
+function pinataDiscount() {
+  if (!selectedPinata) return 0;
+  if (totalPrice() < 40000) return 0;
+  return selectedPinata.id === 'readymade' ? selectedPinata.price : 500;
+}
+// The actual payable total once the ₹40k pinata mechanic (if any) is
+// applied. totalPrice() itself stays the RAW face-value sum (unchanged —
+// still used as the ₹40k threshold check and as the MRP/gross basis in
+// updateSticky()), so there's no circularity between the two.
+function finalTotal() {
+  return totalPrice() - pinataDiscount();
+}
 // Props — per-child, multi toggle-add.
 const PROPS_ADDONS = [
   {id:'pr1', ic:'🕶️', name:'Sunglasses', d:'One per child.', perChild:75},
@@ -886,14 +913,31 @@ function einviteGridSelect(id) {
 // Own renderer (not renderTierGrid) so the square reference photos show at
 // their real 1:1 aspect ratio instead of being cropped to renderTierGrid's
 // 4:3 default.
+// 2026-08-14, per Shruti: shows what each pinata would actually cost if
+// picked right now — accounts for the ₹40k mechanic (pinataDiscount()
+// above) per-tier, not just for whichever one is already selected, so the
+// customer can see the Readymade Pinata go FREE / a handmade one drop ₹500
+// as soon as the rest of their cart crosses ₹40k.
+function pinataDiscountFor(tier) {
+  const totalWithoutPinata = totalPrice() - (selectedPinata ? selectedPinata.price : 0);
+  const hypotheticalTotal = totalWithoutPinata + tier.price;
+  if (hypotheticalTotal < 40000) return 0;
+  return tier.id === 'readymade' ? tier.price : 500;
+}
 function renderPinataGrid(gridId, items, selected) {
   const grid = document.getElementById(gridId);
   grid.innerHTML = items.map(t => {
     const img = t.img ? '<div style="position:relative;margin-bottom:10px"><img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;display:block" loading="lazy"><div style="position:absolute;bottom:8px;left:8px;background:rgba(25,25,25,.68);color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px">🖼 3 photos</div></div>' : '';
+    const disc = pinataDiscountFor(t);
+    const priceHtml = disc <= 0
+      ? '<div class="act-card-p">' + fmtINR(t.price) + '</div>'
+      : disc >= t.price
+      ? '<div class="act-card-p-row"><span class="act-card-p-orig">' + fmtINR(t.price) + '</span><span class="act-card-p" style="color:#166534">FREE</span></div>'
+      : '<div class="act-card-p-row"><span class="act-card-p-orig">' + fmtINR(t.price) + '</span><span class="act-card-p">' + fmtINR(t.price - disc) + '</span><span class="act-card-save-badge">Save ' + fmtINR(disc) + '</span></div>';
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
       '<div class="act-card-n">' + t.name + '</div>' +
-      '<div class="act-card-p">' + fmtINR(t.price) + '</div>' +
+      priceHtml +
       (t.d ? '<div class="act-card-d">' + t.d + '</div>' : '') +
     '</div>';
   }).join('');
@@ -959,7 +1003,7 @@ function totalPrice() {
 }
 
 // Spy's minimum bill (₹25,000) already clears the site-wide "orders
-// ₹25,000+ get a free E-Invite" threshold (see builder.html's S.FIT),
+// ₹20,000+ get a free E-Invite" threshold (see builder.html's S.FIT),
 // so every Spy booking qualifies for a complimentary Static e-invite
 // (₹500 value) — always, since stationsPrice() never lets the total
 // fall below MIN_BILL. That freebie is what the strike-through price
@@ -970,16 +1014,49 @@ function totalPrice() {
 // — stacking a %-off on top of the e-invite freebie would double-count
 // the same "you're above ₹25k" threshold and produce numbers that don't
 // reconcile with the advertised ₹25,500 → ₹25,000 framing.
+//
+// 2026-08-14, per Shruti: the MRP (gross) shown struck-through must track
+// every component's own original/MRP price, not just totalPrice() + the
+// flat e-invite value — decor specifically sells at a package-exclusive
+// DISCOUNTED price (DECOR_TIERS' `price`) against its own `origPrice`, and
+// that gap was being silently dropped from gross before this fix (e.g.
+// Classic decor: origPrice 6,500 vs discounted 5,000 — a ₹1,500 gap).
+// Example that must reconcile exactly: no decor -> MRP 25,500 / SP 25,000;
+// + Classic decor -> MRP 32,000 / SP 30,000.
 const EINVITE_FREEBIE_VALUE = 500;
+// 2026-08-14, per Shruti: the ₹40k pinata mechanic (pinataDiscount() above)
+// stacks with the e-invite value — SP is finalTotal() (raw total minus
+// whatever pinata discount applies), and gross adds that same amount back
+// on top of totalPrice() so the struck-through MRP still reflects the full
+// undiscounted face value of everything in the cart.
+//
+// 2026-08-14, per Shruti: don't frame the price badge as "FREE E-INVITE" —
+// the E-Invite is simply listed as included (see the Inclusions section
+// and the hero chip row), and the badge next to the price should read as a
+// plain discount percentage instead, same framing as Unicorn/Turf.
+function discountBadgeText(gross, sp) {
+  if (!gross) return '';
+  const pct = Math.round((gross - sp) / gross * 100);
+  return pct > 0 ? pct + '% OFF' : '';
+}
 function updateSticky() {
+  // Re-render the pinata cards on every call — not just when the pinata
+  // grid itself changes — since a decor/stations/etc. change can move the
+  // cart across the ₹40k line and the per-card price badges (pinataDiscountFor)
+  // need to reflect that immediately, not just on the sticky/hero totals.
+  if (document.getElementById('pinataGrid')) renderPinata();
   const total = totalPrice();
-  const gross = total + EINVITE_FREEBIE_VALUE;
+  const sp = finalTotal();
+  const decorMrpGap = (selectedDecor && selectedDecor.origPrice != null)
+    ? Math.max(0, selectedDecor.origPrice - selectedDecor.price) : 0;
+  const gross = total + EINVITE_FREEBIE_VALUE + decorMrpGap;
+  const badge = discountBadgeText(gross, sp);
   document.getElementById('stickyOrig').textContent = fmtINR(gross);
-  document.getElementById('stickyTotal').textContent = fmtINR(total);
-  document.getElementById('stickyDiscountBadge').textContent = '🎉 FREE E-INVITE';
+  document.getElementById('stickyTotal').textContent = fmtINR(sp);
+  document.getElementById('stickyDiscountBadge').textContent = badge;
   document.getElementById('heroPriceOrig').textContent = fmtINR(gross);
-  document.getElementById('heroPrice').textContent = fmtINR(total);
-  document.getElementById('heroDiscountBadge').textContent = '🎉 FREE E-INVITE';
+  document.getElementById('heroPrice').textContent = fmtINR(sp);
+  document.getElementById('heroDiscountBadge').textContent = badge;
 
   const t = stationTier(kidsCount);
   const parts = [kidsCount + ' kids', t.stations + ' stations', selectedDecor ? (selectedDecor.name + ' decor') : 'No decor'];
@@ -1017,13 +1094,20 @@ function proceedToBuilder() {
       djLightsAddon: djLightsAddon,
       djSmokeAddon: djSmokeAddon,
       einvite: selectedEinvite,
-      pinata: selectedPinata,
+      // The ₹40k pinata mechanic (pinataDiscount()) must already be baked
+      // into the price handed to builder.html — package-origin checkouts
+      // (S._pkgOrigin) skip builder.html's own generic freebie logic
+      // entirely and trust this price verbatim (2026-08-14, per Shruti).
+      pinata: selectedPinata ? Object.assign({}, selectedPinata, {
+        price: Math.max(0, selectedPinata.price - pinataDiscount()),
+        name: selectedPinata.name + (pinataDiscount() >= selectedPinata.price ? ' (FREE)' : pinataDiscount() > 0 ? ' (₹500 off)' : '')
+      }) : null,
       props: selectedProps,
       entry: selectedEntry,
       photographer: selectedPhotographer,
       gifts: selectedGifts,
       remarks: (document.getElementById('specialRequest').value || '').trim(),
-      packagePrice: totalPrice(),
+      packagePrice: finalTotal(),
       ts: Date.now()
     }));
   } catch(e) {}

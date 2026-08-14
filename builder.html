@@ -524,6 +524,10 @@ input,textarea,select{font-family:var(--fb)}
 .g-meta{font-size:11px;color:var(--gy)}
 .gift-bottom{display:flex;align-items:center;justify-content:space-between}
 .gift-total{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--bk)}
+/* 2026-08-14, per Shruti (#13) — qty-stepper + Remove were crammed into the
+   same row as the price on narrow/2-col card widths, causing overlap/clutter.
+   Moved into their own full-width row below the price. */
+.gift-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--li2)}
 .qty-ctrl{display:flex;align-items:center;gap:0;border:1.5px solid var(--li2);border-radius:8px;overflow:hidden}
 .qty-btn{width:28px;height:28px;border:none;background:#fff;font-size:14px;display:flex;align-items:center;justify-content:center}
 .qty-btn:hover{background:var(--li3)}
@@ -2172,7 +2176,7 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Code.gs) was retired 2026-08-11 to stop writing duplicate, drifting
 // rows — see the "Consolidate leads + bookings" commits.
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,FIT:25000,FPT:50000,remarks:{}};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,FIT:20000,FPT:40000,remarks:{}};
 
 function djAddonsText(){const p=[];if(S.djAddons.lights)p.push('DJ Lights (Rs 1500)');if(S.djAddons.smoke)p.push('Smoke Machine (Rs 2000)');return p.join(', ');}
 
@@ -2517,9 +2521,10 @@ const PINATAS=[
   ],d:'Shaped as your child\'s age',p:2400,bg:'linear-gradient(135deg,#BCD8E8,#5B8EDD)',realImg:true},
   // Readymade (off-the-shelf, non-personalized) pinata — placeholder emoji
   // card for now, per Shruti (2026-08-14); swap in a real photo + gallery
-  // (matching the pattern above) once she sends one, and confirm/adjust the
-  // ₹1,500 price below, which is a placeholder guess, not a confirmed rate.
-  {id:'readymade',n:'Readymade Pinata',e:'🎉',d:'Ready-made, not personalized — quickest option',p:1500,bg:'linear-gradient(135deg,#F2D147,#F57A1A)',realImg:false}
+  // (matching the pattern above) once she sends one. Price confirmed ₹500
+  // (2026-08-14, per Shruti) — comes in predecided designs, cannot be
+  // personalized, matching the same item/price used on spy-basic.html.
+  {id:'readymade',n:'Readymade Pinata',e:'🎉',d:'Predecided designs, cannot be personalized — quickest option',p:500,bg:'linear-gradient(135deg,#F2D147,#F57A1A)',realImg:false}
 ];
 // Catalogue refreshed 2026-08-07 from the latest "EInvite Templates" batch —
 // each entry is a real past design (client names/contact details in the art
@@ -2690,9 +2695,25 @@ function thumbFor(cat,id){
 function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e');box.style.background='var(--li2)';box.textContent='✨';}
 function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.djAddons.lights)t+=1500;if(S.djAddons.smoke)t+=2000;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p;S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
 function rawT(){return cItems().reduce((s,i)=>s+i.p,0)}
-function svcC(){let c=0;if(S.decor)c++;if(S.activities.length)c++;if(S.host)c++;if(S.dj)c++;if(S.pinata)c++;if(S.einvite)c++;if(S.photo)c++;if(S.gifts.length)c++;if(S.spyExtras.length||S.djAddons.lights||S.djAddons.smoke)c++;return c}
-function autoDp(){const c=svcC();if(c>=6)return 10;if(c>=4)return 8;if(c>=2)return 5;return 0}
-function dp(){return Math.max(S.couponPct,autoDp())}
+// 2026-08-14, per Shruti — replaced the old category-count discount ladder
+// with the current value-based slabs: 25k-35k -> 5% off (cap 1500),
+// 35k-45k -> 7% off (cap 2500), 45k+ -> 9% off (cap 4500). Package-origin
+// checkouts (Spy/Unicorn/Turf, S._pkgOrigin set) already carry their own
+// final, pre-discounted pricing from the package page, so discountAmt()
+// returns 0 for them — otherwise builder.html was stacking an extra
+// cart-wide discount on top of an already-discounted package total.
+function autoDiscountAmt(gt){
+  let pct=0,cap=0;
+  if(gt>=45000){pct=9;cap=4500;}
+  else if(gt>=35000){pct=7;cap=2500;}
+  else if(gt>=25000){pct=5;cap=1500;}
+  return Math.min(gt*pct/100,cap);
+}
+function discountAmt(gt){
+  if(S._pkgOrigin)return 0;
+  return Math.round(Math.max((gt||0)*S.couponPct/100,autoDiscountAmt(gt||0)));
+}
+function dp(){const gt=rawT();return gt?Math.round(discountAmt(gt)/gt*100):0;}
 // When S._noGiftDiscount is set (Unicorn Magic package — Return Gifts already
 // carry their own per-item pricing), the cart-wide coupon/auto discount is
 // applied only to the non-gift portion of the total so gifts never get
@@ -2702,9 +2723,10 @@ function tp(){
   const gt=rawT();
   if(S._noGiftDiscount){
     const gifts=cItems().filter(i=>i.cat==='Return Gifts').reduce((s,i)=>s+i.p,0);
-    return Math.round((gt-gifts)*(1-dp()/100))+gifts;
+    const nonGift=gt-gifts;
+    return nonGift-discountAmt(nonGift)+gifts;
   }
-  return Math.round(gt*(1-dp()/100));
+  return gt-discountAmt(gt);
 }
 // "Cash Collection at Venue" means nothing is paid up front — the team
 // collects everything on-site, so there's no advance and the full payable
@@ -2871,7 +2893,7 @@ function updBB(id){
     skipBtn.style.display='none';contBtn.textContent='Send My Details →';revBackBtn.style.display='none';
     return;
   }
-  const gt=rawT();const tpv=tp();const dpv=dp();const sc=svcC();
+  const gt=rawT();const tpv=tp();const dpv=dp();
   document.getElementById('bbTotal').textContent='₹'+payTotal().toLocaleString('en-IN');
   // Show 50% advance only on the review page — checkout already has its
   // own "⚡ 50% Advance" line in the Order Summary box, so showing it here
@@ -2884,7 +2906,7 @@ function updBB(id){
   const discElM=document.getElementById('bbDiscMobile');
   const savEl=document.getElementById('bbSavings');
   if(dpv>0){discEl.textContent=discElM.textContent=dpv+'% off applied';savEl.style.display='block';savEl.textContent='Saving ₹'+(gt-tpv).toLocaleString('en-IN');}
-  else{discEl.textContent=discElM.textContent=sc>=1?'Add '+(sc<2?1:sc<4?2:sc<6?2:0)+' more → unlock discount!':'';savEl.style.display='none';}
+  else{discEl.textContent=discElM.textContent=(gt>0&&!S._pkgOrigin)?'Add ₹'+(25000-gt).toLocaleString('en-IN')+' more → unlock discount!':'';savEl.style.display='none';}
   // skip vs continue
   const skipBtn=document.getElementById('bbSkip');
   const contBtn=document.getElementById('bbCont');
@@ -3397,7 +3419,7 @@ function renderGifts(){
     const emojiHtml=g.img
       ? '<div class="g-emoji has-img" style="cursor:pointer" onclick="openGallery(\'gift\',\''+g.id+'\')"><img src="img/'+g.img+'" alt="'+g.n+'" onerror="this.parentElement.classList.remove(\'has-img\');this.parentElement.style.background=\''+g.bg+'\';this.parentElement.removeAttribute(\'onclick\');this.parentElement.style.cursor=\'\';this.outerHTML=\''+g.e+'\'"></div>'
       : '<div class="g-emoji" style="background:'+g.bg+'">'+g.e+'</div>';
-    w.innerHTML+='<div class="gift-card'+(added?' added':'')+'" id="gc-'+g.id+'"><div class="gift-top">'+emojiHtml+'<div><div class="g-name">'+g.n+'</div><div class="g-meta">Ages '+g.age+' · ₹'+g.unit+'/child</div>'+tagHtml+'</div></div><div class="gift-bottom"><div><div style="font-size:10px;color:var(--gy)">₹'+g.unit+' × <span id="qty-'+g.id+'">'+qty+'</span> kids</div><div class="gift-total">₹<span id="qtot-'+g.id+'">'+(qty*g.unit).toLocaleString('en-IN')+'</span></div></div><div style="display:flex;align-items:center;gap:6px">'+(added?'<div class="qty-ctrl"><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',-1)">−</button><span class="qty-val" id="qv-'+g.id+'">'+qty+'</span><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',1)">+</button></div><button class="card-btn rmv" onclick="rmGift(\''+g.id+'\')">Remove</button>':'<button class="card-btn" onclick="addGift(\''+g.id+'\',\''+g.n+'\','+g.unit+')">Add</button>')+'</div></div></div>';
+    w.innerHTML+='<div class="gift-card'+(added?' added':'')+'" id="gc-'+g.id+'"><div class="gift-top">'+emojiHtml+'<div><div class="g-name">'+g.n+'</div><div class="g-meta">Ages '+g.age+' · ₹'+g.unit+'/child</div>'+tagHtml+'</div></div><div class="gift-bottom"><div style="font-size:10px;color:var(--gy)">₹'+g.unit+' × <span id="qty-'+g.id+'">'+qty+'</span> kids</div><div class="gift-total">₹<span id="qtot-'+g.id+'">'+(qty*g.unit).toLocaleString('en-IN')+'</span></div></div><div class="gift-actions">'+(added?'<div class="qty-ctrl"><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',-1)">−</button><span class="qty-val" id="qv-'+g.id+'">'+qty+'</span><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',1)">+</button></div><button class="card-btn rmv" onclick="rmGift(\''+g.id+'\')">Remove</button>':'<button class="card-btn" onclick="addGift(\''+g.id+'\',\''+g.n+'\','+g.unit+')">Add</button>')+'</div></div>';
   });
   if(!list.length)w.innerHTML='<div style="text-align:center;padding:24px;color:var(--gy);font-size:13px">No gifts match. Try clearing a filter.</div>';
 }
@@ -4470,9 +4492,9 @@ function openCart(){
   const cats={};items.forEach(i=>{if(!cats[i.cat])cats[i.cat]=[];cats[i.cat].push(i);});
   let html='';
   Object.entries(cats).forEach(([cat,its])=>{html+='<div class="cart-cat">'+cat+'</div>';its.forEach(i=>{html+='<div class="cart-item"><span>'+i.n+'</span><span class="cart-ip">₹'+i.p.toLocaleString('en-IN')+'</span></div>';});});
-  const dpv=dp();const gt=rawT();const tpv=tp();const sc=svcC();
+  const dpv=dp();const gt=rawT();const tpv=tp();
   if(dpv>0)html+='<div class="disc-notice">🎉 '+dpv+'% off! Saving ₹'+(gt-tpv).toLocaleString('en-IN')+'</div>';
-  else if(sc>=1)html+='<div class="disc-unlock">+ Add '+(sc<2?1:sc<4?2:2)+' more service'+(1!==1?'s':'')+' → unlock discount!</div>';
+  else if(gt>0&&!S._pkgOrigin)html+='<div class="disc-unlock">+ Add ₹'+(25000-gt).toLocaleString('en-IN')+' more → unlock discount!</div>';
   html+='<div class="cart-total-row"><span>Total</span><span style="color:var(--pk)">₹'+tpv.toLocaleString('en-IN')+'</span></div>';
   cc.innerHTML=html;overlay.classList.add('show');
 }
