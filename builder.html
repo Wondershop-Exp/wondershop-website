@@ -731,6 +731,8 @@ input,textarea,select{font-family:var(--fb)}
 .conf-party-title{font-family:var(--fd);font-size:26px;font-weight:700;letter-spacing:.3px;margin-bottom:10px;
   background:linear-gradient(135deg,var(--pk) 0%,var(--li) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 @media(max-width:420px){.conf-party-title{font-size:21px}}
+/* Order ID shown on the confirmation screen (2026-08-14, per Shruti). */
+.conf-order-id{font-family:var(--fb);font-size:12.5px;font-weight:700;color:var(--gy);letter-spacing:.3px;margin-top:8px}
 /* Services Booked — horizontal icon grid with selection/NA under each
    (2026-08-14, per Shruti). */
 .conf-svc-grid{display:flex;flex-wrap:wrap;gap:8px}
@@ -1863,7 +1865,7 @@ input,textarea,select{font-family:var(--fb)}
     </div>
     <div class="row2">
       <div class="ig"><label>Guest Kids Count</label><input type="number" id="co-kids" placeholder="No. of kids" onchange="coKidsChanged(this.value)"></div>
-      <div class="ig"><label>Child Name(s)</label><input type="text" id="co-child" placeholder="Child's name"></div>
+      <div class="ig"><label>Child Name(s)</label><input type="text" id="co-child" placeholder="Child's name" oninput="this.classList.remove('err');document.getElementById('co-child-err').classList.remove('show')"><div class="err-msg" id="co-child-err">Please enter the child's name</div></div>
     </div>
     <div id="co-kids-popup" style="display:none;background:var(--syl);border-radius:10px;padding:10px 14px;font-size:13px;color:#92680a;margin-top:-6px">
       ⚡ Kids count changed — activity and gift prices have been updated accordingly.
@@ -1986,6 +1988,10 @@ input,textarea,select{font-family:var(--fb)}
     <div class="conf-icon" id="confHeroIcon">🎉</div>
     <h1 id="confHeroTitle">Booking Confirmed!</h1>
     <p id="confHeroDesc">We're thrilled to celebrate with you. A confirmation has been sent to your email and WhatsApp.</p>
+    <!-- 2026-08-14, per Shruti: "add order id on the order confirmation
+         screen" — the Lead ID the backend assigned on submit (S._lastLeadId).
+         Hidden if the submit call never returned one (e.g. offline/failed). -->
+    <div id="confOrderId" class="conf-order-id" style="display:none">Order ID: #<span id="confOrderIdVal"></span></div>
   </div>
   <div class="cal-note" id="confCalNote">📅 Calendar invite sent to your email &amp; Wondershop team — your date is blocked!</div>
   <div class="urgent-note" id="confUrgentNote" style="display:none">⚡ Since your event is less than 3 days away, we haven't taken any advance and this booking isn't confirmed yet. Our team will call you within 24 hours to check feasibility.</div>
@@ -3420,30 +3426,33 @@ function buildInvs(){
   if(S.einvite){
     document.getElementById('inv-'+S.einvite.id)?.classList.add('sel');
     if(S.einvite.id!=='custom'){
-      const cn=S.children.map(c=>c.name||'').filter(Boolean).join(' & ');
-      document.getElementById('ei-names').value=cn;
-      document.getElementById('ei-date').value=S.eventDate||'';
-      document.getElementById('ei-start').value=S.eventTime||'11:00';
-      document.getElementById('ei-venue').value=S.venue||'';
-      // auto-fill age from first child's dob
-      if(S.children[0]?.dob){const age=ageForEvent(S.children[0].dob,S.eventDate);if(age!=null)document.getElementById('ei-age').value=age+'th';}
+      prefillEiFields();
       document.getElementById('eiDetail').style.display='block';
       document.getElementById('invCustomThemeWrap').style.display='none';
     }else{document.getElementById('eiDetail').style.display='none';document.getElementById('invCustomThemeWrap').style.display='block';}
   }else{document.getElementById('eiDetail').style.display='none';document.getElementById('invCustomThemeWrap').style.display='none';}
+}
+// 2026-08-14, per Shruti: prefill the E-Invite detail fields from whatever
+// was already entered back in Step 0 — child name(s), turning age, event
+// date/start time, and venue. Only fills fields that are still EMPTY so it
+// never clobbers something the customer already typed by hand here. Fixes
+// a bug where the Venue field showed the literal word "Other" instead of
+// the actual venue text when the customer picked "Other" at Step 0.
+function prefillEiFields(){
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&!el.value&&val)el.value=val;};
+  set('ei-names', S.children.map(c=>c.name||'').filter(Boolean).join(' & '));
+  set('ei-date', S.eventDate||'');
+  set('ei-start', S.eventTime||'11:00');
+  set('ei-venue', S.venue==='Other'?(S.venueOther||''):(S.venue||''));
+  if(S.mobile)set('ei-rsvp', S.mobile);
+  if(S.children[0]?.dob){const age=ageForEvent(S.children[0].dob,S.eventDate);if(age!=null)set('ei-age', age+'th');}
 }
 function selInv(card,id,p,n){
   const wasSel=card.classList.contains('sel');
   document.querySelectorAll('#invCards .pcard,#inv-custom').forEach(c=>c.classList.remove('sel'));
   if(wasSel){S.einvite=null;document.getElementById('eiDetail').style.display='none';}
   else{card.classList.add('sel');S.einvite={id,n,p};
-    const cn=S.children.map(c=>c.name||'').filter(Boolean).join(' & ');
-    document.getElementById('ei-names').value=cn;
-    document.getElementById('ei-date').value=S.eventDate||'';
-    document.getElementById('ei-start').value=S.eventTime||'11:00';
-    document.getElementById('ei-venue').value=S.venue||'';
-    if(S.mobile&&!document.getElementById('ei-rsvp').value)document.getElementById('ei-rsvp').value=S.mobile;
-    if(S.children[0]?.dob){const age=ageForEvent(S.children[0].dob,S.eventDate);if(age!=null)document.getElementById('ei-age').value=age+'th';}
+    prefillEiFields();
     document.getElementById('eiDetail').style.display='block';
     document.getElementById('invCustomThemeWrap').style.display='none';
   }
@@ -3594,11 +3603,20 @@ function editFR(sn){S.fromReview=true;goTo(SIDS[sn]);}
 
 // ── CHECKOUT ──
 function fillCo(){
-  document.getElementById('co-mob').value=S.mobile||'';
+  // 2026-08-14, per Shruti: prefill checkout fields from whatever's already
+  // been entered earlier — Step 0 first, falling back to the E-Invite
+  // Details form (RSVP name/mobile) for the two fields Step 0 never
+  // collects at all (Parent Name, Mobile) if the customer happened to add
+  // an E-Invite and filled those in there.
+  const __eiRsvpName=document.getElementById('ei-rsvpname')?.value.trim()||'';
+  const __eiRsvpMob=document.getElementById('ei-rsvp')?.value.trim()||'';
+  document.getElementById('co-mob').value=S.mobile||__eiRsvpMob||'';
   document.getElementById('co-date').value=S.eventDate||'';
   document.getElementById('co-time').value=S.eventTime||'11:00';
   document.getElementById('co-child').value=S.children.map(c=>c.name||'').filter(Boolean).join(', ');
   document.getElementById('co-kids').value=S.kidsCount||'';
+  const nameEl=document.getElementById('co-name');
+  if(nameEl&&!nameEl.value&&__eiRsvpName)nameEl.value=__eiRsvpName;
   // Pre-fill whatever venue detail was already captured in Step 0
   const addrEl=document.getElementById('co-addr');
   if(addrEl&&!addrEl.value)addrEl.value=S.venueOther||(S.venue&&S.venue!=='Other'?S.venue:'')||'';
@@ -3761,6 +3779,21 @@ async function doCo(){
     return;
   }
   document.getElementById('e-tnc').classList.remove('show');
+
+  // 2026-08-14, per Shruti: "make child's name mandatory" — required at
+  // checkout for every flow (normally pre-filled from Step 0, but the
+  // customer could still clear it here; package-origin checkouts never had
+  // it pre-filled at all since they skip Step 0 entirely).
+  const childNameEl=document.getElementById('co-child');
+  if(childNameEl&&!childNameEl.value.trim()){
+    childNameEl.classList.add('err');
+    document.getElementById('co-child-err')?.classList.add('show');
+    childNameEl.scrollIntoView({behavior:'smooth',block:'center'});
+    showErrorToast("Please enter the child's name to continue.");
+    return;
+  }
+  childNameEl?.classList.remove('err');
+  document.getElementById('co-child-err')?.classList.remove('show');
 
   // 2026-08-14, per Shruti: package-origin checkouts (Spy/Unicorn/Turf
   // "Build This Package") skip Step 0 entirely, so require Date of Birth
@@ -4007,6 +4040,16 @@ async function doCo(){
   const summaryBox=document.getElementById('confSummaryBox');
   const waBtn=document.getElementById('confWaBtn');
   const nextSteps=document.getElementById('confNextSteps');
+
+  // 2026-08-14, per Shruti: show the Order ID (the Lead ID the backend
+  // assigned on submit) on the confirmation screen — for both the normal
+  // and urgent-booking variants, whenever the submit call actually
+  // returned one.
+  const orderIdBox=document.getElementById('confOrderId');
+  if(orderIdBox){
+    if(S._lastLeadId){document.getElementById('confOrderIdVal').textContent=S._lastLeadId;orderIdBox.style.display='block';}
+    else orderIdBox.style.display='none';
+  }
 
   if(__urgent){
     heroIcon.textContent='📞';

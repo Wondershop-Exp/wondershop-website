@@ -14,12 +14,12 @@
  *   7. Every time you edit this script, click Deploy → Manage deployments
  *      → pencil icon → New version → Deploy (URL stays the same)
  *
- * The script appends one row per lead to the "Leads" tab. Column order
- * matches HEADERS below.
+ * The script appends one row per lead to the "Leads & Bookings" tab. Column
+ * order matches HEADERS below.
  *
  * WORKFLOW (single source of truth — no more separate booking/lead sheets):
  *   - Every submission (checkout or custom request) lands here with
- *     Status = "Lead". Sales works this "Leads" tab top to bottom.
+ *     Status = "Lead". Sales works this "Leads & Bookings" tab top to bottom.
  *   - When a booking is actually confirmed (after the feasibility call +
  *     advance), change that row's Status to "Confirmed" using the
  *     dropdown. It will automatically appear on the "Confirmed Bookings"
@@ -29,7 +29,11 @@
  *     "Lost" for leads that won't convert (keeps the main tab honest).
  */
 
-var SHEET_NAME = "Leads";                 // Raw feed — every submission lands here
+// 2026-08-14, per Shruti — was "Leads", but the tab she actually works from
+// (with the full 55-column header row already pasted in) is called
+// "Leads & Bookings". Renamed to match — see the doPost() fix below for why
+// a name mismatch here silently sent data to the wrong tab.
+var SHEET_NAME = "Leads & Bookings";       // Raw feed — every submission lands here
 var CONFIRMED_TAB_NAME = "Confirmed Bookings"; // Live filtered view for ops
 var STATUS_OPTIONS = ["Lead", "Contacted", "Confirmed", "Lost"];
 
@@ -64,7 +68,15 @@ var HEADERS = [
 function doPost(e) {
   try {
     var ss    = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName(SHEET_NAME) || ss.getActiveSheet();
+    // 2026-08-14, per Shruti — this used to fall back to ss.getActiveSheet()
+    // when no tab named SHEET_NAME existed, which silently wrote every
+    // submission into whatever tab happened to be open last in the Sheets
+    // UI (in practice, a stray ~19-column tab, NOT "Leads & Bookings" with
+    // its full 55-column header row). Create the correctly-named tab
+    // instead of guessing — this is deterministic no matter which tab was
+    // last clicked in the browser.
+    var sheet = ss.getSheetByName(SHEET_NAME);
+    if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
 
     // Add headers if the sheet is empty
     if (sheet.getLastRow() === 0) {
@@ -191,7 +203,7 @@ function _updateRewardServiceCell(sheet, d) {
  * re-apply formatting. It never touches existing row data.
  *
  * Sets up:
- *   1. Header row styling + frozen row on the "Leads" tab
+ *   1. Header row styling + frozen row on the "Leads & Bookings" tab
  *   2. A Status column dropdown (Lead / Contacted / Confirmed / Lost)
  *   3. Conditional formatting that color-codes the Status column
  *   4. A "Confirmed Bookings" tab that live-filters to Status = Confirmed
@@ -212,13 +224,15 @@ function setupSheet() {
   _applyStatusFormatting(sheet, Math.max(sheet.getLastRow(), 2000));
 
   // Confirmed Bookings tab — live filtered view, ops works from here.
-  // This is a formula, not a copy, so it always reflects the Leads tab.
+  // This is a formula, not a copy, so it always reflects the Leads & Bookings tab.
   var confSheet = ss.getSheetByName(CONFIRMED_TAB_NAME) || ss.insertSheet(CONFIRMED_TAB_NAME);
   confSheet.clear();
   var statusColLetter = _colLetter(HEADERS.indexOf("Status") + 1);
   var lastColLetter   = _colLetter(HEADERS.length);
+  // Sheet name has a space + "&" in it, so it must be single-quoted inside
+  // the formula (bare 'Leads & Bookings!A1:...' would fail to parse).
   confSheet.getRange("A1").setFormula(
-    '=QUERY(' + SHEET_NAME + '!A1:' + lastColLetter + ',' +
+    "=QUERY('" + SHEET_NAME + "'!A1:" + lastColLetter + ',' +
     '"select * where ' + statusColLetter + ' = \'Confirmed\'", 1)'
   );
   confSheet.setFrozenRows(1);
