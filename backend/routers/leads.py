@@ -510,12 +510,12 @@ def _format_venue_block(req: LeadSubmitRequest) -> str:
     return "\n".join(lines) + "\n"
 
 def _format_gift_delivery_block(req: LeadSubmitRequest) -> str:
-    fields = [
-        req.gift_delivery_address, req.gift_delivery_maps_link,
-        req.gift_delivery_address_type, req.gift_delivery_contact,
-        req.gift_delivery_contact_phone, req.gift_required_by_date,
-    ]
-    if not any(fields):
+    # Same gating as the HTML email — the Required By / Address Type inputs
+    # carry defaults even with no return gift selected, so check the actual
+    # cart snapshot rather than these fields' presence (2026-08-14, per
+    # Shruti).
+    snap_gifts = (req.builder_snapshot or {}).get("gifts") or []
+    if not any(g.get("n") for g in snap_gifts):
         return ""
     lines = ["\nRETURN GIFT DELIVERY DETAILS"]
     if req.gift_delivery_address:
@@ -738,7 +738,12 @@ def _html_services_section(req: LeadSubmitRequest) -> str:
         img_html = ""
         img_path = svc.get("image_path")
         if img_path:
-            img_url = f"{SITE_BASE_URL}/img/{urllib.parse.quote(img_path)}"
+            # image_path is already relative to SITE_BASE_URL (resolvers in
+            # catalogue_data.py include their own "img/" prefix where
+            # needed; e-invite paths point at the root-level einvites/
+            # folder instead) — do NOT prepend "/img/" here (2026-08-14,
+            # per Shruti, fixes e-invite thumbnails 404ing in emails).
+            img_url = f"{SITE_BASE_URL}/{urllib.parse.quote(img_path)}"
             img_html = (
                 f'<img src="{img_url}" width="72" height="72" alt="{_html_escape(svc["label"])}" '
                 f'style="width:72px;height:72px;object-fit:cover;border-radius:8px;flex-shrink:0;margin-right:12px">'
@@ -748,7 +753,7 @@ def _html_services_section(req: LeadSubmitRequest) -> str:
             for it in svc["items"]:
                 it_img = ""
                 if it.get("image_path"):
-                    it_url = f"{SITE_BASE_URL}/img/{urllib.parse.quote(it['image_path'])}"
+                    it_url = f"{SITE_BASE_URL}/{urllib.parse.quote(it['image_path'])}"  # see note above — no "/img/" prefix
                     it_img = f'<img src="{it_url}" width="40" height="40" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:6px;margin-right:8px;vertical-align:middle">'
                 if "qty" in it:
                     price_bit = f" — {_html_escape(_fmt_rupees(it['total']))} ({it['qty']} × {_html_escape(_fmt_rupees(it['unit']))})" if it.get("total") is not None else ""
@@ -901,7 +906,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
         ("Mobile", req.phone),
         ("Email", req.email),
         ("Child(ren)", req.child_names),
-        ("Child Age(s)", req.child_ages),
+        ("Turning Age", req.child_ages),  # age being celebrated, not calendar age as of event date — see builder.html's ageForEvent()
         ("Event Date", _fmt_date_long(req.event_date) if req.event_date else None),
         ("Kids Count", req.kids_count),
         ("Theme", req.theme),
@@ -926,6 +931,16 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
     if pay_method_label:
         order_rows.append(("Payment Method", pay_method_label))
     order_rows.append(("Payment Status", _payment_status_text(req)))
+    # Scratch-card "refund" reward (a cashback amount knocked off the
+    # balance due) — the plain-text order summary already accounted for
+    # this (_format_order_summary_block above) but the HTML email, which is
+    # what customers actually see, never did (2026-08-14, per Shruti — the
+    # Rs.180 refund shown on the Booking Confirmed screen wasn't reflected
+    # in the confirmation email).
+    if req.reward_type == "refund" and req.reward_value and req.order_balance is not None:
+        adjusted_balance = max(0.0, req.order_balance - req.reward_value)
+        order_rows.append(("🎁 Scratch Card Refund", f"-{_fmt_rupees(req.reward_value)}"))
+        order_rows.append(("Final Balance Due", _fmt_rupees(adjusted_balance)))
     if recipient_kind == "team" and req.order_advance is not None:
         order_rows.append(("Advance (Pledged, Unverified)", _fmt_rupees(req.order_advance)))
         if req.order_balance is not None:
@@ -950,13 +965,22 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
     ]
     venue_html = _html_details_table(venue_rows)
 
+    # The Required By date / Address Type inputs on the Return Gifts step
+    # carry defaults (event date, "Venue") even when NO return gift was
+    # actually added to the cart — so gift_rows must be gated on whether any
+    # gift was picked, not just on whether those fields happen to be
+    # non-empty (2026-08-14, per Shruti — was showing a "Return Gift
+    # Delivery" block with a Required By date on bookings with no return
+    # gifts at all).
+    _snap_gifts = (req.builder_snapshot or {}).get("gifts") or []
+    _any_gift_selected = any(g.get("n") for g in _snap_gifts)
     gift_rows = [
         ("Address", req.gift_delivery_address),
         ("Address Type", req.gift_delivery_address_type),
         ("Maps Link", req.gift_delivery_maps_link),
         ("Contact Person", " ".join(filter(None, [req.gift_delivery_contact, f"({req.gift_delivery_contact_phone})" if req.gift_delivery_contact_phone else None])) or None),
         ("Required By", _fmt_date_long(req.gift_required_by_date) if req.gift_required_by_date else None),
-    ]
+    ] if _any_gift_selected else []
     gift_html = _html_details_table(gift_rows)
 
     services_html = _html_services_section(req)
@@ -1139,7 +1163,7 @@ PARENT
 
 CHILDREN
   Names    : {req.child_names or '—'}
-  Ages     : {req.child_ages or '—'}
+  Turning Age : {req.child_ages or '—'}
   Gender(s): {req.child_genders or '—'}
 
 EVENT

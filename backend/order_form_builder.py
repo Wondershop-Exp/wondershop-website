@@ -213,7 +213,10 @@ async def fetch_order_form_images(data: dict) -> dict:
     import httpx
 
     async def _fetch(key, path):
-        url = f"{SITE_BASE_URL}/img/{urllib.parse.quote(path)}"
+        # path is already relative to SITE_BASE_URL (see catalogue_data.py
+        # resolvers) — do NOT prepend "/img/" here (2026-08-14, per Shruti,
+        # fixes e-invite thumbnails 404ing in the order form).
+        url = f"{SITE_BASE_URL}/{urllib.parse.quote(path)}"
         try:
             async with httpx.AsyncClient(timeout=8) as client:
                 r = await client.get(url)

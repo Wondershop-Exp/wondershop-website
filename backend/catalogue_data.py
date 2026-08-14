@@ -157,7 +157,7 @@ def resolve_decor(decor_id: Optional[str], decor_price: Optional[float]) -> Opti
         tier = tier if tier in STD_META else price_tier
         if tier and tier in STD_META:
             return {
-                "image_path": STD_META[tier],
+                "image_path": f"img/{STD_META[tier]}",
                 "spec": _spec_for("Standard Decor", tier, colors="As per theme"),
             }
         return None
@@ -185,7 +185,7 @@ def resolve_decor(decor_id: Optional[str], decor_price: Optional[float]) -> Opti
         return None
 
     return {
-        "image_path": photo,
+        "image_path": f"img/{photo}",
         "spec": _spec_for(theme["n"], tier, colors=_extract_colors(theme["b"])),
     }
 
@@ -240,7 +240,14 @@ _INVITES_BY_ID = {i[0]: i for i in INVITES}
 def resolve_einvite_image(einvite_id: Optional[str]) -> Optional[str]:
     """Only resolves ids from the main e-invite catalogue (i1..i26) — package
     hand-off ids (uni-e2, spy-e1, etc.) aren't in the general catalogue, so
-    they're left blank rather than guessed."""
+    they're left blank rather than guessed.
+
+    Returns a path relative to SITE_BASE_URL directly (NOT under img/) since
+    the einvites/ folder lives at the repo root, unlike decor/pinata/gift
+    images which live under img/ (2026-08-14, per Shruti — this mismatch was
+    why e-invite thumbnails 404'd in emails/order forms: the URL builders in
+    leads.py/order_form_builder.py were prepending "/img/" to every
+    image_path, which is correct for decor/pinata/gift but wrong here)."""
     if not einvite_id:
         return None
     inv = _INVITES_BY_ID.get(str(einvite_id))
@@ -253,6 +260,11 @@ PINATAS = {
     "square": "pin-square-1.jpg",
     "circle": "pin-circle-1.jpg",
     "number": "pin-number-1.jpg",
+    # "readymade" (Readymade Pinata, added 2026-08-14 in builder.html) is
+    # deliberately NOT mapped here yet — no real photo exists, so
+    # resolve_pinata_image() below correctly returns None and emails/order
+    # forms just skip its thumbnail. Add "readymade": "<filename>.jpg" once
+    # Shruti sends the real image and it's placed in img/.
 }
 
 
@@ -260,7 +272,7 @@ def resolve_pinata_image(pinata_id: Optional[str]) -> Optional[str]:
     if not pinata_id or pinata_id == "custom":
         return None
     fname = PINATAS.get(str(pinata_id))
-    return fname if fname else None
+    return f"img/{fname}" if fname else None
 
 
 # ─── Return Gifts ────────────────────────────────────────────────────────
@@ -308,7 +320,7 @@ def resolve_gift(gift_id: Optional[str]) -> Optional[dict]:
     g = _GIFTS_BY_ID.get(str(gift_id))
     if not g:
         return None
-    return {"image_path": g[2], "catalogue_unit": g[3]}
+    return {"image_path": f"img/{g[2]}", "catalogue_unit": g[3]}
 
 
 PACKAGING_LABELS = {

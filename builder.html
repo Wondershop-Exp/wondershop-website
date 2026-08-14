@@ -1883,6 +1883,7 @@ input,textarea,select{font-family:var(--fb)}
       <div class="amt-row"><span>Grand Total</span><span id="co-gt">₹0</span></div>
       <div class="amt-row" id="co-dr" style="display:none"><span>Discount</span><span id="co-disc" style="color:var(--gr)"></span></div>
       <div class="amt-row" id="coFeeRow" style="display:none"><span>Cash Collection Fee</span><span id="co-fee">₹100</span></div>
+      <div class="amt-row" id="coPkgRow" style="display:none"><span id="co-pkg-lbl">Packaging</span><span id="co-pkg">₹0</span></div>
       <div class="amt-row tot"><span>Payable Total</span><span id="co-pt">₹0</span></div>
       <div class="amt-row adv" id="coAdvRow"><span>⚡ 50% Advance</span><span id="co-adv">₹0</span></div>
       <div class="amt-row" id="coBalRow"><span style="font-size:11px;color:var(--gy)">Balance due before event</span><span id="co-bal" style="font-size:12px;color:var(--gy)">₹0</span></div>
@@ -1944,6 +1945,7 @@ input,textarea,select{font-family:var(--fb)}
       <div class="amt-row"><span>Grand Total</span><span id="confGt">₹0</span></div>
       <div class="amt-row" id="confDr" style="display:none"><span>Discount</span><span id="confDisc" style="color:var(--gr)"></span></div>
       <div class="amt-row" id="confFeeRow" style="display:none"><span>Cash Collection Fee</span><span id="confFee">₹100</span></div>
+      <div class="amt-row" id="confPkgRow" style="display:none"><span id="confPkgLbl">Packaging</span><span id="confPkg">₹0</span></div>
       <div class="amt-row tot"><span>Payable Total</span><span id="confPt">₹0</span></div>
       <div class="amt-row"><span style="font-size:11px;color:var(--gy)">Payment Method</span><span id="confPayMethod" style="font-size:12px;color:var(--gy)">—</span></div>
       <div class="amt-row"><span style="font-size:11px;color:var(--gy)">Payment Status</span><span id="confPayStatus" style="font-size:12px;color:#92400E">—</span></div>
@@ -2255,6 +2257,31 @@ const THEMES=[
 // Extracts the balloon-colour list out of a theme's `b` field, e.g.
 // "150 (Pink, Purple, White)" -> "Pink, Purple, White".
 function extractColors(b){const m=(b||'').match(/\(([^)]+)\)/);return m?m[1]:'As per theme';}
+// "Age being celebrated" — NOT the child's exact calendar age as of the
+// event date. Parents often throw the party a few days before the actual
+// birthday (celebrating the age they're ABOUT to turn) or up to a few
+// months after (a belated party for the age they already turned). Picks
+// whichever birthday — the last one or the next one — falls closer to the
+// event date, and returns the age turned on THAT birthday (2026-08-14, per
+// Shruti: "a few days before her actual birthday... age will be calculated
+// as 4, which won't be right... we should add 1"; "celebrating after the
+// actual birthday date, up to 3-4 months... we won't be adding 1"). Used
+// everywhere age is auto-filled from a child's DOB (e-invite text, order
+// summary, reward eligibility) so they all agree.
+function ageForEvent(dobStr,eventDateStr){
+  if(!dobStr)return null;
+  const bd=new Date(dobStr);
+  const ev=new Date(eventDateStr||Date.now());
+  if(isNaN(bd)||isNaN(ev))return null;
+  const byMD=y=>new Date(y,bd.getMonth(),bd.getDate());
+  let lastBday=byMD(ev.getFullYear());
+  if(lastBday>ev)lastBday=byMD(ev.getFullYear()-1);
+  const nextBday=byMD(lastBday.getFullYear()+1);
+  const ageAtLast=lastBday.getFullYear()-bd.getFullYear();
+  const daysSinceLast=(ev-lastBday)/86400000;
+  const daysUntilNext=(nextBday-ev)/86400000;
+  return daysUntilNext<daysSinceLast?ageAtLast+1:ageAtLast;
+}
 // Expands one theme into its available tier-cards (only tiers with a real
 // photo in tierPhotos get a card — see DECOR_TIER_META note above).
 function themeTierEntries(t){
@@ -2422,6 +2449,16 @@ const ACTS=[
   {id:'a16',n:'Mini Art Station',e:'🖌️',img:'activity/act-mini-art-station',realImg:true,cat:'experience',age:'4-12',dur:'Session',req:'Tables & chairs',r1:5000,r2:5000,r3:5000,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'',pers:false,rating:4.7,cnt:50},
   {id:'a18',n:'Pottery Station',e:'🏺',img:'activity/act-pottery',realImg:true,cat:'experience',age:'5-12',dur:'3 hrs',req:'Tables & aprons',r1:5000,r2:5000,r3:5000,flat:true,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)','linear-gradient(135deg,#52C470,#BCD8E8)'],tag:'new',pers:false,rating:4.7,cnt:30},
   {id:'a21',n:'Nail Art Station',e:'💅',img:'activity/act-nail-art',realImg:true,cat:'experience',age:'6-12',dur:'3 hrs',req:'Any space',r1:3500,r2:3500,r3:3500,flat:true,bgs:['linear-gradient(135deg,#EDE6FA,#F5C3D7)'],tag:'',pers:false,rating:4.7,cnt:40},
+  // Hair Styling for Boys/Girls + Glitter Station — real ids that already had
+  // banded pricing wired in actPriceRaw() (borrowed from the Unicorn Basic
+  // package hand-off) but no actual catalogue card, so they were invisible
+  // on the general Activities step (2026-08-14, per Shruti — "cannot see
+  // hair styling for boys, hair styling for girls and glitter station").
+  // r1/r2/r3 below are just the card's pre-kids-count display price — the
+  // real total still comes from actPriceRaw()'s id-specific banded pricing.
+  {id:'hair-styling',n:'Hair Styling for Boys',e:'💇',img:'activity/act-boys-hair-styling',realImg:true,cat:'experience',age:'5-12',dur:'Up to 2 hrs',req:'Any space',r1:4500,r2:5000,r3:6000,flat:true,bgs:['linear-gradient(135deg,#5B8EDD,#374151)'],tag:'new',pers:false,rating:4.6,cnt:20},
+  {id:'hair-styling-girls',n:'Hair Styling for Girls',e:'💇‍♀️',img:'activity/act-hair-styling-girls',realImg:true,cat:'experience',age:'5-12',dur:'Up to 2 hrs',req:'Any space',r1:3500,r2:5500,r3:7000,flat:true,bgs:['linear-gradient(135deg,#E65A96,#F5C3D7)'],tag:'new',pers:false,rating:4.7,cnt:25},
+  {id:'glitter',n:'Glitter Station',e:'✨',img:'activity/act-glitter',realImg:true,cat:'art',age:'4-12',dur:'Session',req:'Tables & chairs',r1:4000,r2:4000,r3:4000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#B59DDE)'],tag:'new',pers:false,rating:4.6,cnt:30},
   // ── Package craft activities (per child) ──
   {id:'a22',n:'Sunglasses Decor',e:'🕶️',img:'activity/act-sunglasses-decor',realImg:true,cat:'craft',age:'4-12',dur:'15-20 min',req:'Tables & chairs',r1:350,r2:350,r3:350,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)'],tag:'',pers:true,rating:4.7,cnt:25},
   {id:'a23',n:'Fridge Magnet Making',e:'🧲',img:'activity/act-fridge-magnet',realImg:true,cat:'craft',age:'4-12',dur:'40 min',req:'Tables & chairs',r1:175,r2:175,r3:175,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:20},
@@ -2477,7 +2514,12 @@ const PINATAS=[
     {type:'img',src:'img/pin-number-1.jpg'},
     {type:'img',src:'img/pin-number-2.jpg'},
     {type:'img',src:'img/pin-number-3.jpg'}
-  ],d:'Shaped as your child\'s age',p:2400,bg:'linear-gradient(135deg,#BCD8E8,#5B8EDD)',realImg:true}
+  ],d:'Shaped as your child\'s age',p:2400,bg:'linear-gradient(135deg,#BCD8E8,#5B8EDD)',realImg:true},
+  // Readymade (off-the-shelf, non-personalized) pinata — placeholder emoji
+  // card for now, per Shruti (2026-08-14); swap in a real photo + gallery
+  // (matching the pattern above) once she sends one, and confirm/adjust the
+  // ₹1,500 price below, which is a placeholder guess, not a confirmed rate.
+  {id:'readymade',n:'Readymade Pinata',e:'🎉',d:'Ready-made, not personalized — quickest option',p:1500,bg:'linear-gradient(135deg,#F2D147,#F57A1A)',realImg:false}
 ];
 // Catalogue refreshed 2026-08-07 from the latest "EInvite Templates" batch —
 // each entry is a real past design (client names/contact details in the art
@@ -2675,7 +2717,20 @@ function adv(){if(S.payMethod==='collect')return 0;return Math.round(tp()*0.5)}
 // separate from tp() itself so every existing "gt - tp()" discount-amount
 // calculation around the file stays correct without having to touch it.
 function collectFee(){return S.payMethod==='collect'?100:0}
-function payTotal(){return tp()+collectFee()}
+// Packaging (Paper Gift Bag / Gift Wrap / Both) — ₹/unit × total return-gift
+// quantity across every gift added on Step 8. Same treatment as
+// collectFee() above: added on top of the discounted total, not folded into
+// it, so existing discount-amount math elsewhere is untouched (2026-08-14,
+// per Shruti — "if the user selects a packaging option, the value is not
+// getting added in the total").
+const PACKAGING_UNIT_PRICE={'paper-bag':35,wrap:30,both:60};
+const PACKAGING_LABELS={'paper-bag':'Paper Gift Bag','wrap':'Gift Wrap','both':'Gift Wrap + Paper Bag'};
+function packagingQty(){return S.gifts.reduce((s,g)=>s+(g.qty||0),0);}
+function packagingCost(){
+  if(!S.packaging)return 0;
+  return (PACKAGING_UNIT_PRICE[S.packaging]||0)*packagingQty();
+}
+function payTotal(){return tp()+collectFee()+packagingCost()}
 // Mirrors backend leads.py's _PAYMENT_METHOD_LABELS / _payment_status_text
 // exactly — keep these two in sync if either side changes (2026-08-12, per
 // Shruti — "save and display payment method").
@@ -3273,7 +3328,7 @@ function buildInvs(){
       document.getElementById('ei-start').value=S.eventTime||'11:00';
       document.getElementById('ei-venue').value=S.venue||'';
       // auto-fill age from first child's dob
-      if(S.children[0]?.dob){const bd=new Date(S.children[0].dob);const ev=new Date(S.eventDate||Date.now());const age=Math.floor((ev-bd)/(365.25*24*3600*1000));document.getElementById('ei-age').value=age+'th';}
+      if(S.children[0]?.dob){const age=ageForEvent(S.children[0].dob,S.eventDate);if(age!=null)document.getElementById('ei-age').value=age+'th';}
       document.getElementById('eiDetail').style.display='block';
       document.getElementById('invCustomThemeWrap').style.display='none';
     }else{document.getElementById('eiDetail').style.display='none';document.getElementById('invCustomThemeWrap').style.display='block';}
@@ -3353,7 +3408,7 @@ function chgQty(id,unit,d){const g=S.gifts.find(g=>g.id===id);if(!g)return;g.qty
 // Thank-you note: flat ₹10/item, billed on the total no. of gift items
 // (min. 15 items charged even if fewer gifts are selected).
 function updTagNote(){const n=Math.max(15,S.gifts.reduce((s,g)=>s+g.qty,0));const t=n*10;const el=document.getElementById('tagPN');if(el)el.textContent='₹10/item · min. 15 items — ₹'+t.toLocaleString('en-IN')+' for '+n+' item'+(n===1?'':'s');}
-function selPkg(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('.pkg-btn').forEach(b=>b.classList.remove('on'));if(wasSel){S.packaging='';}else{btn.classList.add('on');S.packaging=val;}}
+function selPkg(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('.pkg-btn').forEach(b=>b.classList.remove('on'));if(wasSel){S.packaging='';}else{btn.classList.add('on');S.packaging=val;}updBB(S.screen);}
 function selTag(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('#tagEx').forEach(b=>b.classList.remove('on'));if(wasSel){S.tagType='';}else{btn.classList.add('on');S.tagType=val;}}
 
 // ── REVIEW ──
@@ -3466,11 +3521,16 @@ function updCoUrgent(){
   updBB(S.screen);
 }
 function updCoAmt(){
-  const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();const fee=collectFee();const payv=tpv+fee;
+  const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();const fee=collectFee();const pkg=packagingCost();const payv=tpv+fee+pkg;
   document.getElementById('co-gt').textContent='₹'+gt.toLocaleString('en-IN');
   if(dpv>0){document.getElementById('co-dr').style.display='flex';document.getElementById('co-disc').textContent='-₹'+(gt-tpv).toLocaleString('en-IN')+' ('+dpv+'%)';}
   else document.getElementById('co-dr').style.display='none';
   document.getElementById('coFeeRow').style.display=fee>0?'flex':'none';
+  document.getElementById('coPkgRow').style.display=pkg>0?'flex':'none';
+  if(pkg>0){
+    document.getElementById('co-pkg-lbl').textContent='Packaging ('+(PACKAGING_LABELS[S.packaging]||'')+')';
+    document.getElementById('co-pkg').textContent='₹'+pkg.toLocaleString('en-IN');
+  }
   document.getElementById('co-pt').textContent='₹'+payv.toLocaleString('en-IN');
   document.getElementById('co-adv').textContent='₹'+advv.toLocaleString('en-IN');
   document.getElementById('co-bal').textContent='₹'+(payv-advv).toLocaleString('en-IN');
@@ -3615,7 +3675,7 @@ async function doCo(){
   // there's nothing to reward yet.
   const __reward=__urgent?{type:'none'}:pickScratchReward();
   const __gt=rawT(),__dpv=dp(),__tpv=tp();
-  const __fee=collectFee();const __payTotal=__tpv+__fee;
+  const __fee=collectFee();const __pkg=packagingCost();const __payTotal=__tpv+__fee+__pkg;
   const __advv=__urgent?0:adv();
   const __bal=__payTotal-__advv;
   const __rewardWon=__reward.type!=='none';
@@ -3639,14 +3699,14 @@ async function doCo(){
   const __coPhone=(()=>{const p=(S.mobile||'').replace(/\D/g,'');return p.length===10?'+91'+p:'+'+p;})();
   const __coChildNames=S.children.map(c=>c.name||'').filter(Boolean).join(', ');
   const __coVenue=S.address || S.venue || null;
-  // Age/gender per child, computed from DOB at event date — feeds the order
-  // form's "Age & Gender" field (same calc pattern used elsewhere for the
-  // bubble-reward eligibility check and e-invite age auto-fill).
+  // Age/gender per child — the AGE BEING CELEBRATED (see ageForEvent above),
+  // not just calendar age as of the event date. Feeds the order form's "Age
+  // & Gender" field (same calc pattern used elsewhere for the bubble-reward
+  // eligibility check and e-invite age auto-fill).
   const __coChildAges=S.children.map(c=>{
     if(!c.dob)return '';
-    const bd=new Date(c.dob),ev=new Date(S.eventDate||Date.now());
-    const age=Math.floor((ev-bd)/(365.25*24*3600*1000));
-    return (age>=0&&age<=18)?String(age):'';
+    const age=ageForEvent(c.dob,S.eventDate);
+    return (age!=null&&age>=0&&age<=18)?String(age):'';
   }).filter(Boolean).join(', ');
   const __coChildGenders=S.children.map(c=>c.gender||'').filter(Boolean).join(', ');
   const __coPayload={
@@ -3804,6 +3864,11 @@ async function doCo(){
     if(__dpv>0){document.getElementById('confDr').style.display='flex';document.getElementById('confDisc').textContent='-₹'+(__gt-__tpv).toLocaleString('en-IN')+' ('+__dpv+'%)';}
     else document.getElementById('confDr').style.display='none';
     document.getElementById('confFeeRow').style.display=__fee>0?'flex':'none';
+    document.getElementById('confPkgRow').style.display=__pkg>0?'flex':'none';
+    if(__pkg>0){
+      document.getElementById('confPkgLbl').textContent='Packaging ('+(PACKAGING_LABELS[S.packaging]||'')+')';
+      document.getElementById('confPkg').textContent='₹'+__pkg.toLocaleString('en-IN');
+    }
     document.getElementById('confPt').textContent='₹'+__payTotal.toLocaleString('en-IN');
     document.getElementById('confPayMethod').textContent=PAY_METHOD_LABELS[S.payMethod]||'—';
     document.getElementById('confPayStatus').textContent=payStatusText();
@@ -4102,10 +4167,8 @@ function pickScratchReward(){
   try{
     const dob=S.children[0]?.dob;
     if(dob){
-      const bd=new Date(dob);
-      const ev=new Date(S.eventDate||Date.now());
-      const age=Math.floor((ev-bd)/(365.25*24*3600*1000));
-      bubbleEligible=age>=0&&age<7&&tp()>100000;
+      const age=ageForEvent(dob,S.eventDate);
+      bubbleEligible=age!=null&&age>=0&&age<7&&tp()>100000;
     }
   }catch(e){bubbleEligible=false;}
   const pool=SCRATCH_REWARDS.filter(r=>!r.rare||bubbleEligible);
