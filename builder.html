@@ -1868,6 +1868,32 @@ input,textarea,select{font-family:var(--fb)}
     <div id="co-kids-popup" style="display:none;background:var(--syl);border-radius:10px;padding:10px 14px;font-size:13px;color:#92680a;margin-top:-6px">
       ⚡ Kids count changed — activity and gift prices have been updated accordingly.
     </div>
+    <!-- 2026-08-14, per Shruti: package pages (Spy/Unicorn/Turf "Build This
+         Package") skip Step 0 entirely, so DOB/venue type/pincode are never
+         collected for those bookings — Turning Age can then never be shown.
+         Ask for them here instead, but ONLY for package-origin checkouts
+         (S._pkgOrigin) — hidden for the normal Build-a-Birthday flow, where
+         Step 0 already collected all of this (see fillCo()). -->
+    <div id="coPkgExtras" style="display:none">
+      <div class="row2">
+        <div class="ig"><label>Child's Date of Birth</label><input type="date" id="co-child-dob"><div class="err-msg" id="co-child-dob-err">Please enter date of birth</div></div>
+        <div class="ig"><label>Pincode</label><input type="text" id="co-pincode" placeholder="e.g. 400001" maxlength="6" inputmode="numeric"></div>
+      </div>
+      <div class="ig">
+        <label>Venue Type</label>
+        <div class="v-grid" id="coVenueGrid">
+          <button class="v-btn" onclick="selCoVenue(this,'Home')"><span class="v-ic">🏠</span>Home</button>
+          <button class="v-btn" onclick="selCoVenue(this,'Society Banquet')"><span class="v-ic">🏛️</span>Banquet Hall</button>
+          <button class="v-btn" onclick="selCoVenue(this,'Club')"><span class="v-ic">🎯</span>Club / Resort</button>
+          <button class="v-btn" onclick="selCoVenue(this,'Restaurant')"><span class="v-ic">🍽️</span>Restaurant</button>
+          <button class="v-btn" onclick="selCoVenue(this,'Outdoor')"><span class="v-ic">🌳</span>Outdoor</button>
+          <button class="v-btn" onclick="selCoVenue(this,'Other')"><span class="v-ic">📌</span>Other</button>
+        </div>
+        <div id="co-venue-other-wrap" style="display:none;margin-top:12px">
+          <div class="ig" style="margin-bottom:0"><label>Venue Details</label><input type="text" id="co-venue-other" placeholder="e.g. Rooftop at our apartment complex"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="sec-blk">
@@ -3577,9 +3603,26 @@ function fillCo(){
   const addrEl=document.getElementById('co-addr');
   if(addrEl&&!addrEl.value)addrEl.value=S.venueOther||(S.venue&&S.venue!=='Other'?S.venue:'')||'';
   const qr=document.getElementById('payOnlineDetails');if(qr)qr.style.display=S.payMethod==='online'?'block':'none';
+  // 2026-08-14, per Shruti: package-origin checkouts (Spy/Unicorn/Turf
+  // "Build This Package") skipped Step 0 entirely, so DOB/venue type/
+  // pincode were never collected — ask for them here instead. Hidden for
+  // the normal Build-a-Birthday flow, which already collected these in
+  // Step 0.
+  const pkgExtras=document.getElementById('coPkgExtras');
+  if(pkgExtras)pkgExtras.style.display=S._pkgOrigin?'block':'none';
+  if(S._pkgOrigin){
+    const pinEl=document.getElementById('co-pincode');if(pinEl&&!pinEl.value)pinEl.value=S.pincode||'';
+  }
   updCoAmt();
   checkUrgentDate('co-date','co-urgent-warn');
   updCoUrgent();
+}
+function selCoVenue(btn,val){
+  const wasSel=btn.classList.contains('on');
+  document.querySelectorAll('#coVenueGrid .v-btn').forEach(b=>b.classList.remove('on'));
+  const wrap=document.getElementById('co-venue-other-wrap');
+  if(wasSel){S.venue='';if(wrap)wrap.style.display='none';}
+  else{btn.classList.add('on');S.venue=val;if(wrap)wrap.style.display=val==='Other'?'block':'none';}
 }
 // Toggle the checkout screen between the normal "pay 50% advance" flow and
 // the urgent (<3-days-away) flow: no payment method, no advance/balance
@@ -3718,6 +3761,35 @@ async function doCo(){
     return;
   }
   document.getElementById('e-tnc').classList.remove('show');
+
+  // 2026-08-14, per Shruti: package-origin checkouts (Spy/Unicorn/Turf
+  // "Build This Package") skip Step 0 entirely, so require Date of Birth
+  // here instead — otherwise Turning Age/party title can never be shown
+  // for these bookings (same reasoning as doS0()'s child-card validation).
+  if(S._pkgOrigin){
+    const dobEl=document.getElementById('co-child-dob');
+    if(dobEl&&!dobEl.value){
+      dobEl.classList.add('err');
+      document.getElementById('co-child-dob-err')?.classList.add('show');
+      dobEl.scrollIntoView({behavior:'smooth',block:'center'});
+      showErrorToast("Please enter the child's date of birth to continue.");
+      return;
+    }
+    dobEl?.classList.remove('err');
+    document.getElementById('co-child-dob-err')?.classList.remove('show');
+    // Step 0 normally populates S.children via syncC() — package-origin
+    // checkouts never ran Step 0, so S.children is still its untouched
+    // default placeholder ({name:'',dob:'',gender:''}) at this point. Build
+    // it here instead from the Child Name(s) + DOB fields on this page.
+    S.children=[{name:document.getElementById('co-child').value||'', dob:dobEl?dobEl.value||'':'', gender:''}];
+    const pinEl=document.getElementById('co-pincode');
+    if(pinEl&&pinEl.value.trim())S.pincode=pinEl.value.trim();
+    if(S.venue==='Other'){
+      const ov=document.getElementById('co-venue-other');
+      if(ov&&ov.value.trim())S.venueOther=ov.value.trim();
+    }
+  }
+
   S.mobile=document.getElementById('co-mob').value;S.eventDate=document.getElementById('co-date').value;S.eventTime=document.getElementById('co-time').value;
   S.kidsCount=parseInt(document.getElementById('co-kids').value)||S.kidsCount;
   S.parentName=document.getElementById('co-name').value;S.email=document.getElementById('co-email').value;S.address=document.getElementById('co-addr').value;
@@ -3910,21 +3982,19 @@ async function doCo(){
     ? '<div class="cbox" style="margin-top:16px;text-align:left"><div class="cb-row">Your special requests / remarks:</div><div class="cb-val" style="white-space:pre-wrap">'+rmk.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</div></div>'
     : '';
 
-  // 2026-08-14, per Shruti: "IDHIKA's 5th Birthday Party" above the main
-  // heading — same first-child name + turning age used in the confirmation
-  // email (see leads.py's _party_title()), child's name forced to caps
-  // (2026-08-14 follow-up, per Shruti — "make it all caps"). Hidden when
-  // either piece is missing/invalid rather than showing a broken-looking
-  // partial title.
+  // 2026-08-14, per Shruti: merge the party title directly into the main
+  // hero heading — "Booking Confirmed for IDHIKA's 5th Birthday!" — instead
+  // of a separate line above it. Same first-child name + turning age used
+  // in the confirmation email (see leads.py's _party_title()), child's name
+  // forced to caps. Falls back to plain "Booking Confirmed!" when either
+  // piece is missing/invalid rather than showing a broken-looking phrase.
   const partyTitleEl=document.getElementById('confPartyTitle');
+  if(partyTitleEl)partyTitleEl.style.display='none'; // retired — merged into confHeroTitle below
   const __firstChildName=(S.children[0]?.name||'').trim();
   const __firstChildAge=S.children[0]?.dob?ageForEvent(S.children[0].dob,S.eventDate):null;
-  if(__firstChildName&&__firstChildAge!=null&&__firstChildAge>=1&&__firstChildAge<=18){
-    partyTitleEl.textContent=__firstChildName.toUpperCase()+"'s "+ordinalSuffix(__firstChildAge)+' Birthday Party';
-    partyTitleEl.style.display='block';
-  }else{
-    partyTitleEl.style.display='none';
-  }
+  const __partyPhrase=(__firstChildName&&__firstChildAge!=null&&__firstChildAge>=1&&__firstChildAge<=18)
+    ? (__firstChildName.toUpperCase()+"'s "+ordinalSuffix(__firstChildAge)+' Birthday')
+    : null;
 
   // Swap the confirmation screen between the normal "Booking Confirmed!"
   // flourish and the urgent "we'll call to check feasibility" version.
@@ -3950,7 +4020,7 @@ async function doCo(){
     nextSteps.innerHTML=CONF_NEXT_STEPS_URGENT;
   }else{
     heroIcon.textContent='🎉';
-    heroTitle.textContent='Booking Confirmed!';
+    heroTitle.textContent=__partyPhrase?('Booking Confirmed for '+__partyPhrase+'!'):'Booking Confirmed!';
     heroDesc.textContent="We're thrilled to celebrate with you. A confirmation has been sent to your email and WhatsApp.";
     calNote.style.display='block';
     urgentNote.style.display='none';

@@ -919,10 +919,22 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
     fluff and T&C footer link but keeps the same details table + styling."""
     first_name = _cap_first(req.parent_name.split()[0] if req.parent_name else None)
     party_title = _party_title(req)
+    # 2026-08-14, per Shruti: merge the party title directly into the main
+    # heading for the customer's booking-confirmation email — "Booking
+    # Confirmed for IDHIKA's 5th Birthday! 🎉" — instead of a separate small
+    # line above it (mirrors the same merge on the order confirmation page).
+    # party_title is "...'s Nth Birthday Party"; drop the trailing "Party"
+    # since it reads better folded into "Booking Confirmed for ... !".
+    party_phrase = party_title[:-len(" Party")] if party_title and party_title.endswith(" Party") else party_title
+    merge_party_into_heading = False
 
     if recipient_kind == "customer":
         if is_booking:
-            heading = "Thank You For Your Booking! 🎉"
+            if party_phrase:
+                heading = f"Booking Confirmed for {_html_escape(party_phrase)}! 🎉"
+                merge_party_into_heading = True
+            else:
+                heading = "Thank You For Your Booking! 🎉"
             intro = (
                 f"Hi {_html_escape(first_name)}, thank you for your query — we've received your booking. Our team will "
                 f"check the payment details and confirm your booking shortly. Your Party Experience Lead will be in "
@@ -1078,7 +1090,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(45,33,64,.08)">
 <tr><td style="background:linear-gradient(135deg,{BRAND_PINK} 0%,{BRAND_PURPLE} 100%);padding:28px 26px;text-align:center">
 <img src="{MASCOT_URL}" width="56" height="56" alt="Wondershop mascot" style="display:block;margin:0 auto 10px;border-radius:50%;background:#fff;padding:4px">
-{f'<div style="font-family:Georgia,serif;font-size:14px;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:4px">{_html_escape(party_title)}</div>' if party_title else ''}
+{f'<div style="font-family:Georgia,serif;font-size:14px;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:4px">{_html_escape(party_title)}</div>' if party_title and not merge_party_into_heading else ''}
 <div style="font-family:Georgia,serif;font-size:21px;font-weight:700;color:#fff">{heading}</div>
 </td></tr>
 <tr><td style="padding:24px 26px 8px">
