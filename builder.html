@@ -726,6 +726,20 @@ input,textarea,select{font-family:var(--fb)}
 .cbox{background:var(--li3);border-radius:var(--r);padding:16px;text-align:center}
 .cb-row{font-size:13px;color:var(--gy);margin-bottom:6px}
 .cb-val{font-size:13px;color:var(--bk)}
+/* 2026-08-14, per Shruti — bigger, fancier party title on the confirmation
+   screen; child's name forced to caps in JS (see doCo()). */
+.conf-party-title{font-family:var(--fd);font-size:26px;font-weight:700;letter-spacing:.3px;margin-bottom:10px;
+  background:linear-gradient(135deg,var(--pk) 0%,var(--li) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+@media(max-width:420px){.conf-party-title{font-size:21px}}
+/* Services Booked — horizontal icon grid with selection/NA under each
+   (2026-08-14, per Shruti). */
+.conf-svc-grid{display:flex;flex-wrap:wrap;gap:8px}
+.conf-svc-chip{flex:1 1 22%;min-width:76px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;background:var(--li3);border-radius:14px;padding:12px 6px 10px}
+.conf-svc-chip img{width:26px;height:26px;object-fit:contain}
+.conf-svc-lbl{font-family:var(--fb);font-size:10px;font-weight:700;color:#7B5EA7;text-transform:uppercase;letter-spacing:.3px}
+.conf-svc-val{font-family:var(--fb);font-size:11.5px;font-weight:600;color:var(--bk);line-height:1.3}
+.conf-svc-val.na{color:var(--gy);font-weight:500}
+.conf-summary-note{font-size:11.5px;color:var(--gy);text-align:center;margin-top:10px;line-height:1.5}
 
 /* Lead form & sent */
 .ls-body{text-align:center;padding:32px 0}
@@ -1937,38 +1951,44 @@ input,textarea,select{font-family:var(--fb)}
 <!-- ─── CONFIRMATION ─── -->
 <div class="step" id="sconf">
   <div class="conf-hero">
-    <!-- 2026-08-14, per Shruti: "Idhika's 5th Birthday Party" shown above
-         the main heading — see updConfPartyTitle(). Hidden (empty) when we
-         don't have both a child name and a valid turning age. -->
-    <div id="confPartyTitle" style="font-family:var(--fd);font-size:15px;font-weight:700;color:var(--pk);margin-bottom:4px;display:none"></div>
+    <!-- 2026-08-14, per Shruti: "IDHIKA's 5th Birthday Party" shown above
+         the main heading, child's name in caps, styled larger/fancier
+         (2026-08-14 follow-up, per Shruti — "increase font and size... make
+         it a little more fancy"). Hidden (empty) when we don't have both a
+         child name and a valid turning age. -->
+    <div id="confPartyTitle" class="conf-party-title" style="display:none"></div>
     <div class="conf-icon" id="confHeroIcon">🎉</div>
     <h1 id="confHeroTitle">Booking Confirmed!</h1>
     <p id="confHeroDesc">We're thrilled to celebrate with you. A confirmation has been sent to your email and WhatsApp.</p>
   </div>
   <div class="cal-note" id="confCalNote">📅 Calendar invite sent to your email &amp; Wondershop team — your date is blocked!</div>
   <div class="urgent-note" id="confUrgentNote" style="display:none">⚡ Since your event is less than 3 days away, we haven't taken any advance and this booking isn't confirmed yet. Our team will call you within 24 hours to check feasibility.</div>
+  <!-- 2026-08-14, per Shruti: services booked, shown as a horizontal icon
+       row with the actual selection (or "NA") under each — see
+       renderConfServices() below. -->
+  <div class="sec-blk" style="margin-bottom:14px" id="confServicesBox">
+    <div class="sec-lbl"><span class="dot"></span>Services Booked</div>
+    <div class="conf-svc-grid" id="confSvcGrid"></div>
+  </div>
+  <!-- 2026-08-14, per Shruti: shortened to just the two figures that
+       matter on this page — full breakdown (grand total, discount,
+       payment method/status, balance) is in the confirmation email
+       instead, per confSummaryNote below. -->
   <div class="sec-blk" style="margin-bottom:14px" id="confSummaryBox">
     <div class="sec-lbl"><span class="dot"></span>Your Order Summary</div>
     <div class="amt-box">
-      <div class="amt-row"><span>Grand Total</span><span id="confGt">₹0</span></div>
-      <div class="amt-row" id="confDr" style="display:none"><span>Discount</span><span id="confDisc" style="color:var(--gr)"></span></div>
-      <div class="amt-row" id="confFeeRow" style="display:none"><span>Cash Collection Fee</span><span id="confFee">₹100</span></div>
-      <div class="amt-row" id="confPkgRow" style="display:none"><span id="confPkgLbl">Packaging</span><span id="confPkg">₹0</span></div>
       <div class="amt-row tot"><span>Payable Total</span><span id="confPt">₹0</span></div>
-      <div class="amt-row"><span style="font-size:11px;color:var(--gy)">Payment Method</span><span id="confPayMethod" style="font-size:12px;color:var(--gy)">—</span></div>
-      <div class="amt-row"><span style="font-size:11px;color:var(--gy)">Payment Status</span><span id="confPayStatus" style="font-size:12px;color:#92400E">—</span></div>
-      <div class="amt-row adv"><span>⚡ Advance Paid</span><span id="confAdv">₹0</span></div>
-      <div class="amt-row"><span style="font-size:11px;color:var(--gy)">Balance due before event</span><span id="confBal" style="font-size:12px;color:var(--gy)">₹0</span></div>
+      <div class="amt-row adv"><span>⚡ Advance Received (Pending Confirmation)</span><span id="confAdv">₹0</span></div>
       <div class="amt-row" id="confRefundRow" style="display:none"><span style="font-size:11px;color:var(--gr)">🎁 Scratch card refund</span><span id="confRefundVal" style="font-size:12px;color:var(--gr)"></span></div>
       <div class="amt-row tot" id="confFinalBalRow" style="display:none"><span>Final balance due</span><span id="confFinalBal"></span></div>
+      <span id="confBal" style="display:none"></span>
     </div>
+    <div class="conf-summary-note">Full order breakdown, discount &amp; payment details have been sent to your email &amp; WhatsApp.</div>
   </div>
+  <button class="conf-share-btn conf-wa" id="confWaBtn" onclick="shareWA()" style="width:100%;margin-bottom:18px">💬 Share Booking Details on WhatsApp</button>
   <div id="confReward"></div>
   <div id="confReferral"></div>
-  <div class="conf-share-btns" id="confShareBtns">
-    <button class="conf-share-btn conf-wa" onclick="shareWA()">💬 Share on WhatsApp</button>
-    <button class="conf-share-btn conf-ref" onclick="referWS()">🎁 Refer &amp; Earn</button>
-  </div>
+  <button class="conf-share-btn conf-ref" id="confReferBtn" onclick="referWS()" style="width:100%;margin-top:10px;margin-bottom:18px;display:none">🎁 Refer &amp; Earn</button>
   <div class="next-steps" id="confNextSteps">
     <h3>What happens next</h3>
     <div class="ns-item"><div class="ns-num">1</div><div class="ns-txt">Party Experience Lead assigned<span>They'll discuss your vision, decor references, and all the details</span></div></div>
@@ -2947,7 +2967,7 @@ function appendC(i){
   const ords=['First','Second','Third','Fourth'];
   const w=document.getElementById('cWrap');
   const d=document.createElement('div');d.className='child-card';
-  d.innerHTML='<div class="child-hdr"><div class="child-title">'+ords[i]+' Child</div>'+(i>0?'<button class="rm-btn" onclick="rmC(this)">×</button>':'')+'</div><div class="ig"><label>Child\'s Name</label><input type="text" class="c-name" placeholder="e.g. Aarav" oninput="syncC()"></div><div class="row2"><div class="ig" style="margin-bottom:0"><label>Date of Birth</label><input type="date" class="c-dob" onchange="syncC()"></div><div class="ig" style="margin-bottom:0"><label>Gender</label><div class="g-sel"><button class="g-btn" onclick="selG(this,\'Boy\')"><span class="gi">👦</span>Boy</button><button class="g-btn" onclick="selG(this,\'Girl\')"><span class="gi">👧</span>Girl</button><button class="g-btn" onclick="selG(this,\'Either\')"><span class="gi">🌈</span>Others</button></div></div></div>';
+  d.innerHTML='<div class="child-hdr"><div class="child-title">'+ords[i]+' Child</div>'+(i>0?'<button class="rm-btn" onclick="rmC(this)">×</button>':'')+'</div><div class="ig"><label>Child\'s Name</label><input type="text" class="c-name" placeholder="e.g. Aarav" oninput="syncC();this.classList.remove(\'err\');this.nextElementSibling.classList.remove(\'show\')"><div class="err-msg c-name-err">Please enter the child\'s name</div></div><div class="row2"><div class="ig" style="margin-bottom:0"><label>Date of Birth</label><input type="date" class="c-dob" onchange="syncC();this.classList.remove(\'err\');this.nextElementSibling.classList.remove(\'show\')"><div class="err-msg c-dob-err">Please enter date of birth</div></div><div class="ig" style="margin-bottom:0"><label>Gender</label><div class="g-sel"><button class="g-btn" onclick="selG(this,\'Boy\')"><span class="gi">👦</span>Boy</button><button class="g-btn" onclick="selG(this,\'Girl\')"><span class="gi">👧</span>Girl</button><button class="g-btn" onclick="selG(this,\'Either\')"><span class="gi">🌈</span>Others</button></div></div></div>';
   w.appendChild(d);
 }
 function rmC(btn){btn.closest('.child-card').remove();reIdxC();syncC();}
@@ -3003,6 +3023,24 @@ function doS0(){
   }
   if(S.venue==='Other'){const ov=document.getElementById('f-venue-other').value.trim();if(ov)S.venueOther=ov;}
   document.getElementById('s0-err-all').style.display='none';
+  syncC();
+  // Require every child card to have a name + date of birth. DOB is what
+  // feeds the "Turning Age" shown on the confirmation email/Google Sheet
+  // (see ageForEvent() above) — without it the age can never be shown at
+  // all (2026-08-14, per Shruti — "mail does not have age, please add age
+  // for all kids"). Also required so child_names/child_ages/child_genders
+  // stay aligned 1:1 per child instead of drifting out of sync.
+  let __childErr=false,__firstErrEl=null;
+  document.querySelectorAll('.child-card').forEach(c=>{
+    const nameEl=c.querySelector('.c-name'),dobEl=c.querySelector('.c-dob');
+    if(nameEl&&!nameEl.value.trim()){nameEl.classList.add('err');nameEl.nextElementSibling?.classList.add('show');__childErr=true;__firstErrEl=__firstErrEl||nameEl;}
+    if(dobEl&&!dobEl.value){dobEl.classList.add('err');dobEl.nextElementSibling?.classList.add('show');__childErr=true;__firstErrEl=__firstErrEl||dobEl;}
+  });
+  if(__childErr){
+    __firstErrEl?.scrollIntoView({behavior:'smooth',block:'center'});
+    showErrorToast('Please fill in each child\'s name and date of birth to continue.');
+    return;
+  }
   S.pincode=document.getElementById('f-pincode').value.trim();S.eventDate=dt;S.eventTime=document.getElementById('f-time').value;
   S.theme=document.getElementById('f-theme').value;S.kidsCount=parseInt(document.getElementById('f-kids').value)||15;
   // NOTE (2026-08-07): every step's images used to have loading="lazy". All
@@ -3017,7 +3055,7 @@ function doS0(){
   // loading="lazy" everywhere in this file — confirmed against the live
   // site. If lazy-loading is reintroduced later, build each step's cards
   // only when the user actually navigates to that step, not all up front.
-  syncC();buildDec();buildActs();buildPins();buildInvs();buildGifts();
+  buildDec();buildActs();buildPins();buildInvs();buildGifts();
   document.getElementById('f-gaddr').value='';
   try{if(dt){document.getElementById('f-gdate').value=dt;document.getElementById('f-gdate').max=dt;}}catch(e){}
   goTo('s1');
@@ -3872,15 +3910,17 @@ async function doCo(){
     ? '<div class="cbox" style="margin-top:16px;text-align:left"><div class="cb-row">Your special requests / remarks:</div><div class="cb-val" style="white-space:pre-wrap">'+rmk.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</div></div>'
     : '';
 
-  // 2026-08-14, per Shruti: "Idhika's 5th Birthday Party" above the main
+  // 2026-08-14, per Shruti: "IDHIKA's 5th Birthday Party" above the main
   // heading — same first-child name + turning age used in the confirmation
-  // email (see leads.py's _party_title()). Hidden when either piece is
-  // missing/invalid rather than showing a broken-looking partial title.
+  // email (see leads.py's _party_title()), child's name forced to caps
+  // (2026-08-14 follow-up, per Shruti — "make it all caps"). Hidden when
+  // either piece is missing/invalid rather than showing a broken-looking
+  // partial title.
   const partyTitleEl=document.getElementById('confPartyTitle');
   const __firstChildName=(S.children[0]?.name||'').trim();
   const __firstChildAge=S.children[0]?.dob?ageForEvent(S.children[0].dob,S.eventDate):null;
   if(__firstChildName&&__firstChildAge!=null&&__firstChildAge>=1&&__firstChildAge<=18){
-    partyTitleEl.textContent=__firstChildName+"'s "+ordinalSuffix(__firstChildAge)+' Birthday Party';
+    partyTitleEl.textContent=__firstChildName.toUpperCase()+"'s "+ordinalSuffix(__firstChildAge)+' Birthday Party';
     partyTitleEl.style.display='block';
   }else{
     partyTitleEl.style.display='none';
@@ -3893,8 +3933,9 @@ async function doCo(){
   const heroDesc=document.getElementById('confHeroDesc');
   const calNote=document.getElementById('confCalNote');
   const urgentNote=document.getElementById('confUrgentNote');
+  const servicesBox=document.getElementById('confServicesBox');
   const summaryBox=document.getElementById('confSummaryBox');
-  const shareBtns=document.getElementById('confShareBtns');
+  const waBtn=document.getElementById('confWaBtn');
   const nextSteps=document.getElementById('confNextSteps');
 
   if(__urgent){
@@ -3903,8 +3944,9 @@ async function doCo(){
     heroDesc.textContent='Your event is less than 3 days away, so we need to quickly confirm feasibility before locking anything in.';
     calNote.style.display='none';
     urgentNote.style.display='block';
+    servicesBox.style.display='none';
     summaryBox.style.display='none';
-    shareBtns.style.display='none';
+    waBtn.style.display='none';
     nextSteps.innerHTML=CONF_NEXT_STEPS_URGENT;
   }else{
     heroIcon.textContent='🎉';
@@ -3912,24 +3954,18 @@ async function doCo(){
     heroDesc.textContent="We're thrilled to celebrate with you. A confirmation has been sent to your email and WhatsApp.";
     calNote.style.display='block';
     urgentNote.style.display='none';
+    servicesBox.style.display='block';
     summaryBox.style.display='block';
-    shareBtns.style.display='flex';
+    waBtn.style.display='flex';
     nextSteps.innerHTML=CONF_NEXT_STEPS_NORMAL;
 
+    renderConfServices();
+
     // Populate the on-screen Order Summary — the customer's on-page receipt.
-    // (Skipped entirely for urgent bookings — nothing has been charged yet.)
-    document.getElementById('confGt').textContent='₹'+__gt.toLocaleString('en-IN');
-    if(__dpv>0){document.getElementById('confDr').style.display='flex';document.getElementById('confDisc').textContent='-₹'+(__gt-__tpv).toLocaleString('en-IN')+' ('+__dpv+'%)';}
-    else document.getElementById('confDr').style.display='none';
-    document.getElementById('confFeeRow').style.display=__fee>0?'flex':'none';
-    document.getElementById('confPkgRow').style.display=__pkg>0?'flex':'none';
-    if(__pkg>0){
-      document.getElementById('confPkgLbl').textContent='Packaging ('+(PACKAGING_LABELS[S.packaging]||'')+')';
-      document.getElementById('confPkg').textContent='₹'+__pkg.toLocaleString('en-IN');
-    }
+    // Shortened to just Payable Total + Advance Received (2026-08-14, per
+    // Shruti); full breakdown (grand total, discount, payment method/status,
+    // balance) is in the confirmation email instead.
     document.getElementById('confPt').textContent='₹'+__payTotal.toLocaleString('en-IN');
-    document.getElementById('confPayMethod').textContent=PAY_METHOD_LABELS[S.payMethod]||'—';
-    document.getElementById('confPayStatus').textContent=payStatusText();
     document.getElementById('confAdv').textContent='₹'+__advv.toLocaleString('en-IN');
     const confBalEl=document.getElementById('confBal');
     confBalEl.textContent='₹'+__bal.toLocaleString('en-IN');
@@ -3938,7 +3974,7 @@ async function doCo(){
     document.getElementById('confFinalBalRow').style.display='none';
   }
 
-  showReferralOnConfirmation();
+  showReferralOnConfirmation(__urgent);
   goTo('sconf');
   if(!__urgent){
     launchConfetti();
@@ -4132,6 +4168,37 @@ function buildSnapshot(){
       theme:       S.theme,
     };
   }catch(e){return null;}
+}
+
+// 2026-08-14, per Shruti: "Services Booked" icon row on the confirmation
+// screen — horizontal icons for every service category, with the actual
+// selection (or "NA") shown under each. Reuses the same bw icon set already
+// live on the homepage (img/icons/icon-<x>-bw.png).
+function renderConfServices(){
+  const grid=document.getElementById('confSvcGrid');
+  if(!grid)return;
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const djParts=[];
+  if(S.dj&&S.dj.tier)djParts.push(S.dj.tier);
+  if(S.djAddons.lights)djParts.push('DJ Lights');
+  if(S.djAddons.smoke)djParts.push('Smoke Machine');
+  const giftsVal=S.gifts.length?S.gifts.map(g=>g.n+' x'+g.qty).join(', '):'';
+  const items=[
+    {icon:'decor',        lbl:'Decor',        val:S.decor?.n||''},
+    {icon:'activities',   lbl:'Activities',   val:S.activities.length?S.activities.map(a=>a.n).join(', '):''},
+    {icon:'host',         lbl:'Host',         val:S.host?.tier||''},
+    {icon:'dj',           lbl:'Music',        val:djParts.join(' + ')},
+    {icon:'pinata',       lbl:'Pinata',       val:S.pinata?.n||''},
+    {icon:'invite',       lbl:'E-Invite',     val:S.einvite?.n||''},
+    {icon:'photographer', lbl:'Photography',  val:S.photo?.tier||''},
+    {icon:'gift',         lbl:'Return Gifts', val:giftsVal},
+  ];
+  grid.innerHTML=items.map(it=>{
+    const has=!!it.val;
+    return '<div class="conf-svc-chip"><img src="img/icons/icon-'+it.icon+'-bw.png" alt="">'
+      +'<div class="conf-svc-lbl">'+it.lbl+'</div>'
+      +'<div class="conf-svc-val'+(has?'':' na')+'">'+(has?esc(it.val):'NA')+'</div></div>';
+  }).join('');
 }
 
 function copyUPI(btn){
@@ -4503,16 +4570,21 @@ function showRewardOnConfirmation(reward){
   el.innerHTML='<div class="reward-box" style="background:'+reward.grad+'"><div class="rb-ic">'+reward.icon+'</div><div class="rb-txt"><b>'+reward.label+'</b>'+reward.sub+termsHtml+'</div></div>';
 }
 
-function showReferralOnConfirmation(){
+// urgent=true keeps the Refer & Earn button hidden even if a code exists —
+// nothing is confirmed yet on an urgent booking (2026-08-14, per Shruti —
+// buttons split apart, Refer & Earn now sits right under its own green card).
+function showReferralOnConfirmation(urgent){
   const el=document.getElementById('confReferral');
+  const btn=document.getElementById('confReferBtn');
   if(!el)return;
-  if(!S._myReferralCode){el.innerHTML='';return;}
+  if(!S._myReferralCode){el.innerHTML='';if(btn)btn.style.display='none';return;}
   el.innerHTML='<div class="reward-box" style="background:linear-gradient(135deg,#52C470 0%,#2E9E52 100%)">'+
     '<div class="rb-ic">🎁</div><div class="rb-txt"><b>Refer &amp; Earn</b>'+
     'Share your code — friends get 10% off (min. spend ₹15,000), you earn ₹500 credit every time it\'s used.'+
     '<div style="margin-top:8px;font-family:monospace;font-size:17px;font-weight:700;letter-spacing:2px;'+
     'background:rgba(255,255,255,.18);border:1.5px dashed rgba(255,255,255,.65);border-radius:8px;'+
     'padding:6px 12px;display:inline-block">'+S._myReferralCode+'</div></div></div>';
+  if(btn)btn.style.display=urgent?'none':'flex';
 }
 
 // ── SHARE ──

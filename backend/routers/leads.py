@@ -62,8 +62,8 @@ class LeadSubmitRequest(BaseModel):
     kids_count:         Optional[int]   = None
     child_ages:         Optional[str]   = None
     child_genders:      Optional[str]   = None
-    # 2026-08-14, per Shruti — sheet-only for now (see _append_to_sheet);
-    # not persisted to the `leads` DB table (no column/migration for it yet).
+    # 2026-08-14, per Shruti — persisted both to the Google Sheet
+    # (_append_to_sheet) and the `leads` DB table (see migration 013).
     child_dobs:         Optional[str]   = None
     venue:              Optional[str]   = None
     # Venue Google Maps share link + on-site contact person (2026-08-11).
@@ -184,10 +184,10 @@ def _ordinal(n: int) -> str:
 
 
 def _party_title(req: "LeadSubmitRequest") -> Optional[str]:
-    """"Idhika's 5th Birthday Party" — first child's name + turning age,
-    shown above the email heading and on the order confirmation page
-    (2026-08-14, per Shruti). None if either piece is missing — nothing
-    sensible to show without both."""
+    """"IDHIKA's 5th Birthday Party" — first child's name (all caps, per
+    Shruti 2026-08-14 follow-up) + turning age, shown above the email
+    heading and on the order confirmation page (2026-08-14, per Shruti).
+    None if either piece is missing — nothing sensible to show without both."""
     first_name = (req.child_names or "").split(",")[0].strip()
     first_age_str = (req.child_ages or "").split(",")[0].strip()
     if not first_name or not first_age_str:
@@ -196,7 +196,7 @@ def _party_title(req: "LeadSubmitRequest") -> Optional[str]:
         first_age = int(first_age_str)
     except ValueError:
         return None
-    return f"{first_name}'s {_ordinal(first_age)} Birthday Party"
+    return f"{first_name.upper()}'s {_ordinal(first_age)} Birthday Party"
 
 
 def _booking_subject_line(lead_id: int, req: "LeadSubmitRequest") -> str:
@@ -500,16 +500,23 @@ def _format_order_summary_block(req: LeadSubmitRequest) -> str:
     if req.order_discount_pct:
         lines.append(f"  Discount        : {req.order_discount_pct:.0f}%")
     lines.append(f"  Payable Total   : {_fmt_rupees(req.client_budget)}")
-    # No payment method is auto-verified — never claim an advance was
-    # "Paid" here (2026-08-12, per Shruti).
     pay_method_label = _PAYMENT_METHOD_LABELS.get(req.payment_method or "", req.payment_method)
     if pay_method_label:
         lines.append(f"  Payment Method  : {pay_method_label}")
+    # No payment method is auto-verified — never claim an advance was
+    # "Paid" here (2026-08-12, per Shruti). Advance/Pending shown to the
+    # customer as of 2026-08-14 (per Shruti), both clearly qualified as
+    # pending verification.
+    cashback_amt = 0.0
+    if req.reward_type == "refund" and req.reward_value:
+        cashback_amt = req.reward_value
+        lines.append(f"  Cashback (Scratch Card) : -{_fmt_rupees(req.reward_value)}")
+    if req.order_advance is not None:
+        lines.append(f"  Advance Paid (Pending Verification) : {_fmt_rupees(req.order_advance)}")
+    if req.order_balance is not None:
+        pending = max(0.0, req.order_balance - cashback_amt)
+        lines.append(f"  Pending Amount  : {_fmt_rupees(pending)}")
     lines.append(f"  Payment Status  : {_payment_status_text(req)}")
-    if req.reward_type == "refund" and req.reward_value and req.order_balance is not None:
-        adjusted_balance = max(0.0, req.order_balance - req.reward_value)
-        lines.append(f"  Scratch Card Refund : -{_fmt_rupees(req.reward_value)}")
-        lines.append(f"  Final Balance Due    : {_fmt_rupees(adjusted_balance)}")
     lines.append("")
     return "\n".join(lines) + "\n"
 
@@ -952,29 +959,35 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
         order_rows.append(("Discount", f"{req.order_discount_pct:.0f}%"))
     if req.client_budget is not None:
         order_rows.append(("Payable Total", _fmt_rupees(req.client_budget)))
-    # We don't auto-verify any payment method — nothing is ever shown as
-    # "Paid" here. The pledged 50% advance is still shown to the TEAM
-    # (recipient_kind=='team') as a reference figure for reconciliation,
-    # clearly labelled pending; the customer copy only shows method + status
-    # (2026-08-12, per Shruti — "show complete payment pending and advance = 0").
     pay_method_label = _PAYMENT_METHOD_LABELS.get(req.payment_method or "", req.payment_method)
     if pay_method_label:
         order_rows.append(("Payment Method", pay_method_label))
-    order_rows.append(("Payment Status", _payment_status_text(req)))
     # Scratch-card "refund" reward (a cashback amount knocked off the
-    # balance due) — the plain-text order summary already accounted for
-    # this (_format_order_summary_block above) but the HTML email, which is
-    # what customers actually see, never did (2026-08-14, per Shruti — the
-    # Rs.180 refund shown on the Booking Confirmed screen wasn't reflected
-    # in the confirmation email).
-    if req.reward_type == "refund" and req.reward_value and req.order_balance is not None:
-        adjusted_balance = max(0.0, req.order_balance - req.reward_value)
-        order_rows.append(("🎁 Scratch Card Refund", f"-{_fmt_rupees(req.reward_value)}"))
-        order_rows.append(("Final Balance Due", _fmt_rupees(adjusted_balance)))
-    if recipient_kind == "team" and req.order_advance is not None:
-        order_rows.append(("Advance (Pledged, Unverified)", _fmt_rupees(req.order_advance)))
-        if req.order_balance is not None:
-            order_rows.append(("Balance (2nd 50%, Unverified)", _fmt_rupees(req.order_balance)))
+    # balance due) — shown before Advance/Pending below so those figures
+    # already reflect it (2026-08-14, per Shruti — the Rs.180 refund shown
+    # on the Booking Confirmed screen wasn't reflected in the confirmation
+    # email).
+    cashback_amt = 0.0
+    if req.reward_type == "refund" and req.reward_value:
+        cashback_amt = req.reward_value
+        order_rows.append(("🎁 Cashback (Scratch Card)", f"-{_fmt_rupees(req.reward_value)}"))
+    # We don't auto-verify any payment method — nothing is ever shown as
+    # "Paid" here, just what the customer self-reported at checkout, clearly
+    # qualified as pending verification either way. Shown to BOTH customer
+    # and team as of 2026-08-14 (per Shruti — "order summary: mention total,
+    # advance paid (to be verified based on the payment method), discount,
+    # cashbacks if any and pending amount"); previously the advance/balance
+    # figures were team-only.
+    verify_note = (
+        "(Pledged, Pending Verification)" if recipient_kind == "team"
+        else "(Pending Verification — based on your payment method)"
+    )
+    if req.order_advance is not None:
+        order_rows.append((f"Advance Paid {verify_note}", _fmt_rupees(req.order_advance)))
+    if req.order_balance is not None:
+        pending = max(0.0, req.order_balance - cashback_amt)
+        order_rows.append(("Pending Amount", _fmt_rupees(pending)))
+    order_rows.append(("Payment Status", _payment_status_text(req)))
     if recipient_kind == "team":
         if req.redeemed_coupon_code:
             order_rows.append(("Coupon Redeemed", req.redeemed_coupon_code))
@@ -1332,9 +1345,9 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Op
             "child_names":  req.child_names or "",
             "child_ages":   req.child_ages or "",
             "child_genders":req.child_genders or "",
-            # 2026-08-14, per Shruti — DOB captured in the Sheet for reference;
-            # sheet-only for now, not added to the `leads` DB table (would
-            # need a migration — flag if you also want it stored there).
+            # 2026-08-14, per Shruti — DOB captured in the Sheet for
+            # reference, and also persisted to the `leads` DB table (see
+            # migration 013 + the INSERT in submit_lead() above).
             "child_dobs":   req.child_dobs or "",
             "decor":        service_cols["decor"],
             "pinata":       service_cols["pinata"],
@@ -1553,10 +1566,11 @@ async def submit_lead(req: LeadSubmitRequest):
         """
         INSERT INTO leads (
             parent_name, phone, child_names, email,
-            event_date, event_time, kids_count, child_ages, child_genders,
+            event_date, event_time, kids_count, child_ages, child_genders, child_dobs,
             venue, venue_maps_link, venue_contact_name, venue_contact_phone,
             location_type, theme, city, pincode,
             client_budget, payment_method, builder_snapshot, remarks,
+            order_grand_total, order_discount_pct, order_advance, order_balance,
             lead_source, lead_source_detail, referred_by,
             gift_delivery_address, gift_delivery_maps_link,
             gift_delivery_address_type, gift_delivery_contact,
@@ -1568,10 +1582,11 @@ async def submit_lead(req: LeadSubmitRequest):
             status
         ) VALUES (
             :parent_name, :phone, :child_names, :email,
-            :event_date, :event_time, :kids_count, :child_ages, :child_genders,
+            :event_date, :event_time, :kids_count, :child_ages, :child_genders, :child_dobs,
             :venue, :venue_maps_link, :venue_contact_name, :venue_contact_phone,
             :location_type, :theme, :city, :pincode,
             :client_budget, :payment_method, :builder_snapshot, :remarks,
+            :order_grand_total, :order_discount_pct, :order_advance, :order_balance,
             :lead_source, :lead_source_detail, :referred_by,
             :gift_delivery_address, :gift_delivery_maps_link,
             :gift_delivery_address_type, :gift_delivery_contact,
@@ -1594,6 +1609,7 @@ async def submit_lead(req: LeadSubmitRequest):
             "kids_count":         req.kids_count,
             "child_ages":         req.child_ages,
             "child_genders":      req.child_genders,
+            "child_dobs":         req.child_dobs,
             "venue":              req.venue,
             "venue_maps_link":    req.venue_maps_link,
             "venue_contact_name": req.venue_contact_name,
@@ -1606,6 +1622,10 @@ async def submit_lead(req: LeadSubmitRequest):
             "payment_method":     req.payment_method,
             "builder_snapshot":   json.dumps(req.builder_snapshot) if req.builder_snapshot else None,
             "remarks":            req.remarks,
+            "order_grand_total":  req.order_grand_total,
+            "order_discount_pct": req.order_discount_pct,
+            "order_advance":      req.order_advance,
+            "order_balance":      req.order_balance,
             "lead_source":        req.lead_source,
             "lead_source_detail": req.lead_source_detail,
             "referred_by":        req.referred_by,
