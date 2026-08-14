@@ -654,16 +654,15 @@ const MUSIC_TIERS = [
   {id:'m2', name:'Premium', price:11000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', '50-200 guests', '4 hours']},
 ];
 // E-Invite — single-select, optional.
-// Spy Adventure's minimum bill is already ₹25,000 (see MIN_BILL below) —
-// above the site-wide ₹20,000 free-E-Invite threshold, so E-Invite is
-// ALWAYS free on this package (2026-08-12, per Shruti: "since minimum
-// billing is 25k, show einvite as prize unlocked"). Real price kept on
-// the tier (not zeroed here) so totalPrice() below skips it explicitly
-// and builder.html's own free-E-Invite logic still shows the correct
-// "was ₹500" strike-through on the review page.
+// 2026-08-14, per Shruti: "none of these are free. Write Static invite
+// included. Video invite and reminder will still be Rs. 2000." So only the
+// Static tier is included in the package at no extra cost
+// (includedInPackage:true — shows "Included", contributes ₹0 to
+// totalPrice()); Video + Reminder is a real ₹2,000 paid upgrade like any
+// other tier (no special flag, counted normally).
 const EINVITE_TIERS = [
-  {id:'e1', name:'Static', price:500, d:'Personalized digital invite card.', freeForPackage:true},
-  {id:'e2', name:'Video + Reminder', price:2000, d:'Video invite plus a reminder message closer to the date.', freeForPackage:true},
+  {id:'e1', name:'Static', price:500, d:'Personalized digital invite card.', includedInPackage:true},
+  {id:'e2', name:'Video + Reminder', price:2000, d:'Video invite plus a reminder message closer to the date.'},
 ];
 // Pinata — single-select, optional. Real catalogue (2026-08-07): same 3
 // shapes/prices/photos used across every package page & the main builder
@@ -816,8 +815,12 @@ function renderTierGrid(gridId, items, selected) {
     // original + discounted price + a "Save ₹X" callout whenever both are
     // present; every other tier type has no origPrice and falls back to
     // the plain price line.
-    const priceHtml = t.freeForPackage
-      ? '<div class="act-card-p-row"><span class="act-card-p-orig">' + fmtINR(t.price) + '</span><span class="act-card-p" style="color:#166534">FREE</span></div>'
+    //
+    // 2026-08-14, per Shruti: don't call anything "FREE" — the Static
+    // E-Invite tier is simply included in the package at no extra cost, so
+    // it shows a plain "Included" label instead of a struck-through price.
+    const priceHtml = t.includedInPackage
+      ? '<div class="act-card-p" style="color:#166534">Included</div>'
       : (t.origPrice != null && t.origPrice > t.price)
       ? '<div class="act-card-p-row"><span class="act-card-p-orig">' + fmtINR(t.origPrice) + '</span><span class="act-card-p">' + fmtINR(t.price) + '</span><span class="act-card-save-badge">Save ' + fmtINR(t.origPrice - t.price) + '</span></div>'
       : '<div class="act-card-p">' + fmtINR(t.price) + '</div>';
@@ -987,7 +990,7 @@ function totalPrice() {
   if (selectedMusic) t += selectedMusic.price;
   if (djLightsAddon) t += 1500;
   if (djSmokeAddon) t += 2000;
-  if (selectedEinvite && !selectedEinvite.freeForPackage) t += selectedEinvite.price;
+  if (selectedEinvite && !selectedEinvite.includedInPackage) t += selectedEinvite.price;
   if (selectedPinata) t += selectedPinata.price;
   selectedProps.forEach(id => {
     const item = PROPS_ADDONS.find(a => a.id === id);
@@ -1061,10 +1064,10 @@ function updateSticky() {
   const t = stationTier(kidsCount);
   const parts = [kidsCount + ' kids', t.stations + ' stations', selectedDecor ? (selectedDecor.name + ' decor') : 'No decor'];
   // selectedEinvite is only counted as an "add-on" here if it's a real
-  // paid pick — the always-included free Static/Video tiers (both
-  // freeForPackage:true for Spy) shouldn't inflate the add-on count.
+  // paid pick — the always-included Static tier (includedInPackage:true)
+  // shouldn't inflate the add-on count.
   const extrasCount = selectedStations.length + selectedProps.length + selectedGifts.length +
-    (selectedMusic ? 1 : 0) + (djLightsAddon ? 1 : 0) + (djSmokeAddon ? 1 : 0) + (selectedEinvite && !selectedEinvite.freeForPackage ? 1 : 0) +
+    (selectedMusic ? 1 : 0) + (djLightsAddon ? 1 : 0) + (djSmokeAddon ? 1 : 0) + (selectedEinvite && !selectedEinvite.includedInPackage ? 1 : 0) +
     (selectedPinata ? 1 : 0) + (selectedEntry ? 1 : 0) + (selectedPhotographer ? 1 : 0);
   if (extrasCount) parts.push('+' + extrasCount + ' add-on' + (extrasCount > 1 ? 's' : ''));
   document.getElementById('stickyDetails').textContent = parts.join(' · ');
@@ -1093,14 +1096,23 @@ function proceedToBuilder() {
       music: selectedMusic,
       djLightsAddon: djLightsAddon,
       djSmokeAddon: djSmokeAddon,
-      einvite: selectedEinvite,
+      // builder.html trusts pkgData.einvite.price verbatim for package-origin
+      // checkouts (S._pkgOrigin), so the Static tier's price must already be
+      // zeroed here — otherwise the review page would show it as a paid
+      // ₹500 line item instead of the included item it actually is
+      // (2026-08-14, per Shruti — "none of these are free... Static invite
+      // included").
+      einvite: selectedEinvite ? Object.assign({}, selectedEinvite, {
+        price: selectedEinvite.includedInPackage ? 0 : selectedEinvite.price,
+        name: selectedEinvite.name + (selectedEinvite.includedInPackage ? ' (Included)' : '')
+      }) : null,
       // The ₹40k pinata mechanic (pinataDiscount()) must already be baked
       // into the price handed to builder.html — package-origin checkouts
       // (S._pkgOrigin) skip builder.html's own generic freebie logic
       // entirely and trust this price verbatim (2026-08-14, per Shruti).
       pinata: selectedPinata ? Object.assign({}, selectedPinata, {
         price: Math.max(0, selectedPinata.price - pinataDiscount()),
-        name: selectedPinata.name + (pinataDiscount() >= selectedPinata.price ? ' (FREE)' : pinataDiscount() > 0 ? ' (₹500 off)' : '')
+        name: selectedPinata.name + (pinataDiscount() >= selectedPinata.price ? ' (Included)' : pinataDiscount() > 0 ? ' (₹500 off)' : '')
       }) : null,
       props: selectedProps,
       entry: selectedEntry,
