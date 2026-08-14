@@ -1265,39 +1265,40 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Op
 # simple API-key-authenticated POST, and gives a dashboard for managing/
 # approving templates instead of Meta Business Manager directly.
 #
-# Prereqs on the AiSensy side (one-time setup, in the AiSensy dashboard):
+# Prereqs on the AiSensy side (one-time setup, in the AiSensy dashboard), one
+# template + campaign PER message type below — AiSensy validates templateParams
+# against whichever template the campaign is linked to, so mixing content from
+# one template into another campaign's send fails with a 400 (2026-08-14, per
+# Shruti — this is what was silently breaking WhatsApp: AISENSY_CAMPAIGN_NAME
+# turned out to be a CUSTOMER-facing "Booking Confirmed" template, not the
+# internal team-alert draft the code below originally assumed):
 #   1. Get the API key: Manage → API Key.
-#   2. Create the template (Templates → Create) with the same content as the
-#      old wondershop_new_lead draft, e.g.:
-#        "New booking lead:\nName: {{1}}\nPhone: {{2}}\nTheme: {{3}}\n
-#         City: {{4}}\nBudget: {{5}}"
-#      — submit for Meta approval (usually minutes to a few hours).
+#   2. Create the template (Templates → Create), submit for Meta approval.
 #   3. Once approved: Campaigns → Launch campaign → API Campaign → link it to
-#      that template → set the campaign live. Its name is AISENSY_CAMPAIGN_NAME.
-#   4. Put both values in Railway env vars: AISENSY_API_KEY, AISENSY_CAMPAIGN_NAME.
+#      that template → set the campaign live. Note its exact campaign name.
+#   4. Put the API key + the relevant campaign name(s) in Railway env vars —
+#      AISENSY_API_KEY plus AISENSY_CAMPAIGN_NAME (customer confirmation) and/or
+#      AISENSY_TEAM_CAMPAIGN_NAME (internal team alert, see config.py).
 
 AISENSY_SEND_URL = "https://backend.aisensy.com/campaign/t1/api/v2"
 
 
-async def _send_whatsapp(to_number: str, text: dict) -> None:
-    """Sends the new-lead template message via AiSensy to a single number."""
-    if not settings.AISENSY_API_KEY or not settings.AISENSY_CAMPAIGN_NAME:
-        return
+async def _send_whatsapp(to_number: str, user_name: str, params: list, campaign_name: str) -> Optional[httpx.Response]:
+    """Low-level AiSensy send: posts `params` as templateParams, IN THE EXACT
+    ORDER the target template's placeholders expect, to one WhatsApp number
+    under `campaign_name`. Every caller must pass params matching that
+    specific campaign's approved template — AiSensy 400s otherwise."""
+    if not settings.AISENSY_API_KEY or not campaign_name:
+        return None
 
     # AiSensy wants the number WITH country code, no leading +/00.
     phone = to_number.lstrip("+")
     payload = {
         "apiKey":          settings.AISENSY_API_KEY,
-        "campaignName":    settings.AISENSY_CAMPAIGN_NAME,
+        "campaignName":    campaign_name,
         "destination":     phone,
-        "userName":        text["name"] or "Wondershop Team",
-        "templateParams": [
-            text["name"],
-            text["phone"],
-            text["theme"],
-            text["city"],
-            text["budget"],
-        ],
+        "userName":        user_name or "Wondershop",
+        "templateParams":  params,
     }
     async with httpx.AsyncClient(timeout=10) as client:
         r = await client.post(AISENSY_SEND_URL, json=payload)
@@ -1308,24 +1309,56 @@ async def _send_whatsapp(to_number: str, text: dict) -> None:
     return r
 
 
-async def _send_whatsapp_alerts(lead_id: int, req: LeadSubmitRequest) -> None:
-    """Sends the same lead alert to both team numbers."""
+async def _send_whatsapp_booking_confirmation(lead_id: int, req: LeadSubmitRequest) -> None:
+    """Sends the AiSensy-approved "Booking Confirmed" template to the
+    CUSTOMER's own WhatsApp number (2026-08-14, per Shruti — confirmed via
+    the actual approved template text, which reads "Hi {{1}}! Your booking
+    for {{2}}'s birthday on {{3}} is officially confirmed! ... Booking ID:
+    {{4}}"). Fires only for confirmed bookings, immediately (same timing as
+    the customer's confirmation email in _notify_customer — no need to wait
+    on the scratch card, this is just confirming the booking itself)."""
+    if not req.is_booking or not req.phone:
+        return
     if not settings.AISENSY_API_KEY or not settings.AISENSY_CAMPAIGN_NAME:
-        logger.warning("AiSensy not configured — skipping WhatsApp alert")
+        return
+    try:
+        first_name = _cap_first(req.parent_name.split()[0] if req.parent_name else None)
+        params = [
+            first_name,
+            req.child_names or "your little one",
+            _fmt_date_long(req.event_date) if req.event_date else "your event date",
+            f"#{lead_id}",
+        ]
+        await _send_whatsapp(req.phone, first_name, params, settings.AISENSY_CAMPAIGN_NAME)
+        logger.info(f"Lead #{lead_id}: WhatsApp booking confirmation sent to customer")
+    except Exception as exc:
+        logger.error(f"Lead #{lead_id}: WhatsApp booking confirmation failed — {exc}")
+
+
+async def _send_whatsapp_alerts(lead_id: int, req: LeadSubmitRequest) -> None:
+    """Sends a new-lead alert (name/phone/theme/city/budget) to both internal
+    team numbers — needs its OWN AiSensy template + campaign, separate from
+    the customer-facing "Booking Confirmed" one on AISENSY_CAMPAIGN_NAME
+    (2026-08-14, per Shruti — see module docstring above). Until that second
+    template is created in AiSensy and its campaign name is set as
+    AISENSY_TEAM_CAMPAIGN_NAME on Railway, this is a harmless no-op — the
+    team still gets the full email with the order form either way."""
+    if not settings.AISENSY_API_KEY or not settings.AISENSY_TEAM_CAMPAIGN_NAME:
+        logger.info(f"Lead #{lead_id}: AISENSY_TEAM_CAMPAIGN_NAME not set — skipping team WhatsApp alert (team email still sent)")
         return
 
     try:
         budget_str = f"Rs.{req.client_budget:,.0f}" if req.client_budget else "—"
-        msg = {
-            "name":   req.parent_name,
-            "phone":  req.phone,
-            "theme":  req.theme or "—",
-            "city":   req.city or "—",
-            "budget": budget_str,
-        }
+        params = [
+            req.parent_name or "—",
+            req.phone or "—",
+            req.theme or "—",
+            req.city or "—",
+            budget_str,
+        ]
         await asyncio.gather(
-            _send_whatsapp(settings.WS_PHONE_1, msg),
-            _send_whatsapp(settings.WS_PHONE_2, msg),
+            _send_whatsapp(settings.WS_PHONE_1, req.parent_name, params, settings.AISENSY_TEAM_CAMPAIGN_NAME),
+            _send_whatsapp(settings.WS_PHONE_2, req.parent_name, params, settings.AISENSY_TEAM_CAMPAIGN_NAME),
             return_exceptions=True,
         )
         logger.info(f"Lead #{lead_id}: WhatsApp alerts sent")
@@ -1337,13 +1370,15 @@ async def _send_whatsapp_alerts(lead_id: int, req: LeadSubmitRequest) -> None:
 
 async def _notify_customer(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str]) -> None:
     """Fired synchronously from /submit, always: the ops-facing Google Sheet
-    row (so the live tracker updates instantly) plus the customer's own
-    confirmation email — both go out right away, not held for the
-    scratch-card interaction. Only the team-facing notification waits on
+    row (so the live tracker updates instantly), the customer's own
+    confirmation email, and (for confirmed bookings) the "Booking Confirmed"
+    WhatsApp message to the customer — all go out right away, not held for
+    the scratch-card interaction. Only the team-facing notification waits on
     that (2026-08-12, per Shruti — see _notify_team() below)."""
     await asyncio.gather(
         _append_to_sheet(lead_id, req, reward_code, referral_code),
         _send_user_ack(lead_id, req, reward_code, referral_code),
+        _send_whatsapp_booking_confirmation(lead_id, req),
         return_exceptions=True,
     )
 
@@ -1351,9 +1386,12 @@ async def _notify_customer(lead_id: int, req: LeadSubmitRequest, reward_code: Op
 async def _notify_team(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str],
                         event_sales_lead: Optional[str] = None, added_service_label: Optional[str] = None) -> None:
     """The ops-facing "order booking" notification — team email (with the
-    order execution form attached) + WhatsApp alert to the Wondershop team
-    numbers (WS_PHONE_1/2 — see _send_whatsapp_alerts, these are internal
-    team phones, not the customer's). For a confirmed booking this is
+    order execution form attached). Team WhatsApp alerts are deliberately
+    OFF for now (2026-08-14, per Shruti: "let's skip whatsapp alert for the
+    team for now, let's do whatsapp for only the customer") — see
+    _send_whatsapp_alerts() above, kept ready but unused; uncomment the
+    gather line below once a team-alert AiSensy template + campaign exist
+    and AISENSY_TEAM_CAMPAIGN_NAME is set. For a confirmed booking this is
     deliberately held back until the scratch-card interaction is over
     (explicit close, a 5-minute idle-timeout fallback, or a tab-close beacon
     — see builder.html's finalizeAndNotify()) so it can say whether a
@@ -1363,7 +1401,7 @@ async def _notify_team(lead_id: int, req: LeadSubmitRequest, reward_code: Option
     /submit fires this immediately for those instead."""
     await asyncio.gather(
         _send_team_email(lead_id, req, reward_code, referral_code, event_sales_lead, added_service_label),
-        _send_whatsapp_alerts(lead_id, req),
+        # _send_whatsapp_alerts(lead_id, req),  # re-enable once AISENSY_TEAM_CAMPAIGN_NAME is set
         return_exceptions=True,   # one failure must never cancel the other
     )
 
