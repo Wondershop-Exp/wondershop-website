@@ -62,6 +62,9 @@ class LeadSubmitRequest(BaseModel):
     kids_count:         Optional[int]   = None
     child_ages:         Optional[str]   = None
     child_genders:      Optional[str]   = None
+    # 2026-08-14, per Shruti — sheet-only for now (see _append_to_sheet);
+    # not persisted to the `leads` DB table (no column/migration for it yet).
+    child_dobs:         Optional[str]   = None
     venue:              Optional[str]   = None
     # Venue Google Maps share link + on-site contact person (2026-08-11).
     venue_maps_link:    Optional[str]   = None
@@ -168,6 +171,32 @@ def _html_escape(s) -> str:
         return ""
     return (str(s).replace("&", "&amp;").replace("<", "&lt;")
             .replace(">", "&gt;").replace('"', "&quot;"))
+
+
+def _ordinal(n: int) -> str:
+    """5 -> '5th', 1 -> '1st', 22 -> '22nd', 11 -> '11th' (the 11-13 teens
+    are always 'th', not 'st'/'nd'/'rd')."""
+    if 10 <= n % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+def _party_title(req: "LeadSubmitRequest") -> Optional[str]:
+    """"Idhika's 5th Birthday Party" — first child's name + turning age,
+    shown above the email heading and on the order confirmation page
+    (2026-08-14, per Shruti). None if either piece is missing — nothing
+    sensible to show without both."""
+    first_name = (req.child_names or "").split(",")[0].strip()
+    first_age_str = (req.child_ages or "").split(",")[0].strip()
+    if not first_name or not first_age_str:
+        return None
+    try:
+        first_age = int(first_age_str)
+    except ValueError:
+        return None
+    return f"{first_name}'s {_ordinal(first_age)} Birthday Party"
 
 
 def _booking_subject_line(lead_id: int, req: "LeadSubmitRequest") -> str:
@@ -882,6 +911,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
     """recipient_kind: 'customer' or 'team' — team version skips the welcome
     fluff and T&C footer link but keeps the same details table + styling."""
     first_name = _cap_first(req.parent_name.split()[0] if req.parent_name else None)
+    party_title = _party_title(req)
 
     if recipient_kind == "customer":
         if is_booking:
@@ -1035,6 +1065,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(45,33,64,.08)">
 <tr><td style="background:linear-gradient(135deg,{BRAND_PINK} 0%,{BRAND_PURPLE} 100%);padding:28px 26px;text-align:center">
 <img src="{MASCOT_URL}" width="56" height="56" alt="Wondershop mascot" style="display:block;margin:0 auto 10px;border-radius:50%;background:#fff;padding:4px">
+{f'<div style="font-family:Georgia,serif;font-size:14px;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:4px">{_html_escape(party_title)}</div>' if party_title else ''}
 <div style="font-family:Georgia,serif;font-size:21px;font-weight:700;color:#fff">{heading}</div>
 </td></tr>
 <tr><td style="padding:24px 26px 8px">
@@ -1218,6 +1249,67 @@ SOURCE
 
 # ─── 3. GOOGLE SHEET ─────────────────────────────────────────────────────────
 
+# 2026-08-14, per Shruti — "google sheet - add all services. Add column for
+# decor, pinnata, return gifts (mention all return gifts as comma separated
+# with packaging), music, host, activities (comma separated), photography
+# (tier with addons), einvite." All of this already lives in
+# req.builder_snapshot (builder.html's buildSnapshot()) — just wasn't broken
+# out into its own sheet columns before. Photography has no separate
+# "addons" concept in the data yet (S.photo is just {tier, p}) — so that
+# column shows the tier alone until addons are added as a real feature.
+def _sheet_service_columns(snapshot: Optional[dict]) -> dict:
+    snap = snapshot or {}
+
+    def _name(key: str) -> str:
+        v = snap.get(key)
+        return (v.get("n") or "") if isinstance(v, dict) else ""
+
+    decor = _name("decor")
+
+    pinata = _name("pinata")
+
+    einvite = _name("einvite")
+
+    host = (snap.get("host") or {}).get("tier") or "" if isinstance(snap.get("host"), dict) else ""
+
+    dj = snap.get("dj") or {}
+    dj_tier = dj.get("tier") if isinstance(dj, dict) else None
+    dj_addons = snap.get("dj_addons") or {}
+    addon_labels = []
+    if dj_addons.get("lights"):
+        addon_labels.append("DJ Lights")
+    if dj_addons.get("smoke"):
+        addon_labels.append("Smoke Machine")
+    music = ", ".join(filter(None, [dj_tier] + addon_labels))
+
+    activities = ", ".join(
+        a.get("n", "") for a in (snap.get("activities") or []) if isinstance(a, dict) and a.get("n")
+    )
+
+    photo = (snap.get("photo") or {}).get("tier") or "" if isinstance(snap.get("photo"), dict) else ""
+
+    gifts_list = snap.get("gifts") or []
+    gift_parts = [
+        f"{g.get('n', '')} x{g.get('qty', '')}"
+        for g in gifts_list if isinstance(g, dict) and g.get("n")
+    ]
+    packaging = snap.get("gift_packaging")
+    if packaging:
+        gift_parts.append(f"Packaging: {packaging}")
+    return_gifts = ", ".join(gift_parts)
+
+    return {
+        "decor": decor,
+        "pinata": pinata,
+        "return_gifts": return_gifts,
+        "music": music,
+        "host": host,
+        "activities": activities,
+        "photography": photo,
+        "einvite": einvite,
+    }
+
+
 async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str] = None) -> None:
     """
     POST to the Google Apps Script webhook.
@@ -1228,6 +1320,7 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Op
         return
 
     try:
+        service_cols = _sheet_service_columns(req.builder_snapshot)
         payload = {
             "lead_id":      lead_id,
             "submitted_at": datetime.utcnow().isoformat(),
@@ -1239,6 +1332,18 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Op
             "child_names":  req.child_names or "",
             "child_ages":   req.child_ages or "",
             "child_genders":req.child_genders or "",
+            # 2026-08-14, per Shruti — DOB captured in the Sheet for reference;
+            # sheet-only for now, not added to the `leads` DB table (would
+            # need a migration — flag if you also want it stored there).
+            "child_dobs":   req.child_dobs or "",
+            "decor":        service_cols["decor"],
+            "pinata":       service_cols["pinata"],
+            "return_gifts": service_cols["return_gifts"],
+            "music":        service_cols["music"],
+            "host":         service_cols["host"],
+            "activities":   service_cols["activities"],
+            "photography":  service_cols["photography"],
+            "einvite":      service_cols["einvite"],
             "theme":        req.theme or "",
             "venue":        req.venue or "",
             "venue_maps_link":    req.venue_maps_link or "",

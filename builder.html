@@ -1937,6 +1937,10 @@ input,textarea,select{font-family:var(--fb)}
 <!-- ─── CONFIRMATION ─── -->
 <div class="step" id="sconf">
   <div class="conf-hero">
+    <!-- 2026-08-14, per Shruti: "Idhika's 5th Birthday Party" shown above
+         the main heading — see updConfPartyTitle(). Hidden (empty) when we
+         don't have both a child name and a valid turning age. -->
+    <div id="confPartyTitle" style="font-family:var(--fd);font-size:15px;font-weight:700;color:var(--pk);margin-bottom:4px;display:none"></div>
     <div class="conf-icon" id="confHeroIcon">🎉</div>
     <h1 id="confHeroTitle">Booking Confirmed!</h1>
     <p id="confHeroDesc">We're thrilled to celebrate with you. A confirmation has been sent to your email and WhatsApp.</p>
@@ -2285,6 +2289,14 @@ function ageForEvent(dobStr,eventDateStr){
   const daysSinceLast=(ev-lastBday)/86400000;
   const daysUntilNext=(nextBday-ev)/86400000;
   return daysUntilNext<daysSinceLast?ageAtLast+1:ageAtLast;
+}
+// 5 -> '5th', 1 -> '1st', 22 -> '22nd', 11 -> '11th' (11-13 are always 'th').
+// Used for the "<Child>'s <Age>th Birthday Party" title on the confirmation
+// page (2026-08-14, per Shruti) — matches leads.py's _ordinal() so the
+// email and the on-page title never disagree.
+function ordinalSuffix(n){
+  if(n%100>=10&&n%100<=20)return n+'th';
+  return n+({1:'st',2:'nd',3:'rd'}[n%10]||'th');
 }
 // Expands one theme into its available tier-cards (only tiers with a real
 // photo in tierPhotos get a card — see DECOR_TIER_META note above).
@@ -3367,7 +3379,7 @@ function selInv(card,id,p,n){
     document.getElementById('ei-start').value=S.eventTime||'11:00';
     document.getElementById('ei-venue').value=S.venue||'';
     if(S.mobile&&!document.getElementById('ei-rsvp').value)document.getElementById('ei-rsvp').value=S.mobile;
-    if(S.children[0]?.dob){const bd=new Date(S.children[0].dob);const ev=new Date(S.eventDate||Date.now());const age=Math.floor((ev-bd)/(365.25*24*3600*1000));document.getElementById('ei-age').value=age+'th';}
+    if(S.children[0]?.dob){const age=ageForEvent(S.children[0].dob,S.eventDate);if(age!=null)document.getElementById('ei-age').value=age+'th';}
     document.getElementById('eiDetail').style.display='block';
     document.getElementById('invCustomThemeWrap').style.display='none';
   }
@@ -3725,12 +3737,21 @@ async function doCo(){
   // not just calendar age as of the event date. Feeds the order form's "Age
   // & Gender" field (same calc pattern used elsewhere for the bubble-reward
   // eligibility check and e-invite age auto-fill).
+  // 2026-08-14, per Shruti — a booking showed "Turning Age: 0" in the email
+  // and Google Sheet. "0" is never a meaningful turning age (a birthday
+  // celebrates completing a year, not turning 0), so floor the accepted
+  // range at 1 — an age of 0 (e.g. from an under-1-year-old DOB, or a
+  // data-entry slip) is treated the same as a missing DOB and left blank
+  // rather than showing a confusing "0".
   const __coChildAges=S.children.map(c=>{
     if(!c.dob)return '';
     const age=ageForEvent(c.dob,S.eventDate);
-    return (age!=null&&age>=0&&age<=18)?String(age):'';
+    return (age!=null&&age>=1&&age<=18)?String(age):'';
   }).filter(Boolean).join(', ');
   const __coChildGenders=S.children.map(c=>c.gender||'').filter(Boolean).join(', ');
+  // 2026-08-14, per Shruti — DOB alongside age/gender, so the Google Sheet
+  // has the raw birthdate on file too (see leads.py's child_dobs).
+  const __coChildDobs=S.children.map(c=>c.dob||'').filter(Boolean).join(', ');
   const __coPayload={
     parent_name:        S.parentName,
     phone:              __coPhone,
@@ -3741,6 +3762,7 @@ async function doCo(){
     child_names:        __coChildNames || null,
     child_ages:         __coChildAges || null,
     child_genders:      __coChildGenders || null,
+    child_dobs:         __coChildDobs || null,
     theme:              S.theme || null,
     venue:              __coVenue,
     location_type:      S.venue || null,
@@ -3849,6 +3871,20 @@ async function doCo(){
   document.getElementById('confRemarks').innerHTML=rmk
     ? '<div class="cbox" style="margin-top:16px;text-align:left"><div class="cb-row">Your special requests / remarks:</div><div class="cb-val" style="white-space:pre-wrap">'+rmk.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</div></div>'
     : '';
+
+  // 2026-08-14, per Shruti: "Idhika's 5th Birthday Party" above the main
+  // heading — same first-child name + turning age used in the confirmation
+  // email (see leads.py's _party_title()). Hidden when either piece is
+  // missing/invalid rather than showing a broken-looking partial title.
+  const partyTitleEl=document.getElementById('confPartyTitle');
+  const __firstChildName=(S.children[0]?.name||'').trim();
+  const __firstChildAge=S.children[0]?.dob?ageForEvent(S.children[0].dob,S.eventDate):null;
+  if(__firstChildName&&__firstChildAge!=null&&__firstChildAge>=1&&__firstChildAge<=18){
+    partyTitleEl.textContent=__firstChildName+"'s "+ordinalSuffix(__firstChildAge)+' Birthday Party';
+    partyTitleEl.style.display='block';
+  }else{
+    partyTitleEl.style.display='none';
+  }
 
   // Swap the confirmation screen between the normal "Booking Confirmed!"
   // flourish and the urgent "we'll call to check feasibility" version.
@@ -4008,8 +4044,13 @@ async function doLead(){
     parent_name:        name,
     phone:              phone,
     child_names:        child   || null,
-    child_age:          childAge    || null,
-    child_gender:       childGender || null,
+    // 2026-08-14, per Shruti — these were sent as "child_age"/"child_gender"
+    // (singular), which don't match LeadSubmitRequest's fields
+    // (child_ages/child_genders, plural) and were being silently dropped by
+    // the backend, showing as blank on the quick-lead ("Call to Customise")
+    // email/sheet even when the customer had filled them in.
+    child_ages:         childAge    || null,
+    child_genders:      childGender || null,
     email:              email   || null,
     event_date:         date    || null,
     kids_count:         kids,
@@ -4111,7 +4152,7 @@ function sendToTeamAndLead(){
   document.getElementById('ld-child').value=S.children.map(c=>c.name||'').filter(Boolean).join(', ');
   document.getElementById('ld-phone').value=S.mobile||'';
   const venEl=document.getElementById('ld-venue');if(venEl)venEl.value=S.venueOther||(S.venue&&S.venue!=='Other'?S.venue:'')||'';
-  const ageEl=document.getElementById('ld-age');if(ageEl&&!ageEl.value&&S.children[0]?.dob){const bd=new Date(S.children[0].dob);const age=Math.floor((Date.now()-bd)/(365.25*24*3600*1000));if(age>=0&&age<=18)ageEl.value=age;}
+  const ageEl=document.getElementById('ld-age');if(ageEl&&!ageEl.value&&S.children[0]?.dob){const age=ageForEvent(S.children[0].dob,S.eventDate);if(age!=null&&age>=1&&age<=18)ageEl.value=age;}
   const genEl=document.getElementById('ld-gender');if(genEl&&S.children[0]?.gender)genEl.value=S.children[0].gender;
   goTo('slead');
 }

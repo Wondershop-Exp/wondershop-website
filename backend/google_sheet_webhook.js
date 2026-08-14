@@ -33,10 +33,19 @@ var SHEET_NAME = "Leads";                 // Raw feed — every submission lands
 var CONFIRMED_TAB_NAME = "Confirmed Bookings"; // Live filtered view for ops
 var STATUS_OPTIONS = ["Lead", "Contacted", "Confirmed", "Lost"];
 
+// 2026-08-14, per Shruti — added "Child DOBs" + a "Services" group (Decor,
+// Pinata, Return Gifts, Music, Host, Activities, Photography, E-Invite),
+// broken out of the raw Cart Snapshot JSON into their own readable columns.
+// IMPORTANT: this HEADERS array only gets WRITTEN to a brand-new empty
+// sheet (see doPost/setupSheet below — both skip the header row if the
+// sheet already has data). On your EXISTING sheet you'll need to add these
+// new header cells yourself (or clear+re-run setupSheet on a fresh tab) —
+// otherwise the new columns will append data past your current last column
+// without a matching header label.
 var HEADERS = [
   "Lead ID", "Submitted At", "Status",
   "Parent Name", "Phone", "Email",
-  "Event Date", "Kids Count", "Child Names", "Child Ages", "Child Genders",
+  "Event Date", "Kids Count", "Child Names", "Child Ages", "Child Genders", "Child DOBs",
   "Theme", "Venue", "Venue Maps Link", "Venue Contact Name", "Venue Contact Phone",
   "Location Type", "City", "Pincode", "Budget (₹)",
   "Grand Total (₹)", "Discount %", "Advance Paid (₹)", "Balance Due (₹)",
@@ -48,6 +57,7 @@ var HEADERS = [
   "Gift Delivery Address", "Gift Delivery Maps Link", "Gift Delivery Address Type",
   "Gift Delivery Contact", "Gift Delivery Contact Phone", "Gift Required By Date",
   "DJ Lights Addon", "Smoke Machine Addon",
+  "Decor", "Pinata", "Return Gifts", "Music", "Host", "Activities", "Photography", "E-Invite",
   "Cart Snapshot (JSON)"
 ];
 
@@ -87,6 +97,7 @@ function doPost(e) {
       d.child_names    || "",
       d.child_ages     || "",
       d.child_genders  || "",
+      d.child_dobs     || "",
       d.theme          || "",
       d.venue          || "",
       d.venue_maps_link    || "",
@@ -121,6 +132,14 @@ function doPost(e) {
       d.gift_required_by_date      || "",
       d.dj_lights_addon            || "",
       d.dj_smoke_machine_addon     || "",
+      d.decor          || "",
+      d.pinata         || "",
+      d.return_gifts   || "",
+      d.music          || "",
+      d.host           || "",
+      d.activities     || "",
+      d.photography    || "",
+      d.einvite        || "",
       d.cart_snapshot  || "",
     ]);
 
