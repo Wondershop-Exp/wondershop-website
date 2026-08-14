@@ -90,9 +90,15 @@ def _child_age_gender(req) -> str:
 # ─── data assembly ────────────────────────────────────────────────────────
 
 def assemble_order_form_data(req, lead_id: int, event_sales_lead: Optional[str],
-                              reward_code: Optional[str] = None) -> dict:
+                              reward_code: Optional[str] = None,
+                              added_service_label: Optional[str] = None) -> dict:
     """Pulls together everything the order form needs straight from the
-    booking payload already captured at checkout — no extra DB lookups."""
+    booking payload already captured at checkout — no extra DB lookups.
+    added_service_label is set when the customer won and redeemed a
+    Tattoo/Bubble Artist scratch-card reward onto THIS booking (2026-08-14,
+    per Shruti — "also add to the order form") — prints as its own row in
+    the Services section so ops sees it on the execution form too, not just
+    in the confirmation email."""
     snap = req.builder_snapshot or {}
 
     decor   = snap.get("decor") or {}
@@ -179,6 +185,7 @@ def assemble_order_form_data(req, lead_id: int, event_sales_lead: Optional[str],
         "einvite_name": einvite.get("n") or "—",
         "activities": [a.get("n") for a in activities if a.get("n")] or ["—"],
         "reward_code": reward_code or "—",
+        "bonus_service": added_service_label or "—",
         "location": req.city or req.venue or "",
         "decor_image_path": decor_ref["image_path"] if decor_ref else None,
         "decor_spec": decor_ref["spec"] if decor_ref else [],
@@ -264,6 +271,7 @@ _SERVICE_ROWS = [
     ("Host",          "host_tier"),
     ("Music (DJ)",    "dj_tier"),
     ("DJ Add-ons",    "dj_addons"),
+    ("Bonus Service (Scratch-Card Reward)", "bonus_service"),
 ]
 
 _BILLING_ROWS = [

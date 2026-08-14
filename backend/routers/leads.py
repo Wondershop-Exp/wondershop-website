@@ -672,7 +672,7 @@ def _format_reward_block(req: LeadSubmitRequest, reward_code: Optional[str], add
 # chosen services with images; for decor and photography specifically list
 # inclusions").
 
-def _services_detail_list(req: LeadSubmitRequest) -> list:
+def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[str] = None) -> list:
     """Always returns one entry per builder step (Decor, Activities, Host,
     DJ, Pinata, E-Invite, Photographer, Return Gifts), in that order, even
     when the customer didn't opt into a given step — those come back as
@@ -780,14 +780,23 @@ def _services_detail_list(req: LeadSubmitRequest) -> list:
     else:
         out.append({"label": "Return Gifts", "not_selected": True})
 
+    # 2026-08-14, per Shruti: if the customer won a Tattoo/Bubble Artist
+    # scratch-card reward and chose to add it to THIS booking, show it as
+    # its own line in Services Booked (not just buried in the reward
+    # callout further down the email) — "free" price so it's obviously a
+    # complimentary win, not a paid add-on.
+    if added_service_label:
+        out.append({"label": "Bonus Service", "name": added_service_label, "price": None, "free": True})
+
     return out
 
 
-def _format_services_block(req: LeadSubmitRequest) -> str:
+def _format_services_block(req: LeadSubmitRequest, added_service_label: Optional[str] = None) -> str:
     """Plain-text itemised list of every chosen service — decor & photography
     show their inclusions so there's no ambiguity later about what was
-    promised."""
-    services = _services_detail_list(req)
+    promised. added_service_label appends a won Tattoo/Bubble Artist reward
+    (if redeemed onto this booking) as its own "Bonus Service" line."""
+    services = _services_detail_list(req, added_service_label)
     if not services:
         return ""
     lines = ["\nSERVICES BOOKED"]
@@ -806,7 +815,7 @@ def _format_services_block(req: LeadSubmitRequest) -> str:
             if svc.get("note"):
                 lines.append(f"    ({svc['note']})")
             continue
-        price_bit = f" — {_fmt_rupees(svc['price'])}" if svc.get("price") else ""
+        price_bit = " — FREE 🎁 (scratch-card reward)" if svc.get("free") else (f" — {_fmt_rupees(svc['price'])}" if svc.get("price") else "")
         lines.append(f"  {svc['label']}: {svc['name']}{price_bit}")
         for label, val in svc.get("inclusions", []):
             lines.append(f"      - {label}{': ' + val if val else ''}")
@@ -814,11 +823,13 @@ def _format_services_block(req: LeadSubmitRequest) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _html_services_section(req: LeadSubmitRequest) -> str:
+def _html_services_section(req: LeadSubmitRequest, added_service_label: Optional[str] = None) -> str:
     """HTML version of _format_services_block, with reference images pulled
     from the live site (hotlinked, not attached, per the file's existing
-    image-hosting convention) for decor/pinata/e-invite/gifts."""
-    services = _services_detail_list(req)
+    image-hosting convention) for decor/pinata/e-invite/gifts.
+    added_service_label appends a won Tattoo/Bubble Artist reward (if
+    redeemed onto this booking) as its own "Bonus Service" card."""
+    services = _services_detail_list(req, added_service_label)
     if not services:
         return ""
     cards = []
@@ -866,7 +877,7 @@ def _html_services_section(req: LeadSubmitRequest) -> str:
             )
             cards.append(f'<div style="padding:12px 0;border-bottom:1px solid #F0E9FA">{body}</div>')
             continue
-        price_bit = f" — {_html_escape(_fmt_rupees(svc['price']))}" if svc.get("price") else ""
+        price_bit = ' — <span style="color:#2E9E52;font-weight:700">FREE 🎁 (scratch-card reward)</span>' if svc.get("free") else (f" — {_html_escape(_fmt_rupees(svc['price']))}" if svc.get("price") else "")
         incl_html = ""
         incl = svc.get("inclusions") or []
         if incl:
@@ -1098,7 +1109,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
     ] if _any_gift_selected else []
     gift_html = _html_details_table(gift_rows)
 
-    services_html = _html_services_section(req)
+    services_html = _html_services_section(req, added_service_label)
 
     remarks_html = ""
     if req.remarks:
@@ -1201,7 +1212,7 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Opti
 
         remarks_block = f"\nYour special requests / remarks:\n  {req.remarks}\n" if req.remarks else ""
         order_block = _format_order_summary_block(req)
-        services_block = _format_services_block(req)
+        services_block = _format_services_block(req, added_service_label)
         dj_addons_block = _format_dj_addons_block(req)
         venue_block = _format_venue_block(req)
         gift_delivery_block = _format_gift_delivery_block(req)
@@ -1263,7 +1274,7 @@ async def _send_team_email(lead_id: int, req: LeadSubmitRequest, reward_code: Op
         budget_str = f"Rs.{req.client_budget:,.0f}" if req.client_budget else "—"
         remarks_block = f"\nSPECIAL REQUESTS / REMARKS\n  {req.remarks}\n" if req.remarks else ""
         order_block = _format_order_summary_block(req)
-        services_block = _format_services_block(req)
+        services_block = _format_services_block(req, added_service_label)
         dj_addons_block = _format_dj_addons_block(req)
         venue_block = _format_venue_block(req)
         gift_delivery_block = _format_gift_delivery_block(req)
@@ -1315,7 +1326,7 @@ SOURCE
         attachments = []
         if is_booking:
             try:
-                form_data = assemble_order_form_data(req, lead_id, event_sales_lead, reward_code)
+                form_data = assemble_order_form_data(req, lead_id, event_sales_lead, reward_code, added_service_label)
                 form_data = await fetch_order_form_images(form_data)
                 xlsx_bytes = build_order_form_xlsx(form_data)
                 pdf_bytes = build_order_form_pdf(form_data)
