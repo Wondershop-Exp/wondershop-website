@@ -1654,7 +1654,7 @@ input,textarea,select{font-family:var(--fb)}
         </div>
       </div>
       <div id="invCustomThemeWrap" style="display:none;margin-top:10px" onclick="event.stopPropagation()">
-        <div class="ig"><label>Which theme should the invite match?</label><input type="text" id="ei-ctheme" placeholder="e.g. Unicorn Magic, Superhero, Space Explorer..."></div>
+        <div class="ig"><label>Which theme should the invite match?<span class="req">*</span></label><input type="text" id="ei-ctheme" placeholder="e.g. Unicorn Magic, Superhero, Space Explorer..."></div>
       </div>
     </div>
 
@@ -1662,14 +1662,14 @@ input,textarea,select{font-family:var(--fb)}
     <div id="eiDetail" style="display:none">
       <div class="sec-lbl"><span class="dot"></span>Invite Details</div>
       <div class="row2">
-        <div class="ig"><label>Child Name(s) on Invite *</label><input type="text" id="ei-names" placeholder="e.g. Aarav or Aarav &amp; Aanya"></div>
-        <div class="ig"><label>Child Age *</label><input type="text" id="ei-age" placeholder="e.g. 7th"></div>
+        <div class="ig"><label>Child Name(s) on Invite<span class="req">*</span></label><input type="text" id="ei-names" placeholder="e.g. Aarav or Aarav &amp; Aanya"></div>
+        <div class="ig"><label>Child Age<span class="req">*</span></label><input type="text" id="ei-age" placeholder="e.g. 7th"></div>
       </div>
       <div class="row2">
-        <div class="ig"><label>Event Date *</label><input type="date" id="ei-date"></div>
-        <div class="ig"><label>Start Time *</label><input type="time" id="ei-start" value="11:00"></div>
+        <div class="ig"><label>Event Date<span class="req">*</span></label><input type="date" id="ei-date"></div>
+        <div class="ig"><label>Start Time<span class="req">*</span></label><input type="time" id="ei-start" value="11:00"></div>
       </div>
-      <div class="ig"><label>Venue / Address *</label><input type="text" id="ei-venue" placeholder="Venue name and address"></div>
+      <div class="ig"><label>Venue / Address<span class="req">*</span></label><input type="text" id="ei-venue" placeholder="Venue name and address"></div>
       <div class="row2">
         <div class="ig"><label>RSVP Name</label><input type="text" id="ei-rsvpname" placeholder="Name for RSVP replies"></div>
         <div class="ig"><label>RSVP Mobile</label>
@@ -1846,10 +1846,21 @@ input,textarea,select{font-family:var(--fb)}
       <div class="ig"><label>Secondary Mobile <span class="opt">opt.</span></label><div class="pfx-wrap"><span class="pfx">+91</span><input type="tel" id="co-mob2" class="pi" placeholder="Alt. no."></div></div>
     </div>
     <div class="row2">
-      <div class="ig"><label>Event Date</label><input type="date" id="co-date" onchange="checkUrgentDate('co-date','co-urgent-warn');updCoUrgent()"><div class="err-msg" id="co-date-past-err">This date has already passed — please choose today or a later date.</div></div>
+      <div class="ig"><label>Event Date</label><input type="date" id="co-date" onchange="checkUrgentDate('co-date','co-urgent-warn');updCoUrgent();checkEiDateMismatch()"><div class="err-msg" id="co-date-past-err">This date has already passed — please choose today or a later date.</div></div>
       <div class="ig"><label>Start Time</label><input type="time" id="co-time"></div>
     </div>
     <div id="co-urgent-warn" class="urgent-warn" style="display:none"><span class="uw-ic">⚡</span><span>Your event is less than 3 days away — we can't take an advance payment or confirm this booking instantly. Submit your details below and our team will call you within 24 hours to check feasibility.</span></div>
+    <!-- 2026-08-14, per Shruti: "date in invite has to be the same as date
+         on checkout page - highlight if there is a discrepancy and ask the
+         user to select 1 date." Only relevant if an E-Invite was actually
+         configured (ei-date has a value) — see checkEiDateMismatch(). -->
+    <div id="co-date-ei-mismatch" class="urgent-warn" style="display:none;flex-direction:column;align-items:stretch">
+      <div style="display:flex;gap:8px;align-items:flex-start"><span class="uw-ic">⚠️</span><span>Your E-Invite was set for a different date than your checkout Event Date. Pick one to use everywhere:</span></div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button type="button" class="coupon-btn" onclick="resolveEiDateMismatch('checkout')">Use checkout date (<span id="mmCoDateLbl"></span>)</button>
+        <button type="button" class="coupon-btn" style="background:var(--gy)" onclick="resolveEiDateMismatch('invite')">Use invite date (<span id="mmEiDateLbl"></span>)</button>
+      </div>
+    </div>
     <div class="ig">
       <label>Find Your Venue on Google Maps <span class="opt">opt.</span></label>
       <div class="coupon-row" style="margin-bottom:4px">
@@ -1865,7 +1876,7 @@ input,textarea,select{font-family:var(--fb)}
     </div>
     <div class="row2">
       <div class="ig"><label>Guest Kids Count</label><input type="number" id="co-kids" placeholder="No. of kids" onchange="coKidsChanged(this.value)"></div>
-      <div class="ig"><label>Child Name(s)</label><input type="text" id="co-child" placeholder="Child's name" oninput="this.classList.remove('err');document.getElementById('co-child-err').classList.remove('show')"><div class="err-msg" id="co-child-err">Please enter the child's name</div></div>
+      <div class="ig"><label>Child Name(s)<span class="req">*</span></label><input type="text" id="co-child" placeholder="Child's name" oninput="this.classList.remove('err');document.getElementById('co-child-err').classList.remove('show')"><div class="err-msg" id="co-child-err">Please enter the child's name</div></div>
     </div>
     <div id="co-kids-popup" style="display:none;background:var(--syl);border-radius:10px;padding:10px 14px;font-size:13px;color:#92680a;margin-top:-6px">
       ⚡ Kids count changed — activity and gift prices have been updated accordingly.
@@ -1878,7 +1889,7 @@ input,textarea,select{font-family:var(--fb)}
          Step 0 already collected all of this (see fillCo()). -->
     <div id="coPkgExtras" style="display:none">
       <div class="row2">
-        <div class="ig"><label>Child's Date of Birth</label><input type="date" id="co-child-dob"><div class="err-msg" id="co-child-dob-err">Please enter date of birth</div></div>
+        <div class="ig"><label>Child's Date of Birth<span class="req">*</span></label><input type="date" id="co-child-dob"><div class="err-msg" id="co-child-dob-err">Please enter date of birth</div></div>
         <div class="ig"><label>Pincode</label><input type="text" id="co-pincode" placeholder="e.g. 400001" maxlength="6" inputmode="numeric"></div>
       </div>
       <div class="ig">
@@ -2999,7 +3010,7 @@ function appendC(i){
   const ords=['First','Second','Third','Fourth'];
   const w=document.getElementById('cWrap');
   const d=document.createElement('div');d.className='child-card';
-  d.innerHTML='<div class="child-hdr"><div class="child-title">'+ords[i]+' Child</div>'+(i>0?'<button class="rm-btn" onclick="rmC(this)">×</button>':'')+'</div><div class="ig"><label>Child\'s Name</label><input type="text" class="c-name" placeholder="e.g. Aarav" oninput="syncC();this.classList.remove(\'err\');this.nextElementSibling.classList.remove(\'show\')"><div class="err-msg c-name-err">Please enter the child\'s name</div></div><div class="row2"><div class="ig" style="margin-bottom:0"><label>Date of Birth</label><input type="date" class="c-dob" onchange="syncC();this.classList.remove(\'err\');this.nextElementSibling.classList.remove(\'show\')"><div class="err-msg c-dob-err">Please enter date of birth</div></div><div class="ig" style="margin-bottom:0"><label>Gender</label><div class="g-sel"><button class="g-btn" onclick="selG(this,\'Boy\')"><span class="gi">👦</span>Boy</button><button class="g-btn" onclick="selG(this,\'Girl\')"><span class="gi">👧</span>Girl</button><button class="g-btn" onclick="selG(this,\'Either\')"><span class="gi">🌈</span>Others</button></div></div></div>';
+  d.innerHTML='<div class="child-hdr"><div class="child-title">'+ords[i]+' Child</div>'+(i>0?'<button class="rm-btn" onclick="rmC(this)">×</button>':'')+'</div><div class="ig"><label>Child\'s Name<span class="req">*</span></label><input type="text" class="c-name" placeholder="e.g. Aarav" oninput="syncC();this.classList.remove(\'err\');this.nextElementSibling.classList.remove(\'show\')"><div class="err-msg c-name-err">Please enter the child\'s name</div></div><div class="row2"><div class="ig" style="margin-bottom:0"><label>Date of Birth<span class="req">*</span></label><input type="date" class="c-dob" onchange="syncC();this.classList.remove(\'err\');this.nextElementSibling.classList.remove(\'show\')"><div class="err-msg c-dob-err">Please enter date of birth</div></div><div class="ig" style="margin-bottom:0"><label>Gender</label><div class="g-sel"><button class="g-btn" onclick="selG(this,\'Boy\')"><span class="gi">👦</span>Boy</button><button class="g-btn" onclick="selG(this,\'Girl\')"><span class="gi">👧</span>Girl</button><button class="g-btn" onclick="selG(this,\'Either\')"><span class="gi">🌈</span>Others</button></div></div></div>';
   w.appendChild(d);
 }
 function rmC(btn){btn.closest('.child-card').remove();reIdxC();syncC();}
@@ -3426,7 +3437,11 @@ function buildInvs(){
   if(S.einvite){
     document.getElementById('inv-'+S.einvite.id)?.classList.add('sel');
     if(S.einvite.id!=='custom'){
-      prefillEiFields();
+      // buildInvs() runs right after doS0() resubmits — Step 0 data may have
+      // just changed (e.g. DOB edited), so force-refresh here rather than
+      // only filling empty fields (2026-08-14, per Shruti — "child's age on
+      // invite - calculate if dob is input on step 0").
+      prefillEiFields(true);
       document.getElementById('eiDetail').style.display='block';
       document.getElementById('invCustomThemeWrap').style.display='none';
     }else{document.getElementById('eiDetail').style.display='none';document.getElementById('invCustomThemeWrap').style.display='block';}
@@ -3434,12 +3449,17 @@ function buildInvs(){
 }
 // 2026-08-14, per Shruti: prefill the E-Invite detail fields from whatever
 // was already entered back in Step 0 — child name(s), turning age, event
-// date/start time, and venue. Only fills fields that are still EMPTY so it
-// never clobbers something the customer already typed by hand here. Fixes
-// a bug where the Venue field showed the literal word "Other" instead of
-// the actual venue text when the customer picked "Other" at Step 0.
-function prefillEiFields(){
-  const set=(id,val)=>{const el=document.getElementById(id);if(el&&!el.value&&val)el.value=val;};
+// date/start time, and venue. By default only fills fields that are still
+// EMPTY so it never clobbers something the customer already typed by hand
+// here; buildInvs() passes force=true since it runs right after Step 0 was
+// just (re)submitted, so the latest Step 0 values should win — e.g. the
+// invite's "Child Age" recalculates immediately if DOB was just added/
+// changed at Step 0, rather than staying stuck on a stale first-fill value.
+// Also fixes a bug where the Venue field showed the literal word "Other"
+// instead of the actual venue text when the customer picked "Other" at
+// Step 0.
+function prefillEiFields(force){
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&(force||!el.value)&&val)el.value=val;};
   set('ei-names', S.children.map(c=>c.name||'').filter(Boolean).join(' & '));
   set('ei-date', S.eventDate||'');
   set('ei-start', S.eventTime||'11:00');
@@ -3610,8 +3630,9 @@ function fillCo(){
   // an E-Invite and filled those in there.
   const __eiRsvpName=document.getElementById('ei-rsvpname')?.value.trim()||'';
   const __eiRsvpMob=document.getElementById('ei-rsvp')?.value.trim()||'';
+  const __eiDate=document.getElementById('ei-date')?.value||'';
   document.getElementById('co-mob').value=S.mobile||__eiRsvpMob||'';
-  document.getElementById('co-date').value=S.eventDate||'';
+  document.getElementById('co-date').value=S.eventDate||__eiDate||'';
   document.getElementById('co-time').value=S.eventTime||'11:00';
   document.getElementById('co-child').value=S.children.map(c=>c.name||'').filter(Boolean).join(', ');
   document.getElementById('co-kids').value=S.kidsCount||'';
@@ -3634,6 +3655,40 @@ function fillCo(){
   updCoAmt();
   checkUrgentDate('co-date','co-urgent-warn');
   updCoUrgent();
+  checkEiDateMismatch();
+}
+// 2026-08-14, per Shruti: "date in invite has to be the same as date on
+// checkout page - highlight if there is a discrepancy and ask the user to
+// select 1 date. Update the date selected by the user on both the fields."
+// Only fires if an E-Invite was actually configured (ei-date has a value)
+// — most bookings have no E-Invite at all, so nothing to compare against.
+function checkEiDateMismatch(){
+  const coDateEl=document.getElementById('co-date');
+  const eiDateEl=document.getElementById('ei-date');
+  const warnEl=document.getElementById('co-date-ei-mismatch');
+  if(!coDateEl||!eiDateEl||!warnEl)return;
+  const coDate=coDateEl.value,eiDate=eiDateEl.value;
+  if(coDate&&eiDate&&coDate!==eiDate){
+    document.getElementById('mmCoDateLbl').textContent=coDate;
+    document.getElementById('mmEiDateLbl').textContent=eiDate;
+    warnEl.style.display='flex';
+  }else{
+    warnEl.style.display='none';
+  }
+}
+function resolveEiDateMismatch(which){
+  const coDateEl=document.getElementById('co-date');
+  const eiDateEl=document.getElementById('ei-date');
+  if(!coDateEl||!eiDateEl)return;
+  if(which==='checkout'){
+    eiDateEl.value=coDateEl.value;
+  }else{
+    coDateEl.value=eiDateEl.value;
+    S.eventDate=eiDateEl.value;
+    checkUrgentDate('co-date','co-urgent-warn');
+    updCoUrgent();
+  }
+  document.getElementById('co-date-ei-mismatch').style.display='none';
 }
 function selCoVenue(btn,val){
   const wasSel=btn.classList.contains('on');
@@ -3770,6 +3825,15 @@ async function doCo(){
     checkUrgentDate('co-date','co-urgent-warn');
     document.getElementById('co-date').focus();
     showErrorToast('That date has already passed — please pick today or a later date.');
+    return;
+  }
+  // 2026-08-14, per Shruti: don't let a booking through with the checkout
+  // Event Date and the E-Invite's Event Date still disagreeing — force the
+  // customer to pick one first (see checkEiDateMismatch()/resolveEiDateMismatch()).
+  checkEiDateMismatch();
+  if(document.getElementById('co-date-ei-mismatch')?.style.display==='flex'){
+    document.getElementById('co-date-ei-mismatch').scrollIntoView({behavior:'smooth',block:'center'});
+    showErrorToast('Your checkout date and E-Invite date don\'t match — please pick one to use.');
     return;
   }
   if(!S.tncOk){

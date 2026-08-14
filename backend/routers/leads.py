@@ -21,7 +21,7 @@ import asyncio
 import logging
 import httpx
 import urllib.parse
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time as dt_time
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -210,6 +210,66 @@ def _booking_subject_line(lead_id: int, req: "LeadSubmitRequest") -> str:
     first_age = (req.child_ages or "").split(",")[0].strip() or "—"
     first_gender = (req.child_genders or "").split(",")[0].strip() or "—"
     return f"Booking Confirmed - {date_bit} - {location_bit} - {theme_bit} - {first_age} {first_gender} (#{lead_id})"
+
+
+def _ics_escape(text: Optional[str]) -> str:
+    """Escapes text for use inside an .ics field (RFC 5545 §3.3.11)."""
+    return (text or "").replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;").replace("\n", "\\n")
+
+
+def _build_ics_bytes(req: "LeadSubmitRequest", lead_id: int) -> Optional[bytes]:
+    """Builds a minimal .ics calendar invite for the event, attached to both
+    the customer confirmation email and the team notification email
+    (2026-08-14, per Shruti — the confirmation page/email have always
+    promised "Calendar invite sent to your email & Wondershop team — your
+    date is blocked!" but nothing ever actually generated or sent one).
+    Returns None if there's no event date to build an invite around.
+    Party duration defaults to 4 hours from the given/default start time —
+    there's no separate "end time" field collected anywhere upstream.
+    Times are converted from IST (a fixed UTC+5:30 offset, no DST) to UTC
+    so the invite displays correctly in whatever timezone the recipient's
+    calendar app is set to."""
+    if not req.event_date:
+        return None
+    try:
+        hh, mm = (int(x) for x in (req.event_time or "11:00").split(":")[:2])
+    except Exception:
+        hh, mm = 11, 0
+    start_ist = datetime.combine(req.event_date, dt_time(hour=hh, minute=mm))
+    ist_offset = timedelta(hours=5, minutes=30)
+    start_utc = start_ist - ist_offset
+    end_utc = start_utc + timedelta(hours=4)
+
+    def _fmt(d: datetime) -> str:
+        return d.strftime("%Y%m%dT%H%M%SZ")
+
+    summary = _party_title(req) or (f"{req.parent_name}'s Wondershop Booking" if req.parent_name else "Wondershop Birthday Party")
+    location = req.venue_maps_link or req.venue or req.city or ""
+    description = (f"Wondershop Experiences booking — Order #{lead_id}. "
+                   f"Questions? +91 90044 35362 / contact@wondershopexperiences.com")
+    uid = f"wondershop-lead-{lead_id}@wondershopexperiences.com"
+    now_stamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+
+    ics = "\r\n".join([
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Wondershop Experiences//Booking//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "BEGIN:VEVENT",
+        f"UID:{uid}",
+        f"DTSTAMP:{now_stamp}",
+        f"DTSTART:{_fmt(start_utc)}",
+        f"DTEND:{_fmt(end_utc)}",
+        f"SUMMARY:{_ics_escape(summary)}",
+        f"LOCATION:{_ics_escape(location)}",
+        f"DESCRIPTION:{_ics_escape(description)}",
+        "STATUS:CONFIRMED",
+        "END:VEVENT",
+        "END:VCALENDAR",
+        "",
+    ])
+    return ics.encode("utf-8")
 
 
 # ─── GMAIL API EMAIL HELPER ──────────────────────────────────────────────────
@@ -1175,8 +1235,16 @@ wondershopexperiences.com
             reward_code=reward_code, referral_code=referral_code, recipient_kind="customer",
             added_service_label=added_service_label,
         )
-        await _gmail_send(to_email=req.email, subject=subject, body=body, html_body=html_body)
-        logger.info(f"Lead #{lead_id}: user ACK sent to {req.email}")
+        # 2026-08-14, per Shruti: attach the actual .ics calendar invite the
+        # confirmation page/email already promise ("your date is blocked!").
+        ics_attachments = []
+        if is_booking:
+            ics_bytes = _build_ics_bytes(req, lead_id)
+            if ics_bytes:
+                ics_attachments = [(f"wondershop-booking-{lead_id}.ics", ics_bytes, "text", "calendar")]
+        await _gmail_send(to_email=req.email, subject=subject, body=body, html_body=html_body, attachments=ics_attachments)
+        logger.info(f"Lead #{lead_id}: user ACK sent to {req.email}"
+                    f"{' with calendar invite' if ics_attachments else ''}")
     except Exception as exc:
         logger.error(f"Lead #{lead_id}: user ACK email failed — {exc}")
 
@@ -1258,6 +1326,12 @@ SOURCE
                 ]
             except Exception as exc:
                 logger.error(f"Lead #{lead_id}: order form generation failed — {exc}")
+
+            # 2026-08-14, per Shruti: same .ics calendar invite sent to the
+            # customer also goes to the team, so their date is blocked too.
+            ics_bytes = _build_ics_bytes(req, lead_id)
+            if ics_bytes:
+                attachments.append((f"wondershop-booking-{lead_id}.ics", ics_bytes, "text", "calendar"))
 
         await _gmail_send(
             to_email=settings.EMAIL_TEAM,
