@@ -738,6 +738,8 @@ input,textarea,select{font-family:var(--fb)}
 .conf-svc-grid{display:flex;flex-wrap:wrap;gap:8px}
 .conf-svc-chip{flex:1 1 22%;min-width:76px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;background:var(--li3);border-radius:14px;padding:12px 6px 10px}
 .conf-svc-chip img{width:26px;height:26px;object-fit:contain}
+.conf-svc-chip.free{background:linear-gradient(135deg,#FDF4E3 0%,#FCEAC8 100%)}
+.conf-svc-emoji{font-size:24px;line-height:1}
 .conf-svc-lbl{font-family:var(--fb);font-size:10px;font-weight:700;color:#7B5EA7;text-transform:uppercase;letter-spacing:.3px}
 .conf-svc-val{font-family:var(--fb);font-size:11.5px;font-weight:600;color:var(--bk);line-height:1.3}
 .conf-svc-val.na{color:var(--gy);font-weight:500}
@@ -4370,11 +4372,20 @@ function renderConfServices(){
     {icon:'photographer', lbl:'Photography',  val:S.photo?.tier||''},
     {icon:'gift',         lbl:'Return Gifts', val:giftsVal},
   ];
+  // 2026-08-14, per Shruti: a won-and-redeemed Tattoo/Bubble Artist
+  // scratch-card reward gets its own chip here too (added via
+  // redeemServiceNow(), which re-calls this function once the redemption
+  // succeeds) — no icon image asset for these, so it uses the same emoji
+  // shown on the scratch card itself instead of img/icons/.
+  if(S._addedRewardService){
+    items.push({emoji:S._addedRewardService.icon||'🎁', lbl:'Bonus Service', val:S._addedRewardService.label, free:true});
+  }
   grid.innerHTML=items.map(it=>{
     const has=!!it.val;
-    return '<div class="conf-svc-chip"><img src="img/icons/icon-'+it.icon+'-bw.png" alt="">'
+    const iconHtml=it.emoji?('<div class="conf-svc-emoji">'+it.emoji+'</div>'):('<img src="img/icons/icon-'+it.icon+'-bw.png" alt="">');
+    return '<div class="conf-svc-chip'+(it.free?' free':'')+'">'+iconHtml
       +'<div class="conf-svc-lbl">'+it.lbl+'</div>'
-      +'<div class="conf-svc-val'+(has?'':' na')+'">'+(has?esc(it.val):'NA')+'</div></div>';
+      +'<div class="conf-svc-val'+(has?'':' na')+'">'+(has?esc(it.val):'NA')+(it.free&&has?' 🎁':'')+'</div></div>';
   }).join('');
 }
 
@@ -4666,6 +4677,11 @@ async function redeemServiceNow(){
       document.getElementById('srnBtns').style.display='none';
       statusEl.textContent='✅ Added! Your Party Experience Lead will confirm the details.';
       wsTrack('scratch_reward_service_redeemed',{reward_type:__scratchReward.type,lead_id:S._lastLeadId});
+      // 2026-08-14, per Shruti: "add that under the services icon" — show
+      // the just-added Tattoo/Bubble Artist as its own chip in the
+      // Services Booked grid on the confirmation page behind this modal.
+      S._addedRewardService={icon:__scratchReward.icon||'🎁', label:__scratchReward.label};
+      renderConfServices();
     }else{
       statusEl.textContent=(rj&&rj.message)||"Couldn't add it right now — no worries, just mention it to your Party Experience Lead.";
       yesBtn.disabled=false;noBtn.disabled=false;yesBtn.textContent='Try again';

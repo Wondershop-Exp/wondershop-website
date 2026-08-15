@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Wondershop — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --li:#B59DDE;--li2:#EDE6FA;--li3:#F5F0FF;
+  --pk:#E65A96;--spk:#F5C3D7;
+  --yl:#FFC200;--syl:#FFFBDC;
+  --bl:#5B8EDD;--sbl:#BCD8E8;
+  --gr:#52C470;--sgr:#B7E0B8;
+  --or:#F57A1A;
+  --bk:#191919;--gy:#6B7280;--lgy:#F5F2FA;--wh:#FAFAFA;
+  --r:14px;--rs:10px;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box}
+body{font-family:var(--fb);color:var(--bk);background:var(--wh);margin:0}
+h1,h2,h3{font-family:var(--fd);line-height:1.2;margin:0}
+button{cursor:pointer;font-family:var(--fb)}
+input,textarea,select{font-family:var(--fb)}
+a{color:var(--bl)}
+
+/* ─── Gate ─── */
+#gate{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--li3)}
+.gate-card{background:#fff;border-radius:var(--r);padding:36px 32px;width:100%;max-width:360px;box-shadow:0 8px 30px rgba(0,0,0,.08)}
+.gate-card h1{font-size:22px;margin-bottom:6px}
+.gate-card p{color:var(--gy);font-size:13px;margin:0 0 18px}
+.gate-card input{width:100%;padding:12px 14px;border:1px solid var(--li2);border-radius:var(--rs);font-size:15px;margin-bottom:10px}
+.gate-card button{width:100%;padding:12px 14px;border:none;border-radius:var(--rs);background:var(--pk);color:#fff;font-weight:700;font-size:15px}
+.gate-err{color:var(--pk);font-size:13px;margin-top:8px;min-height:16px}
+
+/* ─── App shell ─── */
+#app{display:none;max-width:1200px;margin:0 auto;padding:20px 20px 80px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:10px 0 18px;border-bottom:1px solid var(--li2);margin-bottom:20px}
+.topbar h1{font-size:20px}
+.topbar .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gy)}
+.topbar .who input{padding:6px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13px;width:150px}
+.linkbtn{background:none;border:none;color:var(--bl);font-size:13px;text-decoration:underline;padding:0}
+
+/* ─── List view ─── */
+.searchbar{display:flex;gap:10px;margin-bottom:16px}
+.searchbar input{flex:1;padding:12px 14px;border:1px solid var(--li2);border-radius:var(--rs);font-size:15px}
+.searchbar button{padding:12px 18px;border:none;border-radius:var(--rs);background:var(--bk);color:#fff;font-weight:600}
+table.list{width:100%;border-collapse:collapse}
+table.list th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--gy);padding:8px 10px;border-bottom:2px solid var(--li2)}
+table.list td{padding:10px;border-bottom:1px solid var(--li2);font-size:14px}
+table.list tr{cursor:pointer}
+table.list tr:hover td{background:var(--li3)}
+.status-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.status-Booked{background:var(--sgr);color:#166534}
+.status-New{background:var(--sbl);color:#1e3a8a}
+.status-Lead{background:var(--syl);color:#92400e}
+
+/* ─── Detail view ─── */
+.detail-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.detail-head h2{font-size:20px}
+.detail-meta{font-size:12px;color:var(--gy)}
+.section-block{margin-bottom:26px}
+.section-block h3{font-size:15px;color:var(--pk);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px}
+table.fields{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--rs);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+table.fields th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);padding:8px 10px;background:var(--lgy)}
+table.fields td{padding:8px 10px;border-top:1px solid var(--li2);vertical-align:top}
+table.fields tr.removed td{opacity:.45;text-decoration:line-through}
+table.fields input,table.fields textarea{width:100%;border:1px solid var(--li2);border-radius:6px;padding:6px 8px;font-size:13px}
+table.fields textarea{resize:vertical;min-height:32px}
+.field-label{font-weight:600;font-size:13px;white-space:nowrap}
+.field-label small{display:block;font-weight:400;color:var(--gy);font-size:10px}
+.row-actions{display:flex;gap:6px;align-items:flex-start}
+.mini-btn{padding:5px 9px;border:1px solid var(--li2);border-radius:6px;background:#fff;font-size:11px;font-weight:600}
+.mini-btn.save{background:var(--bk);color:#fff;border-color:var(--bk)}
+.mini-btn.remove{color:var(--pk);border-color:var(--spk)}
+.mini-btn.restore{color:var(--gr);border-color:var(--sgr)}
+.add-field-btn{margin-top:8px;padding:8px 14px;border:1px dashed var(--li);border-radius:8px;background:none;color:var(--li);font-size:12px;font-weight:600}
+
+.log-section{margin-top:30px;border-top:2px solid var(--li2);padding-top:16px}
+.log-section h3{font-size:15px;margin-bottom:10px}
+.log-entry{font-size:13px;padding:8px 0;border-bottom:1px solid var(--li3);color:var(--bk)}
+.log-entry .ts{color:var(--gy);font-size:11px}
+.empty{color:var(--gy);font-size:13px;padding:20px 0}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bk);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-card">
+    <h1>Wondershop Admin</h1>
+    <p>Internal booking-management page. Not for customer access.</p>
+    <input type="password" id="gatePw" placeholder="Admin password">
+    <input type="text" id="gateName" placeholder="Your name (shown on edits you make)">
+    <button onclick="tryLogin()">Enter</button>
+    <div class="gate-err" id="gateErr"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <h1>🎈 Wondershop Admin — Bookings</h1>
+    <div class="who">
+      Editing as <input type="text" id="whoName" onchange="saveName()">
+      <button class="linkbtn" onclick="logout()">Log out</button>
+    </div>
+  </div>
+
+  <div id="listView">
+    <div class="searchbar">
+      <input type="text" id="searchQ" placeholder="Search by name, phone, email, or booking ID..." onkeydown="if(event.key==='Enter')doSearch()">
+      <button onclick="doSearch()">Search</button>
+    </div>
+    <table class="list">
+      <thead><tr><th>ID</th><th>Parent</th><th>Phone</th><th>Event Date</th><th>City</th><th>Status</th><th>Created</th></tr></thead>
+      <tbody id="listBody"></tbody>
+    </table>
+    <div class="empty" id="listEmpty" style="display:none">No bookings found.</div>
+  </div>
+
+  <div id="detailView" style="display:none">
+    <button class="linkbtn" onclick="backToList()">&larr; Back to list</button>
+    <div class="detail-head">
+      <h2 id="detTitle"></h2>
+      <div class="detail-meta" id="detMeta"></div>
+    </div>
+    <div id="sectionsContainer"></div>
+    <div class="log-section">
+      <h3>Modification Trail</h3>
+      <div id="logContainer"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://wondershop-website-production.up.railway.app';
+let CURRENT_LEAD_ID = null;
+let CURRENT_DETAIL = null;
+
+function getPw(){ return localStorage.getItem('ws_admin_pw') || ''; }
+function getName(){ return localStorage.getItem('ws_admin_name') || ''; }
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+async function apiCall(path, opts){
+  opts = opts || {};
+  opts.headers = Object.assign({'Content-Type':'application/json','X-Admin-Password':getPw()}, opts.headers||{});
+  const res = await fetch(API+path, opts);
+  if(res.status===401){
+    localStorage.removeItem('ws_admin_pw');
+    document.getElementById('app').style.display='none';
+    document.getElementById('gate').style.display='flex';
+    document.getElementById('gateErr').textContent='Session expired or password incorrect. Please log in again.';
+    throw new Error('unauthorized');
+  }
+  if(!res.ok){
+    const body = await res.json().catch(()=>({}));
+    throw new Error(body.detail || ('Request failed ('+res.status+')'));
+  }
+  return res.json();
+}
+
+async function tryLogin(){
+  const pw = document.getElementById('gatePw').value.trim();
+  const name = document.getElementById('gateName').value.trim();
+  const err = document.getElementById('gateErr');
+  err.textContent='';
+  if(!pw){ err.textContent='Enter the admin password.'; return; }
+  if(!name){ err.textContent='Enter your name — it will be logged against any edits you make.'; return; }
+  localStorage.setItem('ws_admin_pw', pw);
+  localStorage.setItem('ws_admin_name', name);
+  try{
+    await apiCall('/api/admin/bookings');
+  }catch(e){
+    err.textContent = e.message==='unauthorized' ? 'Incorrect password.' : e.message;
+    return;
+  }
+  enterApp();
+}
+
+function enterApp(){
+  document.getElementById('gate').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('whoName').value = getName();
+  doSearch();
+}
+
+function logout(){
+  localStorage.removeItem('ws_admin_pw');
+  document.getElementById('app').style.display='none';
+  document.getElementById('gate').style.display='flex';
+  document.getElementById('gatePw').value='';
+}
+
+function saveName(){
+  localStorage.setItem('ws_admin_name', document.getElementById('whoName').value.trim());
+}
+
+async function doSearch(){
+  const q = document.getElementById('searchQ').value.trim();
+  const body = document.getElementById('listBody');
+  const empty = document.getElementById('listEmpty');
+  body.innerHTML = '<tr><td colspan="7" style="padding:16px;color:#6B7280">Loading...</td></tr>';
+  try{
+    const rows = await apiCall('/api/admin/bookings' + (q?('?q='+encodeURIComponent(q)):''));
+    if(!rows.length){ body.innerHTML=''; empty.style.display='block'; return; }
+    empty.style.display='none';
+    body.innerHTML = rows.map(r=>{
+      const cls = 'status-'+(r.status||'').replace(/[^A-Za-z]/g,'');
+      return '<tr onclick="openBooking('+r.lead_id+')">'
+        +'<td>#'+r.lead_id+'</td>'
+        +'<td>'+esc(r.parent_name||'')+'</td>'
+        +'<td>'+esc(r.phone||'')+'</td>'
+        +'<td>'+esc(r.event_date||'—')+'</td>'
+        +'<td>'+esc(r.city||'—')+'</td>'
+        +'<td><span class="status-pill '+cls+'">'+esc(r.status||'')+'</span></td>'
+        +'<td>'+esc(r.created_on_ist||'')+'</td>'
+        +'</tr>';
+    }).join('');
+  }catch(e){
+    if(e.message!=='unauthorized') showToast(e.message);
+  }
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+async function openBooking(id){
+  CURRENT_LEAD_ID = id;
+  document.getElementById('listView').style.display='none';
+  document.getElementById('detailView').style.display='block';
+  await loadDetail();
+}
+
+function backToList(){
+  CURRENT_LEAD_ID = null;
+  document.getElementById('detailView').style.display='none';
+  document.getElementById('listView').style.display='block';
+}
+
+async function loadDetail(){
+  try{
+    const d = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID);
+    CURRENT_DETAIL = d;
+    renderDetail(d);
+  }catch(e){
+    if(e.message!=='unauthorized') showToast(e.message);
+  }
+}
+
+function renderDetail(d){
+  document.getElementById('detTitle').textContent = 'Booking #'+d.lead_id;
+  document.getElementById('detMeta').textContent = 'Status: '+d.status+' · Created '+d.created_on_ist;
+
+  const container = document.getElementById('sectionsContainer');
+  container.innerHTML = d.sections.map(sec=>{
+    const rowsHtml = sec.fields.map(f=>fieldRowHtml(f)).join('');
+    return '<div class="section-block">'
+      +'<h3>'+esc(sec.section)+'</h3>'
+      +'<table class="fields"><thead><tr><th>Field</th><th>Customer\'s Choice</th><th>Assigned Value</th><th>Remarks</th><th></th></tr></thead>'
+      +'<tbody id="sec-'+secId(sec.section)+'">'+rowsHtml+'</tbody></table>'
+      +'<button class="add-field-btn" onclick="addCustomField('+JSON.stringify(sec.section)+')">+ Add field to '+esc(sec.section)+'</button>'
+      +'</div>';
+  }).join('');
+
+  const log = document.getElementById('logContainer');
+  if(!d.change_log.length){
+    log.innerHTML = '<div class="empty">No edits yet — this booking still reflects exactly what the customer submitted.</div>';
+  }else{
+    log.innerHTML = d.change_log.map(l=>'<div class="log-entry">'+esc(l.sentence)+'</div>').join('');
+  }
+}
+
+function secId(name){ return name.replace(/[^A-Za-z0-9]/g,''); }
+
+function fieldRowHtml(f){
+  const rid = 'fld_'+f.field_key;
+  const removedCls = f.removed ? ' removed' : '';
+  const originalNote = (!f.admin_only && f.original_value) ? ('<small>Original: '+esc(f.original_value)+'</small>') : (f.admin_only ? '<small>Admin-tracked</small>' : '');
+  return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
+    +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
+    +'<td><input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="'+(f.admin_only?'—':'(use original)')+'"></td>'
+    +'<td><input type="text" id="'+rid+'_av" value="'+esc(f.assigned_value||'')+'" placeholder="Assign..."></td>'
+    +'<td><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
+    +'<td><div class="row-actions">'
+      +'<button class="mini-btn save" onclick="saveField('+JSON.stringify(f.field_key)+', false)">Save</button>'
+      +(f.removed
+        ? '<button class="mini-btn restore" onclick="toggleRemoved('+JSON.stringify(f.field_key)+', false)">Restore</button>'
+        : '<button class="mini-btn remove" onclick="toggleRemoved('+JSON.stringify(f.field_key)+', true)">Remove</button>')
+    +'</div></td>'
+    +'</tr>';
+}
+
+async function saveField(key, removedOverride){
+  const rid = 'fld_'+key;
+  const cc = document.getElementById(rid+'_cc').value;
+  const av = document.getElementById(rid+'_av').value;
+  const rm = document.getElementById(rid+'_rm').value;
+  const row = document.getElementById(rid);
+  const removed = (removedOverride!==undefined) ? removedOverride : row.classList.contains('removed');
+  const who = getName();
+  if(!who){ showToast('Set "Editing as" name at the top first.'); return; }
+  try{
+    await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {
+      method:'POST',
+      body: JSON.stringify({
+        field_key: key,
+        customer_choice_override: cc,
+        assigned_value: av,
+        remarks: rm,
+        removed: removed,
+        changed_by: who,
+      }),
+    });
+    showToast('Saved.');
+    await loadDetail();
+  }catch(e){
+    if(e.message!=='unauthorized') showToast(e.message);
+  }
+}
+
+function toggleRemoved(key, removed){ saveField(key, removed); }
+
+function addCustomField(section){
+  const label = prompt('New field name (e.g. "Piñata Bags", "Balloon Arch"):');
+  if(!label || !label.trim()) return;
+  const key = 'custom_'+label.trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')+'_'+Date.now();
+  const who = getName();
+  if(!who){ showToast('Set "Editing as" name at the top first.'); return; }
+  apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {
+    method:'POST',
+    body: JSON.stringify({
+      field_key: key,
+      field_label: label.trim(),
+      section: section,
+      customer_choice_override: '',
+      assigned_value: '',
+      remarks: '',
+      removed: false,
+      changed_by: who,
+    }),
+  }).then(()=>{ showToast('Field added.'); loadDetail(); })
+    .catch(e=>{ if(e.message!=='unauthorized') showToast(e.message); });
+}
+
+// ─── Boot ───
+(function boot(){
+  if(getPw()){
+    apiCall('/api/admin/bookings').then(()=>enterApp()).catch(()=>{
+      document.getElementById('gate').style.display='flex';
+    });
+  }
+})();
+</script>
+</body>
+</html>

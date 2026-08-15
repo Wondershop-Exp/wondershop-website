@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from config import settings
 from database import connect_db, disconnect_db
-from routers import catalogue, cart, leads, config
+from routers import catalogue, cart, leads, config, admin
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,6 +42,7 @@ app.include_router(catalogue.router, prefix="/api/catalogue", tags=["Catalogue"]
 app.include_router(cart.router,      prefix="/api",           tags=["Orders & Cart"])
 app.include_router(leads.router,     prefix="/api/leads",     tags=["Leads"])
 app.include_router(config.router,    prefix="/api/config",    tags=["Config"])
+app.include_router(admin.router,     prefix="/api/admin",     tags=["Admin"])
 
 @app.get("/")
 async def root():

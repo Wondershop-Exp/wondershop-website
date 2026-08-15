@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     # UPI for order confirmation QR code
     UPI_ID: str = ""                    # e.g. wondershop@ybl
 
+    # Shared password gate for the internal admin booking-management page
+    # (admin.html). Set this in Railway's env vars — never commit a real
+    # value here. Leave blank locally and admin.py will reject all requests.
+    ADMIN_PASSWORD: str = ""
+
     @property
     def origins(self) -> List[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
