@@ -287,10 +287,11 @@ function renderDetail(d){
 function secId(name){ return name.replace(/[^A-Za-z0-9]/g,''); }
 
 function selectHtml(id, options, current, extraAttrs){
-  const opts = options.slice();
-  if(current && !opts.includes(current)) opts.unshift(current);
+  // Accepts either plain strings or {value,label} objects; normalizes to the latter.
+  const opts = options.map(o=> (typeof o==='string') ? {value:o,label:o} : o);
+  if(current && !opts.some(o=>o.value===current)) opts.unshift({value:current, label:current});
   return '<select id="'+id+'"'+(extraAttrs||'')+'>'
-    + opts.map(o=>'<option value="'+esc(o)+'"'+(o===current?' selected':'')+'>'+esc(o)+'</option>').join('')
+    + opts.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===current?' selected':'')+'>'+esc(o.label)+'</option>').join('')
     + '</select>';
 }
 

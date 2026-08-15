@@ -44,6 +44,7 @@ from pydantic import BaseModel
 
 from database import database
 from config import settings
+import catalogue_data as cat
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -175,30 +176,58 @@ DIRECT_WRITE_FIELDS = {f["key"] for f in FIELD_CATALOG if f["section"] == "Custo
 READ_ONLY_FIELDS = {"bill_grand_total", "bill_balance"}
 
 # ─── Dropdown option lists ────────────────────────────────────────────────
-# Kept in sync by hand with builder.html / catalogue_data.py (same convention
-# catalogue_data.py itself uses) — last synced 2026-08-15.
+# Each option is {"value": ..., "label": ...} — value is what's actually
+# stored/compared against booking data, label is what the admin sees (so
+# Decor can show "Theme - Tier - Rs. Price" without that price ever being
+# saved as part of the value itself, which would break matching against
+# older bookings if a price later changes).
+# Host/DJ/Photo/Piñata/E-Invite/coupon status lists are kept in sync by hand
+# with builder.html (same convention catalogue_data.py itself uses).
+# Decor is generated from catalogue_data.py's THEMES + DECOR_TIER_META
+# directly, so it never drifts out of sync with the real theme/tier/price
+# list — last synced 2026-08-15.
 
-DECOR_OPTIONS = [
-    "Unicorn Magic", "Jungle Safari", "Superhero", "Space Explorer", "Mystery & Spy",
-    "K-Pop Party", "Harry Potter", "Art & Paint Party", "Science Party", "Race Track & Cars",
-    "Football Party", "Indian Craft Bazaar", "Indian Palace", "Indian Railways", "Katseye",
-    "Lilo & Stitch", "Malgudi Days", "Mithai Theme", "Nani ka Ghar", "The Great Ancient Indian Treasure",
-    "Standard Decor", "Custom Design",
-]
-HOST_OPTIONS = ["Classic", "Premium", "Signature"]
-DJ_OPTIONS = ["Classic", "Premium"]
-PHOTO_OPTIONS = ["Classic", "Premium", "Signature"]
-PINATA_OPTIONS = ["Square Pinata", "Circle Pinata", "Number Pinata", "Readymade Pinata", "Custom Design"]
-EINVITE_OPTIONS = [
+def _opt(value, label=None):
+    return {"value": value, "label": label if label is not None else value}
+
+
+_STD_DECOR_NAMES = {
+    "Classic": "Classic Balloon Arch",
+    "Premium": "Premium Decor",
+    "Luxury": "Luxury Decor",
+    "Signature": "Signature Decor",
+}
+
+
+def _build_decor_options():
+    opts = []
+    for theme in cat.THEMES:
+        for tier in theme["tierPhotos"].keys():
+            price = cat.DECOR_TIER_META[tier]["price"]
+            value = f'{theme["n"]} - {tier}'
+            opts.append(_opt(value, f'{value} - Rs. {price}'))
+    for tier, std_name in _STD_DECOR_NAMES.items():
+        price = cat.DECOR_TIER_META[tier]["price"]
+        opts.append(_opt(std_name, f'{std_name} - Rs. {price}'))
+    opts.append(_opt("Custom Design"))
+    return opts
+
+
+DECOR_OPTIONS = _build_decor_options()
+HOST_OPTIONS = [_opt(x) for x in ["Classic", "Premium", "Signature"]]
+DJ_OPTIONS = [_opt(x) for x in ["Classic", "Premium"]]
+PHOTO_OPTIONS = [_opt(x) for x in ["Classic", "Premium", "Signature"]]
+PINATA_OPTIONS = [_opt(x) for x in ["Square Pinata", "Circle Pinata", "Number Pinata", "Readymade Pinata", "Custom Design"]]
+EINVITE_OPTIONS = [_opt(x) for x in [
     "No selection", "Art Party", "Frozen (Elsa)", "Frozen (Anna)", "Ramayana", "Little Singham",
     "Spy × K-Pop", "Spy Detective", "Spy Party (Classic)", "Spy Squad", "Unicorn",
     "Superhero (3D)", "Superhero (Pop Art)", "Football × Spy Mission", "Football × Spy Mission (Alt)",
     "Harry Potter", "Imposter Mission", "Imposter Mission (Alt)", "K-Pop Idol Collage", "K-Pop Bestie",
     "K-Pop Girl Group (Red)", "K-Pop Girl Group (Green)", "Lilo & Stitch", "Movie Night (Gold)",
     "Movie Night (Classic)", "Nani ka Ghar (Photoreal)", "Nani ka Ghar (Phone Call)",
-]
-PAYMENT_METHOD_OPTIONS = ["Cash", "UPI Transfer", "Bank Transfer", "Internal Settle"]
-PAYMENT_STATUS_OPTIONS = ["Pending", "Advance Paid Pending Verification", "Advance Paid Verified", "Complete"]
+]]
+PAYMENT_METHOD_OPTIONS = [_opt(x) for x in ["Cash", "UPI Transfer", "Bank Transfer", "Internal Settle"]]
+PAYMENT_STATUS_OPTIONS = [_opt(x) for x in ["Pending", "Advance Paid Pending Verification", "Advance Paid Verified", "Complete"]]
 
 DROPDOWN_OPTIONS = {
     "svc_decor": DECOR_OPTIONS,
@@ -210,6 +239,8 @@ DROPDOWN_OPTIONS = {
     "bill_payment_method": PAYMENT_METHOD_OPTIONS,
     "bill_payment_status": PAYMENT_STATUS_OPTIONS,
 }
+# Plain value sets, for validation (label text is never compared).
+DROPDOWN_VALUES = {key: {o["value"] for o in opts} for key, opts in DROPDOWN_OPTIONS.items()}
 
 ASSIGNED_PLACEHOLDERS = {
     "svc_decor": "Decorator name",
@@ -362,7 +393,7 @@ async def _validate_choice_value(key: str, value: str, derived_original: Optiona
     if not value:
         return
 
-    if key in DROPDOWN_OPTIONS and value not in DROPDOWN_OPTIONS[key] and value != derived_original:
+    if key in DROPDOWN_VALUES and value not in DROPDOWN_VALUES[key] and value != derived_original:
         raise HTTPException(status_code=400, detail=f'"{value}" is not a valid option for {CATALOG_BY_KEY[key]["label"]}.')
 
     if key == "bill_discount_pct":
