@@ -36,3 +36,19 @@ Thumbs.db
 wondershop_v2 html mock.html
 homepage mock chatgpt.jpg
 agents/
+
+# Raw gallery video dumps (2026-08-15, per Shruti — "compress the videos and
+# upload"). gallery.html only links to the compressed copies in
+# img/Gallery/Testimonials/web/ (~66MB total); these are the original
+# uncompressed phone recordings (~460MB+ combined) sitting alongside them —
+# no reason to also commit those to git. If you add more raw video to any
+# img/Gallery/<Category>/ folder, it's excluded by default too; drop a
+# compressed copy in a web/ subfolder and reference that instead.
+img/Gallery/**/*.mp4
+img/Gallery/**/*.MOV
+!img/Gallery/**/web/*.mp4
+
+# Accidental "Save As" export of a Google Photos page (not real gallery
+# content) that ended up inside img/Gallery/Spy/ (2026-08-15).
+img/Gallery/Spy/Photo in Neha Adiva Sherlock*
+backend/_to_delete/
