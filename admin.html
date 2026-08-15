@@ -67,8 +67,11 @@ table.fields{width:100%;border-collapse:collapse;background:#fff;border-radius:v
 table.fields th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);padding:8px 10px;background:var(--lgy)}
 table.fields td{padding:8px 10px;border-top:1px solid var(--li2);vertical-align:top}
 table.fields tr.removed td{opacity:.45;text-decoration:line-through}
-table.fields input,table.fields textarea{width:100%;border:1px solid var(--li2);border-radius:6px;padding:6px 8px;font-size:13px}
+table.fields input,table.fields textarea,table.fields select{width:100%;border:1px solid var(--li2);border-radius:6px;padding:6px 8px;font-size:13px;background:#fff}
 table.fields textarea{resize:vertical;min-height:32px}
+.readonly-cell{color:var(--gy);font-size:13px;padding:6px 2px;display:block}
+.readonly-cell.computed{font-style:italic}
+.computed-note{font-size:10px;color:var(--gy);display:block;margin-top:2px}
 .field-label{font-weight:600;font-size:13px;white-space:nowrap}
 .field-label small{display:block;font-weight:400;color:var(--gy);font-size:10px}
 .row-actions{display:flex;gap:6px;align-items:flex-start}
@@ -262,10 +265,12 @@ function renderDetail(d){
 
   const container = document.getElementById('sectionsContainer');
   container.innerHTML = d.sections.map(sec=>{
-    const rowsHtml = sec.fields.map(f=>fieldRowHtml(f)).join('');
+    const isCustEvent = sec.section==='Customer & Event Details';
+    const col3Label = isCustEvent ? 'Updated Value' : 'Assigned Value';
+    const rowsHtml = sec.fields.map(f=>fieldRowHtml(f, isCustEvent)).join('');
     return '<div class="section-block">'
       +'<h3>'+esc(sec.section)+'</h3>'
-      +'<table class="fields"><thead><tr><th>Field</th><th>Customer\'s Choice</th><th>Assigned Value</th><th>Remarks</th><th></th></tr></thead>'
+      +'<table class="fields"><thead><tr><th>Field</th><th>Customer\'s Choice</th><th>'+col3Label+'</th><th>Remarks</th><th></th></tr></thead>'
       +'<tbody id="sec-'+secId(sec.section)+'">'+rowsHtml+'</tbody></table>'
       +'<button class="add-field-btn" onclick="addCustomField('+JSON.stringify(sec.section)+')">+ Add field to '+esc(sec.section)+'</button>'
       +'</div>';
@@ -281,27 +286,72 @@ function renderDetail(d){
 
 function secId(name){ return name.replace(/[^A-Za-z0-9]/g,''); }
 
-function fieldRowHtml(f){
+function selectHtml(id, options, current, extraAttrs){
+  const opts = options.slice();
+  if(current && !opts.includes(current)) opts.unshift(current);
+  return '<select id="'+id+'"'+(extraAttrs||'')+'>'
+    + opts.map(o=>'<option value="'+esc(o)+'"'+(o===current?' selected':'')+'>'+esc(o)+'</option>').join('')
+    + '</select>';
+}
+
+function fieldRowHtml(f, isCustEvent){
   const rid = 'fld_'+f.field_key;
   const removedCls = f.removed ? ' removed' : '';
   const originalNote = (!f.admin_only && f.original_value) ? ('<small>Original: '+esc(f.original_value)+'</small>') : (f.admin_only ? '<small>Admin-tracked</small>' : '');
+
+  // ── Read-only fields (Grand Total / Balance Due): plain display, no editing at all
+  if(f.read_only){
+    return '<tr id="'+rid+'" data-key="'+esc(f.field_key)+'">'
+      +'<td class="field-label">'+esc(f.label)+'</td>'
+      +'<td colspan="3"><span class="readonly-cell computed">'+esc(f.customer_choice||'—')+'<span class="computed-note">System-calculated as of booking/last update — not yet live-recalculated when services change.</span></span></td>'
+      +'<td></td>'
+      +'</tr>';
+  }
+
+  // ── Customer's Choice cell ──
+  let ccCell;
+  if(!f.choice_editable){
+    // Customer & Event Details: read-only, greyed, shows the frozen original
+    ccCell = '<span class="readonly-cell">'+esc(f.customer_choice||'—')+'</span>';
+  }else if(f.options){
+    ccCell = selectHtml(rid+'_cc', f.options, f.customer_choice||'');
+  }else{
+    ccCell = '<input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="'+(f.admin_only?'—':'(use original)')+'">';
+  }
+
+  // ── Updated / Assigned Value cell ──
+  let avValue = f.assigned_value || '';
+  if(isCustEvent && !f.has_override && !avValue){
+    avValue = f.customer_choice || '';  // pre-fill with customer's value until first edit
+  }
+  const numAttrs = f.field_key==='bill_discount_pct' ? ' step="0.01" min="0" max="100"'
+                  : f.field_key==='bill_advance' ? ' step="0.01" min="0"' : '';
+  const avInputType = (f.field_key==='bill_discount_pct'||f.field_key==='bill_advance') ? 'number' : 'text';
+  const avPlaceholder = f.placeholder || (isCustEvent ? '' : 'Assign...');
+  const avCell = '<input type="'+avInputType+'" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'"'+numAttrs+'>';
+
+  const actions = isCustEvent
+    ? ''
+    : (f.removed
+        ? '<button class="mini-btn restore" onclick="toggleRemoved('+JSON.stringify(f.field_key)+', false)">Restore</button>'
+        : '<button class="mini-btn remove" onclick="toggleRemoved('+JSON.stringify(f.field_key)+', true)">Remove</button>');
+
   return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
-    +'<td><input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="'+(f.admin_only?'—':'(use original)')+'"></td>'
-    +'<td><input type="text" id="'+rid+'_av" value="'+esc(f.assigned_value||'')+'" placeholder="Assign..."></td>'
+    +'<td>'+ccCell+'</td>'
+    +'<td>'+avCell+'</td>'
     +'<td><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
       +'<button class="mini-btn save" onclick="saveField('+JSON.stringify(f.field_key)+', false)">Save</button>'
-      +(f.removed
-        ? '<button class="mini-btn restore" onclick="toggleRemoved('+JSON.stringify(f.field_key)+', false)">Restore</button>'
-        : '<button class="mini-btn remove" onclick="toggleRemoved('+JSON.stringify(f.field_key)+', true)">Remove</button>')
+      +actions
     +'</div></td>'
     +'</tr>';
 }
 
 async function saveField(key, removedOverride){
   const rid = 'fld_'+key;
-  const cc = document.getElementById(rid+'_cc').value;
+  const ccEl = document.getElementById(rid+'_cc');
+  const cc = ccEl ? ccEl.value : '';   // absent when Customer's Choice is read-only for this row
   const av = document.getElementById(rid+'_av').value;
   const rm = document.getElementById(rid+'_rm').value;
   const row = document.getElementById(rid);

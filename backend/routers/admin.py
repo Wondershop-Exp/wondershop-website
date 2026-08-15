@@ -2,17 +2,32 @@
 Internal admin booking-management page (admin.html — NOT accessible to the
 end customer). Lets team members review every booking's captured details,
 assign a person / value against each field, add remarks, remove a service,
-add a coupon, and track payment status — all WITHOUT ever mutating the
-original leads row or its builder_snapshot JSON.
+add a coupon, and track payment status.
 
-Design principle: "Customer's Choice" shown for any field is always
-    override.customer_choice_override  (if the admin set one)
-    else the value originally captured from the customer (leads columns /
-         builder_snapshot), derived fresh on every read.
-This keeps the page fully non-destructive and fully audited — every change
-(customer choice, assigned value, remarks, removed/restored, new custom
-field) is appended to booking_change_log with a timestamp (shown in IST)
-and the name of whoever made the change.
+Two different editing models live side by side here, by design:
+
+  1. "Customer & Event Details" section — DIRECT WRITE. Customer's Choice
+     is read-only (frozen, showing exactly what the customer submitted).
+     Updated Value is editable; saving it writes straight into the real
+     `leads` column (blank + save clears the field to NULL). This is the
+     one place this page is allowed to mutate the original booking record.
+  2. Everything else (Services / Add-ons / Billing & Rewards) — OVERRIDE.
+     Customer's Choice is editable but never touches `leads` or
+     builder_snapshot — it's stored in booking_field_overrides, and always
+     falls back to the value originally captured from the customer when no
+     override exists. Assigned Value holds the vendor/person/admin note.
+
+Every change (direct-write value, customer choice, assigned value,
+remarks, removed/restored, new custom field) is appended to
+booking_change_log with an IST timestamp and the name of whoever made it.
+
+ROUND 1 SCOPE (2026-08-15, per Shruti): Grand Total and Balance Due are
+read-only DISPLAYS of the values captured at checkout — they are NOT yet
+live-recalculated when a service/discount changes. Vendor assignment is
+free text for every service for now (a proper vendor-master-table + dropdown
+is planned as a follow-up once Shruti provides the vendor list). Customer's
+Choice for Decor/Host/DJ/Photography/Piñata/E-Invite is a dropdown
+constrained to the site's actual catalogue options.
 
 NOTE for Shruti: edits made here do NOT re-send emails, do NOT update the
 Google Sheet row, and do NOT recalculate real pricing/payment totals — this
@@ -21,7 +36,7 @@ booking, not a re-trigger of the customer-facing flow.
 """
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date as date_cls
 from typing import Optional, List
 
 from fastapi import APIRouter, Header, HTTPException
@@ -84,12 +99,22 @@ def _date_str(d) -> Optional[str]:
     return d.isoformat()
 
 
+def _display_value(v) -> Optional[str]:
+    if v is None:
+        return None
+    if isinstance(v, date_cls):
+        return v.isoformat()
+    return str(v)
+
+
 # ─── FIELD CATALOG ────────────────────────────────────────────────────────
 # One entry per predefined field. `admin_only` fields have no source value
 # from the customer's submission — the admin fills them in directly.
 
 FIELD_CATALOG = [
-    # Customer & Event Details — captured in Step 0 + checkout
+    # Customer & Event Details — captured in Step 0 + checkout. DIRECT WRITE:
+    # Updated Value here writes straight into the matching `leads` column
+    # (field key == column name for every field in this section).
     {"key": "parent_name",         "label": "Parent Name",           "section": "Customer & Event Details"},
     {"key": "phone",                "label": "Phone",                  "section": "Customer & Event Details"},
     {"key": "email",                "label": "Email",                  "section": "Customer & Event Details"},
@@ -109,7 +134,9 @@ FIELD_CATALOG = [
     {"key": "city",                 "label": "City",                   "section": "Customer & Event Details"},
     {"key": "pincode",              "label": "Pincode",                "section": "Customer & Event Details"},
 
-    # Services — derived from builder_snapshot
+    # Services — derived from builder_snapshot. Customer's Choice is a
+    # dropdown for the fixed-option services; Assigned Value holds the
+    # vendor/host/volunteer name (free text for now).
     {"key": "svc_decor",       "label": "Decor",             "section": "Services"},
     {"key": "svc_activities",  "label": "Activities",        "section": "Services"},
     {"key": "svc_host",        "label": "Host",               "section": "Services"},
@@ -127,7 +154,9 @@ FIELD_CATALOG = [
     {"key": "addon_pinata_bags",     "label": "Piñata Bags",            "section": "Add-ons", "admin_only": True},
     {"key": "addon_pinata_fillings", "label": "Piñata Fillings",        "section": "Add-ons", "admin_only": True},
 
-    # Billing & Rewards
+    # Billing & Rewards — Grand Total / Balance Due are system-calculated
+    # displays (read-only, see READ_ONLY_FIELDS below); everything else here
+    # is admin-editable.
     {"key": "bill_grand_total",     "label": "Grand Total",            "section": "Billing & Rewards"},
     {"key": "bill_discount_pct",    "label": "Discount %",             "section": "Billing & Rewards"},
     {"key": "bill_advance",         "label": "Advance Paid",           "section": "Billing & Rewards"},
@@ -141,6 +170,56 @@ FIELD_CATALOG = [
 
 SECTIONS = ["Customer & Event Details", "Services", "Add-ons", "Billing & Rewards"]
 CATALOG_BY_KEY = {f["key"]: f for f in FIELD_CATALOG}
+
+DIRECT_WRITE_FIELDS = {f["key"] for f in FIELD_CATALOG if f["section"] == "Customer & Event Details"}
+READ_ONLY_FIELDS = {"bill_grand_total", "bill_balance"}
+
+# ─── Dropdown option lists ────────────────────────────────────────────────
+# Kept in sync by hand with builder.html / catalogue_data.py (same convention
+# catalogue_data.py itself uses) — last synced 2026-08-15.
+
+DECOR_OPTIONS = [
+    "Unicorn Magic", "Jungle Safari", "Superhero", "Space Explorer", "Mystery & Spy",
+    "K-Pop Party", "Harry Potter", "Art & Paint Party", "Science Party", "Race Track & Cars",
+    "Football Party", "Indian Craft Bazaar", "Indian Palace", "Indian Railways", "Katseye",
+    "Lilo & Stitch", "Malgudi Days", "Mithai Theme", "Nani ka Ghar", "The Great Ancient Indian Treasure",
+    "Standard Decor", "Custom Design",
+]
+HOST_OPTIONS = ["Classic", "Premium", "Signature"]
+DJ_OPTIONS = ["Classic", "Premium"]
+PHOTO_OPTIONS = ["Classic", "Premium", "Signature"]
+PINATA_OPTIONS = ["Square Pinata", "Circle Pinata", "Number Pinata", "Readymade Pinata", "Custom Design"]
+EINVITE_OPTIONS = [
+    "No selection", "Art Party", "Frozen (Elsa)", "Frozen (Anna)", "Ramayana", "Little Singham",
+    "Spy × K-Pop", "Spy Detective", "Spy Party (Classic)", "Spy Squad", "Unicorn",
+    "Superhero (3D)", "Superhero (Pop Art)", "Football × Spy Mission", "Football × Spy Mission (Alt)",
+    "Harry Potter", "Imposter Mission", "Imposter Mission (Alt)", "K-Pop Idol Collage", "K-Pop Bestie",
+    "K-Pop Girl Group (Red)", "K-Pop Girl Group (Green)", "Lilo & Stitch", "Movie Night (Gold)",
+    "Movie Night (Classic)", "Nani ka Ghar (Photoreal)", "Nani ka Ghar (Phone Call)",
+]
+PAYMENT_METHOD_OPTIONS = ["Cash", "UPI Transfer", "Bank Transfer", "Internal Settle"]
+PAYMENT_STATUS_OPTIONS = ["Pending", "Advance Paid Pending Verification", "Advance Paid Verified", "Complete"]
+
+DROPDOWN_OPTIONS = {
+    "svc_decor": DECOR_OPTIONS,
+    "svc_host": HOST_OPTIONS,
+    "svc_dj": DJ_OPTIONS,
+    "svc_photo": PHOTO_OPTIONS,
+    "svc_pinata": PINATA_OPTIONS,
+    "svc_einvite": EINVITE_OPTIONS,
+    "bill_payment_method": PAYMENT_METHOD_OPTIONS,
+    "bill_payment_status": PAYMENT_STATUS_OPTIONS,
+}
+
+ASSIGNED_PLACEHOLDERS = {
+    "svc_decor": "Decorator name",
+    "svc_activities": "Vendor(s) / volunteer(s)",
+    "svc_host": "Host name",
+    "svc_dj": "DJ vendor",
+    "svc_pinata": "Vendor",
+    "svc_photo": "Photographer / vendor",
+    "svc_gifts": "Vendor",
+}
 
 
 def _parse_snapshot(raw) -> dict:
@@ -187,7 +266,7 @@ def _derive_original_value(key: str, lead: dict, snap: dict):
         return p.get("n") if p else None
     if key == "svc_einvite":
         e = snap.get("einvite")
-        return e.get("n") if e else None
+        return e.get("n") if e and e.get("n") else "No selection"
     if key == "svc_photo":
         ph = snap.get("photo")
         return ph.get("tier") if ph else None
@@ -241,7 +320,7 @@ class FieldUpdateRequest(BaseModel):
     field_label: Optional[str] = None   # required when adding a NEW custom field
     section: Optional[str] = None       # required when adding a NEW custom field
     customer_choice_override: Optional[str] = ""   # "" = no override, show original
-    assigned_value: Optional[str] = ""
+    assigned_value: Optional[str] = ""              # also doubles as "Updated Value" for direct-write fields
     remarks: Optional[str] = ""
     removed: bool = False
     changed_by: str
@@ -257,6 +336,8 @@ def _log_sentence(field_label: str, change_type: str, old_value, new_value, chan
         return f'{field_label}: customer choice changed from "{old_d}" to "{new_d}" by {changed_by} on {ts}.'
     if change_type == "assigned_value":
         return f'{field_label}: assigned value changed from "{old_d}" to "{new_d}" by {changed_by} on {ts}.'
+    if change_type == "field_value":
+        return f'{field_label}: changed from "{old_d}" to "{new_d}" by {changed_by} on {ts} (booking record updated).'
     if change_type == "remarks":
         return f'{field_label}: remarks updated by {changed_by} on {ts}.'
     if change_type == "removed":
@@ -266,6 +347,69 @@ def _log_sentence(field_label: str, change_type: str, old_value, new_value, chan
     if change_type == "field_added":
         return f'{field_label}: added by {changed_by} on {ts}.'
     return f'{field_label}: {change_type} changed from "{old_d}" to "{new_d}" by {changed_by} on {ts}.'
+
+
+# ─── VALIDATION (Services dropdowns + Billing rules) ──────────────────────
+
+async def _validate_choice_value(key: str, value: str, derived_original: Optional[str], lead: dict):
+    """Applies to the value about to be saved into Customer's Choice for
+    override-based fields. Blank values (= revert to original) always skip
+    validation. A value matching the field's current original/derived value
+    is always allowed even if it isn't in the dropdown list — this covers
+    legacy bookings whose stored text doesn't exactly match today's
+    catalogue naming, so a plain re-save (e.g. of remarks) never gets
+    blocked."""
+    if not value:
+        return
+
+    if key in DROPDOWN_OPTIONS and value not in DROPDOWN_OPTIONS[key] and value != derived_original:
+        raise HTTPException(status_code=400, detail=f'"{value}" is not a valid option for {CATALOG_BY_KEY[key]["label"]}.')
+
+    if key == "bill_discount_pct":
+        try:
+            pct = float(value)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Discount % must be a number.")
+        if pct < 0 or pct > 100:
+            raise HTTPException(status_code=400, detail="Discount % cannot exceed 100%.")
+
+    if key == "bill_advance":
+        try:
+            adv = float(value)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Advance Paid must be a number.")
+        grand_total = lead.get("order_grand_total")
+        if grand_total is not None and adv > float(grand_total):
+            raise HTTPException(status_code=400, detail="Advance Paid cannot exceed the Grand Total.")
+
+    if key == "bill_coupon_code":
+        row = await database.fetch_one(
+            "SELECT coupon_id FROM coupons WHERE UPPER(code) = UPPER(:code) AND is_active = TRUE",
+            values={"code": value},
+        )
+        if not row:
+            raise HTTPException(status_code=400, detail=f'"{value}" was not found in the list of verified coupon codes.')
+
+
+def _coerce_direct_value(key: str, raw: str):
+    """Type-coerces a raw string from the Updated Value input for a
+    direct-write (Customer & Event Details) field, or raises a 400 if it's
+    not valid for that field's DB column type."""
+    raw = (raw or "").strip()
+    if raw == "":
+        return None
+    if key == "kids_count":
+        try:
+            return int(raw)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Kids Count must be a whole number.")
+    if key == "event_date":
+        try:
+            datetime.strptime(raw, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Event Date must be in YYYY-MM-DD format.")
+        return raw
+    return raw
 
 
 # ─── LIST ─────────────────────────────────────────────────────────────────
@@ -335,16 +479,34 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
     for f in FIELD_CATALOG:
         key = f["key"]
         ov = overrides.get(key)
+        is_direct = key in DIRECT_WRITE_FIELDS
+        is_read_only = key in READ_ONLY_FIELDS
         derived = None if f.get("admin_only") else _derive_original_value(key, lead, snap)
-        customer_choice = (ov["customer_choice_override"] if ov and ov["customer_choice_override"] else derived)
+
+        if is_direct:
+            # Customer's Choice = the frozen pre-edit snapshot (once an edit
+            # has happened), else the current (=original, untouched) value.
+            customer_choice = ov["customer_choice_override"] if (ov and ov["customer_choice_override"]) else derived
+            updated_value = ov["assigned_value"] if ov else derived
+        else:
+            customer_choice = (ov["customer_choice_override"] if ov and ov["customer_choice_override"] else derived)
+            updated_value = ov["assigned_value"] if ov else None
+
         sections[f["section"]].append({
             "field_key": key,
             "label": f["label"],
             "admin_only": bool(f.get("admin_only")),
             "is_custom": False,
+            "is_direct_write": is_direct,
+            "read_only": is_read_only,
+            "choice_editable": (not is_direct) and (not is_read_only),
+            "updated_editable": not is_read_only,
+            "has_override": bool(ov),
+            "options": DROPDOWN_OPTIONS.get(key),
+            "placeholder": ASSIGNED_PLACEHOLDERS.get(key),
             "original_value": derived,
             "customer_choice": customer_choice,
-            "assigned_value": ov["assigned_value"] if ov else None,
+            "assigned_value": updated_value,
             "remarks": ov["remarks"] if ov else None,
             "removed": bool(ov["removed"]) if ov else False,
             "updated_by": ov["updated_by"] if ov else None,
@@ -363,6 +525,13 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             "label": ov.get("field_label") or key,
             "admin_only": True,
             "is_custom": True,
+            "is_direct_write": False,
+            "read_only": False,
+            "choice_editable": True,
+            "updated_editable": True,
+            "has_override": True,
+            "options": None,
+            "placeholder": None,
             "original_value": None,
             "customer_choice": ov["customer_choice_override"] or None,
             "assigned_value": ov["assigned_value"],
@@ -401,12 +570,86 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
 
 # ─── UPDATE A FIELD ───────────────────────────────────────────────────────
 
+async def _update_direct_field(lead_id: int, key: str, body: FieldUpdateRequest, lead: dict, existing, who: str):
+    """Customer & Event Details fields: Updated Value writes straight into
+    the matching `leads` column. Customer's Choice is frozen (captured from
+    whatever was in that column right before the FIRST-ever edit) and never
+    touched again, so it keeps showing the true original submission."""
+    label = CATALOG_BY_KEY[key]["label"]
+    section = CATALOG_BY_KEY[key]["section"]
+
+    coerced = _coerce_direct_value(key, body.assigned_value)
+    new_remarks = (body.remarks or "").strip()
+
+    old_value_display = _display_value(lead.get(key))
+    new_value_display = _display_value(coerced)
+
+    frozen_original = existing["customer_choice_override"] if existing else old_value_display
+    old_remarks = existing["remarks"] if existing else None
+
+    now = datetime.utcnow()
+    log_entries = []
+    if old_value_display != new_value_display:
+        log_entries.append(("field_value", old_value_display, new_value_display, now))
+    if (old_remarks or None) != (new_remarks or None):
+        log_entries.append(("remarks", old_remarks, new_remarks or None, now))
+
+    # The one place this page writes to the real booking record.
+    await database.execute(f"UPDATE leads SET {key} = :val WHERE lead_id = :lead_id", values={"val": coerced, "lead_id": lead_id})
+
+    if existing:
+        await database.execute(
+            """
+            UPDATE booking_field_overrides
+            SET assigned_value = :av, remarks = :rm, updated_by = :by, updated_at = :now
+            WHERE lead_id = :lead_id AND field_key = :key
+            """,
+            values={"av": new_value_display, "rm": new_remarks or None, "by": who, "now": now, "lead_id": lead_id, "key": key},
+        )
+    else:
+        await database.execute(
+            """
+            INSERT INTO booking_field_overrides
+                (lead_id, field_key, field_label, section, customer_choice_override,
+                 assigned_value, remarks, removed, is_custom, updated_by, updated_at)
+            VALUES
+                (:lead_id, :key, :label, :section, :cco, :av, :rm, FALSE, FALSE, :by, :now)
+            """,
+            values={
+                "lead_id": lead_id, "key": key, "label": label, "section": section,
+                "cco": frozen_original, "av": new_value_display, "rm": new_remarks or None,
+                "by": who, "now": now,
+            },
+        )
+
+    for change_type, old_v, new_v, ts in log_entries:
+        await database.execute(
+            """
+            INSERT INTO booking_change_log
+                (lead_id, field_key, field_label, change_type, old_value, new_value, changed_by, changed_at)
+            VALUES
+                (:lead_id, :key, :label, :change_type, :old_v, :new_v, :by, :ts)
+            """,
+            values={
+                "lead_id": lead_id, "key": key, "label": label, "change_type": change_type,
+                "old_v": old_v, "new_v": new_v, "by": who, "ts": ts,
+            },
+        )
+
+    return {"success": True, "field_key": key, "changes_logged": len(log_entries)}
+
+
 @router.post("/bookings/{lead_id}/field")
 async def update_booking_field(lead_id: int, body: FieldUpdateRequest, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
 
     if not body.changed_by or not body.changed_by.strip():
         raise HTTPException(status_code=400, detail="changed_by is required.")
+    who = body.changed_by.strip()
+
+    key = body.field_key
+    if key in READ_ONLY_FIELDS:
+        raise HTTPException(status_code=400, detail=f"{CATALOG_BY_KEY[key]['label']} is system-calculated and can't be edited here.")
 
     lead_row = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
     if not lead_row:
@@ -414,25 +657,29 @@ async def update_booking_field(lead_id: int, body: FieldUpdateRequest, x_admin_p
     lead = dict(lead_row)
     snap = _parse_snapshot(lead.get("builder_snapshot"))
 
-    key = body.field_key
-    is_new_custom = key not in CATALOG_BY_KEY
-
     existing = await database.fetch_one(
         "SELECT * FROM booking_field_overrides WHERE lead_id = :lead_id AND field_key = :key",
         values={"lead_id": lead_id, "key": key},
     )
 
+    if key in DIRECT_WRITE_FIELDS:
+        return await _update_direct_field(lead_id, key, body, lead, existing, who)
+
+    # ─── Override-based fields: Services / Add-ons / Billing & Rewards / custom ───
+    is_new_custom = key not in CATALOG_BY_KEY
     label = body.field_label or (CATALOG_BY_KEY.get(key, {}).get("label")) or key
     section = body.section or (CATALOG_BY_KEY.get(key, {}).get("section")) or "Add-ons"
 
     if is_new_custom and not existing and not body.field_label:
         raise HTTPException(status_code=400, detail="field_label is required when adding a new custom field.")
 
-    new_customer_choice = body.customer_choice_override.strip() if body.customer_choice_override else ""
-    new_assigned = body.assigned_value.strip() if body.assigned_value else ""
-    new_remarks = body.remarks.strip() if body.remarks else ""
+    new_customer_choice = (body.customer_choice_override or "").strip()
+    new_assigned = (body.assigned_value or "").strip()
+    new_remarks = (body.remarks or "").strip()
 
     derived_original = None if CATALOG_BY_KEY.get(key, {}).get("admin_only") else _derive_original_value(key, lead, snap)
+
+    await _validate_choice_value(key, new_customer_choice, derived_original, lead)
 
     old_customer_choice_stored = existing["customer_choice_override"] if existing else None
     old_assigned = existing["assigned_value"] if existing else None
@@ -469,7 +716,7 @@ async def update_booking_field(lead_id: int, body: FieldUpdateRequest, x_admin_p
             values={
                 "cco": new_customer_choice or None, "av": new_assigned or None, "rm": new_remarks or None,
                 "removed": body.removed, "label": label, "section": section,
-                "by": body.changed_by.strip(), "now": now,
+                "by": who, "now": now,
                 "lead_id": lead_id, "key": key,
             },
         )
@@ -485,7 +732,7 @@ async def update_booking_field(lead_id: int, body: FieldUpdateRequest, x_admin_p
             values={
                 "lead_id": lead_id, "key": key, "label": label, "section": section,
                 "cco": new_customer_choice or None, "av": new_assigned or None, "rm": new_remarks or None,
-                "removed": body.removed, "is_custom": is_new_custom, "by": body.changed_by.strip(), "now": now,
+                "removed": body.removed, "is_custom": is_new_custom, "by": who, "now": now,
             },
         )
 
@@ -499,7 +746,7 @@ async def update_booking_field(lead_id: int, body: FieldUpdateRequest, x_admin_p
             """,
             values={
                 "lead_id": lead_id, "key": key, "label": label, "change_type": change_type,
-                "old_v": old_v, "new_v": new_v, "by": body.changed_by.strip(), "ts": ts,
+                "old_v": old_v, "new_v": new_v, "by": who, "ts": ts,
             },
         )
 
