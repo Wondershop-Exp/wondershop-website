@@ -142,7 +142,7 @@ async def get_host_tiers():
     return [dict(r) for r in rows]
 
 
-# ─── DJS ─────────────────────────────────────────────────────────────────────
+# ─── MUSIC (route path/DB kept as "dj" internally) ────────────────────────────
 
 @router.get("/djs")
 async def get_dj_tiers():

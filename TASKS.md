@@ -2,6 +2,9 @@
 
 ## Active
 
+### Security
+- [ ] **Rotate Google OAuth credentials (Client ID/Secret/Refresh Token)** - a `.env` backup (`backend/_to_delete/env.bak.*`) containing the live Gmail OAuth Client ID, Client Secret, and Refresh Token was accidentally staged in a git commit on 2026-08-15. GitHub's push protection blocked the push before it reached the remote, and the bad commit was amended out locally, but the credential did leave the machine during the blocked push attempt. Regenerate in Google Cloud Console and update the corresponding Railway env vars (used for sending booking confirmation/team emails) to be fully safe.
+
 ### SEO — Quick Wins (do this week)
 - [ ] **Connect custom domain** - point wondershopexperiences.com to GitHub Pages via CNAME; highest-leverage SEO fix
 - [ ] **Claim & complete Google Business Profile** - set service area to all Mumbai, add photos, list services (birthday decor, kids party, birthday planner); needed for "decor near me" searches
@@ -34,6 +37,8 @@
 - [ ] **2 remaining Unicorn Basic activities** - Bracelet Making and Hair Braiding still requested for unicorn-basic.html but don't exist in the ACTS catalogue. (Glitter Station and Slime Making have since been added with real pricing from Shruti; Nail Art Station, a21, was a real catalogue match added earlier.) Waiting on Shruti for icon, age range, duration, and pricing for the last 2.
 
 ## Someday
+
+- [ ] **Curate theme based on a budget** - let a customer enter their budget and have the builder suggest/filter themes (and decor tiers) that fit it, instead of having to browse everything and price it out manually. (2026-08-16, per Shruti)
 
 ## Done
 

@@ -270,7 +270,7 @@ _DETAIL_ROWS = [
 _SERVICE_ROWS = [
     ("Host",          "host_tier"),
     ("Music (DJ)",    "dj_tier"),
-    ("DJ Add-ons",    "dj_addons"),
+    ("Music Add-ons", "dj_addons"),
     ("Bonus Service (Scratch-Card Reward)", "bonus_service"),
 ]
 
@@ -285,7 +285,7 @@ _BILLING_ROWS = [
 # Manually-assigned fields — printed as blank lines for ops to fill by hand.
 _MANUAL_ROWS = [
     "Event Ops Lead", "Decor Vendor", "Decor Reference Photo Confirmed",
-    "Host Name", "DJ Name", "Entry Song", "Photographer Add-ons",
+    "Host Name", "Music Name", "Entry Song", "Photographer Add-ons",
     "Cake", "Volunteers", "Piñata Bags", "Piñata Fillings",
     "Return Gift Wrapping (Y/N)", "Paper Bag (Y/N + size)",
     "Personalization (Y/N + design)", "Host Gifts (# confirmed)",

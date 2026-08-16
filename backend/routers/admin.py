@@ -26,7 +26,7 @@ read-only DISPLAYS of the values captured at checkout — they are NOT yet
 live-recalculated when a service/discount changes. Vendor assignment is
 free text for every service for now (a proper vendor-master-table + dropdown
 is planned as a follow-up once Shruti provides the vendor list). Customer's
-Choice for Decor/Host/DJ/Photography/Piñata/E-Invite is a dropdown
+Choice for Decor/Host/Music/Photography/Piñata/E-Invite is a dropdown
 constrained to the site's actual catalogue options.
 
 NOTE for Shruti: edits made here do NOT re-send emails, do NOT update the
@@ -148,8 +148,8 @@ FIELD_CATALOG = [
     {"key": "svc_gifts",       "label": "Gifts",              "section": "Services"},
 
     # Add-ons
-    {"key": "addon_dj_lights",       "label": "DJ Lights",              "section": "Add-ons"},
-    {"key": "addon_dj_smoke",        "label": "DJ Smoke Machine",       "section": "Add-ons"},
+    {"key": "addon_dj_lights",       "label": "Music Lights",           "section": "Add-ons"},
+    {"key": "addon_dj_smoke",        "label": "Music Smoke Machine",    "section": "Add-ons"},
     {"key": "addon_gift_packaging",  "label": "Gift Packaging",         "section": "Add-ons"},
     {"key": "addon_gift_note",       "label": "Gift Thank-You Note",    "section": "Add-ons"},
     {"key": "addon_pinata_bags",     "label": "Piñata Bags",            "section": "Add-ons", "admin_only": True},
@@ -181,7 +181,7 @@ READ_ONLY_FIELDS = {"bill_grand_total", "bill_balance"}
 # Decor can show "Theme - Tier - Rs. Price" without that price ever being
 # saved as part of the value itself, which would break matching against
 # older bookings if a price later changes).
-# Host/DJ/Photo/Piñata/E-Invite/coupon status lists are kept in sync by hand
+# Host/Music/Photo/Piñata/E-Invite/coupon status lists are kept in sync by hand
 # with builder.html (same convention catalogue_data.py itself uses).
 # Decor is generated from catalogue_data.py's THEMES + DECOR_TIER_META
 # directly, so it never drifts out of sync with the real theme/tier/price
@@ -246,7 +246,7 @@ ASSIGNED_PLACEHOLDERS = {
     "svc_decor": "Decorator name",
     "svc_activities": "Vendor(s) / volunteer(s)",
     "svc_host": "Host name",
-    "svc_dj": "DJ vendor",
+    "svc_dj": "Music vendor",
     "svc_pinata": "Vendor",
     "svc_photo": "Photographer / vendor",
     "svc_gifts": "Vendor",

@@ -116,8 +116,10 @@ class LeadSubmitRequest(BaseModel):
     gift_delivery_contact:      Optional[str]  = None   # contact person's name
     gift_delivery_contact_phone:Optional[str]  = None   # contact person's phone (2026-08-11)
     gift_required_by_date:      Optional[date] = None
-    # DJ add-ons — DJ Lights (Rs.1,500) / Smoke Machine (Rs.2,000). Replaces
-    # the old "Signature DJ" tier, which bundled both at a fixed higher price.
+    # Music add-ons (internal field names still say "dj" — see builder.html
+    # for the same convention) — Music Lights (Rs.1,500) / Smoke Machine
+    # (Rs.2,000). Replaces the old "Signature DJ" tier, which bundled both
+    # at a fixed higher price.
     dj_lights_addon:            Optional[bool] = False
     dj_smoke_machine_addon:     Optional[bool] = False
     # Personal attribution code for a team member (see _check_sales_lead_code)
@@ -583,12 +585,12 @@ def _format_order_summary_block(req: LeadSubmitRequest) -> str:
 def _format_dj_addons_block(req: LeadSubmitRequest) -> str:
     lines = []
     if req.dj_lights_addon:
-        lines.append("  DJ Lights      : Yes (Rs.1,500)")
+        lines.append("  Music Lights   : Yes (Rs.1,500)")
     if req.dj_smoke_machine_addon:
         lines.append("  Smoke Machine  : Yes (Rs.2,000)")
     if not lines:
         return ""
-    return "\nDJ ADD-ONS\n" + "\n".join(lines) + "\n"
+    return "\nMUSIC ADD-ONS\n" + "\n".join(lines) + "\n"
 
 def _format_venue_block(req: LeadSubmitRequest) -> str:
     if not any([req.venue_maps_link, req.venue_contact_name, req.venue_contact_phone]):
@@ -674,7 +676,7 @@ def _format_reward_block(req: LeadSubmitRequest, reward_code: Optional[str], add
 
 def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[str] = None) -> list:
     """Always returns one entry per builder step (Decor, Activities, Host,
-    DJ, Pinata, E-Invite, Photographer, Return Gifts), in that order, even
+    Music, Pinata, E-Invite, Photographer, Return Gifts), in that order, even
     when the customer didn't opt into a given step — those come back as
     {"label": ..., "not_selected": True} so the confirmation email shows an
     explicit "Not selected" row instead of silently dropping the category
@@ -720,15 +722,15 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
         addons = snap.get("dj_addons") or {}
         addon_bits = []
         if addons.get("lights"):
-            addon_bits.append("DJ Lights")
+            addon_bits.append("Music Lights")
         if addons.get("smoke"):
             addon_bits.append("Smoke Machine")
         out.append({
-            "label": "DJ / Music", "name": f"{dj['tier']} DJ", "price": dj.get("p"),
+            "label": "Music", "name": f"{dj['tier']} Music", "price": dj.get("p"),
             "inclusions": [("Add-ons", ", ".join(addon_bits))] if addon_bits else [],
         })
     else:
-        out.append({"label": "DJ / Music", "not_selected": True})
+        out.append({"label": "Music", "not_selected": True})
 
     pinata = snap.get("pinata") or {}
     if pinata.get("n"):
@@ -1080,7 +1082,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
 
     dj_rows = []
     if req.dj_lights_addon:
-        dj_rows.append(("DJ Lights", "Yes (Rs.1,500)"))
+        dj_rows.append(("Music Lights", "Yes (Rs.1,500)"))
     if req.dj_smoke_machine_addon:
         dj_rows.append(("Smoke Machine", "Yes (Rs.2,000)"))
     dj_html = _html_details_table(dj_rows)
@@ -1138,7 +1140,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
         _html_section_title("Booking Details" if is_booking else "Enquiry Details") + details_html,
         (_html_section_title("Order Summary") + order_html) if order_rows else "",
         services_html,
-        (_html_section_title("DJ Add-ons") + dj_html) if dj_rows else "",
+        (_html_section_title("Music Add-ons") + dj_html) if dj_rows else "",
         (_html_section_title("Venue Details") + venue_html) if any(r[1] for r in venue_rows) else "",
         (_html_section_title("Return Gift Delivery") + gift_html) if any(r[1] for r in gift_rows) else "",
         remarks_html,
@@ -1387,7 +1389,7 @@ def _sheet_service_columns(snapshot: Optional[dict]) -> dict:
     dj_addons = snap.get("dj_addons") or {}
     addon_labels = []
     if dj_addons.get("lights"):
-        addon_labels.append("DJ Lights")
+        addon_labels.append("Music Lights")
     if dj_addons.get("smoke"):
         addon_labels.append("Smoke Machine")
     music = ", ".join(filter(None, [dj_tier] + addon_labels))

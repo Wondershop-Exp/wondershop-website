@@ -15,13 +15,14 @@ _Replaces the old flat/service-count discount logic (2026-08-12, per Shruti). Qu
 
 ---
 
-## DJ
+## Music
+_Renamed from "DJ" site-wide (2026-08-16, per Shruti) — user-facing labels only; internal code identifiers (S.dj, cat:'DJ', img/dj-*.jpg, etc.) are unchanged, see builder.html._
 
 | Tier | Standalone | Bundled | Inclusions |
 |------|-----------|---------|------------|
-| DJ Lite | ₹7,000 | ₹6,500 | 1 speaker, 1 cordless mic, DJ mixer, 1 DJ. Home/small spaces. |
-| DJ Standard | ₹11,000 | ₹10,000 | 2 speakers, 2 cordless mics, DJ mixer, 1 pro DJ player |
-| DJ Pro | ₹15,000 | ₹12,000 | 2 speakers, 2 cordless mics, DJ mixer, 1 expert DJ player + DJ lights |
+| Music Lite | ₹7,000 | ₹6,500 | 1 speaker, 1 cordless mic, music mixer, 1 operator. Home/small spaces. |
+| Music Standard | ₹11,000 | ₹10,000 | 2 speakers, 2 cordless mics, music mixer, 1 pro music player |
+| Music Pro | ₹15,000 | ₹12,000 | 2 speakers, 2 cordless mics, music mixer, 1 expert music player + music lights |
 
 ---
 

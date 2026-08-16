@@ -51,4 +51,10 @@ img/Gallery/**/*.MOV
 # Accidental "Save As" export of a Google Photos page (not real gallery
 # content) that ended up inside img/Gallery/Spy/ (2026-08-15).
 img/Gallery/Spy/Photo in Neha Adiva Sherlock*
-backend/_to_delete/
+
+# Scratch preview folders used while sanity-checking the site-wide logo
+# watermark pass (2026-08-16) — not real site content.
+_to_delete_watermark_previews/
+_watermark_preview/
+_watermark_preview_orig/
+_watermark_preview2/
