@@ -487,19 +487,28 @@ input,textarea,select{font-family:var(--fb)}
 @media(max-width:660px){.tier-cards{grid-template-columns:1fr}}
 
 /* Form inputs */
-.ig{margin-bottom:12px;min-width:0}
+/* overflow:hidden (2026-08-16, per Shruti — round 2: the min-width:0/
+   max-width:100% pass alone didn't fully fix it) — iOS Safari's native
+   input[type=date]/[type=time] control has its own intrinsic rendered
+   width (day/month/year segments + calendar icon, scaled by font-size)
+   that it does NOT reliably shrink to fit width:100% inside a padded
+   card, so the box could still render a bit wider than its container and
+   physically poke out past the rounded edge. Clipping at .ig — the direct
+   wrapper for every date/time field in the app — guarantees the visible
+   box never exceeds its card, whatever WebKit decides to render
+   internally. The native date/time PICKER itself opens as an OS-level
+   sheet, not an in-page dropdown, so it's unaffected by this clip. */
+.ig{margin-bottom:12px;min-width:0;overflow:hidden}
 .ig label{display:block;font-size:12px;font-weight:700;color:var(--bk);margin-bottom:5px;letter-spacing:.3px}
-/* min-width:0 + max-width:100% (2026-08-16, per Shruti: date/event inputs
-   were spilling out past their card on phone) — iOS Safari gives
-   input[type=date] (and to a lesser extent time/text) an intrinsic
-   min-content width that ignores width:100% once the input sits inside a
-   flex/grid ancestor (.row2, .child-card, .s0-form) unless min-width is
-   explicitly reset to 0, so the box could render wider than its container
-   and visually poke out past the rounded card edge. */
 .ig input,.ig textarea,.ig select{width:100%;max-width:100%;min-width:0;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px;color:var(--bk);background:#fff;transition:border-color .15s;outline:none}
 .ig input:focus,.ig textarea:focus,.ig select:focus{border-color:var(--li)}
 .ig input.err{border-color:var(--pk)}
 .ig textarea{resize:vertical;min-height:80px}
+/* Smaller font specifically for date/time controls on phone — WebKit
+   scales the native control's rendered width with font-size, so a couple
+   px less gives it enough headroom to actually fit inside width:100%
+   instead of relying on the overflow:hidden clip above. */
+@media(max-width:480px){.ig input[type=date],.ig input[type=time]{font-size:13px;padding:10px 8px}}
 .pfx-wrap{display:flex;align-items:center;border:1.5px solid #E5E7EB;border-radius:10px;overflow:hidden;background:#fff;transition:border-color .15s}
 .pfx-wrap:focus-within{border-color:var(--li)}
 .pfx{padding:10px 10px 10px 12px;font-size:14px;font-weight:600;color:var(--gy);background:#F9FAFB;border-right:1.5px solid #E5E7EB;white-space:nowrap;flex-shrink:0}
@@ -575,6 +584,14 @@ input,textarea,select{font-family:var(--fb)}
 .qty-btn{width:28px;height:28px;border:none;background:#fff;font-size:14px;display:flex;align-items:center;justify-content:center}
 .qty-btn:hover{background:var(--li3)}
 .qty-val{width:32px;text-align:center;font-size:13px;font-weight:700;border-left:1px solid var(--li2);border-right:1px solid var(--li2);padding:4px 0}
+/* 2026-08-16, per Shruti: "the counter to increase or decrease is too
+   small to make changes" — 28px is under the ~36-44px comfortable minimum
+   touch target on phone. Bumped on mobile only; desktop (mouse) is fine
+   as-is. */
+@media(max-width:480px){
+  .qty-btn{width:38px;height:38px;font-size:18px}
+  .qty-val{width:36px;font-size:14px}
+}
 
 /* Packaging / tag buttons */
 .pkg-btn,.tag-opt-btn{background:var(--li3);border:1.5px solid var(--li2);border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--gy);transition:all .15s;text-align:left}
@@ -805,17 +822,23 @@ input,textarea,select{font-family:var(--fb)}
 .ls-contact{background:var(--li3);border-radius:12px;padding:16px;margin-bottom:20px;text-align:center}
 .lsc-t{font-size:12px;color:var(--gy);margin-bottom:4px}
 /* QR payment box */
-.ls-pay-box{background:#fff;border:2px solid var(--li2);border-radius:16px;padding:20px;margin:0 auto 24px;max-width:360px;text-align:center}
+.ls-pay-box{background:#fff;border:2px solid var(--li2);border-radius:16px;padding:20px;margin:0 auto 24px;max-width:360px;width:100%;box-sizing:border-box;text-align:center}
 .ls-pay-hdr{margin-bottom:16px}
 .ls-pay-badge{display:inline-block;background:var(--li3);color:var(--pk);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
 .ls-pay-hdr h3{font-family:var(--fd);font-size:17px;font-weight:700;color:var(--bk);margin:0 0 6px}
 .ls-pay-hdr p{font-size:13px;color:var(--gy);margin:0;max-width:none}
-.ls-qr-wrap{margin:0 auto 14px;width:180px;height:180px;border-radius:12px;overflow:hidden;border:1.5px solid #eee;background:#fff}
+.ls-qr-wrap{margin:0 auto 14px;width:180px;height:180px;max-width:100%;border-radius:12px;overflow:hidden;border:1.5px solid #eee;background:#fff}
 .ls-qr-img{width:100%;height:100%;object-fit:contain}
-.ls-upi-id{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--li3);border-radius:10px;padding:10px 14px;margin-bottom:6px}
+/* 2026-08-16, per Shruti: "the QR code box is spilling out of the screen"
+   — the real culprit was this row: label + a long unbreakable UPI ID
+   (monospace, can't wrap) + a Copy button, which together need more room
+   than a narrow phone has, pushing the Copy button (and the box it's in)
+   past the screen edge. flex-wrap lets the button drop to its own line
+   instead of forcing the row wider than the card. */
+.ls-upi-id{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 8px;background:var(--li3);border-radius:10px;padding:10px 14px;margin-bottom:6px}
 .ls-upi-label{font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
-.ls-upi-val{font-size:14px;font-weight:700;color:var(--bk);font-family:monospace}
-.ls-copy-btn{background:var(--pk);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.ls-upi-val{font-size:14px;font-weight:700;color:var(--bk);font-family:monospace;overflow-wrap:anywhere;max-width:100%}
+.ls-copy-btn{background:var(--pk);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
 .ls-upi-name{font-size:11px;color:var(--gy);margin-bottom:12px}
 .ls-pay-note{font-size:12px;color:var(--gy);margin:0;line-height:1.5}
 .lsc-n{font-size:18px;font-weight:700;color:var(--bk)}
