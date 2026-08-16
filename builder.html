@@ -378,6 +378,15 @@ input,textarea,select{font-family:var(--fb)}
 .cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .cards-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 @media(max-width:660px){.cards-grid{grid-template-columns:repeat(2,1fr)}}
+/* 2026-08-16, per Shruti: on phone, the 2-column card grid leaves each
+   card too narrow for the price + Add/Added button to sit side by side
+   (looked "very congested" on Activities & Pinata) — web is unaffected
+   since desktop cards are wider. Stack price above a full-width button
+   instead, phone only. */
+@media(max-width:480px){
+  .card-pr-row{flex-direction:column;align-items:stretch;gap:8px}
+  .card-btn{width:100%;text-align:center;padding:8px 14px}
+}
 
 /* Product card */
 .pcard{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);overflow:hidden;position:relative;transition:border-color .2s,transform .15s,box-shadow .15s;cursor:pointer}
@@ -478,18 +487,26 @@ input,textarea,select{font-family:var(--fb)}
 @media(max-width:660px){.tier-cards{grid-template-columns:1fr}}
 
 /* Form inputs */
-.ig{margin-bottom:12px}
+.ig{margin-bottom:12px;min-width:0}
 .ig label{display:block;font-size:12px;font-weight:700;color:var(--bk);margin-bottom:5px;letter-spacing:.3px}
-.ig input,.ig textarea,.ig select{width:100%;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px;color:var(--bk);background:#fff;transition:border-color .15s;outline:none}
+/* min-width:0 + max-width:100% (2026-08-16, per Shruti: date/event inputs
+   were spilling out past their card on phone) — iOS Safari gives
+   input[type=date] (and to a lesser extent time/text) an intrinsic
+   min-content width that ignores width:100% once the input sits inside a
+   flex/grid ancestor (.row2, .child-card, .s0-form) unless min-width is
+   explicitly reset to 0, so the box could render wider than its container
+   and visually poke out past the rounded card edge. */
+.ig input,.ig textarea,.ig select{width:100%;max-width:100%;min-width:0;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px;color:var(--bk);background:#fff;transition:border-color .15s;outline:none}
 .ig input:focus,.ig textarea:focus,.ig select:focus{border-color:var(--li)}
 .ig input.err{border-color:var(--pk)}
 .ig textarea{resize:vertical;min-height:80px}
 .pfx-wrap{display:flex;align-items:center;border:1.5px solid #E5E7EB;border-radius:10px;overflow:hidden;background:#fff;transition:border-color .15s}
 .pfx-wrap:focus-within{border-color:var(--li)}
 .pfx{padding:10px 10px 10px 12px;font-size:14px;font-weight:600;color:var(--gy);background:#F9FAFB;border-right:1.5px solid #E5E7EB;white-space:nowrap;flex-shrink:0}
-.pi{border:none!important;border-radius:0!important;flex:1}
+.pi{border:none!important;border-radius:0!important;flex:1;min-width:0}
 .pi:focus{outline:none}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row2>*{min-width:0}
 @media(max-width:520px){.row2{grid-template-columns:1fr}}
 .hint{font-size:11px;color:var(--gy);margin-top:4px}
 .opt{font-size:11px;font-weight:400;color:var(--gy)}
@@ -535,11 +552,18 @@ input,textarea,select{font-family:var(--fb)}
 /* Gift cards */
 .gift-card{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);padding:14px;transition:border-color .15s}
 .gift-card.added{border-color:var(--gr)}
-.gift-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.gift-card{min-width:0}
+.gift-top{display:flex;align-items:center;gap:12px;margin-bottom:12px;min-width:0}
 .g-emoji{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden}
 .g-emoji.has-img{background:var(--li2)}
 .g-emoji img{width:100%;height:100%;object-fit:cover;display:block}
-.g-name{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:2px}
+/* min-width:0 on the flex row's text column (2026-08-16, per Shruti: the
+   2nd column of gift cards wasn't fitting on phone) — without it, a long
+   gift name like "3D Printed Personalized FIFA World Cup" has no room to
+   shrink inside the flex row, so it forces the whole card (and the grid
+   column it sits in) wider than the phone screen instead of wrapping. */
+.gift-top>div{min-width:0}
+.g-name{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:2px;overflow-wrap:break-word}
 .g-meta{font-size:11px;color:var(--gy)}
 .gift-bottom{display:flex;align-items:center;justify-content:space-between}
 .gift-total{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--bk)}
@@ -593,13 +617,18 @@ input,textarea,select{font-family:var(--fb)}
 
 /* Review */
 .rv-sec{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
-.rv-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--li2);background:var(--li3)}
-.rv-cat{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk)}
-.edit-link{font-size:12px;font-weight:700;color:var(--li);cursor:pointer}
+.rv-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--li2);background:var(--li3);gap:8px;min-width:0}
+.rv-cat{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);min-width:0;overflow-wrap:break-word}
+.edit-link{font-size:12px;font-weight:700;color:var(--li);cursor:pointer;flex-shrink:0}
 .rv-items{padding:10px 16px}
 .rv-item{display:flex;align-items:center;gap:10px;font-size:13px;padding:7px 0;border-bottom:1px solid var(--li2)}
 .rv-item:last-child{border-bottom:none}
-.rv-item-name{flex:1}
+/* 2026-08-16, per Shruti: review screen content wasn't fitting on phone —
+   .rv-item-name is a flex:1 child with no min-width:0, so a long product
+   name (no default max-content shrink in flexbox) could force the whole
+   row — and the .rv-sec card, .s-hero subtitle above it, etc. — wider than
+   the phone screen instead of wrapping onto a 2nd line. */
+.rv-item-name{flex:1;min-width:0;overflow-wrap:break-word}
 .rv-item-price{font-weight:700;color:var(--bk);flex-shrink:0}
 .rv-item-rm{flex-shrink:0;width:22px;height:22px;border-radius:50%;border:none;background:#FEF2F2;color:#DC2626;font-size:12px;font-weight:700;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
 .rv-item-rm:hover{background:#FEE2E2}
@@ -883,9 +912,14 @@ input,textarea,select{font-family:var(--fb)}
    off/on colors as inline CSS custom properties (set in renderInterestChips())
    so this one rule set styles every category — see the INTERESTS const. */
 .interest-chips{display:flex;gap:10px;flex-wrap:wrap}
-.interest-chip{background:var(--icOff);color:var(--icOffFg);border:2px solid var(--icBd);border-radius:18px;padding:11px 18px;font-size:14px;font-weight:700;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer}
+.interest-chip{position:relative;background:var(--icOff);color:var(--icOffFg);border:2px solid var(--icBd);border-radius:18px;padding:11px 18px;font-size:14px;font-weight:700;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer}
 .interest-chip:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.14)}
-.interest-chip.on{background:var(--icOn);color:var(--icOnFg);border-color:var(--icOn);box-shadow:0 3px 12px rgba(0,0,0,.18);transform:scale(1.04)}
+/* 2026-08-16, per Shruti: "we cannot tell if the mystery bubble is
+   selected" — the dark Mystery & Adventure chip's off/on colors (#1F2937 vs
+   #000) were too close to tell apart. A white halo ring + an explicit
+   checkmark makes selection obvious regardless of the chip's own color. */
+.interest-chip.on{background:var(--icOn);color:var(--icOnFg);border-color:#fff;box-shadow:0 0 0 2px #fff,0 0 0 4px var(--icOn),0 4px 14px rgba(0,0,0,.22);transform:scale(1.05)}
+.interest-chip.on::after{content:'✓';display:inline-flex;align-items:center;justify-content:center;margin-left:7px;width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.3);font-size:11px;font-weight:900}
 
 /* Star rating display */
 .rating-row{display:flex;align-items:center;gap:4px;margin-top:3px}

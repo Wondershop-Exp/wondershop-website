@@ -295,9 +295,15 @@
     }
 
     @media (max-width: 960px) {
-      .hero-inner { grid-template-columns: 1fr; gap: 32px; align-items: stretch; }
+      .hero-inner { grid-template-columns: 1fr; gap: 12px; align-items: stretch; }
       .hero-right { min-height: 300px; }
       .hero-img-wrap img { min-height: 300px !important; }
+      /* 2026-08-16, per Shruti: the gap between the banner carousel and the
+         pink "One Stop Platform..." tag felt too big on phone — the desktop
+         .hero-img-wrap bottom margin plus the grid gap stacked up to ~60px.
+         Tighten just the mobile carousel margin (grid gap above is already
+         reduced to 12px). */
+      .hero-img-wrap { margin-bottom: 6px; }
       .hero { padding: calc(var(--nav-h) + 20px) 0 36px; min-height: auto; }
       .hero-sub { max-width: 100%; }
       /* Stacked on mobile — show the photo carousel first so it's visible
@@ -1163,7 +1169,7 @@
         </div>
       </div>
 
-
+    </div>
     <div class="tc mt8">
       <a href="builder.html?start=1" class="btn-lnk">See all themes in the builder →</a>
     </div>
