@@ -579,18 +579,27 @@ input,textarea,select{font-family:var(--fb)}
 /* 2026-08-14, per Shruti (#13) — qty-stepper + Remove were crammed into the
    same row as the price on narrow/2-col card widths, causing overlap/clutter.
    Moved into their own full-width row below the price. */
-.gift-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--li2)}
-.qty-ctrl{display:flex;align-items:center;gap:0;border:1.5px solid var(--li2);border-radius:8px;overflow:hidden}
-.qty-btn{width:28px;height:28px;border:none;background:#fff;font-size:14px;display:flex;align-items:center;justify-content:center}
+/* flex-wrap + flex-shrink:0 on both children (2026-08-16, per Shruti round
+   3 — the qty +/- was STILL "too small" after bumping .qty-btn to 38px,
+   because .gift-actions never protected its two children from shrinking.
+   On a narrow 2-col gift card, qty-ctrl + Remove together didn't fit, so
+   flexbox proportionally squeezed both — and since .qty-ctrl clips its own
+   overflow, the shrunk-away "+" button just disappeared instead of
+   visibly shrinking. Now neither side shrinks; Remove drops to its own
+   line if there's truly not enough room, instead of silently vanishing. */
+.gift-actions{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--li2)}
+.qty-ctrl{display:flex;align-items:center;gap:0;border:1.5px solid var(--li2);border-radius:8px;overflow:hidden;flex-shrink:0}
+.qty-btn{width:28px;height:28px;border:none;background:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .qty-btn:hover{background:var(--li3)}
-.qty-val{width:32px;text-align:center;font-size:13px;font-weight:700;border-left:1px solid var(--li2);border-right:1px solid var(--li2);padding:4px 0}
+.qty-val{width:32px;text-align:center;font-size:13px;font-weight:700;border-left:1px solid var(--li2);border-right:1px solid var(--li2);padding:4px 0;flex-shrink:0}
+.gift-actions .card-btn{flex-shrink:0}
 /* 2026-08-16, per Shruti: "the counter to increase or decrease is too
    small to make changes" — 28px is under the ~36-44px comfortable minimum
    touch target on phone. Bumped on mobile only; desktop (mouse) is fine
    as-is. */
 @media(max-width:480px){
-  .qty-btn{width:38px;height:38px;font-size:18px}
-  .qty-val{width:36px;font-size:14px}
+  .qty-btn{width:40px;height:40px;font-size:19px}
+  .qty-val{width:38px;font-size:15px}
 }
 
 /* Packaging / tag buttons */
