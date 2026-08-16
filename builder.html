@@ -389,7 +389,14 @@ input,textarea,select{font-family:var(--fb)}
 }
 
 /* Product card */
-.pcard{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);overflow:hidden;position:relative;transition:border-color .2s,transform .15s,box-shadow .15s;cursor:pointer}
+/* display:flex column (2026-08-16, per Shruti — "cost and button should be
+   aligned for both the columns in a row") — grid rows already stretch every
+   .pcard in a row to equal height, but without this the price/button row
+   still landed at a different Y position card-to-card whenever one card's
+   description ran to 2 lines and its neighbor's didn't. flex + .card-body's
+   flex:1 + .card-pr-row's margin-top:auto pins price/button to the bottom
+   of every card, so they line up across a row regardless of text length. */
+.pcard{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);overflow:hidden;position:relative;transition:border-color .2s,transform .15s,box-shadow .15s;cursor:pointer;display:flex;flex-direction:column}
 .pcard:hover{border-color:var(--li);transform:translateY(-2px);box-shadow:0 6px 20px rgba(181,157,222,.2)}
 .pcard.sel{border-color:var(--li);box-shadow:0 0 0 2px var(--li)}
 .pcard.sel .sel-badge{display:block}
@@ -404,7 +411,7 @@ input,textarea,select{font-family:var(--fb)}
 .caro-fallback{display:flex;align-items:center;justify-content:center;font-size:40px}
 .cs{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;position:absolute;inset:0;transition:opacity .4s}
 .cs:not(:first-child){opacity:0}
-.card-body{padding:10px 12px 12px}
+.card-body{padding:10px 12px 12px;display:flex;flex-direction:column;flex:1;min-width:0}
 .card-name{font-family:var(--fd);font-size:13px;font-weight:700;color:var(--bk);margin-bottom:6px;line-height:1.3}
 .ctags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
 .tag{font-size:9px;font-weight:700;border-radius:6px;padding:2px 7px;background:var(--li2);color:#7B5EA7}
@@ -417,11 +424,14 @@ input,textarea,select{font-family:var(--fb)}
 .tag.trend{background:var(--sbl);color:#2563b0;border:1px solid var(--bl)}
 .tag.rec{background:var(--sgr);color:#1a6630;border:1px solid var(--gr)}
 .card-detail{font-size:10px;color:var(--gy);line-height:1.6;margin-bottom:8px}
+/* Small aside note under a card's description — e.g. Readymade Pinata's
+   "designs shared by your Party Experience Lead" (2026-08-16, per Shruti). */
+.card-note{font-size:10px;color:#7B5EA7;background:var(--li3);border-radius:6px;padding:5px 8px;margin-bottom:8px;line-height:1.5}
 .act-card-spec{margin:0 0 8px;padding-left:16px;font-size:10px;color:var(--gy);line-height:1.55;text-align:left}
 .act-card-spec li{margin-bottom:2px}
 .act-card-spec li.na{opacity:.5}
 .act-card-spec b{color:var(--bk);font-weight:600}
-.card-pr-row{display:flex;align-items:center;justify-content:space-between}
+.card-pr-row{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:8px}
 .card-price{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--bk)}
 .card-ppc{font-size:9px;color:var(--gy)}
 .card-btn{background:var(--li);color:#fff;border:none;border-radius:12px;padding:6px 14px;font-size:12px;font-weight:700;transition:background .15s}
@@ -2756,7 +2766,7 @@ const PINATAS=[
     {type:'img',src:'img/pin-square-1.jpg'},
     {type:'img',src:'img/pin-square-2.jpg'},
     {type:'img',src:'img/pin-square-3.jpg'}
-  ],d:'12" × 12", flat briefcase-style',p:2000,bg:'linear-gradient(135deg,#B7E0B8,#F7F296)',realImg:true},
+  ],d:'12" × 12" square pinata',p:2000,bg:'linear-gradient(135deg,#B7E0B8,#F7F296)',realImg:true},
   {id:'circle',n:'Circle Pinata',e:'⭕',img:'pin-circle-1',gallery:[
     {type:'img',src:'img/pin-circle-1.jpg'},
     {type:'img',src:'img/pin-circle-2.jpg'},
@@ -2772,7 +2782,7 @@ const PINATAS=[
   // (matching the pattern above) once she sends one. Price confirmed ₹500
   // (2026-08-14, per Shruti) — comes in predecided designs, cannot be
   // personalized, matching the same item/price used on spy-basic.html.
-  {id:'readymade',n:'Readymade Pinata',e:'🎉',d:'Predecided designs, cannot be personalized — quickest option',p:500,bg:'linear-gradient(135deg,#F2D147,#F57A1A)',realImg:false}
+  {id:'readymade',n:'Readymade Pinata',e:'🎉',d:'Readymade designs, cannot be personalized — quickest option',note:'Your Party Experience Lead will share the available designs with you.',p:500,bg:'linear-gradient(135deg,#F2D147,#F57A1A)',realImg:false}
 ];
 // Catalogue refreshed 2026-08-07 from the latest "EInvite Templates" batch —
 // each entry is a real past design (client names/contact details in the art
@@ -3666,7 +3676,8 @@ function buildPins(){
     const badgeHtml=n>1?'<div class="variant-badge">🖼 '+n+' photos</div>':'';
     const mediaHtml=p.realImg?('<div class="caro caro-sq" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center" alt="'+p.n+'">'+badgeHtml+'</div>'):('<div class="caro caro-sq caro-fallback" style="background:'+p.bg+'">'+p.e+'</div>');
     const cardClick=p.realImg?' onclick="openGallery(\'pinata\',\''+p.id+'\')"':'';
-    w.innerHTML+='<div class="pcard'+(added?' sel':'')+'"'+cardClick+' id="pn-'+p.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+p.n+'</div><div class="card-detail">'+p.d+'</div><div class="card-pr-row"><div class="card-price">'+priceLabel+'</div><button class="card-btn'+(added?' added':'')+'" onclick="event.stopPropagation();selPin(this,\''+p.id+'\','+p.p+',\''+p.n+'\')">'+(added?'✓ Added':'Select')+'</button></div></div></div>';
+    const noteHtml=p.note?'<div class="card-note">📋 '+p.note+'</div>':'';
+    w.innerHTML+='<div class="pcard'+(added?' sel':'')+'"'+cardClick+' id="pn-'+p.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+p.n+'</div><div class="card-detail">'+p.d+'</div>'+noteHtml+'<div class="card-pr-row"><div class="card-price">'+priceLabel+'</div><button class="card-btn'+(added?' added':'')+'" onclick="event.stopPropagation();selPin(this,\''+p.id+'\','+p.p+',\''+p.n+'\')">'+(added?'✓ Added':'Select')+'</button></div></div></div>';
   });
 }
 function selPin(btn,id,p,n){
@@ -4124,6 +4135,15 @@ function updCoAmt(){
   document.getElementById('co-pt').textContent='₹'+payv.toLocaleString('en-IN');
   document.getElementById('co-adv').textContent='₹'+advv.toLocaleString('en-IN');
   document.getElementById('co-bal').textContent='₹'+(payv-advv).toLocaleString('en-IN');
+  // 2026-08-16, per Shruti — "totals are not matching": the header cart
+  // badge (cartTH) only refreshes inside updHdr(), which nothing on the
+  // Checkout screen was calling after a payment-method change, coupon
+  // apply, or kids-count edit — so it kept showing a stale total (e.g.
+  // missing the ₹100 Cash Collection fee) while the bottom bar/Payable
+  // Total below correctly included it. Refreshing it here, at the one
+  // place every checkout total change already flows through, keeps every
+  // total display in sync no matter which field triggered the change.
+  updHdr(S.screen);
 }
 function coKidsChanged(val){
   const newK=parseInt(val);if(!newK||newK===S.kidsCount)return;
