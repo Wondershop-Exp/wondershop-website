@@ -16,6 +16,25 @@
   gtag('js', new Date());
   gtag('config', window.WS_GA_ID);
 </script>
+<!-- ── Google Maps / Places Autocomplete ──────────────────────────
+     Replace YOUR_GOOGLE_MAPS_API_KEY below with your real Maps
+     JavaScript API key (Google Cloud Console → APIs & Services →
+     Credentials — see the setup guide Claude gave you for exact steps).
+     Powers address autocomplete on the Checkout venue address and the
+     Return Gift delivery address, and auto-fills the Google Maps link
+     for each — no more manually pasting a maps link.
+     Until replaced, this is skipped and both fields just work as plain
+     text inputs, so nothing breaks. ── -->
+<script>window.WS_GMAPS_KEY = 'YOUR_GOOGLE_MAPS_API_KEY';</script>
+<script>
+(function(){
+  if(!window.WS_GMAPS_KEY || window.WS_GMAPS_KEY==='YOUR_GOOGLE_MAPS_API_KEY') return;
+  var s=document.createElement('script');
+  s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(window.WS_GMAPS_KEY)+'&libraries=places&callback=wsInitGmaps';
+  s.async=true;
+  document.head.appendChild(s);
+})();
+</script>
 <link rel="icon" type="image/png" href="logo-square.png">
 <link rel="apple-touch-icon" href="logo-square.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1792,11 +1811,11 @@ input,textarea,select{font-family:var(--fb)}
     <!-- Delivery -->
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">
       <div class="sec-lbl" style="font-size:13px;margin-bottom:10px"><span class="dot"></span>Delivery Details</div>
-      <div class="ig"><label>Delivery Address <span class="opt">defaults to event venue</span></label><input type="text" id="f-gaddr" placeholder="Delivery address for return gifts"></div>
+      <div class="ig"><label>Delivery Address <span class="opt">defaults to event venue</span></label><input type="text" id="f-gaddr" placeholder="Start typing the delivery address…" autocomplete="off"></div>
       <div class="ig">
-        <label>Google Maps Link <span class="opt">opt.</span></label>
+        <label>Google Maps Link <span class="opt">opt., auto-filled</span></label>
         <div class="coupon-row" style="margin-bottom:4px">
-          <input type="text" id="f-gmaps" placeholder="Paste a Google Maps link to the delivery location">
+          <input type="text" id="f-gmaps" placeholder="Auto-fills when you pick an address above — or paste a link">
           <a href="https://www.google.com/maps" target="_blank" rel="noopener" class="coupon-btn" style="white-space:nowrap;text-decoration:none;display:flex;align-items:center">🔍 Search Maps</a>
         </div>
       </div>
@@ -1865,16 +1884,34 @@ input,textarea,select{font-family:var(--fb)}
         <button type="button" class="coupon-btn" style="background:var(--gy)" onclick="resolveEiDateMismatch('invite')">Use invite date (<span id="mmEiDateLbl"></span>)</button>
       </div>
     </div>
-    <div class="ig">
-      <label>Find Your Venue on Google Maps <span class="opt">opt.</span></label>
-      <div class="coupon-row" style="margin-bottom:4px">
-        <input type="text" id="co-maps-link" placeholder="Paste the Google Maps link here">
-        <a href="https://www.google.com/maps" target="_blank" rel="noopener" class="coupon-btn" style="white-space:nowrap;text-decoration:none;display:flex;align-items:center">🔍 Search Maps</a>
-      </div>
-      <div class="hint">Search &amp; pin your exact venue on Google Maps, then copy the share link here so our team can find it instantly.</div>
+    <div class="ig"><label>Exact Venue Address</label><input type="text" id="co-addr" placeholder="Start typing the venue address…" autocomplete="off"></div>
+    <div class="tnc-agree" style="margin:2px 0 10px" onclick="togVenueNotFinal()">
+      <div class="tnc-cb" id="venueNotFinalCb"></div>
+      <div class="tnc-lbl">Venue not finalized yet — I'll confirm the exact address later</div>
     </div>
-    <div class="ig"><label>Exact Venue Address</label><input type="text" id="co-addr" placeholder="Full address incl. building, flat/floor, landmark"></div>
-    <div class="row2">
+    <div class="ig" id="co-venue-locality-wrap" style="display:none;margin-bottom:14px">
+      <label>Locality / Area<span class="req">*</span></label>
+      <input type="text" id="co-venue-locality" placeholder="e.g. Chembur, Powai, Andheri West" oninput="this.classList.remove('err');document.getElementById('co-venue-locality-err').classList.remove('show')">
+      <div class="hint">Even without the exact venue, this helps us confirm service availability in your area.</div>
+      <div class="err-msg" id="co-venue-locality-err">Please tell us the locality so we can check service availability</div>
+    </div>
+    <div class="urgent-warn" id="co-venue-notfinal-note" style="display:none"><span class="uw-ic">📞</span><span>Please remember to confirm the final venue address with your party planner as soon as it's finalized.</span></div>
+    <div class="ig" id="co-venue-type-wrap" style="display:none">
+      <label>Venue Type<span class="req" id="co-venue-type-req" style="display:none">*</span></label>
+      <div class="v-grid" id="coVenueGrid">
+        <button class="v-btn" onclick="selCoVenue(this,'Home')"><span class="v-ic">🏠</span>Home</button>
+        <button class="v-btn" onclick="selCoVenue(this,'Society Banquet')"><span class="v-ic">🏛️</span>Banquet Hall</button>
+        <button class="v-btn" onclick="selCoVenue(this,'Club')"><span class="v-ic">🎯</span>Club / Resort</button>
+        <button class="v-btn" onclick="selCoVenue(this,'Restaurant')"><span class="v-ic">🍽️</span>Restaurant</button>
+        <button class="v-btn" onclick="selCoVenue(this,'Outdoor')"><span class="v-ic">🌳</span>Outdoor</button>
+        <button class="v-btn" onclick="selCoVenue(this,'Other')"><span class="v-ic">📌</span>Other</button>
+      </div>
+      <div class="err-msg" id="co-venue-type-err">Please select a venue type</div>
+      <div id="co-venue-other-wrap" style="display:none;margin-top:12px">
+        <div class="ig" style="margin-bottom:0"><label>Venue Details</label><input type="text" id="co-venue-other" placeholder="e.g. Rooftop at our apartment complex"></div>
+      </div>
+    </div>
+    <div class="row2" id="co-venue-contact-row">
       <div class="ig"><label>Venue Contact Person's Name <span class="opt">opt.</span></label><input type="text" id="co-venue-contact-name" placeholder="e.g. watchman, event coordinator"></div>
       <div class="ig"><label>Venue Contact Person's Number <span class="opt">opt.</span></label><div class="pfx-wrap"><span class="pfx">+91</span><input type="tel" id="co-venue-contact-phone" class="pi" placeholder="Mobile"></div></div>
     </div>
@@ -1895,20 +1932,6 @@ input,textarea,select{font-family:var(--fb)}
       <div class="row2">
         <div class="ig"><label>Child's Date of Birth<span class="req">*</span></label><input type="date" id="co-child-dob"><div class="err-msg" id="co-child-dob-err">Please enter date of birth</div></div>
         <div class="ig"><label>Pincode</label><input type="text" id="co-pincode" placeholder="e.g. 400001" maxlength="6" inputmode="numeric"></div>
-      </div>
-      <div class="ig">
-        <label>Venue Type</label>
-        <div class="v-grid" id="coVenueGrid">
-          <button class="v-btn" onclick="selCoVenue(this,'Home')"><span class="v-ic">🏠</span>Home</button>
-          <button class="v-btn" onclick="selCoVenue(this,'Society Banquet')"><span class="v-ic">🏛️</span>Banquet Hall</button>
-          <button class="v-btn" onclick="selCoVenue(this,'Club')"><span class="v-ic">🎯</span>Club / Resort</button>
-          <button class="v-btn" onclick="selCoVenue(this,'Restaurant')"><span class="v-ic">🍽️</span>Restaurant</button>
-          <button class="v-btn" onclick="selCoVenue(this,'Outdoor')"><span class="v-ic">🌳</span>Outdoor</button>
-          <button class="v-btn" onclick="selCoVenue(this,'Other')"><span class="v-ic">📌</span>Other</button>
-        </div>
-        <div id="co-venue-other-wrap" style="display:none;margin-top:12px">
-          <div class="ig" style="margin-bottom:0"><label>Venue Details</label><input type="text" id="co-venue-other" placeholder="e.g. Rooftop at our apartment complex"></div>
-        </div>
       </div>
     </div>
   </div>
@@ -2247,7 +2270,47 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Code.gs) was retired 2026-08-11 to stop writing duplicate, drifting
 // rows — see the "Consolidate leads + bookings" commits.
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,FIT:20000,FPT:40000,remarks:{}};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,venueNotFinalized:false,venueLocality:'',FIT:20000,FPT:40000,remarks:{}};
+
+// ── Google Places Autocomplete (2026-08-16, per Shruti) ─────────────
+// Wires real address autocomplete onto the checkout venue address and
+// the gift delivery address, replacing the old "paste a Google Maps
+// link" copy-paste flow — selecting a suggestion auto-fills the maps
+// link field too. Called back by the Maps JS script loaded in <head>,
+// which only loads once WS_GMAPS_KEY is a real key (see that comment).
+function wsInitGmaps(){
+  try{
+    // Checkout venue address: no separate "Google Maps Link" field anymore
+    // (2026-08-16, per Shruti) — just autofills the address text itself.
+    wsWireAutocomplete('co-addr',null);
+    wsWireAutocomplete('f-gaddr','f-gmaps');
+  }catch(e){console.warn('Google Maps Autocomplete init failed:',e);}
+}
+function wsWireAutocomplete(addrId,linkId){
+  const input=document.getElementById(addrId);
+  if(!input||!window.google||!google.maps||!google.maps.places)return;
+  // Bias results to the Mumbai metro area (doesn't hard-restrict — client
+  // can still type/select an address outside this box).
+  const mumbaiBounds=new google.maps.LatLngBounds(
+    {lat:18.85,lng:72.70},{lat:19.35,lng:73.15}
+  );
+  const ac=new google.maps.places.Autocomplete(input,{
+    componentRestrictions:{country:'in'},
+    fields:['formatted_address','geometry','place_id'],
+    bounds:mumbaiBounds
+  });
+  ac.addListener('place_changed',()=>{
+    const place=ac.getPlace();
+    if(!place||!place.geometry||!place.geometry.location)return;
+    input.value=place.formatted_address||input.value;
+    const linkEl=document.getElementById(linkId);
+    if(linkEl){
+      const lat=place.geometry.location.lat(), lng=place.geometry.location.lng();
+      linkEl.value='https://www.google.com/maps/search/?api=1&query='+lat+','+lng+
+        (place.place_id?('&query_place_id='+place.place_id):'');
+    }
+  });
+}
 
 function djAddonsText(){const p=[];if(S.djAddons.lights)p.push('Music Lights (Rs 1500)');if(S.djAddons.smoke)p.push('Smoke Machine (Rs 2000)');return p.join(', ');}
 
@@ -3653,6 +3716,11 @@ function fillCo(){
   // Step 0.
   const pkgExtras=document.getElementById('coPkgExtras');
   if(pkgExtras)pkgExtras.style.display=S._pkgOrigin?'block':'none';
+  updCoVenueTypeVisibility();
+  const contactRow0=document.getElementById('co-venue-contact-row');
+  if(contactRow0)contactRow0.style.display=S.venueNotFinalized?'none':'grid';
+  const note0=document.getElementById('co-venue-notfinal-note');
+  if(note0)note0.style.display=S.venueNotFinalized?'flex':'none';
   if(S._pkgOrigin){
     const pinEl=document.getElementById('co-pincode');if(pinEl&&!pinEl.value)pinEl.value=S.pincode||'';
   }
@@ -3782,6 +3850,55 @@ async function applyCoupon(){
 }
 function selPay(el,method){document.querySelectorAll('.pay-opt').forEach(p=>p.classList.remove('on'));el.classList.add('on');S.payMethod=method;const qr=document.getElementById('payOnlineDetails');if(qr)qr.style.display=method==='online'?'block':'none';updCoAmt();updBB(S.screen);}
 function togTNC(){S.tncOk=!S.tncOk;const cb=document.getElementById('tncCb');cb.classList.toggle('checked',S.tncOk);cb.textContent=S.tncOk?'✓':'';}
+// "Venue not finalized" checkbox on Checkout (2026-08-16, per Shruti) — lets
+// a customer confirm booking before locking in the exact venue address.
+function togVenueNotFinal(){
+  S.venueNotFinalized=!S.venueNotFinalized;
+  const cb=document.getElementById('venueNotFinalCb');
+  cb.classList.toggle('checked',S.venueNotFinalized);
+  cb.textContent=S.venueNotFinalized?'✓':'';
+  // Piggyback on the existing per-step remarks mechanism so this reaches
+  // the team without needing a new backend field (2026-08-16, per Shruti).
+  S.remarks.venueStatus=S.venueNotFinalized?'⚠️ Venue not finalized yet — customer will confirm the exact address later.':'';
+  // Locality/Area field only matters once "not finalized" is checked — we
+  // still need to know the area (e.g. Chembur) to confirm service
+  // availability there, even with no exact address yet (2026-08-16, per Shruti).
+  const wrap=document.getElementById('co-venue-locality-wrap');
+  if(wrap)wrap.style.display=S.venueNotFinalized?'block':'none';
+  if(!S.venueNotFinalized){
+    const locEl=document.getElementById('co-venue-locality');
+    if(locEl){locEl.value='';locEl.classList.remove('err');}
+    document.getElementById('co-venue-locality-err')?.classList.remove('show');
+    S.venueLocality='';
+    delete S.remarks.venueLocality;
+  }
+  // 2026-08-16, per Shruti: once venue isn't finalized, Venue Type becomes
+  // mandatory (we still need to know outdoor/banquet/etc. to plan
+  // logistics), show a reminder to confirm the final address with the
+  // party planner, and hide the on-site contact person fields since the
+  // customer won't have that info yet for an unconfirmed venue.
+  const note=document.getElementById('co-venue-notfinal-note');
+  if(note)note.style.display=S.venueNotFinalized?'flex':'none';
+  const contactRow=document.getElementById('co-venue-contact-row');
+  if(contactRow)contactRow.style.display=S.venueNotFinalized?'none':'grid';
+  updCoVenueTypeVisibility();
+}
+// Shared by togVenueNotFinal() and fillCo(): the Venue Type picker is shown
+// whenever it's actually needed — either this is a package-origin checkout
+// (Spy/Unicorn/Turf, which skipped Step 0 and never collected venue type
+// at all) or the customer just checked "venue not finalized" (2026-08-16,
+// per Shruti). Only mandatory (asterisk + validated in doCo()) in the
+// latter case.
+function updCoVenueTypeVisibility(){
+  const show=S.venueNotFinalized||S._pkgOrigin;
+  const wrap=document.getElementById('co-venue-type-wrap');
+  if(wrap)wrap.style.display=show?'block':'none';
+  const req=document.getElementById('co-venue-type-req');
+  if(req)req.style.display=S.venueNotFinalized?'inline':'none';
+  if(!S.venueNotFinalized){
+    document.getElementById('co-venue-type-err')?.classList.remove('show');
+  }
+}
 const CONF_NEXT_STEPS_NORMAL=`<h3>What happens next</h3>
     <div class="ns-item"><div class="ns-num">1</div><div class="ns-txt">Party Experience Lead assigned<span>They'll discuss your vision, decor references, and all the details</span></div></div>
     <div class="ns-item"><div class="ns-num">2</div><div class="ns-txt">WhatsApp group created<span>Share inspiration images &amp; ideas with your Party Experience Lead at any time</span></div></div>
@@ -3848,6 +3965,31 @@ async function doCo(){
   }
   document.getElementById('e-tnc').classList.remove('show');
 
+  // 2026-08-16, per Shruti: if the venue isn't finalized yet, exact address
+  // is optional, but we still need the locality/area (e.g. Chembur) to
+  // confirm we cover it — required only in that case.
+  if(S.venueNotFinalized){
+    const locEl=document.getElementById('co-venue-locality');
+    if(locEl&&!locEl.value.trim()){
+      locEl.classList.add('err');
+      document.getElementById('co-venue-locality-err')?.classList.add('show');
+      locEl.scrollIntoView({behavior:'smooth',block:'center'});
+      showErrorToast('Please tell us the locality/area so we can confirm service availability.');
+      return;
+    }
+    locEl?.classList.remove('err');
+    document.getElementById('co-venue-locality-err')?.classList.remove('show');
+    // Venue Type is also mandatory once the venue isn't finalized — we
+    // still need outdoor/banquet/etc. to plan logistics/services correctly.
+    if(!S.venue){
+      document.getElementById('co-venue-type-err')?.classList.add('show');
+      document.getElementById('co-venue-type-wrap')?.scrollIntoView({behavior:'smooth',block:'center'});
+      showErrorToast('Please select a venue type.');
+      return;
+    }
+    document.getElementById('co-venue-type-err')?.classList.remove('show');
+  }
+
   // 2026-08-14, per Shruti: "make child's name mandatory" — required at
   // checkout for every flow (normally pre-filled from Step 0, but the
   // customer could still clear it here; package-origin checkouts never had
@@ -3885,17 +4027,32 @@ async function doCo(){
     S.children=[{name:document.getElementById('co-child').value||'', dob:dobEl?dobEl.value||'':'', gender:''}];
     const pinEl=document.getElementById('co-pincode');
     if(pinEl&&pinEl.value.trim())S.pincode=pinEl.value.trim();
-    if(S.venue==='Other'){
-      const ov=document.getElementById('co-venue-other');
-      if(ov&&ov.value.trim())S.venueOther=ov.value.trim();
-    }
+  }
+  // Venue Type "Other" details — captured whenever the Venue Type picker was
+  // shown (package-origin checkouts, or venue-not-finalized flows), not just
+  // package-origin (2026-08-16, per Shruti).
+  if(S.venue==='Other'){
+    const ov=document.getElementById('co-venue-other');
+    if(ov&&ov.value.trim())S.venueOther=ov.value.trim();
   }
 
   S.mobile=document.getElementById('co-mob').value;S.eventDate=document.getElementById('co-date').value;S.eventTime=document.getElementById('co-time').value;
   S.kidsCount=parseInt(document.getElementById('co-kids').value)||S.kidsCount;
   S.parentName=document.getElementById('co-name').value;S.email=document.getElementById('co-email').value;S.address=document.getElementById('co-addr').value;
-  // Venue Google Maps link + on-site contact person (2026-08-11, per Shruti).
-  S.venueMapsLink=document.getElementById('co-maps-link').value;
+  // Venue not finalized (2026-08-16, per Shruti): fold the locality into the
+  // main venue field (so it still reaches the team via the usual venue/
+  // address column) and note it in remarks too for visibility.
+  if(S.venueNotFinalized){
+    S.venueLocality=(document.getElementById('co-venue-locality')||{}).value?.trim()||'';
+    if(S.venueLocality){
+      S.remarks.venueLocality='📍 Locality/Area: '+S.venueLocality;
+      if(!S.address.trim())S.address=S.venueLocality+' (exact venue address to be confirmed)';
+    }
+  }
+  // Venue Google Maps link (gift-delivery only now — the checkout venue's
+  // own "Google Maps Link" field was removed, 2026-08-16, per Shruti) + on-site
+  // contact person (2026-08-11, per Shruti).
+  S.venueMapsLink=(document.getElementById('co-maps-link')||{}).value||'';
   S.venueContactName=document.getElementById('co-venue-contact-name').value;
   const __vcp=document.getElementById('co-venue-contact-phone').value.replace(/\D/g,'');
   S.venueContactPhone=__vcp?('+91'+__vcp):'';

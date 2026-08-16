@@ -5,6 +5,9 @@
 ### Security
 - [ ] **Rotate Google OAuth credentials (Client ID/Secret/Refresh Token)** - a `.env` backup (`backend/_to_delete/env.bak.*`) containing the live Gmail OAuth Client ID, Client Secret, and Refresh Token was accidentally staged in a git commit on 2026-08-15. GitHub's push protection blocked the push before it reached the remote, and the bad commit was amended out locally, but the credential did leave the machine during the blocked push attempt. Regenerate in Google Cloud Console and update the corresponding Railway env vars (used for sending booking confirmation/team emails) to be fully safe.
 
+### Integrations
+- [ ] **Get a Google Maps API key & paste it into builder.html** - Places Autocomplete is already wired into the Checkout venue address and Return Gift delivery address fields (auto-fills the Google Maps link, no more copy-paste) but needs a real key to go live. See Claude's step-by-step guide from 2026-08-16 for exact instructions (Google Cloud Console → new project → enable Places API + Maps JavaScript API → enable billing → create & restrict API key → paste into `WS_GMAPS_KEY` near the top of builder.html, replacing `YOUR_GOOGLE_MAPS_API_KEY`).
+
 ### SEO — Quick Wins (do this week)
 - [ ] **Connect custom domain** - point wondershopexperiences.com to GitHub Pages via CNAME; highest-leverage SEO fix
 - [ ] **Claim & complete Google Business Profile** - set service area to all Mumbai, add photos, list services (birthday decor, kids party, birthday planner); needed for "decor near me" searches
@@ -35,6 +38,7 @@
 
 - [ ] **New "Imposter" theme** - waiting on product manager for decor/pricing details (emoji/icon, age range, price, balloon count & colors, panel setup, session length, on-site items needed) before it can be added to the builder's THEMES list. Requested alongside Spy theme; Laser Tunnel & Dark Room stay Spy-only for now.
 - [ ] **2 remaining Unicorn Basic activities** - Bracelet Making and Hair Braiding still requested for unicorn-basic.html but don't exist in the ACTS catalogue. (Glitter Station and Slime Making have since been added with real pricing from Shruti; Nail Art Station, a21, was a real catalogue match added earlier.) Waiting on Shruti for icon, age range, duration, and pricing for the last 2.
+- [ ] **Fix the 3 "Our Promise / Vision / Mission" cards on the Our Story page** - Shruti flagged the current cards "aren't proper" (2026-08-16) and will share the correct reference images to rebuild them with. Currently using placeholder character icons (kid-joy.png etc.) in the "Our Promise" card as a stand-in — swap once real images arrive.
 
 ## Someday
 

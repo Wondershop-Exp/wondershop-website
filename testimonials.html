@@ -120,6 +120,28 @@ button{cursor:pointer;font-family:var(--fb)}
 /* ── REVIEWS ────────────────────────────────────────────────────── */
 .sec{padding:64px 0}
 
+/* ── VIDEO TESTIMONIALS (moved here from the gallery page, 2026-08-16, per
+   Shruti — videos lead, Google reviews follow) ───────────────────── */
+.vt-head{max-width:640px;margin:0 0 28px}
+.vt-h2{font-size:clamp(24px,3.2vw,32px);font-weight:800;color:var(--bk);margin:10px 0 0}
+.gal-video-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:16px;
+  margin-bottom:8px;
+}
+.gal-video-card{
+  background:var(--li3);border:1.5px solid var(--li2);border-radius:16px;
+  overflow:hidden;
+}
+.gal-video-card video{
+  width:100%;aspect-ratio:9/16;object-fit:cover;
+  display:block;background:#000;
+}
+.gal-video-meta{padding:14px 16px 16px}
+.gal-video-name{font-size:13px;font-weight:700;color:var(--bk)}
+.gal-video-sub{font-size:12px;color:var(--gy);margin-top:2px}
+
 .review-grid{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -302,9 +324,97 @@ button{cursor:pointer;font-family:var(--fb)}
   </div>
 </div>
 
-<!-- REVIEWS -->
-<section class="sec" id="reviews">
+<!-- VIDEO TESTIMONIALS -->
+<section class="sec" id="video-testimonials" style="padding-bottom:24px">
   <div class="container">
+    <div class="vt-head">
+      <div class="sec-tag">In Their Own Words</div>
+      <h2 class="vt-h2">Watch real parent feedback</h2>
+    </div>
+    <div class="gal-video-grid">
+      <div class="gal-video-card">
+        <video controls preload="none" poster="img/Gallery/Testimonials/web/anushu-anaira-feedback-poster.jpg">
+          <source src="img/Gallery/Testimonials/web/anushu-anaira-feedback.mp4" type="video/mp4">
+        </video>
+        <div class="gal-video-meta">
+          <div class="gal-video-name">Anushu &amp; Anaira's Family</div>
+          <div class="gal-video-sub">Parent Feedback</div>
+        </div>
+      </div>
+      <div class="gal-video-card">
+        <video controls preload="none" poster="img/Gallery/Testimonials/web/elsa-testimonial-poster.jpg">
+          <source src="img/Gallery/Testimonials/web/elsa-testimonial.mp4" type="video/mp4">
+        </video>
+        <div class="gal-video-meta">
+          <div class="gal-video-name">Elsa Theme Birthday</div>
+          <div class="gal-video-sub">Parent Feedback</div>
+        </div>
+      </div>
+      <div class="gal-video-card">
+        <video controls preload="none" poster="img/Gallery/Testimonials/web/grandmom-feedback-poster.jpg">
+          <source src="img/Gallery/Testimonials/web/grandmom-feedback.mp4" type="video/mp4">
+        </video>
+        <div class="gal-video-meta">
+          <div class="gal-video-name">A Grandmother's Feedback</div>
+          <div class="gal-video-sub">Parent Feedback</div>
+        </div>
+      </div>
+      <div class="gal-video-card">
+        <video controls preload="none" poster="img/Gallery/Testimonials/web/maryam-feedback-story-poster.jpg">
+          <source src="img/Gallery/Testimonials/web/maryam-feedback-story.mp4" type="video/mp4">
+        </video>
+        <div class="gal-video-meta">
+          <div class="gal-video-name">Maryam's Family</div>
+          <div class="gal-video-sub">Parent Feedback</div>
+        </div>
+      </div>
+      <div class="gal-video-card">
+        <video controls preload="none" poster="img/Gallery/Testimonials/web/mixed-parents-testimonials-poster.jpg">
+          <source src="img/Gallery/Testimonials/web/mixed-parents-testimonials.mp4" type="video/mp4">
+        </video>
+        <div class="gal-video-meta">
+          <div class="gal-video-name">Parents Share Their Experience</div>
+          <div class="gal-video-sub">Parent Feedback</div>
+        </div>
+      </div>
+      <div class="gal-video-card">
+        <video controls preload="none" poster="img/Gallery/Testimonials/web/pune-father-testimonial-poster.jpg">
+          <source src="img/Gallery/Testimonials/web/pune-father-testimonial.mp4" type="video/mp4">
+        </video>
+        <div class="gal-video-meta">
+          <div class="gal-video-name">A Father's Feedback</div>
+          <div class="gal-video-sub">Pune · Parent Feedback</div>
+        </div>
+      </div>
+      <div class="gal-video-card">
+        <video controls preload="none" poster="img/Gallery/Testimonials/web/riyansh-parent-feedback-poster.jpg">
+          <source src="img/Gallery/Testimonials/web/riyansh-parent-feedback.mp4" type="video/mp4">
+        </video>
+        <div class="gal-video-meta">
+          <div class="gal-video-name">Riyansh's Parents</div>
+          <div class="gal-video-sub">Parent Feedback</div>
+        </div>
+      </div>
+      <div class="gal-video-card">
+        <video controls preload="none" poster="img/Gallery/Testimonials/web/veer-parent-feedback-story-poster.jpg">
+          <source src="img/Gallery/Testimonials/web/veer-parent-feedback-story.mp4" type="video/mp4">
+        </video>
+        <div class="gal-video-meta">
+          <div class="gal-video-name">Veer's Parents</div>
+          <div class="gal-video-sub">Parent Feedback</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section class="sec" id="reviews" style="padding-top:24px">
+  <div class="container">
+    <div class="vt-head">
+      <div class="sec-tag">★ Google Reviews</div>
+      <h2 class="vt-h2">What parents are saying</h2>
+    </div>
 <div class="review-grid" id="review-grid">
 
       <div class="review-card">
