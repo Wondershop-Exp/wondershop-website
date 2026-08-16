@@ -2070,6 +2070,7 @@ input,textarea,select{font-family:var(--fb)}
       <div class="amt-row" id="co-dr" style="display:none"><span>Discount</span><span id="co-disc" style="color:var(--gr)"></span></div>
       <div class="amt-row" id="coFeeRow" style="display:none"><span>Cash Collection Fee</span><span id="co-fee">₹100</span></div>
       <div class="amt-row" id="coPkgRow" style="display:none"><span id="co-pkg-lbl">Packaging</span><span id="co-pkg">₹0</span></div>
+      <div class="amt-row" id="coTagRow" style="display:none"><span>Thank You Note</span><span id="co-tag">₹0</span></div>
       <div class="amt-row tot"><span>Payable Total</span><span id="co-pt">₹0</span></div>
       <div class="amt-row adv" id="coAdvRow"><span>⚡ 50% Advance</span><span id="co-adv">₹0</span></div>
       <div class="amt-row" id="coBalRow"><span style="font-size:11px;color:var(--gy)">Balance due before event</span><span id="co-bal" style="font-size:12px;color:var(--gy)">₹0</span></div>
@@ -3073,7 +3074,18 @@ function packagingCost(){
   if(!S.packaging)return 0;
   return (PACKAGING_UNIT_PRICE[S.packaging]||0)*packagingQty();
 }
-function payTotal(){return tp()+collectFee()+packagingCost()}
+// Personalised Thank You Note (Return Gifts step) — ₹10/item across every
+// return-gift added, minimum 15 items billed even if fewer gifts were
+// picked. Same "added on top of the discounted total" treatment as
+// collectFee()/packagingCost() above (2026-08-16, per Shruti — "thankyou
+// note total is not getting added to the total amount").
+const TAG_NOTE_UNIT_PRICE=10;
+const TAG_NOTE_MIN_QTY=15;
+function tagFee(){
+  if(S.tagType!=='note')return 0;
+  return Math.max(TAG_NOTE_MIN_QTY,packagingQty())*TAG_NOTE_UNIT_PRICE;
+}
+function payTotal(){return tp()+collectFee()+packagingCost()+tagFee()}
 // Mirrors backend leads.py's _PAYMENT_METHOD_LABELS / _payment_status_text
 // exactly — keep these two in sync if either side changes (2026-08-12, per
 // Shruti — "save and display payment method").
@@ -3172,7 +3184,7 @@ function updHdr(id){
   bb.classList.toggle('hidden',noBack.includes(id));
   const showCart=['s1','s2','s3','s4','s5','s6','s7','s8','s9','sco'].includes(id);
   document.getElementById('cartBtn').style.display=showCart?'flex':'none';
-  document.getElementById('cartTH').textContent='₹'+tp().toLocaleString('en-IN');
+  document.getElementById('cartTH').textContent='₹'+payTotal().toLocaleString('en-IN');
   const prog=document.getElementById('bldProgress');
   prog.style.display=['shome','sconf','sleadsent','slead'].includes(id)?'none':'flex';
   // update dots
@@ -3875,7 +3887,7 @@ function chgQty(id,unit,d){const g=S.gifts.find(g=>g.id===id);if(!g)return;g.qty
 // (min. 15 items charged even if fewer gifts are selected).
 function updTagNote(){const n=Math.max(15,S.gifts.reduce((s,g)=>s+g.qty,0));const t=n*10;const el=document.getElementById('tagPN');if(el)el.textContent='₹10/item · min. 15 items — ₹'+t.toLocaleString('en-IN')+' for '+n+' item'+(n===1?'':'s');}
 function selPkg(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('.pkg-btn').forEach(b=>b.classList.remove('on'));if(wasSel){S.packaging='';}else{btn.classList.add('on');S.packaging=val;}updBB(S.screen);}
-function selTag(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('#tagEx').forEach(b=>b.classList.remove('on'));if(wasSel){S.tagType='';}else{btn.classList.add('on');S.tagType=val;}}
+function selTag(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('#tagEx').forEach(b=>b.classList.remove('on'));if(wasSel){S.tagType='';}else{btn.classList.add('on');S.tagType=val;}updBB(S.screen);}
 
 // ── REVIEW ──
 function buildRev(){
@@ -3940,7 +3952,12 @@ function buildRev(){
   const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();
   if(dpv>0){document.getElementById('rvDiscRow').style.display='flex';document.getElementById('rvDiscAmt').textContent='₹'+(gt-tpv).toLocaleString('en-IN')+' ('+dpv+'% off)';}
   else document.getElementById('rvDiscRow').style.display='none';
-  document.getElementById('rvTotal2').textContent='₹'+tpv.toLocaleString('en-IN');
+  // Same total concept as the header cart badge / bottom bar / checkout
+  // Payable Total — payTotal() (tp() + collection fee + packaging + thank
+  // you note fee), not the bare discounted subtotal, so this figure never
+  // disagrees with the others (2026-08-16, per Shruti — "total at both
+  // places different").
+  document.getElementById('rvTotal2').textContent='₹'+payTotal().toLocaleString('en-IN');
   document.getElementById('rvAdv').textContent='₹'+advv.toLocaleString('en-IN');
 }
 // Remove a single selection directly from the Review page without having to
@@ -4059,7 +4076,7 @@ function updCoUrgent(){
   updBB(S.screen);
 }
 function updCoAmt(){
-  const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();const fee=collectFee();const pkg=packagingCost();const payv=tpv+fee+pkg;
+  const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();const fee=collectFee();const pkg=packagingCost();const tag=tagFee();const payv=tpv+fee+pkg+tag;
   document.getElementById('co-gt').textContent='₹'+gt.toLocaleString('en-IN');
   if(dpv>0){document.getElementById('co-dr').style.display='flex';document.getElementById('co-disc').textContent='-₹'+(gt-tpv).toLocaleString('en-IN')+' ('+dpv+'%)';}
   else document.getElementById('co-dr').style.display='none';
@@ -4069,6 +4086,8 @@ function updCoAmt(){
     document.getElementById('co-pkg-lbl').textContent='Packaging ('+(PACKAGING_LABELS[S.packaging]||'')+')';
     document.getElementById('co-pkg').textContent='₹'+pkg.toLocaleString('en-IN');
   }
+  document.getElementById('coTagRow').style.display=tag>0?'flex':'none';
+  if(tag>0)document.getElementById('co-tag').textContent='₹'+tag.toLocaleString('en-IN');
   document.getElementById('co-pt').textContent='₹'+payv.toLocaleString('en-IN');
   document.getElementById('co-adv').textContent='₹'+advv.toLocaleString('en-IN');
   document.getElementById('co-bal').textContent='₹'+(payv-advv).toLocaleString('en-IN');
@@ -4381,7 +4400,7 @@ async function doCo(){
   // there's nothing to reward yet.
   const __reward=__urgent?{type:'none'}:pickScratchReward();
   const __gt=rawT(),__dpv=dp(),__tpv=tp();
-  const __fee=collectFee();const __pkg=packagingCost();const __payTotal=__tpv+__fee+__pkg;
+  const __fee=collectFee();const __pkg=packagingCost();const __tag=tagFee();const __payTotal=__tpv+__fee+__pkg+__tag;
   const __advv=__urgent?0:adv();
   const __bal=__payTotal-__advv;
   const __rewardWon=__reward.type!=='none';
@@ -4553,9 +4572,13 @@ async function doCo(){
   const partyTitleEl=document.getElementById('confPartyTitle');
   if(partyTitleEl)partyTitleEl.style.display='none'; // retired — merged into confHeroTitle below
   const __firstChildName=(S.children[0]?.name||'').trim();
-  const __firstChildAge=S.children[0]?.dob?ageForEvent(S.children[0].dob,S.eventDate):null;
-  const __partyPhrase=(__firstChildName&&__firstChildAge!=null&&__firstChildAge>=1&&__firstChildAge<=18)
-    ? (__firstChildName.toUpperCase()+"'s "+ordinalSuffix(__firstChildAge)+' Birthday')
+  const __firstChildAgeRaw=S.children[0]?.dob?ageForEvent(S.children[0].dob,S.eventDate):null;
+  const __firstChildAge=(__firstChildAgeRaw!=null&&__firstChildAgeRaw>=1&&__firstChildAgeRaw<=18)?__firstChildAgeRaw:null;
+  // 2026-08-16, per Shruti bug report: name was being suppressed whenever age
+  // couldn't be resolved (missing/invalid DOB) even though the name itself
+  // was perfectly valid — decoupled so the name alone still shows.
+  const __partyPhrase=__firstChildName
+    ? (__firstChildName.toUpperCase()+(__firstChildAge!=null?("'s "+ordinalSuffix(__firstChildAge)+' Birthday'):"'s Birthday"))
     : null;
 
   // Swap the confirmation screen between the normal "Booking Confirmed!"

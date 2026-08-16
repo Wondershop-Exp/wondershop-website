@@ -162,6 +162,34 @@ def _fmt_date_long(d: Optional[date]) -> str:
         return "—"
     return f"{d.day} {d.strftime('%B %Y')}"
 
+def _fmt_date_short(d: Optional[date]) -> str:
+    """'3 Oct 2026' — no leading zero, abbreviated month. Used in the
+    internal team email subject lines (2026-08-16, per Shruti)."""
+    if not d:
+        return "—"
+    return f"{d.day} {d.strftime('%b %Y')}"
+
+_VENUE_TBD_SUFFIX_RE = re.compile(r"\s*\(exact venue address to be confirmed\)\s*$", re.IGNORECASE)
+
+def _clean_location(text: Optional[str]) -> str:
+    """Strips the "(exact venue address to be confirmed)" placeholder
+    suffix — added client-side onto the venue/address text whenever Venue
+    Type is "Not Decided Yet" (see builder.html's doCo()) — so subject
+    lines show just the locality, e.g. "Vikhroli" instead of "Vikhroli
+    (exact venue address to be confirmed)" (2026-08-16, per Shruti)."""
+    if not text:
+        return "—"
+    cleaned = _VENUE_TBD_SUFFIX_RE.sub("", text).strip()
+    return cleaned or "—"
+
+def _phone_local(phone: Optional[str]) -> str:
+    """Strips the leading "+91" country code for a compact subject-line
+    display (e.g. "9742240477" instead of "+919742240477")."""
+    p = (phone or "").strip()
+    if p.startswith("+91"):
+        p = p[3:]
+    return p or "—"
+
 def _cap_first(s: Optional[str]) -> str:
     """Capitalises only the first letter, leaving the rest of the name's
     casing untouched (so 'test' -> 'Test', 'McDonald' stays 'McDonald')."""
@@ -189,29 +217,49 @@ def _party_title(req: "LeadSubmitRequest") -> Optional[str]:
     """"IDHIKA's 5th Birthday Party" — first child's name (all caps, per
     Shruti 2026-08-14 follow-up) + turning age, shown above the email
     heading and on the order confirmation page (2026-08-14, per Shruti).
-    None if either piece is missing — nothing sensible to show without both."""
+    None if the name itself is missing — nothing sensible to show without a
+    name. The age suffix is optional though (2026-08-16, per Shruti bug
+    report — the name was being suppressed whenever age couldn't be
+    resolved, even though the name alone was perfectly valid to show)."""
     first_name = (req.child_names or "").split(",")[0].strip()
+    if not first_name:
+        return None
     first_age_str = (req.child_ages or "").split(",")[0].strip()
-    if not first_name or not first_age_str:
-        return None
-    try:
-        first_age = int(first_age_str)
-    except ValueError:
-        return None
-    return f"{first_name.upper()}'s {_ordinal(first_age)} Birthday Party"
+    first_age: Optional[int] = None
+    if first_age_str:
+        try:
+            first_age = int(first_age_str)
+        except ValueError:
+            first_age = None
+    if first_age is not None:
+        return f"{first_name.upper()}'s {_ordinal(first_age)} Birthday Party"
+    return f"{first_name.upper()}'s Birthday Party"
 
 
 def _booking_subject_line(lead_id: int, req: "LeadSubmitRequest") -> str:
-    """Internal team subject line for a CONFIRMED booking — format requested
-    by Shruti (2026-08-12): "booking confirmed-date-location-theme-age
-    gender". Degrades to '—' for any missing piece rather than dropping the
-    whole subject."""
-    date_bit = req.event_date.isoformat() if req.event_date else "—"
-    location_bit = req.city or req.venue or "—"
-    theme_bit = req.theme or "—"
-    first_age = (req.child_ages or "").split(",")[0].strip() or "—"
-    first_gender = (req.child_genders or "").split(",")[0].strip() or "—"
-    return f"Booking Confirmed - {date_bit} - {location_bit} - {theme_bit} - {first_age} {first_gender} (#{lead_id})"
+    """Internal team subject line for a CONFIRMED booking. Pipe-delimited
+    format requested by Shruti (2026-08-16, superseding the 2026-08-12
+    dash-delimited version): "Order #85 | Shruti | 9742240477 | 3 Oct 2026 |
+    Vikhroli | 20 Kids". Degrades to '—' for any missing piece rather than
+    dropping the whole subject."""
+    parent_bit = req.parent_name or "—"
+    phone_bit = _phone_local(req.phone)
+    date_bit = _fmt_date_short(req.event_date)
+    location_bit = _clean_location(req.city or req.venue)
+    kids_bit = f"{req.kids_count} Kids" if req.kids_count else "—"
+    return f"Order #{lead_id} | {parent_bit} | {phone_bit} | {date_bit} | {location_bit} | {kids_bit}"
+
+def _lead_subject_line(lead_id: int, req: "LeadSubmitRequest") -> str:
+    """Internal team subject line for a new (unconfirmed) LEAD/enquiry —
+    same pipe-delimited shape as _booking_subject_line() but "Lead #" in
+    place of "Order #" (2026-08-16, per Shruti): "Lead #1 | Shruti |
+    9742240477 | 3 Oct 2026 | Vikhroli | 20 Kids"."""
+    parent_bit = req.parent_name or "—"
+    phone_bit = _phone_local(req.phone)
+    date_bit = _fmt_date_short(req.event_date)
+    location_bit = _clean_location(req.city or req.venue)
+    kids_bit = f"{req.kids_count} Kids" if req.kids_count else "—"
+    return f"Lead #{lead_id} | {parent_bit} | {phone_bit} | {date_bit} | {location_bit} | {kids_bit}"
 
 
 def _ics_escape(text: Optional[str]) -> str:
@@ -1322,8 +1370,7 @@ SOURCE
             reward_code=reward_code, referral_code=referral_code, recipient_kind="team",
             event_sales_lead=event_sales_lead, added_service_label=added_service_label,
         )
-        subj_prefix = "🎉 New Booking" if is_booking else "📩 New Lead"
-        team_subject = _booking_subject_line(lead_id, req) if is_booking else f"{subj_prefix} #{lead_id} — {req.parent_name} ({req.phone})"
+        team_subject = _booking_subject_line(lead_id, req) if is_booking else _lead_subject_line(lead_id, req)
 
         attachments = []
         if is_booking:
