@@ -646,11 +646,15 @@ input,textarea,select{font-family:var(--fb)}
 .v-ic{font-size:20px}
 
 /* Gender buttons */
-.g-sel{display:flex;gap:8px}
-.g-btn{flex:1;background:#fff;border:1.5px solid var(--li2);border-radius:10px;padding:10px 8px;font-size:12px;font-weight:600;color:var(--gy);display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .15s}
+/* 2026-08-16, per Shruti: gender buttons were stacking the emoji above the
+   label, making them noticeably taller than the Date of Birth input next to
+   them — switched to a single-line row (icon + label side by side) with the
+   same vertical padding as .ig input, so both boxes line up. */
+.g-sel{display:flex;gap:8px;align-items:stretch}
+.g-btn{flex:1;background:#fff;border:1.5px solid var(--li2);border-radius:10px;padding:10px 8px;font-size:13px;font-weight:600;color:var(--gy);display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px;transition:all .15s}
 .g-btn:hover{border-color:var(--li)}
 .g-btn.on{background:var(--li2);border-color:var(--li);color:#7B5EA7}
-.gi{font-size:16px}
+.gi{font-size:15px;line-height:1}
 
 /* Child cards */
 .child-card{background:var(--li3);border:1.5px solid var(--li2);border-radius:var(--r);padding:16px;margin-bottom:10px}
@@ -871,6 +875,17 @@ input,textarea,select{font-family:var(--fb)}
 .budget-chip{background:#fff;border:1.5px solid var(--li2);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;color:var(--gy);transition:all .15s}
 .budget-chip:hover{border-color:var(--li)}
 .budget-chip.on{background:var(--li);border-color:var(--li);color:#fff}
+
+/* "What does the birthday child like most" interest bubbles (2026-08-16,
+   per Shruti: bigger + a distinct color per category, e.g. pink for
+   Glam & Style, dark for Mystery & Adventure, a colorful gradient for Art &
+   Creativity, green for Nature & Outdoors). Each button carries its own
+   off/on colors as inline CSS custom properties (set in renderInterestChips())
+   so this one rule set styles every category — see the INTERESTS const. */
+.interest-chips{display:flex;gap:10px;flex-wrap:wrap}
+.interest-chip{background:var(--icOff);color:var(--icOffFg);border:2px solid var(--icBd);border-radius:18px;padding:11px 18px;font-size:14px;font-weight:700;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer}
+.interest-chip:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.14)}
+.interest-chip.on{background:var(--icOn);color:var(--icOnFg);border-color:var(--icOn);box-shadow:0 3px 12px rgba(0,0,0,.18);transform:scale(1.04)}
 
 /* Star rating display */
 .rating-row{display:flex;align-items:center;gap:4px;margin-top:3px}
@@ -1315,13 +1330,23 @@ input,textarea,select{font-family:var(--fb)}
     <button class="add-child-btn" id="addCBtn" style="display:none" onclick="addCC()">+ Add another child</button>
   </div>
 
+  <!-- What the child likes most (2026-08-16, per Shruti) — multiselect bubbles,
+       used to recommend decor/activities/return gifts/invite designs further
+       along, with a "see all" fallback everywhere it's used. -->
+  <div class="s0-form">
+    <div class="s0-section-title">What Does the Birthday Child Like Most?</div>
+    <div style="font-size:13px;color:var(--gy);margin-bottom:10px">Pick as many as apply — we'll use this to recommend decor, activities, return gifts &amp; invites (you can always browse everything too).</div>
+    <div class="interest-chips" id="interestChips"></div>
+  </div>
+
   <!-- Event details -->
   <div class="s0-form">
     <div class="s0-section-title"><span>🎂</span> Event Details</div>
-    <div class="row2">
-      <div class="ig"><label>Event Date</label><input type="date" id="f-date" onchange="checkUrgentDate('f-date','s0-urgent-warn')"><div class="err-msg" id="f-date-past-err">This date has already passed — please choose today or a later date.</div></div>
-      <div class="ig"><label>Start Time</label><input type="time" id="f-time" value="11:00"></div>
-    </div>
+    <!-- 2026-08-16, per Shruti: Start Time moved off Step 0 — it's now asked
+         on the E-Invite step (ei-start), or on Checkout (co-time) if no
+         E-Invite is configured. S.eventTime keeps its '11:00' default until
+         one of those sets it. -->
+    <div class="ig"><label>Event Date</label><input type="date" id="f-date" onchange="checkUrgentDate('f-date','s0-urgent-warn')"><div class="err-msg" id="f-date-past-err">This date has already passed — please choose today or a later date.</div></div>
     <div id="s0-urgent-warn" class="urgent-warn" style="display:none"><span class="uw-ic">⚡</span><span>Your event is less than 3 days away — we won't be able to confirm this booking instantly online. Our team will call you within 24 hours to check feasibility instead.</span></div>
     <!-- ── TODO — link every option below to an actual decor theme (added
          2026-08-06 at Shruti's request). Right now buildDec()'s filter
@@ -1400,6 +1425,7 @@ input,textarea,select{font-family:var(--fb)}
       <button class="v-btn" onclick="selV(this,'Restaurant')"><span class="v-ic">🍽️</span>Restaurant</button>
       <button class="v-btn" onclick="selV(this,'Outdoor')"><span class="v-ic">🌳</span>Outdoor</button>
       <button class="v-btn" onclick="selV(this,'Other')"><span class="v-ic">📌</span>Other</button>
+      <button class="v-btn" onclick="selV(this,'Not Decided')"><span class="v-ic">🤷</span>Not Decided Yet</button>
     </div>
     <div class="err-msg" id="e-ven" style="margin-top:6px">Please select a venue type</div>
     <div id="v-other-wrap" style="display:none;margin-top:12px">
@@ -1484,6 +1510,10 @@ input,textarea,select{font-family:var(--fb)}
           <option value="price-desc">Price: High to Low</option>
         </select>
       </div>
+    </div>
+    <div id="actINote" style="background:var(--li3);border-radius:10px;padding:10px 14px;font-size:12px;color:#7B5EA7;margin-bottom:12px;display:none;align-items:center;justify-content:space-between">
+      <span>Showing activities that match what your child loves</span>
+      <button style="background:none;border:none;font-size:12px;font-weight:700;color:var(--li);cursor:pointer" onclick="showAllActs()">Show All</button>
     </div>
     <div class="chips" id="aChips">
       <button class="chip on" onclick="fActs('all',this)">All</button>
@@ -1685,14 +1715,14 @@ input,textarea,select{font-family:var(--fb)}
     <div id="eiDetail" style="display:none">
       <div class="sec-lbl"><span class="dot"></span>Invite Details</div>
       <div class="row2">
-        <div class="ig"><label>Child Name(s) on Invite<span class="req">*</span></label><input type="text" id="ei-names" placeholder="e.g. Aarav or Aarav &amp; Aanya"></div>
-        <div class="ig"><label>Child Age<span class="req">*</span></label><input type="text" id="ei-age" placeholder="e.g. 7th"></div>
+        <div class="ig"><label>Child Name(s) on Invite<span class="req">*</span></label><input type="text" id="ei-names" placeholder="e.g. Aarav or Aarav &amp; Aanya" oninput="applyNamesToChildren(this.value)"></div>
+        <div class="ig"><label>Child Age<span class="req">*</span></label><input type="text" id="ei-age" placeholder="e.g. 7"></div>
       </div>
       <div class="row2">
         <div class="ig"><label>Event Date<span class="req">*</span></label><input type="date" id="ei-date"></div>
-        <div class="ig"><label>Start Time<span class="req">*</span></label><input type="time" id="ei-start" value="11:00"></div>
+        <div class="ig"><label>Start Time<span class="req">*</span></label><input type="time" id="ei-start" value="11:00" onchange="S.eventTime=this.value"></div>
       </div>
-      <div class="ig"><label>Venue / Address<span class="req">*</span></label><input type="text" id="ei-venue" placeholder="Venue name and address"></div>
+      <div class="ig"><label>Venue / Address<span class="req" id="ei-venue-req">*</span></label><input type="text" id="ei-venue" placeholder="Venue name and address"></div>
       <div class="row2">
         <div class="ig"><label>RSVP Name</label><input type="text" id="ei-rsvpname" placeholder="Name for RSVP replies"></div>
         <div class="ig"><label>RSVP Mobile</label>
@@ -1784,6 +1814,10 @@ input,textarea,select{font-family:var(--fb)}
         <button class="chip" onclick="fGifts('gtheme','space',this)">Space</button>
       </div>
     </div>
+    <div id="giftINote" style="background:var(--li3);border-radius:10px;padding:10px 14px;font-size:12px;color:#7B5EA7;margin-bottom:12px;display:none;align-items:center;justify-content:space-between">
+      <span>Showing gifts that match what your child loves</span>
+      <button style="background:none;border:none;font-size:12px;font-weight:700;color:var(--li);cursor:pointer" onclick="showAllGifts()">Show All</button>
+    </div>
     <div class="cards-grid" id="gCards"></div>
 
     <!-- Packaging -->
@@ -1812,13 +1846,12 @@ input,textarea,select{font-family:var(--fb)}
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">
       <div class="sec-lbl" style="font-size:13px;margin-bottom:10px"><span class="dot"></span>Delivery Details</div>
       <div class="ig"><label>Delivery Address <span class="opt">defaults to event venue</span></label><input type="text" id="f-gaddr" placeholder="Start typing the delivery address…" autocomplete="off"></div>
-      <div class="ig">
-        <label>Google Maps Link <span class="opt">opt., auto-filled</span></label>
-        <div class="coupon-row" style="margin-bottom:4px">
-          <input type="text" id="f-gmaps" placeholder="Auto-fills when you pick an address above — or paste a link">
-          <a href="https://www.google.com/maps" target="_blank" rel="noopener" class="coupon-btn" style="white-space:nowrap;text-decoration:none;display:flex;align-items:center">🔍 Search Maps</a>
-        </div>
-      </div>
+      <!-- 2026-08-16, per Shruti: "Google Maps Link" field removed from the
+           UI (matches the earlier checkout venue Maps Link removal) — the
+           address autocomplete still captures it behind the scenes into
+           S.giftMapsLink for the team/backend, just not shown to the
+           customer. Don't delete S.giftMapsLink or the backend field. -->
+      <input type="hidden" id="f-gmaps">
       <div class="row2">
         <div class="ig"><label>Address Type</label><select id="f-gaddrtype"><option value="venue">Venue</option><option value="home">Home</option><option value="office">Office</option><option value="other">Other</option></select></div>
         <div class="ig"><label>Contact Person Name</label><input type="text" id="f-gcontact" placeholder="Name of person coordinating delivery"></div>
@@ -1885,10 +1918,12 @@ input,textarea,select{font-family:var(--fb)}
       </div>
     </div>
     <div class="ig"><label>Exact Venue Address</label><input type="text" id="co-addr" placeholder="Start typing the venue address…" autocomplete="off"></div>
-    <div class="tnc-agree" style="margin:2px 0 10px" onclick="togVenueNotFinal()">
-      <div class="tnc-cb" id="venueNotFinalCb"></div>
-      <div class="tnc-lbl">Venue not finalized yet — I'll confirm the exact address later</div>
-    </div>
+    <!-- 2026-08-16, per Shruti: the manual "Venue not finalized yet"
+         checkbox was removed — this is now asked once, at Step 0, via the
+         Venue Type picker's "Not Decided Yet" option. Whether Locality is
+         mandatory here is driven solely by venueUndecided() (S.venue==='Not
+         Decided'), which the customer can still change at checkout by
+         picking a different Venue Type below — see venueNotFinal(). -->
     <div class="ig" id="co-venue-locality-wrap" style="display:none;margin-bottom:14px">
       <label>Locality / Area<span class="req">*</span></label>
       <input type="text" id="co-venue-locality" placeholder="e.g. Chembur, Powai, Andheri West" oninput="this.classList.remove('err');document.getElementById('co-venue-locality-err').classList.remove('show')">
@@ -1899,12 +1934,13 @@ input,textarea,select{font-family:var(--fb)}
     <div class="ig" id="co-venue-type-wrap" style="display:none">
       <label>Venue Type<span class="req" id="co-venue-type-req" style="display:none">*</span></label>
       <div class="v-grid" id="coVenueGrid">
-        <button class="v-btn" onclick="selCoVenue(this,'Home')"><span class="v-ic">🏠</span>Home</button>
-        <button class="v-btn" onclick="selCoVenue(this,'Society Banquet')"><span class="v-ic">🏛️</span>Banquet Hall</button>
-        <button class="v-btn" onclick="selCoVenue(this,'Club')"><span class="v-ic">🎯</span>Club / Resort</button>
-        <button class="v-btn" onclick="selCoVenue(this,'Restaurant')"><span class="v-ic">🍽️</span>Restaurant</button>
-        <button class="v-btn" onclick="selCoVenue(this,'Outdoor')"><span class="v-ic">🌳</span>Outdoor</button>
-        <button class="v-btn" onclick="selCoVenue(this,'Other')"><span class="v-ic">📌</span>Other</button>
+        <button class="v-btn" data-v="Home" onclick="selCoVenue(this,'Home')"><span class="v-ic">🏠</span>Home</button>
+        <button class="v-btn" data-v="Society Banquet" onclick="selCoVenue(this,'Society Banquet')"><span class="v-ic">🏛️</span>Banquet Hall</button>
+        <button class="v-btn" data-v="Club" onclick="selCoVenue(this,'Club')"><span class="v-ic">🎯</span>Club / Resort</button>
+        <button class="v-btn" data-v="Restaurant" onclick="selCoVenue(this,'Restaurant')"><span class="v-ic">🍽️</span>Restaurant</button>
+        <button class="v-btn" data-v="Outdoor" onclick="selCoVenue(this,'Outdoor')"><span class="v-ic">🌳</span>Outdoor</button>
+        <button class="v-btn" data-v="Other" onclick="selCoVenue(this,'Other')"><span class="v-ic">📌</span>Other</button>
+        <button class="v-btn" data-v="Not Decided" onclick="selCoVenue(this,'Not Decided')"><span class="v-ic">🤷</span>Not Decided Yet</button>
       </div>
       <div class="err-msg" id="co-venue-type-err">Please select a venue type</div>
       <div id="co-venue-other-wrap" style="display:none;margin-top:12px">
@@ -2055,7 +2091,10 @@ input,textarea,select{font-family:var(--fb)}
     </div>
     <div class="conf-summary-note">Full order breakdown, discount &amp; payment details have been sent to your email &amp; WhatsApp.</div>
   </div>
-  <button class="conf-share-btn conf-wa" id="confWaBtn" onclick="shareWA()" style="width:100%;margin-bottom:18px">💬 Share Booking Details on WhatsApp</button>
+  <!-- 2026-08-16, per Shruti: WhatsApp share button removed for now — she
+       wants to rework the share message/flow before it goes back up. The
+       shareWA() function below is left in place, just unused, so it's a
+       one-line job to bring the button back once the new copy is ready. -->
   <div id="confReward"></div>
   <div id="confReferral"></div>
   <button class="conf-share-btn conf-ref" id="confReferBtn" onclick="referWS()" style="width:100%;margin-top:10px;margin-bottom:18px;display:none">🎁 Refer &amp; Earn</button>
@@ -2270,7 +2309,7 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Code.gs) was retired 2026-08-11 to stop writing duplicate, drifting
 // rows — see the "Consolidate leads + bookings" commits.
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,venueNotFinalized:false,venueLocality:'',FIT:20000,FPT:40000,remarks:{}};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,venueLocality:'',interests:[],FIT:20000,FPT:40000,remarks:{}};
 
 // ── Google Places Autocomplete (2026-08-16, per Shruti) ─────────────
 // Wires real address autocomplete onto the checkout venue address and
@@ -2740,6 +2779,75 @@ const GIFTS=[
 ];
 let gF={type:'all',budget:'all',gtheme:'all'};
 let actFilter='all';
+// "Show all" overrides for each step's interest-based recommendation filter
+// (2026-08-16, per Shruti) — reset back to false in doS0() so a fresh Step 0
+// submission re-applies recommendations from scratch.
+let decShowAll=false,actShowAll=false,giftShowAll=false,invShowAll=false;
+
+// 2026-08-16, per Shruti: "What does the birthday child like most?" —
+// multiselect on Step 0, used to recommend decor/activities/return gifts/
+// invite designs on their respective steps (buildDec/buildActs/buildGifts/
+// buildInvs), each with a "Show All" fallback if the customer wants to
+// browse everything. `kw` is a keyword list matched (case-insensitively,
+// substring) against each catalogue item's searchable text (name + theme
+// name + activity category) — a lightweight heuristic rather than a
+// hand-tagged mapping of every catalogue entry, so it's easy for Shruti to
+// tune later just by editing the keyword lists below. "Something Else" has
+// no keywords on purpose — picking it alone always shows everything.
+// Each interest carries its own off/on color palette (2026-08-16, per
+// Shruti: "make the bubbles a little bigger and more interesting, add a
+// diff color for each theme") — off* is the unselected pastel look, on* is
+// the solid selected look. Values can be plain colors or gradient()
+// functions since they're substituted straight into `background`/`color`
+// via CSS custom properties in renderInterestChips().
+const INTERESTS=[
+  {id:'science', label:'Science & Experiments', e:'🔬', kw:['science','experiment','robot','space','astronaut'],
+    off:'#DBEAFE', offFg:'#1D4ED8', bd:'#93C5FD', on:'#2563EB', onFg:'#fff'},
+  {id:'art',     label:'Art & Creativity',       e:'🎨', kw:['art','paint','craft','mosaic','tie & dye','tie-dye','mandala','texture','creative'],
+    off:'linear-gradient(135deg,#FEF3C7,#FBCFE8,#BFDBFE)', offFg:'#7C2D12', bd:'#F9A8D4', on:'linear-gradient(135deg,#F59E0B,#EC4899,#3B82F6)', onFg:'#fff'},
+  {id:'sports',  label:'Sports & Games',         e:'⚽', kw:['sport','football','cricket','game','gym','turf','zorb','engagement','board game'],
+    off:'#FFEDD5', offFg:'#C2410C', bd:'#FDBA74', on:'#F97316', onFg:'#fff'},
+  {id:'mystery', label:'Mystery & Adventure',    e:'🕵️', kw:['spy','mystery','detective','adventure','treasure','jungle','safari'],
+    off:'#1F2937', offFg:'#FBBF24', bd:'#374151', on:'#000000', onFg:'#FBBF24'},
+  {id:'glam',    label:'Glam & Style',           e:'💅', kw:['glam','style','nail','hair styling','makeup','fashion','barbie','jewellery'],
+    off:'#FCE7F3', offFg:'#BE185D', bd:'#F9A8D4', on:'#EC4899', onFg:'#fff'},
+  {id:'drama',   label:'Drama & Performance',    e:'🎭', kw:['drama','perform','stage','theatre','host','movie night'],
+    off:'#F3E8FF', offFg:'#7E22CE', bd:'#D8B4FE', on:'#9333EA', onFg:'#fff'},
+  {id:'music',   label:'Music & Dance',          e:'🎵', kw:['music','dance','dj','k-pop','kpop','katseye'],
+    off:'#CCFBF1', offFg:'#0F766E', bd:'#5EEAD4', on:'#0D9488', onFg:'#fff'},
+  {id:'puzzles', label:'Puzzles & Challenges',   e:'🧩', kw:['puzzle','challenge','escape','codenames','mafia','board game'],
+    off:'#FEF3C7', offFg:'#92400E', bd:'#FCD34D', on:'#D97706', onFg:'#fff'},
+  {id:'nature',  label:'Nature & Outdoors',      e:'🌳', kw:['nature','outdoor','jungle','safari','garden','turf','railways'],
+    off:'#D1FAE5', offFg:'#047857', bd:'#6EE7B7', on:'#10B981', onFg:'#fff'},
+  {id:'cooking', label:'Cooking & Baking',       e:'🧁', kw:['cook','bak','cupcake','mithai','kitchen'],
+    off:'#FFE4E6', offFg:'#9F1239', bd:'#FDA4AF', on:'#FB7185', onFg:'#fff'},
+  {id:'other',   label:'Something Else',         e:'✨', kw:[],
+    off:'#F5F0FF', offFg:'#6B7280', bd:'#EDE6FA', on:'#B59DDE', onFg:'#fff'}
+];
+function renderInterestChips(){
+  const w=document.getElementById('interestChips');
+  if(!w)return;
+  w.innerHTML=INTERESTS.map(it=>'<button type="button" class="interest-chip'+(S.interests.includes(it.id)?' on':'')+'" style="--icOff:'+it.off+';--icOffFg:'+it.offFg+';--icBd:'+it.bd+';--icOn:'+it.on+';--icOnFg:'+it.onFg+'" onclick="toggleInterest(\''+it.id+'\',this)">'+it.e+' '+it.label+'</button>').join('');
+}
+function toggleInterest(id,btn){
+  const idx=S.interests.indexOf(id);
+  if(idx>-1)S.interests.splice(idx,1);else S.interests.push(id);
+  btn.classList.toggle('on',S.interests.includes(id));
+}
+// True when NO interest filter should be applied — nothing picked, only
+// "Something Else" picked (nothing sensible to match against), or the
+// customer's already asked to see everything on this particular step.
+function interestFilterOff(showAllFlag){
+  return showAllFlag||!S.interests.length||S.interests.every(i=>i==='other');
+}
+// Case-insensitive substring match of the active interests' keywords
+// against a catalogue item's combined searchable text.
+function matchesInterests(text){
+  const t=(text||'').toLowerCase();
+  const active=INTERESTS.filter(it=>S.interests.includes(it.id)&&it.kw.length);
+  if(!active.length)return true;
+  return active.some(it=>it.kw.some(k=>t.includes(k)));
+}
 
 // ── PRICING ──
 function cItems(){
@@ -2788,10 +2896,15 @@ function cItems(){
 function thumbFor(cat,id){
   const e=(ch,bg)=>({type:'e',e:ch,bg:bg||'var(--li2)'});
   if(cat==='Decor'){
-    if(id&&id.indexOf('spy-')===0){
-      const map={'spy-basic':'spy-decor-basic','spy-p1':'spy-decor-1panel','spy-p2':'spy-decor-2panel','spy-sig':'spy-decor-signature'};
-      const f=map[id];return f?{type:'img',src:'img/'+f+'.jpg'}:e('🎈');
-    }
+    // Only the 4 legacy package-page ids (spy-basic/p1/p2/sig) use this old
+    // filename map — 2026-08-16 fix: this used to match ANY id starting
+    // with "spy-", which wrongly swallowed the newer theme-tier ids for the
+    // "Mystery & Spy" theme (spy-classic, spy-premium, spy-luxury, spy-
+    // signature — built by themeTierEntries() below) before they ever got a
+    // chance to match THEME_TIERS, so the review page showed a generic 🎈
+    // instead of the real decor photo.
+    const legacySpyMap={'spy-basic':'spy-decor-basic','spy-p1':'spy-decor-1panel','spy-p2':'spy-decor-2panel','spy-sig':'spy-decor-signature'};
+    if(id&&legacySpyMap[id])return{type:'img',src:'img/'+legacySpyMap[id]+'.jpg'};
     if(id&&id.indexOf('std')===0){const s=STD.find(x=>x.id===id);return s?{type:'img',src:'img/'+s.img+'.jpg'}:e('🎈');}
     // Theme+tier ids (e.g. 'uni-classic') from the current catalogue first;
     // falls back to the legacy plain theme-<id>.jpg convention for older/
@@ -3077,14 +3190,34 @@ function appendC(i){
   const ords=['First','Second','Third','Fourth'];
   const w=document.getElementById('cWrap');
   const d=document.createElement('div');d.className='child-card';
-  d.innerHTML='<div class="child-hdr"><div class="child-title">'+ords[i]+' Child</div>'+(i>0?'<button class="rm-btn" onclick="rmC(this)">×</button>':'')+'</div><div class="ig"><label>Child\'s Name<span class="req">*</span></label><input type="text" class="c-name" placeholder="e.g. Aarav" oninput="syncC();this.classList.remove(\'err\');this.nextElementSibling.classList.remove(\'show\')"><div class="err-msg c-name-err">Please enter the child\'s name</div></div><div class="row2"><div class="ig" style="margin-bottom:0"><label>Date of Birth<span class="req">*</span></label><input type="date" class="c-dob" onchange="syncC();this.classList.remove(\'err\');this.nextElementSibling.classList.remove(\'show\')"><div class="err-msg c-dob-err">Please enter date of birth</div></div><div class="ig" style="margin-bottom:0"><label>Gender</label><div class="g-sel"><button class="g-btn" onclick="selG(this,\'Boy\')"><span class="gi">👦</span>Boy</button><button class="g-btn" onclick="selG(this,\'Girl\')"><span class="gi">👧</span>Girl</button><button class="g-btn" onclick="selG(this,\'Either\')"><span class="gi">🌈</span>Others</button></div></div></div>';
+  // 2026-08-16, per Shruti: Child's Name removed from Step 0 — now asked
+  // once on the E-Invite step (ei-names) or on Checkout (co-child) if no
+  // E-Invite is configured, then synced back into S.children via
+  // applyNamesToChildren(). DOB + Gender stay here since they're needed
+  // right away (Turning Age, theme gender filter).
+  d.innerHTML='<div class="child-hdr"><div class="child-title">'+ords[i]+' Child</div>'+(i>0?'<button class="rm-btn" onclick="rmC(this)">×</button>':'')+'</div><div class="row2"><div class="ig" style="margin-bottom:0"><label>Date of Birth<span class="req">*</span></label><input type="date" class="c-dob" onchange="syncC();this.classList.remove(\'err\');this.nextElementSibling.classList.remove(\'show\')"><div class="err-msg c-dob-err">Please enter date of birth</div></div><div class="ig" style="margin-bottom:0"><label>Gender</label><div class="g-sel"><button class="g-btn" onclick="selG(this,\'Boy\')"><span class="gi">👦</span>Boy</button><button class="g-btn" onclick="selG(this,\'Girl\')"><span class="gi">👧</span>Girl</button><button class="g-btn" onclick="selG(this,\'Either\')"><span class="gi">🌈</span>Others</button></div></div></div>';
   w.appendChild(d);
 }
 function rmC(btn){btn.closest('.child-card').remove();reIdxC();syncC();}
 function reIdxC(){const ords=['First','Second','Third','Fourth'];document.querySelectorAll('.child-card').forEach((c,i)=>{c.querySelector('.child-title').textContent=ords[i]+' Child';if(i===0&&c.querySelector('.rm-btn'))c.querySelector('.rm-btn').remove();});}
 function selG(btn,val){btn.closest('.g-sel').querySelectorAll('.g-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');syncC();}
-function syncC(){S.children=[];document.querySelectorAll('.child-card').forEach(c=>{const gBtn=c.querySelector('.g-btn.on');S.children.push({name:c.querySelector('.c-name')?.value||'',dob:c.querySelector('.c-dob')?.value||'',gender:gBtn?gBtn.textContent.trim().replace(/./u,'').trim():''});});}
-function selV(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('.v-btn').forEach(b=>b.classList.remove('on'));if(wasSel){S.venue='';document.getElementById('v-other-wrap').style.display='none';}else{btn.classList.add('on');S.venue=val;document.getElementById('e-ven').classList.remove('show');document.getElementById('v-other-wrap').style.display=val==='Other'?'block':'none';}}
+// Step 0 no longer asks for name per child (only DOB/Gender) — see
+// appendC() — so syncC() no longer touches name at all; it's applied
+// separately via applyNamesToChildren() once it's captured on the E-Invite
+// step or Checkout (2026-08-16, per Shruti).
+function syncC(){const oldNames=S.children.map(c=>c.name||'');S.children=[];document.querySelectorAll('.child-card').forEach((c,i)=>{const gBtn=c.querySelector('.g-btn.on');S.children.push({name:oldNames[i]||'',dob:c.querySelector('.c-dob')?.value||'',gender:gBtn?gBtn.textContent.trim().replace(/./u,'').trim():''});});}
+// Splits a combined "Child Name(s)" string (e.g. "Aarav & Aanya", "Aarav,
+// Aanya") across however many child cards exist in S.children, so per-child
+// name/dob/gender stay reasonably aligned even though the name is now only
+// asked once — on the E-Invite step (ei-names), or on Checkout (co-child)
+// if no E-Invite was configured (2026-08-16, per Shruti). Called from both
+// places so whichever one the customer actually filled in wins.
+function applyNamesToChildren(str){
+  const parts=(str||'').split(/\s*(?:&|,|\band\b)\s*/i).map(s=>s.trim()).filter(Boolean);
+  if(!S.children.length)S.children=[{name:'',dob:'',gender:''}];
+  S.children.forEach((c,i)=>{c.name=parts[i]||'';});
+}
+function selV(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('.v-btn').forEach(b=>b.classList.remove('on'));if(wasSel){S.venue='';document.getElementById('v-other-wrap').style.display='none';}else{btn.classList.add('on');S.venue=val;document.getElementById('e-ven').classList.remove('show');document.getElementById('v-other-wrap').style.display=val==='Other'?'block':'none';}updVenueNotFinalUI();}
 function selBudget(btn,val){document.querySelectorAll('.budget-chip').forEach(b=>b.classList.remove('on'));btn.classList.add('on');S.budget=val;}
 
 // ── URGENT BOOKING (event < 3 days away) ──
@@ -3134,24 +3267,24 @@ function doS0(){
   if(S.venue==='Other'){const ov=document.getElementById('f-venue-other').value.trim();if(ov)S.venueOther=ov;}
   document.getElementById('s0-err-all').style.display='none';
   syncC();
-  // Require every child card to have a name + date of birth. DOB is what
-  // feeds the "Turning Age" shown on the confirmation email/Google Sheet
-  // (see ageForEvent() above) — without it the age can never be shown at
-  // all (2026-08-14, per Shruti — "mail does not have age, please add age
-  // for all kids"). Also required so child_names/child_ages/child_genders
-  // stay aligned 1:1 per child instead of drifting out of sync.
+  // Require every child card to have a date of birth. DOB is what feeds
+  // the "Turning Age" shown on the confirmation email/Google Sheet (see
+  // ageForEvent() above) — without it the age can never be shown at all
+  // (2026-08-14, per Shruti — "mail does not have age, please add age for
+  // all kids"). Name is no longer asked here — see appendC()/applyNamesToChildren()
+  // (2026-08-16, per Shruti: name now asked on the E-Invite step, or
+  // Checkout if no E-Invite is configured).
   let __childErr=false,__firstErrEl=null;
   document.querySelectorAll('.child-card').forEach(c=>{
-    const nameEl=c.querySelector('.c-name'),dobEl=c.querySelector('.c-dob');
-    if(nameEl&&!nameEl.value.trim()){nameEl.classList.add('err');nameEl.nextElementSibling?.classList.add('show');__childErr=true;__firstErrEl=__firstErrEl||nameEl;}
+    const dobEl=c.querySelector('.c-dob');
     if(dobEl&&!dobEl.value){dobEl.classList.add('err');dobEl.nextElementSibling?.classList.add('show');__childErr=true;__firstErrEl=__firstErrEl||dobEl;}
   });
   if(__childErr){
     __firstErrEl?.scrollIntoView({behavior:'smooth',block:'center'});
-    showErrorToast('Please fill in each child\'s name and date of birth to continue.');
+    showErrorToast('Please fill in each child\'s date of birth to continue.');
     return;
   }
-  S.pincode=document.getElementById('f-pincode').value.trim();S.eventDate=dt;S.eventTime=document.getElementById('f-time').value;
+  S.pincode=document.getElementById('f-pincode').value.trim();S.eventDate=dt;
   S.theme=document.getElementById('f-theme').value;S.kidsCount=parseInt(document.getElementById('f-kids').value)||15;
   // NOTE (2026-08-07): every step's images used to have loading="lazy". All
   // steps except the current one sit inside a display:none container, and
@@ -3165,6 +3298,7 @@ function doS0(){
   // loading="lazy" everywhere in this file — confirmed against the live
   // site. If lazy-loading is reintroduced later, build each step's cards
   // only when the user actually navigates to that step, not all up front.
+  decShowAll=actShowAll=giftShowAll=invShowAll=false;
   buildDec();buildActs();buildPins();buildInvs();buildGifts();
   document.getElementById('f-gaddr').value='';
   try{if(dt){document.getElementById('f-gdate').value=dt;document.getElementById('f-gdate').max=dt;}}catch(e){}
@@ -3202,10 +3336,27 @@ function makeTC(t){
 }
 function buildDec(){
   const tc=document.getElementById('thCards');tc.innerHTML='';
-  let fl=THEME_TIERS;
-  if(S.theme){fl=THEME_TIERS.filter(t=>t.themeId.toLowerCase().includes(S.theme.toLowerCase())||t.themeName.toLowerCase().includes(S.theme.toLowerCase()));}
-  else if(S.children.length){const gs=S.children.map(c=>c.gender).filter(Boolean);if(gs.length)fl=THEME_TIERS.filter(t=>t.gn==='Both'||gs.some(g=>t.gn===g||g==='Either'));}
-  if(!fl.length)fl=THEME_TIERS;
+  let fl=THEME_TIERS,interestApplied=false;
+  // decShowAll (set by the "Show All" link, see showAllT()) bypasses every
+  // filter below — theme/gender AND interests — same as the pre-existing
+  // "Show All" behavior, just now also covering the new interest filter
+  // (2026-08-16, per Shruti).
+  if(!decShowAll){
+    if(S.theme){fl=THEME_TIERS.filter(t=>t.themeId.toLowerCase().includes(S.theme.toLowerCase())||t.themeName.toLowerCase().includes(S.theme.toLowerCase()));}
+    else if(S.children.length){const gs=S.children.map(c=>c.gender).filter(Boolean);if(gs.length)fl=THEME_TIERS.filter(t=>t.gn==='Both'||gs.some(g=>t.gn===g||g==='Either'));}
+    if(!fl.length)fl=THEME_TIERS;
+    // Further narrow to themes matching the child's interests (Step 0),
+    // unless narrowing would leave nothing to show.
+    if(!interestFilterOff(false)){
+      const il=fl.filter(t=>matchesInterests(t.themeName));
+      if(il.length){fl=il;interestApplied=true;}
+    }
+  }
+  const fNote=document.getElementById('fNote');
+  if(fNote){
+    fNote.style.display=interestApplied?'flex':'none';
+    const lbl=fNote.querySelector('span');if(lbl)lbl.textContent='Showing themes that match what your child loves';
+  }
   fl.forEach(t=>tc.innerHTML+=makeTC(t));
   const sc=document.getElementById('stdCards');sc.innerHTML='';
   STD.forEach(t=>{
@@ -3218,7 +3369,7 @@ function buildDec(){
   const dtBtns=document.querySelectorAll('#s1 .dt-tog .dt-btn');
   if(dtBtns.length===2){if(S.decorType==='standard'){dtBtns[0].classList.remove('on');dtBtns[1].classList.add('on');document.getElementById('thSec').style.display='none';document.getElementById('stdSec').style.display='block';}else{dtBtns[0].classList.add('on');dtBtns[1].classList.remove('on');document.getElementById('thSec').style.display='block';document.getElementById('stdSec').style.display='none';}}
 }
-function showAllT(){document.getElementById('fNote').style.display='none';const tc=document.getElementById('thCards');tc.innerHTML='';THEME_TIERS.forEach(t=>tc.innerHTML+=makeTC(t));if(S.decor)document.querySelector('#dc-'+S.decor.id)?.classList.add('sel');}
+function showAllT(){decShowAll=true;buildDec();}
 function setDT(type,btn){S.decorType=type;document.querySelectorAll('#s1 .dt-tog .dt-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.getElementById('thSec').style.display=type==='themed'?'block':'none';document.getElementById('stdSec').style.display=type==='standard'?'block':'none';}
 function selDec(btn,id,n,p){
   const card=btn.closest('.pcard');
@@ -3234,7 +3385,21 @@ function selDec(btn,id,n,p){
 }
 
 // ── ACTIVITIES ──
-function buildActs(){actFilter='all';document.querySelectorAll('#aChips .chip').forEach((c,i)=>{if(i===0)c.classList.add('on');else c.classList.remove('on');});renderActs(visibleActs());updSelActs();}
+// Category chip filter + interest-based narrowing (2026-08-16, per Shruti),
+// in one place so buildActs/sortActs/fActs/togAct/showAllActs all agree on
+// what's currently showing. Toggles the #actINote banner as a side effect.
+function actsBaseFiltered(){
+  let list=actFilter==='all'?[...visibleActs()]:visibleActs().filter(a=>a.cat===actFilter);
+  let applied=false;
+  if(!actShowAll&&!interestFilterOff(false)){
+    const il=list.filter(a=>matchesInterests(a.n+' '+a.cat));
+    if(il.length){list=il;applied=true;}
+  }
+  const note=document.getElementById('actINote');if(note)note.style.display=applied?'flex':'none';
+  return list;
+}
+function showAllActs(){actShowAll=true;renderActs(actsBaseFiltered());}
+function buildActs(){actFilter='all';document.querySelectorAll('#aChips .chip').forEach((c,i)=>{if(i===0)c.classList.add('on');else c.classList.remove('on');});renderActs(actsBaseFiltered());updSelActs();}
 function renderActs(list){
   const w=document.getElementById('aCards');w.innerHTML='';
   list.forEach(a=>{
@@ -3258,15 +3423,15 @@ function renderActs(list){
 }
 function sortActs(){
   const val=document.getElementById('actSort').value;
-  let list=actFilter==='all'?[...visibleActs()]:visibleActs().filter(a=>a.cat===actFilter);
+  let list=actsBaseFiltered();
   if(val==='price-asc')list.sort((a,b)=>actPrice(a,S.kidsCount)-actPrice(b,S.kidsCount));
   else if(val==='price-desc')list.sort((a,b)=>actPrice(b,S.kidsCount)-actPrice(a,S.kidsCount));
   renderActs(list);
 }
-function fActs(cat,btn){document.querySelectorAll('#aChips .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');actFilter=cat;renderActs(cat==='all'?visibleActs():visibleActs().filter(a=>a.cat===cat));}
-function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.activities.splice(idx,1);else{const a=ACTS.find(x=>x.id===id);if(a)S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat,wasP:a.wasP});}const cur=actFilter==='all'?visibleActs():visibleActs().filter(a=>a.cat===actFilter);renderActs(cur);updSelActs();updBB(S.screen);}
+function fActs(cat,btn){document.querySelectorAll('#aChips .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');actFilter=cat;renderActs(actsBaseFiltered());}
+function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.activities.splice(idx,1);else{const a=ACTS.find(x=>x.id===id);if(a)S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat,wasP:a.wasP});}renderActs(actsBaseFiltered());updSelActs();updBB(S.screen);}
 function updSelActs(){const w=document.getElementById('selActs');const l=document.getElementById('selAList');if(!S.activities.length){w.style.display='none';return;}w.style.display='block';l.innerHTML='';S.activities.forEach(a=>{const tot=actPrice(a,S.kidsCount);l.innerHTML+='<div class="sai"><span>'+a.n+'</span><span style="display:flex;align-items:center;gap:5px"><span class="saip">₹'+tot.toLocaleString('en-IN')+'</span><button class="sarm" onclick="togAct(\''+a.id+'\')">✕</button></span></div>';});}
-function chgK(d){S.kidsCount=Math.max(1,Math.min(100,S.kidsCount+d));document.getElementById('kDisp2').textContent=S.kidsCount;try{document.getElementById('f-kids').value=S.kidsCount;}catch(e){}renderActs(actFilter==='all'?visibleActs():visibleActs().filter(a=>a.cat===actFilter));updSelActs();S.gifts.forEach(g=>{if(!g.userQty)g.qty=S.kidsCount;});renderGifts();updBB(S.screen);}
+function chgK(d){S.kidsCount=Math.max(1,Math.min(100,S.kidsCount+d));document.getElementById('kDisp2').textContent=S.kidsCount;try{document.getElementById('f-kids').value=S.kidsCount;}catch(e){}renderActs(actsBaseFiltered());updSelActs();S.gifts.forEach(g=>{if(!g.userQty)g.qty=S.kidsCount;});renderGifts();updBB(S.screen);}
 
 // Combines every captured remarks entry (per-step boxes below, plus the
 // dedicated "pkg" key used for package-page special-request fields like
@@ -3486,7 +3651,7 @@ function chkFreeInv(){
     showFreeInvToast();
   }
 }
-function showAllInv(){document.getElementById('invFilterNote').style.display='none';const w=document.getElementById('invCards');w.innerHTML='';INVITES.forEach(inv=>w.innerHTML+=makeInvCard(inv));if(S.einvite)document.getElementById('inv-'+S.einvite.id)?.classList.add('sel');}
+function showAllInv(){invShowAll=true;const w=document.getElementById('invCards');document.getElementById('invFilterNote').style.display='none';w.innerHTML='';INVITES.forEach(inv=>w.innerHTML+=makeInvCard(inv));if(S.einvite)document.getElementById('inv-'+S.einvite.id)?.classList.add('sel');}
 function makeInvCard(inv){
   const isFree=rawNoInv()>=S.FIT;
   const priceText=isFree?'FREE':'₹'+inv.p;
@@ -3495,10 +3660,25 @@ function makeInvCard(inv){
 function buildInvs(){
   const w=document.getElementById('invCards');w.innerHTML='';
   const isFree=rawNoInv()>=S.FIT;
-  // Pre-filter to designs matching the theme chosen back in Step 0, if any.
   let fl=INVITES;const note=document.getElementById('invFilterNote');
-  if(S.theme){const m=INVITES.filter(inv=>inv.t===S.theme);if(m.length){fl=m;note.style.display='block';}else note.style.display='none';}
-  else note.style.display='none';
+  const showAllLink=' — <span style="color:var(--li);font-weight:700;cursor:pointer" onclick="showAllInv()">Show All</span>';
+  if(invShowAll){note.style.display='none';}
+  else{
+    let themeMatched=false,interestMatched=false;
+    // Pre-filter to designs matching the theme chosen back in Step 0, if any.
+    if(S.theme){const m=INVITES.filter(inv=>inv.t===S.theme);if(m.length){fl=m;themeMatched=true;}}
+    // Then further narrow to designs matching the child's interests
+    // (2026-08-16, per Shruti), unless that would leave nothing to show.
+    if(!interestFilterOff(false)){
+      const il=fl.filter(inv=>matchesInterests(inv.n+' '+inv.t));
+      if(il.length){fl=il;interestMatched=true;}
+    }
+    if(themeMatched||interestMatched){
+      const txt=themeMatched&&interestMatched?'Showing designs matching your theme &amp; what your child loves':interestMatched?'Showing designs that match what your child loves':'Showing designs matching your selected theme';
+      note.innerHTML=txt+showAllLink;
+      note.style.display='block';
+    }else note.style.display='none';
+  }
   fl.forEach(inv=>w.innerHTML+=makeInvCard(inv));
   const cp=document.getElementById('invCustomPrice');if(cp)cp.textContent=isFree?'FREE':'₹1,000';
   if(S.einvite){
@@ -3530,9 +3710,18 @@ function prefillEiFields(force){
   set('ei-names', S.children.map(c=>c.name||'').filter(Boolean).join(' & '));
   set('ei-date', S.eventDate||'');
   set('ei-start', S.eventTime||'11:00');
-  set('ei-venue', S.venue==='Other'?(S.venueOther||''):(S.venue||''));
+  // Venue not decided yet (2026-08-16, per Shruti): default the invite's
+  // Venue/Address to a friendly placeholder instead of a blank/mandatory
+  // field — customer can edit it or clear it back to blank, and it's not
+  // required for validation in this case (see validateInvite()).
+  set('ei-venue', venueUndecided()?'Venue to be announced':(S.venue==='Other'?(S.venueOther||''):(S.venue&&S.venue!=='Not Decided'?S.venue:'')));
+  const venReq=document.getElementById('ei-venue-req');
+  if(venReq)venReq.style.display=venueUndecided()?'none':'inline';
   if(S.mobile)set('ei-rsvp', S.mobile);
-  if(S.children[0]?.dob){const age=ageForEvent(S.children[0].dob,S.eventDate);if(age!=null)set('ei-age', age+'th');}
+  // 2026-08-16, per Shruti: "age should be 5 and not 5th" on the invite —
+  // plain number, no ordinal suffix (the confirmation page's "Nth Birthday
+  // Party" title is a separate feature and keeps its own ordinalSuffix()).
+  if(S.children[0]?.dob){const age=ageForEvent(S.children[0].dob,S.eventDate);if(age!=null)set('ei-age', String(age));}
 }
 function selInv(card,id,p,n){
   const wasSel=card.classList.contains('sel');
@@ -3558,7 +3747,11 @@ function validateInvite(){
     if(!ok){document.getElementById('invCustomThemeWrap').scrollIntoView({behavior:'smooth',block:'center'});showErrorToast('Please fill in your custom E-Invite theme to continue.');return false;}
     return true;
   }
-  const req=['ei-names','ei-age','ei-date','ei-start','ei-venue'];
+  // Venue/Address isn't required when the customer already told us the
+  // venue is undecided at Step 0 (2026-08-16, per Shruti) — it can stay
+  // blank in that case.
+  const req=['ei-names','ei-age','ei-date','ei-start'];
+  if(!venueUndecided())req.push('ei-venue');
   const missing=req.some(id=>!document.getElementById(id)?.value.trim());
   if(missing){if(errEl){errEl.style.display='block';errEl.scrollIntoView({behavior:'smooth',block:'center'});}showErrorToast('Please fill all required (*) E-Invite fields to continue.');return false;}
   if(errEl)errEl.style.display='none';
@@ -3579,12 +3772,24 @@ function buildGifts(){
   renderGifts();
 }
 function renderGifts(){
-  const list=GIFTS.filter(g=>{
+  let list=GIFTS.filter(g=>{
     if(gF.type!=='all'&&g.type!==gF.type)return false;
     if(gF.budget!=='all'){if(gF.budget==='low'&&g.unit>=350)return false;if(gF.budget==='mid'&&(g.unit<350||g.unit>600))return false;if(gF.budget==='high'&&g.unit<=600)return false;}
     if(gF.gtheme!=='all'&&g.gtheme!==gF.gtheme)return false;
     return true;
   });
+  // Further narrow to gifts matching the child's interests (Step 0), unless
+  // the customer already asked to see everything, or it would leave
+  // nothing to show against the explicit Type/Budget/Theme filters above
+  // (2026-08-16, per Shruti). Most gifts are generic products rather than
+  // theme-tied, so matches here (games/personalized/sport items) are a
+  // best-effort heuristic, not exhaustive.
+  let interestApplied=false;
+  if(!giftShowAll&&!interestFilterOff(false)){
+    const il=list.filter(g=>matchesInterests(g.n+' '+g.type));
+    if(il.length){list=il;interestApplied=true;}
+  }
+  const iNote=document.getElementById('giftINote');if(iNote)iNote.style.display=interestApplied?'flex':'none';
   const w=document.getElementById('gCards');w.innerHTML='';
   list.forEach(g=>{const ex=S.gifts.find(x=>x.id===g.id);const qty=ex?ex.qty:S.kidsCount;const added=!!ex;
     const tagHtml=g.tag?TAG_MAP[g.tag]:'';
@@ -3596,6 +3801,7 @@ function renderGifts(){
   if(!list.length)w.innerHTML='<div style="text-align:center;padding:24px;color:var(--gy);font-size:13px">No gifts match. Try clearing a filter.</div>';
 }
 function fGifts(f,val,btn){const mp={type:'gTChips',budget:'gBChips',gtheme:'gThChips'};document.querySelectorAll('#'+mp[f]+' .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');gF[f]=val;renderGifts();}
+function showAllGifts(){giftShowAll=true;renderGifts();}
 function addGift(id,n,unit){if(!S.gifts.find(g=>g.id===id))S.gifts.push({id,n,unit,qty:S.kidsCount});renderGifts();updBB(S.screen);updTagNote();}
 function rmGift(id){S.gifts=S.gifts.filter(g=>g.id!==id);renderGifts();updBB(S.screen);updTagNote();}
 function chgQty(id,unit,d){const g=S.gifts.find(g=>g.id===id);if(!g)return;g.qty=Math.max(1,g.qty+d);g.userQty=true;document.getElementById('qty-'+id).textContent=g.qty;document.getElementById('qv-'+id).textContent=g.qty;document.getElementById('qtot-'+id).textContent=(g.qty*unit).toLocaleString('en-IN');updBB(S.screen);updTagNote();}
@@ -3705,9 +3911,11 @@ function fillCo(){
   document.getElementById('co-kids').value=S.kidsCount||'';
   const nameEl=document.getElementById('co-name');
   if(nameEl&&!nameEl.value&&__eiRsvpName)nameEl.value=__eiRsvpName;
-  // Pre-fill whatever venue detail was already captured in Step 0
+  // Pre-fill whatever venue detail was already captured in Step 0 — skip
+  // for "Other" (its real text lives in S.venueOther) and "Not Decided Yet"
+  // (nothing to prefill, 2026-08-16, per Shruti).
   const addrEl=document.getElementById('co-addr');
-  if(addrEl&&!addrEl.value)addrEl.value=S.venueOther||(S.venue&&S.venue!=='Other'?S.venue:'')||'';
+  if(addrEl&&!addrEl.value)addrEl.value=S.venueOther||(S.venue&&S.venue!=='Other'&&S.venue!=='Not Decided'?S.venue:'')||'';
   const qr=document.getElementById('payOnlineDetails');if(qr)qr.style.display=S.payMethod==='online'?'block':'none';
   // 2026-08-14, per Shruti: package-origin checkouts (Spy/Unicorn/Turf
   // "Build This Package") skipped Step 0 entirely, so DOB/venue type/
@@ -3716,11 +3924,14 @@ function fillCo(){
   // Step 0.
   const pkgExtras=document.getElementById('coPkgExtras');
   if(pkgExtras)pkgExtras.style.display=S._pkgOrigin?'block':'none';
-  updCoVenueTypeVisibility();
-  const contactRow0=document.getElementById('co-venue-contact-row');
-  if(contactRow0)contactRow0.style.display=S.venueNotFinalized?'none':'grid';
-  const note0=document.getElementById('co-venue-notfinal-note');
-  if(note0)note0.style.display=S.venueNotFinalized?'flex':'none';
+  // 2026-08-16, per Shruti: "retain the [venue type] selection on checkout
+  // step as well" — e.g. "Not Decided Yet" picked at Step 0 should already
+  // show as selected here, not just be stored invisibly in S.venue.
+  document.querySelectorAll('#coVenueGrid .v-btn').forEach(b=>{b.classList.toggle('on', !!S.venue && b.dataset.v===S.venue);});
+  const coOtherWrap=document.getElementById('co-venue-other-wrap');
+  if(coOtherWrap)coOtherWrap.style.display=S.venue==='Other'?'block':'none';
+  if(S.venue==='Other'){const coOtherEl=document.getElementById('co-venue-other');if(coOtherEl&&!coOtherEl.value&&S.venueOther)coOtherEl.value=S.venueOther;}
+  updVenueNotFinalUI();
   if(S._pkgOrigin){
     const pinEl=document.getElementById('co-pincode');if(pinEl&&!pinEl.value)pinEl.value=S.pincode||'';
   }
@@ -3768,6 +3979,7 @@ function selCoVenue(btn,val){
   const wrap=document.getElementById('co-venue-other-wrap');
   if(wasSel){S.venue='';if(wrap)wrap.style.display='none';}
   else{btn.classList.add('on');S.venue=val;if(wrap)wrap.style.display=val==='Other'?'block':'none';}
+  updVenueNotFinalUI();
 }
 // Toggle the checkout screen between the normal "pay 50% advance" flow and
 // the urgent (<3-days-away) flow: no payment method, no advance/balance
@@ -3852,50 +4064,66 @@ function selPay(el,method){document.querySelectorAll('.pay-opt').forEach(p=>p.cl
 function togTNC(){S.tncOk=!S.tncOk;const cb=document.getElementById('tncCb');cb.classList.toggle('checked',S.tncOk);cb.textContent=S.tncOk?'✓':'';}
 // "Venue not finalized" checkbox on Checkout (2026-08-16, per Shruti) — lets
 // a customer confirm booking before locking in the exact venue address.
-function togVenueNotFinal(){
-  S.venueNotFinalized=!S.venueNotFinalized;
-  const cb=document.getElementById('venueNotFinalCb');
-  cb.classList.toggle('checked',S.venueNotFinalized);
-  cb.textContent=S.venueNotFinalized?'✓':'';
+// 2026-08-16, per Shruti: picking "Not Decided Yet" as the Venue TYPE
+// (Step 0's venueGrid or checkout's own coVenueGrid) already tells us the
+// venue isn't finalized — so it should trigger the exact same "still need
+// the locality" flow as the checkout checkbox, WITHOUT also showing the
+// (now redundant) checkbox itself, and WITHOUT re-asking Venue Type as
+// mandatory (it's already answered: "not decided").
+function venueUndecided(){return S.venue==='Not Decided';}
+// True whenever we need to treat the venue as "not locked in yet" for UI
+// purposes (show locality ask, hide venue contact fields, show the
+// confirm-with-planner reminder). Used to derive from a manual checkbox
+// OR'd with venueUndecided() — the checkbox was removed 2026-08-16, per
+// Shruti (Step 0's Venue Type picker already asks this), so this is now a
+// plain alias for venueUndecided(); kept as its own function since the rest
+// of checkout still reads venueNotFinal() throughout.
+function venueNotFinal(){return venueUndecided();}
+// Single source of truth for every bit of checkout UI that depends on
+// "is the venue finalized yet" — called after the checkbox is toggled, after
+// a Venue Type button is picked (Step 0 or checkout), and on fillCo() when
+// the checkout page loads (2026-08-16, per Shruti).
+function updVenueNotFinalUI(){
+  const notFinal=venueNotFinal();
   // Piggyback on the existing per-step remarks mechanism so this reaches
-  // the team without needing a new backend field (2026-08-16, per Shruti).
-  S.remarks.venueStatus=S.venueNotFinalized?'⚠️ Venue not finalized yet — customer will confirm the exact address later.':'';
-  // Locality/Area field only matters once "not finalized" is checked — we
+  // the team without needing a new backend field.
+  S.remarks.venueStatus=notFinal?'⚠️ Venue not finalized yet — customer will confirm the exact address later.':'';
+  // Locality/Area field only matters once the venue isn't finalized — we
   // still need to know the area (e.g. Chembur) to confirm service
-  // availability there, even with no exact address yet (2026-08-16, per Shruti).
+  // availability there, even with no exact address/type yet.
   const wrap=document.getElementById('co-venue-locality-wrap');
-  if(wrap)wrap.style.display=S.venueNotFinalized?'block':'none';
-  if(!S.venueNotFinalized){
+  if(wrap)wrap.style.display=notFinal?'block':'none';
+  if(!notFinal){
     const locEl=document.getElementById('co-venue-locality');
     if(locEl){locEl.value='';locEl.classList.remove('err');}
     document.getElementById('co-venue-locality-err')?.classList.remove('show');
     S.venueLocality='';
     delete S.remarks.venueLocality;
   }
-  // 2026-08-16, per Shruti: once venue isn't finalized, Venue Type becomes
-  // mandatory (we still need to know outdoor/banquet/etc. to plan
-  // logistics), show a reminder to confirm the final address with the
-  // party planner, and hide the on-site contact person fields since the
-  // customer won't have that info yet for an unconfirmed venue.
+  // Reminder to confirm the final address with the party planner, and hide
+  // the on-site contact person fields since the customer won't have that
+  // info yet for an unconfirmed venue.
   const note=document.getElementById('co-venue-notfinal-note');
-  if(note)note.style.display=S.venueNotFinalized?'flex':'none';
+  if(note)note.style.display=notFinal?'flex':'none';
   const contactRow=document.getElementById('co-venue-contact-row');
-  if(contactRow)contactRow.style.display=S.venueNotFinalized?'none':'grid';
+  if(contactRow)contactRow.style.display=notFinal?'none':'grid';
   updCoVenueTypeVisibility();
 }
-// Shared by togVenueNotFinal() and fillCo(): the Venue Type picker is shown
-// whenever it's actually needed — either this is a package-origin checkout
-// (Spy/Unicorn/Turf, which skipped Step 0 and never collected venue type
-// at all) or the customer just checked "venue not finalized" (2026-08-16,
-// per Shruti). Only mandatory (asterisk + validated in doCo()) in the
-// latter case.
+// The Venue Type picker on checkout is shown whenever it's actually
+// needed — either this is a package-origin checkout (Spy/Unicorn/Turf,
+// which skipped Step 0 and never collected venue type at all) or the venue
+// isn't finalized yet (checkbox ticked, or Venue Type itself already "Not
+// Decided Yet" — 2026-08-16, per Shruti). Only shown as mandatory
+// (asterisk + validated in doCo()) when the customer still needs to make a
+// choice — NOT when "Not Decided Yet" was already explicitly picked.
 function updCoVenueTypeVisibility(){
-  const show=S.venueNotFinalized||S._pkgOrigin;
+  const notFinal=venueNotFinal();
+  const show=notFinal||S._pkgOrigin;
   const wrap=document.getElementById('co-venue-type-wrap');
   if(wrap)wrap.style.display=show?'block':'none';
   const req=document.getElementById('co-venue-type-req');
-  if(req)req.style.display=S.venueNotFinalized?'inline':'none';
-  if(!S.venueNotFinalized){
+  req && (req.style.display=(notFinal&&!venueUndecided())?'inline':'none');
+  if(!notFinal||venueUndecided()){
     document.getElementById('co-venue-type-err')?.classList.remove('show');
   }
 }
@@ -3965,10 +4193,12 @@ async function doCo(){
   }
   document.getElementById('e-tnc').classList.remove('show');
 
-  // 2026-08-16, per Shruti: if the venue isn't finalized yet, exact address
-  // is optional, but we still need the locality/area (e.g. Chembur) to
-  // confirm we cover it — required only in that case.
-  if(S.venueNotFinalized){
+  // 2026-08-16, per Shruti: if the venue isn't finalized yet (checkbox
+  // ticked, or Venue Type is itself "Not Decided Yet"), exact address is
+  // optional, but we still need the locality/area (e.g. Chembur) to
+  // confirm we cover it — required only in that case. Locality stays the
+  // same regardless of which of the two paths got us here.
+  if(venueNotFinal()){
     const locEl=document.getElementById('co-venue-locality');
     if(locEl&&!locEl.value.trim()){
       locEl.classList.add('err');
@@ -3979,9 +4209,10 @@ async function doCo(){
     }
     locEl?.classList.remove('err');
     document.getElementById('co-venue-locality-err')?.classList.remove('show');
-    // Venue Type is also mandatory once the venue isn't finalized — we
-    // still need outdoor/banquet/etc. to plan logistics/services correctly.
-    if(!S.venue){
+    // Venue Type is mandatory once the venue isn't finalized via the
+    // checkbox — but NOT when "Not Decided Yet" was already explicitly
+    // picked as the Venue Type itself (that already answers the question).
+    if(!venueUndecided()&&!S.venue){
       document.getElementById('co-venue-type-err')?.classList.add('show');
       document.getElementById('co-venue-type-wrap')?.scrollIntoView({behavior:'smooth',block:'center'});
       showErrorToast('Please select a venue type.');
@@ -3991,9 +4222,10 @@ async function doCo(){
   }
 
   // 2026-08-14, per Shruti: "make child's name mandatory" — required at
-  // checkout for every flow (normally pre-filled from Step 0, but the
-  // customer could still clear it here; package-origin checkouts never had
-  // it pre-filled at all since they skip Step 0 entirely).
+  // checkout for every flow. Normally pre-filled from the E-Invite step
+  // now (2026-08-16, per Shruti: name is no longer asked on Step 0 — it's
+  // asked once on the E-Invite step, or here on Checkout if no E-Invite was
+  // configured), but the customer could still clear/edit it here.
   const childNameEl=document.getElementById('co-child');
   if(childNameEl&&!childNameEl.value.trim()){
     childNameEl.classList.add('err');
@@ -4004,6 +4236,10 @@ async function doCo(){
   }
   childNameEl?.classList.remove('err');
   document.getElementById('co-child-err')?.classList.remove('show');
+  // Sync whatever's in the field back into S.children — the sole source of
+  // truth for names when no E-Invite was configured, and a safety net if
+  // the customer edited it here after it was pre-filled from ei-names.
+  if(childNameEl)applyNamesToChildren(childNameEl.value);
 
   // 2026-08-14, per Shruti: package-origin checkouts (Spy/Unicorn/Turf
   // "Build This Package") skip Step 0 entirely, so require Date of Birth
@@ -4041,8 +4277,10 @@ async function doCo(){
   S.parentName=document.getElementById('co-name').value;S.email=document.getElementById('co-email').value;S.address=document.getElementById('co-addr').value;
   // Venue not finalized (2026-08-16, per Shruti): fold the locality into the
   // main venue field (so it still reaches the team via the usual venue/
-  // address column) and note it in remarks too for visibility.
-  if(S.venueNotFinalized){
+  // address column) and note it in remarks too for visibility. Applies
+  // whether "not finalized" came from the checkbox or from Venue Type
+  // itself being "Not Decided Yet".
+  if(venueNotFinal()){
     S.venueLocality=(document.getElementById('co-venue-locality')||{}).value?.trim()||'';
     if(S.venueLocality){
       S.remarks.venueLocality='📍 Locality/Area: '+S.venueLocality;
@@ -4565,7 +4803,7 @@ function sendToTeamAndLead(){
   document.getElementById('ld-theme').value=S.theme||'';
   document.getElementById('ld-child').value=S.children.map(c=>c.name||'').filter(Boolean).join(', ');
   document.getElementById('ld-phone').value=S.mobile||'';
-  const venEl=document.getElementById('ld-venue');if(venEl)venEl.value=S.venueOther||(S.venue&&S.venue!=='Other'?S.venue:'')||'';
+  const venEl=document.getElementById('ld-venue');if(venEl)venEl.value=S.venueOther||(S.venue&&S.venue!=='Other'&&S.venue!=='Not Decided'?S.venue:'')||'';
   const ageEl=document.getElementById('ld-age');if(ageEl&&!ageEl.value&&S.children[0]?.dob){const age=ageForEvent(S.children[0].dob,S.eventDate);if(age!=null&&age>=1&&age<=18)ageEl.value=age;}
   const genEl=document.getElementById('ld-gender');if(genEl&&S.children[0]?.gender)genEl.value=S.children[0].gender;
   goTo('slead');
@@ -4989,6 +5227,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Builder init
   renderC(1);
+  renderInterestChips();
   // Past-date guard: block the native date pickers from even offering
   // yesterday-or-earlier (min = tomorrow, matching the existing urgent-
   // booking threshold). This only stops the picker UI — typed-in dates can
