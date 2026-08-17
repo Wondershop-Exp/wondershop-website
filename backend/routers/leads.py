@@ -125,6 +125,14 @@ class LeadSubmitRequest(BaseModel):
     # Personal attribution code for a team member (see _check_sales_lead_code)
     # — no discount, just credits them as Event Sales Lead on the order form.
     sales_lead_code:            Optional[str]  = None
+    # Birthday child's interests, picked on Step 0 (2026-08-17, per Shruti)
+    # — comma-joined category labels (e.g. "Science & Experiments, Sports &
+    # Games"), plus free text when "Something Else" was picked. Not used for
+    # any pricing/logic server-side — purely so the team can see what drove
+    # the recommendations shown, and spot patterns worth adding as real
+    # categories later. See migrations/015_add_interests_to_leads.sql.
+    interests:                   Optional[str]  = None
+    interest_other:              Optional[str]  = None
 
 
 class CouponValidateRequest(BaseModel):
@@ -1080,6 +1088,8 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
         ("Event Date", _fmt_date_long(req.event_date) if req.event_date else None),
         ("Kids Count", req.kids_count),
         ("Theme", req.theme),
+        ("Interests", req.interests),
+        ("Other Interest", req.interest_other),
         ("Venue", req.venue),
         ("City / Pincode", " / ".join(filter(None, [req.city, req.pincode])) or None),
     ]
@@ -1504,6 +1514,8 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Op
             "photography":  service_cols["photography"],
             "einvite":      service_cols["einvite"],
             "theme":        req.theme or "",
+            "interests":    req.interests or "",
+            "interest_other": req.interest_other or "",
             "venue":        req.venue or "",
             "venue_maps_link":    req.venue_maps_link or "",
             "venue_contact_name": req.venue_contact_name or "",
@@ -1725,6 +1737,7 @@ async def submit_lead(req: LeadSubmitRequest):
             dj_lights_addon, dj_smoke_machine_addon,
             redeemed_coupon_code, event_sales_lead,
             reward_type, reward_label, reward_value, reward_expiry,
+            interests, interest_other,
             status
         ) VALUES (
             :parent_name, :phone, :child_names, :email,
@@ -1741,6 +1754,7 @@ async def submit_lead(req: LeadSubmitRequest):
             :dj_lights_addon, :dj_smoke_machine_addon,
             :redeemed_coupon_code, :event_sales_lead,
             :reward_type, :reward_label, :reward_value, :reward_expiry,
+            :interests, :interest_other,
             :status
         )
         RETURNING lead_id
@@ -1794,6 +1808,8 @@ async def submit_lead(req: LeadSubmitRequest):
             "reward_label":               req.reward_label,
             "reward_value":               req.reward_value,
             "reward_expiry":              req.reward_expiry,
+            "interests":                  req.interests,
+            "interest_other":             req.interest_other,
             "status":                     status,
         },
     )

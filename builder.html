@@ -602,9 +602,15 @@ input,textarea,select{font-family:var(--fb)}
 .gc-remove:hover{text-decoration:underline}
 
 /* Packaging / tag buttons */
-.pkg-btn,.tag-opt-btn{background:var(--li3);border:1.5px solid var(--li2);border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--gy);transition:all .15s;text-align:left}
+.pkg-btn,.tag-opt-btn{position:relative;background:var(--li3);border:1.5px solid var(--li2);border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--gy);transition:all .15s;text-align:left}
 .pkg-btn:hover,.tag-opt-btn:hover{border-color:var(--li)}
-.pkg-btn.on,.tag-opt-btn.on{background:var(--li2);border-color:var(--li);color:#7B5EA7}
+/* 2026-08-17, per Shruti: "the addon option selection is not very clear" —
+   the old .on state (var(--li2) bg + var(--li) border) was too close in
+   tone to the unselected state to read as "selected" at a glance. A
+   corner checkmark badge + thicker border + glow ring makes it obvious
+   without needing to fight the price sub-text's own inline gray color. */
+.pkg-btn.on,.tag-opt-btn.on{background:var(--li2);border:2px solid var(--li);color:#5B3E96;box-shadow:0 0 0 3px rgba(181,157,222,.35)}
+.pkg-btn.on::after,.tag-opt-btn.on::after{content:'✓';position:absolute;top:-8px;right:-8px;width:20px;height:20px;border-radius:50%;background:var(--li);color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 
 /* Payment options */
 .pay-opts{display:flex;flex-direction:column;gap:10px}
@@ -658,6 +664,12 @@ input,textarea,select{font-family:var(--fb)}
 .rv-item-rm{flex-shrink:0;width:22px;height:22px;border-radius:50%;border:none;background:#FEF2F2;color:#DC2626;font-size:12px;font-weight:700;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
 .rv-item-rm:hover{background:#FEE2E2}
 .add-link{font-size:14px;font-weight:700;color:var(--li);cursor:pointer;margin-left:10px}
+/* 2026-08-17, per Shruti: "Show All is not very visible" — it was using
+   var(--li), a soft lilac, against the note box's near-white lilac
+   background (var(--li3)), so the text nearly disappeared. Darker,
+   underlined, and bold makes it read clearly as a tappable link. */
+.showall-link{background:none;border:none;font-size:12.5px;font-weight:800;color:#6D28D9;text-decoration:underline;text-underline-offset:2px;cursor:pointer;flex-shrink:0}
+.showall-link:hover{color:#5B21B6}
 .rv-thumb{width:44px;height:34px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--li2)}
 .rv-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .rv-thumb-e{display:flex;align-items:center;justify-content:center;font-size:16px}
@@ -942,15 +954,19 @@ input,textarea,select{font-family:var(--fb)}
    Creativity, green for Nature & Outdoors). Each button carries its own
    off/on colors as inline CSS custom properties (set in renderInterestChips())
    so this one rule set styles every category — see the INTERESTS const. */
-.interest-chips{display:flex;gap:10px;flex-wrap:wrap}
-.interest-chip{position:relative;background:var(--icOff);color:var(--icOffFg);border:2px solid var(--icBd);border-radius:18px;padding:11px 18px;font-size:14px;font-weight:700;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer}
-.interest-chip:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.14)}
+/* 2026-08-17, per Shruti: "looking too big as compared to other text, try
+   some pastel subtle colours" — scaled the whole chip down (was bumped up
+   large on 2026-08-16) and softened borders/shadow so they read as subtle
+   tags rather than bold buttons. */
+.interest-chips{display:flex;gap:8px;flex-wrap:wrap}
+.interest-chip{position:relative;background:var(--icOff);color:var(--icOffFg);border:1.5px solid var(--icBd);border-radius:14px;padding:6px 12px;font-size:12.5px;font-weight:700;transition:all .15s;box-shadow:0 1px 2px rgba(0,0,0,.04);cursor:pointer}
+.interest-chip:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,.1)}
 /* 2026-08-16, per Shruti: "we cannot tell if the mystery bubble is
-   selected" — the dark Mystery & Adventure chip's off/on colors (#1F2937 vs
-   #000) were too close to tell apart. A white halo ring + an explicit
-   checkmark makes selection obvious regardless of the chip's own color. */
-.interest-chip.on{background:var(--icOn);color:var(--icOnFg);border-color:#fff;box-shadow:0 0 0 2px #fff,0 0 0 4px var(--icOn),0 4px 14px rgba(0,0,0,.22);transform:scale(1.05)}
-.interest-chip.on::after{content:'✓';display:inline-flex;align-items:center;justify-content:center;margin-left:7px;width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.3);font-size:11px;font-weight:900}
+   selected" — a white halo ring + an explicit checkmark makes selection
+   obvious regardless of the chip's own color (kept even after the
+   2026-08-17 size/color pass, just scaled down to match). */
+.interest-chip.on{background:var(--icOn);color:var(--icOnFg);border-color:#fff;box-shadow:0 0 0 1.5px #fff,0 0 0 3px var(--icOn),0 3px 10px rgba(0,0,0,.16);transform:scale(1.03)}
+.interest-chip.on::after{content:'✓';display:inline-flex;align-items:center;justify-content:center;margin-left:5px;width:13px;height:13px;border-radius:50%;background:rgba(255,255,255,.3);font-size:9px;font-weight:900}
 
 /* Star rating display */
 .rating-row{display:flex;align-items:center;gap:4px;margin-top:3px}
@@ -1399,9 +1415,18 @@ input,textarea,select{font-family:var(--fb)}
        used to recommend decor/activities/return gifts/invite designs further
        along, with a "see all" fallback everywhere it's used. -->
   <div class="s0-form">
-    <div class="s0-section-title">What Does the Birthday Child Like Most?</div>
-    <div style="font-size:13px;color:var(--gy);margin-bottom:10px">Pick as many as apply — we'll use this to recommend decor, activities, return gifts &amp; invites (you can always browse everything too).</div>
+    <!-- 2026-08-17, per Shruti: reworded heading/subtext for warmer, clearer copy. -->
+    <div class="s0-section-title">Help Us Know the Interests of the Birthday Child</div>
+    <div style="font-size:13px;color:var(--gy);margin-bottom:10px">This will help us curate the party aligned to their interests.</div>
     <div class="interest-chips" id="interestChips"></div>
+    <!-- "Something Else" free-text (2026-08-17, per Shruti) — captured so
+         the team can see what customers actually meant, and to spot
+         patterns worth adding as a proper category later. Saved to the DB
+         and surfaced in the order form/email alongside the other interests. -->
+    <div class="ig" id="interestOtherWrap" style="display:none;margin-top:10px">
+      <label>Tell us more about what they like</label>
+      <input type="text" id="interestOtherInput" placeholder="e.g. loves gardening, obsessed with trains..." oninput="S.interestOther=this.value">
+    </div>
   </div>
 
   <!-- Event details -->
@@ -1537,7 +1562,7 @@ input,textarea,select{font-family:var(--fb)}
     <div id="thSec">
       <div id="fNote" style="background:var(--li3);border-radius:10px;padding:10px 14px;font-size:12px;color:#7B5EA7;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
         <span>Showing themes based on your preferences</span>
-        <button style="background:none;border:none;font-size:12px;font-weight:700;color:var(--li);cursor:pointer" onclick="showAllT()">Show All</button>
+        <button class="showall-link" onclick="showAllT()">Show All</button>
       </div>
       <div class="cards-grid" id="thCards"></div>
     </div>
@@ -1578,7 +1603,7 @@ input,textarea,select{font-family:var(--fb)}
     </div>
     <div id="actINote" style="background:var(--li3);border-radius:10px;padding:10px 14px;font-size:12px;color:#7B5EA7;margin-bottom:12px;display:none;align-items:center;justify-content:space-between">
       <span>Showing activities that match what your child loves</span>
-      <button style="background:none;border:none;font-size:12px;font-weight:700;color:var(--li);cursor:pointer" onclick="showAllActs()">Show All</button>
+      <button class="showall-link" onclick="showAllActs()">Show All</button>
     </div>
     <div class="chips" id="aChips">
       <button class="chip on" onclick="fActs('all',this)">All</button>
@@ -1722,7 +1747,10 @@ input,textarea,select{font-family:var(--fb)}
 
   <div class="s-hero"><div class="slbl">Step 5 of 9</div>
     <h1>Pick a <span class="hl">pinata</span></h1>
-    <p>Hand-crafted and filled with goodies. The moment every child at the party looks forward to.</p>
+    <!-- 2026-08-17, per Shruti: clarify the customer fills the pinata with
+         goodies themselves (we don't include fillings), and that we can
+         arrange the goodies for them at an extra cost if they'd rather not. -->
+    <p>Hand-crafted and ready for you to fill with goodies — the moment every child at the party looks forward to. Prefer we handle the goodies too? We can arrange that at an additional cost.</p>
   </div>
 
   <div class="sec-blk">
@@ -1757,7 +1785,7 @@ input,textarea,select{font-family:var(--fb)}
   <div class="sec-blk">
     <div id="freeInvBadge" class="free-badge" style="display:none">🎉 FREE with your order — your cart qualifies!</div>
     <div id="chargeInvNote" class="charge-note" style="display:none">⚡ ₹500 charge applies (orders under ₹25,000). Free on orders ₹25,000+.</div>
-    <div id="invFilterNote" style="font-size:12px;color:var(--gy);margin-bottom:10px;display:none">Showing designs matching your selected theme — <span style="color:var(--li);font-weight:700;cursor:pointer" onclick="showAllInv()">Show All</span></div>
+    <div id="invFilterNote" style="font-size:12px;color:var(--gy);margin-bottom:10px;display:none">Showing designs matching your selected theme — <span class="showall-link" onclick="showAllInv()">Show All</span></div>
     <div class="cards-grid" id="invCards"></div>
 
     <div id="inv-custom" onclick="selInvC(this)">
@@ -1892,7 +1920,7 @@ input,textarea,select{font-family:var(--fb)}
     </div>
     <div id="giftINote" style="background:var(--li3);border-radius:10px;padding:10px 14px;font-size:12px;color:#7B5EA7;margin-bottom:12px;display:none;align-items:center;justify-content:space-between">
       <span>Showing gifts that match what your child loves</span>
-      <button style="background:none;border:none;font-size:12px;font-weight:700;color:var(--li);cursor:pointer" onclick="showAllGifts()">Show All</button>
+      <button class="showall-link" onclick="showAllGifts()">Show All</button>
     </div>
     <div class="cards-grid" id="gCards"></div>
 
@@ -2386,7 +2414,7 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Code.gs) was retired 2026-08-11 to stop writing duplicate, drifting
 // rows — see the "Consolidate leads + bookings" commits.
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',pickupTime:'',showPickupOnInvite:false,giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,venueLocality:'',interests:[],FIT:20000,FPT:40000,remarks:{}};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',pickupTime:'',showPickupOnInvite:false,giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,venueLocality:'',interests:[],interestOther:'',FIT:20000,FPT:40000,remarks:{}};
 
 // ── Google Places Autocomplete (2026-08-16, per Shruti) ─────────────
 // Wires real address autocomplete onto the checkout venue address and
@@ -2777,12 +2805,14 @@ const PINATAS=[
     {type:'img',src:'img/pin-number-2.jpg'},
     {type:'img',src:'img/pin-number-3.jpg'}
   ],d:'Shaped as your child\'s age',p:2400,bg:'linear-gradient(135deg,#BCD8E8,#5B8EDD)',realImg:true},
-  // Readymade (off-the-shelf, non-personalized) pinata — placeholder emoji
-  // card for now, per Shruti (2026-08-14); swap in a real photo + gallery
-  // (matching the pattern above) once she sends one. Price confirmed ₹500
-  // (2026-08-14, per Shruti) — comes in predecided designs, cannot be
-  // personalized, matching the same item/price used on spy-basic.html.
-  {id:'readymade',n:'Readymade Pinata',e:'🎉',d:'Readymade designs, cannot be personalized — quickest option',note:'Your Party Experience Lead will share the available designs with you.',p:500,bg:'linear-gradient(135deg,#F2D147,#F57A1A)',realImg:false}
+  // Readymade (off-the-shelf, non-personalized) pinata — real sample photo
+  // added 2026-08-17, per Shruti (was a placeholder emoji card until now).
+  // Price confirmed ₹500 (2026-08-14, per Shruti) — comes in predecided
+  // designs, cannot be personalized, matching the same item/price used on
+  // spy-basic.html.
+  {id:'readymade',n:'Readymade Pinata',e:'🎉',img:'pin-readymade-1',gallery:[
+    {type:'img',src:'img/pin-readymade-1.jpg'}
+  ],d:'Readymade designs, cannot be personalized — quickest option',note:'Your Party Experience Lead will share the available designs with you.',p:500,bg:'linear-gradient(135deg,#F2D147,#F57A1A)',realImg:true}
 ];
 // Catalogue refreshed 2026-08-07 from the latest "EInvite Templates" batch —
 // each entry is a real past design (client names/contact details in the art
@@ -2884,8 +2914,13 @@ const INTERESTS=[
     off:'linear-gradient(135deg,#FEF3C7,#FBCFE8,#BFDBFE)', offFg:'#7C2D12', bd:'#F9A8D4', on:'linear-gradient(135deg,#F59E0B,#EC4899,#3B82F6)', onFg:'#fff'},
   {id:'sports',  label:'Sports & Games',         e:'⚽', kw:['sport','football','cricket','game','gym','turf','zorb','engagement','board game'],
     off:'#FFEDD5', offFg:'#C2410C', bd:'#FDBA74', on:'#F97316', onFg:'#fff'},
+  // 2026-08-17, per Shruti: swapped the near-black off/on colors for a
+  // pastel indigo pair, matching every other category — the white
+  // halo+checkmark on .interest-chip.on (added 2026-08-16) already
+  // carries the "is this selected?" signal, so the chip itself no longer
+  // needs to be dark to be distinguishable.
   {id:'mystery', label:'Mystery & Adventure',    e:'🕵️', kw:['spy','mystery','detective','adventure','treasure','jungle','safari'],
-    off:'#1F2937', offFg:'#FBBF24', bd:'#374151', on:'#000000', onFg:'#FBBF24'},
+    off:'#E0E7FF', offFg:'#3730A3', bd:'#A5B4FC', on:'#4F46E5', onFg:'#fff'},
   {id:'glam',    label:'Glam & Style',           e:'💅', kw:['glam','style','nail','hair styling','makeup','fashion','barbie','jewellery'],
     off:'#FCE7F3', offFg:'#BE185D', bd:'#F9A8D4', on:'#EC4899', onFg:'#fff'},
   {id:'drama',   label:'Drama & Performance',    e:'🎭', kw:['drama','perform','stage','theatre','host','movie night'],
@@ -2905,11 +2940,34 @@ function renderInterestChips(){
   const w=document.getElementById('interestChips');
   if(!w)return;
   w.innerHTML=INTERESTS.map(it=>'<button type="button" class="interest-chip'+(S.interests.includes(it.id)?' on':'')+'" style="--icOff:'+it.off+';--icOffFg:'+it.offFg+';--icBd:'+it.bd+';--icOn:'+it.on+';--icOnFg:'+it.onFg+'" onclick="toggleInterest(\''+it.id+'\',this)">'+it.e+' '+it.label+'</button>').join('');
+  const wrap=document.getElementById('interestOtherWrap');
+  const otherOn=S.interests.includes('other');
+  if(wrap)wrap.style.display=otherOn?'block':'none';
+  const inp=document.getElementById('interestOtherInput');
+  if(inp)inp.value=otherOn?(S.interestOther||''):'';
+}
+// Human-readable "Science & Experiments, Sports & Games" list of the
+// categories picked at Step 0 — excludes "Something Else" since that's
+// carried separately as free text (see interestOtherText()). Sent to the
+// backend so the team can see what interests drove the recommendations,
+// and over time spot patterns worth adding as real categories
+// (2026-08-17, per Shruti).
+function interestLabelsStr(){
+  return S.interests.filter(id=>id!=='other').map(id=>{const it=INTERESTS.find(x=>x.id===id);return it?it.label:id;}).join(', ');
+}
+function interestOtherText(){
+  return S.interests.includes('other')?(S.interestOther||'').trim():'';
 }
 function toggleInterest(id,btn){
   const idx=S.interests.indexOf(id);
   if(idx>-1)S.interests.splice(idx,1);else S.interests.push(id);
   btn.classList.toggle('on',S.interests.includes(id));
+  if(id==='other'){
+    const wrap=document.getElementById('interestOtherWrap');
+    const on=S.interests.includes('other');
+    if(wrap)wrap.style.display=on?'block':'none';
+    if(!on){S.interestOther='';const inp=document.getElementById('interestOtherInput');if(inp)inp.value='';}
+  }
 }
 // True when NO interest filter should be applied — nothing picked, only
 // "Something Else" picked (nothing sensible to match against), or the
@@ -3293,7 +3351,27 @@ function selG(btn,val){btn.closest('.g-sel').querySelectorAll('.g-btn').forEach(
 // appendC() — so syncC() no longer touches name at all; it's applied
 // separately via applyNamesToChildren() once it's captured on the E-Invite
 // step or Checkout (2026-08-16, per Shruti).
-function syncC(){const oldNames=S.children.map(c=>c.name||'');S.children=[];document.querySelectorAll('.child-card').forEach((c,i)=>{const gBtn=c.querySelector('.g-btn.on');S.children.push({name:oldNames[i]||'',dob:c.querySelector('.c-dob')?.value||'',gender:gBtn?gBtn.textContent.trim().replace(/./u,'').trim():''});});}
+function syncC(){const oldNames=S.children.map(c=>c.name||'');S.children=[];document.querySelectorAll('.child-card').forEach((c,i)=>{const gBtn=c.querySelector('.g-btn.on');S.children.push({name:oldNames[i]||'',dob:c.querySelector('.c-dob')?.value||'',gender:gBtn?gBtn.textContent.trim().replace(/./u,'').trim():''});});autofillEventDateFromDob();}
+// 2026-08-17, per Shruti: "keep the dob with current year as default" for
+// Event Date — prefills the (still-empty) Event Date field with the first
+// child's upcoming birthday (their DOB's month/day, current year — or next
+// year if that date has already passed this year, so the default is never
+// a stale past date) the moment DOB is entered on Step 0. Never overwrites
+// a date the customer already picked themselves.
+function autofillEventDateFromDob(){
+  const el=document.getElementById('f-date');
+  const dob=S.children[0]?.dob;
+  if(!el||el.value||!dob)return;
+  const d=new Date(dob+'T00:00:00');
+  if(isNaN(d.getTime()))return;
+  const now=new Date();
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  let yr=now.getFullYear();
+  if(new Date(yr,d.getMonth(),d.getDate())<today)yr+=1;
+  const mm=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
+  el.value=yr+'-'+mm+'-'+dd;
+  S.eventDate=el.value;
+}
 // Splits a combined "Child Name(s)" string (e.g. "Aarav & Aanya", "Aarav,
 // Aanya") across however many child cards exist in S.children, so per-child
 // name/dob/gender stay reasonably aligned even though the name is now only
@@ -3565,7 +3643,7 @@ function galMediaFor(kind,obj){
   let items;
   if(obj.gallery&&obj.gallery.length)items=obj.gallery.slice();
   else{
-    const src=kind==='theme'?('img/theme-'+obj.id+'.jpg'):kind==='gift'?('img/'+obj.img):('img/'+obj.img+'.jpg');
+    const src=kind==='theme'?('img/theme-'+obj.id+'.jpg'):kind==='gift'?('img/'+obj.img):kind==='invite'?('einvites/'+obj.file):('img/'+obj.img+'.jpg');
     items=[{type:'img',src}];
   }
   if(kind==='theme'||kind==='std'||kind==='pinata')items=items.concat([{type:'info'}]);
@@ -3597,7 +3675,7 @@ function buildDecorInfoHTML(kind,obj){
     custNote;
 }
 function openGallery(kind,id){
-  const obj=kind==='theme'?THEME_TIERS.find(t=>t.id===id):kind==='std'?STD.find(t=>t.id===id):kind==='pinata'?PINATAS.find(p=>p.id===id):kind==='gift'?GIFTS.find(g=>g.id===id):ACTS.find(a=>a.id===id);
+  const obj=kind==='theme'?THEME_TIERS.find(t=>t.id===id):kind==='std'?STD.find(t=>t.id===id):kind==='pinata'?PINATAS.find(p=>p.id===id):kind==='gift'?GIFTS.find(g=>g.id===id):kind==='invite'?INVITES.find(i=>i.id===id):ACTS.find(a=>a.id===id);
   if(!obj)return;
   galKind=kind;galObj=obj;
   galItems=galMediaFor(kind,obj);
@@ -3609,6 +3687,8 @@ function openGallery(kind,id){
     ? ('₹'+obj.p.toLocaleString('en-IN')+'  ·  '+obj.d)
     : kind==='gift'
     ? ('₹'+obj.unit.toLocaleString('en-IN')+'/child  ·  Ages '+obj.age)
+    : kind==='invite'
+    ? ((rawNoInv()>=S.FIT?'FREE':'₹'+obj.p.toLocaleString('en-IN'))+'  ·  E-Invite design')
     : ('📍 '+obj.req+'  ·  ⏱ '+obj.dur+'  ·  Ages '+obj.age);
   renderGalThumbs();
   renderGalStage();
@@ -3741,16 +3821,22 @@ function chkFreeInv(){
   }
 }
 function showAllInv(){invShowAll=true;const w=document.getElementById('invCards');document.getElementById('invFilterNote').style.display='none';w.innerHTML='';INVITES.forEach(inv=>w.innerHTML+=makeInvCard(inv));if(S.einvite)document.getElementById('inv-'+S.einvite.id)?.classList.add('sel');}
+// 2026-08-17, per Shruti — "expand the e-invite on clicking": tapping the
+// design image now opens the full-size gallery preview (same pattern as
+// Decor/Pinata/Gifts) instead of instantly selecting it; a distinct
+// "Select" button below does the actual selecting, so customers can look
+// closely at a design before committing to it.
 function makeInvCard(inv){
   const isFree=rawNoInv()>=S.FIT;
   const priceText=isFree?'FREE':'₹'+inv.p;
-  return '<div class="pcard psm" id="inv-'+inv.id+'" onclick="selInv(this,\''+inv.id+'\','+inv.p+',\''+inv.n+'\')"><div class="sel-badge">✓</div><div style="position:relative;overflow:hidden;border-radius:var(--r) var(--r) 0 0;background:var(--li2);aspect-ratio:3/4"><img src="einvites/'+inv.file+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+inv.n+'"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.58);padding:12px 10px;text-align:center;backdrop-filter:blur(2px)"><div style="font-family:var(--fd);font-size:15px;font-weight:700;color:#fff;line-height:1.2">'+inv.n+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:600;margin-top:3px">'+priceText+'</div></div></div></div>';
+  const added=S.einvite&&S.einvite.id===inv.id;
+  return '<div class="pcard psm'+(added?' sel':'')+'" id="inv-'+inv.id+'"><div class="sel-badge">✓</div><div style="position:relative;overflow:hidden;border-radius:var(--r) var(--r) 0 0;background:var(--li2);aspect-ratio:3/4;cursor:pointer" onclick="openGallery(\'invite\',\''+inv.id+'\')"><img src="einvites/'+inv.file+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+inv.n+'"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.58);padding:12px 10px;text-align:center;backdrop-filter:blur(2px)"><div style="font-family:var(--fd);font-size:15px;font-weight:700;color:#fff;line-height:1.2">'+inv.n+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:600;margin-top:3px">'+priceText+'</div></div></div><div style="padding:8px 10px"><button class="card-btn inv-sel-btn'+(added?' added':'')+'" style="width:100%;text-align:center" onclick="event.stopPropagation();selInv(this.closest(\'.pcard\'),\''+inv.id+'\','+inv.p+',\''+inv.n+'\')">'+(added?'✓ Selected':'Select')+'</button></div></div>';
 }
 function buildInvs(){
   const w=document.getElementById('invCards');w.innerHTML='';
   const isFree=rawNoInv()>=S.FIT;
   let fl=INVITES;const note=document.getElementById('invFilterNote');
-  const showAllLink=' — <span style="color:var(--li);font-weight:700;cursor:pointer" onclick="showAllInv()">Show All</span>';
+  const showAllLink=' — <span class="showall-link" onclick="showAllInv()">Show All</span>';
   if(invShowAll){note.style.display='none';}
   else{
     let themeMatched=false,interestMatched=false;
@@ -3840,9 +3926,15 @@ function toggleEiPickupShow(){
 }
 function selInv(card,id,p,n){
   const wasSel=card.classList.contains('sel');
-  document.querySelectorAll('#invCards .pcard,#inv-custom').forEach(c=>c.classList.remove('sel'));
+  document.querySelectorAll('#invCards .pcard,#inv-custom').forEach(c=>{
+    c.classList.remove('sel');
+    const b=c.querySelector('.inv-sel-btn');
+    if(b){b.classList.remove('added');b.textContent='Select';}
+  });
   if(wasSel){S.einvite=null;document.getElementById('eiDetail').style.display='none';}
   else{card.classList.add('sel');S.einvite={id,n,p};
+    const btn=card.querySelector('.inv-sel-btn');
+    if(btn){btn.classList.add('added');btn.textContent='✓ Selected';}
     prefillEiFields();
     document.getElementById('eiDetail').style.display='block';
     document.getElementById('invCustomThemeWrap').style.display='none';
@@ -4538,6 +4630,8 @@ async function doCo(){
     gift_required_by_date:      S.giftReqDate || null,
     dj_lights_addon:            !!S.djAddons.lights,
     dj_smoke_machine_addon:     !!S.djAddons.smoke,
+    interests:            interestLabelsStr() || null,
+    interest_other:       interestOtherText() || null,
     lead_source:        __leadSource,
     is_booking:          true,
     redeemed_coupon_code: S._redeemedRewardCode || null,
@@ -4643,6 +4737,15 @@ async function doCo(){
   const urgentNote=document.getElementById('confUrgentNote');
   const servicesBox=document.getElementById('confServicesBox');
   const summaryBox=document.getElementById('confSummaryBox');
+  // 2026-08-16, per Shruti: the #confWaBtn WhatsApp-share button was removed
+  // from the confirmation screen's HTML, but these two `waBtn.style.display=`
+  // calls below were never removed/guarded — waBtn has been null ever since,
+  // so BOTH assignments threw a TypeError on every single confirmed booking,
+  // aborting doCo() before it ever reached goTo('sconf'). That's the "order
+  // confirmation button gets stuck on Confirming…" bug (2026-08-17, per
+  // Shruti) — the booking was actually submitted and emailed successfully
+  // (that happens earlier, before this point), the screen just never
+  // advanced. Null-guarded so this is inert again if the button comes back.
   const waBtn=document.getElementById('confWaBtn');
   const nextSteps=document.getElementById('confNextSteps');
 
@@ -4664,7 +4767,7 @@ async function doCo(){
     urgentNote.style.display='block';
     servicesBox.style.display='none';
     summaryBox.style.display='none';
-    waBtn.style.display='none';
+    if(waBtn)waBtn.style.display='none';
     nextSteps.innerHTML=CONF_NEXT_STEPS_URGENT;
   }else{
     heroIcon.textContent='🎉';
@@ -4674,7 +4777,7 @@ async function doCo(){
     urgentNote.style.display='none';
     servicesBox.style.display='block';
     summaryBox.style.display='block';
-    waBtn.style.display='flex';
+    if(waBtn)waBtn.style.display='flex';
     nextSteps.innerHTML=CONF_NEXT_STEPS_NORMAL;
 
     renderConfServices();
@@ -4812,6 +4915,8 @@ async function doLead(){
     venue:              venue   || null,
     client_budget:      budget ? parseFloat(budget.replace(/[^\d.]/g,'')) || null : null,
     builder_snapshot:   buildSnapshot(),
+    interests:          interestLabelsStr() || null,
+    interest_other:     interestOtherText() || null,
     lead_source:        'Website - Custom Request',
     lead_source_detail: new URLSearchParams(location.search).get('utm_source')||null,
     is_booking:          false,

@@ -166,6 +166,8 @@ def assemble_order_form_data(req, lead_id: int, event_sales_lead: Optional[str],
         "venue_contact": venue_contact,
         "kids_count": req.kids_count or "—",
         "theme": req.theme or "—",
+        "interests": req.interests or "—",
+        "interest_other": req.interest_other or "—",
         "event_sales_lead": event_sales_lead or "—",
         "billing_amount": _fmt_money(req.order_grand_total),
         # Pledged/expected figure, NOT a confirmation of receipt — no payment
@@ -264,6 +266,8 @@ _DETAIL_ROWS = [
     ("Venue Contact",      "venue_contact"),
     ("# Kids",             "kids_count"),
     ("Theme",              "theme"),
+    ("Interests",          "interests"),
+    ("Other Interest",     "interest_other"),
     ("Event Sales Lead",   "event_sales_lead"),
 ]
 

@@ -181,6 +181,13 @@
       min-height: 76vh;
       display: flex; align-items: center;
     }
+    /* 2026-08-17, per Shruti: found the actual root cause of the hero
+       text/logo misalignment while matching her mockup — .hero is a flex
+       container, so its .container child was shrink-wrapping to its content
+       width instead of filling to the intended 1200px, which also squeezed
+       the hero image far narrower than the grid math intended. Forcing it
+       to fill restores both the logo alignment and the image's real width. */
+    .hero > .container { width: 100%; }
     .hero-inner {
       display: grid; grid-template-columns: 0.88fr 1.12fr;
       gap: 48px; align-items: stretch;
@@ -188,6 +195,14 @@
     .hero-right { display: flex; flex-direction: column; min-height: 0; }
     .hero-img-wrap { flex: 1; min-height: 300px; margin-bottom: 28px; display: flex; flex-direction: column; position: relative; }
     .hero-left { padding-top: 0; }
+    /* 2026-08-17, per Shruti's mockup: on desktop, widen the hero photo and
+       tighten the column gap so it reads bigger and sits closer to the
+       text/button column — mobile (below) is untouched. This is a best-effort
+       pass at the mockup; send it again
+       or flag it once you see this live if it needs nudging further. */
+    @media (min-width: 961px) {
+      .hero-inner { grid-template-columns: 0.78fr 1.22fr; gap: 32px; }
+    }
     .hero-tag {
       font-family: var(--fb); font-size: 11px; font-weight: 700;
       color: var(--pk); letter-spacing: 1.4px; text-transform: uppercase; margin-bottom: 16px;
@@ -1364,7 +1379,10 @@
     <p class="fcta-sub">Build your child's perfect birthday in 10 minutes — or just say hello. We'd love to chat.</p>
     <div class="fcta-btns">
       <a href="builder.html?start=1" class="btn-wh">Build a Birthday →</a>
-      <a href="https://wa.me/919742240477" class="btn-owh" target="_blank" rel="noopener">WhatsApp Us</a>
+      <!-- 2026-08-17, per Shruti: swapped for "Call Me to Plan" (same
+           pattern used in the hero — builder.html?lead=1 — instead of a
+           WhatsApp deep link). -->
+      <a href="builder.html?lead=1" class="btn-owh">Call Me to Plan</a>
     </div>
   </div>
 </section>
