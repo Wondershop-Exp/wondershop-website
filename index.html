@@ -86,12 +86,16 @@
     .nav-links a { font-family: var(--fb); font-size: 14px; font-weight: 500; color: var(--bk); transition: color .15s; }
     .nav-links a:hover { color: var(--li); }
     .nav-cta {
-      background: var(--li); color: #fff; border: none; border-radius: 24px;
+      /* 2026-08-17, per Shruti: made the "Build a Birthday" CTA a richer,
+         more saturated purple than the pastel --li brand accent — scoped to
+         just this button/.btn-p, not the shared --li variable, so borders,
+         highlighted text, etc. elsewhere on the site are untouched. */
+      background: #8455DD; color: #fff; border: none; border-radius: 24px;
       padding: 9px 20px; font-family: var(--fb); font-size: 13px; font-weight: 700;
       cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
       transition: background .15s, transform .1s; text-decoration: none;
     }
-    .nav-cta:hover { background: #9d84cc; transform: translateY(-1px); }
+    .nav-cta:hover { background: #6B3FC2; transform: translateY(-1px); }
     .nav-cta-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; }
     .nav-cta-sub { font-family: var(--fb); font-size: 10px; color: var(--gy); text-align: center; }
     .nav-ham { display: none; background: none; border: none; cursor: pointer; padding: 6px; flex-direction: column; gap: 5px; }
@@ -218,12 +222,12 @@
     }
     .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 32px; }
     .btn-p {
-      background: var(--li); color: #fff; border: none; border-radius: 28px;
+      background: #8455DD; color: #fff; border: none; border-radius: 28px;
       padding: 14px 28px; font-family: var(--fb); font-size: 15px; font-weight: 700;
       cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
       transition: background .15s, transform .1s;
     }
-    .btn-p:hover { background: #9d84cc; transform: translateY(-1px); }
+    .btn-p:hover { background: #6B3FC2; transform: translateY(-1px); }
     .btn-ghost {
       background: transparent; color: var(--bk); border: 2px solid var(--li);
       border-radius: 28px; padding: 12px 24px; font-family: var(--fb); font-size: 15px;
