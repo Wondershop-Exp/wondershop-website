@@ -240,6 +240,17 @@ async function doSearch(){
 
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 
+// JSON.stringify() produces double-quoted strings, and every onclick="..."
+// attribute below is ALSO double-quoted — embedding one directly inside the
+// other truncates the attribute at the first quote (e.g. onclick="saveField("
+// with the rest spilling out as broken HTML), which the browser then fails
+// to compile as a click handler ("Uncaught SyntaxError: Unexpected end of
+// input") — silently, with zero network request and no visible error unless
+// you have the console open. This is the actual root cause of every
+// "I clicked Save and nothing happened" report (2026-08-18, per Shruti) —
+// esc() HTML-escapes the embedded quotes so the attribute parses correctly.
+function attrJson(v){ return esc(JSON.stringify(v)); }
+
 async function openBooking(id){
   CURRENT_LEAD_ID = id;
   document.getElementById('listView').style.display='none';
@@ -281,7 +292,7 @@ function renderDetail(d){
       +'<h3>'+esc(sec.section)+'</h3>'
       +'<table class="fields"><thead><tr><th>Field</th><th>Current Value</th><th>'+col3Label+'</th><th>Remarks</th><th></th></tr></thead>'
       +'<tbody id="sec-'+secId(sec.section)+'">'+rowsHtml+'</tbody></table>'
-      +'<button class="add-field-btn" onclick="addCustomField('+JSON.stringify(sec.section)+')">+ Add field to '+esc(sec.section)+'</button>'
+      +'<button class="add-field-btn" onclick="addCustomField('+attrJson(sec.section)+')">+ Add field to '+esc(sec.section)+'</button>'
       +'</div>';
   }).join('');
 
@@ -343,8 +354,8 @@ function fieldRowHtml(f, isCustEvent){
   const actions = isCustEvent
     ? ''
     : (f.removed
-        ? '<button class="mini-btn restore" onclick="toggleRemoved('+JSON.stringify(f.field_key)+', false)">Restore</button>'
-        : '<button class="mini-btn remove" onclick="toggleRemoved('+JSON.stringify(f.field_key)+', true)">Remove</button>');
+        ? '<button class="mini-btn restore" onclick="toggleRemoved('+attrJson(f.field_key)+', false)">Restore</button>'
+        : '<button class="mini-btn remove" onclick="toggleRemoved('+attrJson(f.field_key)+', true)">Remove</button>');
 
   return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
@@ -352,7 +363,7 @@ function fieldRowHtml(f, isCustEvent){
     +'<td>'+avCell+'</td>'
     +'<td><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
-      +'<button class="mini-btn save" onclick="saveField('+JSON.stringify(f.field_key)+', false)">Save</button>'
+      +'<button class="mini-btn save" onclick="saveField('+attrJson(f.field_key)+', false)">Save</button>'
       +actions
     +'</div></td>'
     +'</tr>';
