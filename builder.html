@@ -3085,11 +3085,20 @@ function thumbFor(cat,id){
       if(linked)return linked.realImg?{type:'img',src:'img/'+linked.img+'.jpg'}:e(linked.e,(linked.bgs&&linked.bgs[0]));
       return e('🕵️');
     }
-    if(id==='glitter')return e('✨');
-    if(id==='slime')return e('🧪');
-    if(id==='jelly-swimbags')return e('🏊');
-    if(id==='hairbrush-decor')return e('🪮');
-    if(id==='photoframe-decor')return e('🖼️');
+    // 2026-08-18, per Shruti — "jelly bags image is not coming, please
+    // check for all activities": these 6 addon ids (unicorn-basic.html's
+    // "more activities" panel) all have real photos already on disk —
+    // matches the exact same img paths unicorn-basic.html's own addon
+    // cards use — but this review-page lookup was showing a generic/
+    // mismatched emoji tile for every one of them instead. mirror-decor
+    // wasn't handled here at all before (fell through to the plain 🎨
+    // fallback below).
+    if(id==='glitter')return{type:'img',src:'img/activity/act-glitter.jpg'};
+    if(id==='slime')return{type:'img',src:'img/activity/act-slime.jpg'};
+    if(id==='jelly-swimbags')return{type:'img',src:'img/activity/act-jelly-tote-bag.jpg'};
+    if(id==='hairbrush-decor')return{type:'img',src:'img/act-hairbrush-decor.jpg'};
+    if(id==='photoframe-decor')return{type:'img',src:'img/activity/act-photoframe-decor.jpg'};
+    if(id==='mirror-decor')return{type:'img',src:'img/activity/act-mirror-decor.jpg'};
     const a=ACTS.find(x=>x.id===id);if(!a)return e('🎨');return a.realImg?{type:'img',src:'img/'+a.img+'.jpg'}:e(a.e,(a.bgs&&a.bgs[0]));
   }
   if(cat==='Host'){const map={Classic:'host-classic',Premium:'host-premium',Signature:'host-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎤');}
@@ -4177,6 +4186,7 @@ function buildRev(){
     if(gContact)rows.push('Contact Person: '+esc(gContact));
     if(gDate)rows.push('Required By: '+gDate);
     if(S.packaging)rows.push('Packaging: '+(PACKAGING_LABELS[S.packaging]||'')+' (₹'+packagingCost().toLocaleString('en-IN')+')');
+    if(S.tagType==='note')rows.push('Thank You Note (₹'+tagFee().toLocaleString('en-IN')+')');
     html+='<div class="rv-sec"><div class="rv-hdr"><div class="rv-cat">Return Gift Delivery</div><span class="edit-link" onclick="editFR(8)">Edit</span></div>'+
       '<div class="rv-items" style="padding:14px 16px"><div style="font-size:13px;color:var(--bk);line-height:1.8">'+
       rows.join('<br>')+'</div></div></div>';

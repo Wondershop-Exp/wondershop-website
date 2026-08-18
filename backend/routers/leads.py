@@ -819,6 +819,19 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
     gifts_named = [g for g in gifts if g.get("n")]
     if gifts_named:
         packaging = cat.PACKAGING_LABELS.get(snap.get("gift_packaging"), None)
+        # 2026-08-18, per Shruti — "thankyou tags are not getting added":
+        # buildSnapshot() in builder.html has always sent gift_thank_you_note
+        # (true when the customer picked the ₹10/item Thank You Note add-on
+        # on the Return Gifts step), but nothing on the backend ever read it
+        # back out — it landed in builder_snapshot and was never surfaced in
+        # the team email or Google Sheet, so the team never saw it even
+        # though the customer paid for it and it was included in their total.
+        thank_you_note = bool(snap.get("gift_thank_you_note"))
+        note_parts = []
+        if packaging:
+            note_parts.append(f"Packaging: {packaging}")
+        if thank_you_note:
+            note_parts.append("Thank You Note requested")
         gift_items = []
         for g in gifts_named:
             ref = cat.resolve_gift(g.get("id"))
@@ -833,7 +846,7 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
             })
         out.append({
             "label": "Return Gifts", "items": gift_items,
-            "note": f"Packaging: {packaging}" if packaging else None,
+            "note": " · ".join(note_parts) if note_parts else None,
         })
     else:
         out.append({"label": "Return Gifts", "not_selected": True})
@@ -1465,6 +1478,11 @@ def _sheet_service_columns(snapshot: Optional[dict]) -> dict:
     packaging = snap.get("gift_packaging")
     if packaging:
         gift_parts.append(f"Packaging: {packaging}")
+    # 2026-08-18, per Shruti — "thankyou tags are not getting added": same
+    # gap as _services_detail_list above — the sheet's Return Gifts column
+    # never included this even though buildSnapshot() always sent it.
+    if snap.get("gift_thank_you_note"):
+        gift_parts.append("Thank You Note requested")
     return_gifts = ", ".join(gift_parts)
 
     return {
