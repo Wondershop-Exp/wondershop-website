@@ -194,6 +194,10 @@ function enterApp(){
   document.getElementById('gate').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('whoName').value = getName();
+  // Catch a missing "Editing as" name right at load time, not only when a
+  // Save silently bails on it later (2026-08-18, per Shruti's report of an
+  // edit that appeared to do nothing).
+  if(!getName()) highlightWhoName();
   doSearch();
 }
 
@@ -247,6 +251,11 @@ function backToList(){
   CURRENT_LEAD_ID = null;
   document.getElementById('detailView').style.display='none';
   document.getElementById('listView').style.display='block';
+  // 2026-08-18, per Shruti: this used to just toggle visibility without
+  // re-fetching, so the list still showed pre-edit values (e.g. an old
+  // parent name) after saving a change and coming back — looked like the
+  // edit never happened. Refresh for real.
+  doSearch();
 }
 
 async function loadDetail(){
@@ -270,7 +279,7 @@ function renderDetail(d){
     const rowsHtml = sec.fields.map(f=>fieldRowHtml(f, isCustEvent)).join('');
     return '<div class="section-block">'
       +'<h3>'+esc(sec.section)+'</h3>'
-      +'<table class="fields"><thead><tr><th>Field</th><th>Customer\'s Choice</th><th>'+col3Label+'</th><th>Remarks</th><th></th></tr></thead>'
+      +'<table class="fields"><thead><tr><th>Field</th><th>Current Value</th><th>'+col3Label+'</th><th>Remarks</th><th></th></tr></thead>'
       +'<tbody id="sec-'+secId(sec.section)+'">'+rowsHtml+'</tbody></table>'
       +'<button class="add-field-btn" onclick="addCustomField('+JSON.stringify(sec.section)+')">+ Add field to '+esc(sec.section)+'</button>'
       +'</div>';
@@ -349,18 +358,29 @@ function fieldRowHtml(f, isCustEvent){
     +'</tr>';
 }
 
+// 2026-08-18, per Shruti: a Save click that silently did nothing (no toast,
+// no error, no DB change) turned out to have no single reproducible cause
+// we could pin down from the code alone — so this function is now wrapped
+// end-to-end (including the DOM reads that used to run BEFORE the try
+// block, where a missing/renamed element would throw and abort with zero
+// visible feedback) so that *any* failure surfaces a toast instead of
+// failing silently. If it happens again, the toast text is the diagnosis.
 async function saveField(key, removedOverride){
-  const rid = 'fld_'+key;
-  const ccEl = document.getElementById(rid+'_cc');
-  const cc = ccEl ? ccEl.value : '';   // absent when Customer's Choice is read-only for this row
-  const av = document.getElementById(rid+'_av').value;
-  const rm = document.getElementById(rid+'_rm').value;
-  const row = document.getElementById(rid);
-  const removed = (removedOverride!==undefined) ? removedOverride : row.classList.contains('removed');
-  const who = getName();
-  if(!who){ showToast('Set "Editing as" name at the top first.'); return; }
   try{
-    await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {
+    const rid = 'fld_'+key;
+    const ccEl = document.getElementById(rid+'_cc');
+    const cc = ccEl ? ccEl.value : '';   // absent when Current Value is read-only for this row
+    const avEl = document.getElementById(rid+'_av');
+    const rmEl = document.getElementById(rid+'_rm');
+    const row = document.getElementById(rid);
+    if(!avEl || !row){ showToast('Could not find that field on the page — try refreshing.'); return; }
+    const av = avEl.value;
+    const rm = rmEl ? rmEl.value : '';
+    const removed = (removedOverride!==undefined) ? removedOverride : row.classList.contains('removed');
+    const who = getName();
+    if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
+
+    const result = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {
       method:'POST',
       body: JSON.stringify({
         field_key: key,
@@ -371,11 +391,34 @@ async function saveField(key, removedOverride){
         changed_by: who,
       }),
     });
-    showToast('Saved.');
+    showToast(saveResultMessage(result));
     await loadDetail();
   }catch(e){
-    if(e.message!=='unauthorized') showToast(e.message);
+    console.error('saveField failed:', e);
+    showToast(e.message==='unauthorized' ? 'Session expired — please log in again.' : ('Save failed: '+e.message));
   }
+}
+
+// Builds a specific "Parent Name: Aditya → Janani" style confirmation from
+// what the server actually changed, instead of a generic "Saved." — so it's
+// obvious an edit landed (or, if changes_logged is 0, that nothing about the
+// value actually differed from what was already there).
+function saveResultMessage(result){
+  if(!result || !result.changes_logged) return 'Saved — no change detected (value was already the same).';
+  const valueChange = (result.log_entries||[]).find(e=>e.change_type==='field_value'||e.change_type==='customer_choice'||e.change_type==='assigned_value');
+  if(valueChange){
+    const oldV = valueChange.old_value || '—';
+    const newV = valueChange.new_value || '—';
+    return '✓ Saved — '+(result.field_label||result.field_key)+': '+oldV+' → '+newV;
+  }
+  return '✓ Saved — '+(result.field_label||result.field_key)+' updated.';
+}
+
+function highlightWhoName(){
+  const el = document.getElementById('whoName');
+  el.style.borderColor = 'var(--pk)';
+  el.placeholder = 'Enter your name';
+  el.focus();
 }
 
 function toggleRemoved(key, removed){ saveField(key, removed); }

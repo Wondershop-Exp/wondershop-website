@@ -515,9 +515,13 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
         derived = None if f.get("admin_only") else _derive_original_value(key, lead, snap)
 
         if is_direct:
-            # Customer's Choice = the frozen pre-edit snapshot (once an edit
-            # has happened), else the current (=original, untouched) value.
-            customer_choice = ov["customer_choice_override"] if (ov and ov["customer_choice_override"]) else derived
+            # "Current Value" always mirrors the live `leads` column — never
+            # frozen to a pre-edit snapshot. Previously this froze at the
+            # first edit (showing "Aditya" forever even after a save changed
+            # it to "Janani"), which made a successful edit look like it
+            # hadn't landed (2026-08-18, per Shruti — renamed from "Customer's
+            # Choice" to "Current Value" for the same reason).
+            customer_choice = derived
             updated_value = ov["assigned_value"] if ov else derived
         else:
             customer_choice = (ov["customer_choice_override"] if ov and ov["customer_choice_override"] else derived)
@@ -667,7 +671,13 @@ async def _update_direct_field(lead_id: int, key: str, body: FieldUpdateRequest,
             },
         )
 
-    return {"success": True, "field_key": key, "changes_logged": len(log_entries)}
+    # field_label + the actual old/new values ride along on the response so
+    # the admin page can pop up a specific "Parent Name: Aditya → Janani"
+    # confirmation instead of a bare "Saved." (2026-08-18, per Shruti).
+    return {
+        "success": True, "field_key": key, "field_label": label, "changes_logged": len(log_entries),
+        "log_entries": [{"change_type": ct, "old_value": ov_, "new_value": nv} for ct, ov_, nv, ts in log_entries],
+    }
 
 
 @router.post("/bookings/{lead_id}/field")
@@ -781,4 +791,7 @@ async def update_booking_field(lead_id: int, body: FieldUpdateRequest, x_admin_p
             },
         )
 
-    return {"success": True, "field_key": key, "changes_logged": len(log_entries)}
+    return {
+        "success": True, "field_key": key, "field_label": label, "changes_logged": len(log_entries),
+        "log_entries": [{"change_type": ct, "old_value": ov_, "new_value": nv} for ct, ov_, nv, ts in log_entries],
+    }
