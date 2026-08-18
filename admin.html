@@ -80,6 +80,11 @@ table.fields textarea{resize:vertical;min-height:32px}
 .mini-btn.remove{color:var(--pk);border-color:var(--spk)}
 .mini-btn.restore{color:var(--gr);border-color:var(--sgr)}
 .add-field-btn{margin-top:8px;padding:8px 14px;border:1px dashed var(--li);border-radius:8px;background:none;color:var(--li);font-size:12px;font-weight:600}
+.mp-wrap{display:flex;flex-direction:column;gap:6px}
+.mp-row{display:flex;gap:6px;align-items:center}
+.mp-row select{flex:1;min-width:0}
+.mp-qty{width:56px!important;flex:0 0 56px}
+.mp-empty{color:var(--gy);font-size:12px;font-style:italic;padding:4px 0}
 
 .log-section{margin-top:30px;border-top:2px solid var(--li2);padding-top:16px}
 .log-section h3{font-size:15px;margin-bottom:10px}
@@ -144,6 +149,26 @@ table.fields textarea{resize:vertical;min-height:32px}
 const API = 'https://wondershop-website-production.up.railway.app';
 let CURRENT_LEAD_ID = null;
 let CURRENT_DETAIL = null;
+
+// Mirrors builder.html's #ld-gender select (2026-08-18, per Shruti).
+const GENDER_OPTIONS = [
+  {value:'', label:'Select'},
+  {value:'Boy', label:'Boy'},
+  {value:'Girl', label:'Girl'},
+  {value:'Prefer not to say', label:'Prefer not to say'},
+];
+
+// Pincode → City auto-fill. Empty until Shruti sends the real mapping
+// (2026-08-18) — onPincodeInput() below no-ops gracefully when a pincode
+// isn't in here yet, so nothing breaks in the meantime. Once she shares the
+// list, populate this as {"400001":"Mumbai", "411001":"Pune", ...}.
+const PINCODE_CITY_MAP = {};
+function onPincodeInput(pincode){
+  const city = PINCODE_CITY_MAP[pincode];
+  if(!city) return;   // no match yet — leave City exactly as the admin/customer entered it
+  const cityEl = document.getElementById('fld_city_av');
+  if(cityEl) cityEl.value = city;
+}
 
 function getPw(){ return localStorage.getItem('ws_admin_pw') || ''; }
 function getName(){ return localStorage.getItem('ws_admin_name') || ''; }
@@ -315,6 +340,84 @@ function selectHtml(id, options, current, extraAttrs){
     + '</select>';
 }
 
+// ── Multi-select picker (Activities / Gifts) ───────────────────────────
+// A booking can have several activities or gifts, so a single <select> can't
+// hold "Current Value" for these two fields — instead this renders one row
+// per selected item (+ a per-item quantity for gifts), with "+ Add" to add
+// another row. Whatever the rows currently say is kept mirrored into a
+// hidden #{rid}_cc input, so saveField()'s existing generic
+// `document.getElementById(rid+'_cc').value` read path needs no changes at
+// all to pick this up (2026-08-18, per Shruti — "+ for multi-select").
+const MP_OPTIONS = {}, MP_STATE = {}, MP_WITHQTY = {};
+
+function mpParse(str, withQty){
+  if(!str) return [];
+  return str.split(',').map(s=>s.trim()).filter(Boolean).map(seg=>{
+    if(withQty){
+      const m = seg.match(/^(.*)\s+x(\d+)$/i);
+      if(m) return {v:m[1].trim(), q:parseInt(m[2],10)||1};
+    }
+    return {v:seg, q:1};
+  });
+}
+
+function multiPickerHtml(rid, options, currentStr, withQty){
+  MP_OPTIONS[rid] = options;
+  MP_WITHQTY[rid] = !!withQty;
+  MP_STATE[rid] = mpParse(currentStr, withQty);
+  const addLabel = withQty ? '+ Add gift' : '+ Add activity';
+  return '<div class="mp-wrap">'
+    +'<input type="hidden" id="'+rid+'_cc" value="'+esc(currentStr||'')+'">'
+    +'<div class="mp-rows" id="'+rid+'_mprows">'+mpRowsHtml(rid)+'</div>'
+    +'<button type="button" class="mini-btn" onclick="mpAdd('+attrJson(rid)+')">'+addLabel+'</button>'
+    +'</div>';
+}
+
+function mpRowsHtml(rid){
+  const rows = MP_STATE[rid]||[];
+  if(!rows.length) return '<div class="mp-empty">None selected.</div>';
+  const withQty = MP_WITHQTY[rid];
+  return rows.map((r,i)=>{
+    const opts = [{value:'', label:'— Select —'}].concat(MP_OPTIONS[rid]||[]);
+    const sel = selectHtml(rid+'_mps'+i, opts, r.v, ' onchange="mpUpdate('+attrJson(rid)+','+i+',this.value,null)"');
+    const qtyHtml = withQty ? '<input type="number" min="1" class="mp-qty" value="'+esc(r.q)+'" oninput="mpUpdate('+attrJson(rid)+','+i+',null,this.value)">' : '';
+    return '<div class="mp-row">'+sel+qtyHtml+'<button type="button" class="mini-btn remove" onclick="mpRemove('+attrJson(rid)+','+i+')">✕</button></div>';
+  }).join('');
+}
+
+function mpRerender(rid){
+  const wrap = document.getElementById(rid+'_mprows');
+  if(wrap) wrap.innerHTML = mpRowsHtml(rid);
+  mpSync(rid);
+}
+
+function mpAdd(rid){
+  MP_STATE[rid] = MP_STATE[rid] || [];
+  MP_STATE[rid].push({v:'', q:1});
+  mpRerender(rid);
+}
+
+function mpRemove(rid, idx){
+  if(MP_STATE[rid]) MP_STATE[rid].splice(idx,1);
+  mpRerender(rid);
+}
+
+function mpUpdate(rid, idx, val, qty){
+  const row = (MP_STATE[rid]||[])[idx];
+  if(!row) return;
+  if(val!==null) row.v = val;
+  if(qty!==null) row.q = Math.max(1, parseInt(qty,10)||1);
+  mpSync(rid);
+}
+
+function mpSync(rid){
+  const withQty = MP_WITHQTY[rid];
+  const rows = (MP_STATE[rid]||[]).filter(r=>r.v);
+  const str = rows.map(r=> withQty ? (r.v+' x'+(r.q||1)) : r.v).join(', ');
+  const hidden = document.getElementById(rid+'_cc');
+  if(hidden) hidden.value = str;
+}
+
 function fieldRowHtml(f, isCustEvent){
   const rid = 'fld_'+f.field_key;
   const removedCls = f.removed ? ' removed' : '';
@@ -334,6 +437,11 @@ function fieldRowHtml(f, isCustEvent){
   if(!f.choice_editable){
     // Customer & Event Details: read-only, greyed, shows the frozen original
     ccCell = '<span class="readonly-cell">'+esc(f.customer_choice||'—')+'</span>';
+  }else if(f.multi_options){
+    // Activities / Gifts — several items per booking, so this is a row-per-item
+    // picker (see multiPickerHtml) rather than a single <select> (2026-08-18,
+    // per Shruti — "+ for multi-select", pricing shown in each option's label).
+    ccCell = multiPickerHtml(rid, f.multi_options, f.customer_choice||'', f.multi_with_qty);
   }else if(f.options){
     ccCell = selectHtml(rid+'_cc', f.options, f.customer_choice||'');
   }else{
@@ -345,11 +453,36 @@ function fieldRowHtml(f, isCustEvent){
   if(isCustEvent && !f.has_override && !avValue){
     avValue = f.customer_choice || '';  // pre-fill with customer's value until first edit
   }
-  const numAttrs = f.field_key==='bill_discount_pct' ? ' step="0.01" min="0" max="100"'
-                  : f.field_key==='bill_advance' ? ' step="0.01" min="0"' : '';
-  const avInputType = (f.field_key==='bill_discount_pct'||f.field_key==='bill_advance') ? 'number' : 'text';
+  // child_ages/child_genders/child_dobs can hold several comma-joined values
+  // for multi-child bookings ("6, 8") — a native number/date/select input
+  // can't represent that, so those three only get the specialised control
+  // when there's a single value; otherwise they fall through to the generic
+  // text input below (still validated server-side as a comma-list).
+  const isMultiChild = /,/.test(avValue);
   const avPlaceholder = f.placeholder || (isCustEvent ? '' : 'Assign...');
-  const avCell = '<input type="'+avInputType+'" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'"'+numAttrs+'>';
+  let avCell;
+  if(f.field_key==='child_genders' && !isMultiChild){
+    avCell = selectHtml(rid+'_av', GENDER_OPTIONS, avValue);
+  }else if(f.field_key==='email'){
+    avCell = '<input type="email" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'name@example.com')+'">';
+  }else if(f.field_key==='child_ages' && !isMultiChild){
+    avCell = '<input type="number" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'" min="0" max="18">';
+  }else if(f.field_key==='child_dobs' && !isMultiChild){
+    avCell = '<input type="date" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'">';
+  }else if(f.field_key==='event_date'){
+    avCell = '<input type="date" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'">';
+  }else if(f.field_key==='event_time'){
+    avCell = '<input type="time" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'">';
+  }else if(f.field_key==='pincode'){
+    avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'6-digit pincode')+'" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').slice(0,6);onPincodeInput(this.value);">';
+  }else if(f.field_key==='city'){
+    avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Auto-fills from pincode once mapped')+'">';
+  }else{
+    const numAttrs = f.field_key==='bill_discount_pct' ? ' step="0.01" min="0" max="100"'
+                    : f.field_key==='bill_advance' ? ' step="0.01" min="0"' : '';
+    const avInputType = (f.field_key==='bill_discount_pct'||f.field_key==='bill_advance') ? 'number' : 'text';
+    avCell = '<input type="'+avInputType+'" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'"'+numAttrs+'>';
+  }
 
   const actions = isCustEvent
     ? ''

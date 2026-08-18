@@ -36,6 +36,7 @@ booking, not a re-trigger of the customer-facing flow.
 """
 import json
 import logging
+import re
 from datetime import datetime, timedelta, date as date_cls
 from typing import Optional, List
 
@@ -213,11 +214,18 @@ def _build_decor_options():
     return opts
 
 
+# Tier/pinata labels now carry "Rs. Price" the same way Decor does (2026-08-18,
+# per Shruti — "add pricing with the tier name"). Value stays the bare tier/
+# pinata name (unpriced) so it still matches historical booking data and the
+# DROPDOWN_VALUES membership check in _validate_choice_value below.
 DECOR_OPTIONS = _build_decor_options()
-HOST_OPTIONS = [_opt(x) for x in ["Classic", "Premium", "Signature"]]
-DJ_OPTIONS = [_opt(x) for x in ["Classic", "Premium"]]
-PHOTO_OPTIONS = [_opt(x) for x in ["Classic", "Premium", "Signature"]]
-PINATA_OPTIONS = [_opt(x) for x in ["Square Pinata", "Circle Pinata", "Number Pinata", "Readymade Pinata", "Custom Design"]]
+HOST_OPTIONS = [_opt(x, f'{x} - Rs. {cat.HOST_TIER_PRICES[x]}') for x in ["Classic", "Premium", "Signature"]]
+DJ_OPTIONS = [_opt(x, f'{x} - Rs. {cat.DJ_TIER_PRICES[x]}') for x in ["Classic", "Premium"]]
+PHOTO_OPTIONS = [_opt(x, f'{x} - Rs. {cat.PHOTO_TIER_PRICES[x]}') for x in ["Classic", "Premium", "Signature"]]
+PINATA_OPTIONS = [
+    _opt(x, f'{x} - Rs. {cat.PINATA_TIER_PRICES[x]}') if x in cat.PINATA_TIER_PRICES else _opt(x)
+    for x in ["Square Pinata", "Circle Pinata", "Number Pinata", "Readymade Pinata", "Custom Design"]
+]
 EINVITE_OPTIONS = [_opt(x) for x in [
     "No selection", "Art Party", "Frozen (Elsa)", "Frozen (Anna)", "Ramayana", "Little Singham",
     "Spy × K-Pop", "Spy Detective", "Spy Party (Classic)", "Spy Squad", "Unicorn",
@@ -241,6 +249,20 @@ DROPDOWN_OPTIONS = {
 }
 # Plain value sets, for validation (label text is never compared).
 DROPDOWN_VALUES = {key: {o["value"] for o in opts} for key, opts in DROPDOWN_OPTIONS.items()}
+
+# Activities/Gifts are MULTI-select (a booking can have several) — Current
+# Value stores a comma-joined list ("Canvas Painting, Tote Bag Painting" /
+# "900ml Tumbler x2, Personalized Cap x1"), so they can't go through the
+# single-value DROPDOWN_VALUES membership check above (a joined list will
+# never equal one option value). Kept in a separate dict the frontend uses
+# to build a multi-row picker (2026-08-18, per Shruti — "+ for multi-select").
+ACTIVITY_OPTIONS = [_opt(n, f'{n} - Rs. {p}' + ('' if flat else '/child')) for _id, n, p, flat in cat.ACTIVITIES]
+GIFT_OPTIONS = [_opt(n, f'{n} - Rs. {p}') for _id, n, _img, p in cat.GIFTS]
+MULTI_OPTIONS = {
+    "svc_activities": ACTIVITY_OPTIONS,
+    "svc_gifts": GIFT_OPTIONS,
+}
+MULTI_WITH_QTY = {"svc_gifts"}   # gifts need a per-item quantity; activities don't
 
 ASSIGNED_PLACEHOLDERS = {
     "svc_decor": "Decorator name",
@@ -422,10 +444,21 @@ async def _validate_choice_value(key: str, value: str, derived_original: Optiona
             raise HTTPException(status_code=400, detail=f'"{value}" was not found in the list of verified coupon codes.')
 
 
+GENDER_VALUES = {"Boy", "Girl", "Prefer not to say"}   # mirrors builder.html's #ld-gender select
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
 def _coerce_direct_value(key: str, raw: str):
     """Type-coerces a raw string from the Updated Value input for a
     direct-write (Customer & Event Details) field, or raises a 400 if it's
-    not valid for that field's DB column type."""
+    not valid for that field's DB column type.
+
+    child_ages/child_genders/child_dobs can hold several comma-joined values
+    for multi-child bookings (e.g. "6, 8") — the admin dropdown/date-picker
+    only render when there's a single child, so these still accept a
+    comma-list here and validate each segment independently
+    (2026-08-18, per Shruti — gender dropdown, numeric age, date pickers,
+    email/pincode format checks)."""
     raw = (raw or "").strip()
     if raw == "":
         return None
@@ -439,6 +472,41 @@ def _coerce_direct_value(key: str, raw: str):
             datetime.strptime(raw, "%Y-%m-%d")
         except ValueError:
             raise HTTPException(status_code=400, detail="Event Date must be in YYYY-MM-DD format.")
+        return raw
+    if key == "event_time":
+        try:
+            datetime.strptime(raw, "%H:%M")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Event Time must be in HH:MM format.")
+        return raw
+    if key == "email":
+        if not _EMAIL_RE.match(raw):
+            raise HTTPException(status_code=400, detail="Please enter a valid email address.")
+        return raw
+    if key == "pincode":
+        if not re.fullmatch(r"\d{6}", raw):
+            raise HTTPException(status_code=400, detail="Pincode must be exactly 6 digits.")
+        return raw
+    if key == "child_ages":
+        for part in raw.split(","):
+            part = part.strip()
+            if part and not part.isdigit():
+                raise HTTPException(status_code=400, detail=f'Child Age "{part}" must be a whole number.')
+        return raw
+    if key == "child_genders":
+        for part in raw.split(","):
+            part = part.strip()
+            if part and part not in GENDER_VALUES:
+                raise HTTPException(status_code=400, detail=f'"{part}" is not a valid gender option.')
+        return raw
+    if key == "child_dobs":
+        for part in raw.split(","):
+            part = part.strip()
+            if part:
+                try:
+                    datetime.strptime(part, "%Y-%m-%d")
+                except ValueError:
+                    raise HTTPException(status_code=400, detail=f'Child DOB "{part}" must be in YYYY-MM-DD format.')
         return raw
     return raw
 
@@ -538,6 +606,8 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             "updated_editable": not is_read_only,
             "has_override": bool(ov),
             "options": DROPDOWN_OPTIONS.get(key),
+            "multi_options": MULTI_OPTIONS.get(key),
+            "multi_with_qty": key in MULTI_WITH_QTY,
             "placeholder": ASSIGNED_PLACEHOLDERS.get(key),
             "original_value": derived,
             "customer_choice": customer_choice,

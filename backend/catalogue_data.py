@@ -212,6 +212,19 @@ PHOTO_TIER_FEATURES = {
                   "Output: Edited photos, full event video (captured moments), candid photos"],
 }
 
+# ─── Tier pricing (Host / Music / Photographer / Piñata) ──────────────────
+# Mirrors the tier-card prices hardcoded in builder.html's static HTML
+# (id="hostCards"/"djCards"/Photographer step) and the PINATAS JS array —
+# used only to show "Tier - Rs. Price" in the admin dropdowns (2026-08-18,
+# per Shruti). Keep in sync by hand if those prices ever change.
+HOST_TIER_PRICES = {"Classic": 10000, "Premium": 12000, "Signature": 15000}
+DJ_TIER_PRICES = {"Classic": 7000, "Premium": 11000}   # Music has no Signature tier
+PHOTO_TIER_PRICES = {"Classic": 6000, "Premium": 10000, "Signature": 18000}
+PINATA_TIER_PRICES = {
+    "Square Pinata": 2000, "Circle Pinata": 2100, "Number Pinata": 2400,
+    "Readymade Pinata": 500,   # "Custom Design" has no fixed price — quoted separately
+}
+
 
 # ─── E-Invite ────────────────────────────────────────────────────────────
 
@@ -274,6 +287,44 @@ def resolve_pinata_image(pinata_id: Optional[str]) -> Optional[str]:
     fname = PINATAS.get(str(pinata_id))
     return f"img/{fname}" if fname else None
 
+
+# ─── Activities ─────────────────────────────────────────────────────────
+# (id, name, reference price, is_flat) — mirrors builder.html's ACTS array.
+# `price` is the r1 band (≤12 kids) for per-child activities, or the flat
+# rate for flat=True ones; it's only used to show "Name - Rs. Price" in the
+# admin Activities dropdown (2026-08-18, per Shruti) — the real per-booking
+# total (which can differ by group size) is still computed live in
+# builder.html's actPrice(), never here. Keep in sync by hand.
+ACTIVITIES = [
+    ("a1", "Canvas Painting", 850, False),
+    ("a2", "Tote Bag Painting", 750, False),
+    ("a4", "Texture Art", 900, False),
+    ("a5", "Mosaic Art", 950, False),
+    ("a6", "Tie & Dye", 950, False),
+    ("a7", "Mandala Art", 650, False),
+    ("a8", "Cupcake Decoration", 200, False),
+    ("a9", "Cap Decoration", 850, False),
+    ("a10", "Soft Toy Making", 1000, False),
+    ("a11", "Jacket Decoration", 1150, False),
+    ("a12", "Dreamcatcher", 350, False),
+    ("a13", "DIY Clock", 850, False),
+    ("a15", "Tattoo Station", 2500, True),
+    ("a16", "Mini Art Station", 5000, True),
+    ("a18", "Pottery Station", 5000, True),
+    ("a21", "Nail Art Station", 3500, True),
+    ("hair-styling", "Hair Styling for Boys", 4500, True),
+    ("hair-styling-girls", "Hair Styling for Girls", 3500, True),
+    ("glitter", "Glitter Station", 4000, True),
+    ("a22", "Sunglasses Decor", 350, False),
+    ("a23", "Fridge Magnet Making", 175, False),
+    ("a24", "Coaster Making", 420, False),
+    ("eng90", "90 Min Sports Engagement", 24500, True),
+    ("eng120", "120 Min Sports Engagement", 32000, True),
+    ("zorb", "Body Zorbing", 9500, True),
+    ("gym", "Gymnastics", 11800, True),
+    ("a26", "Laser Tunnel", 4000, True),
+    ("a27", "Dark Room", 15000, True),
+]
 
 # ─── Return Gifts ────────────────────────────────────────────────────────
 # (id, name, image path, catalogue unit price — the unit price actually
