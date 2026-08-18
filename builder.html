@@ -3019,7 +3019,7 @@ function cItems(){
   // threshold logic at all. Applying the promo here for a package-page cart
   // would silently undercharge relative to what the package page showed the
   // customer (fixed 2026-08-10, see S._pkgOrigin).
-  if(S.pinata){const pt=rawNoInv();const isFree=!S._pkgOrigin&&pt>=S.FPT;const fp=isFree?0:S.pinata.p;const pItem={cat:'Pinata',n:S.pinata.n+(isFree?' (FREE)':''),p:fp,id:S.pinata.id};if(isFree&&S.pinata.p>0)pItem.wasP=S.pinata.p;items.push(pItem);}
+  if(S.pinata){const pt=rawNoPinata();const isFree=!S._pkgOrigin&&pt>=S.FPT;const fp=isFree?0:S.pinata.p;const pItem={cat:'Pinata',n:S.pinata.n+(isFree?' (FREE)':''),p:fp,id:S.pinata.id};if(isFree&&S.pinata.p>0)pItem.wasP=S.pinata.p;items.push(pItem);}
   if(S.einvite){const gt=rawNoInv();const isFree=!S._pkgOrigin&&gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n+(isFree?' (FREE)':''),p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
   if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});}
   S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty,id:g.id}));
@@ -3084,14 +3084,30 @@ function thumbFor(cat,id){
 }
 function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e');box.style.background='var(--li2)';box.textContent='✨';}
 function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.djAddons.lights)t+=1500;if(S.djAddons.smoke)t+=2000;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p;S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
+// 2026-08-18, per Shruti QA fix (#65) — the free-pinata threshold (S.FPT)
+// must be checked against spend EXCLUDING the pinata's own price, same as
+// the free-e-invite threshold correctly excludes the e-invite via
+// rawNoInv(). rawNoInv() already includes S.pinata.p, so subtract it back
+// out here rather than duplicating the whole sum. Previously a pricier
+// pinata could tip its own threshold check and become free while a cheaper
+// one didn't, producing a lower total for the more expensive pick.
+function rawNoPinata(){return rawNoInv()-(S.pinata?S.pinata.p:0);}
 function rawT(){return cItems().reduce((s,i)=>s+i.p,0)}
 // 2026-08-14, per Shruti — replaced the old category-count discount ladder
 // with the current value-based slabs: 25k-35k -> 5% off (cap 1500),
-// 35k-45k -> 7% off (cap 2500), 45k+ -> 9% off (cap 4500). Package-origin
-// checkouts (Spy/Unicorn/Turf, S._pkgOrigin set) already carry their own
-// final, pre-discounted pricing from the package page, so discountAmt()
-// returns 0 for them — otherwise builder.html was stacking an extra
-// cart-wide discount on top of an already-discounted package total.
+// 35k-45k -> 7% off (cap 2500), 45k+ -> 9% off (cap 4500).
+// 2026-08-18, per Shruti QA fix (#62/#63) — that 2026-08-14 change also
+// made discountAmt() blanket-return 0 whenever S._pkgOrigin is set. That's
+// still correct for Spy (spy-basic.html quotes one fixed price with no
+// discount promised anywhere, so charging full price at checkout matches).
+// But Unicorn and Turf retired their own flat package coupons on
+// 2026-08-12 specifically so builder.html's auto-discount would apply to
+// their carts too (see the DISCOUNT_SLABS comments in unicorn-basic.html /
+// turf-basic.html) — the blanket return-0 broke that, so their checkout
+// silently showed the undiscounted total while the package page itself
+// still advertised a discounted one. S._pkgAutoDiscount (set only in the
+// Unicorn/Turf ingest below, never for Spy) opts a package-origin cart
+// back into the normal auto-discount instead of zeroing it.
 function autoDiscountAmt(gt){
   let pct=0,cap=0;
   if(gt>=45000){pct=9;cap=4500;}
@@ -3100,7 +3116,7 @@ function autoDiscountAmt(gt){
   return Math.min(gt*pct/100,cap);
 }
 function discountAmt(gt){
-  if(S._pkgOrigin)return 0;
+  if(S._pkgOrigin&&!S._pkgAutoDiscount)return 0;
   return Math.round(Math.max((gt||0)*S.couponPct/100,autoDiscountAmt(gt||0)));
 }
 function dp(){const gt=rawT();return gt?Math.round(discountAmt(gt)/gt*100):0;}
@@ -3223,7 +3239,12 @@ function goTo(id){
   if(id==='s3')syncHostDom();
   if(id==='s4')syncDjAddonsDom();
   if(id==='s2'){try{document.getElementById('kDisp2').textContent=S.kidsCount;}catch(e){}}
-  if(id==='sco'&&S._pkgCoupon){setTimeout(()=>{const el=document.getElementById('co-coupon');const ok=document.getElementById('couponOk');if(el&&!el.value){el.value=S._pkgCoupon;if(ok){ok.textContent='🎉 '+S._pkgCoupon+' applied — '+S.couponPct+'% off package price!';ok.classList.add('show');}}},50);}
+  // 2026-08-18, per Shruti QA fix (#64) — the S._pkgCoupon pre-filled coupon
+  // banner (used to show a self-contradicting 10% vs 15% "applied" message
+  // that never actually changed the total, since discountAmt() zeroed it
+  // out regardless) is retired along with the flat PKGUNICORN/PKGTURF
+  // coupons. Unicorn/Turf carts now get the real auto-discount applied
+  // silently and shown in the normal discount row (see S._pkgAutoDiscount).
 }
 function goBack(){
   const prev={s0:'shome',s1:'s0',s2:'s1',s3:'s2',s4:'s3',s5:'s4',s6:'s5',s7:'s6',s8:'s7',s9:'s8',sco:'s9',slead:'s9',sleadsent:'slead',sconf:'shome'};
@@ -3741,10 +3762,10 @@ function toggleDjAddon(btn,key){S.djAddons[key]=!S.djAddons[key];btn.classList.t
 function syncDjAddonsDom(){const l=document.getElementById('djAddonLights');const s=document.getElementById('djAddonSmoke');if(l)l.classList.toggle('on',!!S.djAddons.lights);if(s)s.classList.toggle('on',!!S.djAddons.smoke);}
 
 // ── PINATA ──
-function chkFreePinata(){const isFree=rawNoInv()>=S.FPT;document.getElementById('freePinataBadge').style.display=isFree?'block':'none';}
+function chkFreePinata(){const isFree=rawNoPinata()>=S.FPT;document.getElementById('freePinataBadge').style.display=isFree?'block':'none';}
 function buildPins(){
   chkFreePinata();
-  const isFree=rawNoInv()>=S.FPT;
+  const isFree=rawNoPinata()>=S.FPT;
   const w=document.getElementById('pinCards');w.innerHTML='';
   // Tap the card to view the reference-photo gallery + inclusions/exclusions
   // (same pattern as Decor/Activities); the Select button adds it to the
@@ -4239,7 +4260,12 @@ function updCoAmt(){
 }
 function coKidsChanged(val){
   const newK=parseInt(val);if(!newK||newK===S.kidsCount)return;
-  S.kidsCount=newK;document.getElementById('kDisp').textContent=S.kidsCount;document.getElementById('kDisp2').textContent=S.kidsCount;
+  // 2026-08-18, per Shruti QA fix (#66) — this used to also set
+  // document.getElementById('kDisp').textContent, but #kDisp doesn't exist
+  // in the HTML (only #kDisp2 does) — that threw a TypeError and silently
+  // aborted the rest of this function, so gift-quantity resync and
+  // updCoAmt() below never ran on a kids-count change.
+  S.kidsCount=newK;document.getElementById('kDisp2').textContent=S.kidsCount;
   S.gifts.forEach(g=>{if(!g.userQty)g.qty=S.kidsCount;});
   document.getElementById('co-kids-popup').style.display='block';
   setTimeout(()=>{document.getElementById('co-kids-popup').style.display='none';},4000);
@@ -5499,7 +5525,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       S.pincode=savedLoc.pin;
     }
   }catch(e){}
-  document.getElementById('f-kids')?.addEventListener('input',function(){S.kidsCount=parseInt(this.value)||15;document.getElementById('kDisp').textContent=S.kidsCount;document.getElementById('kDisp2').textContent=S.kidsCount;});
+  // 2026-08-18, per Shruti QA fix (#66) — same #kDisp-doesn't-exist bug as
+  // coKidsChanged() above; dropped the dead reference instead of throwing.
+  document.getElementById('f-kids')?.addEventListener('input',function(){S.kidsCount=parseInt(this.value)||15;document.getElementById('kDisp2').textContent=S.kidsCount;});
   injectRemarksBoxes();
 
   // Home banner carousel
@@ -5571,8 +5599,14 @@ document.addEventListener('DOMContentLoaded',()=>{
       // (2026-08-10, see HOST_TIERS there), Classic default. Previously
       // hardcoded here regardless of what was actually picked.
       S.host=pkgData.host?{tier:pkgData.host.name,p:pkgData.host.price}:{tier:'Classic',p:10000};
-      S.couponPct=pkgData.couponPct||10;
-      S._pkgCoupon='PKGUNICORN';
+      // 2026-08-18, per Shruti QA fix (#62/#64) — the flat PKGUNICORN coupon
+      // was retired 2026-08-12 in favor of builder.html's own value-based
+      // auto-discount (unicorn-basic.html's DISCOUNT_SLABS mirrors
+      // autoDiscountAmt() exactly). Opting into that here via
+      // S._pkgAutoDiscount, instead of setting S.couponPct/S._pkgCoupon,
+      // means checkout shows the real matching discount instead of a
+      // pre-filled coupon banner that never actually moved the total.
+      S._pkgAutoDiscount=true;
       // Return Gifts on this package already carry their own per-item
       // pricing (see GIFT_ITEMS on unicorn-basic.html) — don't let the 10%
       // package coupon discount them a second time (2026-08-10).
@@ -5725,8 +5759,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       // matches Spy's pattern) purely for display consistency — it adds ₹0 and
       // has no bearing on the total; Engagement is still the real hosting cost.
       S.host={tier:'Signature',p:0};
-      S.couponPct=15;
-      S._pkgCoupon='PKGTURF';
+      // 2026-08-18, per Shruti QA fix (#63/#64) — same fix as Unicorn above:
+      // the flat 15% PKGTURF coupon was retired 2026-08-12 in favor of
+      // builder.html's own value-based auto-discount (turf-basic.html's
+      // DISCOUNT_SLABS mirrors autoDiscountAmt() exactly, applied to the
+      // whole total including gifts — no S._noGiftDiscount here).
+      S._pkgAutoDiscount=true;
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
       S.activities=[];
       // Activity is optional on Turf (see 2026-08-05 change) — only add it

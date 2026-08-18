@@ -4,14 +4,18 @@ _Last updated: August 2026 · Source: WSR Birthday Brochure v5.pdf + founder inp
 ---
 
 ## Order-Value Discount Slabs
-_Replaces the old flat/service-count discount logic (2026-08-12, per Shruti). Qualifying value is the cart total before any discount. Only ONE discount ever applies on a booking — whichever is worth more in rupees, the auto-slab discount or a coupon/referral/scratch-card code — never both._
+_Replaces the old flat/service-count discount logic (2026-08-12, per Shruti; slab boundaries widened 2026-08-14, per Shruti — this table updated 2026-08-18 to match, was previously stale). Qualifying value is the cart total before any discount. Only ONE discount ever applies on a booking — whichever is worth more in rupees, the auto-slab discount or a coupon/referral/scratch-card code — never both._
 
 | Order Value | Discount | Capped At |
 |-------------|----------|-----------|
-| ₹25,000 – ₹29,999 | 5% off | up to ₹1,500 |
-| ₹30,000 – ₹34,999 | 7% off | up to ₹2,500 |
-| ₹35,000+ | 9% off | up to ₹3,500 |
+| ₹25,000 – ₹34,999 | 5% off | up to ₹1,500 |
+| ₹35,000 – ₹44,999 | 7% off | up to ₹2,500 |
+| ₹45,000+ | 9% off | up to ₹4,500 |
 | Below ₹25,000 | No discount | — |
+
+**Package-origin checkouts (Unicorn Magic, Turf Takeover):** unicorn-basic.html and turf-basic.html apply this exact same slab table client-side to quote their own discounted price, and builder.html's checkout now applies it too (fixed 2026-08-18 — checkout previously showed the undiscounted total while the package page quoted a discounted one). Unicorn Magic's Return Gifts already carry their own per-item pricing and are excluded from the discount (matches unicorn-basic.html); Turf Takeover's discount applies to the whole cart including Return Gifts (matches turf-basic.html). Both packages retired their old flat coupon codes (PKGUNICORN 10%/15%, PKGTURF 15%) on 2026-08-12 in favor of this automatic slab discount.
+
+**Spy Mystery checkouts:** spy-basic.html quotes one fixed price with no discount offered at any order value, so builder.html's checkout correctly charges full price here — this slab table does not apply to Spy.
 
 ---
 
@@ -86,12 +90,14 @@ _Renamed from "DJ" site-wide (2026-08-16, per Shruti) — user-facing labels onl
 
 ## Pinata
 - ₹2,000 for all options
-- **Free** above ₹40,000 order value (updated 2026-08-12, was ₹50,000)
+- **Free** above ₹40,000 order value (updated 2026-08-12, was ₹50,000), checked against the cart total *excluding the pinata's own price* — same rule as E-Invite below (fixed 2026-08-18; the pinata's own price was briefly counting toward its own free threshold, which could make a pricier pinata free while a cheaper one wasn't)
+- Not offered on package-origin checkouts (Spy/Unicorn/Turf) — those always charge full pinata price, no threshold
 - All pinata options are handmade (readymade pinatas may be added as an option in future)
 
 ## E-Invite
-- **Free** above ₹20,000 order value (updated 2026-08-12, was ₹30,000)
+- **Free** above ₹20,000 order value (updated 2026-08-12, was ₹30,000), checked against the cart total excluding the e-invite's own price
 - ₹500 below ₹20,000 order value
+- Not offered on package-origin checkouts (Spy/Unicorn/Turf) — those always charge full e-invite price, no threshold
 
 ## Return Gift Personalisation
 - **Not free at any order value** (2026-08-12, per Shruti — no free-above-threshold offer for this)
