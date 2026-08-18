@@ -85,8 +85,13 @@ input,textarea,select{font-family:var(--fb)}
 .nav-links{display:flex;align-items:center;gap:28px;list-style:none}
 .nav-links a{font-size:14px;font-weight:500;color:var(--bk);transition:color .15s}
 .nav-links a:hover{color:var(--li)}
-.nav-cta{background:var(--li);color:#fff;border:none;border-radius:24px;padding:10px 22px;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;transition:background .15s,transform .1s}
-.nav-cta:hover{background:#9d84cc;transform:translateY(-1px)}
+/* 2026-08-18, per Shruti — "Update color of all build a birthday buttons
+   to [dark] purple - same as home page - on all the pages." index.html's
+   nav CTA uses a richer, more saturated purple (#8455DD) than the pastel
+   --li brand accent this used to inherit; every other page's nav CTA now
+   matches it exactly. */
+.nav-cta{background:#8455DD;color:#fff;border:none;border-radius:24px;padding:10px 22px;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;transition:background .15s,transform .1s}
+.nav-cta:hover{background:#6B3FC2;transform:translateY(-1px)}
 .nav-ham{display:none;background:none;border:none;padding:6px;flex-direction:column;gap:5px}
 .nav-ham span{display:block;width:22px;height:2px;background:var(--bk);border-radius:2px;transition:all .2s}
 .nav-mobile{display:none;position:fixed;top:var(--nav-h);left:0;right:0;z-index:199;background:var(--wh);border-bottom:1px solid var(--li2);padding:8px 24px 24px}
@@ -103,8 +108,11 @@ input,textarea,select{font-family:var(--fb)}
 .hero-h1 em{color:var(--li);font-style:normal}
 .hero-sub{font-size:16px;color:var(--gy);line-height:1.7;max-width:420px;margin-bottom:32px}
 .hero-btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px}
-.btn-p{background:var(--li);color:#fff;border:none;border-radius:28px;padding:14px 28px;font-size:15px;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:background .15s,transform .1s}
-.btn-p:hover{background:#9d84cc;transform:translateY(-1px)}
+/* 2026-08-18, per Shruti — same fix as .nav-cta above. Every .btn-p on this
+   page (Build a Birthday / Start Building) is part of the same "get into
+   the builder" CTA family, so it's safe to recolor the whole class. */
+.btn-p{background:#8455DD;color:#fff;border:none;border-radius:28px;padding:14px 28px;font-size:15px;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:background .15s,transform .1s}
+.btn-p:hover{background:#6B3FC2;transform:translateY(-1px)}
 .btn-ghost{background:transparent;color:var(--bk);border:2px solid var(--li);border-radius:28px;padding:12px 24px;font-size:15px;font-weight:500;display:inline-flex;align-items:center;gap:8px;transition:all .15s}
 .btn-ghost:hover{background:var(--li2)}
 .hero-stats{display:flex;gap:0;flex-wrap:wrap;margin-bottom:20px;border:1.5px solid var(--li2);border-radius:14px;overflow:hidden;width:fit-content}
@@ -5663,19 +5671,33 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',e=>{const t=document.querySelector(a.getAttribute('href'));if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'});}});});
 
   // Hash-based deep linking: #lead opens the lead form, #builder opens builder
+  // 2026-08-18, per Shruti — "if I click on build a birthday purple button on
+  // home page, it goes through another page in between - i think that's the
+  // old home page." That "old home page" is #pg-home, the standalone landing
+  // screen baked into this file for people who open builder.html directly
+  // with no query params (CSS: #pg-home{display:block} by default). Every
+  // redirect below used to run inside a setTimeout(...,100-150), which
+  // deferred the switch to #pg-builder by a full extra macrotask — long
+  // enough for the browser to paint #pg-home first, so anyone arriving via
+  // ?start=1 (or any of the other deep links below) saw a flash of that old
+  // homepage before landing in the actual builder. There's no async work
+  // above this point in the same DOMContentLoaded handler, so nothing here
+  // needs a delay — calling these synchronously means #pg-home is hidden and
+  // #pg-builder shown within the same task, before the browser ever gets a
+  // chance to paint the #pg-home state.
   const hash=window.location.hash;
-  if(hash==='#lead'){setTimeout(()=>goLead(),100);}
-  else if(hash==='#builder'){setTimeout(()=>{goTo('s0');window.scrollTo(0,0);},100);}
+  if(hash==='#lead'){goLead();}
+  else if(hash==='#builder'){goTo('s0');window.scrollTo(0,0);}
 
   // ?start=1 — skip shome, go directly to builder (from homepage CTAs)
   const urlParams=new URLSearchParams(window.location.search);
   if(urlParams.get('start')==='1' && !urlParams.get('theme')){
-    setTimeout(()=>{showBuilder();goTo('s0');window.scrollTo(0,0);},100);
+    showBuilder();goTo('s0');window.scrollTo(0,0);
   }
 
   // ?lead=1 — go directly to lead form (from "Call Me to Plan" buttons)
   if(urlParams.get('lead')==='1'){
-    setTimeout(()=>{goLead();window.scrollTo(0,0);},150);
+    goLead();window.scrollTo(0,0);
   }
 
   // ?gifts=1 — jump straight to the full Return Gifts catalogue (s8), e.g.
@@ -5683,7 +5705,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // the gifts grid up front (normally only done by doS0()/the ?theme= flow
   // below) since s8 is otherwise never visited on this path.
   if(urlParams.get('gifts')==='1'){
-    setTimeout(()=>{showBuilder();try{buildGifts();}catch(e){}goTo('s8');window.scrollTo(0,0);},100);
+    showBuilder();try{buildGifts();}catch(e){}goTo('s8');window.scrollTo(0,0);
   }
 
   // ?pkg= pre-selection from package pages (e.g. unicorn-basic.html)
@@ -5707,12 +5729,18 @@ document.addEventListener('DOMContentLoaded',()=>{
       // means checkout shows the real matching discount instead of a
       // pre-filled coupon banner that never actually moved the total.
       S._pkgAutoDiscount=true;
-      // 2026-08-18, per Shruti — Unicorn Magic now guarantees a flat ₹3,500
-      // discount on top of that auto-discount (whichever is bigger wins —
-      // see discountAmt()), matching unicorn-basic.html's own
-      // UNICORN_PKG_DISCOUNT exactly so the two pages always land on the
-      // same final total.
+      // 2026-08-18, per Shruti — Unicorn Magic guarantees a flat ₹3,500
+      // discount by default; if the customer adds more services, the
+      // guarantee scales up to 10% of the total, capped at ₹3,999
+      // (pkgGuaranteedAmt() takes whichever of the two is bigger). On top
+      // of THAT, the normal auto-discount slabs still apply too — whichever
+      // of the package guarantee or the sitewide auto-discount is bigger
+      // wins overall (see discountAmt()), matching unicorn-basic.html's own
+      // UNICORN_PKG_DISCOUNT/_PCT/_PCT_CAP exactly so the two pages always
+      // land on the same final total.
       S._pkgFlatDiscount=3500;
+      S._pkgPctDiscount=10;
+      S._pkgPctCap=3999;
       // Return Gifts here are real catalogue items with real per-child
       // pricing (fixed 2026-08-18 — this used to reference a package-only
       // "Unicorn Craft Set" that had no photo because it wasn't in the real
@@ -5944,29 +5972,36 @@ document.addEventListener('DOMContentLoaded',()=>{
     }catch(e){}
   }
 
-  // ?theme= pre-selection from homepage package cards
+  // ?theme= pre-selection from homepage package cards AND package pages'
+  // "Build This Package" buttons (unicorn/turf/spy-basic.html). 2026-08-18,
+  // per Shruti — same #pg-home flash fix as above: this used to run inside
+  // setTimeout(...,150), which is exactly the delay that let the browser
+  // paint the old #pg-home landing screen before switching to the builder.
+  // Runs synchronously now. The inner setTimeout(...,200) below is
+  // unrelated — it just waits for the decor grid to finish rendering before
+  // scrolling a specific card into view, which is a real async dependency
+  // (buildDec() renders on the same tick, but layout/measurement for
+  // scrollIntoView needs a paint first), so it stays.
   const urlTheme=urlParams.get('theme');
   if(urlTheme){
     const match=THEMES.find(t=>t.id===urlTheme);
     if(match){
       // Pre-select theme in S state and skip to decor step
       S.theme=match.id;S.themeName=match.n;S.themeEmoji=match.e;S.themePrice=DECOR_TIER_META[0].price;
-      setTimeout(()=>{
-        showBuilder();
-        // Init all step grids (normally done by s0Next)
-        try{buildDec();buildActs();buildPins();buildInvs();buildGifts();}catch(e){}
-        const goToStep=urlParams.get('review')==='1'?'s9':'s1';
-        goTo(goToStep);
-        window.scrollTo({top:0,behavior:'smooth'});
-        // Highlight the matching decor card once rendered (only when going to s1)
-        if(goToStep==='s1'){setTimeout(()=>{
-          const card=document.getElementById('dc-'+match.id);
-          if(card){card.scrollIntoView({behavior:'smooth',block:'center'});}
-        },200);}
-      },150);
+      showBuilder();
+      // Init all step grids (normally done by s0Next)
+      try{buildDec();buildActs();buildPins();buildInvs();buildGifts();}catch(e){}
+      const goToStep=urlParams.get('review')==='1'?'s9':'s1';
+      goTo(goToStep);
+      window.scrollTo({top:0,behavior:'smooth'});
+      // Highlight the matching decor card once rendered (only when going to s1)
+      if(goToStep==='s1'){setTimeout(()=>{
+        const card=document.getElementById('dc-'+match.id);
+        if(card){card.scrollIntoView({behavior:'smooth',block:'center'});}
+      },200);}
     } else {
       // Theme id not found — just open builder at step 0
-      setTimeout(()=>{showBuilder();goTo('s0');window.scrollTo(0,0);},100);
+      showBuilder();goTo('s0');window.scrollTo(0,0);
     }
   }
 });

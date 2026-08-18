@@ -53,8 +53,13 @@ button{cursor:pointer;font-family:var(--fb)}
 .nav-logo{display:flex;flex-direction:column;align-items:flex-start}
 .nav-logo-tagline{font-family:var(--fb);font-size:10px;color:var(--gy);margin-top:3px}
 .nav-cta-wrap{display:flex;flex-direction:column;align-items:center;gap:2px}
-.nav-cta{background:var(--li);color:#fff;border:none;border-radius:24px;padding:10px 22px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;transition:opacity .15s}
-.nav-cta:hover{opacity:.88}
+/* 2026-08-18, per Shruti — "Update color of all build a birthday buttons
+   to [dark] purple - same as home page - on all the pages." index.html's
+   nav CTA uses a richer, more saturated purple (#8455DD) than the pastel
+   --li brand accent this used to inherit; every other page's nav CTA now
+   matches it exactly. */
+.nav-cta{background:#8455DD;color:#fff;border:none;border-radius:24px;padding:10px 22px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;transition:background .15s,transform .1s}
+.nav-cta:hover{background:#6B3FC2;transform:translateY(-1px)}
 .nav-cta-sub{font-family:var(--fb);font-size:10px;color:var(--gy);text-align:center}
 .nav-search-btn{background:none;border:none;cursor:pointer;color:var(--gy);padding:6px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:color .15s}
 .nav-search-btn:hover{color:var(--bk)}

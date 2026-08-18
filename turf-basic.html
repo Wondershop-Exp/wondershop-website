@@ -41,8 +41,13 @@ button{cursor:pointer;font-family:var(--fb)}
 .nav-row2{display:flex;align-items:center;justify-content:center;gap:28px;padding:2px 0 4px;border-top:1px solid rgba(181,157,222,.12);width:100%}
 .nav-row2 a{font-size:14px;color:var(--gy);font-weight:500;transition:color .15s}
 .nav-row2 a:hover{color:var(--bk)}
-.nav-cta{background:var(--li);color:#fff;border:none;border-radius:24px;padding:10px 22px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;transition:opacity .15s;text-decoration:none;cursor:pointer}
-.nav-cta:hover{opacity:.88}
+/* 2026-08-18, per Shruti — "Update color of all build a birthday buttons
+   to [dark] purple - same as home page - on all the pages." index.html's
+   nav CTA uses a richer, more saturated purple (#8455DD) than the pastel
+   --li brand accent this used to inherit; every other page's nav CTA now
+   matches it exactly. */
+.nav-cta{background:#8455DD;color:#fff;border:none;border-radius:24px;padding:10px 22px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;transition:background .15s,transform .1s;text-decoration:none;cursor:pointer}
+.nav-cta:hover{background:#6B3FC2;transform:translateY(-1px)}
 .nav-cta-wrap{display:flex;flex-direction:column;align-items:center;gap:2px}
 .nav-cta-sub{font-size:10px;color:var(--gy)}
 .nav-ham{display:none;background:none;border:none;cursor:pointer;padding:6px;flex-direction:column;gap:5px}
@@ -958,17 +963,19 @@ function renderTierGrid(gridId, items, selected) {
       : t.bullets
       ? '<ul class="act-card-spec">' + t.bullets.map(b => '<li>' + b + '</li>').join('') + '</ul>'
       : (t.d ? '<div class="act-card-d">' + t.d + '</div>' : '');
-    // 2026-08-18, per Shruti — "don't show the discounts here, instead add
-    // the discounted value in the mrp to show the total discount." Decor
+    // 2026-08-18, per Shruti — "don't show discount here. show actual
+    // prices ... this discount is shown in the main total already." Decor
     // tiers carry an `origPrice` (their true/full value, e.g. Premium
     // ₹11,000 vs the silently-discounted `price` ₹10,000) that used to
     // render a per-tier "was/now/Save ₹X" badge on this card — that hid the
     // package's real savings inside individual components instead of one
     // clearly-labelled package-level discount (see realPrice()/
     // pkgDiscountInfo() below). Every tier card now shows one plain price
-    // line; the true savings story lives entirely in the MRP strike-through
-    // above the sticky bar / hero price instead.
-    const priceHtml = '<div class="act-card-p">' + fmtINR(t.price) + '</div>';
+    // line — and that price is the tier's true/full value (origPrice when
+    // present) so it matches what totalPrice()/realPrice() actually add
+    // into the MRP; the discount story lives entirely in the MRP
+    // strike-through above the sticky bar / hero price instead.
+    const priceHtml = '<div class="act-card-p">' + fmtINR(t.origPrice != null ? t.origPrice : t.price) + '</div>';
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
       '<div class="act-card-n">' + t.name + '</div>' +

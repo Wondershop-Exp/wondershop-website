@@ -1615,15 +1615,17 @@ function renderTierGrid(gridId, items, selected) {
       : t.bullets
       ? '<ul class="act-card-spec">' + t.bullets.map(b => '<li>' + b + '</li>').join('') + '</ul>'
       : (t.d ? '<div class="act-card-d">' + t.d + '</div>' : '');
-    // Decor tiers on readymade package pages carry a discounted `price`
-    // against the general Build a Birthday `origPrice` (2026-08-11, per
-    // Shruti — package-exclusive decor discount). Show the strike-through
-    // original + discounted price + a "Save ₹X" callout whenever both are
-    // present; every other tier type (Host/Music/Photo/Pinata) has no
-    // origPrice and falls back to the plain price line.
-    const priceHtml = (t.origPrice != null && t.origPrice > t.price)
-      ? '<div class="act-card-p-row"><span class="act-card-p-orig">' + fmtINR(t.origPrice) + '</span><span class="act-card-p">' + fmtINR(t.price) + '</span><span class="act-card-save-badge">Save ' + fmtINR(t.origPrice - t.price) + '</span></div>'
-      : '<div class="act-card-p">' + fmtINR(t.price) + '</div>';
+    // 2026-08-18, per Shruti — "don't show discount here. show actual
+    // prices ... this discount is shown in the main total already." This
+    // card used to render a strike-through original + discounted `price` +
+    // "Save ₹X" badge whenever a tier carried an `origPrice`, which hid the
+    // package's real savings inside individual components instead of one
+    // clearly-labelled package-level discount (see pkgDiscountInfo()
+    // below). Every tier card now shows one plain price line — and that
+    // price is the tier's true/full value (origPrice when present, e.g.
+    // Premium ₹11,000, not the silently-discounted `price` ₹10,000) so it
+    // matches what totalPrice()/realPrice() actually add into the MRP.
+    const priceHtml = '<div class="act-card-p">' + fmtINR(t.origPrice != null ? t.origPrice : t.price) + '</div>';
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
       '<div class="act-card-n">' + t.name + '</div>' +
@@ -1831,17 +1833,18 @@ function totalPrice() {
 }
 
 // ── PACKAGE DISCOUNT ──
-// 2026-08-18, per Shruti — this package now guarantees a flat ₹3,500
-// discount (was a retired flat 10% PKGUNICORN coupon, then a pure
-// value-based auto-discount only — neither landed on the number Shruti
-// wants shown). Whichever is bigger wins: the flat guarantee, or the same
-// value-based auto-discount slabs as builder.html, so a customer who adds
-// enough extras to earn a bigger sitewide discount automatically gets that
-// instead (see maybeShowBiggerDiscountToast() in updateSticky()). Slab
-// boundaries below were stale (matched builder.html's OLD 2026-08-12
-// slabs) — updated to match builder.html's current 25k-35k/35k-45k/45k+
-// table exactly, so "whichever is bigger" is comparing like for like.
+// 2026-08-18, per Shruti — this package guarantees a flat ₹3,500 discount
+// by default; if the customer adds more services, the guarantee scales up
+// to 10% of the total, capped at ₹3,999 (whichever of the flat ₹3,500 or
+// that 10%-capped amount is bigger). On top of THAT, the same value-based
+// auto-discount slabs as builder.html still apply too — whichever of the
+// package guarantee or the sitewide auto-discount is bigger wins overall,
+// so a customer who adds enough extras to earn an even bigger sitewide
+// discount automatically gets that instead (see
+// maybeShowBiggerDiscountToast() in updateSticky()).
 const UNICORN_PKG_DISCOUNT = 3500;
+const UNICORN_PKG_DISCOUNT_PCT = 10;
+const UNICORN_PKG_DISCOUNT_PCT_CAP = 3999;
 const DISCOUNT_SLABS = [
   {min:25000, max:35000, pct:5, cap:1500},
   {min:35000, max:45000, pct:7, cap:2500},
@@ -1853,15 +1856,17 @@ function autoDiscountInfo(total) {
   const amt = Math.min(Math.round(total * slab.pct / 100), slab.cap);
   return {pct:slab.pct, amt, cap:slab.cap};
 }
-// Combines the flat package guarantee with the value-based auto-discount —
-// whichever is worth more in rupees wins. pct is recomputed from the
-// winning amount so the "X% OFF" badge always matches what's actually
-// being taken off, even when the flat guarantee (not a slab) is winning.
+// Combines the package's own guarantee (flat ₹3,500, or 10% of the total
+// capped at ₹3,999 — whichever is bigger) with the value-based
+// auto-discount slabs — whichever of THOSE two is worth more in rupees
+// wins. pct is recomputed from the winning amount so the "X% OFF" badge
+// always matches what's actually being taken off.
 function pkgDiscountInfo(total) {
   const auto = autoDiscountInfo(total);
-  const amt = Math.max(UNICORN_PKG_DISCOUNT, auto.amt);
+  const guaranteed = Math.max(UNICORN_PKG_DISCOUNT, Math.min(Math.round(total * UNICORN_PKG_DISCOUNT_PCT / 100), UNICORN_PKG_DISCOUNT_PCT_CAP));
+  const amt = Math.max(guaranteed, auto.amt);
   const pct = total ? Math.round(amt / total * 100) : 0;
-  return {amt, pct, autoAmt: auto.amt};
+  return {amt, pct, autoAmt: auto.amt, guaranteed};
 }
 function giftsSubtotal() {
   let g = 0;
@@ -1880,14 +1885,15 @@ function discountedTotal() {
   return Math.round(nonGift - amt) + gifts;
 }
 
-// Fires once, the first time the real auto-discount overtakes the flat
-// ₹3,500 guarantee (i.e. the customer added enough extras to earn a bigger
-// sitewide discount) — per Shruti: "show a popup... show the discount
-// value as well." _pkgBiggerDiscountShown latches so it only fires once
-// per visit, not on every keystroke/re-render.
+// Fires once, the first time the real auto-discount overtakes the
+// package's own guarantee (flat ₹3,500, or 10% capped at ₹3,999) — i.e.
+// the customer added enough extras to earn a bigger sitewide discount —
+// per Shruti: "show a popup... show the discount value as well."
+// _pkgBiggerDiscountShown latches so it only fires once per visit, not on
+// every keystroke/re-render.
 let _pkgBiggerDiscountShown = false;
 function maybeShowBiggerDiscountToast(info) {
-  if (info.autoAmt > UNICORN_PKG_DISCOUNT && !_pkgBiggerDiscountShown) {
+  if (info.autoAmt > info.guaranteed && !_pkgBiggerDiscountShown) {
     _pkgBiggerDiscountShown = true;
     const el = document.getElementById('pkgDiscountToast');
     if (el) {
@@ -1977,14 +1983,17 @@ function proceedToBuilder() {
       remarks: (document.getElementById('specialRequest').value || '').trim(),
       packagePrice: totalPrice(),
       host: withRealPrice(selectedHost),
-      // 'coupon'/'couponPct' retired 2026-08-12. pkgFlatDiscount is new
-      // 2026-08-18 — builder.html hardcodes its own matching
-      // UNICORN_PKG_DISCOUNT constant rather than trusting this value from
-      // localStorage, but it's included here too so the two stay easy to
-      // cross-check. noGiftDiscount kept: builder.html still hardcodes
+      // 'coupon'/'couponPct' retired 2026-08-12. pkgFlatDiscount/
+      // pkgPctDiscount/pkgPctCap are new 2026-08-18 — builder.html
+      // hardcodes its own matching UNICORN_PKG_DISCOUNT/_PCT/_PCT_CAP
+      // constants rather than trusting these values from localStorage, but
+      // they're included here too so the two stay easy to cross-check.
+      // noGiftDiscount kept: builder.html still hardcodes
       // S._noGiftDiscount=true for this package.
       noGiftDiscount: true,
       pkgFlatDiscount: UNICORN_PKG_DISCOUNT,
+      pkgPctDiscount: UNICORN_PKG_DISCOUNT_PCT,
+      pkgPctCap: UNICORN_PKG_DISCOUNT_PCT_CAP,
       ts: Date.now()
     }));
   } catch(e) {}
