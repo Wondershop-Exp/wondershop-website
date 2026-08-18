@@ -303,8 +303,6 @@ input,textarea,select{font-family:var(--fb)}
   .bp-gap.show{display:none}
 }
 .bld-hdr-right{display:flex;align-items:center;gap:10px}
-.bld-cart-btn{background:var(--li3);border:1.5px solid var(--li2);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--bk);display:flex;align-items:center;gap:6px}
-.bld-cart-btn:hover{background:var(--li2)}
 .bld-back-btn{background:none;border:none;font-size:13px;color:var(--gy);display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px}
 .bld-back-btn:hover{background:var(--li3)}
 .bld-back-btn.hidden{visibility:hidden}
@@ -891,19 +889,6 @@ input,textarea,select{font-family:var(--fb)}
 .bf-table td:first-child{color:var(--gy);white-space:nowrap;padding-right:10px;font-weight:600}
 .bf-table td:last-child{color:var(--bk);font-weight:600;text-align:right}
 
-/* Cart overlay */
-.cart-overlay{display:none;position:fixed;inset:0;background:rgba(25,25,25,.5);z-index:300;align-items:flex-start;justify-content:flex-end}
-.cart-overlay.show{display:flex}
-.cart-drawer{width:380px;max-width:100vw;background:#fff;height:100%;overflow-y:auto;box-shadow:-4px 0 24px rgba(0,0,0,.12)}
-.cart-drawer-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1.5px solid var(--li2);position:sticky;top:0;background:#fff;z-index:1}
-.cart-drawer-hdr h2{font-family:var(--fd);font-size:18px;font-weight:700}
-.close-cart{background:none;border:none;font-size:22px;color:var(--gy)}
-#cartC{padding:16px 20px}
-.cart-cat{font-size:10px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.8px;margin:10px 0 5px}
-.cart-item{display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--li2)}
-.cart-ip{font-weight:700;color:var(--bk)}
-.cart-empty{text-align:center;color:var(--gy);font-size:13px;padding:24px 0;line-height:1.6}
-.cart-total-row{display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:700;margin-top:12px;padding-top:10px;border-top:2px solid var(--li2)}
 .disc-notice{background:var(--sgr);color:#1a6630;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;margin-top:8px}
 .disc-unlock{background:var(--syl);color:#92680a;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;margin-top:8px}
 
@@ -1321,7 +1306,6 @@ input,textarea,select{font-family:var(--fb)}
     <div class="bp-item" id="bpi9"><div class="bp-dot" id="bpd9">✓</div><div class="bp-label">Review</div></div>
   </div>
   <div class="bld-hdr-right">
-    <button class="bld-cart-btn" id="cartBtn" onclick="openCart()" style="display:none">🛒 <span id="cartTH">₹0</span></button>
   </div>
 </header>
 
@@ -1763,10 +1747,6 @@ input,textarea,select{font-family:var(--fb)}
   </div>
 
   <div class="sec-blk">
-    <!-- 2026-08-18, per Shruti — "don't say free, show it like an addon
-         unlocked" (also fixes the stale ₹50,000 threshold text — the real
-         one is S.FPT=₹40,000). -->
-    <div id="freePinataBadge" class="free-badge" style="display:none">🎁 Pinata unlocked as a free addon — your cart qualifies (order above ₹40,000)!</div>
     <div style="font-size:13px;color:var(--bk);font-weight:600;margin-bottom:12px">🎨 Every piñata is personalized with your child's name and customised to match your event's theme — tap a piñata to see reference photos & full details.</div>
     <div class="cards-grid" id="pinCards"></div>
     <div id="pn-custom" onclick="selPinataC(this)">
@@ -2397,11 +2377,6 @@ input,textarea,select{font-family:var(--fb)}
   </div>
 </div>
 
-<!-- Cart overlay -->
-<div class="cart-overlay" id="cartO" onclick="if(event.target===this)closeCart()">
-  <div class="cart-drawer"><div class="cart-drawer-hdr"><h2>🛒 Your Birthday</h2><button class="close-cart" onclick="closeCart()">✕</button></div><div id="cartC"></div></div>
-</div>
-
 <!-- Photo/video gallery modal — theme & activity "Set the Scene" viewer -->
 <div class="gal-modal" id="galModal" onclick="if(event.target===this)closeGallery()">
   <div class="gal-box">
@@ -2435,7 +2410,7 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Code.gs) was retired 2026-08-11 to stop writing duplicate, drifting
 // rows — see the "Consolidate leads + bookings" commits.
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',pickupTime:'',showPickupOnInvite:false,giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,venueLocality:'',interests:[],interestOther:'',FIT:20000,FPT:40000,remarks:{}};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',pickupTime:'',showPickupOnInvite:false,giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,venueLocality:'',interests:[],interestOther:'',FIT:20000,remarks:{}};
 
 // ── Google Places Autocomplete (2026-08-16, per Shruti) ─────────────
 // Wires real address autocomplete onto the checkout venue address and
@@ -3034,17 +3009,11 @@ function cItems(){
   if(S.dj)items.push({cat:'DJ',n:S.dj.tier+' Music',p:S.dj.p,id:S.dj.tier});
   if(S.djAddons.lights)items.push({cat:'Addons',n:'Music Lights',p:1500,id:'dj-lights'});
   if(S.djAddons.smoke)items.push({cat:'Addons',n:'Smoke Machine',p:2000,id:'dj-smoke'});
-  // Free-Pinata/Free-E-Invite spend thresholds are a Build-a-Birthday promo
-  // only — fixed-price package pages (spy/unicorn/turf-basic.html) always
-  // charge full price for these in their own displayed total, with no
-  // threshold logic at all. Applying the promo here for a package-page cart
-  // would silently undercharge relative to what the package page showed the
-  // customer (fixed 2026-08-10, see S._pkgOrigin).
-  // 2026-08-18, per Shruti — "don't say free, show it like an addon
-  // unlocked": the line-item label now reads "— Addon Unlocked!" instead of
-  // "(FREE)" wherever a threshold zeroes out the price (wasP still carries
-  // the real struck-through value for whatever renders it).
-  if(S.pinata){const pt=rawNoPinata();const isFree=!S._pkgOrigin&&pt>=S.FPT;const fp=isFree?0:S.pinata.p;const pItem={cat:'Pinata',n:S.pinata.n+(isFree?' — 🎁 Addon Unlocked!':''),p:fp,id:S.pinata.id};if(isFree&&S.pinata.p>0)pItem.wasP=S.pinata.p;items.push(pItem);}
+  // 2026-08-18, per Shruti — "let's not give free pinata" — the free-pinata
+  // spend threshold (S.FPT) is removed entirely; Pinata now always charges
+  // full price everywhere. Free-E-Invite spend threshold (S.FIT) and the
+  // sitewide auto-discount slabs are unaffected and still apply.
+  if(S.pinata){items.push({cat:'Pinata',n:S.pinata.n,p:S.pinata.p,id:S.pinata.id});}
   if(S.einvite){const gt=rawNoInv();const isFree=!S._pkgOrigin&&gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n+(isFree?' — 🎁 Addon Unlocked!':''),p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
   if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});}
   S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty,id:g.id}));
@@ -3109,14 +3078,6 @@ function thumbFor(cat,id){
 }
 function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e');box.style.background='var(--li2)';box.textContent='✨';}
 function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.djAddons.lights)t+=1500;if(S.djAddons.smoke)t+=2000;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p;S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
-// 2026-08-18, per Shruti QA fix (#65) — the free-pinata threshold (S.FPT)
-// must be checked against spend EXCLUDING the pinata's own price, same as
-// the free-e-invite threshold correctly excludes the e-invite via
-// rawNoInv(). rawNoInv() already includes S.pinata.p, so subtract it back
-// out here rather than duplicating the whole sum. Previously a pricier
-// pinata could tip its own threshold check and become free while a cheaper
-// one didn't, producing a lower total for the more expensive pick.
-function rawNoPinata(){return rawNoInv()-(S.pinata?S.pinata.p:0);}
 function rawT(){return cItems().reduce((s,i)=>s+i.p,0)}
 // 2026-08-18, per Shruti — "discounts should be very clearly called out,
 // even the einvite one". rawT() already reflects any free-pinata/free-
@@ -3347,9 +3308,6 @@ function updHdr(id){
   const bb=document.getElementById('backBtn');
   const noBack=['shome','sconf','sleadsent'];
   bb.classList.toggle('hidden',noBack.includes(id));
-  const showCart=['s1','s2','s3','s4','s5','s6','s7','s8','s9','sco'].includes(id);
-  document.getElementById('cartBtn').style.display=showCart?'flex':'none';
-  document.getElementById('cartTH').textContent='₹'+payTotal().toLocaleString('en-IN');
   const prog=document.getElementById('bldProgress');
   prog.style.display=['shome','sconf','sleadsent','slead'].includes(id)?'none':'flex';
   // update dots
@@ -3416,7 +3374,7 @@ function updBB(id){
   const discElM=document.getElementById('bbDiscMobile');
   const savEl=document.getElementById('bbSavings');
   if(totalSavings>0){
-    discEl.textContent=discElM.textContent=(dpv>0?dpv+'% off applied':'Discount applied');
+    discEl.textContent=discElM.textContent='Discount applied';
     savEl.style.display='block';savEl.textContent='Saving ₹'+totalSavings.toLocaleString('en-IN');
   }else{
     discEl.textContent=discElM.textContent=(gt>0&&!S._pkgOrigin)?'Add ₹'+(25000-gt).toLocaleString('en-IN')+' more → unlock discount!':'';
@@ -3855,17 +3813,14 @@ function toggleDjAddon(btn,key){S.djAddons[key]=!S.djAddons[key];btn.classList.t
 function syncDjAddonsDom(){const l=document.getElementById('djAddonLights');const s=document.getElementById('djAddonSmoke');if(l)l.classList.toggle('on',!!S.djAddons.lights);if(s)s.classList.toggle('on',!!S.djAddons.smoke);}
 
 // ── PINATA ──
-function chkFreePinata(){const isFree=rawNoPinata()>=S.FPT;document.getElementById('freePinataBadge').style.display=isFree?'block':'none';}
 function buildPins(){
-  chkFreePinata();
-  const isFree=rawNoPinata()>=S.FPT;
   const w=document.getElementById('pinCards');w.innerHTML='';
   // Tap the card to view the reference-photo gallery + inclusions/exclusions
   // (same pattern as Decor/Activities); the Select button adds it to the
   // order without leaving the grid.
   PINATAS.forEach(p=>{
     const added=S.pinata&&S.pinata.id===p.id;
-    const priceLabel=isFree?'<span style="color:#1a6630;font-weight:700">🎁 Unlocked!</span>':'₹'+p.p.toLocaleString('en-IN');
+    const priceLabel='₹'+p.p.toLocaleString('en-IN');
     const n=p.gallery?p.gallery.length:0;
     const badgeHtml=n>1?'<div class="variant-badge">🖼 '+n+' photos</div>':'';
     const mediaHtml=p.realImg?('<div class="caro caro-sq" style="overflow:hidden"><img src="img/'+p.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center" alt="'+p.n+'">'+badgeHtml+'</div>'):('<div class="caro caro-sq caro-fallback" style="background:'+p.bg+'">'+p.e+'</div>');
@@ -4191,6 +4146,7 @@ function buildRev(){
     if(gMaps)rows.push('Maps Link: '+esc(gMaps));
     if(gContact)rows.push('Contact Person: '+esc(gContact));
     if(gDate)rows.push('Required By: '+gDate);
+    if(S.packaging)rows.push('Packaging: '+(PACKAGING_LABELS[S.packaging]||'')+' (₹'+packagingCost().toLocaleString('en-IN')+')');
     html+='<div class="rv-sec"><div class="rv-hdr"><div class="rv-cat">Return Gift Delivery</div><span class="edit-link" onclick="editFR(8)">Edit</span></div>'+
       '<div class="rv-items" style="padding:14px 16px"><div style="font-size:13px;color:var(--bk);line-height:1.8">'+
       rows.join('<br>')+'</div></div></div>';
@@ -4352,14 +4308,6 @@ function updCoAmt(){
   document.getElementById('co-pt').textContent='₹'+payv.toLocaleString('en-IN');
   document.getElementById('co-adv').textContent='₹'+advv.toLocaleString('en-IN');
   document.getElementById('co-bal').textContent='₹'+(payv-advv).toLocaleString('en-IN');
-  // 2026-08-16, per Shruti — "totals are not matching": the header cart
-  // badge (cartTH) only refreshes inside updHdr(), which nothing on the
-  // Checkout screen was calling after a payment-method change, coupon
-  // apply, or kids-count edit — so it kept showing a stale total (e.g.
-  // missing the ₹100 Cash Collection fee) while the bottom bar/Payable
-  // Total below correctly included it. Refreshing it here, at the one
-  // place every checkout total change already flows through, keeps every
-  // total display in sync no matter which field triggered the change.
   updHdr(S.screen);
 }
 function coKidsChanged(val){
@@ -5563,26 +5511,6 @@ function referWS(){
     : "Hey! You should plan your child's birthday with Wondershop Experiences. Story-led celebrations for kids 1-12 across Mumbai. wondershopexperiences.com — use my name to get priority booking!");
   window.open('https://wa.me/?text='+msg);
 }
-
-// ── CART ──
-function openCart(){
-  const overlay=document.getElementById('cartO');const cc=document.getElementById('cartC');
-  const items=cItems();
-  if(!items.length){cc.innerHTML='<div class="cart-empty">🛒 No items yet.<br>Start adding to your birthday!</div>';overlay.classList.add('show');return;}
-  const cats={};items.forEach(i=>{if(!cats[i.cat])cats[i.cat]=[];cats[i.cat].push(i);});
-  let html='';
-  Object.entries(cats).forEach(([cat,its])=>{html+='<div class="cart-cat">'+cat+'</div>';its.forEach(i=>{html+='<div class="cart-item"><span>'+i.n+'</span><span class="cart-ip">₹'+i.p.toLocaleString('en-IN')+'</span></div>';});});
-  // 2026-08-18, per Shruti — same "discounts clearly called out, even the
-  // einvite one" fix as the bottom bar: totalSavings uses trueMRP() so an
-  // unlocked free addon counts toward the shown savings too, not just the
-  // auto/flat discount.
-  const dpv=dp();const gt=rawT();const tpv=tp();const totalSavings=trueMRP()-tpv;
-  if(totalSavings>0)html+='<div class="disc-notice">🎉 '+(dpv>0?dpv+'% off! ':'')+'Saving ₹'+totalSavings.toLocaleString('en-IN')+'</div>';
-  else if(gt>0&&!S._pkgOrigin)html+='<div class="disc-unlock">+ Add ₹'+(25000-gt).toLocaleString('en-IN')+' more → unlock discount!</div>';
-  html+='<div class="cart-total-row"><span>Total</span><span style="color:var(--pk)">₹'+tpv.toLocaleString('en-IN')+'</span></div>';
-  cc.innerHTML=html;overlay.classList.add('show');
-}
-function closeCart(){document.getElementById('cartO').classList.remove('show');}
 
 // ══════════════════════════════════════════════════════
 // HOMEPAGE JS

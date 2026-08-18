@@ -343,7 +343,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
-          <div class="incl-card-ic">🎯</div>
+          <img class="incl-card-ic-img" src="img/icons/icon-activities.png" alt="">
           <div class="incl-card-h">Mission Stations</div>
           <div class="incl-card-body">The number of included stations scales automatically with your guest count — a minimum of 5 stations, up to 8.</div>
           <button class="expand-btn" id="btn-stations" onclick="toggleDetail('stations','btn-stations','See station tiers')">
@@ -367,7 +367,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="incl-card">
-          <div class="incl-card-ic">🎉</div>
+          <img class="incl-card-ic-img" src="img/icons/icon-invite.png" alt="">
           <div class="incl-card-h">E-Invite</div>
           <div class="incl-card-body">A personalized digital spy-mission invite card, included with every Spy Adventure booking.</div>
         </div>
@@ -689,15 +689,13 @@ const PINATA_TIERS = [
   {id:'number', name:'Number Pinata', price:2400, d:'Shaped as your child\'s age', img:'img/pin-number-1.jpg'},
   {id:'readymade', name:'Readymade Pinata', price:500, d:'Predecided designs, cannot be personalized — quickest option'},
 ];
-// Total (raw, face-value prices) needed to unlock the ₹40k pinata mechanic.
-// selectedPinata.id==='readymade' -> its own ₹500 price is waived entirely
-// (FREE). Any handmade pinata (square/circle/number) -> ₹500 is knocked off
-// its price instead, per Shruti's rule above. Below ₹40k, or with no
-// pinata selected, there's no discount at all.
+// 2026-08-18, per Shruti — "let's not give free pinata": the ₹40k pinata
+// mechanic is removed entirely; pinata always charges full price. Kept as a
+// function (always returning 0) rather than inlining 0 everywhere it's
+// called, so finalTotal()/renderPinataGrid()/the checkout payload below
+// don't each need their own edit.
 function pinataDiscount() {
-  if (!selectedPinata) return 0;
-  if (totalPrice() < 40000) return 0;
-  return selectedPinata.id === 'readymade' ? selectedPinata.price : 500;
+  return 0;
 }
 // The actual payable total once the ₹40k pinata mechanic (if any) is
 // applied. totalPrice() itself stays the RAW face-value sum (unchanged —
@@ -921,16 +919,10 @@ function einviteGridSelect(id) {
 // Own renderer (not renderTierGrid) so the square reference photos show at
 // their real 1:1 aspect ratio instead of being cropped to renderTierGrid's
 // 4:3 default.
-// 2026-08-14, per Shruti: shows what each pinata would actually cost if
-// picked right now — accounts for the ₹40k mechanic (pinataDiscount()
-// above) per-tier, not just for whichever one is already selected, so the
-// customer can see the Readymade Pinata go FREE / a handmade one drop ₹500
-// as soon as the rest of their cart crosses ₹40k.
+// 2026-08-18, per Shruti — "let's not give free pinata": same removal as
+// pinataDiscount() above, always 0 now.
 function pinataDiscountFor(tier) {
-  const totalWithoutPinata = totalPrice() - (selectedPinata ? selectedPinata.price : 0);
-  const hypotheticalTotal = totalWithoutPinata + tier.price;
-  if (hypotheticalTotal < 40000) return 0;
-  return tier.id === 'readymade' ? tier.price : 500;
+  return 0;
 }
 function renderPinataGrid(gridId, items, selected) {
   const grid = document.getElementById(gridId);
@@ -1061,7 +1053,10 @@ function updateSticky() {
   const badge = discountBadgeText(gross, sp);
   document.getElementById('stickyOrig').textContent = fmtINR(gross);
   document.getElementById('stickyTotal').textContent = fmtINR(sp);
-  document.getElementById('stickyDiscountBadge').textContent = badge;
+  // 2026-08-18, per Shruti — "remove discount% from the sticky bar": the
+  // sticky bar no longer shows a "X% OFF" badge (heroDiscountBadge below is
+  // untouched, only asked to remove it from the sticky bar specifically).
+  document.getElementById('stickyDiscountBadge').textContent = '';
   document.getElementById('heroPriceOrig').textContent = fmtINR(gross);
   document.getElementById('heroPrice').textContent = fmtINR(sp);
   document.getElementById('heroDiscountBadge').textContent = badge;
@@ -1111,10 +1106,11 @@ function proceedToBuilder() {
         price: selectedEinvite.includedInPackage ? 0 : selectedEinvite.price,
         name: selectedEinvite.name + (selectedEinvite.includedInPackage ? ' (Included)' : '')
       }) : null,
-      // The ₹40k pinata mechanic (pinataDiscount()) must already be baked
-      // into the price handed to builder.html — package-origin checkouts
-      // (S._pkgOrigin) skip builder.html's own generic freebie logic
-      // entirely and trust this price verbatim (2026-08-14, per Shruti).
+      // pinataDiscount() always returns 0 now (2026-08-18, per Shruti —
+      // "let's not give free pinata") — kept in this shape since
+      // package-origin checkouts (S._pkgOrigin) skip builder.html's own
+      // generic freebie logic entirely and trust this price verbatim
+      // (2026-08-14, per Shruti).
       pinata: selectedPinata ? Object.assign({}, selectedPinata, {
         price: Math.max(0, selectedPinata.price - pinataDiscount()),
         name: selectedPinata.name + (pinataDiscount() >= selectedPinata.price ? ' (Included)' : pinataDiscount() > 0 ? ' (₹500 off)' : '')

@@ -1,10 +1,34 @@
 # Wondershop Experiences — Pricing Context Document
-_Last updated: August 2026 · Source: WSR Birthday Brochure v5.pdf + founder inputs_
+_Last updated: 2026-08-18 · Source: WSR Birthday Brochure v5.pdf + founder inputs_
+
+---
+
+## How Discounting Works, End to End
+
+There are four distinct pricing paths on the site. Every one of them, when a discount applies, is computed live from the real cart total at checkout — there are no coupon codes left anywhere on the site (the last flat codes, PKGUNICORN and PKGTURF, were retired 2026-08-12).
+
+### 1. Generic Build a Birthday (no package origin)
+Just the Order-Value Discount Slabs below, nothing else.
+
+### 2. Unicorn Magic (unicorn-basic.html)
+The package's MRP is the sum of every component's **true/full value** — each tier carries both a `price` (its internal, already-discounted figure) and an `origPrice` (the real value); the MRP always uses `origPrice` when one exists, via a `realPrice()` helper, so nothing is silently pre-discounted before the customer ever sees a number (bug fixed 2026-08-18 — tier cards used to show a per-component "was/now/Save ₹X" badge using the undisclosed `price`, which this replaced with one clearly-labelled package-level discount). Default cart MRP: ₹26,500.
+
+The guaranteed discount is whichever is bigger of: a flat ₹3,500, or 10% of the total capped at ₹3,999. That guarantee is then compared against the Order-Value Discount Slabs below — whichever of the two is worth more in rupees wins, so a customer who adds enough extras to earn a bigger sitewide slab discount gets that instead automatically, with a "🎉 you unlocked a bigger discount" popup.
+
+Return Gifts are excluded from this discount (they already carry real per-item pricing, so discounting them again would double-dip).
+
+### 3. Turf Takeover (turf-basic.html)
+Same true-value MRP approach (decor/engagement/music/e-invite summed at full value). Default cart MRP: ₹43,000.
+
+The guarantee here is 10% of the total capped at ₹4,750, compared against the Order-Value Discount Slabs the same way as Unicorn — bigger one wins, same popup. Unlike Unicorn, this discount applies to the **whole cart including Return Gifts**.
+
+### 4. Spy Mystery (spy-basic.html)
+No discount logic at all, at any order value — quotes one fixed price and checkout charges exactly that.
 
 ---
 
 ## Order-Value Discount Slabs
-_Replaces the old flat/service-count discount logic (2026-08-12, per Shruti; slab boundaries widened 2026-08-14, per Shruti — this table updated 2026-08-18 to match, was previously stale). Qualifying value is the cart total before any discount. Only ONE discount ever applies on a booking — whichever is worth more in rupees, the auto-slab discount or a coupon/referral/scratch-card code — never both._
+_The baseline sitewide auto-discount (2026-08-12, per Shruti; slab boundaries widened 2026-08-14; table corrected 2026-08-18 — Unicorn/Turf's own copies of this table had drifted stale and were resynced to match). Qualifying value is the cart total before any discount._
 
 | Order Value | Discount | Capped At |
 |-------------|----------|-----------|
@@ -13,9 +37,14 @@ _Replaces the old flat/service-count discount logic (2026-08-12, per Shruti; sla
 | ₹45,000+ | 9% off | up to ₹4,500 |
 | Below ₹25,000 | No discount | — |
 
-**Package-origin checkouts (Unicorn Magic, Turf Takeover):** unicorn-basic.html and turf-basic.html apply this exact same slab table client-side to quote their own discounted price, and builder.html's checkout now applies it too (fixed 2026-08-18 — checkout previously showed the undiscounted total while the package page quoted a discounted one). Unicorn Magic's Return Gifts already carry their own per-item pricing and are excluded from the discount (matches unicorn-basic.html); Turf Takeover's discount applies to the whole cart including Return Gifts (matches turf-basic.html). Both packages retired their old flat coupon codes (PKGUNICORN 10%/15%, PKGTURF 15%) on 2026-08-12 in favor of this automatic slab discount.
+This table is the one thing all four pricing paths above have in common — see "How Discounting Works" for how each path layers on top of (or ignores) it.
 
-**Spy Mystery checkouts:** spy-basic.html quotes one fixed price with no discount offered at any order value, so builder.html's checkout correctly charges full price here — this slab table does not apply to Spy.
+---
+
+## How Total Savings Are Displayed ("trueMRP")
+_Added 2026-08-18, per Shruti — "discounts should be very clearly called out, even the [free] einvite one."_
+
+Before this, a customer building the same combo via the generic Build a Birthday flow (not a dedicated package page) only ever saw the order-value slab discount called out — if they'd also crossed the free-pinata or free-e-invite threshold, that saving was invisible, just folded quietly into a lower total. `trueMRP()` in builder.html now sums every cart item's real pre-savings value (its normal price, or its original price for anything zeroed out by a free-addon threshold) so the bottom bar, mini-cart, and checkout Order Summary can show one clearly-labelled struck-through MRP with **all** savings combined — the order-value discount and any unlocked free addon — instead of only part of the story.
 
 ---
 
@@ -93,11 +122,13 @@ _Renamed from "DJ" site-wide (2026-08-16, per Shruti) — user-facing labels onl
 - **Free** above ₹40,000 order value (updated 2026-08-12, was ₹50,000), checked against the cart total *excluding the pinata's own price* — same rule as E-Invite below (fixed 2026-08-18; the pinata's own price was briefly counting toward its own free threshold, which could make a pricier pinata free while a cheaper one wasn't)
 - Not offered on package-origin checkouts (Spy/Unicorn/Turf) — those always charge full pinata price, no threshold
 - All pinata options are handmade (readymade pinatas may be added as an option in future)
+- Shown to the customer as "🎁 Addon Unlocked!" once free, not "(FREE)" (reworded 2026-08-18, per Shruti — same framing change as E-Invite below); the struck-through original price is still shown alongside it so the saving is clearly called out, not just folded silently into a lower total
 
 ## E-Invite
 - **Free** above ₹20,000 order value (updated 2026-08-12, was ₹30,000), checked against the cart total excluding the e-invite's own price
 - ₹500 below ₹20,000 order value
 - Not offered on package-origin checkouts (Spy/Unicorn/Turf) — those always charge full e-invite price, no threshold
+- Shown to the customer as "🎁 Addon Unlocked!" once free, not "(FREE)" (reworded 2026-08-18, per Shruti); the struck-through original price is still shown alongside it, and the saving is folded into the same total-savings figure as the order-value discount (see "How Total Savings Are Displayed" above) rather than being invisible
 
 ## Return Gift Personalisation
 - **Not free at any order value** (2026-08-12, per Shruti — no free-above-threshold offer for this)
