@@ -100,6 +100,10 @@ button{cursor:pointer;font-family:var(--fb)}
 .pkg-carousel-arrow.left{left:12px}
 .pkg-carousel-arrow.right{right:12px}
 
+/* PACKAGE DISCOUNT UPGRADE TOAST */
+.pkg-discount-toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-140%);z-index:10000;background:#1a6630;color:#fff;font-family:var(--fb);font-weight:700;font-size:14px;padding:12px 22px;border-radius:30px;box-shadow:0 8px 24px rgba(0,0,0,.22);transition:transform .3s ease;white-space:nowrap}
+.pkg-discount-toast.show{transform:translateX(-50%) translateY(0)}
+
 /* DECOR ZOOM TRIGGER + GALLERY MODAL */
 .tier-img-wrap{position:relative}
 .gal-trig{position:absolute;bottom:8px;right:8px;z-index:3;background:rgba(25,25,25,.62);color:#fff;border:none;border-radius:20px;padding:5px 10px 5px 8px;font-size:10px;font-weight:700;display:flex;align-items:center;gap:4px;backdrop-filter:blur(2px);transition:background .15s,transform .15s;cursor:pointer}
@@ -1135,6 +1139,11 @@ button{cursor:pointer;font-family:var(--fb)}
   <button class="lb-arrow lb-next" onclick="lbNav(1)" aria-label="Next image">›</button>
 </div>
 
+<!-- PACKAGE DISCOUNT UPGRADE TOAST (2026-08-18, per Shruti — fires once if
+     adding extras earns a bigger sitewide discount than this package's flat
+     ₹3,500 guarantee) -->
+<div class="pkg-discount-toast" id="pkgDiscountToast"></div>
+
 <!-- WA FAB -->
 <a href="https://wa.me/919742240477" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -1410,12 +1419,20 @@ const ENTRY_TIERS = [
   {id:'en3', name:'Segway', price:7500, d:'Entry on a segway for a big wow moment.'},
   {id:'en4', name:'Bubbles', price:6000, d:'Bubble-machine grand entry.'},
 ];
-// Return Gift — the real "Unicorn Craft Set" from the gifts catalogue (₹290/child).
+// Return Gifts — both featured here are real, current items from the live
+// Return Gifts catalogue (builder.html's GIFTS array), with real photos
+// (renderToggleGrid() already wires item.img into a click-to-zoom lightbox
+// automatically — see openLightbox() below). "Unicorn Craft Set" used to be
+// a package-only placeholder with an emoji icon (🦄) instead of a real
+// photo, because it isn't a genuine catalogue product — swapped 2026-08-18,
+// per Shruti, for Magic Water Painting Book (g12), a real craft-themed item
+// that actually exists in the catalogue with a real photo. If the live
+// catalogue changes, update these two to match — "See all return gift
+// options →" above already links to the full, single-source-of-truth list
+// in builder.html for anything beyond these 2 featured picks.
 const GIFT_ITEMS = [
-  {id:'g8', ic:'🦄', name:'Unicorn Craft Set', d:'A themed DIY craft kit for every guest to take home.', perChild:290},
-  // Live T-shirt Printing — real per-child price from Shruti, no matching
-  // GIFTS catalogue entry so it uses a synthetic id + emoji fallback.
-  {id:'unicorn-tshirt', ic:'👕', name:'Live T-shirt Printing', d:'Live on-site printing — every guest takes home a custom-printed tee.', perChild:450},
+  {id:'g12', img:'img/return-gifts/magic-water-painting-book.jpg', name:'Magic Water Painting Book', d:'A themed DIY craft kit for every guest to take home.', perChild:375},
+  {id:'g26', img:'img/return-gifts/live-tshirt-printing.png', name:'Live T-shirt Printing', d:'Live on-site printing — every guest takes home a custom-printed tee.', perChild:450},
 ];
 // Photographer — same tiers/prices as the site's standard photographer step.
 // Real catalogue (2026-08-08), matches builder.html's Photographer step.
@@ -1776,8 +1793,16 @@ function renderPinata() { renderPinataGrid('pinataGrid', PINATA_TIERS, selectedP
 function pinataGridSelect(id) { selectedPinata = (selectedPinata && selectedPinata.id === id) ? null : PINATA_TIERS.find(t => t.id === id); renderPinata(); updateSticky(); }
 
 // ── PRICING ──
+// 2026-08-18, per Shruti — a tier's `price` field (e.g. Decor Basic ₹5,000)
+// already has a silent, undisclosed discount baked in vs its real value
+// (origPrice ₹6,500). That hid the package's actual savings inside
+// individual components instead of one clearly-labelled number. realPrice()
+// always uses the true/full value (origPrice when present) so the ONE
+// visible package discount below is the only discount story — nothing is
+// pre-discounted before it.
+function realPrice(tier) { return tier && tier.origPrice != null ? tier.origPrice : (tier ? tier.price : 0); }
 function totalPrice() {
-  let t = selectedHost ? selectedHost.price : 0;
+  let t = selectedHost ? realPrice(selectedHost) : 0;
   const extraKids = Math.max(0, kidsCount - KIDS_THRESHOLD);
   t += extraKids * EXTRA_PER_CHILD;
   additionalActs.forEach(a => { t += addonActPrice(a.id, kidsCount); });
@@ -1790,36 +1815,53 @@ function totalPrice() {
   // cost at higher headcounts, so no separate per-activity surcharge is
   // added here (2026-08-11, per Shruti).
   if (selectedAct) t += INCL_ACT_BUDGET;
-  if (selectedDecor) t += selectedDecor.price;
-  if (selectedMusic) t += selectedMusic.price;
+  if (selectedDecor) t += realPrice(selectedDecor);
+  if (selectedMusic) t += realPrice(selectedMusic);
   if (djLightsAddon) t += 1500;
   if (djSmokeAddon) t += 2000;
-  if (selectedEinvite) t += selectedEinvite.price;
-  if (selectedEntry) t += selectedEntry.price;
+  if (selectedEinvite) t += realPrice(selectedEinvite);
+  if (selectedEntry) t += realPrice(selectedEntry);
   selectedGifts.forEach(id => {
     const item = GIFT_ITEMS.find(g => g.id === id);
     if (item) t += item.perChild * kidsCount;
   });
-  if (selectedPhotographer) t += selectedPhotographer.price;
-  if (selectedPinata) t += selectedPinata.price;
+  if (selectedPhotographer) t += realPrice(selectedPhotographer);
+  if (selectedPinata) t += realPrice(selectedPinata);
   return t;
 }
 
-// ── PACKAGE DISCOUNT (value-based slabs, Return Gifts excluded) ──
-// Retires the flat 10% PKGUNICORN coupon 2026-08-12, per Shruti — now uses
-// the same 5/7/9% value-based slabs as builder.html. Return Gifts already
-// carry their own per-item pricing, so the discount is applied only to the
-// rest of the total — gifts are never discounted twice.
+// ── PACKAGE DISCOUNT ──
+// 2026-08-18, per Shruti — this package now guarantees a flat ₹3,500
+// discount (was a retired flat 10% PKGUNICORN coupon, then a pure
+// value-based auto-discount only — neither landed on the number Shruti
+// wants shown). Whichever is bigger wins: the flat guarantee, or the same
+// value-based auto-discount slabs as builder.html, so a customer who adds
+// enough extras to earn a bigger sitewide discount automatically gets that
+// instead (see maybeShowBiggerDiscountToast() in updateSticky()). Slab
+// boundaries below were stale (matched builder.html's OLD 2026-08-12
+// slabs) — updated to match builder.html's current 25k-35k/35k-45k/45k+
+// table exactly, so "whichever is bigger" is comparing like for like.
+const UNICORN_PKG_DISCOUNT = 3500;
 const DISCOUNT_SLABS = [
-  {min:25000, max:30000, pct:5, cap:1500},
-  {min:30000, max:35000, pct:7, cap:2500},
-  {min:35000, max:Infinity, pct:9, cap:3500}
+  {min:25000, max:35000, pct:5, cap:1500},
+  {min:35000, max:45000, pct:7, cap:2500},
+  {min:45000, max:Infinity, pct:9, cap:4500}
 ];
 function autoDiscountInfo(total) {
   const slab = DISCOUNT_SLABS.find(s => total >= s.min && total < s.max);
   if (!slab) return {pct:0, amt:0, cap:0};
   const amt = Math.min(Math.round(total * slab.pct / 100), slab.cap);
   return {pct:slab.pct, amt, cap:slab.cap};
+}
+// Combines the flat package guarantee with the value-based auto-discount —
+// whichever is worth more in rupees wins. pct is recomputed from the
+// winning amount so the "X% OFF" badge always matches what's actually
+// being taken off, even when the flat guarantee (not a slab) is winning.
+function pkgDiscountInfo(total) {
+  const auto = autoDiscountInfo(total);
+  const amt = Math.max(UNICORN_PKG_DISCOUNT, auto.amt);
+  const pct = total ? Math.round(amt / total * 100) : 0;
+  return {amt, pct, autoAmt: auto.amt};
 }
 function giftsSubtotal() {
   let g = 0;
@@ -1833,15 +1875,34 @@ function discountedTotal() {
   const total = totalPrice();
   const gifts = giftsSubtotal();
   const nonGift = total - gifts;
-  const info = autoDiscountInfo(total);
+  const info = pkgDiscountInfo(total);
   const amt = Math.min(info.amt, nonGift);
   return Math.round(nonGift - amt) + gifts;
 }
 
+// Fires once, the first time the real auto-discount overtakes the flat
+// ₹3,500 guarantee (i.e. the customer added enough extras to earn a bigger
+// sitewide discount) — per Shruti: "show a popup... show the discount
+// value as well." _pkgBiggerDiscountShown latches so it only fires once
+// per visit, not on every keystroke/re-render.
+let _pkgBiggerDiscountShown = false;
+function maybeShowBiggerDiscountToast(info) {
+  if (info.autoAmt > UNICORN_PKG_DISCOUNT && !_pkgBiggerDiscountShown) {
+    _pkgBiggerDiscountShown = true;
+    const el = document.getElementById('pkgDiscountToast');
+    if (el) {
+      el.textContent = '🎉 You unlocked a bigger discount — ₹' + info.autoAmt.toLocaleString('en-IN') + ' off!';
+      el.classList.add('show');
+      clearTimeout(el._hideTimer);
+      el._hideTimer = setTimeout(() => el.classList.remove('show'), 4200);
+    }
+  }
+}
 function updateSticky() {
   const total = totalPrice();
   const discounted = discountedTotal();
-  const info = autoDiscountInfo(total);
+  const info = pkgDiscountInfo(total);
+  maybeShowBiggerDiscountToast(info);
   document.getElementById('stickyOrig').textContent = info.amt > 0 ? fmtINR(total) : '';
   document.getElementById('stickyTotal').textContent = fmtINR(discounted);
   document.getElementById('stickyDiscountBadge').textContent = info.amt > 0 ? (info.pct + '% OFF') : '';
@@ -1887,6 +1948,14 @@ function proceedToBuilder() {
     document.getElementById('actSection').scrollIntoView({behavior:'smooth', block:'center'});
     return;
   }
+  // 2026-08-18, per Shruti — builder.html's checkout reads each tier's
+  // .price straight off this payload (S.decor.p etc.), so it must carry the
+  // same realPrice()-adjusted (true/full) value totalPrice() used above —
+  // otherwise checkout would charge the old, silently-discounted tier price
+  // and land on a different total than this page just quoted (the exact
+  // #62/#63 bug this whole fix is closing). withRealPrice() clones a tier
+  // object with .price overridden; leaves null/undefined tiers untouched.
+  const withRealPrice = t => t ? Object.assign({}, t, {price: realPrice(t)}) : t;
   try {
     localStorage.setItem('ws_pkg', JSON.stringify({
       type: 'unicorn-basic',
@@ -1895,24 +1964,27 @@ function proceedToBuilder() {
       actName: selectedAct.name,
       additionalActs: additionalActs,
       kidsCount: kidsCount,
-      decorTier: selectedDecor,
+      decorTier: withRealPrice(selectedDecor),
       tattoo: {id:'a15', name:'Tattoo Station', price:TATTOO_PRICE},
-      music: selectedMusic,
+      music: withRealPrice(selectedMusic),
       djLightsAddon: djLightsAddon,
       djSmokeAddon: djSmokeAddon,
-      einvite: selectedEinvite,
-      entry: selectedEntry,
+      einvite: withRealPrice(selectedEinvite),
+      entry: withRealPrice(selectedEntry),
       gifts: selectedGifts,
-      photographer: selectedPhotographer,
-      pinata: selectedPinata,
+      photographer: withRealPrice(selectedPhotographer),
+      pinata: withRealPrice(selectedPinata),
       remarks: (document.getElementById('specialRequest').value || '').trim(),
       packagePrice: totalPrice(),
-      host: selectedHost,
-      // 'coupon'/'couponPct' retired 2026-08-12 — builder.html applies its
-      // own value-based auto-discount now (see DISCOUNT_SLABS above),
-      // doesn't read these fields anymore. noGiftDiscount kept: builder.html
-      // still hardcodes S._noGiftDiscount=true for this package.
+      host: withRealPrice(selectedHost),
+      // 'coupon'/'couponPct' retired 2026-08-12. pkgFlatDiscount is new
+      // 2026-08-18 — builder.html hardcodes its own matching
+      // UNICORN_PKG_DISCOUNT constant rather than trusting this value from
+      // localStorage, but it's included here too so the two stay easy to
+      // cross-check. noGiftDiscount kept: builder.html still hardcodes
+      // S._noGiftDiscount=true for this package.
       noGiftDiscount: true,
+      pkgFlatDiscount: UNICORN_PKG_DISCOUNT,
       ts: Date.now()
     }));
   } catch(e) {}
