@@ -218,6 +218,7 @@ input,textarea,select{font-family:var(--fb)}
 .insta-over{position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(25,25,25,.72) 100%);opacity:0;transition:opacity .22s;display:flex;flex-direction:column;justify-content:flex-end;padding:12px}
 .insta-item:hover .insta-over{opacity:1}
 .insta-cap{font-size:11px;color:#fff;line-height:1.4}
+.insta-type{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.9);border-radius:6px;padding:3px 6px;font-size:9px;font-weight:700;color:var(--bk);display:flex;align-items:center;gap:3px}
 @media(max-width:860px){.insta-wrap{grid-template-columns:1fr}.insta-profile{position:static}}
 
 /* FINAL CTA */
@@ -967,7 +968,6 @@ input,textarea,select{font-family:var(--fb)}
 .star{color:var(--yl);font-size:10px}
 .rating-cnt{font-size:9px;color:var(--gy)}
 </style>
-<script src="https://elfsightcdn.com/platform.js" async></script>
 </head>
 <body>
 
@@ -1149,11 +1149,41 @@ input,textarea,select{font-family:var(--fb)}
         <div class="insta-avatar"><div style="width:100%;height:100%;background:linear-gradient(135deg,var(--li),var(--pk));display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px">🎉</div></div>
         <div class="insta-handle">@wondershop.experiences</div>
         <div class="insta-bio">Mumbai's most loved birthday experience studio. Story-led celebrations for kids 1–12.</div>
-        <div class="insta-counts"><div class="ic"><span class="ic-n">498</span><span class="ic-l">Posts</span></div><div class="ic"><span class="ic-n">1,078</span><span class="ic-l">Followers</span></div><div class="ic"><span class="ic-n">5.0★</span><span class="ic-l">Rating</span></div></div>
+        <div class="insta-counts"><div class="ic"><span class="ic-n" id="igPostsCount">498</span><span class="ic-l">Posts</span></div><div class="ic"><span class="ic-n" id="igFollowersCount">1,078</span><span class="ic-l">Followers</span></div><div class="ic"><span class="ic-n">5.0★</span><span class="ic-l">Rating</span></div></div>
         <button class="insta-follow-btn" onclick="window.open('https://www.instagram.com/wondershop.experiences/')">Follow on Instagram</button>
         <div style="font-size:10px;color:var(--gy);margin-top:10px">New posts every week ✨</div>
       </div>
-      <div class="elfsight-app-69966a9c-01bb-4c3d-a07f-b440ae760b63" data-elfsight-app-lazy></div>
+      <div>
+        <div class="insta-grid" id="instaGrid">
+          <a href="https://instagram.com/wondershop.experiences" class="insta-item" target="_blank" rel="noopener" aria-label="Reel: Spy adventure birthday">
+            <img src="16.jpg" alt="Spy adventure birthday" loading="lazy">
+            <div class="insta-type">▶ Reel</div>
+            <div class="insta-over"><div class="insta-cap">Yuwan's Spy Mission 🔍 Decor, activities &amp; a real briefcase!</div></div>
+          </a>
+          <a href="https://instagram.com/wondershop.experiences" class="insta-item" target="_blank" rel="noopener" aria-label="Photo: Unicorn birthday">
+            <img src="17.jpg" alt="Unicorn birthday party" loading="lazy">
+            <div class="insta-over"><div class="insta-cap">Anahita's Unicorn Magic ✨ Pastels &amp; pure joy</div></div>
+          </a>
+          <a href="https://instagram.com/wondershop.experiences" class="insta-item" target="_blank" rel="noopener" aria-label="Reel: Art party">
+            <img src="18.jpg" alt="Art party birthday" loading="lazy">
+            <div class="insta-type">▶ Reel</div>
+            <div class="insta-over"><div class="insta-cap">Uma's Canvas Party 🎨 Every child made a masterpiece</div></div>
+          </a>
+          <a href="https://instagram.com/wondershop.experiences" class="insta-item" target="_blank" rel="noopener" aria-label="Photo: F1 birthday">
+            <img src="19.jpg" alt="F1 racing birthday party" loading="lazy">
+            <div class="insta-over"><div class="insta-cap">Rian's F1 Grand Prix 🏎️ Full pit lane setup at home!</div></div>
+          </a>
+          <a href="https://instagram.com/wondershop.experiences" class="insta-item" target="_blank" rel="noopener" aria-label="Photo: Princess birthday">
+            <img src="20.jpg" alt="Princess birthday party" loading="lazy">
+            <div class="insta-over"><div class="insta-cap">Sana's Royal Ball 👑 She felt like a real princess</div></div>
+          </a>
+          <a href="https://instagram.com/wondershop.experiences" class="insta-item" target="_blank" rel="noopener" aria-label="Reel: Pool party">
+            <img src="24.jpg" alt="Pool birthday party" loading="lazy">
+            <div class="insta-type">▶ Reel</div>
+            <div class="insta-over"><div class="insta-cap">Ela's Pool Splash 🌊 Summer birthday done right</div></div>
+          </a>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -5932,6 +5962,48 @@ document.addEventListener('DOMContentLoaded',()=>{
       showBuilder();goTo('s0');window.scrollTo(0,0);
     }
   }
+
+  // ── INSTAGRAM FEED ──
+  // 2026-08-18, per Shruti — "let's fix instagram with meta's free api
+  // now". Replaces the paid Elfsight widget with the account's real latest
+  // posts, pulled from the Railway backend (which caches Meta's Instagram
+  // API — see backend/routers/instagram.py). The 6 hardcoded posts already
+  // in #instaGrid's HTML are left in place as a fallback and only replaced
+  // once a live fetch actually succeeds, so the section never goes empty
+  // if the backend or Instagram's API has a bad moment.
+  (function(){
+    if(!window.WS_API_BASE)return;
+    function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    fetch(window.WS_API_BASE+'/api/instagram/feed?limit=6')
+      .then(r=>r.json())
+      .then(data=>{
+        const profile=data&&data.profile;
+        if(profile){
+          // Only overwrite a count if Instagram actually returned that
+          // field — otherwise leave the static fallback number in place.
+          // ("Rating" is a review score, not an Instagram field, so it's
+          // never touched here.)
+          const postsEl=document.getElementById('igPostsCount');
+          const followersEl=document.getElementById('igFollowersCount');
+          if(postsEl&&profile.media_count!=null)postsEl.textContent=profile.media_count.toLocaleString('en-IN');
+          if(followersEl&&profile.followers_count!=null)followersEl.textContent=profile.followers_count.toLocaleString('en-IN');
+        }
+        const posts=data&&data.posts;
+        if(!posts||!posts.length)return;
+        const grid=document.getElementById('instaGrid');
+        if(!grid)return;
+        grid.innerHTML=posts.map(p=>{
+          const isVideo=p.media_type==='VIDEO';
+          const img=isVideo?(p.thumbnail_url||p.media_url):p.media_url;
+          let cap=(p.caption||'').split('\n')[0];
+          if(cap.length>90)cap=cap.slice(0,90)+'…';
+          const typeHtml=isVideo?'<div class="insta-type">▶ Reel</div>':'';
+          const capHtml=cap?'<div class="insta-over"><div class="insta-cap">'+escHtml(cap)+'</div></div>':'';
+          return '<a href="'+p.permalink+'" class="insta-item" target="_blank" rel="noopener" aria-label="Instagram post"><img src="'+img+'" alt="" loading="lazy">'+typeHtml+capHtml+'</a>';
+        }).join('');
+      })
+      .catch(()=>{ /* keep the static fallback already in the DOM */ });
+  })();
 });
 </script>
 

@@ -49,6 +49,18 @@ class Settings(BaseSettings):
     # value here. Leave blank locally and admin.py will reject all requests.
     ADMIN_PASSWORD: str = ""
 
+    # Instagram feed (2026-08-18, per Shruti — "let's fix instagram with
+    # meta's free api now"). IG_ACCESS_TOKEN is only the SEED long-lived
+    # token — after the first successful call, routers/instagram.py
+    # refreshes it automatically and persists the refreshed token in the
+    # instagram_cache DB table, so this env var never needs to be updated by
+    # hand again (it's only the initial bootstrap value). Calls go through
+    # graph.instagram.com/me/media, which resolves to whichever account the
+    # token belongs to — IG_USER_ID isn't required for that, it's kept here
+    # only for reference/future use. Never commit real values here.
+    IG_USER_ID: str = ""
+    IG_ACCESS_TOKEN: str = ""
+
     @property
     def origins(self) -> List[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]

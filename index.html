@@ -1320,9 +1320,9 @@
         <div class="insta-handle">@wondershop.experiences</div>
         <div class="insta-bio">Premium birthday experiences for children 1–12 ✨<br>Mumbai<br>🎂 Story-led &amp; stress-free</div>
         <div class="insta-counts">
-          <div class="ic"><span class="ic-n">498</span><span class="ic-l">Posts</span></div>
-          <div class="ic"><span class="ic-n">1,078</span><span class="ic-l">Followers</span></div>
-          <div class="ic"><span class="ic-n">312</span><span class="ic-l">Following</span></div>
+          <div class="ic"><span class="ic-n" id="igPostsCount">498</span><span class="ic-l">Posts</span></div>
+          <div class="ic"><span class="ic-n" id="igFollowersCount">1,078</span><span class="ic-l">Followers</span></div>
+          <div class="ic"><span class="ic-n" id="igFollowingCount">312</span><span class="ic-l">Following</span></div>
         </div>
         <a href="https://instagram.com/wondershop.experiences" class="insta-follow-btn" target="_blank" rel="noopener">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
@@ -1332,7 +1332,7 @@
 
       <!-- Post grid -->
       <div>
-        <div class="insta-grid">
+        <div class="insta-grid" id="instaGrid">
 
           <a href="https://instagram.com/wondershop.experiences" class="insta-item" target="_blank" rel="noopener" aria-label="Reel: Spy adventure birthday">
             <img src="16.jpg" alt="Spy adventure birthday" loading="lazy">
@@ -1855,6 +1855,52 @@ document.addEventListener('click', e => {
 });
 
 initLoc();
+
+// ── INSTAGRAM FEED ──
+// 2026-08-18, per Shruti — "let's fix instagram with meta's free api now".
+// Pulls the account's real latest posts from the Railway backend (which in
+// turn caches Meta's Instagram API — see backend/routers/instagram.py).
+// The 6 hardcoded posts already in #instaGrid's HTML are left in place as a
+// fallback and only replaced once a live fetch actually succeeds, so the
+// section never goes empty if the backend or Instagram's API has a bad
+// moment.
+(function () {
+  var API = 'https://wondershop-website-production.up.railway.app';
+  function escHtml(s) {
+    return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  fetch(API + '/api/instagram/feed?limit=6')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var profile = data && data.profile;
+      if (profile) {
+        // Only overwrite a count if Instagram actually returned that field
+        // (follows_count in particular isn't guaranteed on every account
+        // type) — otherwise leave the static fallback number in place.
+        var postsEl = document.getElementById('igPostsCount');
+        var followersEl = document.getElementById('igFollowersCount');
+        var followingEl = document.getElementById('igFollowingCount');
+        if (postsEl && profile.media_count != null) postsEl.textContent = profile.media_count.toLocaleString('en-IN');
+        if (followersEl && profile.followers_count != null) followersEl.textContent = profile.followers_count.toLocaleString('en-IN');
+        if (followingEl && profile.follows_count != null) followingEl.textContent = profile.follows_count.toLocaleString('en-IN');
+      }
+      var posts = data && data.posts;
+      if (!posts || !posts.length) return;
+      var grid = document.getElementById('instaGrid');
+      if (!grid) return;
+      grid.innerHTML = posts.map(function (p) {
+        var isVideo = p.media_type === 'VIDEO';
+        var img = isVideo ? (p.thumbnail_url || p.media_url) : p.media_url;
+        var cap = (p.caption || '').split('\n')[0];
+        if (cap.length > 90) cap = cap.slice(0, 90) + '…';
+        var typeHtml = isVideo ? '<div class="insta-type">▶ Reel</div>' : '';
+        var capHtml = cap ? '<div class="insta-over"><div class="insta-cap">' + escHtml(cap) + '</div></div>' : '';
+        return '<a href="' + p.permalink + '" class="insta-item" target="_blank" rel="noopener" aria-label="Instagram post">' +
+          '<img src="' + img + '" alt="" loading="lazy">' + typeHtml + capHtml + '</a>';
+      }).join('');
+    })
+    .catch(function () { /* keep the static fallback already in the DOM */ });
+})();
 </script>
 
 
