@@ -3142,27 +3142,41 @@ function autoDiscountAmt(gt){
   return Math.min(gt*pct/100,cap);
 }
 // 2026-08-18, per Shruti — Unicorn Magic guarantees a flat ₹3,500 discount
-// (S._pkgFlatDiscount, set only in the Unicorn ingest below) on top of the
-// normal auto-discount slabs, whichever is worth more. This mirrors
-// unicorn-basic.html's own UNICORN_PKG_DISCOUNT/pkgDiscountInfo() exactly —
-// see maybeShowPkgDiscountUpgrade() for the "swap to the bigger discount +
-// popup" behavior when extras push the auto-discount past the flat amount.
+// (S._pkgFlatDiscount, set only in the Unicorn ingest below); Turf Takeover
+// guarantees a percentage discount capped at a max rupee amount instead
+// (S._pkgPctDiscount/S._pkgPctCap — 10%, max ₹4,750, set only in the Turf
+// ingest below). pkgGuaranteedAmt() computes whichever a package promises
+// (a cart only ever carries one or the other), and discountAmt() takes the
+// bigger of that guarantee vs the normal auto-discount slabs, whichever is
+// worth more. This mirrors unicorn-basic.html's/turf-basic.html's own
+// pkgDiscountInfo() exactly — see maybeShowPkgDiscountUpgrade() for the
+// "swap to the bigger discount + popup" behavior when extras push the
+// auto-discount past the guarantee.
+function pkgGuaranteedAmt(gt){
+  let amt=S._pkgFlatDiscount||0;
+  if(S._pkgPctDiscount){
+    const pctAmt=Math.min((gt||0)*S._pkgPctDiscount/100,S._pkgPctCap!=null?S._pkgPctCap:Infinity);
+    amt=Math.max(amt,pctAmt);
+  }
+  return amt;
+}
 function discountAmt(gt){
   if(S._pkgOrigin&&!S._pkgAutoDiscount)return 0;
-  return Math.round(Math.max((gt||0)*S.couponPct/100,autoDiscountAmt(gt||0),S._pkgFlatDiscount||0));
+  return Math.round(Math.max((gt||0)*S.couponPct/100,autoDiscountAmt(gt||0),pkgGuaranteedAmt(gt)));
 }
 // Fires once, the first time the real auto-discount overtakes a package's
-// flat guarantee (S._pkgFlatDiscount) — i.e. the customer added enough
-// extras here at checkout to earn a bigger sitewide discount. Mirrors
-// unicorn-basic.html's maybeShowBiggerDiscountToast() so the same "swap +
-// popup" behavior holds whether the customer adds extras on the package
-// page or after landing in the cart. _pkgBiggerDiscountShown latches so it
-// only fires once per visit.
+// guaranteed discount (flat or percentage+cap) — i.e. the customer added
+// enough extras here at checkout to earn a bigger sitewide discount. Mirrors
+// unicorn-basic.html's/turf-basic.html's maybeShowBiggerDiscountToast() so
+// the same "swap + popup" behavior holds whether the customer adds extras
+// on the package page or after landing in the cart. _pkgBiggerDiscountShown
+// latches so it only fires once per visit.
 let _pkgBiggerDiscountShown=false;
 function maybeShowPkgDiscountUpgrade(gt){
-  if(!S._pkgFlatDiscount)return;
+  const guaranteed=pkgGuaranteedAmt(gt);
+  if(!guaranteed)return;
   const autoAmt=Math.round(autoDiscountAmt(gt||0));
-  if(autoAmt>S._pkgFlatDiscount&&!_pkgBiggerDiscountShown){
+  if(autoAmt>guaranteed&&!_pkgBiggerDiscountShown){
     _pkgBiggerDiscountShown=true;
     const t=document.getElementById('pkgDiscountToast');
     if(t){
@@ -5861,6 +5875,13 @@ document.addEventListener('DOMContentLoaded',()=>{
       // DISCOUNT_SLABS mirrors autoDiscountAmt() exactly, applied to the
       // whole total including gifts — no S._noGiftDiscount here).
       S._pkgAutoDiscount=true;
+      // 2026-08-18, per Shruti — Turf Takeover now guarantees a 10%
+      // discount, capped at ₹4,750, on top of that auto-discount (whichever
+      // is bigger wins — see pkgGuaranteedAmt()/discountAmt()), matching
+      // turf-basic.html's own TURF_PKG_DISCOUNT_PCT/CAP exactly so the two
+      // pages always land on the same final total.
+      S._pkgPctDiscount=10;
+      S._pkgPctCap=4750;
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
       S.activities=[];
       // Activity is optional on Turf (see 2026-08-05 change) — only add it

@@ -9,7 +9,7 @@
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',window.WS_GA_ID);</script>
 <link rel="icon" type="image/png" href="logo-square.png">
 <link rel="apple-touch-icon" href="logo-square.png">
-<meta name="description" content="Turf Takeover Party birthday package by Wondershop — decor, engagement, music, e-invite and an optional activity, from ₹35,700 for 20 kids in Mumbai.">
+<meta name="description" content="Turf Takeover Party birthday package by Wondershop — decor, engagement, music, e-invite and an optional activity, from ₹38,700 for 20 kids in Mumbai.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
@@ -81,6 +81,8 @@ button{cursor:pointer;font-family:var(--fb)}
 .pkg-price-orig{font-family:var(--fd);font-size:20px;font-weight:600;color:var(--gy);text-decoration:line-through}
 .pkg-discount-badge{display:inline-flex;align-items:center;background:var(--sgr);color:#166534;font-size:12px;font-weight:700;border-radius:20px;padding:3px 11px}
 .pkg-price-sub{font-size:13px;color:var(--gy);margin-top:4px}
+.pkg-discount-toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-140%);z-index:10000;background:#1a6630;color:#fff;font-family:var(--fb);font-weight:700;font-size:14px;padding:12px 22px;border-radius:30px;box-shadow:0 8px 24px rgba(0,0,0,.22);transition:transform .3s ease;white-space:nowrap}
+.pkg-discount-toast.show{transform:translateX(-50%) translateY(0)}
 .pkg-cta-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .btn-pkg{background:var(--li);color:#fff;border:none;border-radius:28px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:background .15s,transform .1s;text-decoration:none}
 .btn-pkg:hover{background:#9d84cc;transform:translateY(-1px)}
@@ -319,7 +321,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="pkg-price-note">Estimated total for your party</div>
             <div class="pkg-price-row">
               <span class="pkg-price-orig" id="heroPriceOrig"></span>
-              <span class="pkg-price" id="heroPrice">₹35,700</span>
+              <span class="pkg-price" id="heroPrice">₹38,700</span>
               <span class="pkg-discount-badge" id="heroDiscountBadge"></span>
             </div>
             <div class="pkg-price-sub">For 20 kids by default · pricing scales with your headcount</div>
@@ -642,7 +644,7 @@ button{cursor:pointer;font-family:var(--fb)}
     <div class="sticky-left">
       <div class="sticky-price-row">
         <div class="sticky-price-orig" id="stickyOrig"></div>
-        <div class="sticky-price" id="stickyTotal">₹35,700</div>
+        <div class="sticky-price" id="stickyTotal">₹38,700</div>
         <span class="sticky-discount-badge" id="stickyDiscountBadge"></span>
         <div class="sticky-base" id="stickyBase">· Turf Takeover Party</div>
       </div>
@@ -659,6 +661,11 @@ button{cursor:pointer;font-family:var(--fb)}
   <img id="lbImg" src="" alt="">
   <button class="lb-arrow lb-next" onclick="lbNav(1)" aria-label="Next image">›</button>
 </div>
+
+<!-- PACKAGE DISCOUNT UPGRADE TOAST (2026-08-18, per Shruti — fires once if
+     adding extras earns a bigger sitewide discount than this package's
+     guaranteed 10%-off-capped-₹4,750 discount) -->
+<div class="pkg-discount-toast" id="pkgDiscountToast"></div>
 
 <!-- WA FAB -->
 <a href="https://wa.me/919742240477" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">
@@ -951,15 +958,17 @@ function renderTierGrid(gridId, items, selected) {
       : t.bullets
       ? '<ul class="act-card-spec">' + t.bullets.map(b => '<li>' + b + '</li>').join('') + '</ul>'
       : (t.d ? '<div class="act-card-d">' + t.d + '</div>' : '');
-    // Decor tiers on readymade package pages carry a discounted `price`
-    // against the general Build a Birthday `origPrice` (2026-08-11, per
-    // Shruti — package-exclusive decor discount). Show the strike-through
-    // original + discounted price + a "Save ₹X" callout whenever both are
-    // present; every other tier type has no origPrice and falls back to
-    // the plain price line.
-    const priceHtml = (t.origPrice != null && t.origPrice > t.price)
-      ? '<div class="act-card-p-row"><span class="act-card-p-orig">' + fmtINR(t.origPrice) + '</span><span class="act-card-p">' + fmtINR(t.price) + '</span><span class="act-card-save-badge">Save ' + fmtINR(t.origPrice - t.price) + '</span></div>'
-      : '<div class="act-card-p">' + fmtINR(t.price) + '</div>';
+    // 2026-08-18, per Shruti — "don't show the discounts here, instead add
+    // the discounted value in the mrp to show the total discount." Decor
+    // tiers carry an `origPrice` (their true/full value, e.g. Premium
+    // ₹11,000 vs the silently-discounted `price` ₹10,000) that used to
+    // render a per-tier "was/now/Save ₹X" badge on this card — that hid the
+    // package's real savings inside individual components instead of one
+    // clearly-labelled package-level discount (see realPrice()/
+    // pkgDiscountInfo() below). Every tier card now shows one plain price
+    // line; the true savings story lives entirely in the MRP strike-through
+    // above the sticky bar / hero price instead.
+    const priceHtml = '<div class="act-card-p">' + fmtINR(t.price) + '</div>';
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
       '<div class="act-card-n">' + t.name + '</div>' +
@@ -1050,36 +1059,48 @@ function renderPinata() { renderPinataGrid('pinataGrid', PINATA_TIERS, selectedP
 function pinataGridSelect(id) { selectedPinata = (selectedPinata && selectedPinata.id === id) ? null : PINATA_TIERS.find(t => t.id === id); renderPinata(); updateSticky(); }
 
 // ── PRICING ──
+// 2026-08-18, per Shruti — a tier's `price` field (e.g. Decor Premium
+// ₹10,000) already has a silent, undisclosed discount baked in vs its real
+// value (origPrice ₹11,000). That hid the package's actual savings inside
+// individual components instead of one clearly-labelled number. realPrice()
+// always uses the true/full value (origPrice when present) so the ONE
+// visible package discount below (see pkgDiscountInfo()) is the only
+// discount story — nothing is pre-discounted before it.
+function realPrice(tier) { return tier && tier.origPrice != null ? tier.origPrice : (tier ? tier.price : 0); }
 function totalPrice() {
   let t = 0;
-  if (selectedDecor) t += selectedDecor.price;
+  if (selectedDecor) t += realPrice(selectedDecor);
   if (selectedEngagement) t += engagementPrice(selectedEngagement.duration, kidsCount);
   selectedEngagementAddons.forEach(id => {
     const a = ENGAGEMENT_ADDONS.find(x => x.id === id);
     if (a) t += engagementAddonTotal(a);
   });
   if (selectedAct) t += activityPrice(selectedAct, kidsCount);
-  if (selectedMusic) t += selectedMusic.price;
+  if (selectedMusic) t += realPrice(selectedMusic);
   if (djLightsAddon) t += 1500;
   if (djSmokeAddon) t += 2000;
-  if (selectedEinvite) t += selectedEinvite.price;
-  if (selectedEntry) t += selectedEntry.price;
+  if (selectedEinvite) t += realPrice(selectedEinvite);
+  if (selectedEntry) t += realPrice(selectedEntry);
   selectedGifts.forEach(id => {
     const item = GIFT_ITEMS.find(g => g.id === id);
     if (item) t += item.perChild * kidsCount;
   });
-  if (selectedPhotographer) t += selectedPhotographer.price;
-  if (selectedPinata) t += selectedPinata.price;
+  if (selectedPhotographer) t += realPrice(selectedPhotographer);
+  if (selectedPinata) t += realPrice(selectedPinata);
   return t;
 }
 
 // Value-based discount slabs — retires the flat 15% PKGTURF coupon
 // 2026-08-12, per Shruti. Matches builder.html exactly, applied to the
-// whole total (Turf discounts Return Gifts too, same as before).
+// whole total (Turf discounts Return Gifts too, same as before). Slab
+// boundaries below were stale (matched builder.html's OLD 2026-08-12
+// slabs) — updated 2026-08-18 to match builder.html's current
+// 25k-35k/35k-45k/45k+ table exactly, so "whichever is bigger" (see
+// pkgDiscountInfo() below) is comparing like for like.
 const DISCOUNT_SLABS = [
-  {min:25000, max:30000, pct:5, cap:1500},
-  {min:30000, max:35000, pct:7, cap:2500},
-  {min:35000, max:Infinity, pct:9, cap:3500}
+  {min:25000, max:35000, pct:5, cap:1500},
+  {min:35000, max:45000, pct:7, cap:2500},
+  {min:45000, max:Infinity, pct:9, cap:4500}
 ];
 function autoDiscountInfo(total) {
   const slab = DISCOUNT_SLABS.find(s => total >= s.min && total < s.max);
@@ -1087,9 +1108,48 @@ function autoDiscountInfo(total) {
   const amt = Math.min(Math.round(total * slab.pct / 100), slab.cap);
   return {pct:slab.pct, amt, cap:slab.cap};
 }
+
+// ── PACKAGE DISCOUNT ──
+// 2026-08-18, per Shruti — this package now guarantees a 10% discount,
+// capped at ₹4,750 (default cart: 10% of ₹43,000 = ₹4,300, under the cap).
+// Whichever is bigger wins: this guarantee, or the same value-based
+// auto-discount slabs as builder.html, so a customer who adds enough
+// extras to earn a bigger sitewide discount automatically gets that
+// instead (see maybeShowBiggerDiscountToast() below). Applies to the whole
+// total including Return Gifts, same as the old flat coupon did.
+const TURF_PKG_DISCOUNT_PCT = 10;
+const TURF_PKG_DISCOUNT_CAP = 4750;
+function pkgDiscountInfo(total) {
+  const guaranteed = Math.min(Math.round(total * TURF_PKG_DISCOUNT_PCT / 100), TURF_PKG_DISCOUNT_CAP);
+  const auto = autoDiscountInfo(total);
+  const amt = Math.max(guaranteed, auto.amt);
+  const pct = total ? Math.round(amt / total * 100) : 0;
+  return {amt, pct, autoAmt: auto.amt, guaranteed};
+}
+
+// Fires once, the first time the real auto-discount overtakes the
+// guaranteed 10%-capped-₹4,750 discount (i.e. the customer added enough
+// extras to earn a bigger sitewide discount) — per Shruti: "if the
+// webstie offer becomes higher than this coupon, then remove that coupon
+// and show the higher website discount." _pkgBiggerDiscountShown latches
+// so it only fires once per visit, not on every keystroke/re-render.
+let _pkgBiggerDiscountShown = false;
+function maybeShowBiggerDiscountToast(info) {
+  if (info.autoAmt > info.guaranteed && !_pkgBiggerDiscountShown) {
+    _pkgBiggerDiscountShown = true;
+    const el = document.getElementById('pkgDiscountToast');
+    if (el) {
+      el.textContent = '🎉 You unlocked a bigger discount — ₹' + info.autoAmt.toLocaleString('en-IN') + ' off!';
+      el.classList.add('show');
+      clearTimeout(el._hideTimer);
+      el._hideTimer = setTimeout(() => el.classList.remove('show'), 4200);
+    }
+  }
+}
 function updateSticky() {
   const total = totalPrice();
-  const info = autoDiscountInfo(total);
+  const info = pkgDiscountInfo(total);
+  maybeShowBiggerDiscountToast(info);
   const discounted = Math.round(total - info.amt);
   document.getElementById('stickyOrig').textContent = info.amt > 0 ? fmtINR(total) : '';
   document.getElementById('stickyTotal').textContent = fmtINR(discounted);
@@ -1126,7 +1186,15 @@ function toggleDetail(elId, btnId, closedLabel) {
 }
 
 // ── PROCEED TO BUILDER ──
+// 2026-08-18, per Shruti — builder.html's checkout reads each tier's .price
+// straight off this payload (S.decor.p etc.), so it must carry the same
+// realPrice()-adjusted (true/full) value totalPrice() used above —
+// otherwise checkout would charge the old, silently-discounted tier price
+// and land on a different total than this page just quoted. withRealPrice()
+// clones a tier object with .price overridden; leaves null/undefined tiers
+// untouched.
 function proceedToBuilder() {
+  const withRealPrice = t => t ? Object.assign({}, t, {price: realPrice(t)}) : t;
   try {
     localStorage.setItem('ws_pkg', JSON.stringify({
       type: 'turf-basic',
@@ -1135,21 +1203,27 @@ function proceedToBuilder() {
       actName: selectedAct ? selectedAct.name : null,
       additionalActs: [],
       kidsCount: kidsCount,
-      decorTier: selectedDecor,
+      decorTier: withRealPrice(selectedDecor),
       engagement: selectedEngagement,
       engagementAddons: selectedEngagementAddons,
-      music: selectedMusic,
+      music: withRealPrice(selectedMusic),
       djLightsAddon: djLightsAddon,
       djSmokeAddon: djSmokeAddon,
-      einvite: selectedEinvite,
-      entry: selectedEntry,
+      einvite: withRealPrice(selectedEinvite),
+      entry: withRealPrice(selectedEntry),
       gifts: selectedGifts,
-      photographer: selectedPhotographer,
-      pinata: selectedPinata,
+      photographer: withRealPrice(selectedPhotographer),
+      pinata: withRealPrice(selectedPinata),
       packagePrice: totalPrice(),
       remarks: (document.getElementById('specialRequest').value || '').trim(),
       // 'coupon'/'couponPct' retired 2026-08-12 — builder.html applies its
       // own value-based auto-discount now, doesn't read these anymore.
+      // pkgPctDiscount/pkgPctCap are new 2026-08-18 — builder.html
+      // hardcodes its own matching TURF_PKG_DISCOUNT_PCT/CAP constants
+      // rather than trusting this value from localStorage, but it's
+      // included here too so the two stay easy to cross-check.
+      pkgPctDiscount: TURF_PKG_DISCOUNT_PCT,
+      pkgPctCap: TURF_PKG_DISCOUNT_CAP,
       ts: Date.now()
     }));
   } catch(e) {}

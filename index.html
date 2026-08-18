@@ -1176,7 +1176,7 @@
       <div class="pkg-card">
         <img src="img/packages/Turf/turf-carousal-obstacle-1.png" alt="Turf Takeover Party Birthday" class="pkg-img">
         <span class="pkg-badge" style="background:var(--gr);color:var(--bk)">Outdoor</span>
-        <span class="pkg-save">15% OFF</span>
+        <span class="pkg-save">10% OFF</span>
         <div class="pkg-body">
           <div class="pkg-name">Turf Takeover</div>
           <div class="pkg-age">Best for ages 3–12 · Boys &amp; Girls</div>
@@ -1186,8 +1186,17 @@
             <span class="pkg-tag"><img src="img/icons/icon-dj-bw.png" alt="">Music</span>
             <span class="pkg-tag"><img src="img/icons/icon-invite-bw.png" alt="">E-Invite</span>
           </div>
+          <!-- 2026-08-18, per Shruti: same fix as Unicorn Magic above — the
+               old ₹42,000→₹35,700 (15% off) didn't match turf-basic.html's
+               own landing price (₹43,750, since decor's tier price silently
+               under-counted its own real ₹11,000 value). Both now compute
+               the same real MRP (decor 11,000 + engagement 24,500 + music
+               7,000 + e-invite 500 = ₹43,000) minus the guaranteed 10%
+               discount capped at ₹4,750 (or a bigger sitewide auto-discount
+               if extras earn one) = ₹38,700, so this card and the package
+               page always agree. -->
           <div class="pkg-price-row">
-            <div><span style="font-size:12px;color:var(--gy);display:block;margin-bottom:2px">Starting from</span><span class="pkg-price-orig">₹42,000</span> <span class="pkg-price">₹35,700</span><span style="font-size:12px;color:var(--gy);margin-left:6px">for 20 kids</span></div>
+            <div><span style="font-size:12px;color:var(--gy);display:block;margin-bottom:2px">Starting from</span><span class="pkg-price-orig">₹43,000</span> <span class="pkg-price">₹38,700</span><span style="font-size:12px;color:var(--gy);margin-left:6px">for 20 kids</span></div>
           </div>
           <div class="pkg-btns">
             <a href="turf-basic.html" class="pkg-btn-build" style="flex:1">View Package →</a>
