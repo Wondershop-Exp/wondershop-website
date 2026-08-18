@@ -591,9 +591,22 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             # Choice" to "Current Value" for the same reason).
             customer_choice = derived
             updated_value = ov["assigned_value"] if ov else derived
+            # "Original" is the OPPOSITE: it must freeze forever at whatever
+            # the customer actually typed at checkout, and never move again —
+            # _update_direct_field() already captures that snapshot into
+            # customer_choice_override the moment before the first-ever edit
+            # overwrites the `leads` column, it just wasn't being read back
+            # out here. Before this fix, "Original" used the same live
+            # `derived` value as Current Value, so it silently tracked every
+            # edit too (2026-08-19, per Shruti — reported as "Original: J"
+            # right after a Parent Name edit, when the true original was
+            # "Aditya"). No override row yet = nothing has ever overwritten
+            # the column = the live value IS still the original.
+            original_value = ov["customer_choice_override"] if ov else derived
         else:
             customer_choice = (ov["customer_choice_override"] if ov and ov["customer_choice_override"] else derived)
             updated_value = ov["assigned_value"] if ov else None
+            original_value = derived   # sourced from the immutable booking snapshot — never mutated by an override
 
         sections[f["section"]].append({
             "field_key": key,
@@ -609,7 +622,7 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             "multi_options": MULTI_OPTIONS.get(key),
             "multi_with_qty": key in MULTI_WITH_QTY,
             "placeholder": ASSIGNED_PLACEHOLDERS.get(key),
-            "original_value": derived,
+            "original_value": original_value,
             "customer_choice": customer_choice,
             "assigned_value": updated_value,
             "remarks": ov["remarks"] if ov else None,

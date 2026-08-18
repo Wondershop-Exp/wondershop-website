@@ -67,6 +67,8 @@ table.fields{width:100%;border-collapse:collapse;background:#fff;border-radius:v
 table.fields th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);padding:8px 10px;background:var(--lgy)}
 table.fields td{padding:8px 10px;border-top:1px solid var(--li2);vertical-align:top}
 table.fields tr.removed td{opacity:.45;text-decoration:line-through}
+table.fields tr.dirty td{background:#FFF7E0}
+table.fields tr.dirty td.field-label{box-shadow:inset 3px 0 0 var(--pk)}
 table.fields input,table.fields textarea,table.fields select{width:100%;border:1px solid var(--li2);border-radius:6px;padding:6px 8px;font-size:13px;background:#fff}
 table.fields textarea{resize:vertical;min-height:32px}
 .readonly-cell{color:var(--gy);font-size:13px;padding:6px 2px;display:block}
@@ -327,9 +329,41 @@ function renderDetail(d){
   }else{
     log.innerHTML = d.change_log.map(l=>'<div class="log-entry">'+esc(l.sentence)+'</div>').join('');
   }
+
+  // Snapshot every row's freshly-rendered values so checkRowDirty() below has
+  // a baseline to compare against as the admin types (2026-08-19, per
+  // Shruti — "highlight the row wherever the user is changing any value").
+  container.querySelectorAll('tr[id^="fld_"]').forEach(row=>{
+    row.classList.remove('dirty');
+    row.dataset.initial = rowSnapshot(row.id);
+  });
 }
 
 function secId(name){ return name.replace(/[^A-Za-z0-9]/g,''); }
+
+// ── Dirty-row highlighting ──────────────────────────────────────────────
+// Compares a row's live Current Value / Updated Value / Remarks against what
+// was there right after the last render (or last save) and toggles a
+// highlight while they differ — a visual "you have unsaved edits here" cue.
+// Delegated once on the container (not re-attached per render) so it also
+// picks up the Activities/Gifts multi-picker's dynamically added rows.
+function rowSnapshot(rid){
+  const cc = document.getElementById(rid+'_cc');
+  const av = document.getElementById(rid+'_av');
+  const rm = document.getElementById(rid+'_rm');
+  return JSON.stringify([cc?cc.value:null, av?av.value:null, rm?rm.value:null]);
+}
+function checkRowDirty(rid){
+  const row = document.getElementById(rid);
+  if(!row || row.dataset.initial===undefined) return;
+  row.classList.toggle('dirty', rowSnapshot(rid) !== row.dataset.initial);
+}
+(function initDirtyTracking(){
+  const container = document.getElementById('sectionsContainer');
+  const handler = e=>{ const row=e.target.closest('tr[id^="fld_"]'); if(row) checkRowDirty(row.id); };
+  container.addEventListener('input', handler);
+  container.addEventListener('change', handler);
+})();
 
 function selectHtml(id, options, current, extraAttrs){
   // Accepts either plain strings or {value,label} objects; normalizes to the latter.
@@ -389,6 +423,10 @@ function mpRerender(rid){
   const wrap = document.getElementById(rid+'_mprows');
   if(wrap) wrap.innerHTML = mpRowsHtml(rid);
   mpSync(rid);
+  // +Add/✕ are button clicks, not input/change on the row itself, so the
+  // delegated listener in initDirtyTracking() never sees them — call this
+  // directly so adding/removing an activity or gift still highlights the row.
+  checkRowDirty(rid);
 }
 
 function mpAdd(rid){
@@ -421,7 +459,10 @@ function mpSync(rid){
 function fieldRowHtml(f, isCustEvent){
   const rid = 'fld_'+f.field_key;
   const removedCls = f.removed ? ' removed' : '';
-  const originalNote = (!f.admin_only && f.original_value) ? ('<small>Original: '+esc(f.original_value)+'</small>') : (f.admin_only ? '<small>Admin-tracked</small>' : '');
+  // "None selected" instead of a blank note when the customer genuinely left
+  // this field empty at checkout (2026-08-19, per Shruti) — distinguishes
+  // "we know they selected nothing" from "we have no data for this field".
+  const originalNote = f.admin_only ? '<small>Admin-tracked</small>' : ('<small>Original: '+esc(f.original_value || 'None selected')+'</small>');
 
   // ── Read-only fields (Grand Total / Balance Due): plain display, no editing at all
   if(f.read_only){
