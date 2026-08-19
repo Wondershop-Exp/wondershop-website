@@ -406,7 +406,7 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="incl-card">
           <img class="incl-card-ic-img" src="img/icons/icon-dj.png" alt="">
           <div class="incl-card-h">Music</div>
-          <div class="incl-card-body">Classic Music included as standard — 1 speaker, 1 mixer, 2 mics, 1 operator, suitable for gatherings up to 50 people. Upgrade to Premium below.</div>
+          <div class="incl-card-body">Music Essential included as standard — 1 speaker, 1 mixer, 2 mics, 1 operator, suitable for gatherings up to 50 people. Upgrade to Music Plus below.</div>
         </div>
 
         <div class="incl-card">
@@ -515,7 +515,7 @@ button{cursor:pointer;font-family:var(--fb)}
         <h2 class="sec-h2">Music</h2>
         <span class="act-badge">Included · pick a tier</span>
       </div>
-      <p class="sec-sub">Classic Music is included in the package price. Upgrading adds the difference to your total.</p>
+      <p class="sec-sub">Music Essential is included in the package price. Upgrading adds the difference to your total.</p>
       <div class="act-grid" id="musicGrid"></div>
       <div style="margin-top:14px">
         <div style="font-size:11px;font-weight:700;color:var(--gy);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Music Add-ons</div>
@@ -796,9 +796,13 @@ function activityPrice(opt, kids) {
 // "DJ" prefix) — matches builder.html's S.dj.tier values so the review
 // page's DJ thumbnail resolves to the correct real photo instead of
 // falling back to the emoji tile.
+// 2026-08-19, per Shruti: customer-facing tier names renamed to "Music
+// Essential"/"Music Plus" (dName) — `name` itself stays 'Classic'/'Premium'
+// since it's the internal identity handed off into builder.html's S.dj.tier
+// (see musicLabel() there for the matching display mapping).
 const MUSIC_TIERS = [
-  {id:'m1', name:'Classic', price:7000, bullets:['1 speaker · 1 mixer · 2 mics', '1 operator', 'Up to 50 guests', '4 hours']},
-  {id:'m2', name:'Premium', price:11000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', '50-200 guests', '4 hours']},
+  {id:'m1', name:'Classic', dName:'Music Essential', price:7000, bullets:['1 speaker · 1 mixer · 2 mics', '1 operator', 'Up to 50 guests', '4 hours']},
+  {id:'m2', name:'Premium', dName:'Music Plus', price:11000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', '50-200 guests', '4 hours']},
 ];
 // E-Invite — Static uses a generic personalized invite design (₹500).
 // Video + Reminder is the same paid upgrade price as the Spy package.
@@ -978,7 +982,7 @@ function renderTierGrid(gridId, items, selected) {
     const priceHtml = '<div class="act-card-p">' + fmtINR(t.origPrice != null ? t.origPrice : t.price) + '</div>';
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
-      '<div class="act-card-n">' + t.name + '</div>' +
+      '<div class="act-card-n">' + (t.dName || t.name) + '</div>' +
       priceHtml +
       descHtml +
     '</div>';
@@ -1175,7 +1179,7 @@ function updateSticky() {
   if (selectedEngagement) parts.push(selectedEngagement.name + ' engagement');
   if (selectedAct) parts.push('<span class="ok">✓ ' + selectedAct.name + '</span>');
   else parts.push('No activity selected');
-  if (selectedMusic) parts.push(selectedMusic.name);
+  if (selectedMusic) parts.push(selectedMusic.dName || selectedMusic.name);
   const extrasCount = selectedEngagementAddons.length + selectedGifts.length +
     (selectedEntry ? 1 : 0) + (selectedPhotographer ? 1 : 0) + (selectedPinata ? 1 : 0) +
     (djLightsAddon ? 1 : 0) + (djSmokeAddon ? 1 : 0);

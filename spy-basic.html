@@ -654,9 +654,13 @@ const ADDON_STATIONS = [
 // "DJ" prefix) — matches builder.html's S.dj.tier values so the review
 // page's DJ thumbnail resolves to the correct real photo instead of
 // falling back to the emoji tile.
+// 2026-08-19, per Shruti: customer-facing tier names renamed to "Music
+// Essential"/"Music Plus" (dName) — `name` itself stays 'Classic'/'Premium'
+// since it's the internal identity handed off into builder.html's S.dj.tier
+// (see musicLabel() there for the matching display mapping).
 const MUSIC_TIERS = [
-  {id:'m1', name:'Classic', price:7000, bullets:['1 speaker · 1 mixer · 2 mics', '1 operator', 'Up to 50 guests', '4 hours']},
-  {id:'m2', name:'Premium', price:11000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', '50-200 guests', '4 hours']},
+  {id:'m1', name:'Classic', dName:'Music Essential', price:7000, bullets:['1 speaker · 1 mixer · 2 mics', '1 operator', 'Up to 50 guests', '4 hours']},
+  {id:'m2', name:'Premium', dName:'Music Plus', price:11000, bullets:['2 big speakers · 1 mixer · 2 mics', '1 operator', '50-200 guests', '4 hours']},
 ];
 // E-Invite — single-select, optional.
 // 2026-08-14, per Shruti: "none of these are free. Write Static invite
@@ -829,7 +833,7 @@ function renderTierGrid(gridId, items, selected) {
       : '<div class="act-card-p">' + fmtINR(t.price) + '</div>';
     return '<div class="act-card' + (selected && t.id === selected.id ? ' sel' : '') + '" onclick="' + gridId + 'Select(\'' + t.id + '\')">' +
       img +
-      '<div class="act-card-n">' + t.name + '</div>' +
+      '<div class="act-card-n">' + (t.dName || t.name) + '</div>' +
       priceHtml +
       descHtml +
     '</div>';

@@ -82,7 +82,7 @@ class LeadSubmitRequest(BaseModel):
     referred_by:        Optional[str]   = None
     # True only for a confirmed checkout submission (doCo()) — False/omitted
     # for an unconfirmed enquiry (doLead()). Drives email tone, Sheet Status
-    # column ("Confirmed" vs "Lead"), and DB status ("Booked" vs "New").
+    # column ("Confirmed" vs "Lead"), and DB status ("Converted" vs "New").
     is_booking:         Optional[bool]  = False
     # Order summary — sent from the checkout step so the confirmation email
     # can show a full bill, not just the payable total (client_budget).
@@ -730,6 +730,18 @@ def _format_reward_block(req: LeadSubmitRequest, reward_code: Optional[str], add
 # chosen services with images; for decor and photography specifically list
 # inclusions").
 
+def _music_label(tier: Optional[str]) -> str:
+    """Customer-facing Music tier name (2026-08-19, per Shruti: renamed to
+    "Music Essential"/"Music Plus"). Mirrors builder.html's musicLabel() —
+    the underlying tier value stays the bare internal word ('Classic'/
+    'Premium') everywhere else; this is just the display mapping."""
+    if tier == "Classic":
+        return "Music Essential"
+    if tier == "Premium":
+        return "Music Plus"
+    return f"{tier} Music" if tier else ""
+
+
 def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[str] = None) -> list:
     """Always returns one entry per builder step (Decor, Activities, Host,
     Music, Pinata, E-Invite, Photographer, Return Gifts), in that order, even
@@ -782,7 +794,7 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
         if addons.get("smoke"):
             addon_bits.append("Smoke Machine")
         out.append({
-            "label": "Music", "name": f"{dj['tier']} Music", "price": dj.get("p"),
+            "label": "Music", "name": _music_label(dj['tier']), "price": dj.get("p"),
             "inclusions": [("Add-ons", ", ".join(addon_bits))] if addon_bits else [],
         })
     else:
@@ -1462,7 +1474,7 @@ def _sheet_service_columns(snapshot: Optional[dict]) -> dict:
         addon_labels.append("Music Lights")
     if dj_addons.get("smoke"):
         addon_labels.append("Smoke Machine")
-    music = ", ".join(filter(None, [dj_tier] + addon_labels))
+    music = ", ".join(filter(None, [_music_label(dj_tier) if dj_tier else None] + addon_labels))
 
     activities = ", ".join(
         a.get("n", "") for a in (snap.get("activities") or []) if isinstance(a, dict) and a.get("n")
@@ -1729,14 +1741,20 @@ async def _notify_team(lead_id: int, req: LeadSubmitRequest, reward_code: Option
 @router.post("/submit")
 async def submit_lead(req: LeadSubmitRequest):
     """
-    1. Saves lead to DB (status = Booked for confirmed bookings, New for leads).
+    1. Saves lead to DB (status = Converted for confirmed bookings, New for leads).
     2. Issues a reward code if the customer won the "discount" scratch-card
        reward, and/or redeems one if they applied a previously-issued code.
     3. Notifies the customer (sheet row + confirmation email) immediately.
        Notifies the team (email + WhatsApp) immediately too, but only for
        plain enquiries — confirmed bookings hold that until /finalize-notify.
     """
-    status = "Booked" if req.is_booking else "New"
+    # 2026-08-19, per Shruti's admin panel status-workflow request — status
+    # vocabulary migrated from the old New/.../Booked set to New/.../
+    # Converted/.../Completed/Cancelled (see migrations/017_lead_status_
+    # workflow.sql). A direct checkout booking starts life as "Converted"
+    # (it skipped the lead pipeline entirely, so there's nothing to progress
+    # through) rather than the old "Booked".
+    status = "Converted" if req.is_booking else "New"
     event_sales_lead = await _resolve_sales_lead_name(req.sales_lead_code)
     lead_id = await database.execute(
         """

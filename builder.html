@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Wondershop Experiences — Plan Your Child's Dream Birthday</title>
 <!-- ── Google Analytics 4 ────────────────────────────────────────
      Replace G-XXXXXXXXXX with your real GA4 Measurement ID
@@ -68,7 +68,13 @@ input,textarea,select{font-family:var(--fb)}
 
 /* ── PAGE SWITCHER ── */
 #pg-home{display:block}
-#pg-builder{display:none;height:100vh;flex-direction:column;overflow:hidden}
+/* 2026-08-19, per Shruti: on mobile Safari/Chrome, 100vh is the viewport
+   height with the browser's address bar collapsed — right after load (or
+   with the bar still expanded), the real visible area is shorter, so the
+   Continue button at the bottom of a 100vh column could sit underneath the
+   address bar. 100dvh tracks the actual visible viewport; vh stays first as
+   a fallback for browsers that don't support dvh. */
+#pg-builder{display:none;height:100vh;height:100dvh;flex-direction:column;overflow:hidden}
 #pg-builder.active{display:flex}
 
 /* ══════════════════════════════════════
@@ -315,7 +321,18 @@ input,textarea,select{font-family:var(--fb)}
 /* Builder bottom bar — 3-column grid (not flex space-between) so the amount
    in the middle column is genuinely centered regardless of how wide the
    left (skip) / right (continue) content is. */
-.bld-bb{height:var(--bb-h);background:#fff;border-top:1.5px solid var(--li2);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 24px;flex-shrink:0;gap:16px}
+/* Discount progress bar — sits as its own thin strip directly above the
+   sticky bottom bar (a plain flex sibling, not part of the bar's own grid,
+   so it works unchanged across the desktop 3-column layout and the mobile
+   2-row layout below). */
+.bb-progress{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:7px 24px;background:#fff;border-top:1.5px solid var(--li2)}
+.bb-progress.hidden{display:none}
+.bb-progress-track{flex:1;height:5px;border-radius:3px;background:var(--li2);overflow:hidden}
+.bb-progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--li),var(--pk));border-radius:3px;transition:width .35s ease}
+.bb-progress-label{font-size:11.5px;font-weight:700;color:var(--bk);white-space:nowrap}
+.bb-progress-label .hl{color:var(--pk)}
+@media(max-width:480px){.bb-progress{padding:6px 14px;gap:8px}.bb-progress-label{font-size:10.5px}}
+.bld-bb{height:var(--bb-h);background:#fff;border-top:1.5px solid var(--li2);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 24px;padding-bottom:env(safe-area-inset-bottom, 0px);flex-shrink:0;gap:16px}
 .bld-bb.hidden{display:none}
 .bb-left{display:flex;align-items:center;gap:16px;justify-self:start}
 .bb-skip{font-size:13px;color:var(--gy);background:none;border:none;padding:6px 12px;border-radius:8px}
@@ -339,7 +356,7 @@ input,textarea,select{font-family:var(--fb)}
    row where the continue button gets cut off. */
 @media(max-width:480px){
   :root{--bb-h:92px}
-  .bld-bb{grid-template-columns:1fr auto;grid-template-rows:auto auto;grid-template-areas:"promo promo" "price continue";height:auto;min-height:var(--bb-h);padding:6px 14px 10px;gap:2px 8px}
+  .bld-bb{grid-template-columns:1fr auto;grid-template-rows:auto auto;grid-template-areas:"promo promo" "price continue";height:auto;min-height:var(--bb-h);padding:6px 14px calc(10px + env(safe-area-inset-bottom, 0px));gap:2px 8px}
   .bb-left{grid-area:promo;justify-self:stretch;width:100%;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--li3)}
   .bb-promo-msg{display:block;font-size:10.5px;font-weight:600;color:var(--gr);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .bb-skip{font-size:11px;padding:2px 6px;flex-shrink:0}
@@ -1649,7 +1666,7 @@ input,textarea,select{font-family:var(--fb)}
 
   <div class="s-hero"><div class="slbl">Step 3 of 9</div>
     <h1>Choose your <span class="hl">host tier</span></h1>
-    <p>Your Party Lead will personally match you with the perfect host and share the details post-booking.</p>
+    <p>Your Party Experience Lead will handpick a host who matches your vibe and brings the right energy to your celebration.</p>
   </div>
 
   <!-- Tier naming unified 2026-08-07 (Classic/Premium/Signature) across
@@ -1719,13 +1736,18 @@ input,textarea,select{font-family:var(--fb)}
   <!-- Tier naming unified 2026-08-07 (Classic/Premium/Signature) — see
        matching comment at id="hostCards". S.dj.tier now stores the bare
        tier word ('Classic'/'Premium'/'Signature'), same as Host/Photographer;
-       "DJ" only appears internally (ids/keys), never in the display label. -->
+       "DJ" only appears internally (ids/keys), never in the display label.
+       2026-08-19, per Shruti: display names further renamed to "Music
+       Essential"/"Music Plus" — see musicLabel() below. S.dj.tier itself is
+       UNCHANGED ('Classic'/'Premium') so package-page handoff (unicorn/spy/
+       turf-basic.html) and every existing tier===  comparison keep working;
+       only what's shown to the customer changed. -->
   <div class="sec-blk">
     <div class="tier-cards" id="djCards">
       <div class="tier-card" onclick="selTier(this,'dj','Classic',7000)">
-        <img class="tc-img" src="img/dj-classic.jpg" alt="Classic Music">
+        <img class="tc-img" src="img/dj-classic.jpg" alt="Music Essential">
         <div class="tc-check">✓</div>
-        <div class="tc-name">Classic Music</div>
+        <div class="tc-name">Music Essential</div>
         <div class="tc-sub">Essential sound for homes and small spaces</div>
         <div class="tc-price">₹7,000</div>
         <div class="tc-feats">
@@ -1736,9 +1758,9 @@ input,textarea,select{font-family:var(--fb)}
         </div>
       </div>
       <div class="tier-card" onclick="selTier(this,'dj','Premium',11000)">
-        <img class="tc-img" src="img/dj-premium.jpg" alt="Premium Music">
+        <img class="tc-img" src="img/dj-premium.jpg" alt="Music Plus">
         <div class="tc-check">✓</div>
-        <div class="tc-name">Premium Music</div>
+        <div class="tc-name">Music Plus</div>
         <div class="tc-sub">Full music setup for banquet halls and larger venues</div>
         <div class="tc-price">₹11,000</div>
         <div class="tc-feats">
@@ -2333,6 +2355,19 @@ input,textarea,select{font-family:var(--fb)}
 
   </div><!-- /bld-wrap -->
 </main>
+
+<!-- Discount progress bar — 2026-08-19, per Shruti: "attaching amazon's
+     screenshot - on how they show a bar to the user for the discount. let's
+     build something like that for us on the sticky panel." Shows how close
+     the cart is to the next auto-discount slab (see autoDiscountAmt()) — a
+     thin fill bar + "Add ₹X more for Y% off" label, same idea as Amazon's
+     "Add ₹154 more for ₹50 Cashback" bar near checkout. Hidden entirely on
+     package-origin carts (Spy/Unicorn/Turf) whose discount isn't governed
+     by these slabs, and once the top slab (9%) is already unlocked. -->
+<div class="bb-progress hidden" id="bbProgress">
+  <div class="bb-progress-track"><div class="bb-progress-fill" id="bbProgressFill"></div></div>
+  <div class="bb-progress-label" id="bbProgressLabel"></div>
+</div>
 
 <!-- Bottom Bar -->
 <div class="bld-bb hidden" id="bldBB">
@@ -3036,7 +3071,7 @@ function cItems(){
     const hostNote=hostIncluded?' <span style="color:var(--gy);font-weight:500;font-size:11px">· Included</span>':'';
     items.push({cat:'Host',n:S.host.tier+' Host'+hostNote,p:S.host.p,id:S.host.tier});
   }
-  if(S.dj)items.push({cat:'DJ',n:S.dj.tier+' Music',p:S.dj.p,id:S.dj.tier});
+  if(S.dj)items.push({cat:'DJ',n:musicLabel(S.dj.tier),p:S.dj.p,id:S.dj.tier});
   if(S.djAddons.lights)items.push({cat:'Addons',n:'Music Lights',p:1500,id:'dj-lights'});
   if(S.djAddons.smoke)items.push({cat:'Addons',n:'Smoke Machine',p:2000,id:'dj-smoke'});
   // 2026-08-18, per Shruti — "let's not give free pinata" — the free-pinata
@@ -3373,22 +3408,47 @@ function updHdr(id){
   document.getElementById('bpGap').classList.toggle('show',nextIdx<=7);
 }
 
+// Amazon-style "Add ₹X more for Y% off" sticky progress bar — 2026-08-19,
+// per Shruti. Tracks the generic order-value slab ladder from
+// autoDiscountAmt() (25k→5%, 35k→7%, 45k→9%); package-origin carts (Spy/
+// Unicorn/Turf) run their own guaranteed-discount math instead, so the bar
+// stays hidden there rather than showing progress toward slabs that don't
+// actually apply.
+const DISC_SLABS=[{min:25000,pct:5},{min:35000,pct:7},{min:45000,pct:9}];
+function updDiscProgress(gt){
+  const wrap=document.getElementById('bbProgress');
+  if(!wrap)return;
+  const fill=document.getElementById('bbProgressFill');
+  const label=document.getElementById('bbProgressLabel');
+  if(S._pkgOrigin||!gt){wrap.classList.add('hidden');return;}
+  const idx=DISC_SLABS.findIndex(s=>gt<s.min);
+  if(idx===-1){wrap.classList.add('hidden');return;}   // top slab already unlocked
+  const next=DISC_SLABS[idx];
+  const prevMin=idx>0?DISC_SLABS[idx-1].min:0;
+  const pct=Math.max(0,Math.min(100,((gt-prevMin)/(next.min-prevMin))*100));
+  wrap.classList.remove('hidden');
+  fill.style.width=pct+'%';
+  label.innerHTML='Add <span class="hl">₹'+(next.min-gt).toLocaleString('en-IN')+'</span> more for '+next.pct+'% off!';
+}
+
 // ── BOTTOM BAR ──
 function updBB(id){
   const bb=document.getElementById('bldBB');
   const hideOn=['shome','sconf','sleadsent'];
   bb.classList.toggle('hidden',hideOn.includes(id));
-  if(hideOn.includes(id))return;
+  if(hideOn.includes(id)){document.getElementById('bbProgress')?.classList.add('hidden');return;}
   // Lead form & Step 0: hide the running price total — neither screen has a
   // cart amount to show yet (Step 0 shows only the "Start Building →" CTA).
   const priceWrap=document.querySelector('#bldBB .bb-disc-wrap');
   if(priceWrap)priceWrap.style.display=(id==='slead'||id==='s0')?'none':'';
+  if(id==='slead'||id==='s0'){document.getElementById('bbProgress')?.classList.add('hidden');}
   if(id==='slead'){
     const skipBtn=document.getElementById('bbSkip');const contBtn=document.getElementById('bbCont');const revBackBtn=document.getElementById('bbRevBack');
     skipBtn.style.display='none';contBtn.textContent='Send My Details →';revBackBtn.style.display='none';
     return;
   }
   const gt=rawT();const tpv=tp();const dpv=dp();const payv=payTotal();
+  if(id!=='s0')updDiscProgress(gt);
   document.getElementById('bbTotal').textContent='₹'+payv.toLocaleString('en-IN');
   // 2026-08-18, per Shruti — "discounts should be very clearly called out,
   // even the einvite one": totalSavings folds in BOTH the auto/flat
@@ -3846,6 +3906,12 @@ function renderGalThumbs(){
 }
 
 // ── HOST & MUSIC (internal cat/id/state still say "DJ" — see id="djCards") ──
+// musicLabel() — 2026-08-19, per Shruti: customer-facing Music tier names
+// renamed to "Music Essential"/"Music Plus". S.dj.tier itself stays the bare
+// internal word ('Classic'/'Premium') everywhere else in the code (package
+// handoff, tier===  comparisons, etc.) — this is the single place that maps
+// it to the display name, same pattern as the tier-unification comment above.
+function musicLabel(tier){return tier==='Classic'?'Music Essential':tier==='Premium'?'Music Plus':(tier+' Music');}
 function selTier(card,type,tier,p){const wasSel=card.classList.contains('sel');document.querySelectorAll('#'+type+'Cards .tier-card').forEach(c=>c.classList.remove('sel'));if(wasSel){S[type]=null;}else{card.classList.add('sel');S[type]={tier,p};}updBB(S.screen);}
 function syncHostDom(){if(!S.host)return;const map={'Classic':0,'Premium':1,'Signature':2};const idx=map[S.host.tier];if(idx===undefined)return;const cards=document.querySelectorAll('#hostCards .tier-card');cards.forEach((c,i)=>c.classList.toggle('sel',i===idx));}
 function toggleDjAddon(btn,key){S.djAddons[key]=!S.djAddons[key];btn.classList.toggle('on',S.djAddons[key]);updBB(S.screen);}
@@ -4964,7 +5030,7 @@ function buildSummaryText(){
   if(S.decor)lines.push('Decor: '+S.decor.n+' (₹'+S.decor.p.toLocaleString('en-IN')+')');
   if(S.activities.length)lines.push('Activities: '+S.activities.map(a=>a.n).join(', '));
   if(S.host)lines.push('Host: '+S.host.tier+' (₹'+S.host.p.toLocaleString('en-IN')+')');
-  if(S.dj)lines.push('Music: '+S.dj.tier+' (₹'+S.dj.p.toLocaleString('en-IN')+')');
+  if(S.dj)lines.push('Music: '+musicLabel(S.dj.tier)+' (₹'+S.dj.p.toLocaleString('en-IN')+')');
   if(S.djAddons.lights||S.djAddons.smoke)lines.push('Music Add-ons: '+djAddonsText());
   if(S.pinata)lines.push('Pinata: '+S.pinata.n+' (₹'+S.pinata.p.toLocaleString('en-IN')+')');
   if(S.einvite)lines.push('E-Invite: '+S.einvite.n);
@@ -5120,7 +5186,7 @@ function renderConfServices(){
   if(!grid)return;
   const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
   const djParts=[];
-  if(S.dj&&S.dj.tier)djParts.push(S.dj.tier);
+  if(S.dj&&S.dj.tier)djParts.push(musicLabel(S.dj.tier));
   if(S.djAddons.lights)djParts.push('Music Lights');
   if(S.djAddons.smoke)djParts.push('Smoke Machine');
   const giftsVal=S.gifts.length?S.gifts.map(g=>g.n+' x'+g.qty).join(', '):'';

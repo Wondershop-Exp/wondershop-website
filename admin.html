@@ -53,15 +53,25 @@ table.list td{padding:10px;border-bottom:1px solid var(--li2);font-size:14px}
 table.list tr{cursor:pointer}
 table.list tr:hover td{background:var(--li3)}
 .status-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
-.status-Booked{background:var(--sgr);color:#166534}
+.status-Booked,.status-Converted,.status-Completed{background:var(--sgr);color:#166534}
 .status-New{background:var(--sbl);color:#1e3a8a}
-.status-Lead{background:var(--syl);color:#92400e}
+.status-Lead,.status-ProposalSent,.status-InitialDiscussionsDone,.status-NegotiationsOngoing{background:var(--syl);color:#92400e}
+.status-NotInterested,.status-DND,.status-Cancelled{background:var(--spk);color:#8a1a44}
 
 /* ─── Detail view ─── */
 .detail-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
 .detail-head h2{font-size:20px}
 .detail-meta{font-size:12px;color:var(--gy)}
 .section-block{margin-bottom:26px}
+.status-card{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,.05);display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.status-card .fld{display:flex;flex-direction:column;gap:4px;min-width:160px}
+.status-card label{font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);font-weight:600}
+.status-card select,.status-card input{padding:8px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13px}
+.status-card .btns{display:flex;gap:8px;margin-left:auto}
+.status-card .btn{padding:9px 16px;border:none;border-radius:8px;font-size:13px;font-weight:700}
+.status-card .btn.save{background:var(--bk);color:#fff}
+.status-card .btn.convert{background:var(--gr);color:#fff}
+.status-card .btn.cancel{background:var(--pk);color:#fff}
 .section-block h3{font-size:15px;color:var(--pk);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px}
 table.fields{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--rs);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05)}
 table.fields th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);padding:8px 10px;background:var(--lgy)}
@@ -125,7 +135,7 @@ table.fields textarea{resize:vertical;min-height:32px}
       <button onclick="doSearch()">Search</button>
     </div>
     <table class="list">
-      <thead><tr><th>ID</th><th>Parent</th><th>Phone</th><th>Event Date</th><th>City</th><th>Status</th><th>Created</th></tr></thead>
+      <thead><tr><th>ID</th><th>Parent</th><th>Phone</th><th>Event Date</th><th>City</th><th>Status</th><th>Created</th><th></th></tr></thead>
       <tbody id="listBody"></tbody>
     </table>
     <div class="empty" id="listEmpty" style="display:none">No bookings found.</div>
@@ -137,6 +147,7 @@ table.fields textarea{resize:vertical;min-height:32px}
       <h2 id="detTitle"></h2>
       <div class="detail-meta" id="detMeta"></div>
     </div>
+    <div id="statusBlock" class="section-block"></div>
     <div id="sectionsContainer"></div>
     <div class="log-section">
       <h3>Modification Trail</h3>
@@ -151,6 +162,21 @@ table.fields textarea{resize:vertical;min-height:32px}
 const API = 'https://wondershop-website-production.up.railway.app';
 let CURRENT_LEAD_ID = null;
 let CURRENT_DETAIL = null;
+
+// Lead → Booking status workflow (2026-08-19, per Shruti) — populated once
+// at boot from /api/admin/status-options (single source of truth is the
+// backend's ALL_STATUSES/NON_CONVERT_REASONS — see routers/admin.py).
+let STATUS_OPTIONS = [];
+let NON_CONVERT_REASON_OPTIONS = [];
+let NON_CONVERT_STATUSES = ['Not Interested', 'DND'];
+async function loadStatusOptions(){
+  try{
+    const d = await apiCall('/api/admin/status-options');
+    STATUS_OPTIONS = d.status_options||[];
+    NON_CONVERT_REASON_OPTIONS = d.non_convert_reason_options||[];
+    NON_CONVERT_STATUSES = d.non_convert_statuses||NON_CONVERT_STATUSES;
+  }catch(e){ /* list/detail views still work with an empty dropdown if this fails */ }
+}
 
 // Mirrors builder.html's #ld-gender select (2026-08-18, per Shruti).
 const GENDER_OPTIONS = [
@@ -225,6 +251,7 @@ function enterApp(){
   // Save silently bails on it later (2026-08-18, per Shruti's report of an
   // edit that appeared to do nothing).
   if(!getName()) highlightWhoName();
+  loadStatusOptions();
   doSearch();
 }
 
@@ -249,15 +276,15 @@ async function doSearch(){
     if(!rows.length){ body.innerHTML=''; empty.style.display='block'; return; }
     empty.style.display='none';
     body.innerHTML = rows.map(r=>{
-      const cls = 'status-'+(r.status||'').replace(/[^A-Za-z]/g,'');
       return '<tr onclick="openBooking('+r.lead_id+')">'
         +'<td>#'+r.lead_id+'</td>'
         +'<td>'+esc(r.parent_name||'')+'</td>'
         +'<td>'+esc(r.phone||'')+'</td>'
         +'<td>'+esc(r.event_date||'—')+'</td>'
         +'<td>'+esc(r.city||'—')+'</td>'
-        +'<td><span class="status-pill '+cls+'">'+esc(r.status||'')+'</span></td>'
+        +'<td>'+listStatusCellHtml(r)+'</td>'
         +'<td>'+esc(r.created_on_ist||'')+'</td>'
+        +'<td>'+listActionsCellHtml(r)+'</td>'
         +'</tr>';
     }).join('');
   }catch(e){
@@ -266,6 +293,42 @@ async function doSearch(){
 }
 
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+// 2026-08-19, per Shruti — "give an option to convert a lead into a booking
+// on the summary page and the lead detail page" + "give an option to cancel
+// the event as well ... on event detail page and summary page". Summary
+// (list view) quick actions live here; the detail page's fuller version
+// (with the non-conversion reason picker) is in renderDetail()/statusBlockHtml().
+function listStatusCellHtml(r){
+  const cls = 'status-'+(r.status||'').replace(/[^A-Za-z]/g,'');
+  if(!STATUS_OPTIONS.length) return '<span class="status-pill '+cls+'">'+esc(r.status||'')+'</span>';
+  const opts = STATUS_OPTIONS.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===r.status?' selected':'')+'>'+esc(o.label)+'</option>').join('');
+  return '<select class="status-pill '+cls+'" style="border:none;font:inherit;padding:3px 6px" '
+    +'onclick="event.stopPropagation()" onchange="event.stopPropagation();quickSetStatus('+r.lead_id+',this.value,this)">'+opts+'</select>';
+}
+function listActionsCellHtml(r){
+  if(r.status==='Cancelled'||r.status==='Completed') return '';
+  return '<button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button>';
+}
+async function quickSetStatus(leadId, newStatus, selectEl){
+  const who = getName();
+  if(!who){ showToast('Set "Editing as" name at the top first.'); if(selectEl) doSearch(); return; }
+  try{
+    await apiCall('/api/admin/bookings/'+leadId+'/status', {
+      method:'POST',
+      body: JSON.stringify({status:newStatus, changed_by:who}),
+    });
+    showToast('✓ Status updated to '+newStatus+(NON_CONVERT_STATUSES.includes(newStatus) ? ' — open the booking to record a reason.' : '.'));
+    doSearch();
+  }catch(e){
+    if(e.message!=='unauthorized') showToast(e.message);
+    doSearch();
+  }
+}
+function quickCancel(leadId){
+  if(!confirm('Cancel this event? This marks the booking Cancelled — it will not be auto-restored.')) return;
+  quickSetStatus(leadId, 'Cancelled', null);
+}
 
 // JSON.stringify() produces double-quoted strings, and every onclick="..."
 // attribute below is ALSO double-quoted — embedding one directly inside the
@@ -306,9 +369,77 @@ async function loadDetail(){
   }
 }
 
+// ── Status card (lead pipeline / convert / cancel) — detail page ──────────
+// 2026-08-19, per Shruti — see listStatusCellHtml() above for the summary-
+// page equivalent. This version also surfaces the non-conversion reason
+// picker (only relevant once you're looking at one specific lead).
+function statusBlockHtml(d){
+  const opts = STATUS_OPTIONS.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===d.status?' selected':'')+'>'+esc(o.label)+'</option>').join('');
+  const showReason = NON_CONVERT_STATUSES.includes(d.status);
+  const reasonOpts = ['<option value="">— Select —</option>'].concat(
+    NON_CONVERT_REASON_OPTIONS.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===d.non_convert_reason?' selected':'')+'>'+esc(o.label)+'</option>')
+  ).join('');
+  const isOthers = d.non_convert_reason==='Others';
+  return '<div class="status-card">'
+    +'<div class="fld"><label>Status</label><select id="statusSel" onchange="onStatusDropdownChange()">'+opts+'</select></div>'
+    +'<div class="fld" id="reasonFld" style="display:'+(showReason?'flex':'none')+'">'
+      +'<label>Reason (not converted)</label><select id="statusReasonSel" onchange="onStatusReasonChange()">'+reasonOpts+'</select></div>'
+    +'<div class="fld" id="reasonOtherFld" style="display:'+(showReason&&isOthers?'flex':'none')+'">'
+      +'<label>Please specify</label><input type="text" id="statusReasonOther" value="'+esc(d.non_convert_reason_other||'')+'"></div>'
+    +'<div class="btns">'
+      +(d.status!=='Cancelled' ? '<button class="btn cancel" onclick="cancelEventDetail()">Cancel Event</button>' : '')
+      +(d.status!=='Converted'&&d.status!=='Completed' ? '<button class="btn convert" onclick="convertLeadDetail()">Convert to Booking</button>' : '')
+      +'<button class="btn save" onclick="saveDetailStatus()">Save Status</button>'
+    +'</div>'
+    +'</div>';
+}
+function onStatusDropdownChange(){
+  const status = document.getElementById('statusSel').value;
+  const show = NON_CONVERT_STATUSES.includes(status);
+  document.getElementById('reasonFld').style.display = show?'flex':'none';
+  document.getElementById('reasonOtherFld').style.display = 'none';
+}
+function onStatusReasonChange(){
+  const isOthers = document.getElementById('statusReasonSel').value==='Others';
+  document.getElementById('reasonOtherFld').style.display = isOthers?'flex':'none';
+}
+async function submitStatus(status){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); highlightWhoName(); return; }
+  const reasonSel = document.getElementById('statusReasonSel');
+  const reasonOther = document.getElementById('statusReasonOther');
+  try{
+    await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/status', {
+      method:'POST',
+      body: JSON.stringify({
+        status: status,
+        non_convert_reason: reasonSel ? reasonSel.value : '',
+        non_convert_reason_other: reasonOther ? reasonOther.value : '',
+        changed_by: who,
+      }),
+    });
+    showToast('✓ Status set to '+status+'.');
+    await loadDetail();
+  }catch(e){
+    if(e.message!=='unauthorized') showToast(e.message);
+  }
+}
+function saveDetailStatus(){ submitStatus(document.getElementById('statusSel').value); }
+function convertLeadDetail(){ submitStatus('Converted'); }
+function cancelEventDetail(){
+  if(!confirm('Cancel this event? This marks the booking Cancelled — it will not be auto-restored.')) return;
+  submitStatus('Cancelled');
+}
+
 function renderDetail(d){
   document.getElementById('detTitle').textContent = 'Booking #'+d.lead_id;
   document.getElementById('detMeta').textContent = 'Status: '+d.status+' · Created '+d.created_on_ist;
+
+  // Prefer the options bundled with this response (always fresh/available)
+  // over the boot-time cache, which may not have resolved yet.
+  if(d.status_options && d.status_options.length) STATUS_OPTIONS = d.status_options;
+  if(d.non_convert_reason_options && d.non_convert_reason_options.length) NON_CONVERT_REASON_OPTIONS = d.non_convert_reason_options;
+  document.getElementById('statusBlock').innerHTML = statusBlockHtml(d);
 
   const container = document.getElementById('sectionsContainer');
   container.innerHTML = d.sections.map(sec=>{
@@ -466,9 +597,16 @@ function fieldRowHtml(f, isCustEvent){
 
   // ── Read-only fields (Grand Total / Balance Due): plain display, no editing at all
   if(f.read_only){
+    // 2026-08-19, per Shruti: Balance Due is now live (Grand Total − Advance
+    // Paid, recalculated on every load) — Grand Total itself still isn't
+    // re-derived from today's service selections (it's the amount the
+    // customer actually agreed to pay at checkout), so the two get different notes.
+    const note = f.field_key==='bill_balance'
+      ? 'Auto-calculated: Grand Total − Advance Paid (updates as soon as Advance Paid is saved).'
+      : 'Captured at checkout — not re-calculated when services/overrides change here.';
     return '<tr id="'+rid+'" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+'</td>'
-      +'<td colspan="3"><span class="readonly-cell computed">'+esc(f.customer_choice||'—')+'<span class="computed-note">System-calculated as of booking/last update — not yet live-recalculated when services change.</span></span></td>'
+      +'<td colspan="3"><span class="readonly-cell computed">'+esc(f.customer_choice||'—')+'<span class="computed-note">'+note+'</span></span></td>'
       +'<td></td>'
       +'</tr>';
   }
@@ -517,7 +655,11 @@ function fieldRowHtml(f, isCustEvent){
   }else if(f.field_key==='pincode'){
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'6-digit pincode')+'" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').slice(0,6);onPincodeInput(this.value);">';
   }else if(f.field_key==='city'){
-    avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Auto-fills from pincode once mapped')+'">';
+    // 2026-08-19, per Shruti: City is auto-filled from Pincode (see
+    // PINCODE_CITY_MAP/onPincodeInput() above) and should not be hand-typed
+    // — readonly (not disabled) so onPincodeInput() can still set .value
+    // programmatically and Save still picks it up.
+    avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Auto-fills from pincode')+'" readonly style="background:var(--lgy);cursor:not-allowed">';
   }else{
     const numAttrs = f.field_key==='bill_discount_pct' ? ' step="0.01" min="0" max="100"'
                     : f.field_key==='bill_advance' ? ' step="0.01" min="0"' : '';

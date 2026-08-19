@@ -133,8 +133,11 @@ FIELD_CATALOG = [
     {"key": "venue_contact_phone",  "label": "Venue Contact Phone",    "section": "Customer & Event Details"},
     {"key": "location_type",        "label": "Location Type",          "section": "Customer & Event Details"},
     {"key": "theme",                "label": "Theme",                  "section": "Customer & Event Details"},
-    {"key": "city",                 "label": "City",                   "section": "Customer & Event Details"},
+    # 2026-08-19, per Shruti: City moved below Pincode (City auto-fills from
+    # Pincode — see PINCODE_CITY_MAP/onPincodeInput() in admin.html — so it
+    # reads more naturally once Pincode has already been entered above it).
     {"key": "pincode",              "label": "Pincode",                "section": "Customer & Event Details"},
+    {"key": "city",                 "label": "City",                   "section": "Customer & Event Details"},
 
     # Services — derived from builder_snapshot. Customer's Choice is a
     # dropdown for the fixed-option services; Assigned Value holds the
@@ -236,6 +239,26 @@ EINVITE_OPTIONS = [_opt(x) for x in [
 ]]
 PAYMENT_METHOD_OPTIONS = [_opt(x) for x in ["Cash", "UPI Transfer", "Bank Transfer", "Internal Settle"]]
 PAYMENT_STATUS_OPTIONS = [_opt(x) for x in ["Pending", "Advance Paid Pending Verification", "Advance Paid Verified", "Complete"]]
+
+# ─── Lead → Booking status workflow (2026-08-19, per Shruti) ──────────────
+# See migrations/017_lead_status_workflow.sql. 'New' is the DB default set
+# at lead creation. 'Completed'/'Cancelled' apply post-conversion — see
+# _auto_complete_past_bookings() below for the Completed auto-transition;
+# Cancelled is only ever set explicitly (by an admin) and is never touched
+# by that auto-transition, so it's permanent ("remains cancelled forever").
+LEAD_STATUSES = ["New", "Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing", "Converted", "Not Interested", "DND"]
+BOOKING_ONLY_STATUSES = ["Completed", "Cancelled"]
+ALL_STATUSES = LEAD_STATUSES + BOOKING_ONLY_STATUSES
+STATUS_OPTIONS = [_opt(x) for x in ALL_STATUSES]
+
+# Shown only when a lead is marked Not Interested / DND — i.e. it left the
+# pipeline without converting.
+NON_CONVERT_STATUSES = {"Not Interested", "DND"}
+NON_CONVERT_REASONS = [
+    "Seeking more discount", "Went ahead with a competitor", "Play area",
+    "We did not pitch on time", "Venue monopoly", "Others",
+]
+NON_CONVERT_REASON_OPTIONS = [_opt(x) for x in NON_CONVERT_REASONS]
 
 DROPDOWN_OPTIONS = {
     "svc_decor": DECOR_OPTIONS,
@@ -379,6 +402,13 @@ class FieldUpdateRequest(BaseModel):
     changed_by: str
 
 
+class StatusUpdateRequest(BaseModel):
+    status: str
+    non_convert_reason: Optional[str] = ""
+    non_convert_reason_other: Optional[str] = ""
+    changed_by: str
+
+
 # ─── LOG SENTENCES ────────────────────────────────────────────────────────
 
 def _log_sentence(field_label: str, change_type: str, old_value, new_value, changed_by: str, changed_at) -> str:
@@ -468,11 +498,16 @@ def _coerce_direct_value(key: str, raw: str):
         except ValueError:
             raise HTTPException(status_code=400, detail="Kids Count must be a whole number.")
     if key == "event_date":
+        # 2026-08-19, per Shruti: "event date is not getting updated" — this
+        # used to return the raw 'YYYY-MM-DD' STRING, which asyncpg rejects
+        # for a DATE column (leads.event_date is DATE, not TEXT), raising a
+        # 500 on every save. Every other direct-write field is a text/int
+        # column so a plain string/int coerces fine; date is the one column
+        # that needs an actual datetime.date object.
         try:
-            datetime.strptime(raw, "%Y-%m-%d")
+            return datetime.strptime(raw, "%Y-%m-%d").date()
         except ValueError:
             raise HTTPException(status_code=400, detail="Event Date must be in YYYY-MM-DD format.")
-        return raw
     if key == "event_time":
         try:
             datetime.strptime(raw, "%H:%M")
@@ -511,11 +546,38 @@ def _coerce_direct_value(key: str, raw: str):
     return raw
 
 
+# ─── STATUS AUTO-TRANSITION ────────────────────────────────────────────────
+# 2026-08-19, per Shruti: "status should change to completed once the event
+# date has passed. if the event is cancelled, then the status remains
+# cancelled forever." Run lazily (on every list/detail load, not via a
+# separate cron job — the backend has no scheduler infra today) — cheap
+# enough as a single bulk UPDATE, and it's always fresh by the time an admin
+# is actually looking at the page. Only 'Converted' bookings roll forward;
+# every other status (including 'Cancelled') is left untouched.
+async def _auto_complete_past_bookings():
+    await database.execute(
+        """
+        UPDATE leads
+        SET status = 'Completed'
+        WHERE status = 'Converted' AND event_date IS NOT NULL AND event_date < CURRENT_DATE
+        """
+    )
+
+
+@router.get("/status-options")
+async def get_status_options(x_admin_password: Optional[str] = Header(None)):
+    """Lets the list/summary page render its quick status dropdown without
+    fetching a full booking detail first."""
+    _require_admin(x_admin_password)
+    return {"status_options": STATUS_OPTIONS, "non_convert_reason_options": NON_CONVERT_REASON_OPTIONS, "non_convert_statuses": sorted(NON_CONVERT_STATUSES)}
+
+
 # ─── LIST ─────────────────────────────────────────────────────────────────
 
 @router.get("/bookings")
 async def list_bookings(q: Optional[str] = None, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
+    await _auto_complete_past_bookings()
     if q:
         like = f"%{q}%"
         rows = await database.fetch_all(
@@ -560,6 +622,7 @@ async def list_bookings(q: Optional[str] = None, x_admin_password: Optional[str]
 @router.get("/bookings/{lead_id}")
 async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
+    await _auto_complete_past_bookings()
 
     lead_row = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
     if not lead_row:
@@ -631,6 +694,38 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             "updated_at_ist": _to_ist_str(ov["updated_at"]) if ov else None,
         })
 
+    # ─── Balance Due auto-calculation ──────────────────────────────────────
+    # 2026-08-19, per Shruti: "fix the grand total now, it should be
+    # autocalculated." Grand Total itself already comes straight from what
+    # the customer actually agreed to pay at checkout (order_grand_total —
+    # captured live from builder.html's own discount/total math, so it's
+    # already correct and is deliberately NOT re-derived from today's
+    # service selections here — an admin override like "Host: Classic →
+    # Premium" is an operational note, not a new price agreement). What
+    # WASN'T auto-calculated was Balance Due: it used to just echo whatever
+    # order_balance was captured at the original checkout, so correcting
+    # Advance Paid here (e.g. after verifying a bank transfer) never moved
+    # Balance Due. Balance Due is now always Grand Total − Advance Paid,
+    # using each field's live resolved value (i.e. any admin override to
+    # Advance Paid is picked up immediately).
+    def _money(s):
+        if s in (None, ""):
+            return None
+        try:
+            return float(str(s).replace(",", "").replace("₹", "").strip())
+        except ValueError:
+            return None
+
+    billing_fields = {f["field_key"]: f for f in sections.get("Billing & Rewards", [])}
+    grand_total_val = _money(billing_fields.get("bill_grand_total", {}).get("customer_choice"))
+    advance_val = _money(billing_fields.get("bill_advance", {}).get("customer_choice"))
+    balance_field = billing_fields.get("bill_balance")
+    if balance_field is not None and grand_total_val is not None:
+        computed_balance = grand_total_val - (advance_val or 0)
+        display = str(int(computed_balance)) if computed_balance == int(computed_balance) else str(computed_balance)
+        balance_field["customer_choice"] = display
+        balance_field["original_value"] = display
+
     # Custom (admin-added) fields not in the predefined catalog
     for key, ov in overrides.items():
         if key in CATALOG_BY_KEY or not ov.get("is_custom"):
@@ -680,6 +775,10 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
     return {
         "lead_id": lead_id,
         "status": lead.get("status"),
+        "non_convert_reason": lead.get("non_convert_reason"),
+        "non_convert_reason_other": lead.get("non_convert_reason_other"),
+        "status_options": STATUS_OPTIONS,
+        "non_convert_reason_options": NON_CONVERT_REASON_OPTIONS,
         "created_on_ist": _to_ist_str(lead.get("created_on")),
         "sections": [{"section": s, "fields": sections[s]} for s in sections],
         "change_log": change_log,
@@ -878,3 +977,64 @@ async def update_booking_field(lead_id: int, body: FieldUpdateRequest, x_admin_p
         "success": True, "field_key": key, "field_label": label, "changes_logged": len(log_entries),
         "log_entries": [{"change_type": ct, "old_value": ov_, "new_value": nv} for ct, ov_, nv, ts in log_entries],
     }
+
+
+# ─── STATUS UPDATE (lead pipeline / convert / cancel) ──────────────────────
+# 2026-08-19, per Shruti — single endpoint backs the status dropdown, the
+# "Convert to Booking" action, and the "Cancel Event" action on both the
+# summary/list page and the detail page (they're all just different status
+# values through the same path). See migrations/017_lead_status_workflow.sql
+# for the allowed values.
+@router.post("/bookings/{lead_id}/status")
+async def update_booking_status(lead_id: int, body: StatusUpdateRequest, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+
+    if not body.changed_by or not body.changed_by.strip():
+        raise HTTPException(status_code=400, detail="changed_by is required.")
+    who = body.changed_by.strip()
+
+    new_status = (body.status or "").strip()
+    if new_status not in ALL_STATUSES:
+        raise HTTPException(status_code=400, detail=f'"{new_status}" is not a valid status.')
+
+    lead_row = await database.fetch_one("SELECT status, converted_on FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    if not lead_row:
+        raise HTTPException(status_code=404, detail="Booking not found.")
+    old_status = lead_row["status"]
+
+    new_reason = (body.non_convert_reason or "").strip()
+    new_reason_other = (body.non_convert_reason_other or "").strip()
+    if new_status not in NON_CONVERT_STATUSES:
+        # Reason only makes sense for Not Interested / DND — clear it on any
+        # other status so a stale reason doesn't linger from an earlier detour.
+        new_reason, new_reason_other = "", ""
+    elif new_reason and new_reason not in NON_CONVERT_REASONS:
+        raise HTTPException(status_code=400, detail=f'"{new_reason}" is not a valid non-conversion reason.')
+
+    now = datetime.utcnow()
+    set_clauses = ["status = :status", "non_convert_reason = :reason", "non_convert_reason_other = :reason_other"]
+    values = {
+        "id": lead_id, "status": new_status,
+        "reason": new_reason or None, "reason_other": new_reason_other or None,
+    }
+    # Stamp converted_on the first time a lead reaches Converted — never
+    # overwritten on later saves (e.g. Converted -> Completed shouldn't erase
+    # when the original conversion actually happened).
+    if new_status == "Converted" and not lead_row["converted_on"]:
+        set_clauses.append("converted_on = :converted_on")
+        values["converted_on"] = now
+
+    await database.execute(f"UPDATE leads SET {', '.join(set_clauses)} WHERE lead_id = :id", values=values)
+
+    if old_status != new_status:
+        await database.execute(
+            """
+            INSERT INTO booking_change_log
+                (lead_id, field_key, field_label, change_type, old_value, new_value, changed_by, changed_at)
+            VALUES
+                (:lead_id, 'status', 'Status', 'field_value', :old_v, :new_v, :by, :ts)
+            """,
+            values={"lead_id": lead_id, "old_v": old_status, "new_v": new_status, "by": who, "ts": now},
+        )
+
+    return {"success": True, "status": new_status}

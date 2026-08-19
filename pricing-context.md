@@ -44,18 +44,19 @@ This table is the one thing all four pricing paths above have in common — see 
 ## How Total Savings Are Displayed ("trueMRP")
 _Added 2026-08-18, per Shruti — "discounts should be very clearly called out, even the [free] einvite one."_
 
-Before this, a customer building the same combo via the generic Build a Birthday flow (not a dedicated package page) only ever saw the order-value slab discount called out — if they'd also crossed the free-pinata or free-e-invite threshold, that saving was invisible, just folded quietly into a lower total. `trueMRP()` in builder.html now sums every cart item's real pre-savings value (its normal price, or its original price for anything zeroed out by a free-addon threshold) so the bottom bar, mini-cart, and checkout Order Summary can show one clearly-labelled struck-through MRP with **all** savings combined — the order-value discount and any unlocked free addon — instead of only part of the story.
+Before this, a customer building the same combo via the generic Build a Birthday flow (not a dedicated package page) only ever saw the order-value slab discount called out — if they'd also crossed the free-e-invite threshold, that saving was invisible, just folded quietly into a lower total. `trueMRP()` in builder.html now sums every cart item's real pre-savings value (its normal price, or its original price for anything zeroed out by a free-addon threshold) so the bottom bar, mini-cart, and checkout Order Summary can show one clearly-labelled struck-through MRP with **all** savings combined — the order-value discount and any unlocked free addon — instead of only part of the story. (The free-pinata threshold this originally covered was removed 2026-08-18 — see Pinata below — so today the only free-addon threshold feeding into this is E-Invite.)
 
 ---
 
 ## Music
-_Renamed from "DJ" site-wide (2026-08-16, per Shruti) — user-facing labels only; internal code identifiers (S.dj, cat:'DJ', img/dj-*.jpg, etc.) are unchanged, see builder.html._
+_Renamed from "DJ" site-wide (2026-08-16, per Shruti) — user-facing labels only; internal code identifiers (S.dj, cat:'DJ', img/dj-*.jpg, etc.) are unchanged, see builder.html. Tier names further renamed 2026-08-19, per Shruti, to "Music Essential"/"Music Plus" (internal tier word stays 'Classic'/'Premium' — see musicLabel() in builder.html)._
 
-| Tier | Standalone | Bundled | Inclusions |
-|------|-----------|---------|------------|
-| Music Lite | ₹7,000 | ₹6,500 | 1 speaker, 1 cordless mic, music mixer, 1 operator. Home/small spaces. |
-| Music Standard | ₹11,000 | ₹10,000 | 2 speakers, 2 cordless mics, music mixer, 1 pro music player |
-| Music Pro | ₹15,000 | ₹12,000 | 2 speakers, 2 cordless mics, music mixer, 1 expert music player + music lights |
+| Tier | Price | Inclusions |
+|------|-------|------------|
+| Music Essential (internal: Classic) | ₹7,000 | 1 speaker, 1 mixer, 2 cordless mics, 1 operator. Up to 50 guests, 4 hours. |
+| Music Plus (internal: Premium) | ₹11,000 | 2 big speakers, 1 mixer, 2 cordless mics, 1 operator. 50–200 guests, 4 hours. |
+
+Optional add-ons: Music Lights (₹1,500), Smoke Machine (₹2,000).
 
 ---
 
@@ -118,11 +119,10 @@ _Renamed from "DJ" site-wide (2026-08-16, per Shruti) — user-facing labels onl
 ---
 
 ## Pinata
-- ₹2,000 for all options
-- **Free** above ₹40,000 order value (updated 2026-08-12, was ₹50,000), checked against the cart total *excluding the pinata's own price* — same rule as E-Invite below (fixed 2026-08-18; the pinata's own price was briefly counting toward its own free threshold, which could make a pricier pinata free while a cheaper one wasn't)
-- Not offered on package-origin checkouts (Spy/Unicorn/Turf) — those always charge full pinata price, no threshold
+- ₹2,000 for all options (Build a Birthday)
+- **No free-above-threshold offer** (removed 2026-08-18, per Shruti — "let's not give free pinata") — Pinata always charges full price at every order value, on every pricing path (generic Build a Birthday, Spy, Unicorn, Turf alike). The old ₹40,000 threshold and its "🎁 Addon Unlocked!" framing are gone entirely.
+- Free E-Invite and the sitewide Order-Value Discount Slabs are unaffected by this change and still apply as described elsewhere in this doc
 - All pinata options are handmade (readymade pinatas may be added as an option in future)
-- Shown to the customer as "🎁 Addon Unlocked!" once free, not "(FREE)" (reworded 2026-08-18, per Shruti — same framing change as E-Invite below); the struck-through original price is still shown alongside it so the saving is clearly called out, not just folded silently into a lower total
 
 ## E-Invite
 - **Free** above ₹20,000 order value (updated 2026-08-12, was ₹30,000), checked against the cart total excluding the e-invite's own price
