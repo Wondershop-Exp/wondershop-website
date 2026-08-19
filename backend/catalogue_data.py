@@ -217,7 +217,7 @@ PHOTO_TIER_FEATURES = {
 # (id="hostCards"/"djCards"/Photographer step) and the PINATAS JS array —
 # used only to show "Tier - Rs. Price" in the admin dropdowns (2026-08-18,
 # per Shruti). Keep in sync by hand if those prices ever change.
-HOST_TIER_PRICES = {"Classic": 10000, "Premium": 12000, "Signature": 15000}
+HOST_TIER_PRICES = {"Premium": 10000, "Signature": 15000}   # simplified from 3 tiers to 2, 2026-08-19 per Shruti (old 'Classic'/'Premium'/'Signature' -> 'Premium'/'Signature')
 DJ_TIER_PRICES = {"Classic": 7000, "Premium": 11000}   # Music has no Signature tier
 PHOTO_TIER_PRICES = {"Classic": 6000, "Premium": 10000, "Signature": 18000}
 PINATA_TIER_PRICES = {

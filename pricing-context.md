@@ -61,12 +61,12 @@ Optional add-ons: Music Lights (₹1,500), Smoke Machine (₹2,000).
 ---
 
 ## Host
+_Simplified from 3 tiers to 2 (2026-08-19, per Shruti) — the old middle "Premium" tier (₹12,000/85 mins) was dropped; the old bottom "Classic" tier is renamed "Premium" (same ₹10,000/60 mins) and "Signature" (₹15,000/90 mins) is unchanged apart from copy tweaks._
 
-| Tier | Standalone | Bundled | Duration / Notes |
-|------|-----------|---------|-----------------|
-| Starter | ₹10,000 | ₹8,000 | 60 mins engagement |
-| Premium | ₹12,000 | ₹10,000 | 85 mins engagement |
-| Signature | ₹15,000 | ₹13,000 | 90 mins engagement, premium props, signature-category host |
+| Tier | Price | Duration / Notes |
+|------|-------|-------------------|
+| Premium | ₹10,000 | Up to 60 mins engagement, experienced host, essential props |
+| Signature | ₹15,000 | Up to 90 mins engagement, senior host, premium props |
 
 ---
 

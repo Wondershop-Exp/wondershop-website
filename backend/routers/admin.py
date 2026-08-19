@@ -222,7 +222,7 @@ def _build_decor_options():
 # pinata name (unpriced) so it still matches historical booking data and the
 # DROPDOWN_VALUES membership check in _validate_choice_value below.
 DECOR_OPTIONS = _build_decor_options()
-HOST_OPTIONS = [_opt(x, f'{x} - Rs. {cat.HOST_TIER_PRICES[x]}') for x in ["Classic", "Premium", "Signature"]]
+HOST_OPTIONS = [_opt(x, f'{x} - Rs. {cat.HOST_TIER_PRICES[x]}') for x in ["Premium", "Signature"]]
 DJ_OPTIONS = [_opt(x, f'{x} - Rs. {cat.DJ_TIER_PRICES[x]}') for x in ["Classic", "Premium"]]
 PHOTO_OPTIONS = [_opt(x, f'{x} - Rs. {cat.PHOTO_TIER_PRICES[x]}') for x in ["Classic", "Premium", "Signature"]]
 PINATA_OPTIONS = [
@@ -717,8 +717,8 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
     # the customer actually agreed to pay at checkout (order_grand_total —
     # captured live from builder.html's own discount/total math, so it's
     # already correct and is deliberately NOT re-derived from today's
-    # service selections here — an admin override like "Host: Classic →
-    # Premium" is an operational note, not a new price agreement). What
+    # service selections here — an admin override like "Host: Premium →
+    # Signature" is an operational note, not a new price agreement). What
     # WASN'T auto-calculated was Balance Due: it used to just echo whatever
     # order_balance was captured at the original checkout, so correcting
     # Advance Paid here (e.g. after verifying a bank transfer) never moved

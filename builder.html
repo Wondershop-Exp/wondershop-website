@@ -1662,48 +1662,39 @@ input,textarea,select{font-family:var(--fb)}
     <p>Your Party Experience Lead will handpick a host who matches your vibe and brings the right energy to your celebration.</p>
   </div>
 
-  <!-- Tier naming unified 2026-08-07 (Classic/Premium/Signature) across
-       Host, Music and Photographer — see matching comments at id="djCards"
-       and the Photographer tier-card block. Resolves the earlier "Premium"
-       mix-up (a file literally named "host-premium" was the top tier, not
-       the middle one) since all three categories now share the same
-       three-word vocabulary, in the same rank order, everywhere. -->
+  <!-- Host simplified from 3 tiers to 2 (2026-08-19, per Shruti) — the old
+       middle "Premium" tier (₹12,000/85 mins) was dropped; the old bottom
+       "Classic" tier is renamed to "Premium" (still ₹10,000/60 mins, same
+       host-classic.jpg photo) and "Signature" (₹15,000/90 mins) is
+       unchanged apart from copy tweaks. Internal tier id is now 'Premium'/
+       'Signature' everywhere (see selTier() calls below, syncHostDom(),
+       the img map in svcMedia(), catalogue_data.py's HOST_TIER_PRICES, and
+       unicorn-basic.html's own HOST_TIERS mirror) — 'Classic' no longer
+       exists as a host tier value. -->
   <div class="sec-blk">
     <div class="tier-cards" id="hostCards">
-      <div class="tier-card" onclick="selTier(this,'host','Classic',10000)">
-        <img class="tc-img" src="img/host-classic.jpg" alt="Classic Host">
-        <div class="tc-check">✓</div>
-        <div class="tc-name">Classic Host</div>
-        <div class="tc-sub">Energetic anchor who manages games, activities and programme flow</div>
-        <div class="tc-price">₹10,000</div>
-        <div class="tc-feats">
-          <div class="tc-feat">60 mins engagement</div>
-          <div class="tc-feat">Games + prizes management</div>
-          <div class="tc-feat">Cake-cutting moment coordination</div>
-        </div>
-      </div>
-      <div class="tier-card" onclick="selTier(this,'host','Premium',12000)">
-        <img class="tc-img" src="img/host-premium.jpg" alt="Premium Host">
+      <div class="tier-card" onclick="selTier(this,'host','Premium',10000)">
+        <img class="tc-img" src="img/host-classic.jpg" alt="Premium Host">
         <div class="tc-check">✓</div>
         <div class="tc-name">Premium Host</div>
-        <div class="tc-sub">Experienced host with interactive storytelling and theme integration</div>
-        <div class="tc-price">₹12,000</div>
+        <div class="tc-sub">Experienced host who keeps games, activities and programme flow running smoothly</div>
+        <div class="tc-price">₹10,000</div>
         <div class="tc-feats">
-          <div class="tc-feat">85 mins engagement</div>
-          <div class="tc-feat">Theme-integrated programme</div>
-          <div class="tc-feat">Interactive storytelling</div>
+          <div class="tc-feat">Up to 60 mins engagement</div>
+          <div class="tc-feat">Experienced host</div>
+          <div class="tc-feat">Essential props</div>
         </div>
       </div>
       <div class="tier-card" onclick="selTier(this,'host','Signature',15000)">
         <img class="tc-img" src="img/host-signature.jpg" alt="Signature Host">
         <div class="tc-check">✓</div>
         <div class="tc-name">Signature Host</div>
-        <div class="tc-sub">Our top performer — premium props, signature-category host, fully immersive experience</div>
+        <div class="tc-sub">Our top performer — senior host, premium props, fully immersive experience</div>
         <div class="tc-price">₹15,000</div>
         <div class="tc-feats">
-          <div class="tc-feat">90 mins engagement</div>
-          <div class="tc-feat">Premium props included</div>
-          <div class="tc-feat">Signature-category host</div>
+          <div class="tc-feat">Up to 90 mins engagement</div>
+          <div class="tc-feat">Senior host</div>
+          <div class="tc-feat">Premium props</div>
         </div>
       </div>
     </div>
@@ -1727,8 +1718,10 @@ input,textarea,select{font-family:var(--fb)}
   </div>
 
   <!-- Tier naming unified 2026-08-07 (Classic/Premium/Signature) — see
-       matching comment at id="hostCards". S.dj.tier now stores the bare
-       tier word ('Classic'/'Premium'/'Signature'), same as Host/Photographer;
+       matching comment at id="hostCards" (Host has since moved to a
+       2-tier Premium/Signature set, 2026-08-19 — Music here is unaffected
+       and still uses the original 2-tier Classic/Premium vocabulary
+       internally). S.dj.tier stores the bare tier word ('Classic'/'Premium');
        "DJ" only appears internally (ids/keys), never in the display label.
        2026-08-19, per Shruti: display names further renamed to "Music
        Essential"/"Music Plus" — see musicLabel() below. S.dj.tier itself is
@@ -3132,7 +3125,7 @@ function thumbFor(cat,id){
     if(id==='mirror-decor')return{type:'img',src:'img/activity/act-mirror-decor.jpg'};
     const a=ACTS.find(x=>x.id===id);if(!a)return e('🎨');return a.realImg?{type:'img',src:'img/'+a.img+'.jpg'}:e(a.e,(a.bgs&&a.bgs[0]));
   }
-  if(cat==='Host'){const map={Classic:'host-classic',Premium:'host-premium',Signature:'host-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎤');}
+  if(cat==='Host'){const map={Premium:'host-classic',Signature:'host-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎤');}
   if(cat==='DJ'){const map={Classic:'dj-classic',Premium:'dj-premium',Signature:'dj-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎧');}
   if(cat==='Pinata'){if(id==='custom')return e('🪅');const p=PINATAS.find(x=>x.id===id);if(!p)return e('🪅');return p.realImg?{type:'img',src:'img/'+p.img+'.jpg'}:e(p.e);}
   if(cat==='E-Invite'){const inv=INVITES.find(x=>x.id===id);return inv?{type:'img',src:'einvites/'+inv.file}:e('💌');}
@@ -3934,7 +3927,7 @@ function renderGalThumbs(){
 // it to the display name, same pattern as the tier-unification comment above.
 function musicLabel(tier){return tier==='Classic'?'Music Essential':tier==='Premium'?'Music Plus':(tier+' Music');}
 function selTier(card,type,tier,p){const wasSel=card.classList.contains('sel');document.querySelectorAll('#'+type+'Cards .tier-card').forEach(c=>c.classList.remove('sel'));if(wasSel){S[type]=null;}else{card.classList.add('sel');S[type]={tier,p};}updBB(S.screen);}
-function syncHostDom(){if(!S.host)return;const map={'Classic':0,'Premium':1,'Signature':2};const idx=map[S.host.tier];if(idx===undefined)return;const cards=document.querySelectorAll('#hostCards .tier-card');cards.forEach((c,i)=>c.classList.toggle('sel',i===idx));}
+function syncHostDom(){if(!S.host)return;const map={'Premium':0,'Signature':1};const idx=map[S.host.tier];if(idx===undefined)return;const cards=document.querySelectorAll('#hostCards .tier-card');cards.forEach((c,i)=>c.classList.toggle('sel',i===idx));}
 function toggleDjAddon(btn,key){S.djAddons[key]=!S.djAddons[key];btn.classList.toggle('on',S.djAddons[key]);updBB(S.screen);}
 function syncDjAddonsDom(){const l=document.getElementById('djAddonLights');const s=document.getElementById('djAddonSmoke');if(l)l.classList.toggle('on',!!S.djAddons.lights);if(s)s.classList.toggle('on',!!S.djAddons.smoke);}
 
@@ -5773,9 +5766,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       const actId=pkgData.actId||'a8';
       const act=ACTS.find(a=>a.id===actId);
       // Host — now a real selectable section on unicorn-basic.html
-      // (2026-08-10, see HOST_TIERS there), Classic default. Previously
-      // hardcoded here regardless of what was actually picked.
-      S.host=pkgData.host?{tier:pkgData.host.name,p:pkgData.host.price}:{tier:'Classic',p:10000};
+      // (2026-08-10, see HOST_TIERS there), Premium (bottom tier) default.
+      // Previously hardcoded here regardless of what was actually picked.
+      S.host=pkgData.host?{tier:pkgData.host.name,p:pkgData.host.price}:{tier:'Premium',p:10000};
       // 2026-08-18, per Shruti QA fix (#62/#64) — the flat PKGUNICORN coupon
       // was retired 2026-08-12 in favor of builder.html's own value-based
       // auto-discount (unicorn-basic.html's DISCOUNT_SLABS mirrors
