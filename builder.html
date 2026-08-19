@@ -918,11 +918,6 @@ input,textarea,select{font-family:var(--fb)}
 .coupon-ok{font-size:12px;color:var(--gr);font-weight:600;display:none}
 .coupon-ok.show{display:block}
 
-/* Float call */
-.float-call{position:fixed;bottom:calc(var(--bb-h) + 14px);right:20px;width:48px;height:48px;border-radius:50%;background:#25D366;border:none;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.4);z-index:200;transition:transform .15s}
-.float-call:hover{transform:scale(1.1)}
-#pg-home .float-call{bottom:20px}
-
 /* Checkout trust message */
 .trust-msg{background:var(--li3);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--bk);line-height:1.6;border-left:3px solid var(--li)}
 
@@ -1311,8 +1306,6 @@ input,textarea,select{font-family:var(--fb)}
     </div>
   </div>
 </footer>
-
-<button class="float-call" onclick="goLead()" title="Call to plan" style="position:fixed;bottom:20px;right:20px">💬</button>
 
 </div><!-- /pg-home -->
 
@@ -1715,7 +1708,7 @@ input,textarea,select{font-family:var(--fb)}
       </div>
     </div>
     <div style="background:var(--li3);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:13px;color:#7B5EA7">
-      💡 Your party lead will find a host based on your requirements and share the details post-checkout.
+      💡 Your Party Experience Lead will handpick a host who matches your vibe and brings the right energy to your celebration.
     </div>
   </div>
 </div>
@@ -2404,6 +2397,11 @@ input,textarea,select{font-family:var(--fb)}
      sitewide discount than a package's flat guarantee (see
      maybeShowPkgDiscountUpgrade()). -->
 <div class="free-inv-toast" id="pkgDiscountToast"></div>
+<!-- 2026-08-19, per Shruti — "Once the user cross a tier, put a small
+     subtle animation saying that you saved Rs. X. then start the new
+     counter." Pops once per newly-crossed discount slab (see
+     maybeShowTierSavedToast()/updDiscProgress()). -->
+<div class="free-inv-toast" id="tierSavedToast"></div>
 <!-- Generic error toast — pops in at the top of the viewport regardless of
      scroll position, so a validation error is never missed just because the
      offending field/checkbox is off-screen (e.g. T&C on the review page). -->
@@ -2458,8 +2456,6 @@ input,textarea,select{font-family:var(--fb)}
     </div>
   </div>
 </div>
-
-<button class="float-call" id="floatCall" onclick="goLead()" title="Call to plan" style="display:none">💬</button>
 
 <script>
 // ══════════════════════════════════════════════════════
@@ -3328,13 +3324,11 @@ function wsTrackScreen(id){
 function showBuilder(){
   document.getElementById('pg-home').style.display='none';
   document.getElementById('pg-builder').classList.add('active');
-  document.getElementById('floatCall').style.display='flex';
   goTo('shome');
 }
 function goHome(){
   document.getElementById('pg-builder').classList.remove('active');
   document.getElementById('pg-home').style.display='block';
-  document.getElementById('floatCall').style.display='none';
   window.scrollTo(0,0);
 }
 function goTo(id){
@@ -3415,12 +3409,39 @@ function updHdr(id){
 // stays hidden there rather than showing progress toward slabs that don't
 // actually apply.
 const DISC_SLABS=[{min:25000,pct:5},{min:35000,pct:7},{min:45000,pct:9}];
+
+// "Saved ₹X" toast the moment a discount tier is newly crossed — 2026-08-19,
+// per Shruti: "Once the user cross a tier, put a small subtle animation
+// saying that you saved Rs. X. then start the new counter." _lastDiscTierIdx
+// latches the highest slab already unlocked this visit (mirrors
+// _pkgBiggerDiscountShown's one-shot-per-crossing pattern above) so this
+// fires only on the crossing itself, not on every updBB() re-render while
+// the cart sits above a threshold; updDiscProgress()'s own re-render right
+// after is what visually "starts the new counter" toward the next slab.
+let _lastDiscTierIdx=-1;
+function maybeShowTierSavedToast(gt){
+  if(S._pkgOrigin||!gt)return;
+  let idx=-1;
+  for(let i=0;i<DISC_SLABS.length;i++){ if(gt>=DISC_SLABS[i].min) idx=i; }
+  if(idx>_lastDiscTierIdx){
+    _lastDiscTierIdx=idx;
+    const saved=Math.round(autoDiscountAmt(gt));
+    const t=document.getElementById('tierSavedToast');
+    if(t && saved>0){
+      t.textContent='🎉 You saved ₹'+saved.toLocaleString('en-IN')+'!';
+      t.classList.add('show');
+      clearTimeout(t._hideTimer);
+      t._hideTimer=setTimeout(()=>t.classList.remove('show'),2600);
+    }
+  }
+}
 function updDiscProgress(gt){
   const wrap=document.getElementById('bbProgress');
   if(!wrap)return;
   const fill=document.getElementById('bbProgressFill');
   const label=document.getElementById('bbProgressLabel');
   if(S._pkgOrigin||!gt){wrap.classList.add('hidden');return;}
+  maybeShowTierSavedToast(gt);
   const idx=DISC_SLABS.findIndex(s=>gt<s.min);
   if(idx===-1){wrap.classList.add('hidden');return;}   // top slab already unlocked
   const next=DISC_SLABS[idx];

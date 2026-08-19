@@ -53,10 +53,16 @@ table.list td{padding:10px;border-bottom:1px solid var(--li2);font-size:14px}
 table.list tr{cursor:pointer}
 table.list tr:hover td{background:var(--li3)}
 .status-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
-.status-Booked,.status-Converted,.status-Completed{background:var(--sgr);color:#166534}
-.status-New{background:var(--sbl);color:#1e3a8a}
-.status-Lead,.status-ProposalSent,.status-InitialDiscussionsDone,.status-NegotiationsOngoing{background:var(--syl);color:#92400e}
+.status-Complete{background:var(--sgr);color:#166534}
+.status-New,.status-Upcoming{background:var(--sbl);color:#1e3a8a}
+.status-ProposalSent,.status-InitialDiscussionsDone,.status-NegotiationsOngoing{background:var(--syl);color:#92400e}
 .status-NotInterested,.status-DND,.status-Cancelled{background:var(--spk);color:#8a1a44}
+
+/* ─── Leads / Bookings tabs ─── */
+.tabs{display:flex;gap:10px;margin-bottom:16px}
+.tab-btn{position:relative;padding:10px 18px;border:1px solid var(--li2);border-radius:var(--rs);background:#fff;font-weight:600;font-size:14px;color:var(--gy)}
+.tab-btn.active{background:var(--bk);color:#fff;border-color:var(--bk)}
+.tab-bubble{display:none;position:absolute;top:-7px;right:-7px;background:var(--pk);color:#fff;font-size:11px;font-weight:700;border-radius:20px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px}
 
 /* ─── Detail view ─── */
 .detail-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
@@ -134,11 +140,24 @@ table.fields textarea{resize:vertical;min-height:32px}
       <input type="text" id="searchQ" placeholder="Search by name, phone, email, or booking ID..." onkeydown="if(event.key==='Enter')doSearch()">
       <button onclick="doSearch()">Search</button>
     </div>
-    <table class="list">
-      <thead><tr><th>ID</th><th>Parent</th><th>Phone</th><th>Event Date</th><th>City</th><th>Status</th><th>Created</th><th></th></tr></thead>
-      <tbody id="listBody"></tbody>
-    </table>
-    <div class="empty" id="listEmpty" style="display:none">No bookings found.</div>
+    <div class="tabs">
+      <button class="tab-btn active" id="tabLeadBtn" onclick="switchTab('lead')">Leads<span class="tab-bubble" id="leadBubble"></span></button>
+      <button class="tab-btn" id="tabBookingBtn" onclick="switchTab('booking')">Bookings<span class="tab-bubble" id="bookingBubble"></span></button>
+    </div>
+    <div id="leadTableWrap">
+      <table class="list">
+        <thead><tr><th>ID</th><th>Parent</th><th>Phone</th><th>Event Date</th><th>City</th><th>Status</th><th>Created</th><th></th></tr></thead>
+        <tbody id="leadBody"></tbody>
+      </table>
+      <div class="empty" id="leadEmpty" style="display:none">No leads found.</div>
+    </div>
+    <div id="bookingTableWrap" style="display:none">
+      <table class="list">
+        <thead><tr><th>ID</th><th>Parent</th><th>Phone</th><th>Event Date</th><th>City</th><th>Status</th><th>Created</th><th></th></tr></thead>
+        <tbody id="bookingBody"></tbody>
+      </table>
+      <div class="empty" id="bookingEmpty" style="display:none">No bookings found.</div>
+    </div>
   </div>
 
   <div id="detailView" style="display:none">
@@ -163,16 +182,23 @@ const API = 'https://wondershop-website-production.up.railway.app';
 let CURRENT_LEAD_ID = null;
 let CURRENT_DETAIL = null;
 
-// Lead → Booking status workflow (2026-08-19, per Shruti) — populated once
-// at boot from /api/admin/status-options (single source of truth is the
-// backend's ALL_STATUSES/NON_CONVERT_REASONS — see routers/admin.py).
-let STATUS_OPTIONS = [];
+// Lead → Booking status workflow (2026-08-19, per Shruti, reworked the same
+// day into a Leads-table/Bookings-table split — see migrations/018_booking_
+// flag_and_status_simplify.sql) — populated once at boot from
+// /api/admin/status-options (single source of truth is the backend's
+// LEAD_STATUSES/BOOKING_DISPLAY_STATUSES/NON_CONVERT_REASONS in routers/admin.py).
+// Lead rows get the full editable pipeline (LEAD_STATUS_OPTIONS); booking
+// rows are read-only and only ever show one of BOOKING_DISPLAY_STATUSES
+// (New/Upcoming/Complete/Cancelled), computed server-side from event_date.
+let LEAD_STATUS_OPTIONS = [];
+let BOOKING_DISPLAY_STATUSES = [];
 let NON_CONVERT_REASON_OPTIONS = [];
 let NON_CONVERT_STATUSES = ['Not Interested', 'DND'];
 async function loadStatusOptions(){
   try{
     const d = await apiCall('/api/admin/status-options');
-    STATUS_OPTIONS = d.status_options||[];
+    LEAD_STATUS_OPTIONS = d.lead_status_options||[];
+    BOOKING_DISPLAY_STATUSES = d.booking_display_statuses||[];
     NON_CONVERT_REASON_OPTIONS = d.non_convert_reason_options||[];
     NON_CONVERT_STATUSES = d.non_convert_statuses||NON_CONVERT_STATUSES;
   }catch(e){ /* list/detail views still work with an empty dropdown if this fails */ }
@@ -266,13 +292,40 @@ function saveName(){
   localStorage.setItem('ws_admin_name', document.getElementById('whoName').value.trim());
 }
 
+// 2026-08-19, per Shruti — "Create 2 tables on admin panel - 1 for leads, 1
+// for bookings. if there are new entries, show a bubble with the number of
+// new bookings to intimate the user of new entries". Both tables share the
+// same search box; the tab switcher just toggles which one is visible.
+let ACTIVE_TAB = 'lead';
+function switchTab(tab){
+  ACTIVE_TAB = tab;
+  document.getElementById('tabLeadBtn').classList.toggle('active', tab==='lead');
+  document.getElementById('tabBookingBtn').classList.toggle('active', tab==='booking');
+  document.getElementById('leadTableWrap').style.display = tab==='lead' ? 'block' : 'none';
+  document.getElementById('bookingTableWrap').style.display = tab==='booking' ? 'block' : 'none';
+}
+function updateBubble(id, count){
+  const el = document.getElementById(id);
+  if(!el) return;
+  if(count>0){ el.textContent = count; el.style.display='inline-block'; }
+  else{ el.style.display='none'; }
+}
 async function doSearch(){
   const q = document.getElementById('searchQ').value.trim();
-  const body = document.getElementById('listBody');
-  const empty = document.getElementById('listEmpty');
+  await Promise.all([loadTable('lead', q), loadTable('booking', q)]);
+}
+async function loadTable(kind, q){
+  const bodyId = kind==='lead' ? 'leadBody' : 'bookingBody';
+  const emptyId = kind==='lead' ? 'leadEmpty' : 'bookingEmpty';
+  const bubbleId = kind==='lead' ? 'leadBubble' : 'bookingBubble';
+  const body = document.getElementById(bodyId);
+  const empty = document.getElementById(emptyId);
   body.innerHTML = '<tr><td colspan="7" style="padding:16px;color:#6B7280">Loading...</td></tr>';
   try{
-    const rows = await apiCall('/api/admin/bookings' + (q?('?q='+encodeURIComponent(q)):''));
+    const path = '/api/admin/bookings?kind='+kind+(q?('&q='+encodeURIComponent(q)):'');
+    const d = await apiCall(path);
+    const rows = d.rows||[];
+    updateBubble(bubbleId, d.new_count||0);
     if(!rows.length){ body.innerHTML=''; empty.style.display='block'; return; }
     empty.style.display='none';
     body.innerHTML = rows.map(r=>{
@@ -282,9 +335,9 @@ async function doSearch(){
         +'<td>'+esc(r.phone||'')+'</td>'
         +'<td>'+esc(r.event_date||'—')+'</td>'
         +'<td>'+esc(r.city||'—')+'</td>'
-        +'<td>'+listStatusCellHtml(r)+'</td>'
+        +'<td>'+listStatusCellHtml(r, kind)+'</td>'
         +'<td>'+esc(r.created_on_ist||'')+'</td>'
-        +'<td>'+listActionsCellHtml(r)+'</td>'
+        +'<td>'+listActionsCellHtml(r, kind)+'</td>'
         +'</tr>';
     }).join('');
   }catch(e){
@@ -294,40 +347,75 @@ async function doSearch(){
 
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 
-// 2026-08-19, per Shruti — "give an option to convert a lead into a booking
-// on the summary page and the lead detail page" + "give an option to cancel
-// the event as well ... on event detail page and summary page". Summary
-// (list view) quick actions live here; the detail page's fuller version
-// (with the non-conversion reason picker) is in renderDetail()/statusBlockHtml().
-function listStatusCellHtml(r){
+// 2026-08-19, per Shruti (reworked same day into the Leads/Bookings split —
+// "convert to booking and save status buttons are not eligible for confirmed
+// bookings. For confirmed bookings, only give option to cancel" / "No need
+// of cancel button for leads. We can use the status to update
+// cancelled/not interested leads" / "For confirmed bookings, show status as
+// read only ... Add a Cancel button on right side of each row."). Leads get
+// an editable status dropdown + a Convert action; bookings get a read-only
+// status pill + a Cancel-only action. The detail page's fuller version (with
+// the non-conversion reason picker) is in renderDetail()/statusBlockHtml().
+function listStatusCellHtml(r, kind){
   const cls = 'status-'+(r.status||'').replace(/[^A-Za-z]/g,'');
-  if(!STATUS_OPTIONS.length) return '<span class="status-pill '+cls+'">'+esc(r.status||'')+'</span>';
-  const opts = STATUS_OPTIONS.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===r.status?' selected':'')+'>'+esc(o.label)+'</option>').join('');
+  if(kind==='booking' || !LEAD_STATUS_OPTIONS.length){
+    return '<span class="status-pill '+cls+'">'+esc(r.status||'')+'</span>';
+  }
+  const opts = LEAD_STATUS_OPTIONS.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===r.status?' selected':'')+'>'+esc(o.label)+'</option>').join('');
   return '<select class="status-pill '+cls+'" style="border:none;font:inherit;padding:3px 6px" '
-    +'onclick="event.stopPropagation()" onchange="event.stopPropagation();quickSetStatus('+r.lead_id+',this.value,this)">'+opts+'</select>';
+    +'onclick="event.stopPropagation()" onchange="event.stopPropagation();quickSetStatus('+r.lead_id+',this.value)">'+opts+'</select>';
 }
-function listActionsCellHtml(r){
-  if(r.status==='Cancelled'||r.status==='Completed') return '';
+function listActionsCellHtml(r, kind){
+  if(kind==='lead'){
+    return '<button class="mini-btn" style="border-color:var(--sgr);color:#166534" onclick="event.stopPropagation();quickConvert('+r.lead_id+')">Convert</button>';
+  }
+  if(r.status==='Cancelled') return '';
   return '<button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button>';
 }
-async function quickSetStatus(leadId, newStatus, selectEl){
+async function quickSetStatus(leadId, newStatus){
   const who = getName();
-  if(!who){ showToast('Set "Editing as" name at the top first.'); if(selectEl) doSearch(); return; }
+  if(!who){ showToast('Set "Editing as" name at the top first.'); doSearch(); return; }
   try{
     await apiCall('/api/admin/bookings/'+leadId+'/status', {
       method:'POST',
       body: JSON.stringify({status:newStatus, changed_by:who}),
     });
-    showToast('✓ Status updated to '+newStatus+(NON_CONVERT_STATUSES.includes(newStatus) ? ' — open the booking to record a reason.' : '.'));
+    showToast('✓ Status updated to '+newStatus+(NON_CONVERT_STATUSES.includes(newStatus) ? ' — open the lead to record a reason.' : '.'));
     doSearch();
   }catch(e){
     if(e.message!=='unauthorized') showToast(e.message);
     doSearch();
   }
 }
-function quickCancel(leadId){
+async function quickConvert(leadId){
+  const who = getName();
+  if(!who){ showToast('Set "Editing as" name at the top first.'); return; }
+  if(!confirm('Convert this lead into a confirmed booking?')) return;
+  try{
+    await apiCall('/api/admin/bookings/'+leadId+'/convert', {
+      method:'POST',
+      body: JSON.stringify({changed_by:who}),
+    });
+    showToast('✓ Converted to booking.');
+    doSearch();
+  }catch(e){
+    if(e.message!=='unauthorized') showToast(e.message);
+  }
+}
+async function quickCancel(leadId){
+  const who = getName();
+  if(!who){ showToast('Set "Editing as" name at the top first.'); return; }
   if(!confirm('Cancel this event? This marks the booking Cancelled — it will not be auto-restored.')) return;
-  quickSetStatus(leadId, 'Cancelled', null);
+  try{
+    await apiCall('/api/admin/bookings/'+leadId+'/cancel', {
+      method:'POST',
+      body: JSON.stringify({changed_by:who}),
+    });
+    showToast('✓ Booking cancelled.');
+    doSearch();
+  }catch(e){
+    if(e.message!=='unauthorized') showToast(e.message);
+  }
 }
 
 // JSON.stringify() produces double-quoted strings, and every onclick="..."
@@ -370,11 +458,24 @@ async function loadDetail(){
 }
 
 // ── Status card (lead pipeline / convert / cancel) — detail page ──────────
-// 2026-08-19, per Shruti — see listStatusCellHtml() above for the summary-
-// page equivalent. This version also surfaces the non-conversion reason
-// picker (only relevant once you're looking at one specific lead).
+// 2026-08-19, per Shruti (reworked same day) — see listStatusCellHtml()
+// above for the summary-page equivalent. Branches on d.is_booking: a
+// confirmed booking shows its status read-only (New/Upcoming/Complete/
+// Cancelled, computed server-side) with only a Cancel action; a lead shows
+// the full editable pipeline dropdown + non-conversion reason picker + a
+// Convert-to-Booking action, with no Cancel button ("we use the status to
+// update cancelled/not interested leads" instead).
 function statusBlockHtml(d){
-  const opts = STATUS_OPTIONS.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===d.status?' selected':'')+'>'+esc(o.label)+'</option>').join('');
+  if(d.is_booking){
+    const cls = 'status-'+(d.status||'').replace(/[^A-Za-z]/g,'');
+    return '<div class="status-card">'
+      +'<div class="fld"><label>Status</label><span class="status-pill '+cls+'" style="padding:8px 14px;font-size:13px">'+esc(d.status||'')+'</span></div>'
+      +'<div class="btns">'
+        +(d.status!=='Cancelled' ? '<button class="btn cancel" onclick="cancelEventDetail()">Cancel Event</button>' : '')
+      +'</div>'
+      +'</div>';
+  }
+  const opts = LEAD_STATUS_OPTIONS.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===d.status?' selected':'')+'>'+esc(o.label)+'</option>').join('');
   const showReason = NON_CONVERT_STATUSES.includes(d.status);
   const reasonOpts = ['<option value="">— Select —</option>'].concat(
     NON_CONVERT_REASON_OPTIONS.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===d.non_convert_reason?' selected':'')+'>'+esc(o.label)+'</option>')
@@ -387,8 +488,7 @@ function statusBlockHtml(d){
     +'<div class="fld" id="reasonOtherFld" style="display:'+(showReason&&isOthers?'flex':'none')+'">'
       +'<label>Please specify</label><input type="text" id="statusReasonOther" value="'+esc(d.non_convert_reason_other||'')+'"></div>'
     +'<div class="btns">'
-      +(d.status!=='Cancelled' ? '<button class="btn cancel" onclick="cancelEventDetail()">Cancel Event</button>' : '')
-      +(d.status!=='Converted'&&d.status!=='Completed' ? '<button class="btn convert" onclick="convertLeadDetail()">Convert to Booking</button>' : '')
+      +'<button class="btn convert" onclick="convertLeadDetail()">Convert to Booking</button>'
       +'<button class="btn save" onclick="saveDetailStatus()">Save Status</button>'
     +'</div>'
     +'</div>';
@@ -403,9 +503,13 @@ function onStatusReasonChange(){
   const isOthers = document.getElementById('statusReasonSel').value==='Others';
   document.getElementById('reasonOtherFld').style.display = isOthers?'flex':'none';
 }
-async function submitStatus(status){
+// Lead-only — saves the status dropdown (+ non-conversion reason, if any)
+// via /status. Bookings never reach this (statusBlockHtml() above doesn't
+// render a Save button for them).
+async function saveDetailStatus(){
   const who = getName();
   if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); highlightWhoName(); return; }
+  const status = document.getElementById('statusSel').value;
   const reasonSel = document.getElementById('statusReasonSel');
   const reasonOther = document.getElementById('statusReasonOther');
   try{
@@ -424,20 +528,44 @@ async function submitStatus(status){
     if(e.message!=='unauthorized') showToast(e.message);
   }
 }
-function saveDetailStatus(){ submitStatus(document.getElementById('statusSel').value); }
-function convertLeadDetail(){ submitStatus('Converted'); }
-function cancelEventDetail(){
+async function convertLeadDetail(){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); highlightWhoName(); return; }
+  if(!confirm('Convert this lead into a confirmed booking?')) return;
+  try{
+    await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/convert', {
+      method:'POST',
+      body: JSON.stringify({changed_by: who}),
+    });
+    showToast('✓ Converted to booking.');
+    await loadDetail();
+  }catch(e){
+    if(e.message!=='unauthorized') showToast(e.message);
+  }
+}
+async function cancelEventDetail(){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); highlightWhoName(); return; }
   if(!confirm('Cancel this event? This marks the booking Cancelled — it will not be auto-restored.')) return;
-  submitStatus('Cancelled');
+  try{
+    await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/cancel', {
+      method:'POST',
+      body: JSON.stringify({changed_by: who}),
+    });
+    showToast('✓ Booking cancelled.');
+    await loadDetail();
+  }catch(e){
+    if(e.message!=='unauthorized') showToast(e.message);
+  }
 }
 
 function renderDetail(d){
-  document.getElementById('detTitle').textContent = 'Booking #'+d.lead_id;
+  document.getElementById('detTitle').textContent = (d.is_booking?'Booking #':'Lead #')+d.lead_id;
   document.getElementById('detMeta').textContent = 'Status: '+d.status+' · Created '+d.created_on_ist;
 
   // Prefer the options bundled with this response (always fresh/available)
   // over the boot-time cache, which may not have resolved yet.
-  if(d.status_options && d.status_options.length) STATUS_OPTIONS = d.status_options;
+  if(d.lead_status_options && d.lead_status_options.length) LEAD_STATUS_OPTIONS = d.lead_status_options;
   if(d.non_convert_reason_options && d.non_convert_reason_options.length) NON_CONVERT_REASON_OPTIONS = d.non_convert_reason_options;
   document.getElementById('statusBlock').innerHTML = statusBlockHtml(d);
 

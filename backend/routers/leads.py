@@ -82,7 +82,8 @@ class LeadSubmitRequest(BaseModel):
     referred_by:        Optional[str]   = None
     # True only for a confirmed checkout submission (doCo()) — False/omitted
     # for an unconfirmed enquiry (doLead()). Drives email tone, Sheet Status
-    # column ("Confirmed" vs "Lead"), and DB status ("Converted" vs "New").
+    # column ("Confirmed" vs "Lead"), and the DB is_booking flag (which
+    # table — Leads or Bookings — the row shows up in, in admin.html).
     is_booking:         Optional[bool]  = False
     # Order summary — sent from the checkout step so the confirmation email
     # can show a full bill, not just the payable total (client_budget).
@@ -1741,20 +1742,24 @@ async def _notify_team(lead_id: int, req: LeadSubmitRequest, reward_code: Option
 @router.post("/submit")
 async def submit_lead(req: LeadSubmitRequest):
     """
-    1. Saves lead to DB (status = Converted for confirmed bookings, New for leads).
+    1. Saves lead to DB (is_booking = True for confirmed bookings, False for leads; status = New either way).
     2. Issues a reward code if the customer won the "discount" scratch-card
        reward, and/or redeems one if they applied a previously-issued code.
     3. Notifies the customer (sheet row + confirmation email) immediately.
        Notifies the team (email + WhatsApp) immediately too, but only for
        plain enquiries — confirmed bookings hold that until /finalize-notify.
     """
-    # 2026-08-19, per Shruti's admin panel status-workflow request — status
-    # vocabulary migrated from the old New/.../Booked set to New/.../
-    # Converted/.../Completed/Cancelled (see migrations/017_lead_status_
-    # workflow.sql). A direct checkout booking starts life as "Converted"
-    # (it skipped the lead pipeline entirely, so there's nothing to progress
-    # through) rather than the old "Booked".
-    status = "Converted" if req.is_booking else "New"
+    # 2026-08-19, per Shruti's admin panel status-workflow request (see
+    # migrations/017_lead_status_workflow.sql, then 018_booking_flag_and_
+    # status_simplify.sql). is_booking is now the real table-membership flag
+    # (Leads table vs. Bookings table in admin.html) — a direct checkout
+    # submission is a booking from the moment it's created, so it skips the
+    # lead pipeline entirely. `status` itself only ever needs to distinguish
+    # "New"(not cancelled) from "Cancelled" for booking rows — Upcoming/
+    # Complete are computed live from event_date, never stored (see
+    # _booking_display_status() in routers/admin.py).
+    status = "New"
+    is_booking_flag = bool(req.is_booking)
     event_sales_lead = await _resolve_sales_lead_name(req.sales_lead_code)
     lead_id = await database.execute(
         """
@@ -1774,7 +1779,7 @@ async def submit_lead(req: LeadSubmitRequest):
             redeemed_coupon_code, event_sales_lead,
             reward_type, reward_label, reward_value, reward_expiry,
             interests, interest_other,
-            status
+            status, is_booking
         ) VALUES (
             :parent_name, :phone, :child_names, :email,
             :event_date, :event_time, :kids_count, :child_ages, :child_genders, :child_dobs,
@@ -1791,7 +1796,7 @@ async def submit_lead(req: LeadSubmitRequest):
             :redeemed_coupon_code, :event_sales_lead,
             :reward_type, :reward_label, :reward_value, :reward_expiry,
             :interests, :interest_other,
-            :status
+            :status, :is_booking
         )
         RETURNING lead_id
         """,
@@ -1847,6 +1852,7 @@ async def submit_lead(req: LeadSubmitRequest):
             "interests":                  req.interests,
             "interest_other":             req.interest_other,
             "status":                     status,
+            "is_booking":                 is_booking_flag,
         },
     )
 
