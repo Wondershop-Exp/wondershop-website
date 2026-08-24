@@ -321,17 +321,65 @@ input,textarea,select{font-family:var(--fb)}
 /* Builder bottom bar — 3-column grid (not flex space-between) so the amount
    in the middle column is genuinely centered regardless of how wide the
    left (skip) / right (continue) content is. */
-/* Discount progress bar — sits as its own thin strip directly above the
-   sticky bottom bar (a plain flex sibling, not part of the bar's own grid,
-   so it works unchanged across the desktop 3-column layout and the mobile
-   2-row layout below). */
-.bb-progress{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:7px 24px;background:#fff;border-top:1.5px solid var(--li2)}
-.bb-progress.hidden{display:none}
-.bb-progress-track{flex:1;height:5px;border-radius:3px;background:var(--li2);overflow:hidden}
-.bb-progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--li),var(--pk));border-radius:3px;transition:width .35s ease}
-.bb-progress-label{font-size:11.5px;font-weight:700;color:var(--bk);white-space:nowrap}
-.bb-progress-label .hl{color:var(--pk)}
-@media(max-width:480px){.bb-progress{padding:6px 14px;gap:8px}.bb-progress-label{font-size:10.5px}}
+/* The old separate "discount progress bar" strip (.bb-progress) was merged
+   into the single-badge freebie/discount widget below on 2026-08-24 —
+   see .bb-freebies. */
+
+/* Freebie/discount badge ROW — rewritten 2026-08-24 Round 3, per Shruti's
+   follow-up: unlocked badges must NOT vanish (Round 2's single-badge
+   auto-advance-and-replace was wrong) — every one of the 7 milestones
+   (E-Invite / ₹500 / ₹750 / ₹1,000 / Tattoo / ₹5,000 Activity / ₹1,500,
+   see MILESTONES) renders simultaneously in a horizontally-scrollable row,
+   always, for the entire life of the cart. Already-crossed ones sit solid
+   green with a tick; the very next one shows a live progress ring
+   (conic-gradient, milestonePct()); everything beyond that naturally reads
+   as 0%/grey since the cart hasn't reached its predecessor yet — no special
+   casing needed, milestonePct()'s own clamp handles it. Once every
+   milestone is resolved, all 7 stay visible as ticked/complete — nothing
+   is ever hidden once earned. A short shared nudge line under the row
+   ("Add ₹X more to unlock Y") carries the one piece of copy that used to
+   live under each badge. Centered row so it never sits under the fixed
+   WhatsApp fab in the bottom-left corner. Hidden below ₹15,000 and on
+   package-origin carts. Generic Build a Birthday only (2026-08-24 scope
+   decision) — Unicorn/Turf/Spy keep their existing bottom bar untouched.*/
+.bb-freebies{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 16px;background:#fff;border-top:1.5px solid var(--li2)}
+.bb-freebies.hidden{display:none}
+.fb-row{display:flex;align-items:flex-start;gap:12px;overflow-x:auto;max-width:100%;padding:2px 4px;scrollbar-width:none}
+.fb-row::-webkit-scrollbar{display:none}
+.fb-item{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0}
+.fb-item-label{font-size:9px;font-weight:600;color:var(--gy);text-align:center;max-width:54px;line-height:1.15}
+.fb-item.complete .fb-item-label{color:var(--bk)}
+.fb-row-sub{font-size:11px;color:var(--gy);text-align:center;font-weight:600;min-height:14px}
+.fb-row-sub .hl{color:var(--pk)}
+.fb-ring{position:relative;flex-shrink:0;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:conic-gradient(var(--li2) 0,var(--li2) 0)}
+.fb-ring::after{content:'';position:absolute;inset:4px;border-radius:50%;background:#fff}
+.fb-badge-icon{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:16px}
+.fb-badge-icon img{width:22px;height:22px;object-fit:contain}
+.fb-badge-amt{font-size:10.5px;font-weight:800;color:var(--pk)}
+.fb-status{position:absolute;bottom:-3px;right:-3px;z-index:2;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;border:2px solid #fff;background:var(--lgy);color:var(--gy)}
+.fb-status.tick{background:var(--gr);color:#fff}
+@keyframes fbCompletePop{0%{transform:scale(1)}40%{transform:scale(1.22)}70%{transform:scale(.94)}100%{transform:scale(1)}}
+.fb-ring.fb-pop{animation:fbCompletePop .55s ease}
+@media(max-width:480px){.bb-freebies{padding:6px 10px}.fb-row{gap:9px}.fb-ring{width:38px;height:38px}.fb-badge-icon{font-size:13px}.fb-badge-icon img{width:18px;height:18px}.fb-item-label{font-size:8.5px;max-width:44px}.fb-row-sub{font-size:10px}}
+
+/* ₹5,000 activity-credit chooser modal — 2026-08-24, per Shruti: "show a +
+   sign on the discount bar, let the customer choose from the options that
+   fit in the range [up to ₹7,500], they can pay the additional amount." */
+.fb5k-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:20px}
+.fb5k-modal.show{display:flex}
+.fb5k-box{background:#fff;border-radius:var(--r);max-width:420px;width:100%;max-height:80vh;overflow-y:auto;padding:20px}
+.fb5k-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.fb5k-head h3{font-family:var(--fd);font-size:18px}
+.fb5k-x{background:var(--li3);border:none;border-radius:50%;width:30px;height:30px;font-size:14px}
+.fb5k-sub{font-size:13px;color:var(--gy);margin-bottom:14px}
+.fb5k-row{display:flex;align-items:center;gap:12px;padding:12px;border:1.5px solid var(--li2);border-radius:var(--rs);margin-bottom:8px;cursor:pointer}
+.fb5k-row:hover{border-color:var(--li);background:var(--li3)}
+.fb5k-ic{font-size:24px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:var(--li3);border-radius:50%;flex-shrink:0}
+.fb5k-info{flex:1;min-width:0}
+.fb5k-n{font-weight:700;font-size:14px;color:var(--bk)}
+.fb5k-note{font-size:12px;color:var(--gy);margin-top:2px}
+.fb5k-arrow{color:var(--gy);font-size:18px}
+
 .bld-bb{height:var(--bb-h);background:#fff;border-top:1.5px solid var(--li2);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 24px;padding-bottom:env(safe-area-inset-bottom, 0px);flex-shrink:0;gap:16px}
 .bld-bb.hidden{display:none}
 .bb-left{display:flex;align-items:center;gap:16px;justify-self:start}
@@ -391,6 +439,14 @@ input,textarea,select{font-family:var(--fb)}
 
 /* Banner carousel */
 .step-banner{border-radius:var(--r);overflow:hidden;margin-bottom:14px;position:relative;height:140px}
+/* 2026-08-24, per Shruti — "hide main banners for decor, host, music,
+   activity, pinata, invite, gifts till we upload fresh banners later".
+   Covers all 7 .step-banner instances in the file (Decor/s1, Activities/s2,
+   Host/s3, Music-DJ/s4, Pinata/s5, E-Invite/s6, Return Gifts/s8) since
+   every one of them is currently stock photography, not real Wondershop
+   creative. Remove this rule (and nothing else) once fresh banners are
+   uploaded and the markup above is pointed at them. */
+.step-banner{display:none}
 .sb-slide{position:absolute;inset:0;opacity:0;transition:opacity .7s ease;display:flex;align-items:center;padding:24px;border-radius:var(--r)}
 .sb-slide.active{opacity:1}
 .sb-content h3{font-family:var(--fd);font-size:20px;font-weight:700;color:#fff;margin-bottom:6px}
@@ -625,6 +681,15 @@ input,textarea,select{font-family:var(--fb)}
 .qty-val{flex:1;text-align:center;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--li2);border-right:1px solid var(--li2)}
 .gc-remove{width:100%;margin-top:8px;background:none;border:none;color:#dc2626;font-size:12px;font-weight:700;padding:4px;text-align:center}
 .gc-remove:hover{text-decoration:underline}
+
+/* Return-gift addon highlight card — 2026-08-24, per Shruti: "packaging and
+   thankyou tags selection is not very visible - make it a little more
+   prominent". Lifts the Packaging + Thank You Note block off the plain page
+   background with a tinted card + border, same radius language as the rest
+   of the site (var(--r)). */
+.rg-addon-card{margin-top:16px;background:linear-gradient(135deg,var(--li3),#fff);border:1.5px solid var(--li2);border-radius:var(--r);padding:16px}
+.rg-addon-card .sec-lbl{font-size:15px;margin-bottom:6px}
+.rg-addon-card .pkg-btn,.rg-addon-card .tag-opt-btn{background:#fff}
 
 /* Packaging / tag buttons */
 .pkg-btn,.tag-opt-btn{position:relative;background:var(--li3);border:1.5px solid var(--li2);border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--gy);transition:all .15s;text-align:left}
@@ -1955,20 +2020,29 @@ input,textarea,select{font-family:var(--fb)}
     </div>
     <div class="cards-grid" id="gCards"></div>
 
-    <!-- Packaging -->
-    <div style="margin-top:14px">
-      <div class="sec-lbl" style="font-size:13px;margin-bottom:8px"><span class="dot"></span>Packaging Options</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <!-- Packaging + Thank You Note — 2026-08-24, per Shruti: "not very
+         visible - please make it a little more prominent". Previously two
+         plain unbordered blocks blending into the page background after the
+         gift cards grid; now wrapped in one highlighted card (tinted
+         background + border, matching the site's existing .rg-addon-card
+         accent-card language) with a bigger, iconed heading so it reads as
+         its own distinct step rather than an easy-to-miss footnote. Same
+         ids/onclicks throughout — only the container + copy changed. -->
+    <div class="rg-addon-card">
+      <div class="sec-lbl"><span class="dot"></span>🎁 Make It Extra Special</div>
+      <div style="font-size:12px;color:var(--gy);margin-bottom:14px">Add packaging and a personalised thank-you note to every return gift.</div>
+
+      <!-- Packaging -->
+      <div style="font-size:12.5px;font-weight:700;color:var(--bk);margin-bottom:8px">Packaging Options</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
         <button class="pkg-btn" onclick="selPkg(this,'paper-bag')">🛍️ Paper Gift Bag<div style="font-size:10px;color:var(--gy)">₹35/bag</div></button>
         <button class="pkg-btn" onclick="selPkg(this,'wrap')">🎀 Gift Wrap<div style="font-size:10px;color:var(--gy)">₹30/item</div></button>
         <button class="pkg-btn" onclick="selPkg(this,'both')">✨ Both<div style="font-size:10px;color:var(--gy)">₹60/item</div></button>
       </div>
-    </div>
 
-    <!-- Thank you note -->
-    <div style="margin-top:14px">
-      <div class="sec-lbl" style="font-size:13px;margin-bottom:8px"><span class="dot"></span>Personalised Thank You Note</div>
-      <div style="font-size:12px;color:var(--gy);margin-bottom:8px">Add a personalised thank-you note to each gift — with the child's name and a message from the birthday star.</div>
+      <!-- Thank you note -->
+      <div style="font-size:12.5px;font-weight:700;color:var(--bk);margin-bottom:6px">Personalised Thank You Note</div>
+      <div style="font-size:12px;color:var(--gy);margin-bottom:8px">With the child's name and a message from the birthday star.</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="tag-opt-btn" id="tagEx" onclick="selTag(this,'note')">
           Add Thank You Note<div style="font-size:11px;color:var(--gy);margin-top:3px" id="tagExP">₹10 / item</div>
@@ -2342,17 +2416,14 @@ input,textarea,select{font-family:var(--fb)}
   </div><!-- /bld-wrap -->
 </main>
 
-<!-- Discount progress bar — 2026-08-19, per Shruti: "attaching amazon's
-     screenshot - on how they show a bar to the user for the discount. let's
-     build something like that for us on the sticky panel." Shows how close
-     the cart is to the next auto-discount slab (see autoDiscountAmt()) — a
-     thin fill bar + "Add ₹X more for Y% off" label, same idea as Amazon's
-     "Add ₹154 more for ₹50 Cashback" bar near checkout. Hidden entirely on
-     package-origin carts (Spy/Unicorn/Turf) whose discount isn't governed
-     by these slabs, and once the top slab (9%) is already unlocked. -->
-<div class="bb-progress hidden" id="bbProgress">
-  <div class="bb-progress-track"><div class="bb-progress-fill" id="bbProgressFill"></div></div>
-  <div class="bb-progress-label" id="bbProgressLabel"></div>
+<!-- Freebie/discount badge ROW — see updFreebieWidget()/.bb-freebies CSS
+     comment above for the full "all 7 always visible, unlocked ones never
+     vanish" design (2026-08-24 Round 3 rewrite). fbRow's contents are built
+     entirely in JS (one .fb-item per MILESTONES entry, every render) —
+     only the row container + shared nudge line are static here. -->
+<div class="bb-freebies hidden" id="bbFreebies">
+  <div class="fb-row" id="fbRow"></div>
+  <div class="fb-row-sub" id="fbRowSub"></div>
 </div>
 
 <!-- Bottom Bar -->
@@ -2390,11 +2461,17 @@ input,textarea,select{font-family:var(--fb)}
      sitewide discount than a package's flat guarantee (see
      maybeShowPkgDiscountUpgrade()). -->
 <div class="free-inv-toast" id="pkgDiscountToast"></div>
-<!-- 2026-08-19, per Shruti — "Once the user cross a tier, put a small
-     subtle animation saying that you saved Rs. X. then start the new
-     counter." Pops once per newly-crossed discount slab (see
-     maybeShowTierSavedToast()/updDiscProgress()). -->
+<!-- 2026-08-19, per Shruti — originally popped once per newly-crossed
+     discount slab; superseded 2026-08-24 by the single-badge widget's own
+     unlock toast (showFreebieToast(), reusing #freebieToast below). Left in
+     the DOM unused/harmless rather than ripped out mid-rewrite. -->
 <div class="free-inv-toast" id="tierSavedToast"></div>
+<!-- 2026-08-24, per Shruti — generic "🎉 X unlocked!" toast for the
+     single-badge freebie/discount widget (see showFreebieToast(), called
+     from updFreebieWidget() on every milestone crossing); unlike
+     freeInvToast/tierSavedToast/pkgDiscountToast above its text is always
+     set dynamically, never left at static markup. -->
+<div class="free-inv-toast" id="freebieToast"></div>
 <!-- Generic error toast — pops in at the top of the viewport regardless of
      scroll position, so a validation error is never missed just because the
      offending field/checkbox is off-screen (e.g. T&C on the review page). -->
@@ -2434,6 +2511,19 @@ input,textarea,select{font-family:var(--fb)}
 </div>
 
 <!-- Photo/video gallery modal — theme & activity "Set the Scene" viewer -->
+<!-- ₹5,000 activity-credit chooser — 2026-08-24, per Shruti: "show a + sign
+     on the discount bar, let the customer choose from the options that fit
+     in the range [up to ₹7,500] ... they can pay the additional amount. On
+     order review, add the activity in the activity section, show discount
+     for Rs. 5000." See openActivity5kChooser()/selectActivity5k(). -->
+<div class="fb5k-modal" id="fb5kModal" onclick="if(event.target===this)closeActivity5kChooser()">
+  <div class="fb5k-box">
+    <div class="fb5k-head"><h3>🎁 Pick your free activity</h3><button class="fb5k-x" onclick="closeActivity5kChooser()">✕</button></div>
+    <p class="fb5k-sub">Your cart unlocked a ₹5,000 credit — apply it to one of these:</p>
+    <div id="fb5kList"></div>
+  </div>
+</div>
+
 <div class="gal-modal" id="galModal" onclick="if(event.target===this)closeGallery()">
   <div class="gal-box">
     <div class="gal-stage" id="galStage">
@@ -2566,10 +2656,21 @@ const THEMES=[
   {id:'jungle',n:'Jungle Safari',e:'🌴',bg:'linear-gradient(135deg,#52C470,#B7E0B8)',age:'3-8',gn:'Both',b:'200 (Green, Yellow, Orange)',s:'3.5 hrs',ni:'Tables, chairs, props',tag:'trend',tierPhotos:{Signature:'img/Decor/decor-jungle-3panel.jpg'}},
   {id:'hero',n:'Superhero',e:'🦸',bg:'linear-gradient(135deg,#5B8EDD,#BCD8E8)',age:'6-8',gn:'Both',b:'150 (Red, Blue, Yellow)',s:'3 hrs',ni:'Tables',tag:'rec',tierPhotos:{Classic:'img/Decor/decor-hero-arch.jpg',Premium:'img/Decor/decor-hero-1panel.jpg',Luxury:'img/Decor/decor-hero-2panel.jpg',Signature:'img/Decor/decor-hero-extra1.jpg'}},
   {id:'space',n:'Space Explorer',e:'🚀',bg:'linear-gradient(135deg,#B59DDE,#BCD8E8)',age:'6-12',gn:'Both',b:'180 (Blue, Purple, Silver)',s:'4 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Classic:'img/Decor/decor-space-arch.jpg',Premium:'img/Decor/decor-space-1panel.jpg'}},
-  {id:'spy',n:'Mystery & Spy',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',b:'120 (Black, Gold, Red)',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',tierPhotos:{Classic:'img/Decor/decor-spy-arch.jpg',Premium:'img/Decor/decor-spy-1panel.jpg',Luxury:'img/Decor/decor-spy-2panel.jpg',Signature:'img/Decor/decor-spy-3panel.jpg'}},
-  {id:'kpop',n:'K-Pop Party',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-14',gn:'Girls',b:'180 (Purple, Pink, Black)',s:'4 hrs',ni:'Open area, mini stage',tag:'trend',tierPhotos:{Classic:'img/Decor/decor-kpop-arch.jpg',Premium:'img/Decor/decor-kpop-1panel.jpg',Luxury:'img/Decor/decor-kpop-2panel.jpg',Signature:'img/Decor/decor-kpop-3panel.jpg'}},
+  {id:'spy',n:'Mystery & Spy',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',b:'120 (Black, Gold, Red)',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',
+    tierPhotos:{Classic:'img/Decor/decor-spy-arch.jpg',Premium:'img/Decor/decor-spy-1panel.jpg',Luxury:'img/Decor/decor-spy-2panel.jpg',Signature:'img/Decor/decor-spy-3panel.jpg'},
+    // 2 extra Premium-tier photos added 2026-08-24 from "Spy Premium - 2.png"
+    // / "Spy Premium - 3.jpeg" in the latest img/Decor upload batch.
+    tierExtraPhotos:{Premium:['img/Decor/decor-spy-premium-2.png','img/Decor/decor-spy-premium-3.jpeg']}},
+  {id:'kpop',n:'K-Pop Party',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-14',gn:'Girls',b:'180 (Purple, Pink, Black)',s:'4 hrs',ni:'Open area, mini stage',tag:'trend',
+    // Luxury tier photo updated 2026-08-24 from the "Kpop Luxury.png" file
+    // in the latest img/Decor upload batch (replaces the older
+    // decor-kpop-2panel.jpg).
+    tierPhotos:{Classic:'img/Decor/decor-kpop-arch.jpg',Premium:'img/Decor/decor-kpop-1panel.jpg',Luxury:'img/Decor/decor-kpop-luxury.png',Signature:'img/Decor/decor-kpop-3panel.jpg'}},
   {id:'hp',n:'Harry Potter',e:'⚡',bg:'linear-gradient(135deg,#374151,#B59DDE)',age:'7-14',gn:'Both',b:'180 (Black, Gold, Red)',s:'4 hrs',ni:'Tables, chairs',tag:'trend',tierPhotos:{Premium:'img/Decor/decor-hp-1panel.jpg',Signature:'img/Decor/decor-hp-3panel.jpg'}},
-  {id:'art',n:'Art & Paint Party',e:'🎨',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',age:'4-10',gn:'Both',b:'150 (Colorful mix)',s:'3 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Premium:'img/Decor/decor-art-1panel.jpg',Luxury:'img/Decor/decor-art-2panel.jpg'}},
+  {id:'art',n:'Art & Paint Party',e:'🎨',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',age:'4-10',gn:'Both',b:'150 (Colorful mix)',s:'3 hrs',ni:'Tables, chairs',tag:'new',
+    // Classic tier photo added 2026-08-24 from "Art Party Decor Classic.png"
+    // in the latest img/Decor upload batch — Premium/Luxury unchanged.
+    tierPhotos:{Classic:'img/Decor/decor-art-classic.png',Premium:'img/Decor/decor-art-1panel.jpg',Luxury:'img/Decor/decor-art-2panel.jpg'}},
   {id:'science',n:'Science Party',e:'🔬',bg:'linear-gradient(135deg,#BCD8E8,#52C470)',age:'6-12',gn:'Both',b:'150 (Blue, Green, White)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Premium:'img/Decor/decor-science-1panel.jpg'}},
   {id:'racing',n:'Race Track & Cars',e:'🏎️',bg:'linear-gradient(135deg,#F57A1A,#374151)',age:'3-8',gn:'Boys',b:'150 (Black, Red, Yellow)',s:'3 hrs',ni:'Tables',tag:'pop',tierPhotos:{Luxury:'img/Decor/decor-racing-2panel.jpg'}},
   {id:'football',n:'Football Party',e:'⚽',bg:'linear-gradient(135deg,#52C470,#374151)',age:'5-12',gn:'Both',b:'150 (Green, Black, White)',s:'3 hrs',ni:'Tables',tag:'pop',tierPhotos:{Classic:'img/Decor/decor-football-arch.jpg',Premium:'img/Decor/decor-football-1panel.jpg',Luxury:'img/Decor/decor-football-2panel.jpg',Signature:'img/Decor/decor-football-3panel.jpg'}},
@@ -2579,7 +2680,11 @@ const THEMES=[
   {id:'craftbazaar',n:'Indian Craft Bazaar',e:'🪅',bg:'linear-gradient(135deg,#F2D147,#F57A1A)',age:'5-12',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-craftbazaar-3panel.jpg'},tierExtraPhotos:{Signature:['img/Decor/decor-craftbazaar-3panel-alt.jpg']}},
   {id:'indianpalace',n:'Indian Palace',e:'🏯',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',age:'4-10',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-indianpalace-3panel.jpg'}},
   {id:'railways',n:'Indian Railways',e:'🚂',bg:'linear-gradient(135deg,#5B8EDD,#374151)',age:'3-8',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-railways-3panel.jpg'}},
-  {id:'katseye',n:'Katseye',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-16',gn:'Girls',b:'150 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-katseye-3panel.jpg'}},
+  {id:'katseye',n:'Katseye',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-16',gn:'Girls',b:'150 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',
+    // Classic + Luxury tiers added 2026-08-24 from "Katseye Kpop Classic.png"
+    // / "Katseye Luxury.png" in the latest img/Decor upload batch — Signature
+    // unchanged.
+    tierPhotos:{Classic:'img/Decor/decor-katseye-classic.png',Luxury:'img/Decor/decor-katseye-luxury.png',Signature:'img/Decor/decor-katseye-3panel.jpg'}},
   {id:'stitch',n:'Lilo & Stitch',e:'🌺',bg:'linear-gradient(135deg,#5B8EDD,#B7E0B8)',age:'2-6',gn:'Both',b:'150 (Blue, Turquoise, White)',s:'2.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Premium:'img/Decor/decor-stitch-1panel.jpg'}},
   {id:'malgudi',n:'Malgudi Days',e:'📖',bg:'linear-gradient(135deg,#F2D147,#B7E0B8)',age:'4-10',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-malgudi-3panel.jpg'},tierExtraPhotos:{Signature:['img/Decor/decor-malgudi-3panel-alt.jpg']}},
   {id:'mithai',n:'Mithai Theme',e:'🍬',bg:'linear-gradient(135deg,#F57A1A,#F2D147)',age:'2-8',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-mithai-3panel.jpg'}},
@@ -2878,15 +2983,12 @@ const INVITES=[
   {id:'i6',n:'Spy × K-Pop',p:500,file:'spy-kpop.jpg',t:'spy'},
   {id:'i7',n:'Spy Detective',p:500,file:'spy-detective.jpg',t:'spy'},
   {id:'i8',n:'Spy Party (Classic)',p:500,file:'spy-party-classic.jpg',t:'spy'},
-  {id:'i9',n:'Spy Squad',p:500,file:'spy-squad.jpg',t:'spy'},
   {id:'i10',n:'Unicorn',p:500,file:'unicorn.jpg',t:'uni'},
   {id:'i11',n:'Superhero (3D)',p:500,file:'superhero-3d.jpg',t:'hero'},
   {id:'i12',n:'Superhero (Pop Art)',p:500,file:'superhero-popart.jpg',t:'hero'},
   {id:'i13',n:'Football × Spy Mission',p:500,file:'football-spy.jpg',t:'football'},
-  {id:'i14',n:'Football × Spy Mission (Alt)',p:500,file:'football-spy-alt.jpg',t:'football'},
   {id:'i15',n:'Harry Potter',p:500,file:'harry-potter.jpg',t:'hp'},
-  {id:'i16',n:'Imposter Mission',p:500,file:'imposter-mission.jpg',t:''},
-  {id:'i17',n:'Imposter Mission (Alt)',p:500,file:'imposter-mission-alt.jpg',t:''},
+  {id:'i17',n:'Imposter Mission',p:500,file:'imposter-mission-alt.jpg',t:''},
   {id:'i18',n:'K-Pop Idol Collage',p:500,file:'kpop-idol-collage.jpg',t:'kpop'},
   {id:'i19',n:'K-Pop Bestie',p:500,file:'kpop-bestie.jpg',t:'kpop'},
   {id:'i20',n:'K-Pop Girl Group (Red)',p:500,file:'kpop-girlgroup-red.jpg',t:'kpop'},
@@ -3025,22 +3127,68 @@ function toggleInterest(id,btn){
 function interestFilterOff(showAllFlag){
   return showAllFlag||!S.interests.length||S.interests.every(i=>i==='other');
 }
-// Case-insensitive substring match of the active interests' keywords
-// against a catalogue item's combined searchable text.
+// Case-insensitive keyword match of the active interests against a
+// catalogue item's combined searchable text. 2026-08-24, per Shruti —
+// "filtering on interests is not working properly": the old plain
+// t.includes(k) matched a keyword ANYWHERE, including mid-word — so the
+// "Art & Creativity" interest's "art" keyword matched inside "K-Pop P[art]y",
+// "Football P[art]y" and "Science P[art]y", flooding results with unrelated
+// themes. Anchoring each keyword to a real word boundary (\b) fixes that
+// false-positive while still matching every intentional prefix-stem already
+// relied on elsewhere (e.g. "paint"→"Painting", "sport"→"Sports",
+// "gym"→"Gymnastics", "zorb"→"Zorbing") since those all sit at the START of
+// a word, where a boundary genuinely exists.
 function matchesInterests(text){
   const t=(text||'').toLowerCase();
   const active=INTERESTS.filter(it=>S.interests.includes(it.id)&&it.kw.length);
   if(!active.length)return true;
-  return active.some(it=>it.kw.some(k=>t.includes(k)));
+  const escRe=k=>k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return active.some(it=>it.kw.some(k=>new RegExp('\\b'+escRe(k.toLowerCase())).test(t)));
 }
 
 // ── PRICING ──
+// 2026-08-24, per Shruti — shared by cItems() (Review/checkout pricing) AND
+// the Step-2 Activities UI (updSelActs()/renderActs()) so a freebie
+// discount is never visible in one place and not the other. Given the raw
+// catalogue price for activity `a`, returns {price, wasP} — wasP set only
+// when a discount actually applied (mirrors S.einvite's isFree/wasP
+// pattern). Tattoo Station (a15) goes fully free once the cart crosses
+// ₹55,000; whichever activity carries is5kFreebie (set by
+// selectActivity5k()) gets up to ₹5,000 off once the cart crosses
+// ₹1,00,000 (capped at the item's own price, so it never goes negative).
+// Both check against rawNoInv() — raw catalogue prices, einvite excluded —
+// the same stable, non-circular basis the existing free-E-Invite threshold
+// already uses, so an item becoming free here doesn't itself un-qualify the
+// cart on the next render. Generic Build a Birthday only.
+function activityFreebiePrice(a,rawPrice){
+  if(S._pkgOrigin)return{price:rawPrice,wasP:undefined};
+  const rn=rawNoInv();
+  if(a.id==='a15'&&rn>=55000)return{price:0,wasP:rawPrice};
+  if(a.is5kFreebie&&rn>=100000){const credit=Math.min(5000,rawPrice);return{price:rawPrice-credit,wasP:rawPrice};}
+  return{price:rawPrice,wasP:undefined};
+}
+// 2026-08-24, per Shruti — "move the free addon stations like the tattoo
+// and activity at the end": free-addon activities (Tattoo Station once
+// claimed, whichever activity carries is5kFreebie) sort to the BOTTOM of
+// every activities list, after everything the customer is actually paying
+// for. Shared by cItems() (Review/checkout) and updSelActs() (Step-2
+// sidebar) so the ordering can't drift between the two; Array.sort is
+// stable, so items within each group keep their original relative order.
+function orderedActivities(){
+  return[...S.activities].sort((a,b)=>{
+    const af=activityFreebiePrice(a,actPrice(a,S.kidsCount)).wasP!=null?1:0;
+    const bf=activityFreebiePrice(b,actPrice(b,S.kidsCount)).wasP!=null?1:0;
+    return af-bf;
+  });
+}
 function cItems(){
   const items=[];
   if(S.decor)items.push({cat:'Decor',n:S.decor.n,p:S.decor.p,id:S.decor.id});
-  S.activities.forEach(a=>{
+  orderedActivities().forEach(a=>{
     const nm=a.id==='spy-mission'?(spyStationTier(S.kidsCount).stations+' Mission Stations ('+S.kidsCount+' kids)'):a.n;
-    const item={cat:'Activities',n:nm,p:actPrice(a,S.kidsCount),id:a.id};
+    const rawPrice=actPrice(a,S.kidsCount);
+    const fb=activityFreebiePrice(a,rawPrice);
+    const item={cat:'Activities',n:nm,p:fb.price,id:a.id};
     // 'uni-extra-kids' (see actPriceRaw) is a synthetic Rs.399/child surcharge
     // that only applies above 25 kids — skip it from the visible list (and
     // the total, since it's a no-op) whenever it computes to Rs.0, rather
@@ -3052,6 +3200,10 @@ function cItems(){
       else if(it&&it.useGenericPrice&&it.linkAct){const linked=ACTS.find(x=>x.id===it.linkAct);if(linked&&linked.wasP!=null&&linked.wasP>item.p)item.wasP=linked.wasP;}
     }else if(a.wasP!=null&&a.wasP>item.p){
       item.wasP=a.wasP;
+    }
+    if(fb.wasP!=null){
+      item.wasP=fb.wasP;
+      item.n+= a.id==='a15' ? ' — 🎁 Addon Unlocked!' : (' — 🎁 ₹'+(fb.wasP-fb.price).toLocaleString('en-IN')+' credit applied');
     }
     items.push(item);
   });
@@ -3192,9 +3344,20 @@ function pkgGuaranteedAmt(gt){
   }
   return amt;
 }
+// 2026-08-24, per Shruti — full generic-flow reprice: the old %-based
+// autoDiscountAmt() slabs are replaced by VALUE_TIERS' flat-rupee ladder
+// for the plain Build a Birthday flow ONLY (explicit scope decision,
+// 2026-08-24 — "Generic flow only"). Unicorn/Turf (S._pkgOrigin &&
+// S._pkgAutoDiscount) keep comparing their package guarantee against the
+// OLD autoDiscountAmt()/DISC_SLABS exactly as before — untouched, so their
+// pricing doesn't shift under this change. Spy (S._pkgOrigin, no
+// S._pkgAutoDiscount) is still always 0, also untouched.
 function discountAmt(gt){
   if(S._pkgOrigin&&!S._pkgAutoDiscount)return 0;
-  return Math.round(Math.max((gt||0)*S.couponPct/100,autoDiscountAmt(gt||0),pkgGuaranteedAmt(gt)));
+  if(S._pkgOrigin&&S._pkgAutoDiscount){
+    return Math.round(Math.max((gt||0)*S.couponPct/100,autoDiscountAmt(gt||0),pkgGuaranteedAmt(gt)));
+  }
+  return Math.round(Math.max((gt||0)*S.couponPct/100,tierMonetaryAmt(gt||0)));
 }
 // Fires once, the first time the real auto-discount overtakes a package's
 // guaranteed discount (flat or percentage+cap) — i.e. the customer added
@@ -3395,54 +3558,192 @@ function updHdr(id){
   document.getElementById('bpGap').classList.toggle('show',nextIdx<=7);
 }
 
-// Amazon-style "Add ₹X more for Y% off" sticky progress bar — 2026-08-19,
-// per Shruti. Tracks the generic order-value slab ladder from
-// autoDiscountAmt() (25k→5%, 35k→7%, 45k→9%); package-origin carts (Spy/
-// Unicorn/Turf) run their own guaranteed-discount math instead, so the bar
-// stays hidden there rather than showing progress toward slabs that don't
-// actually apply.
-const DISC_SLABS=[{min:25000,pct:5},{min:35000,pct:7},{min:45000,pct:9}];
+// ── VALUE-TIER PRICING (generic Build a Birthday only) ─────────────────
+// 2026-08-24, per Shruti — full reprice replacing the old 3-row %-slab
+// ladder with a flat-rupee monetary discount + tiered freebies, matching
+// the brief exactly (order value → monetary discount / freebie amount /
+// freebie). Explicit scope decision, 2026-08-24: this table governs ONLY
+// the generic flow (S._pkgOrigin false) — see discountAmt() above.
+// Unicorn/Turf keep DISC_SLABS/autoDiscountAmt() below completely
+// untouched for their own package-guarantee comparison.
+const VALUE_TIERS=[
+  {min:0,      monetary:0,    freebies:[]},
+  {min:20000,  monetary:0,    freebies:['einvite']},
+  {min:25000,  monetary:500,  freebies:['einvite']},
+  {min:35000,  monetary:750,  freebies:['einvite']},
+  {min:45000,  monetary:1000, freebies:['einvite']},
+  {min:55000,  monetary:1000, freebies:['einvite','tattoo']},
+  {min:100000, monetary:1000, freebies:['einvite','tattoo','activity5k']},
+  {min:150000, monetary:1500, freebies:['einvite','tattoo','activity5k']},
+];
+// NOTE: VALUE_TIERS[1].min (₹20,000) must stay in sync with S.FIT — the
+// free-E-Invite threshold used throughout the E-Invite step (S.FIT is left
+// as the actual source of truth there; this table only mirrors it for the
+// freebie-badge/progress-bar display).
+function valueTierIdx(gt){
+  let idx=0;
+  for(let i=0;i<VALUE_TIERS.length;i++){ if((gt||0)>=VALUE_TIERS[i].min) idx=i; }
+  return idx;
+}
+function tierMonetaryAmt(gt){ return VALUE_TIERS[valueTierIdx(gt)].monetary; }
+function freebiesAt(gt){ return VALUE_TIERS[valueTierIdx(gt)].freebies; }
 
-// "Saved ₹X" toast the moment a discount tier is newly crossed — 2026-08-19,
-// per Shruti: "Once the user cross a tier, put a small subtle animation
-// saying that you saved Rs. X. then start the new counter." _lastDiscTierIdx
-// latches the highest slab already unlocked this visit (mirrors
-// _pkgBiggerDiscountShown's one-shot-per-crossing pattern above) so this
-// fires only on the crossing itself, not on every updBB() re-render while
-// the cart sits above a threshold; updDiscProgress()'s own re-render right
-// after is what visually "starts the new counter" toward the next slab.
-let _lastDiscTierIdx=-1;
-function maybeShowTierSavedToast(gt){
-  if(S._pkgOrigin||!gt)return;
-  let idx=-1;
-  for(let i=0;i<DISC_SLABS.length;i++){ if(gt>=DISC_SLABS[i].min) idx=i; }
-  if(idx>_lastDiscTierIdx){
-    _lastDiscTierIdx=idx;
-    const saved=Math.round(autoDiscountAmt(gt));
-    const t=document.getElementById('tierSavedToast');
-    if(t && saved>0){
-      t.textContent='🎉 You saved ₹'+saved.toLocaleString('en-IN')+'!';
-      t.classList.add('show');
-      clearTimeout(t._hideTimer);
-      t._hideTimer=setTimeout(()=>t.classList.remove('show'),2600);
-    }
+// NOTE: DISC_SLABS/autoDiscountAmt() (the OLD %-based slabs — 25k→5% cap
+// 1500, 35k→7% cap 2500, 45k→9% cap 4500) are defined earlier in this file,
+// right above pkgGuaranteedAmt()/discountAmt() — kept exactly as-is there.
+// Unicorn/Turf's package-guarantee comparison still runs against them,
+// untouched by this 2026-08-24 generic-flow reprice (VALUE_TIERS above is
+// what the generic flow itself uses now). Not re-declared here to avoid a
+// duplicate `const DISC_SLABS` (fatal SyntaxError).
+
+// ── FREEBIE/DISCOUNT BADGE ROW ───────────────────────────────────────────
+// 2026-08-24 v3 rewrite, per Shruti's follow-up on Round 2's single-badge
+// version:
+//  1/2. "Discount circle icons should not vanish... let it remain on the
+//     discount bar, while other icons are work in progress" — every one of
+//     the 7 milestones (E-Invite / ₹500 / ₹750 / ₹1,000 / Tattoo Artist /
+//     ₹5,000 Activity / ₹1,500 — see MILESTONES, derived from VALUE_TIERS
+//     so the two can't drift) now renders simultaneously in a row, always.
+//     Once a badge is unlocked it stays ticked/complete permanently; the
+//     rest just show their own live progress ring — no more single-badge
+//     swap-and-hide.
+//  3. "if all the discounts/freebies are met, still retain" — since every
+//     badge is always rendered (never conditionally hidden once earned),
+//     a maxed-out cart simply shows all 7 as complete. Nothing disappears.
+//  Ring math is unchanged from Round 2 (milestonePct(): x = previous
+//  milestone's threshold, z = gap to this one, pct = clamp((gt-x)/z*100)) —
+//  it already naturally renders 0% for every milestone further out than the
+//  immediate next one, since gt hasn't reached that milestone's own
+//  predecessor yet, so no extra branching was needed to support showing all
+//  7 instead of just one.
+const MILESTONES=(function(){
+  const list=[];
+  for(let i=1;i<VALUE_TIERS.length;i++){
+    const cur=VALUE_TIERS[i],prev=VALUE_TIERS[i-1];
+    cur.freebies.filter(f=>!prev.freebies.includes(f)).forEach(f=>list.push({min:cur.min,type:'freebie',key:f}));
+    if(cur.monetary>prev.monetary) list.push({min:cur.min,type:'money',amount:cur.monetary});
+  }
+  return list;
+})();
+function milestonePct(m,gt){
+  const idx=MILESTONES.indexOf(m);
+  const x=idx>0?MILESTONES[idx-1].min:0;
+  const z=m.min-x;
+  return Math.max(0,Math.min(100, z>0 ? ((gt-x)/z*100) : 100));
+}
+const MILESTONE_ICONS={einvite:'<img src="img/icons/icon-invite-bw.png" alt="">',tattoo:'🖊️',activity5k:'<img src="img/icons/icon-activities-bw.png" alt="">'};
+const MILESTONE_NAMES={einvite:'Free E-Invite',tattoo:'Free Tattoo Artist',activity5k:'₹5,000 Activity Credit'};
+const MILESTONE_SHORT={einvite:'E-Invite',tattoo:'Tattoo',activity5k:'Activity'};
+function milestoneIconHtml(m){ return m.type==='money' ? ('<span class="fb-badge-amt">₹'+m.amount.toLocaleString('en-IN')+'</span>') : (MILESTONE_ICONS[m.key]||'🎁'); }
+function milestoneName(m){ return m.type==='money' ? ('₹'+m.amount.toLocaleString('en-IN')+' Off') : (MILESTONE_NAMES[m.key]||m.key); }
+function milestoneShortLabel(m){ return m.type==='money' ? 'Off' : (MILESTONE_SHORT[m.key]||m.key); }
+
+// Tattoo Station auto-adds itself the instant the cart qualifies — its
+// ₹2,500 value matches the freebie exactly, no choice needed (mirrors the
+// old claimFreebie('tattoo') behavior, just fired automatically instead of
+// on a "+" tap). Idempotent/cheap — safe to call on every render.
+function ensureTattooClaimed(gt){
+  if(S._pkgOrigin)return;
+  if(freebiesAt(gt).includes('tattoo')&&!S.activities.find(a=>a.id==='a15')){
+    togAct('a15');
   }
 }
-function updDiscProgress(gt){
-  const wrap=document.getElementById('bbProgress');
-  if(!wrap)return;
-  const fill=document.getElementById('bbProgressFill');
-  const label=document.getElementById('bbProgressLabel');
-  if(S._pkgOrigin||!gt){wrap.classList.add('hidden');return;}
-  maybeShowTierSavedToast(gt);
-  const idx=DISC_SLABS.findIndex(s=>gt<s.min);
-  if(idx===-1){wrap.classList.add('hidden');return;}   // top slab already unlocked
-  const next=DISC_SLABS[idx];
-  const prevMin=idx>0?DISC_SLABS[idx-1].min:0;
-  const pct=Math.max(0,Math.min(100,((gt-prevMin)/(next.min-prevMin))*100));
+
+// Which badge (if any) should render this pass with the "just unlocked" pop
+// animation — set the instant a milestone is freshly crossed, cleared again
+// a beat later. Since the whole row is rebuilt via innerHTML every render,
+// a transient index (not a DOM class toggle) is what survives that rebuild.
+let _lastMilestoneIdx=-1;
+let _celebrateIdx=-1;
+function updFreebieWidget(gt){
+  const wrap=document.getElementById('bbFreebies');
+  const row=document.getElementById('fbRow');
+  const subEl=document.getElementById('fbRowSub');
+  if(!wrap||!row)return;
+  if(S._pkgOrigin||!gt||gt<15000){wrap.classList.add('hidden');return;}
+  ensureTattooClaimed(gt);
   wrap.classList.remove('hidden');
-  fill.style.width=pct+'%';
-  label.innerHTML='Add <span class="hl">₹'+(next.min-gt).toLocaleString('en-IN')+'</span> more for '+next.pct+'% off!';
+  let resolvedIdx=-1;
+  MILESTONES.forEach((m,i)=>{ if(gt>=m.min)resolvedIdx=i; });
+  if(resolvedIdx>_lastMilestoneIdx){
+    const justDone=MILESTONES[resolvedIdx];
+    _lastMilestoneIdx=resolvedIdx;
+    _celebrateIdx=resolvedIdx;
+    setTimeout(()=>{_celebrateIdx=-1;},650);
+    launchConfetti();
+    showFreebieToast('🎉 '+milestoneName(justDone)+' unlocked!');
+    // ₹5,000 activity credit needs a choice — offer the picker right after
+    // the celebration beat, not on top of the confetti.
+    if(justDone.type==='freebie'&&justDone.key==='activity5k'&&!S.activities.find(a=>a.is5kFreebie)){
+      setTimeout(()=>openActivity5kChooser(),1300);
+    }
+  }
+  row.innerHTML=MILESTONES.map((m,i)=>{
+    const complete=i<=resolvedIdx;
+    const pct=complete?100:milestonePct(m,gt);
+    const ringBg=complete?'var(--gr)':('conic-gradient(var(--gr) '+pct+'%, var(--li2) 0)');
+    const justUnlocked=i===_celebrateIdx;
+    return '<div class="fb-item'+(complete?' complete':'')+'">'
+      +'<div class="fb-ring'+(justUnlocked?' fb-pop':'')+'" style="background:'+ringBg+'">'
+        +'<span class="fb-badge-icon">'+milestoneIconHtml(m)+'</span>'
+        +'<span class="fb-status '+(complete?'tick':'lock')+'">'+(complete?'✓':'🔒')+'</span>'
+      +'</div>'
+      +'<div class="fb-item-label">'+milestoneShortLabel(m)+'</div>'
+    +'</div>';
+  }).join('');
+  if(subEl){
+    const nextM=resolvedIdx+1<MILESTONES.length?MILESTONES[resolvedIdx+1]:null;
+    subEl.textContent=nextM?('Add ₹'+(nextM.min-gt).toLocaleString('en-IN')+' more to unlock '+milestoneName(nextM)):'';
+  }
+}
+function showFreebieToast(msg){
+  const t=document.getElementById('freebieToast');
+  if(!t)return;
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._hideTimer);
+  t._hideTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+// Eligible activities for the ₹5,000 credit — flat-priced, non theme-
+// restricted "experience" items whose price never exceeds ₹7,500 at any
+// kids-count band (2026-08-24, per Shruti: "Show them options upto Rs.
+// 7500, they can pay the additional amount"). Tattoo Station (a15) is
+// excluded here since it already has its own dedicated freebie above —
+// offering it twice would be confusing, not extra value.
+const ACTIVITY5K_ELIGIBLE_IDS=['a16','a18','a21','glitter','hair-styling','hair-styling-girls'];
+function openActivity5kChooser(){
+  const list=ACTIVITY5K_ELIGIBLE_IDS.map(id=>ACTS.find(a=>a.id===id)).filter(Boolean);
+  const w=document.getElementById('fb5kList');
+  if(w){
+    w.innerHTML=list.map(a=>{
+      const price=actPrice(a,S.kidsCount);
+      const credit=Math.min(5000,price);
+      const extra=price-credit;
+      const note=extra>0?('You pay ₹'+extra.toLocaleString('en-IN')+' extra'):'Fully covered — FREE';
+      return '<div class="fb5k-row" onclick="selectActivity5k(\''+a.id+'\')">'
+        +'<span class="fb5k-ic">'+a.e+'</span>'
+        +'<div class="fb5k-info"><div class="fb5k-n">'+a.n+'</div><div class="fb5k-note">₹'+price.toLocaleString('en-IN')+' value · '+note+'</div></div>'
+        +'<span class="fb5k-arrow">›</span>'
+        +'</div>';
+    }).join('');
+  }
+  document.getElementById('fb5kModal')?.classList.add('show');
+}
+function closeActivity5kChooser(){document.getElementById('fb5kModal')?.classList.remove('show');}
+function selectActivity5k(id){
+  // Only one activity can carry the credit at a time — clear any earlier pick.
+  S.activities.forEach(a=>{ if(a.is5kFreebie) delete a.is5kFreebie; });
+  let entry=S.activities.find(a=>a.id===id);
+  if(!entry){
+    const a=ACTS.find(x=>x.id===id);
+    if(!a)return;
+    entry={id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat,wasP:a.wasP};
+    S.activities.push(entry);
+  }
+  entry.is5kFreebie=true;
+  closeActivity5kChooser();
+  renderActs(actsBaseFiltered());updSelActs();updBB(S.screen);
+  showFreebieToast('🎁 ₹5,000 credit applied to '+entry.n+'!');
 }
 
 // ── BOTTOM BAR ──
@@ -3450,19 +3751,19 @@ function updBB(id){
   const bb=document.getElementById('bldBB');
   const hideOn=['shome','sconf','sleadsent'];
   bb.classList.toggle('hidden',hideOn.includes(id));
-  if(hideOn.includes(id)){document.getElementById('bbProgress')?.classList.add('hidden');return;}
+  if(hideOn.includes(id)){document.getElementById('bbFreebies')?.classList.add('hidden');return;}
   // Lead form & Step 0: hide the running price total — neither screen has a
   // cart amount to show yet (Step 0 shows only the "Start Building →" CTA).
   const priceWrap=document.querySelector('#bldBB .bb-disc-wrap');
   if(priceWrap)priceWrap.style.display=(id==='slead'||id==='s0')?'none':'';
-  if(id==='slead'||id==='s0'){document.getElementById('bbProgress')?.classList.add('hidden');}
+  if(id==='slead'||id==='s0'){document.getElementById('bbFreebies')?.classList.add('hidden');}
   if(id==='slead'){
     const skipBtn=document.getElementById('bbSkip');const contBtn=document.getElementById('bbCont');const revBackBtn=document.getElementById('bbRevBack');
     skipBtn.style.display='none';contBtn.textContent='Send My Details →';revBackBtn.style.display='none';
     return;
   }
   const gt=rawT();const tpv=tp();const dpv=dp();const payv=payTotal();
-  if(id!=='s0')updDiscProgress(gt);
+  if(id!=='s0'){updFreebieWidget(gt);}
   document.getElementById('bbTotal').textContent='₹'+payv.toLocaleString('en-IN');
   // 2026-08-18, per Shruti — "discounts should be very clearly called out,
   // even the einvite one": totalSavings folds in BOTH the auto/flat
@@ -3487,7 +3788,13 @@ function updBB(id){
   const discElM=document.getElementById('bbDiscMobile');
   const savEl=document.getElementById('bbSavings');
   if(totalSavings>0){
-    discEl.textContent=discElM.textContent='Discount applied';
+    // 2026-08-24, per Shruti — "discount applied text is getting cut... it
+    // seems repetitive, remove if it is repeating": the "Saving ₹X" pill
+    // (savEl, right next to this) already says exactly this, so the extra
+    // "Discount applied" label was pure duplication (and the one that got
+    // clipped on mobile, per screenshot, was this one — #bbDiscMobile sits
+    // in a fixed-width, overflow:hidden strip next to the Skip button).
+    discEl.textContent=discElM.textContent='';
     savEl.style.display='block';savEl.textContent='Saving ₹'+totalSavings.toLocaleString('en-IN');
   }else{
     discEl.textContent=discElM.textContent=(gt>0&&!S._pkgOrigin)?'Add ₹'+(25000-gt).toLocaleString('en-IN')+' more → unlock discount!':'';
@@ -3754,12 +4061,18 @@ function buildActs(){actFilter='all';document.querySelectorAll('#aChips .chip').
 function renderActs(list){
   const w=document.getElementById('aCards');w.innerHTML='';
   list.forEach(a=>{
-    const tot=actPrice(a,S.kidsCount);const k=S.kidsCount;const added=!!S.activities.find(x=>x.id===a.id);
+    const tot=actPrice(a,S.kidsCount);const k=S.kidsCount;const addedEntry=S.activities.find(x=>x.id===a.id);const added=!!addedEntry;
     const tagHtml=a.tag?TAG_MAP[a.tag]:'';
     const persHtml=a.pers?'<span class="tag" style="background:#F0FDF4;color:#1a6630">✦ Take-home</span>':'';
     const flatTag=a.flat?'<span class="tag" style="background:#FEF9C3;color:#92400E">Flat rate</span>':'';
     const priceNote=(a.id==='eng90'||a.id==='eng120')?('for '+k+' kids · scales with headcount'):a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child';
-    const priceHtml=(a.wasP&&a.wasP>tot)?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:13px">₹'+a.wasP.toLocaleString('en-IN')+'</s>₹'+tot.toLocaleString('en-IN'):'₹'+tot.toLocaleString('en-IN');
+    // 2026-08-24, per Shruti — once this card is the actual claimed Tattoo/
+    // ₹5k-credit freebie, its price here shows the live discount too (not
+    // just the Review page/mini-list) — same activityFreebiePrice() basis.
+    const fb=added?activityFreebiePrice(addedEntry,tot):null;
+    const priceHtml=(fb&&fb.wasP!=null)
+      ? ('<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:13px">₹'+fb.wasP.toLocaleString('en-IN')+'</s>'+(fb.price>0?('₹'+fb.price.toLocaleString('en-IN')):'🎁 FREE'))
+      : ((a.wasP&&a.wasP>tot)?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:13px">₹'+a.wasP.toLocaleString('en-IN')+'</s>₹'+tot.toLocaleString('en-IN'):'₹'+tot.toLocaleString('en-IN'));
     const fieldsHtml='👶 Suitable for: Ages '+a.age+'<br>📦 Packaging: '+(a.pers?'Included':'Not applicable')+'<br>🎨 Personalization Possible: '+(a.pers?'Yes':'No');
     // Most activities are still on the emoji/gradient fallback (see
     // .caro-fallback) until fresh photography comes in — only entries
@@ -3781,7 +4094,11 @@ function sortActs(){
 }
 function fActs(cat,btn){document.querySelectorAll('#aChips .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');actFilter=cat;renderActs(actsBaseFiltered());}
 function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.activities.splice(idx,1);else{const a=ACTS.find(x=>x.id===id);if(a)S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat,wasP:a.wasP});}renderActs(actsBaseFiltered());updSelActs();updBB(S.screen);}
-function updSelActs(){const w=document.getElementById('selActs');const l=document.getElementById('selAList');if(!S.activities.length){w.style.display='none';return;}w.style.display='block';l.innerHTML='';S.activities.forEach(a=>{const tot=actPrice(a,S.kidsCount);l.innerHTML+='<div class="sai"><span>'+a.n+'</span><span style="display:flex;align-items:center;gap:5px"><span class="saip">₹'+tot.toLocaleString('en-IN')+'</span><button class="sarm" onclick="togAct(\''+a.id+'\')">✕</button></span></div>';});}
+// 2026-08-24, per Shruti — the Step-2 "selected activities" mini-list now
+// reflects a claimed Tattoo/₹5k-credit freebie too (struck-through original
+// + the discounted/free price), not just the Review page — same
+// activityFreebiePrice() helper cItems() uses, so the two never drift.
+function updSelActs(){const w=document.getElementById('selActs');const l=document.getElementById('selAList');if(!S.activities.length){w.style.display='none';return;}w.style.display='block';l.innerHTML='';orderedActivities().forEach(a=>{const rawPrice=actPrice(a,S.kidsCount);const fb=activityFreebiePrice(a,rawPrice);const priceHtml=fb.wasP!=null?('<s style="color:var(--gy);font-weight:500;margin-right:4px;font-size:11px">₹'+fb.wasP.toLocaleString('en-IN')+'</s>'+(fb.price>0?('₹'+fb.price.toLocaleString('en-IN')):'🎁 FREE')):('₹'+fb.price.toLocaleString('en-IN'));l.innerHTML+='<div class="sai"><span>'+a.n+'</span><span style="display:flex;align-items:center;gap:5px"><span class="saip">'+priceHtml+'</span><button class="sarm" onclick="togAct(\''+a.id+'\')">✕</button></span></div>';});}
 function chgK(d){S.kidsCount=Math.max(1,Math.min(100,S.kidsCount+d));document.getElementById('kDisp2').textContent=S.kidsCount;try{document.getElementById('f-kids').value=S.kidsCount;}catch(e){}renderActs(actsBaseFiltered());updSelActs();S.gifts.forEach(g=>{if(!g.userQty)g.qty=S.kidsCount;});renderGifts();updBB(S.screen);}
 
 // Combines every captured remarks entry (per-step boxes below, plus the
@@ -4247,11 +4564,25 @@ function buildRev(){
       const priceHtml=i.wasP?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:12px">₹'+i.wasP.toLocaleString('en-IN')+'</s>₹'+i.p.toLocaleString('en-IN'):'₹'+i.p.toLocaleString('en-IN');
       html+='<div class="rv-item">'+thumbHtml+'<span class="rv-item-name">'+i.n+'</span><span class="rv-item-price">'+priceHtml+'</span><button class="rv-item-rm" title="Remove" onclick="rmRevItem(\''+cat+'\',\''+i.id+'\')">✕</button></div>';
     });
+    // 2026-08-24, per Shruti — "these addons should come in the return
+    // gifts section in the order review page": packaging/thank-you-note now
+    // show as line items INSIDE the Return Gifts section itself (previously
+    // buried as plain text rows in the separate "Return Gift Delivery" block
+    // below, easy to miss next to the address/date fields).
+    if(cat==='Return Gifts'&&its){
+      if(S.packaging){
+        html+='<div class="rv-item"><span class="rv-item-name">📦 '+(PACKAGING_LABELS[S.packaging]||'')+'</span><span class="rv-item-price">₹'+packagingCost().toLocaleString('en-IN')+'</span></div>';
+      }
+      if(S.tagType==='note'){
+        html+='<div class="rv-item"><span class="rv-item-name">💌 Personalised Thank You Note</span><span class="rv-item-price">₹'+tagFee().toLocaleString('en-IN')+'</span></div>';
+      }
+    }
     html+='</div></div>';
   });
   // Return-gift delivery details — only shown once gifts have been added,
   // read live from the Step 8 inputs (S.giftAddr etc. isn't populated until
-  // checkout runs).
+  // checkout runs). Packaging/Thank You Note used to also live here — moved
+  // into the Return Gifts section itself above, per Shruti (2026-08-24).
   if(S.gifts.length){
     const gAddr=(document.getElementById('f-gaddr')||{}).value||'';
     const gMaps=(document.getElementById('f-gmaps')||{}).value||'';
@@ -4265,8 +4596,6 @@ function buildRev(){
     if(gMaps)rows.push('Maps Link: '+esc(gMaps));
     if(gContact)rows.push('Contact Person: '+esc(gContact));
     if(gDate)rows.push('Required By: '+gDate);
-    if(S.packaging)rows.push('Packaging: '+(PACKAGING_LABELS[S.packaging]||'')+' (₹'+packagingCost().toLocaleString('en-IN')+')');
-    if(S.tagType==='note')rows.push('Thank You Note (₹'+tagFee().toLocaleString('en-IN')+')');
     html+='<div class="rv-sec"><div class="rv-hdr"><div class="rv-cat">Return Gift Delivery</div><span class="edit-link" onclick="editFR(8)">Edit</span></div>'+
       '<div class="rv-items" style="padding:14px 16px"><div style="font-size:13px;color:var(--bk);line-height:1.8">'+
       rows.join('<br>')+'</div></div></div>';

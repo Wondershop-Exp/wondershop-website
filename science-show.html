@@ -10,11 +10,9 @@
      as bubble-show.html / magic-show.html / host-nimesh.html)
      ══════════════════════════════════════════════════════════════════
      STILL NEEDS:
-       1. Bottom photo/video strip — not added yet (only the one action
-          video was uploaded so far).
-       2. Parent testimonials — placeholders below, hidden until ready.
-     (Cover caricature + action video are real, uploaded to
-     img/ScienceShow/.)
+       1. Parent testimonials — placeholders below, hidden until ready.
+     (Cover caricature, action video, and the 5-photo bottom strip are all
+     real, uploaded to img/ScienceShow/ — bottom strip added 2026-08-24.)
      ══════════════════════════════════════════════════════════════════ -->
 
 <meta name="description" content="Science Show add-on for Wondershop birthday parties — a 30-minute interactive science performance, ₹20,000.">
@@ -111,6 +109,37 @@ a{text-decoration:none}
 .host-testi{background:#fff;border:1.5px solid var(--li2);border-radius:16px;padding:18px}
 .host-testi-q{font-family:var(--fd);font-style:italic;font-size:14.5px;color:var(--bk);line-height:1.65;margin-bottom:10px}
 .host-testi-a{font-size:12px;font-weight:700;color:var(--li)}
+
+/* ── BOTTOM PHOTO STRIP (auto-scrolling) — 2026-08-24, per Shruti's real
+   Science Show photo upload (img/ScienceShow/photo carousal*.jpeg).
+   Same visual language as the video filmstrip on bubble-show.html
+   (.bottom-strip-sec/.filmstrip-wrap), simplified to plain photos since
+   these 5 uploads are stills, not per-photo video clips — tapping a frame
+   opens it full-size in a lightbox with left/right navigation, matching
+   the video modal's interaction pattern. ── */
+.bottom-strip-sec{padding:48px 0 8px;background:#fff}
+.bottom-strip-head{max-width:640px;margin:0 auto 20px;text-align:center;padding:0 24px}
+.filmstrip-wrap{position:relative;background:#161616;padding:15px 0;overflow:hidden}
+.filmstrip-wrap::before,.filmstrip-wrap::after{content:'';position:absolute;left:0;right:0;height:13px;background-image:repeating-linear-gradient(90deg,#f4f4f4 0 9px,transparent 9px 24px);background-position:12px center;z-index:2}
+.filmstrip-wrap::before{top:0}
+.filmstrip-wrap::after{bottom:0}
+.filmstrip-track{display:flex;width:max-content;animation:filmScroll 32s linear infinite}
+.filmstrip-wrap:hover .filmstrip-track{animation-play-state:paused}
+.film-frame{position:relative;flex-shrink:0;width:210px;height:210px;margin:0 6px;border-radius:6px;overflow:hidden;border:3px solid #000;background:#000;cursor:pointer}
+.film-frame img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease}
+.film-frame:hover img{transform:scale(1.08)}
+@keyframes filmScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(max-width:600px){.film-frame{width:150px;height:150px}}
+
+.photo-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);align-items:center;justify-content:center;padding:20px}
+.photo-modal.open{display:flex}
+.photo-modal img{max-width:92vw;max-height:88vh;border-radius:12px;object-fit:contain}
+.photo-modal-close{position:absolute;top:18px;right:18px;background:rgba(255,255,255,.14);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:18px;line-height:1;cursor:pointer;z-index:2}
+.photo-modal-arrow{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.14);border:none;color:#fff;font-size:24px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.photo-modal-arrow:hover{background:rgba(255,255,255,.26)}
+.photo-modal-prev{left:14px}
+.photo-modal-next{right:14px}
+@media(max-width:600px){.photo-modal-arrow{width:36px;height:36px;font-size:18px}.photo-modal-close{width:32px;height:32px;font-size:15px}}
 
 /* ── CTA ── */
 .host-cta{background:linear-gradient(135deg,var(--bk) 0%,#0F3D5C 100%);padding:48px 24px;text-align:center}
@@ -220,11 +249,27 @@ a{text-decoration:none}
   </div>
 </section>
 
-<!-- BOTTOM PHOTO/VIDEO STRIP —
-     TODO: not added yet — only the one action video has been uploaded so
-     far. Once more real Science Show clips are available, reuse the
-     .bottom-strip-sec / .filmstrip-wrap pattern from bubble-show.html
-     (including the #vidModal video lightbox + JS). -->
+<!-- BOTTOM PHOTO STRIP — real Science Show photos, uploaded 2026-08-24
+     (img/ScienceShow/photo carousal*.jpeg). Same visual pattern as
+     bubble-show.html's video filmstrip, adapted for plain photos — tap a
+     frame to open it full-size with left/right navigation. -->
+<section class="bottom-strip-sec">
+  <div class="bottom-strip-head">
+    <h2 class="blk-h">From real <em>Science Shows</em></h2>
+    <p style="font-size:14px;color:var(--gy)">Moments from Science Shows we've run at real birthday parties.</p>
+  </div>
+  <div class="filmstrip-wrap">
+    <div class="filmstrip-track" id="ssFilmTrack"></div>
+  </div>
+</section>
+
+<!-- PHOTO MODAL (film strip photos, left/right navigation) -->
+<div class="photo-modal" id="photoModal" onclick="if(event.target===this)closePhotoModal()">
+  <button class="photo-modal-close" onclick="closePhotoModal()" aria-label="Close">✕</button>
+  <button class="photo-modal-arrow photo-modal-prev" onclick="photoNav(-1)" aria-label="Previous photo">‹</button>
+  <img id="photoModalImg" src="" alt="">
+  <button class="photo-modal-arrow photo-modal-next" onclick="photoNav(1)" aria-label="Next photo">›</button>
+</div>
 
 <!-- CTA -->
 <div class="host-cta">
@@ -238,6 +283,52 @@ a{text-decoration:none}
   Wondershop Experiences &nbsp;·&nbsp;
   <a href="mailto:contact@wondershopexperiences.com">contact@wondershopexperiences.com</a>
 </div>
+
+<script>
+// ── BOTTOM PHOTO STRIP ──
+// 5 real photos from Wondershop Science Shows, uploaded 2026-08-24
+// (img/ScienceShow/science-carousel-*.jpeg — renamed from the original
+// "photo carousal*.jpeg" uploads for a consistent filename convention).
+const SS_FILM_FRAMES = [
+  { photo: 'img/ScienceShow/science-carousel-1.jpeg', tag: 'Science Show' },
+  { photo: 'img/ScienceShow/science-carousel-2.jpeg', tag: 'Science Show' },
+  { photo: 'img/ScienceShow/science-carousel-3.jpeg', tag: 'Science Show' },
+  { photo: 'img/ScienceShow/science-carousel-4.jpeg', tag: 'Science Show' },
+  { photo: 'img/ScienceShow/science-carousel-5.jpeg', tag: 'Science Show' },
+];
+(function initSsFilmstrip(){
+  const track = document.getElementById('ssFilmTrack');
+  if (!track) return;
+  const frameHTML = (f, idx, hidden) => '<div class="film-frame"' + (hidden ? ' aria-hidden="true"' : '') + ' onclick="openPhotoModal(' + idx + ')">' +
+    '<img src="' + f.photo + '" alt="' + f.tag + '" loading="lazy"></div>';
+  // Duplicate the set so translateX(-50%) loops seamlessly.
+  track.innerHTML = SS_FILM_FRAMES.map((f, i) => frameHTML(f, i, false)).join('') +
+                     SS_FILM_FRAMES.map((f, i) => frameHTML(f, i, true)).join('');
+})();
+
+// Photo lightbox — left/right navigation between the 5 photos.
+let PHOTO_IDX = 0;
+function openPhotoModal(idx) {
+  PHOTO_IDX = idx;
+  document.getElementById('photoModal').classList.add('open');
+  document.getElementById('photoModalImg').src = SS_FILM_FRAMES[PHOTO_IDX].photo;
+  document.body.style.overflow = 'hidden';
+}
+function photoNav(dir) {
+  PHOTO_IDX = (PHOTO_IDX + dir + SS_FILM_FRAMES.length) % SS_FILM_FRAMES.length;
+  document.getElementById('photoModalImg').src = SS_FILM_FRAMES[PHOTO_IDX].photo;
+}
+function closePhotoModal() {
+  document.getElementById('photoModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('photoModal').classList.contains('open')) return;
+  if (e.key === 'Escape') closePhotoModal();
+  if (e.key === 'ArrowLeft') photoNav(-1);
+  if (e.key === 'ArrowRight') photoNav(1);
+});
+</script>
 
 </body>
 </html>
