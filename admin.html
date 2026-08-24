@@ -53,10 +53,23 @@ table.list td{padding:10px;border-bottom:1px solid var(--li2);font-size:14px}
 table.list tr{cursor:pointer}
 table.list tr:hover td{background:var(--li3)}
 .status-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
-.status-Complete{background:var(--sgr);color:#166534}
+.status-Complete,.status-Converted{background:var(--sgr);color:#166534}
 .status-New,.status-Upcoming{background:var(--sbl);color:#1e3a8a}
 .status-ProposalSent,.status-InitialDiscussionsDone,.status-NegotiationsOngoing{background:var(--syl);color:#92400e}
 .status-NotInterested,.status-DND,.status-Cancelled{background:var(--spk);color:#8a1a44}
+
+/* ─── Sortable list headers ─── */
+/* 2026-08-19, per Shruti follow-up: "give sort on status, created, event
+   date. on clicking - the values should get sorted in desc/asc." */
+table.list th.sortable{cursor:pointer;user-select:none}
+table.list th.sortable:hover{color:var(--bk)}
+.sort-arrow{margin-left:4px;font-size:10px;display:inline-block;min-width:8px}
+
+/* ─── Locked record banner ─── */
+/* 2026-08-19, per Shruti follow-up: "if a booking is marked as cancelled, no
+   further updates can be done on the values of the booking. same for leads
+   that are marked as not converted." */
+.lock-banner{background:var(--spk);color:#8a1a44;padding:10px 16px;border-radius:var(--rs);font-size:13px;font-weight:600;margin-bottom:16px}
 
 /* ─── Leads / Bookings tabs ─── */
 .tabs{display:flex;gap:10px;margin-bottom:16px}
@@ -146,14 +159,28 @@ table.fields textarea{resize:vertical;min-height:32px}
     </div>
     <div id="leadTableWrap">
       <table class="list">
-        <thead><tr><th>ID</th><th>Parent</th><th>Phone</th><th>Event Date</th><th>City</th><th>Status</th><th>Created</th><th></th></tr></thead>
+        <thead><tr>
+          <th>ID</th><th>Parent</th><th>Phone</th>
+          <th class="sortable" onclick="toggleSort('lead','event_date')">Event Date<span class="sort-arrow" id="arrow-lead-event_date"></span></th>
+          <th>City</th>
+          <th class="sortable" onclick="toggleSort('lead','status')">Status<span class="sort-arrow" id="arrow-lead-status"></span></th>
+          <th class="sortable" onclick="toggleSort('lead','created')">Created<span class="sort-arrow" id="arrow-lead-created"></span></th>
+          <th></th>
+        </tr></thead>
         <tbody id="leadBody"></tbody>
       </table>
       <div class="empty" id="leadEmpty" style="display:none">No leads found.</div>
     </div>
     <div id="bookingTableWrap" style="display:none">
       <table class="list">
-        <thead><tr><th>ID</th><th>Parent</th><th>Phone</th><th>Event Date</th><th>City</th><th>Status</th><th>Created</th><th></th></tr></thead>
+        <thead><tr>
+          <th>ID</th><th>Parent</th><th>Phone</th>
+          <th class="sortable" onclick="toggleSort('booking','event_date')">Event Date<span class="sort-arrow" id="arrow-booking-event_date"></span></th>
+          <th>City</th>
+          <th class="sortable" onclick="toggleSort('booking','status')">Status<span class="sort-arrow" id="arrow-booking-status"></span></th>
+          <th class="sortable" onclick="toggleSort('booking','created')">Created<span class="sort-arrow" id="arrow-booking-created"></span></th>
+          <th></th>
+        </tr></thead>
         <tbody id="bookingBody"></tbody>
       </table>
       <div class="empty" id="bookingEmpty" style="display:none">No bookings found.</div>
@@ -167,6 +194,7 @@ table.fields textarea{resize:vertical;min-height:32px}
       <div class="detail-meta" id="detMeta"></div>
     </div>
     <div id="statusBlock" class="section-block"></div>
+    <div id="lockBanner"></div>
     <div id="sectionsContainer"></div>
     <div class="log-section">
       <h3>Modification Trail</h3>
@@ -278,6 +306,8 @@ function enterApp(){
   // edit that appeared to do nothing).
   if(!getName()) highlightWhoName();
   loadStatusOptions();
+  updateSortHeaders('lead');
+  updateSortHeaders('booking');
   doSearch();
 }
 
@@ -310,6 +340,32 @@ function updateBubble(id, count){
   if(count>0){ el.textContent = count; el.style.display='inline-block'; }
   else{ el.style.display='none'; }
 }
+
+// ── List sorting ────────────────────────────────────────────────────────
+// 2026-08-19, per Shruti follow-up: "give sort on status, created, event
+// date. on clicking - the values should get sorted in desc/asc. applicable
+// for bookings and leads." Leads and Bookings each keep their own
+// independent sort state (matching them each having their own tab/query).
+// Clicking a new column defaults to ascending; clicking the active column
+// again flips asc/desc. Keys must match backend SORTABLE_COLUMNS in
+// routers/admin.py (status/created/event_date).
+let SORT_STATE = { lead: {key:'created', dir:'desc'}, booking: {key:'created', dir:'desc'} };
+function toggleSort(kind, key){
+  const s = SORT_STATE[kind];
+  if(s.key===key){ s.dir = s.dir==='asc' ? 'desc' : 'asc'; }
+  else{ s.key = key; s.dir = 'asc'; }
+  updateSortHeaders(kind);
+  loadTable(kind, document.getElementById('searchQ').value.trim());
+}
+function updateSortHeaders(kind){
+  const s = SORT_STATE[kind];
+  ['status','event_date','created'].forEach(k=>{
+    const el = document.getElementById('arrow-'+kind+'-'+k);
+    if(!el) return;
+    el.textContent = (s.key===k) ? (s.dir==='asc' ? '▲' : '▼') : '';
+  });
+}
+
 async function doSearch(){
   const q = document.getElementById('searchQ').value.trim();
   await Promise.all([loadTable('lead', q), loadTable('booking', q)]);
@@ -322,7 +378,8 @@ async function loadTable(kind, q){
   const empty = document.getElementById(emptyId);
   body.innerHTML = '<tr><td colspan="7" style="padding:16px;color:#6B7280">Loading...</td></tr>';
   try{
-    const path = '/api/admin/bookings?kind='+kind+(q?('&q='+encodeURIComponent(q)):'');
+    const s = SORT_STATE[kind];
+    const path = '/api/admin/bookings?kind='+kind+(q?('&q='+encodeURIComponent(q)):'')+'&sort='+s.key+'&dir='+s.dir;
     const d = await apiCall(path);
     const rows = d.rows||[];
     updateBubble(bubbleId, d.new_count||0);
@@ -376,11 +433,19 @@ async function quickSetStatus(leadId, newStatus){
   const who = getName();
   if(!who){ showToast('Set "Editing as" name at the top first.'); doSearch(); return; }
   try{
-    await apiCall('/api/admin/bookings/'+leadId+'/status', {
+    // "Converted" is dropdown-only (never a stored lead status) — the backend
+    // special-cases it into the same is_booking flip as the Convert button
+    // and echoes is_booking:true, so the toast here should say "converted",
+    // not "status updated to Converted" (2026-08-19, per Shruti follow-up).
+    const result = await apiCall('/api/admin/bookings/'+leadId+'/status', {
       method:'POST',
       body: JSON.stringify({status:newStatus, changed_by:who}),
     });
-    showToast('✓ Status updated to '+newStatus+(NON_CONVERT_STATUSES.includes(newStatus) ? ' — open the lead to record a reason.' : '.'));
+    if(result && result.is_booking){
+      showToast('✓ Converted to booking — moved to the Bookings tab.');
+    }else{
+      showToast('✓ Status updated to '+newStatus+(NON_CONVERT_STATUSES.includes(newStatus) ? ' — open the lead to record a reason.' : '.'));
+    }
     doSearch();
   }catch(e){
     if(e.message!=='unauthorized') showToast(e.message);
@@ -513,7 +578,7 @@ async function saveDetailStatus(){
   const reasonSel = document.getElementById('statusReasonSel');
   const reasonOther = document.getElementById('statusReasonOther');
   try{
-    await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/status', {
+    const result = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/status', {
       method:'POST',
       body: JSON.stringify({
         status: status,
@@ -522,7 +587,7 @@ async function saveDetailStatus(){
         changed_by: who,
       }),
     });
-    showToast('✓ Status set to '+status+'.');
+    showToast(result && result.is_booking ? '✓ Converted to booking — moved to the Bookings tab.' : ('✓ Status set to '+status+'.'));
     await loadDetail();
   }catch(e){
     if(e.message!=='unauthorized') showToast(e.message);
@@ -569,16 +634,32 @@ function renderDetail(d){
   if(d.non_convert_reason_options && d.non_convert_reason_options.length) NON_CONVERT_REASON_OPTIONS = d.non_convert_reason_options;
   document.getElementById('statusBlock').innerHTML = statusBlockHtml(d);
 
+  // 2026-08-19, per Shruti follow-up: "if a booking is marked as cancelled,
+  // no further updates can be done on the values of the booking. same for
+  // leads that are marked as not converted." d.locked comes straight from
+  // the backend's _is_locked() — the frontend just reflects it (a banner +
+  // read-only field rows below); update_booking_field() enforces it for
+  // real, so this is purely a UX cue, not the source of truth.
+  const lockBanner = document.getElementById('lockBanner');
+  if(d.locked){
+    const msg = d.is_booking
+      ? '🔒 This event is cancelled — its details are locked and can no longer be edited.'
+      : '🔒 This lead is marked "'+esc(d.status||'')+'" — its details are locked and can no longer be edited. Change the status above to unlock it.';
+    lockBanner.innerHTML = '<div class="lock-banner">'+msg+'</div>';
+  }else{
+    lockBanner.innerHTML = '';
+  }
+
   const container = document.getElementById('sectionsContainer');
   container.innerHTML = d.sections.map(sec=>{
     const isCustEvent = sec.section==='Customer & Event Details';
     const col3Label = isCustEvent ? 'Updated Value' : 'Assigned Value';
-    const rowsHtml = sec.fields.map(f=>fieldRowHtml(f, isCustEvent)).join('');
+    const rowsHtml = sec.fields.map(f=>fieldRowHtml(f, isCustEvent, d.locked)).join('');
     return '<div class="section-block">'
       +'<h3>'+esc(sec.section)+'</h3>'
       +'<table class="fields"><thead><tr><th>Field</th><th>Current Value</th><th>'+col3Label+'</th><th>Remarks</th><th></th></tr></thead>'
       +'<tbody id="sec-'+secId(sec.section)+'">'+rowsHtml+'</tbody></table>'
-      +'<button class="add-field-btn" onclick="addCustomField('+attrJson(sec.section)+')">+ Add field to '+esc(sec.section)+'</button>'
+      +(d.locked ? '' : '<button class="add-field-btn" onclick="addCustomField('+attrJson(sec.section)+')">+ Add field to '+esc(sec.section)+'</button>')
       +'</div>';
   }).join('');
 
@@ -715,7 +796,7 @@ function mpSync(rid){
   if(hidden) hidden.value = str;
 }
 
-function fieldRowHtml(f, isCustEvent){
+function fieldRowHtml(f, isCustEvent, locked){
   const rid = 'fld_'+f.field_key;
   const removedCls = f.removed ? ' removed' : '';
   // "None selected" instead of a blank note when the customer genuinely left
@@ -735,6 +816,22 @@ function fieldRowHtml(f, isCustEvent){
     return '<tr id="'+rid+'" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+'</td>'
       +'<td colspan="3"><span class="readonly-cell computed">'+esc(f.customer_choice||'—')+'<span class="computed-note">'+note+'</span></span></td>'
+      +'<td></td>'
+      +'</tr>';
+  }
+
+  // ── Locked (cancelled booking / non-converted lead): every remaining
+  // field renders as plain read-only text — no inputs, no Save/Remove —
+  // mirroring the 400 that update_booking_field() would otherwise return
+  // (2026-08-19, per Shruti follow-up: "no further updates can be done on
+  // the values"). Multi-select fields (Activities/Gifts) just show their
+  // raw comma-joined string here rather than the row-per-item picker.
+  if(locked){
+    return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
+      +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
+      +'<td><span class="readonly-cell">'+esc(f.customer_choice||'—')+'</span></td>'
+      +'<td><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>'
+      +'<td><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
       +'</tr>';
   }

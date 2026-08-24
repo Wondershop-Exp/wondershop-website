@@ -259,7 +259,16 @@ PAYMENT_STATUS_OPTIONS = [_opt(x) for x in ["Pending", "Advance Paid Pending Ver
 #   that function) — Upcoming/Complete are derived from event_date on every
 #   read, so they can never go stale.
 LEAD_STATUSES = ["New", "Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing", "Not Interested", "DND"]
-LEAD_STATUS_OPTIONS = [_opt(x) for x in LEAD_STATUSES]
+# "Converted" (2026-08-19, per Shruti follow-up: "add converted to the status
+# dropdown for leads") is a DROPDOWN-ONLY value — it is never written to the
+# `status` column (the leads_status_check constraint from migration 018
+# deliberately excludes it; is_booking is the real conversion flag). Picking
+# it and saving is special-cased in update_lead_status() to run the exact
+# same conversion as the old dedicated Convert button (see _do_convert_lead())
+# — hence LEAD_STATUSES (the real, storable set) stays separate from the
+# dropdown's full option list.
+LEAD_STATUS_DROPDOWN_VALUES = ["New", "Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing", "Converted", "Not Interested", "DND"]
+LEAD_STATUS_OPTIONS = [_opt(x) for x in LEAD_STATUS_DROPDOWN_VALUES]
 BOOKING_DISPLAY_STATUSES = ["New", "Upcoming", "Complete", "Cancelled"]
 
 # Shown only when a lead is marked Not Interested / DND — i.e. it left the
@@ -281,6 +290,19 @@ def _booking_display_status(lead: dict) -> str:
     today = datetime.utcnow().date()
     ed = event_date if isinstance(event_date, date_cls) else datetime.strptime(str(event_date), "%Y-%m-%d").date()
     return "Complete" if ed < today else "Upcoming"
+
+
+# 2026-08-19, per Shruti follow-up: "if a booking is marked as cancelled, no
+# further updates can be done on the values of the booking. same for leads
+# that are marked as not converted." Locks the generic field-value editor
+# (update_booking_field() below) only — status changes stay open for leads
+# (Not Interested/DND -> anything else, including Converted) so a mis-click
+# isn't a permanent dead end; a cancelled booking has no "un-cancel" path at
+# all by design, so it's frozen for good once cancelled.
+def _is_locked(is_booking: bool, status: Optional[str]) -> bool:
+    if is_booking:
+        return status == "Cancelled"
+    return status in NON_CONVERT_STATUSES
 
 DROPDOWN_OPTIONS = {
     "svc_decor": DECOR_OPTIONS,
@@ -595,8 +617,11 @@ async def get_status_options(x_admin_password: Optional[str] = Header(None)):
 # can fetch each table independently (and show its own "new" count badge —
 # "if there are new entries, show a bubble with the number").
 
+SORTABLE_COLUMNS = {"status", "created", "event_date"}
+
+
 @router.get("/bookings")
-async def list_bookings(kind: str = "lead", q: Optional[str] = None, x_admin_password: Optional[str] = Header(None)):
+async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str = "created", dir: str = "desc", x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
     is_booking = kind == "booking"
     where = ["is_booking = :is_booking"]
@@ -605,33 +630,60 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, x_admin_pas
         where.append("(parent_name ILIKE :like OR phone ILIKE :like OR email ILIKE :like OR CAST(lead_id AS TEXT) = :q)")
         values["like"] = f"%{q}%"
         values["q"] = q
+    # No SQL-level ORDER BY/LIMIT here — sorting by "status" has to sort on
+    # the DISPLAY status (New/Upcoming/Complete/Cancelled for bookings),
+    # which for Upcoming/Complete only exists after _booking_display_status()
+    # runs in Python (2026-08-19, per Shruti: "give sort on status, created,
+    # event date ... applicable for bookings and leads"). Fetches every
+    # matching row, computes display status, sorts, THEN slices to 200 — an
+    # admin's lead/booking table is expected to stay well within a size where
+    # that's cheap; if this table ever grows to tens of thousands of rows,
+    # this should move to a SQL-side sort instead.
     rows = await database.fetch_all(
         f"""
         SELECT lead_id, parent_name, phone, email, event_date, city, status, created_on
         FROM leads
         WHERE {' AND '.join(where)}
-        ORDER BY created_on DESC
-        LIMIT 200
         """,
         values=values,
     )
-    out = []
+    enriched = []
     new_count = 0
     for r in rows:
         row = dict(r)
-        display_status = _booking_display_status(row) if is_booking else row["status"]
-        if display_status == "New":
+        row["_display_status"] = _booking_display_status(row) if is_booking else row["status"]
+        if row["_display_status"] == "New":
             new_count += 1
-        out.append({
-            "lead_id": row["lead_id"],
-            "parent_name": row["parent_name"],
-            "phone": row["phone"],
-            "email": row["email"],
-            "event_date": _date_str(row["event_date"]),
-            "city": row["city"],
-            "status": display_status,
-            "created_on_ist": _to_ist_str(row["created_on"]),
-        })
+        enriched.append(row)
+
+    sort_key = sort if sort in SORTABLE_COLUMNS else "created"
+    sort_desc = dir != "asc"
+
+    def _sort_val(row):
+        if sort_key == "status":
+            return row["_display_status"]
+        if sort_key == "event_date":
+            return row["event_date"]
+        return row["created_on"]
+
+    # None-safe: always push rows missing the sort value (e.g. no event_date
+    # yet) to the end, regardless of asc/desc — reverse=True would otherwise
+    # flip them to the front instead.
+    with_val = [r for r in enriched if _sort_val(r) is not None]
+    without_val = [r for r in enriched if _sort_val(r) is None]
+    with_val.sort(key=_sort_val, reverse=sort_desc)
+    ordered = (with_val + without_val)[:200]
+
+    out = [{
+        "lead_id": row["lead_id"],
+        "parent_name": row["parent_name"],
+        "phone": row["phone"],
+        "email": row["email"],
+        "event_date": _date_str(row["event_date"]),
+        "city": row["city"],
+        "status": row["_display_status"],
+        "created_on_ist": _to_ist_str(row["created_on"]),
+    } for row in ordered]
     return {"rows": out, "new_count": new_count}
 
 
@@ -796,6 +848,11 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
         # Read-only computed status for a booking (New/Upcoming/Complete/
         # Cancelled); the raw editable pipeline status for a lead.
         "status": _booking_display_status(lead) if is_booking else lead.get("status"),
+        # 2026-08-19, per Shruti follow-up — see _is_locked(): true once a
+        # booking is Cancelled or a lead is Not Interested/DND. The frontend
+        # renders every field row read-only and hides Save/Remove/+Add Field
+        # when this is set; update_booking_field() enforces it server-side too.
+        "locked": _is_locked(is_booking, lead.get("status")),
         "non_convert_reason": lead.get("non_convert_reason"),
         "non_convert_reason_other": lead.get("non_convert_reason_other"),
         "lead_status_options": LEAD_STATUS_OPTIONS,
@@ -899,6 +956,16 @@ async def update_booking_field(lead_id: int, body: FieldUpdateRequest, x_admin_p
     if not lead_row:
         raise HTTPException(status_code=404, detail="Booking not found.")
     lead = dict(lead_row)
+
+    # 2026-08-19, per Shruti follow-up: "if a booking is marked as cancelled,
+    # no further updates can be done on the values of the booking. same for
+    # leads that are marked as not converted." Enforced here (not just in the
+    # frontend) since this is the one endpoint that actually writes field
+    # values — status changes (which can un-lock a lead) go through a
+    # separate endpoint and are deliberately NOT gated by this check.
+    if _is_locked(bool(lead.get("is_booking")), lead.get("status")):
+        raise HTTPException(status_code=400, detail="This record is locked — cancelled bookings and non-converted leads can no longer be edited.")
+
     snap = _parse_snapshot(lead.get("builder_snapshot"))
 
     existing = await database.fetch_one(
@@ -1020,6 +1087,29 @@ async def _log_status_change(lead_id: int, old_v, new_v, who: str, now):
 # booking row is rejected here with a 400 (item 3: "convert to booking and
 # save status buttons are not eligible for confirmed bookings") — use
 # /cancel instead, the only write action a booking row ever gets.
+# 2026-08-19, per Shruti follow-up — shared by both the dedicated /convert
+# endpoint AND update_lead_status() below when "Converted" is picked from
+# the status dropdown ("add converted to the status dropdown for leads ...
+# if a lead is converted, move it to the bookings tab. maintain edit history
+# ... converted marked by whom"). Single source of truth for the actual
+# is_booking flip so both entry points log identically.
+async def _do_convert_lead(lead_id: int, who: str) -> None:
+    lead_row = await database.fetch_one("SELECT status, is_booking, converted_on FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    if not lead_row:
+        raise HTTPException(status_code=404, detail="Lead not found.")
+    if lead_row["is_booking"]:
+        raise HTTPException(status_code=400, detail="Already a confirmed booking.")
+
+    now = datetime.utcnow()
+    set_clauses = ["is_booking = TRUE", "status = 'New'", "non_convert_reason = NULL", "non_convert_reason_other = NULL"]
+    values = {"id": lead_id}
+    if not lead_row["converted_on"]:
+        set_clauses.append("converted_on = :converted_on")
+        values["converted_on"] = now
+    await database.execute(f"UPDATE leads SET {', '.join(set_clauses)} WHERE lead_id = :id", values=values)
+    await _log_status_change(lead_id, lead_row["status"], "Converted to Booking", who, now)
+
+
 @router.post("/bookings/{lead_id}/status")
 async def update_lead_status(lead_id: int, body: StatusUpdateRequest, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
@@ -1029,6 +1119,15 @@ async def update_lead_status(lead_id: int, body: StatusUpdateRequest, x_admin_pa
     who = body.changed_by.strip()
 
     new_status = (body.status or "").strip()
+
+    # "Converted" never touches the leads.status column (see
+    # LEAD_STATUS_DROPDOWN_VALUES above) — picking it and saving runs the
+    # exact same is_booking flip as the old dedicated Convert button, so the
+    # row moves to the Bookings tab and the change log records who converted it.
+    if new_status == "Converted":
+        await _do_convert_lead(lead_id, who)
+        return {"success": True, "status": "Converted", "is_booking": True}
+
     if new_status not in LEAD_STATUSES:
         raise HTTPException(status_code=400, detail=f'"{new_status}" is not a valid lead status.')
 
@@ -1062,27 +1161,15 @@ class ChangedByRequest(BaseModel):
 
 
 # ─── CONVERT LEAD → BOOKING ─────────────────────────────────────────────────
+# Kept as its own endpoint for any caller that wants a direct "convert" verb
+# without going through the status dropdown; update_lead_status() above
+# calls the same _do_convert_lead() helper when "Converted" is picked there.
 @router.post("/bookings/{lead_id}/convert")
 async def convert_lead_to_booking(lead_id: int, body: ChangedByRequest, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
     if not body.changed_by or not body.changed_by.strip():
         raise HTTPException(status_code=400, detail="changed_by is required.")
-    who = body.changed_by.strip()
-
-    lead_row = await database.fetch_one("SELECT status, is_booking, converted_on FROM leads WHERE lead_id = :id", values={"id": lead_id})
-    if not lead_row:
-        raise HTTPException(status_code=404, detail="Lead not found.")
-    if lead_row["is_booking"]:
-        raise HTTPException(status_code=400, detail="Already a confirmed booking.")
-
-    now = datetime.utcnow()
-    set_clauses = ["is_booking = TRUE", "status = 'New'", "non_convert_reason = NULL", "non_convert_reason_other = NULL"]
-    values = {"id": lead_id}
-    if not lead_row["converted_on"]:
-        set_clauses.append("converted_on = :converted_on")
-        values["converted_on"] = now
-    await database.execute(f"UPDATE leads SET {', '.join(set_clauses)} WHERE lead_id = :id", values=values)
-    await _log_status_change(lead_id, lead_row["status"], "Converted to Booking", who, now)
+    await _do_convert_lead(lead_id, body.changed_by.strip())
     return {"success": True, "is_booking": True}
 
 
@@ -1101,6 +1188,8 @@ async def cancel_booking(lead_id: int, body: ChangedByRequest, x_admin_password:
         raise HTTPException(status_code=404, detail="Booking not found.")
     if not lead_row["is_booking"]:
         raise HTTPException(status_code=400, detail="This is a lead, not a confirmed booking — use the status dropdown (Not Interested/DND) instead.")
+    if lead_row["status"] == "Cancelled":
+        raise HTTPException(status_code=400, detail="Already cancelled.")
 
     now = datetime.utcnow()
     await database.execute("UPDATE leads SET status = 'Cancelled' WHERE lead_id = :id", values={"id": lead_id})
