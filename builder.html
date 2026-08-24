@@ -55,6 +55,15 @@
   --max:1200px;--nav-h:68px;
   --bb-h:68px;/* builder bottom bar */
   --bh-h:60px;/* builder header */
+  /* Height of the freebie/discount badge row (.bb-freebies) when visible,
+     0px when hidden — kept in sync from JS (see syncFbH(), called from
+     updFreebieWidget()/updBB() on every render). The row sits ABOVE the
+     main .bld-bb bar and isn't accounted for by --bb-h itself, so anything
+     that positions off --bb-h alone (e.g. .wa-fab below) needs this too or
+     it sits UNDER the badge row instead of clear above it (2026-08-24
+     Round 4, per Shruti — "Whatsapp icon is overlapping the discount
+     icon"). */
+  --fb-h:0px;
 }
 html{scroll-behavior:smooth}
 body{font-family:var(--fb);color:var(--bk);background:var(--wh);overflow-x:hidden}
@@ -325,23 +334,34 @@ input,textarea,select{font-family:var(--fb)}
    into the single-badge freebie/discount widget below on 2026-08-24 —
    see .bb-freebies. */
 
-/* Freebie/discount badge ROW — rewritten 2026-08-24 Round 3, per Shruti's
-   follow-up: unlocked badges must NOT vanish (Round 2's single-badge
-   auto-advance-and-replace was wrong) — every one of the 7 milestones
-   (E-Invite / ₹500 / ₹750 / ₹1,000 / Tattoo / ₹5,000 Activity / ₹1,500,
-   see MILESTONES) renders simultaneously in a horizontally-scrollable row,
-   always, for the entire life of the cart. Already-crossed ones sit solid
-   green with a tick; the very next one shows a live progress ring
-   (conic-gradient, milestonePct()); everything beyond that naturally reads
-   as 0%/grey since the cart hasn't reached its predecessor yet — no special
-   casing needed, milestonePct()'s own clamp handles it. Once every
-   milestone is resolved, all 7 stay visible as ticked/complete — nothing
-   is ever hidden once earned. A short shared nudge line under the row
-   ("Add ₹X more to unlock Y") carries the one piece of copy that used to
-   live under each badge. Centered row so it never sits under the fixed
-   WhatsApp fab in the bottom-left corner. Hidden below ₹15,000 and on
-   package-origin carts. Generic Build a Birthday only (2026-08-24 scope
-   decision) — Unicorn/Turf/Spy keep their existing bottom bar untouched.*/
+/* Freebie/discount badge ROW — rewritten 2026-08-24 Round 4, per Shruti's
+   follow-up on Round 3 ("show only next upcoming discount tier, not all the
+   upcoming tiers... for monetary discounts, reuse the earlier icon... if a
+   user gets a freebie, that icon remains"): Round 3 rendered all 7
+   MILESTONES entries (including all 4 separate ₹ tiers) simultaneously,
+   every one always visible — that's what she flagged as "2 discount bars" /
+   too many upcoming tiers on screen. Round 4 renders instead: (1) one
+   permanent badge per UNLOCKED freebie (E-Invite / Tattoo / ₹5,000
+   Activity) — same as before, never vanishes once earned; (2) exactly ONE
+   persistent money badge whose amount updates in place as higher ₹ tiers
+   are crossed (₹500→₹750→₹1,000→₹1,500 — same DOM slot reused, never a
+   second badge); (3) exactly ONE additional "next, locked" preview badge
+   with a live progress ring for whichever milestone is immediately next —
+   money or freebie, doesn't matter which — added Round 5 same day per
+   Shruti's Amazon reward-ladder screenshots ("once the user gets 750 off
+   and is building towards the next tier (1000 off), show both 750 and
+   1000 icons... this should happen for all the tiers"). See
+   freebieBadgeList()/updFreebieWidget() for the actual selection logic.
+   Once every tier is resolved, all badges stay visible/complete — nothing
+   is ever hidden once earned. A short shared
+   nudge line under the row ("Add ₹X more to unlock Y") carries the one
+   piece of copy that used to live under each badge. Row height is synced
+   to --fb-h (see :root) so the fixed WhatsApp fab repositions above it
+   instead of overlapping it. Hidden below ₹15,000, at checkout ('sco' —
+   see Image 3, "don't show the discount/freebie bar at checkout page"),
+   and on package-origin carts. Generic Build a Birthday only (2026-08-24
+   scope decision) — Unicorn/Turf/Spy keep their existing bottom bar
+   untouched.*/
 .bb-freebies{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 16px;background:#fff;border-top:1.5px solid var(--li2)}
 .bb-freebies.hidden{display:none}
 .fb-row{display:flex;align-items:flex-start;gap:12px;overflow-x:auto;max-width:100%;padding:2px 4px;scrollbar-width:none}
@@ -355,12 +375,12 @@ input,textarea,select{font-family:var(--fb)}
 .fb-ring::after{content:'';position:absolute;inset:4px;border-radius:50%;background:#fff}
 .fb-badge-icon{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:16px}
 .fb-badge-icon img{width:22px;height:22px;object-fit:contain}
-.fb-badge-amt{font-size:10.5px;font-weight:800;color:var(--pk)}
+.fb-badge-amt{font-size:9.5px;font-weight:800;color:var(--pk);white-space:nowrap}
 .fb-status{position:absolute;bottom:-3px;right:-3px;z-index:2;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;border:2px solid #fff;background:var(--lgy);color:var(--gy)}
 .fb-status.tick{background:var(--gr);color:#fff}
 @keyframes fbCompletePop{0%{transform:scale(1)}40%{transform:scale(1.22)}70%{transform:scale(.94)}100%{transform:scale(1)}}
 .fb-ring.fb-pop{animation:fbCompletePop .55s ease}
-@media(max-width:480px){.bb-freebies{padding:6px 10px}.fb-row{gap:9px}.fb-ring{width:38px;height:38px}.fb-badge-icon{font-size:13px}.fb-badge-icon img{width:18px;height:18px}.fb-item-label{font-size:8.5px;max-width:44px}.fb-row-sub{font-size:10px}}
+@media(max-width:480px){.bb-freebies{padding:6px 10px}.fb-row{gap:9px}.fb-ring{width:38px;height:38px}.fb-badge-icon{font-size:13px}.fb-badge-icon img{width:18px;height:18px}.fb-badge-amt{font-size:8px}.fb-item-label{font-size:8.5px;max-width:44px}.fb-row-sub{font-size:10px}}
 
 /* ₹5,000 activity-credit chooser modal — 2026-08-24, per Shruti: "show a +
    sign on the discount bar, let the customer choose from the options that
@@ -2211,6 +2231,12 @@ input,textarea,select{font-family:var(--fb)}
     <div class="amt-box">
       <div class="amt-row"><span>Grand Total</span><span id="co-gt">₹0</span></div>
       <div class="amt-row" id="co-dr" style="display:none"><span>Discount</span><span id="co-disc" style="color:var(--gr)"></span></div>
+      <!-- 2026-08-24, per Shruti (Image 3) — "Don't show the discount/
+           freebie bar at checkout page. Add the freebies and discounts in
+           the order summary." The .bb-freebies badge row is hidden on this
+           screen (see updBB()); its freebie breakdown moves here instead,
+           populated by updCoAmt() from unlockedFreebieNames(). -->
+      <div class="amt-row" id="coFreebiesRow" style="display:none"><span>Free Perks</span><span id="co-freebies" style="display:inline-block;color:var(--gr);text-align:right;max-width:60%;font-size:12.5px;line-height:1.4">-</span></div>
       <div class="amt-row" id="coFeeRow" style="display:none"><span>Cash Collection Fee</span><span id="co-fee">₹100</span></div>
       <div class="amt-row" id="coPkgRow" style="display:none"><span id="co-pkg-lbl">Packaging</span><span id="co-pkg">₹0</span></div>
       <div class="amt-row" id="coTagRow" style="display:none"><span>Thank You Note</span><span id="co-tag">₹0</span></div>
@@ -3597,25 +3623,48 @@ function freebiesAt(gt){ return VALUE_TIERS[valueTierIdx(gt)].freebies; }
 // duplicate `const DISC_SLABS` (fatal SyntaxError).
 
 // ── FREEBIE/DISCOUNT BADGE ROW ───────────────────────────────────────────
-// 2026-08-24 v3 rewrite, per Shruti's follow-up on Round 2's single-badge
-// version:
-//  1/2. "Discount circle icons should not vanish... let it remain on the
-//     discount bar, while other icons are work in progress" — every one of
-//     the 7 milestones (E-Invite / ₹500 / ₹750 / ₹1,000 / Tattoo Artist /
-//     ₹5,000 Activity / ₹1,500 — see MILESTONES, derived from VALUE_TIERS
-//     so the two can't drift) now renders simultaneously in a row, always.
-//     Once a badge is unlocked it stays ticked/complete permanently; the
-//     rest just show their own live progress ring — no more single-badge
-//     swap-and-hide.
-//  3. "if all the discounts/freebies are met, still retain" — since every
-//     badge is always rendered (never conditionally hidden once earned),
-//     a maxed-out cart simply shows all 7 as complete. Nothing disappears.
-//  Ring math is unchanged from Round 2 (milestonePct(): x = previous
-//  milestone's threshold, z = gap to this one, pct = clamp((gt-x)/z*100)) —
-//  it already naturally renders 0% for every milestone further out than the
-//  immediate next one, since gt hasn't reached that milestone's own
-//  predecessor yet, so no extra branching was needed to support showing all
-//  7 instead of just one.
+// 2026-08-24 v4 rewrite, per Shruti's follow-up on Round 3 (all 7 tiers
+// always shown at once):
+//  2. "show only next upcoming discount tier, not all the upcoming tiers.
+//     The previous passed tiers should remain visible" — e.g. cart=₹40,000
+//     → only the E-Invite freebie badge + a single ₹750 badge, not every
+//     ₹ tier from ₹500 up; cart=₹1,25,000 → E-Invite + Tattoo + Activity +
+//     one money badge, not 4 separate money badges plus locked previews of
+//     freebies that are already unlocked.
+//  3. "for monetary discounts, reuse the earlier icon... replace 500 with
+//     1000. The discount of 500 rs. should add up in the savings" — the ₹
+//     tiers no longer get one badge each; there is exactly ONE money badge,
+//     always the same DOM slot, whose amount is simply the highest ₹ tier
+//     crossed so far. (tierMonetaryAmt()/discountAmt() already always
+//     return the CURRENT tier's full flat amount rather than summing prior
+//     tiers, so "the ₹500 adds up in the savings" already holds — nothing
+//     to change there, see VALUE_TIERS above.)
+//  4. "if a user gets a freebie, that icon remains" — unchanged from Round
+//     3: once a freebie milestone is crossed it renders permanently.
+//  See updFreebieWidget() below for the actual badge-selection logic that
+//  replaces Round 3's "map every MILESTONES entry, always" approach.
+//
+// v5 refinement, same day, per Shruti's Amazon reward-ladder screenshots:
+// v4 only ever showed a "next, locked" preview badge when the next
+// milestone happened to be a freebie — a still-to-come ₹ tier had NO
+// visual preview at all (just the #fbRowSub text line), so going from ₹750
+// to ₹1,000 looked identical to going from ₹500 to ₹750: one static money
+// badge, no sense of "getting closer." Shruti wants the Amazon pattern
+// instead: "once the user gets 750 off and is building towards the next
+// tier (1000 off), show BOTH 750 and 1000 icons... this should happen for
+// all the tiers — freebies and discounts." So freebieBadgeList() below now
+// always appends exactly one "next, locked, live progress ring" badge
+// after the achieved ones, whatever type it is — money or freebie — never
+// zero and never more than one. That single rule also fixes the bug she
+// flagged in Image 4: below ₹20,000 the old code showed BOTH a ₹500
+// preview and an E-Invite preview at once (the ₹500-preview branch fired
+// unconditionally whenever no money tier was achieved yet, regardless of
+// what the very next milestone actually was) — now there's only ever the
+// one true "next" badge. When it's crossed, the existing celebration
+// (confetti + toast + the fb-pop ring animation, both already wired to
+// _celebrateIdx) plays exactly as before — "add a small animation" was
+// already covered, it just wasn't visible on a money-tier crossing because
+// there was no separate preview badge sitting there to animate into place.
 const MILESTONES=(function(){
   const list=[];
   for(let i=1;i<VALUE_TIERS.length;i++){
@@ -3631,7 +3680,7 @@ function milestonePct(m,gt){
   const z=m.min-x;
   return Math.max(0,Math.min(100, z>0 ? ((gt-x)/z*100) : 100));
 }
-const MILESTONE_ICONS={einvite:'<img src="img/icons/icon-invite-bw.png" alt="">',tattoo:'🖊️',activity5k:'<img src="img/icons/icon-activities-bw.png" alt="">'};
+const MILESTONE_ICONS={einvite:'<img src="img/icons/icon-invite-bw.png" alt="">',tattoo:'<img src="img/icons/icon-tattoo-bw.png" alt="">',activity5k:'<img src="img/icons/icon-activities-bw.png" alt="">'};
 const MILESTONE_NAMES={einvite:'Free E-Invite',tattoo:'Free Tattoo Artist',activity5k:'₹5,000 Activity Credit'};
 const MILESTONE_SHORT={einvite:'E-Invite',tattoo:'Tattoo',activity5k:'Activity'};
 function milestoneIconHtml(m){ return m.type==='money' ? ('<span class="fb-badge-amt">₹'+m.amount.toLocaleString('en-IN')+'</span>') : (MILESTONE_ICONS[m.key]||'🎁'); }
@@ -3655,16 +3704,71 @@ function ensureTattooClaimed(gt){
 // a transient index (not a DOM class toggle) is what survives that rebuild.
 let _lastMilestoneIdx=-1;
 let _celebrateIdx=-1;
+// Syncs --fb-h (see :root) to the freebie row's real rendered height (0 when
+// hidden) so anything positioned relative to the bottom bar — currently just
+// .wa-fab — can clear it instead of sitting underneath it. Called on every
+// updFreebieWidget()/updBB() exit path, including the ones that hide the row
+// outright (checkout, lead form, etc.) — 2026-08-24 Round 4, per Shruti's
+// "Whatsapp icon is overlapping the discount icon".
+function syncFbH(){
+  const wrap=document.getElementById('bbFreebies');
+  const h=(wrap&&!wrap.classList.contains('hidden'))?wrap.offsetHeight:0;
+  document.documentElement.style.setProperty('--fb-h',h+'px');
+}
+// Returns the ordered list of badges to render this pass.
+// 2026-08-24 Round 5, per Shruti — Amazon-style reward-ladder screenshots:
+// "once the user gets 750 off and is building towards the next tier (1000
+// off), show both 750 and 1000 icons... this should happen for all the
+// tiers - freebies and discounts" + "post 15k, only show einvite. once the
+// user crosses einvite, show the next one." The rule, unified across both
+// freebie and money milestones: every ALREADY-CROSSED milestone stays
+// visible permanently (one badge per freebie; money tiers share one badge
+// slot that's reused/updated in place, per her earlier "replace 500 with
+// 1000" instruction — never a second money badge for an older tier), PLUS
+// exactly ONE additional badge for whichever milestone is immediately next
+// (locked, with a live progress ring) — never zero (so there's always
+// something to reach for) and never more than one (so the row doesn't
+// regress to Round 3's "every remaining tier shown" clutter). That single
+// "next" slot is what fixes the Image 4 bug: before ₹20,000, the old code
+// showed the einvite preview AND a ₹500 preview at once — now there's only
+// ever one "next" badge, whatever type it happens to be.
+// Kept as a pure function (gt in, badge list out) so it's independently
+// testable/simulatable, same approach used to verify the interest-filter
+// fix and the Round 4 badge selection earlier in this file.
+//   kind:'freebie' → {kind,idx,m,complete,pct}   (idx = its MILESTONES index)
+//   kind:'money'   → {kind,idx,amount,complete,pct}
+function freebieBadgeList(gt){
+  let resolvedIdx=-1;
+  MILESTONES.forEach((m,i)=>{ if(gt>=m.min)resolvedIdx=i; });
+  const badges=[];
+  let achievedMoney=null,achievedMoneyIdx=-1;
+  for(let i=0;i<=resolvedIdx;i++){
+    const m=MILESTONES[i];
+    if(m.type==='freebie')badges.push({kind:'freebie',idx:i,m,complete:true});
+    else{achievedMoney=m;achievedMoneyIdx=i;}
+  }
+  if(achievedMoney){
+    badges.push({kind:'money',idx:achievedMoneyIdx,amount:achievedMoney.amount,complete:true});
+  }
+  const next=resolvedIdx+1<MILESTONES.length?MILESTONES[resolvedIdx+1]:null;
+  if(next){
+    if(next.type==='freebie'){
+      badges.push({kind:'freebie',idx:resolvedIdx+1,m:next,complete:false,pct:milestonePct(next,gt)});
+    }else{
+      badges.push({kind:'money',idx:resolvedIdx+1,amount:next.amount,complete:false,pct:milestonePct(next,gt)});
+    }
+  }
+  return {badges,resolvedIdx};
+}
 function updFreebieWidget(gt){
   const wrap=document.getElementById('bbFreebies');
   const row=document.getElementById('fbRow');
   const subEl=document.getElementById('fbRowSub');
   if(!wrap||!row)return;
-  if(S._pkgOrigin||!gt||gt<15000){wrap.classList.add('hidden');return;}
+  if(S._pkgOrigin||!gt||gt<15000){wrap.classList.add('hidden');syncFbH();return;}
   ensureTattooClaimed(gt);
   wrap.classList.remove('hidden');
-  let resolvedIdx=-1;
-  MILESTONES.forEach((m,i)=>{ if(gt>=m.min)resolvedIdx=i; });
+  const {badges,resolvedIdx}=freebieBadgeList(gt);
   if(resolvedIdx>_lastMilestoneIdx){
     const justDone=MILESTONES[resolvedIdx];
     _lastMilestoneIdx=resolvedIdx;
@@ -3678,23 +3782,37 @@ function updFreebieWidget(gt){
       setTimeout(()=>openActivity5kChooser(),1300);
     }
   }
-  row.innerHTML=MILESTONES.map((m,i)=>{
-    const complete=i<=resolvedIdx;
-    const pct=complete?100:milestonePct(m,gt);
+  row.innerHTML=badges.map(b=>{
+    const complete=b.complete;
+    const pct=complete?100:b.pct;
     const ringBg=complete?'var(--gr)':('conic-gradient(var(--gr) '+pct+'%, var(--li2) 0)');
-    const justUnlocked=i===_celebrateIdx;
+    const justUnlocked=b.idx===_celebrateIdx;
+    const iconHtml=b.kind==='money'?('<span class="fb-badge-amt">₹'+b.amount.toLocaleString('en-IN')+'</span>'):milestoneIconHtml(b.m);
+    const label=b.kind==='money'?'Off':milestoneShortLabel(b.m);
     return '<div class="fb-item'+(complete?' complete':'')+'">'
       +'<div class="fb-ring'+(justUnlocked?' fb-pop':'')+'" style="background:'+ringBg+'">'
-        +'<span class="fb-badge-icon">'+milestoneIconHtml(m)+'</span>'
+        +'<span class="fb-badge-icon">'+iconHtml+'</span>'
         +'<span class="fb-status '+(complete?'tick':'lock')+'">'+(complete?'✓':'🔒')+'</span>'
       +'</div>'
-      +'<div class="fb-item-label">'+milestoneShortLabel(m)+'</div>'
+      +'<div class="fb-item-label">'+label+'</div>'
     +'</div>';
   }).join('');
   if(subEl){
     const nextM=resolvedIdx+1<MILESTONES.length?MILESTONES[resolvedIdx+1]:null;
     subEl.textContent=nextM?('Add ₹'+(nextM.min-gt).toLocaleString('en-IN')+' more to unlock '+milestoneName(nextM)):'';
   }
+  syncFbH();
+}
+// Human-readable list of freebies unlocked so far, e.g. "Free E-Invite,
+// Free Tattoo Artist" — reused by the checkout Order Summary (updCoAmt())
+// and sent to the backend (order_freebies_text) so admin.html and the
+// customer/ops emails can show the same breakdown (2026-08-24, per Shruti —
+// "Don't show the discount/freebie bar at checkout page. Add the freebies
+// and discounts in the order summary. The same should be visible on the
+// admin page and the emails").
+function unlockedFreebieNames(gt){
+  if(S._pkgOrigin||!gt)return [];
+  return MILESTONES.filter(m=>m.type==='freebie'&&gt>=m.min).map(m=>MILESTONE_NAMES[m.key]||m.key);
 }
 function showFreebieToast(msg){
   const t=document.getElementById('freebieToast');
@@ -3751,7 +3869,7 @@ function updBB(id){
   const bb=document.getElementById('bldBB');
   const hideOn=['shome','sconf','sleadsent'];
   bb.classList.toggle('hidden',hideOn.includes(id));
-  if(hideOn.includes(id)){document.getElementById('bbFreebies')?.classList.add('hidden');return;}
+  if(hideOn.includes(id)){document.getElementById('bbFreebies')?.classList.add('hidden');syncFbH();return;}
   // Lead form & Step 0: hide the running price total — neither screen has a
   // cart amount to show yet (Step 0 shows only the "Start Building →" CTA).
   const priceWrap=document.querySelector('#bldBB .bb-disc-wrap');
@@ -3760,10 +3878,17 @@ function updBB(id){
   if(id==='slead'){
     const skipBtn=document.getElementById('bbSkip');const contBtn=document.getElementById('bbCont');const revBackBtn=document.getElementById('bbRevBack');
     skipBtn.style.display='none';contBtn.textContent='Send My Details →';revBackBtn.style.display='none';
+    syncFbH();
     return;
   }
-  const gt=rawT();const tpv=tp();const dpv=dp();const payv=payTotal();
-  if(id!=='s0'){updFreebieWidget(gt);}
+  const gt=rawT();const tpv=tp();const payv=payTotal();
+  // 2026-08-24, per Shruti (Image 3) — "Don't show the discount/freebie bar
+  // at checkout page. Add the freebies and discounts in the order summary."
+  // The freebie/discount row is a nudge to add MORE to the cart; at
+  // checkout the cart is done, so it's replaced by the itemised breakdown
+  // updCoAmt() now writes into the Order Summary box instead (#coFreebies).
+  if(id!=='s0'&&id!=='sco'){updFreebieWidget(gt);}
+  else if(id==='sco'){document.getElementById('bbFreebies')?.classList.add('hidden');syncFbH();}
   document.getElementById('bbTotal').textContent='₹'+payv.toLocaleString('en-IN');
   // 2026-08-18, per Shruti — "discounts should be very clearly called out,
   // even the einvite one": totalSavings folds in BOTH the auto/flat
@@ -3797,7 +3922,16 @@ function updBB(id){
     discEl.textContent=discElM.textContent='';
     savEl.style.display='block';savEl.textContent='Saving ₹'+totalSavings.toLocaleString('en-IN');
   }else{
-    discEl.textContent=discElM.textContent=(gt>0&&!S._pkgOrigin)?'Add ₹'+(25000-gt).toLocaleString('en-IN')+' more → unlock discount!':'';
+    // 2026-08-24, per Shruti (point 6 / Image 4 — "replace the green text
+    // 'Add 9000 rs. more to unlock discount' with the grey discount line.
+    // The green line is not matching with the latest discount logic" / "2
+    // discount bars. Remove the 10,000 line."): this used to compute its
+    // own message off a hardcoded ₹25,000 threshold left over from before
+    // the VALUE_TIERS pricing rewrite, showing at the same time as (and
+    // contradicting) #fbRowSub's correct tier-aware nudge just below it.
+    // That tier-aware line is now the ONLY nudge message — nothing to
+    // duplicate it here.
+    discEl.textContent=discElM.textContent='';
     savEl.style.display='none';
   }
   // skip vs continue
@@ -3817,6 +3951,7 @@ function updBB(id){
     contBtn.innerHTML=nextLabel?('<span class="bb-cont-main">Continue</span><span class="bb-cont-sub">to '+nextLabel+' →</span>'):'Continue →';
   }
   revBackBtn.style.display=S.fromReview&&['s1','s2','s3','s4','s5','s6','s7','s8'].includes(id)?'block':'none';
+  syncFbH();
 }
 
 // ── STEP 0 ──
@@ -4607,8 +4742,18 @@ function buildRev(){
       rmk.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</div></div></div>';
   }
   body.innerHTML=html;
-  const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();
-  if(dpv>0){document.getElementById('rvDiscRow').style.display='flex';document.getElementById('rvDiscAmt').textContent='₹'+(gt-tpv).toLocaleString('en-IN')+' ('+dpv+'% off)';}
+  const tpv=tp();const advv=adv();
+  // 2026-08-24, per Shruti (Image 2) — "Savings should show the total
+  // including the discounted value and freebie. Example — if the user gets
+  // ₹1,500 off, a tattoo and an activity station worth ₹5,000, then total
+  // savings will be ₹9,000." This used to read dp()/dpv — a percentage-only
+  // figure that only covers the auto/flat ₹ discount and excludes freebie
+  // item values entirely, so it undercounted exactly like the example
+  // describes. Now uses the same trueMRP()-based total-savings calc as the
+  // bottom bar (updBB()) and checkout Order Summary (updCoAmt()), so this
+  // screen never disagrees with either of them.
+  const mrp=trueMRP();const totalSavings=mrp-tpv;
+  if(totalSavings>0){document.getElementById('rvDiscRow').style.display='flex';document.getElementById('rvDiscAmt').textContent='₹'+totalSavings.toLocaleString('en-IN');}
   else document.getElementById('rvDiscRow').style.display='none';
   // Same total concept as the header cart badge / bottom bar / checkout
   // Payable Total — payTotal() (tp() + collection fee + packaging + thank
@@ -4746,6 +4891,12 @@ function updCoAmt(){
   document.getElementById('co-gt').textContent='₹'+mrp.toLocaleString('en-IN');
   if(totalSavings>0){document.getElementById('co-dr').style.display='flex';document.getElementById('co-disc').textContent='-₹'+totalSavings.toLocaleString('en-IN')+(dpv>0?' ('+dpv+'%)':'');}
   else document.getElementById('co-dr').style.display='none';
+  const freebieNames=unlockedFreebieNames(gt);
+  const freebiesRow=document.getElementById('coFreebiesRow');
+  if(freebiesRow){
+    if(freebieNames.length){freebiesRow.style.display='flex';document.getElementById('co-freebies').textContent=freebieNames.join(' + ');}
+    else freebiesRow.style.display='none';
+  }
   document.getElementById('coFeeRow').style.display=fee>0?'flex':'none';
   document.getElementById('coPkgRow').style.display=pkg>0?'flex':'none';
   if(pkg>0){
@@ -5075,6 +5226,15 @@ async function doCo(){
   const __fee=collectFee();const __pkg=packagingCost();const __tag=tagFee();const __payTotal=__tpv+__fee+__pkg+__tag;
   const __advv=__urgent?0:adv();
   const __bal=__payTotal-__advv;
+  // 2026-08-24, per Shruti (Image 3c) — "The same [freebies/discounts]
+  // should be visible on the admin page and the emails that goes to the
+  // customers and the operations team": __dpv alone (percentage-of-total)
+  // doesn't capture freebie item values, so send the full ₹ total-savings
+  // figure and the freebie names too — see order_total_savings/
+  // order_freebies_text below, threaded through to admin.html and the
+  // email templates server-side (leads.py).
+  const __totalSavings=trueMRP()-__tpv;
+  const __freebieNames=unlockedFreebieNames(__gt);
   const __rewardWon=__reward.type!=='none';
   // Expiry is sent separately as reward_expiry — kept out of this string to avoid duplication.
   const __rewardTermsText=__rewardWon?(__reward.terms||[]).join(' | '):'';
@@ -5142,6 +5302,8 @@ async function doCo(){
     order_discount_pct: __dpv || null,
     order_advance:      __advv || null,
     order_balance:      __bal || null,
+    order_total_savings: __totalSavings>0 ? __totalSavings : null,
+    order_freebies_text: __freebieNames.length ? __freebieNames.join(', ') : null,
     reward_type:        __rewardWon ? __reward.type : null,
     reward_label:       __rewardWon ? __reward.label : null,
     reward_value:       __reward.value || null,
@@ -6431,7 +6593,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
 </a>
 <style>
-.wa-fab{position:fixed;bottom:calc(var(--bb-h) + 14px);left:16px;z-index:9999;width:40px;height:40px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s;text-decoration:none}
+.wa-fab{position:fixed;bottom:calc(var(--bb-h) + var(--fb-h) + 14px);left:16px;z-index:9999;width:40px;height:40px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s,bottom .15s;text-decoration:none}
 .wa-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(37,211,102,.6)}
 .wa-fab svg{width:20px;height:20px}
 /* Left rail (see .bld-progress mobile rule) would otherwise sit under this. */

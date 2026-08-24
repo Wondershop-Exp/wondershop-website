@@ -164,6 +164,14 @@ FIELD_CATALOG = [
     # is admin-editable.
     {"key": "bill_grand_total",     "label": "Grand Total",            "section": "Billing & Rewards"},
     {"key": "bill_discount_pct",    "label": "Discount %",             "section": "Billing & Rewards"},
+    # 2026-08-24, per Shruti (Image 3c) — "the same [freebies/discounts]
+    # should be visible on the admin page." System-calculated, same as
+    # Grand Total (read-only, see READ_ONLY_FIELDS below) — bill_discount_pct
+    # above is a % of the grand total and doesn't include freebie item
+    # value, so these two carry the fuller picture (see order_total_savings/
+    # order_freebies_text on LeadSubmitRequest in routers/leads.py).
+    {"key": "bill_total_savings",   "label": "Total Savings (incl. Freebies)", "section": "Billing & Rewards"},
+    {"key": "bill_freebies",        "label": "Freebies Unlocked",      "section": "Billing & Rewards"},
     {"key": "bill_advance",         "label": "Advance Paid",           "section": "Billing & Rewards"},
     {"key": "bill_balance",         "label": "Balance Due",            "section": "Billing & Rewards"},
     {"key": "bill_payment_method",  "label": "Payment Method",         "section": "Billing & Rewards"},
@@ -177,7 +185,7 @@ SECTIONS = ["Customer & Event Details", "Services", "Add-ons", "Billing & Reward
 CATALOG_BY_KEY = {f["key"]: f for f in FIELD_CATALOG}
 
 DIRECT_WRITE_FIELDS = {f["key"] for f in FIELD_CATALOG if f["section"] == "Customer & Event Details"}
-READ_ONLY_FIELDS = {"bill_grand_total", "bill_balance"}
+READ_ONLY_FIELDS = {"bill_grand_total", "bill_balance", "bill_total_savings", "bill_freebies"}
 
 # ─── Dropdown option lists ────────────────────────────────────────────────
 # Each option is {"value": ..., "label": ...} — value is what's actually
@@ -415,6 +423,11 @@ def _derive_original_value(key: str, lead: dict, snap: dict):
     if key == "bill_discount_pct":
         v = lead.get("order_discount_pct")
         return str(v) if v is not None else None
+    if key == "bill_total_savings":
+        v = lead.get("order_total_savings")
+        return str(v) if v is not None else None
+    if key == "bill_freebies":
+        return lead.get("order_freebies_text") or None
     if key == "bill_advance":
         v = lead.get("order_advance")
         return str(v) if v is not None else None

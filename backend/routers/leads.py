@@ -91,6 +91,18 @@ class LeadSubmitRequest(BaseModel):
     order_discount_pct: Optional[float] = None
     order_advance:      Optional[float] = None
     order_balance:      Optional[float] = None
+    # 2026-08-24, per Shruti (Image 3c) — "the same [freebies/discounts]
+    # should be visible on the admin page and the emails that goes to the
+    # customers and the operations team." order_discount_pct alone is a
+    # percentage of the grand total and doesn't capture freebie item value
+    # (see builder.html's trueMRP()) — order_total_savings is the full ₹
+    # savings figure (auto/flat discount + unlocked freebie items, same
+    # basis as the bottom bar / checkout Order Summary / Review page), and
+    # order_freebies_text is a human-readable list of which freebies were
+    # unlocked (e.g. "Free E-Invite, Free Tattoo Artist"). See migrations/
+    # 019_add_order_savings_freebies_to_leads.sql.
+    order_total_savings: Optional[float] = None
+    order_freebies_text: Optional[str]   = None
     # We don't process any payment automatically on the website — every
     # method is self-reported by the customer and manually reconciled by
     # the team (2026-08-12, per Shruti). payment_status is always a
@@ -618,6 +630,13 @@ def _format_order_summary_block(req: LeadSubmitRequest) -> str:
         lines.append(f"  Grand Total     : {_fmt_rupees(req.order_grand_total)}")
     if req.order_discount_pct:
         lines.append(f"  Discount        : {req.order_discount_pct:.0f}%")
+    # 2026-08-24, per Shruti (Image 3c) — total savings (₹, incl. freebie
+    # item values) + which freebies were unlocked, same figures shown on the
+    # website's bottom bar / checkout Order Summary / Review page.
+    if req.order_total_savings:
+        lines.append(f"  Total Savings   : {_fmt_rupees(req.order_total_savings)}")
+    if req.order_freebies_text:
+        lines.append(f"  Free Perks      : {req.order_freebies_text}")
     lines.append(f"  Payable Total   : {_fmt_rupees(req.client_budget)}")
     pay_method_label = _PAYMENT_METHOD_LABELS.get(req.payment_method or "", req.payment_method)
     if pay_method_label:
@@ -1126,6 +1145,13 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
         order_rows.append(("Grand Total", _fmt_rupees(req.order_grand_total)))
     if req.order_discount_pct:
         order_rows.append(("Discount", f"{req.order_discount_pct:.0f}%"))
+    # 2026-08-24, per Shruti (Image 3c) — same total-savings/freebie figures
+    # as the website (see order_total_savings/order_freebies_text docstring
+    # on LeadSubmitRequest above), shown to both customer and team.
+    if req.order_total_savings:
+        order_rows.append(("🎉 Total Savings", _fmt_rupees(req.order_total_savings)))
+    if req.order_freebies_text:
+        order_rows.append(("🎁 Free Perks Unlocked", req.order_freebies_text))
     if req.client_budget is not None:
         order_rows.append(("Payable Total", _fmt_rupees(req.client_budget)))
     pay_method_label = _PAYMENT_METHOD_LABELS.get(req.payment_method or "", req.payment_method)
@@ -1561,6 +1587,8 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Op
             "order_discount_pct": req.order_discount_pct or "",
             "order_advance":      req.order_advance or "",
             "order_balance":      req.order_balance or "",
+            "order_total_savings": req.order_total_savings or "",
+            "order_freebies_text": req.order_freebies_text or "",
             "reward_type":        req.reward_type or "",
             "reward_label":       req.reward_label or "",
             "reward_value":       req.reward_value or "",
@@ -1770,6 +1798,7 @@ async def submit_lead(req: LeadSubmitRequest):
             location_type, theme, city, pincode,
             client_budget, payment_method, builder_snapshot, remarks,
             order_grand_total, order_discount_pct, order_advance, order_balance,
+            order_total_savings, order_freebies_text,
             lead_source, lead_source_detail, referred_by,
             gift_delivery_address, gift_delivery_maps_link,
             gift_delivery_address_type, gift_delivery_contact,
@@ -1787,6 +1816,7 @@ async def submit_lead(req: LeadSubmitRequest):
             :location_type, :theme, :city, :pincode,
             :client_budget, :payment_method, :builder_snapshot, :remarks,
             :order_grand_total, :order_discount_pct, :order_advance, :order_balance,
+            :order_total_savings, :order_freebies_text,
             :lead_source, :lead_source_detail, :referred_by,
             :gift_delivery_address, :gift_delivery_maps_link,
             :gift_delivery_address_type, :gift_delivery_contact,
@@ -1827,6 +1857,8 @@ async def submit_lead(req: LeadSubmitRequest):
             "order_discount_pct": req.order_discount_pct,
             "order_advance":      req.order_advance,
             "order_balance":      req.order_balance,
+            "order_total_savings": req.order_total_savings,
+            "order_freebies_text": req.order_freebies_text,
             "lead_source":        req.lead_source,
             "lead_source_detail": req.lead_source_detail,
             "referred_by":        req.referred_by,
