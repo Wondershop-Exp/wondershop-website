@@ -3860,7 +3860,7 @@ function selectActivity5k(id){
   }
   entry.is5kFreebie=true;
   closeActivity5kChooser();
-  renderActs(actsBaseFiltered());updSelActs();updBB(S.screen);
+  renderActs(currentActsList());updSelActs();updBB(S.screen);
   showFreebieToast('🎁 ₹5,000 credit applied to '+entry.n+'!');
 }
 
@@ -4191,8 +4191,25 @@ function actsBaseFiltered(){
   const note=document.getElementById('actINote');if(note)note.style.display=applied?'flex':'none';
   return list;
 }
-function showAllActs(){actShowAll=true;renderActs(actsBaseFiltered());}
-function buildActs(){actFilter='all';document.querySelectorAll('#aChips .chip').forEach((c,i)=>{if(i===0)c.classList.add('on');else c.classList.remove('on');});renderActs(actsBaseFiltered());updSelActs();}
+// 2026-08-24, per Shruti bug report — sortActs() applied the dropdown's
+// value once, but every OTHER thing that re-renders the grid (adding/
+// removing an activity, changing the kid count, switching category chips,
+// claiming the ₹5k-credit freebie) called renderActs(actsBaseFiltered())
+// directly, which silently dropped back to unsorted "default" order the
+// moment you touched anything after sorting. currentActsList() is now the
+// single place that combines "what's showing" + "how it's sorted", and
+// every call site below routes through it so the sort sticks until the
+// user changes it themselves.
+function currentActsList(){
+  let list=actsBaseFiltered();
+  const sel=document.getElementById('actSort');
+  const val=sel?sel.value:'default';
+  if(val==='price-asc')list=[...list].sort((a,b)=>actPrice(a,S.kidsCount)-actPrice(b,S.kidsCount));
+  else if(val==='price-desc')list=[...list].sort((a,b)=>actPrice(b,S.kidsCount)-actPrice(a,S.kidsCount));
+  return list;
+}
+function showAllActs(){actShowAll=true;renderActs(currentActsList());}
+function buildActs(){actFilter='all';const sel=document.getElementById('actSort');if(sel)sel.value='default';document.querySelectorAll('#aChips .chip').forEach((c,i)=>{if(i===0)c.classList.add('on');else c.classList.remove('on');});renderActs(currentActsList());updSelActs();}
 function renderActs(list){
   const w=document.getElementById('aCards');w.innerHTML='';
   list.forEach(a=>{
@@ -4220,21 +4237,15 @@ function renderActs(list){
     w.innerHTML+='<div class="pcard'+(added?' sel':'')+'"'+cardClick+' id="ac-'+a.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">'+priceHtml+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="event.stopPropagation();togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
   });
 }
-function sortActs(){
-  const val=document.getElementById('actSort').value;
-  let list=actsBaseFiltered();
-  if(val==='price-asc')list.sort((a,b)=>actPrice(a,S.kidsCount)-actPrice(b,S.kidsCount));
-  else if(val==='price-desc')list.sort((a,b)=>actPrice(b,S.kidsCount)-actPrice(a,S.kidsCount));
-  renderActs(list);
-}
-function fActs(cat,btn){document.querySelectorAll('#aChips .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');actFilter=cat;renderActs(actsBaseFiltered());}
-function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.activities.splice(idx,1);else{const a=ACTS.find(x=>x.id===id);if(a)S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat,wasP:a.wasP});}renderActs(actsBaseFiltered());updSelActs();updBB(S.screen);}
+function sortActs(){renderActs(currentActsList());}
+function fActs(cat,btn){document.querySelectorAll('#aChips .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');actFilter=cat;renderActs(currentActsList());}
+function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.activities.splice(idx,1);else{const a=ACTS.find(x=>x.id===id);if(a)S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat,wasP:a.wasP});}renderActs(currentActsList());updSelActs();updBB(S.screen);}
 // 2026-08-24, per Shruti — the Step-2 "selected activities" mini-list now
 // reflects a claimed Tattoo/₹5k-credit freebie too (struck-through original
 // + the discounted/free price), not just the Review page — same
 // activityFreebiePrice() helper cItems() uses, so the two never drift.
 function updSelActs(){const w=document.getElementById('selActs');const l=document.getElementById('selAList');if(!S.activities.length){w.style.display='none';return;}w.style.display='block';l.innerHTML='';orderedActivities().forEach(a=>{const rawPrice=actPrice(a,S.kidsCount);const fb=activityFreebiePrice(a,rawPrice);const priceHtml=fb.wasP!=null?('<s style="color:var(--gy);font-weight:500;margin-right:4px;font-size:11px">₹'+fb.wasP.toLocaleString('en-IN')+'</s>'+(fb.price>0?('₹'+fb.price.toLocaleString('en-IN')):'🎁 FREE')):('₹'+fb.price.toLocaleString('en-IN'));l.innerHTML+='<div class="sai"><span>'+a.n+'</span><span style="display:flex;align-items:center;gap:5px"><span class="saip">'+priceHtml+'</span><button class="sarm" onclick="togAct(\''+a.id+'\')">✕</button></span></div>';});}
-function chgK(d){S.kidsCount=Math.max(1,Math.min(100,S.kidsCount+d));document.getElementById('kDisp2').textContent=S.kidsCount;try{document.getElementById('f-kids').value=S.kidsCount;}catch(e){}renderActs(actsBaseFiltered());updSelActs();S.gifts.forEach(g=>{if(!g.userQty)g.qty=S.kidsCount;});renderGifts();updBB(S.screen);}
+function chgK(d){S.kidsCount=Math.max(1,Math.min(100,S.kidsCount+d));document.getElementById('kDisp2').textContent=S.kidsCount;try{document.getElementById('f-kids').value=S.kidsCount;}catch(e){}renderActs(currentActsList());updSelActs();S.gifts.forEach(g=>{if(!g.userQty)g.qty=S.kidsCount;});renderGifts();updBB(S.screen);}
 
 // Combines every captured remarks entry (per-step boxes below, plus the
 // dedicated "pkg" key used for package-page special-request fields like
