@@ -2930,6 +2930,19 @@ const ACTS=[
   {id:'hair-styling',n:'Hair Styling for Boys',e:'💇',img:'activity/act-boys-hair-styling',realImg:true,cat:'experience',age:'5-12',dur:'Up to 2 hrs',req:'Any space',r1:4500,r2:5000,r3:6000,flat:true,bgs:['linear-gradient(135deg,#5B8EDD,#374151)'],tag:'new',pers:false,rating:4.6,cnt:20},
   {id:'hair-styling-girls',n:'Hair Styling for Girls',e:'💇‍♀️',img:'activity/act-hair-styling-girls',realImg:true,cat:'experience',age:'5-12',dur:'Up to 2 hrs',req:'Any space',r1:3500,r2:5500,r3:7000,flat:true,bgs:['linear-gradient(135deg,#E65A96,#F5C3D7)'],tag:'new',pers:false,rating:4.7,cnt:25},
   {id:'glitter',n:'Glitter Station',e:'✨',img:'activity/act-glitter',realImg:true,cat:'art',age:'4-12',dur:'Session',req:'Tables & chairs',r1:4000,r2:4000,r3:4000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#B59DDE)'],tag:'new',pers:false,rating:4.6,cnt:30},
+  // Science/Bubble/Magic Show — same situation as Hair Styling/Glitter
+  // above: 'science-show'/'bubble-show'/'magic-show' already had real flat
+  // pricing wired into actPriceRaw() (₹20,000/₹9,000/₹9,000 — Science Show's
+  // number also matches its existing Spy package addon price, see
+  // SPY_ADDON_STATIONS_DATA.s1) but no catalogue card, so they were
+  // unselectable on the general Activities step (2026-08-24, per Shruti).
+  // No confirmed photos yet — emoji/gradient fallback like other
+  // not-yet-photographed entries. Duration/age below are reasonable
+  // estimates (not yet confirmed by Shruti) — the r1/r2/r3 price is the
+  // only field that's a real, already-established number.
+  {id:'science-show',n:'Science Show',e:'🧪',img:'',realImg:false,cat:'experience',age:'6-12',dur:'45-60 min',req:'Open space/hall',r1:20000,r2:20000,r3:20000,flat:true,bgs:['linear-gradient(135deg,#5B8EDD,#52C470)'],tag:'new',pers:false,rating:4.7,cnt:12},
+  {id:'bubble-show',n:'Bubble Show',e:'🫧',img:'',realImg:false,cat:'experience',age:'3-12',dur:'45 min',req:'Open space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:false,rating:4.7,cnt:14},
+  {id:'magic-show',n:'Magic Show',e:'🎩',img:'',realImg:false,cat:'experience',age:'4-12',dur:'45 min',req:'Any space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#374151,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:16},
   // ── Package craft activities (per child) ──
   {id:'a22',n:'Sunglasses Decor',e:'🕶️',img:'activity/act-sunglasses-decor',realImg:true,cat:'craft',age:'4-12',dur:'15-20 min',req:'Tables & chairs',r1:350,r2:350,r3:350,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)'],tag:'',pers:true,rating:4.7,cnt:25},
   {id:'a23',n:'Fridge Magnet Making',e:'🧲',img:'activity/act-fridge-magnet',realImg:true,cat:'craft',age:'4-12',dur:'40 min',req:'Tables & chairs',r1:175,r2:175,r3:175,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:20},
