@@ -106,6 +106,16 @@ button{cursor:pointer;font-family:var(--fb)}
 .blog-hero h1 em{color:var(--li);font-style:italic}
 .blog-hero-sub{font-size:16px;color:rgba(255,255,255,.85);max-width:520px;line-height:1.65}
 
+/* Plain (photo-free) header — stands in for .blog-hero while it's hidden
+   (2026-08-25, per Shruti: "hide the banner for blogs till we upload
+   proper pics"). Keeps the real H1 in place for SEO; swap back to
+   .blog-hero once real photos are ready — see the HTML comment below. */
+.blog-plain-hero{padding:calc(var(--nav-h) + 40px) 0 28px;text-align:center}
+.blog-plain-hero-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--li);background:var(--li2);border-radius:20px;padding:5px 14px;margin-bottom:16px}
+.blog-plain-hero h1{font-family:var(--fd);font-size:clamp(28px,5vw,44px);font-weight:700;color:var(--bk);margin-bottom:12px;line-height:1.15}
+.blog-plain-hero h1 em{color:var(--li);font-style:italic}
+.blog-plain-hero-sub{font-size:16px;color:var(--gy);max-width:520px;line-height:1.65;margin:0 auto}
+
 /* ARTICLES — Medium-style list: title/excerpt/meta on the left, a small
    thumbnail on the right, divided by hairlines. Replaces the old card grid. */
 .sec{padding:36px 0}
@@ -211,7 +221,11 @@ button{cursor:pointer;font-family:var(--fb)}
   <a href="builder.html?start=1" class="nav-cta">Build a Birthday ✦</a>
 </div>
 
-<!-- HERO -->
+<!-- HERO — photo-carousel version hidden 2026-08-25 (per Shruti: "hide the
+     banner for blogs till we upload proper pics"; the carousel was mixing
+     real theme photos with two generic placeholder images, 22.jpg/9.jpg,
+     at the site root). To restore: delete the .blog-plain-hero section
+     below and uncomment this block once proper photos are ready.
 <section class="blog-hero">
   <div class="blog-hero-carousel">
     <img src="img/theme-spy.jpg" alt="Wondershop birthday celebration" class="blog-hero-slide">
@@ -228,6 +242,14 @@ button{cursor:pointer;font-family:var(--fb)}
         <p class="blog-hero-sub">Practical advice from the team that has planned &amp; executed 500+ celebrations.</p>
       </div>
     </div>
+  </div>
+</section>
+-->
+<section class="blog-plain-hero">
+  <div class="container">
+    <div class="blog-plain-hero-tag">Birthday Planning Tips</div>
+    <h1>Guides from<br><em>real party planners</em></h1>
+    <p class="blog-plain-hero-sub">Practical advice from the team that has planned &amp; executed 500+ celebrations.</p>
   </div>
 </section>
 
