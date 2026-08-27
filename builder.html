@@ -2922,6 +2922,7 @@ function actPriceRaw(a,kids){
   if(a.id==='magic-show')return 9000;
   if(a.id==='science-show')return 20000;
   if(a.id==='chitrakathi-show')return 40000;
+  if(a.id==='bhajan-jamming')return 25000;
   const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;
 }
 const ACTS=[
@@ -2976,6 +2977,7 @@ const ACTS=[
   // matching the 4:3 .caro object-fit:contain container).
   // Age/space requirement below are still placeholders, not yet confirmed.
   {id:'chitrakathi-show',n:'Chitrakathi Shadow Puppet Show',e:'🎭',img:'activity/act-chitrakathi-show-card',realImg:true,cat:'experience',age:'5-12',dur:'30 min',req:'Any space (dim lighting for shadow effect)',r1:40000,r2:40000,r3:40000,flat:true,bgs:['linear-gradient(135deg,#191919,#C98A00)'],tag:'new',pers:false,rating:4.8,cnt:1},
+  {id:'bhajan-jamming',n:'Bhajan Jamming',e:'🎶',img:'activity/act-bhajan-jamming-card',realImg:true,cat:'experience',age:'All Ages',dur:'30 min',req:'Any space, power point for speakers',r1:25000,r2:25000,r3:25000,flat:true,bgs:['linear-gradient(135deg,#B34700,#F2A93B)'],tag:'new',pers:false,rating:4.8,cnt:1},
   // Spy Treasure Hunt — added as a general Activities-step option (2026-08-25,
   // per Shruti: "add spy treasure hunt as an activity option... kid level
   // pricing is already explained for packages, follow the same pricing").
@@ -2983,8 +2985,8 @@ const ACTS=[
   // this follows the site's established ₹9,000-flat "add-on experience"
   // price point already used for Bubble Show, Magic Show, and the Spy
   // package's own MDF Spy Badge station (SPY_ADDON_STATIONS_DATA.s3 —
-  // base:9000). Duration (60-75 min) confirmed by Shruti; no photo yet.
-  {id:'spy-treasure-hunt',n:'Spy Treasure Hunt',e:'🗺️',img:'',realImg:false,cat:'experience',age:'6-12',dur:'60-75 min',req:'Any space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#374151)'],tag:'new',pers:false,rating:4.7,cnt:10},
+  // base:9000). Duration (60-75 min) confirmed by Shruti; real photo added 2026-08-27.
+  {id:'spy-treasure-hunt',n:'Spy Treasure Hunt',e:'🗺️',img:'activity/act-spy-treasure-hunt-card',realImg:true,cat:'experience',age:'6-12',dur:'60-75 min',req:'Any space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#374151)'],tag:'new',pers:false,rating:4.7,cnt:10},
   // ── Package craft activities (per child) ──
   {id:'a22',n:'Sunglasses Decor',e:'🕶️',img:'activity/act-sunglasses-decor',realImg:true,cat:'craft',age:'4-12',dur:'15-20 min',req:'Tables & chairs',r1:350,r2:350,r3:350,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)'],tag:'',pers:true,rating:4.7,cnt:25},
   {id:'a23',n:'Fridge Magnet Making',e:'🧲',img:'activity/act-fridge-magnet',realImg:true,cat:'craft',age:'4-12',dur:'40 min',req:'Tables & chairs',r1:175,r2:175,r3:175,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:20},

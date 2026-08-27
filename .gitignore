@@ -65,6 +65,7 @@ _watermark_preview2/
 # img/Chitrakathi/, etc.). These raw files are large (50MB-200MB+) and
 # blow past GitHub's file-size limits, so keep them out of git entirely.
 img/Magic Show/*.mp4
+img/Chitrakathi Shadow Puppet Show/*.mp4
 img/activity/**/*.mp4
 
 # General scratch folder used during editing sessions (stale git lock
