@@ -4,19 +4,37 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Magic Show — Wondershop Experiences</title>
+<!-- ── Google Analytics 4 — live property, wired in 2026-08-27 (Measurement ID G-KG6H6WL7QQ) ── -->
+<script>window.WS_GA_ID = 'G-KG6H6WL7QQ';</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-KG6H6WL7QQ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', window.WS_GA_ID);
+</script>
 
 <!-- ══════════════════════════════════════════════════════════════════
      ADD-ON EXPERIENCE PAGE — Magic Show (same magazine-cover template
      as bubble-show.html / host-nimesh.html / host-sunny.html)
      ══════════════════════════════════════════════════════════════════
-     STILL NEEDS:
-       1. Bubble Show in action — no video uploaded yet, section left out.
-       2. Bottom photo/video strip — not added yet (real footage pending).
-       3. Parent testimonials — placeholders below, hidden until ready.
-     (Cover caricature is real, uploaded to img/MagicShow/.)
+     Cover caricature, "in action" video, and bottom photo strip are all
+     real, uploaded to img/MagicShow/. Parent testimonials still hidden
+     below — revisit once real quotes are available.
      ══════════════════════════════════════════════════════════════════ -->
 
 <meta name="description" content="Magic Show add-on for Wondershop birthday parties — a 30-minute live magic performance, ₹9,000.">
+<link rel="canonical" href="https://wondershopexperiences.com/magic-show.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Wondershop Experiences">
+<meta property="og:title" content="Magic Show — Wondershop Experiences">
+<meta property="og:description" content="Magic Show add-on for Wondershop birthday parties — a 30-minute live magic performance, ₹9,000.">
+<meta property="og:url" content="https://wondershopexperiences.com/magic-show.html">
+<meta property="og:image" content="https://wondershopexperiences.com/img/MagicShow/magic-show-4.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Magic Show — Wondershop Experiences">
+<meta name="twitter:description" content="Magic Show add-on for Wondershop birthday parties — a 30-minute live magic performance, ₹9,000.">
+<meta name="twitter:image" content="https://wondershopexperiences.com/img/MagicShow/magic-show-4.jpg">
 <link rel="icon" type="image/png" href="logo-square.png">
 <link rel="apple-touch-icon" href="logo-square.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -108,6 +126,24 @@ a{text-decoration:none}
 .host-testi-q{font-family:var(--fd);font-style:italic;font-size:14.5px;color:var(--bk);line-height:1.65;margin-bottom:10px}
 .host-testi-a{font-size:12px;font-weight:700;color:var(--li)}
 
+.host-video{width:100%;max-width:420px;margin:0 auto;border-radius:16px;overflow:hidden;background:var(--bk)}
+.host-video video{width:100%;max-height:640px;display:block;background:#000}
+
+/* ── BOTTOM PHOTO STRIP (auto-scrolling) ── */
+.bottom-strip-sec{padding:48px 0 8px;background:#fff}
+.bottom-strip-head{max-width:640px;margin:0 auto 20px;text-align:center;padding:0 24px}
+.filmstrip-wrap{position:relative;background:#161616;padding:15px 0;overflow:hidden}
+.filmstrip-wrap::before,.filmstrip-wrap::after{content:'';position:absolute;left:0;right:0;height:13px;background-image:repeating-linear-gradient(90deg,#f4f4f4 0 9px,transparent 9px 24px);background-position:12px center;z-index:2}
+.filmstrip-wrap::before{top:0}
+.filmstrip-wrap::after{bottom:0}
+.filmstrip-track{display:flex;width:max-content;animation:filmScroll 36s linear infinite}
+.filmstrip-wrap:hover .filmstrip-track{animation-play-state:paused}
+.film-frame{position:relative;flex-shrink:0;width:210px;height:210px;margin:0 6px;border-radius:6px;overflow:hidden;border:3px solid #000;background:#000}
+.film-frame img{width:100%;height:100%;object-fit:cover;display:block}
+.film-tag{position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,.72);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:.2px}
+@keyframes filmScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(max-width:600px){.film-frame{width:150px;height:150px}}
+
 /* ── CTA ── */
 .host-cta{background:linear-gradient(135deg,var(--bk) 0%,#4A1568 100%);padding:48px 24px;text-align:center}
 .hcta-h{font-family:var(--fd);font-size:clamp(20px,3vw,26px);font-weight:700;color:#fff;margin-bottom:10px}
@@ -118,6 +154,30 @@ a{text-decoration:none}
 .mf{padding:24px;text-align:center;font-size:12px;color:var(--gy)}
 .mf a{color:var(--li);font-weight:600}
 </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Service",
+  "name": "Magic Show",
+  "description": "Magic Show add-on for Wondershop birthday parties — a 30-minute live magic performance.",
+  "provider": {
+    "@type": "LocalBusiness",
+    "name": "Wondershop Experiences",
+    "url": "https://wondershopexperiences.com/"
+  },
+  "areaServed": {
+    "@type": "City",
+    "name": "Mumbai"
+  },
+  "url": "https://wondershopexperiences.com/magic-show.html",
+  "offers": {
+    "@type": "Offer",
+    "priceCurrency": "INR",
+    "price": "9000",
+    "url": "https://wondershopexperiences.com/magic-show.html"
+  }
+}
+</script>
 </head>
 <body>
 
@@ -186,11 +246,16 @@ a{text-decoration:none}
       </div>
     </div>
 
-    <!-- VIDEO —
-         TODO: no video uploaded yet for Magic Show. Once available, add a
-         block here matching bubble-show.html's "Bubble Show in action"
-         section (img/MagicShow/, no poster attribute so the browser shows
-         the video's own first frame). -->
+    <!-- VIDEO — real clip, img/MagicShow/magic-show-video.mp4 -->
+    <div>
+      <h2 class="blk-h">Magic Show in <em>action</em></h2>
+      <div class="host-video">
+        <video controls preload="metadata" playsinline>
+          <source src="img/MagicShow/magic-show-video.mp4" type="video/mp4">
+          Your browser doesn't support embedded video.
+        </video>
+      </div>
+    </div>
 
     <!-- TESTIMONIALS —
          TODO: hidden until real parent quotes are available, revisit later. -->
@@ -211,10 +276,16 @@ a{text-decoration:none}
   </div>
 </section>
 
-<!-- BOTTOM PHOTO/VIDEO STRIP —
-     TODO: not added yet, per request. Once real Magic Show footage is
-     uploaded, reuse the .bottom-strip-sec / .filmstrip-wrap pattern from
-     bubble-show.html (including the #vidModal video lightbox + JS). -->
+<!-- BOTTOM PHOTO STRIP — real Magic Show photos from Wondershop parties. -->
+<section class="bottom-strip-sec">
+  <div class="bottom-strip-head">
+    <h2 class="blk-h">From real <em>Magic Shows</em></h2>
+    <p style="font-size:14px;color:var(--gy)">Moments from Magic Shows we've run at real birthday parties.</p>
+  </div>
+  <div class="filmstrip-wrap">
+    <div class="filmstrip-track" id="msFilmTrack"></div>
+  </div>
+</section>
 
 <!-- CTA -->
 <div class="host-cta">
@@ -228,6 +299,34 @@ a{text-decoration:none}
   Wondershop Experiences &nbsp;·&nbsp;
   <a href="mailto:contact@wondershopexperiences.com">contact@wondershopexperiences.com</a>
 </div>
+
+<script>
+// ── BOTTOM PHOTO STRIP ──
+// Real photos from Wondershop Magic Shows (img/MagicShow/magic-show-N.jpg).
+const MS_FILM_FRAMES = [
+  { img: 'img/MagicShow/magic-show-1.jpg', tag: 'Dove Reveal' },
+  { img: 'img/MagicShow/magic-show-2.jpg', tag: 'Meet the Dove' },
+  { img: 'img/MagicShow/magic-show-3.jpg', tag: 'Dove on Shoulder' },
+  { img: 'img/MagicShow/magic-show-5.jpg', tag: 'Silk Scarf Trick' },
+  { img: 'img/MagicShow/magic-show-7.jpg', tag: 'Card Trick' },
+  { img: 'img/MagicShow/magic-show-8.jpg', tag: 'Mouth Coil Trick' },
+  { img: 'img/MagicShow/magic-show-4.jpg', tag: 'Audience Magic' },
+  { img: 'img/MagicShow/magic-show-9.jpg', tag: 'Magic for the Whole Party' },
+  { img: 'img/MagicShow/magic-show-6.jpg', tag: 'Vanishing Trick' },
+  { img: 'img/MagicShow/magic-show-10.jpg', tag: 'Scarf Vanish' },
+  { img: 'img/MagicShow/magic-show-11.jpg', tag: 'Magic Slate Reveal' },
+];
+(function initMsFilmstrip(){
+  const track = document.getElementById('msFilmTrack');
+  if (!track) return;
+  const frameHTML = (f, hidden) => '<div class="film-frame"' + (hidden ? ' aria-hidden="true"' : '') + '>' +
+    '<img src="' + f.img + '" alt="' + f.tag + ' — Wondershop Magic Show" loading="lazy">' +
+    '<span class="film-tag">' + f.tag + '</span></div>';
+  // Duplicate the set so translateX(-50%) loops seamlessly.
+  track.innerHTML = MS_FILM_FRAMES.map(f => frameHTML(f, false)).join('') +
+                     MS_FILM_FRAMES.map(f => frameHTML(f, true)).join('');
+})();
+</script>
 
 </body>
 </html>
