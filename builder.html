@@ -1661,6 +1661,20 @@ input,textarea,select{font-family:var(--fb)}
     </div>
   </div>
 
+  <!-- 2026-08-27, per Shruti — optional WhatsApp capture, moved this early
+       (was previously only asked at Checkout) so the team has a number to
+       call even if the customer drops off while still customizing the
+       cart. Purely optional — doS0() has no validation on it — but as soon
+       as 10 valid digits land here, fillCo()/goLead() already carry it
+       forward to Checkout/the custom-request form automatically. -->
+  <div class="s0-form">
+    <div class="s0-section-title"><span>💬</span> Stay in the Loop</div>
+    <div style="font-size:13px;color:var(--gy);margin-bottom:10px">Optional — leave your WhatsApp number so our team can help if you get stuck, or send you this quote.</div>
+    <div class="ig" style="margin-bottom:0"><label>WhatsApp Number <span class="opt">opt.</span></label>
+      <div class="pfx-wrap" style="max-width:220px"><span class="pfx">+91</span><input type="tel" id="f-mob" class="pi" placeholder="Mobile" maxlength="10" inputmode="numeric"></div>
+    </div>
+  </div>
+
   <!-- Validation error (Start Building now lives only in the sticky bar) -->
   <div id="s0-err-all" style="display:none;background:#FEF2F2;border:1.5px solid #FECACA;border-radius:10px;padding:12px;margin-top:10px;font-size:13px;color:#DC2626;font-weight:600">
     ⚠️ Please fill in all required fields above to continue.
@@ -2907,6 +2921,7 @@ function actPriceRaw(a,kids){
   if(a.id==='bubble-show')return 9000;
   if(a.id==='magic-show')return 9000;
   if(a.id==='science-show')return 20000;
+  if(a.id==='chitrakathi-show')return 40000;
   const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;
 }
 const ACTS=[
@@ -2945,13 +2960,22 @@ const ACTS=[
   // number also matches its existing Spy package addon price, see
   // SPY_ADDON_STATIONS_DATA.s1) but no catalogue card, so they were
   // unselectable on the general Activities step (2026-08-24, per Shruti).
-  // No confirmed photos yet — emoji/gradient fallback like other
-  // not-yet-photographed entries. Duration/age below are reasonable
-  // estimates (not yet confirmed by Shruti) — the r1/r2/r3 price is the
-  // only field that's a real, already-established number.
-  {id:'science-show',n:'Science Show',e:'🧪',img:'',realImg:false,cat:'experience',age:'6-12',dur:'45-60 min',req:'Open space/hall',r1:20000,r2:20000,r3:20000,flat:true,bgs:['linear-gradient(135deg,#5B8EDD,#52C470)'],tag:'new',pers:false,rating:4.7,cnt:12},
-  {id:'bubble-show',n:'Bubble Show',e:'🫧',img:'',realImg:false,cat:'experience',age:'3-12',dur:'45 min',req:'Open space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:false,rating:4.7,cnt:14},
-  {id:'magic-show',n:'Magic Show',e:'🎩',img:'',realImg:false,cat:'experience',age:'4-12',dur:'45 min',req:'Any space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#374151,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:16},
+  // 2026-08-27, per Shruti — real photos added (img/activity/act-*-card.jpg,
+  // cropped from the new branded show banners; object-fit:contain on the
+  // 4:3 .caro container means the full frame shows, nothing cropped).
+  // Duration/age below are still reasonable estimates (not yet confirmed
+  // by Shruti) — the r1/r2/r3 price is the only field that's a real,
+  // already-established number.
+  {id:'science-show',n:'Science Show',e:'🧪',img:'activity/act-science-show-card',realImg:true,cat:'experience',age:'6-12',dur:'45-60 min',req:'Open space/hall',r1:20000,r2:20000,r3:20000,flat:true,bgs:['linear-gradient(135deg,#5B8EDD,#52C470)'],tag:'new',pers:false,rating:4.7,cnt:12},
+  {id:'bubble-show',n:'Bubble Show',e:'🫧',img:'activity/act-bubble-show-card',realImg:true,cat:'experience',age:'3-12',dur:'45 min',req:'Open space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:false,rating:4.7,cnt:14},
+  {id:'magic-show',n:'Magic Show',e:'🎩',img:'activity/act-magic-show-card',realImg:true,cat:'experience',age:'4-12',dur:'45 min',req:'Any space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#374151,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:16},
+  // Chitrakathi Shadow Puppet Show — added 2026-08-27 per Shruti's brief.
+  // ₹40,000 flat / 30 min confirmed by Shruti. Real card photo added
+  // 2026-08-27 (img/activity/act-chitrakathi-show-card.jpg, from Shruti's
+  // event photos — full-frame resized to 1100px wide, nothing cropped,
+  // matching the 4:3 .caro object-fit:contain container).
+  // Age/space requirement below are still placeholders, not yet confirmed.
+  {id:'chitrakathi-show',n:'Chitrakathi Shadow Puppet Show',e:'🎭',img:'activity/act-chitrakathi-show-card',realImg:true,cat:'experience',age:'5-12',dur:'30 min',req:'Any space (dim lighting for shadow effect)',r1:40000,r2:40000,r3:40000,flat:true,bgs:['linear-gradient(135deg,#191919,#C98A00)'],tag:'new',pers:false,rating:4.8,cnt:1},
   // Spy Treasure Hunt — added as a general Activities-step option (2026-08-25,
   // per Shruti: "add spy treasure hunt as an activity option... kid level
   // pricing is already explained for packages, follow the same pricing").
@@ -4109,6 +4133,7 @@ function doS0(){
     return;
   }
   S.pincode=document.getElementById('f-pincode').value.trim();S.eventDate=dt;
+  const __f0mob=(document.getElementById('f-mob')?.value||'').replace(/\D/g,'');if(__f0mob.length===10)S.mobile=__f0mob;
   S.theme=document.getElementById('f-theme').value;S.kidsCount=parseInt(document.getElementById('f-kids').value)||15;
   // NOTE (2026-08-07): every step's images used to have loading="lazy". All
   // steps except the current one sit inside a display:none container, and
@@ -4832,7 +4857,13 @@ function fillCo(){
   const __eiRsvpName=document.getElementById('ei-rsvpname')?.value.trim()||'';
   const __eiRsvpMob=document.getElementById('ei-rsvp')?.value.trim()||'';
   const __eiDate=document.getElementById('ei-date')?.value||'';
-  document.getElementById('co-mob').value=S.mobile||__eiRsvpMob||'';
+  // Guarded like co-name/co-addr below: only prefill when empty, so an
+  // edit the customer already made here isn't clobbered by re-running
+  // fillCo() on a back-then-forward navigation before they've submitted
+  // (2026-08-27, per Shruti — now that Step 0's optional WhatsApp field
+  // means co-mob often arrives here already filled from S.mobile).
+  const __coMobEl=document.getElementById('co-mob');
+  if(__coMobEl&&!__coMobEl.value)__coMobEl.value=S.mobile||__eiRsvpMob||'';
   document.getElementById('co-date').value=S.eventDate||__eiDate||'';
   document.getElementById('co-time').value=S.eventTime||'11:00';
   document.getElementById('co-child').value=S.children.map(c=>c.name||'').filter(Boolean).join(', ');
@@ -5378,6 +5409,7 @@ async function doCo(){
         body:JSON.stringify(__coPayload),
       });
       __coOk=__r.ok;
+      if(__coOk){wsMarkCartResolved();}
       if(!__r.ok){console.error('Booking submit failed, status', __r.status);}
       else{
         // Backend may have issued a real, unique redeemable code for the
@@ -5687,7 +5719,7 @@ async function doLead(){
       ok=r.ok;
       if(!r.ok) console.error('Lead submit failed, status', r.status);
     }
-    if(ok){goTo('sleadsent');}
+    if(ok){wsMarkCartResolved();goTo('sleadsent');}
     else{showBookingFailure(__failRows, __failSubject);}
   }catch(err){
     console.error('Lead submit error:',err);
@@ -6119,6 +6151,159 @@ function finalizeAndNotify(){
 // card — last-resort delivery so the booking still gets notified.
 window.addEventListener('pagehide',finalizeAndNotify);
 
+// ── CART ABANDONMENT ──
+// If someone gets far enough into the builder/checkout to give us a phone
+// number but then goes 10 minutes without touching anything — never
+// submits, never leaves either — the team still can't call them unless we
+// capture what's there. Every real interaction resets a 10-minute clock;
+// if it ever runs out with a valid phone on screen and no submission having
+// gone through, we push whatever's filled in so far to the Sheet's
+// "Abandoned Carts" tab. Fires at most once per visit (2026-08-27, per Shruti).
+const WS_ABANDON_IDLE_MS = 10 * 60 * 1000; // 10 minutes
+
+function _wsAbandonPhone(){
+  for(const id of ['co-mob','ld-phone']){
+    const el=document.getElementById(id);
+    if(el){
+      const digits=(el.value||'').replace(/\D/g,'');
+      if(digits.length===10)return digits;
+    }
+  }
+  if(S.mobile){
+    const digits=String(S.mobile).replace(/\D/g,'');
+    if(digits.length===10)return digits;
+  }
+  return null;
+}
+
+// ── Soft phone-capture prompt (backup for Step 0's optional field) ──
+// Screens where phone is either already being asked directly, or where
+// there's nothing to save yet — the prompt never interrupts these.
+const WS_PHONE_PROMPT_SKIP_SCREENS = ['shome','sco','slead','sleadsent','sconf'];
+const WS_PHONE_PROMPT_IDLE_MS = 90 * 1000; // 90 seconds — shorter than the 10-min abandon timer, so it has a chance to arm the abandon-tracker before that fires.
+
+function wsResetPhonePromptTimer(){
+  if(S._phonePromptDismissed||S._abandonReported)return;
+  if(_wsAbandonPhone())return; // already have a number — nothing to ask for
+  if(!document.getElementById('pg-builder')?.classList.contains('active'))return;
+  if(WS_PHONE_PROMPT_SKIP_SCREENS.includes(S.screen))return;
+  if(S._phonePromptTimerId)clearTimeout(S._phonePromptTimerId);
+  S._phonePromptTimerId=setTimeout(wsShowPhonePrompt, WS_PHONE_PROMPT_IDLE_MS);
+}
+
+function wsShowPhonePrompt(){
+  S._phonePromptTimerId=null;
+  if(S._phonePromptDismissed||S._abandonReported||_wsAbandonPhone())return;
+  if(!document.getElementById('pg-builder')?.classList.contains('active'))return;
+  if(WS_PHONE_PROMPT_SKIP_SCREENS.includes(S.screen))return;
+  const modal=document.getElementById('wsPhonePrompt');
+  if(!modal)return;
+  document.getElementById('wsPhonePromptErr').style.display='none';
+  modal.style.display='flex';
+  setTimeout(()=>document.getElementById('wsPhonePromptInput')?.focus(),50);
+}
+
+// Closing it (✕ / "Maybe later" / backdrop click) means "don't ask again
+// this visit" — respected for the rest of the session, no nagging.
+function wsDismissPhonePrompt(){
+  S._phonePromptDismissed=true;
+  const modal=document.getElementById('wsPhonePrompt');
+  if(modal)modal.style.display='none';
+}
+
+function wsSavePhoneFromPrompt(){
+  const el=document.getElementById('wsPhonePromptInput');
+  const digits=(el.value||'').replace(/\D/g,'');
+  if(digits.length!==10){
+    document.getElementById('wsPhonePromptErr').style.display='block';
+    el.focus();
+    return;
+  }
+  S.mobile=digits;
+  // Mirror into Step 0's own field too, so it's already there (not asked
+  // twice) if they scroll back up or the abandoned-cart report reads it.
+  const f0=document.getElementById('f-mob');if(f0&&!f0.value)f0.value=digits;
+  S._phonePromptDismissed=true;
+  const body=document.getElementById('wsPhonePromptBody');
+  if(body)body.innerHTML='<div style="font-size:32px;margin-bottom:8px">✅</div><div style="font-size:16px;font-weight:700;color:#2D2140;margin-bottom:4px">Saved!</div><div style="font-size:13px;color:#6B7280">We\'ll reach out on WhatsApp if you need a hand.</div>';
+  setTimeout(()=>{const m=document.getElementById('wsPhonePrompt');if(m)m.style.display='none';},1600);
+}
+
+// Called the instant a real submission succeeds (doCo/doLead) so the idle
+// timer can never fire a stale report after the fact.
+function wsMarkCartResolved(){
+  S._abandonReported=true;
+  S._phonePromptDismissed=true;
+  if(S._abandonTimerId){clearTimeout(S._abandonTimerId);S._abandonTimerId=null;}
+  if(S._phonePromptTimerId){clearTimeout(S._phonePromptTimerId);S._phonePromptTimerId=null;}
+  const modal=document.getElementById('wsPhonePrompt');
+  if(modal)modal.style.display='none';
+}
+
+function wsResetAbandonTimer(){
+  if(S._abandonReported)return;
+  if(!document.getElementById('pg-builder')?.classList.contains('active'))return;
+  // Nothing to abandon on the builder's own landing screen, and the two
+  // "already finished" screens don't need a clock either.
+  if(S.screen==='shome'||S.screen==='sconf'||S.screen==='sleadsent')return;
+  if(S._abandonTimerId)clearTimeout(S._abandonTimerId);
+  S._abandonTimerId=setTimeout(wsReportAbandonedCart, WS_ABANDON_IDLE_MS);
+}
+
+function wsReportAbandonedCart(){
+  S._abandonTimerId=null;
+  if(S._abandonReported)return;
+  const phone=_wsAbandonPhone();
+  if(!phone)return; // no way to call them back yet — nothing to report
+  S._abandonReported=true;
+
+  const nameEl=document.getElementById('co-name')||document.getElementById('ld-name');
+  const emailEl=document.getElementById('co-email')||document.getElementById('ld-email');
+  const dateEl=document.getElementById('co-date')||document.getElementById('ld-date');
+  const themeEl=document.getElementById('ld-theme');
+
+  const payload={
+    phone:              phone,
+    parent_name:        (nameEl&&nameEl.value.trim()) || S.parentName || '',
+    email:              (emailEl&&emailEl.value.trim()) || S.email || null,
+    child_names:        (S.children||[]).map(c=>c.name).filter(Boolean).join(', ') || null,
+    event_date:         (dateEl&&dateEl.value) || S.eventDate || null,
+    kids_count:         S.kidsCount || null,
+    theme:              S.theme || (themeEl&&themeEl.value) || null,
+    venue:              S.venue || null,
+    pincode:            S.pincode || null,
+    last_screen:        S.screen || null,
+    idle_minutes:       Math.round(WS_ABANDON_IDLE_MS/60000),
+    builder_snapshot:   buildSnapshot(),
+    lead_source:        'Website - Cart Abandoned',
+    lead_source_detail: new URLSearchParams(location.search).get('utm_source')||null,
+    page_url:           location.href,
+  };
+
+  try{
+    const API=window.WS_API_BASE;
+    if(!API)return;
+    const url=API+'/api/leads/abandoned-cart';
+    const body=JSON.stringify(payload);
+    if(document.visibilityState==='hidden'&&navigator.sendBeacon){
+      // Backgrounded/about-to-close tab — sendBeacon is the browser-
+      // guaranteed way to still deliver it (same trick finalizeAndNotify uses).
+      navigator.sendBeacon(url,new Blob([body],{type:'application/json'}));
+    }else{
+      fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body,keepalive:true})
+        .catch(e=>console.error('abandoned-cart report failed:',e));
+    }
+  }catch(e){console.error('abandoned-cart report error:',e);}
+}
+
+// Any real interaction anywhere in the builder resets both clocks.
+// wsResetAbandonTimer()/wsResetPhonePromptTimer() themselves no-op outside
+// the builder / once resolved, so this is safe to leave listening globally.
+['input','change','click','touchstart','keydown'].forEach(evt=>{
+  document.addEventListener(evt, wsResetAbandonTimer, {passive:true});
+  document.addEventListener(evt, wsResetPhonePromptTimer, {passive:true});
+});
+
 function toggleScratchTerms(){
   const body=document.getElementById('scratchTermsBody');
   const toggle=document.getElementById('scratchTermsToggle');
@@ -6217,6 +6402,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // 2026-08-18, per Shruti QA fix (#66) — same #kDisp-doesn't-exist bug as
   // coKidsChanged() above; dropped the dead reference instead of throwing.
   document.getElementById('f-kids')?.addEventListener('input',function(){S.kidsCount=parseInt(this.value)||15;document.getElementById('kDisp2').textContent=S.kidsCount;});
+  document.getElementById('f-mob')?.addEventListener('input',function(){const d=this.value.replace(/\D/g,'').slice(0,10);if(this.value!==d)this.value=d;if(d.length===10)S.mobile=d;});
   injectRemarksBoxes();
 
   // Home banner carousel
@@ -6629,6 +6815,25 @@ document.addEventListener('DOMContentLoaded',()=>{
   })();
 });
 </script>
+
+<!-- 2026-08-27, per Shruti — soft phone-capture prompt: backup for anyone
+     who skipped Step 0's optional WhatsApp field and has now been idling
+     mid-builder for a while with no phone captured yet. Dismissible, shown
+     at most once per visit — see wsResetPhonePromptTimer() / wsShowPhonePrompt(). -->
+<div id="wsPhonePrompt" style="display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;background:rgba(45,33,64,.45);padding:16px" onclick="if(event.target===this)wsDismissPhonePrompt()">
+  <div style="background:#fff;border-radius:16px;max-width:360px;width:100%;padding:24px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:var(--fb, inherit)">
+    <button onclick="wsDismissPhonePrompt()" aria-label="Close" style="position:absolute;top:10px;right:10px;background:none;border:none;font-size:20px;color:#9CA3AF;cursor:pointer;line-height:1;padding:6px">✕</button>
+    <div id="wsPhonePromptBody">
+      <div style="font-size:32px;margin-bottom:8px">📱</div>
+      <div style="font-size:17px;font-weight:700;color:#2D2140;margin-bottom:6px">Save your picks?</div>
+      <div style="font-size:13px;color:#6B7280;margin-bottom:16px;line-height:1.5">Leave your WhatsApp number and we'll save what you've chosen so far — no spam, just a hand if you need it.</div>
+      <div class="pfx-wrap" style="margin-bottom:6px"><span class="pfx">+91</span><input type="tel" id="wsPhonePromptInput" class="pi" placeholder="Mobile" maxlength="10" inputmode="numeric" style="border:none"></div>
+      <div id="wsPhonePromptErr" style="display:none;font-size:12px;color:#DC2626;margin-bottom:8px">Please enter a valid 10-digit number.</div>
+      <button onclick="wsSavePhoneFromPrompt()" style="width:100%;background:#8455DD;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px">Save my number</button>
+      <button onclick="wsDismissPhonePrompt()" style="width:100%;background:none;border:none;color:#9CA3AF;font-size:13px;padding:10px;cursor:pointer">Maybe later</button>
+    </div>
+  </div>
+</div>
 
 <!-- WhatsApp FAB -->
 <a href="https://wa.me/919742240477" target="_blank" rel="noopener" class="wa-fab" aria-label="Chat on WhatsApp">

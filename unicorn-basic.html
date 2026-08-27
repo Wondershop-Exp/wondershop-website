@@ -967,6 +967,22 @@ button{cursor:pointer;font-family:var(--fb)}
           </div>
         </div>
 
+        <div class="addon-act-card" id="add-chitrakathi-show">
+          <div class="addon-act-top">
+            <img class="addon-act-ic-img" src="img/activity/act-chitrakathi-show.jpg" alt="Chitrakathi Shadow Puppet Show">
+            <div class="addon-act-info">
+              <div class="addon-act-n"><a href="chitrakathi-show.html" target="_blank" style="color:inherit">Chitrakathi Shadow Puppet Show</a></div>
+              <div class="addon-act-d">500+ year old shadow puppet storytelling, straight from Pinguli</div>
+              <div class="addon-act-meta">⏱ 30 min</div>
+            </div>
+          </div>
+          <div class="addon-act-foot">
+            <div class="addon-act-price">₹40,000</div>
+            <div class="addon-incl-lbl" style="display:none"><span class="incl-above-badge">✓ Included above</span></div>
+            <button class="btn-addon-add" id="abtn-chitrakathi-show" onclick="toggleAddon('chitrakathi-show','Chitrakathi Shadow Puppet Show',this)">+ Add</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
@@ -1401,6 +1417,7 @@ function addonActPrice(id, kids) {
   if (id === 'bubble-show') return 9000;
   if (id === 'magic-show') return 9000;
   if (id === 'science-show') return 20000;
+  if (id === 'chitrakathi-show') return 40000;
   if (REAL_ACT_RATES[id]) {
     const r = REAL_ACT_RATES[id];
     const rate = kids <= 12 ? r.r1 : kids <= 25 ? r.r2 : r.r3;

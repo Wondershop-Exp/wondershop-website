@@ -85,8 +85,11 @@ button{cursor:pointer;font-family:var(--fb)}
 }
 
 /* ── HERO BANNER ─────────────────────────────────────────────────── */
-.hero-banner{position:relative;margin-top:var(--nav-h);height:480px;overflow:hidden}
-@media(max-width:600px){.hero-banner{height:340px}}
+/* Photo carousel hidden 2026-08-27 until Shruti uploads a proper hero
+   image for this page — see the HERO BANNER comment below. Solid
+   gradient placeholder in the meantime instead of a blank/broken banner. */
+.hero-banner{position:relative;margin-top:var(--nav-h);height:280px;overflow:hidden;background:linear-gradient(135deg,var(--bk) 0%,#2E2140 100%)}
+@media(max-width:600px){.hero-banner{height:300px}}
 
 /* Crossfade carousel — 5 stacked slides, each visible for its own slot of a
    shared 25s loop (5s each). animation-delay staggers them so exactly one is
@@ -316,8 +319,15 @@ button{cursor:pointer;font-family:var(--fb)}
   <a href="builder.html?start=1" class="nav-cta">Build a Birthday ✦</a>
 </div>
 
-<!-- HERO BANNER -->
+<!-- HERO BANNER —
+     Photo carousel hidden 2026-08-27 (Shruti's call — the current photos
+     aren't the right images for this page). Title/intro text kept, now
+     sitting on a plain gradient instead. Once Shruti shares proper hero
+     photos, uncomment the <img class="hero-banner-slide"> list and the
+     .hero-banner-overlay div below, and restore the .hero-banner CSS rule
+     above to its photo-carousel version (height:480px, no background). -->
 <div class="hero-banner">
+  <!--
   <div class="hero-banner-carousel">
     <img src="testimonials-hero.jpg" alt="Wondershop Experiences birthday party" class="hero-banner-slide">
     <img src="1.jpg" alt="Wondershop family celebration" class="hero-banner-slide">
@@ -326,6 +336,7 @@ button{cursor:pointer;font-family:var(--fb)}
     <img src="20.jpg" alt="Wondershop family celebration" class="hero-banner-slide">
   </div>
   <div class="hero-banner-overlay"></div>
+  -->
   <div class="hero-banner-content">
     <div class="container">
       <div class="hero-banner-inner">

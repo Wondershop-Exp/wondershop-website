@@ -23,7 +23,7 @@ import httpx
 import urllib.parse
 from datetime import datetime, date, timedelta, time as dt_time
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
@@ -151,6 +151,30 @@ class LeadSubmitRequest(BaseModel):
 class CouponValidateRequest(BaseModel):
     code:  str
     phone: str    # normalised +91XXXXXXXXXX, matching how it was issued
+
+
+# Fired from builder.html after 10 minutes of zero interaction in the
+# cart/checkout with no submission yet — see wsReportAbandonedCart() there.
+# Deliberately minimal: whatever's been filled in so far, keyed on phone
+# (the one thing the team actually needs to place a call).
+class AbandonedCartRequest(BaseModel):
+    phone:              str
+    parent_name:        Optional[str]  = None
+    email:              Optional[str]  = None
+    child_names:        Optional[str]  = None
+    event_date:         Optional[date] = None
+    kids_count:         Optional[int]  = None
+    theme:              Optional[str]  = None
+    venue:              Optional[str]  = None
+    pincode:            Optional[str]  = None
+    # Which builder step they stalled on, and for how long — helps the
+    # team spot patterns (e.g. everyone stalling on the same step).
+    last_screen:        Optional[str]  = None
+    idle_minutes:       Optional[int]  = None
+    builder_snapshot:   Optional[dict] = None
+    lead_source:        Optional[str]  = "Website - Cart Abandoned"
+    lead_source_detail: Optional[str]  = None
+    page_url:           Optional[str]  = None
 
 
 # ─── FORMAT HELPERS ──────────────────────────────────────────────────────────
@@ -1617,6 +1641,55 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Op
         logger.error(f"Lead #{lead_id}: sheet append failed — {exc}")
 
 
+async def _append_abandoned_cart_to_sheet(req: AbandonedCartRequest) -> None:
+    """
+    POST to the same Google Apps Script webhook as _append_to_sheet, but
+    flagged action='abandoned_cart' — the script routes that to its own
+    'Abandoned Carts' tab instead of 'Leads & Bookings', so half-filled
+    carts never mix with real leads/bookings (2026-08-27, per Shruti).
+    """
+    if not settings.GOOGLE_SHEET_WEBHOOK_URL:
+        logger.warning("GOOGLE_SHEET_WEBHOOK_URL not set — skipping abandoned-cart sheet append")
+        return
+
+    try:
+        service_cols = _sheet_service_columns(req.builder_snapshot)
+        snapshot = req.builder_snapshot or {}
+        payload = {
+            "action":            "abandoned_cart",
+            "submitted_at":      datetime.utcnow().isoformat(),
+            "phone":             req.phone,
+            "parent_name":       req.parent_name or "",
+            "email":             req.email or "",
+            "child_names":       req.child_names or "",
+            "event_date":        req.event_date.isoformat() if req.event_date else "",
+            "kids_count":        req.kids_count or "",
+            "theme":             req.theme or "",
+            "venue":             req.venue or "",
+            "pincode":           req.pincode or "",
+            "decor":             service_cols["decor"],
+            "pinata":            service_cols["pinata"],
+            "return_gifts":      service_cols["return_gifts"],
+            "music":             service_cols["music"],
+            "host":              service_cols["host"],
+            "activities":        service_cols["activities"],
+            "photography":       service_cols["photography"],
+            "einvite":           service_cols["einvite"],
+            "estimated_total":   snapshot.get("estimated_total") or "",
+            "last_screen":       req.last_screen or "",
+            "idle_minutes":      req.idle_minutes or "",
+            "lead_source":       req.lead_source or "",
+            "lead_source_detail":req.lead_source_detail or "",
+            "page_url":          req.page_url or "",
+            "cart_snapshot":     json.dumps(req.builder_snapshot) if req.builder_snapshot else "",
+        }
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.post(settings.GOOGLE_SHEET_WEBHOOK_URL, json=payload)
+        logger.info(f"Abandoned cart ({req.phone}): sheet append → {r.status_code}")
+    except Exception as exc:
+        logger.error(f"Abandoned cart ({req.phone}): sheet append failed — {exc}")
+
+
 # ─── 4. WHATSAPP (via AiSensy) ───────────────────────────────────────────────
 #
 # AiSensy is a WhatsApp BSP (Business Solution Provider) — it sits on top of
@@ -2074,3 +2147,23 @@ async def get_lead_status(lead_id: int):
         values={"id": lead_id},
     )
     return dict(row) if row else {}
+
+
+@router.post("/abandoned-cart")
+async def report_abandoned_cart(req: AbandonedCartRequest):
+    """
+    Fired client-side (builder.html's wsReportAbandonedCart()) after 10
+    minutes of zero interaction in the cart builder/checkout, once a valid
+    10-digit phone has been entered somewhere on screen but no real
+    submission (doCo/doLead) has gone through yet.
+
+    Sheet-only by design (2026-08-27, per Shruti) — no DB row, no
+    email/WhatsApp alert. It lands in the "Abandoned Carts" tab for the
+    team to work through on their own cadence, without generating an
+    alert for every idle tab.
+    """
+    digits = "".join(ch for ch in req.phone if ch.isdigit())
+    if len(digits) != 10:
+        raise HTTPException(status_code=400, detail="Valid 10-digit phone required")
+    await _append_abandoned_cart_to_sheet(req)
+    return {"ok": True}

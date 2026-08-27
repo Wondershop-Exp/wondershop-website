@@ -58,3 +58,15 @@ _to_delete_watermark_previews/
 _watermark_preview/
 _watermark_preview_orig/
 _watermark_preview2/
+
+# Raw/original source videos (uncompressed camera/phone uploads) kept as
+# input material for the compression pipeline — the actual compressed
+# copies used by the site live in the clean-named folders (img/MagicShow/,
+# img/Chitrakathi/, etc.). These raw files are large (50MB-200MB+) and
+# blow past GitHub's file-size limits, so keep them out of git entirely.
+img/Magic Show/*.mp4
+img/activity/**/*.mp4
+
+# General scratch folder used during editing sessions (stale git lock
+# backups, old preview crops, etc.) — never real site content.
+_to_delete/

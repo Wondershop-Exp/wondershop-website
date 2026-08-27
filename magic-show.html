@@ -303,18 +303,22 @@ a{text-decoration:none}
 <script>
 // ── BOTTOM PHOTO STRIP ──
 // Real photos from Wondershop Magic Shows (img/MagicShow/magic-show-N.jpg).
+// Refreshed 2026-08-27, per Shruti, with a newer/larger batch from real
+// events — pre-cropped to 500x500 (see the site repo's image pipeline notes)
+// since the .film-frame slot itself is only ever 210px (150px on mobile).
 const MS_FILM_FRAMES = [
-  { img: 'img/MagicShow/magic-show-1.jpg', tag: 'Dove Reveal' },
+  { img: 'img/MagicShow/magic-show-1.jpg', tag: 'Card Trick' },
   { img: 'img/MagicShow/magic-show-2.jpg', tag: 'Meet the Dove' },
-  { img: 'img/MagicShow/magic-show-3.jpg', tag: 'Dove on Shoulder' },
-  { img: 'img/MagicShow/magic-show-5.jpg', tag: 'Silk Scarf Trick' },
-  { img: 'img/MagicShow/magic-show-7.jpg', tag: 'Card Trick' },
-  { img: 'img/MagicShow/magic-show-8.jpg', tag: 'Mouth Coil Trick' },
+  { img: 'img/MagicShow/magic-show-3.jpg', tag: 'Dove on the Hat' },
   { img: 'img/MagicShow/magic-show-4.jpg', tag: 'Audience Magic' },
+  { img: 'img/MagicShow/magic-show-5.jpg', tag: 'Vanishing Trick' },
+  { img: 'img/MagicShow/magic-show-6.jpg', tag: 'Confetti Ball Trick' },
+  { img: 'img/MagicShow/magic-show-7.jpg', tag: 'Magic with the Birthday Kid' },
+  { img: 'img/MagicShow/magic-show-8.jpg', tag: 'Mouth Coil Trick' },
   { img: 'img/MagicShow/magic-show-9.jpg', tag: 'Magic for the Whole Party' },
-  { img: 'img/MagicShow/magic-show-6.jpg', tag: 'Vanishing Trick' },
-  { img: 'img/MagicShow/magic-show-10.jpg', tag: 'Scarf Vanish' },
+  { img: 'img/MagicShow/magic-show-10.jpg', tag: 'Silk Scarf Trick' },
   { img: 'img/MagicShow/magic-show-11.jpg', tag: 'Magic Slate Reveal' },
+  { img: 'img/MagicShow/magic-show-12.jpg', tag: 'Happy Birthday Reveal' },
 ];
 (function initMsFilmstrip(){
   const track = document.getElementById('msFilmTrack');

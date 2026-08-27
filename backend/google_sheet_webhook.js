@@ -37,6 +37,22 @@ var SHEET_NAME = "Leads & Bookings";       // Raw feed — every submission land
 var CONFIRMED_TAB_NAME = "Confirmed Bookings"; // Live filtered view for ops
 var STATUS_OPTIONS = ["Lead", "Contacted", "Confirmed", "Lost"];
 
+// 2026-08-27, per Shruti — cart-abandonment recovery. builder.html posts
+// action:"abandoned_cart" once someone's given a phone number but then
+// gone 10 minutes without touching the builder/checkout and never
+// submitted. Kept in its own tab (not "Leads & Bookings") since these are
+// half-filled/unconfirmed by definition — the team works this tab
+// separately, on their own cadence, to call people back.
+var ABANDONED_TAB_NAME = "Abandoned Carts";
+var ABANDONED_HEADERS = [
+  "Submitted At", "Phone", "Parent Name", "Email", "Child Names",
+  "Event Date", "Kids Count", "Theme", "Venue", "Pincode",
+  "Decor", "Pinata", "Return Gifts", "Music", "Host", "Activities", "Photography", "E-Invite",
+  "Cart Value (₹)", "Last Step Reached", "Idle Minutes",
+  "Lead Source", "Lead Source Detail", "Page URL",
+  "Cart Snapshot (JSON)",
+];
+
 // 2026-08-14, per Shruti — added "Child DOBs" + a "Services" group (Decor,
 // Pinata, Return Gifts, Music, Host, Activities, Photography, E-Invite),
 // broken out of the raw Cart Snapshot JSON into their own readable columns.
@@ -67,7 +83,15 @@ var HEADERS = [
 
 function doPost(e) {
   try {
-    var ss    = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var d0 = JSON.parse(e.postData.contents);
+
+    // Abandoned-cart reports never touch "Leads & Bookings" at all — they
+    // get their own tab, created on first use.
+    if (d0.action === "abandoned_cart") {
+      return _appendAbandonedCart(ss, d0);
+    }
+
     // 2026-08-14, per Shruti — this used to fall back to ss.getActiveSheet()
     // when no tab named SHEET_NAME existed, which silently wrote every
     // submission into whatever tab happened to be open last in the Sheets
@@ -88,7 +112,7 @@ function doPost(e) {
       sheet.setFrozenRows(1);
     }
 
-    var d = JSON.parse(e.postData.contents);
+    var d = d0;
 
     // Reward-service add-on (Free Tattoo/Bubble Artist added to an EXISTING
     // booking from the scratch-card reveal screen) updates that booking's
@@ -194,6 +218,55 @@ function _updateRewardServiceCell(sheet, d) {
 
   return ContentService
     .createTextOutput(JSON.stringify({ success: false, error: "Lead ID " + d.lead_id + " not found in sheet" }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Appends one row to the "Abandoned Carts" tab (creating it with its own
+ * header row on first use). Never touches "Leads & Bookings".
+ */
+function _appendAbandonedCart(ss, d) {
+  var sheet = ss.getSheetByName(ABANDONED_TAB_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(ABANDONED_TAB_NAME);
+    sheet.appendRow(ABANDONED_HEADERS);
+    sheet.getRange(1, 1, 1, ABANDONED_HEADERS.length)
+         .setFontWeight("bold")
+         .setBackground("#F4A932")
+         .setFontColor("#FFFFFF");
+    sheet.setFrozenRows(1);
+  }
+
+  sheet.appendRow([
+    d.submitted_at        || new Date().toISOString(),
+    d.phone               || "",
+    d.parent_name         || "",
+    d.email                || "",
+    d.child_names           || "",
+    d.event_date           || "",
+    d.kids_count            || "",
+    d.theme                 || "",
+    d.venue                 || "",
+    d.pincode               || "",
+    d.decor                 || "",
+    d.pinata                || "",
+    d.return_gifts          || "",
+    d.music                 || "",
+    d.host                  || "",
+    d.activities             || "",
+    d.photography            || "",
+    d.einvite                || "",
+    d.estimated_total        || "",
+    d.last_screen             || "",
+    d.idle_minutes             || "",
+    d.lead_source               || "",
+    d.lead_source_detail        || "",
+    d.page_url                  || "",
+    d.cart_snapshot              || "",
+  ]);
+
+  return ContentService
+    .createTextOutput(JSON.stringify({ success: true }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -310,6 +383,32 @@ function doPost_test() {
         redeemed_coupon_code: "",
         referral_code: "",
         status:       "Lead"
+      })
+    }
+  };
+  var result = doPost(fakeEvent);
+  Logger.log(result.getContent());
+}
+
+/** Run this manually once to test the abandoned-cart path without an HTTP request */
+function doPost_test_abandoned() {
+  var fakeEvent = {
+    postData: {
+      contents: JSON.stringify({
+        action:        "abandoned_cart",
+        submitted_at:  new Date().toISOString(),
+        phone:         "9999999999",
+        parent_name:   "Test Parent",
+        email:         "test@example.com",
+        event_date:    "2026-09-15",
+        kids_count:    12,
+        theme:         "Unicorn",
+        venue:         "Home",
+        pincode:       "400001",
+        last_screen:   "sco",
+        idle_minutes:  10,
+        lead_source:   "Website - Cart Abandoned",
+        page_url:      "https://wondershopexperiences.com/builder.html",
       })
     }
   };
