@@ -598,6 +598,7 @@
     /* ── INSTAGRAM ── */
     .insta-band {
       --insta-gutter: max(40px, calc((100vw - 1200px) / 2 + 24px));
+      --insta-row-gap: 16px;
       background: linear-gradient(135deg, #F77737 0%, #E1306C 50%, #833AB4 100%);
       width: 100vw; margin-left: 50%; transform: translateX(-50%);
       padding: 30px 0 28px;
@@ -629,7 +630,7 @@
     .insta-arrow:disabled { opacity: .35; cursor: default; background: rgba(255,255,255,.12); }
 
     .insta-scroll {
-      display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory;
+      display: flex; gap: var(--insta-row-gap); overflow-x: auto; scroll-snap-type: x mandatory;
       padding: 2px 0 6px;
       scrollbar-width: none; -ms-overflow-style: none;
     }
@@ -637,7 +638,15 @@
     /* Real flex items, not container padding -- Safari doesn't reliably
        render leading/trailing padding on a scrolling flex container, so
        padding alone left the first card flush against the edge. */
-    .insta-scroll-spacer { flex: 0 0 var(--insta-gutter); }
+    /* Also a snap target so mandatory scroll-snap doesn't "correct" the
+       initial scroll position to the first card and hide this spacer.
+       Basis is the gutter minus the row's own gap, since flex `gap` adds
+       that same gap between the spacer and the first card too -- without
+       subtracting it, the card would sit that much further right than the
+       @handle text above it, which only has plain padding (no gap). Both
+       pull from the same --insta-row-gap so they can never drift apart
+       again the way the hardcoded 16px did on mobile's 12px gap. */
+    .insta-scroll-spacer { flex: 0 0 calc(var(--insta-gutter) - var(--insta-row-gap)); scroll-snap-align: start; }
     .insta-card {
       scroll-snap-align: start; flex: 0 0 230px;
       background: #fff; border-radius: 16px; padding: 8px 8px 12px;
@@ -661,12 +670,12 @@
     }
 
     @media (max-width: 640px) {
-      .insta-band { --insta-gutter: 20px; padding: 24px 0 22px; }
+      .insta-band { --insta-gutter: 20px; --insta-row-gap: 12px; padding: 24px 0 22px; }
       .insta-band-top { padding: 0 20px 18px; }
       .insta-band-actions { gap: 8px; }
       .insta-follow-btn { padding: 9px 14px; font-size: 12px; }
       .insta-arrow { width: 34px; height: 34px; font-size: 17px; }
-      .insta-scroll { padding: 2px 0 6px; gap: 12px; }
+      .insta-scroll { padding: 2px 0 6px; }
       .insta-card { flex-basis: 172px; border-radius: 13px; }
     }
 
