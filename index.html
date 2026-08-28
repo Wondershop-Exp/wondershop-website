@@ -597,6 +597,7 @@
 
     /* ── INSTAGRAM ── */
     .insta-band {
+      --insta-gutter: max(40px, calc((100vw - 1200px) / 2 + 24px));
       background: linear-gradient(135deg, #F77737 0%, #E1306C 50%, #833AB4 100%);
       width: 100vw; margin-left: 50%; transform: translateX(-50%);
       padding: 30px 0 28px;
@@ -604,7 +605,7 @@
     .insta-band-top {
       display: flex; align-items: center; justify-content: space-between;
       gap: 20px; flex-wrap: wrap;
-      padding: 0 max(40px, calc((100vw - 1200px) / 2 + 24px)) 24px;
+      padding: 0 var(--insta-gutter) 24px;
     }
     .insta-band-id { display: flex; align-items: center; gap: 12px; }
     .insta-band-handle { font-family: var(--fb); font-weight: 700; font-size: 15px; color: #fff; }
@@ -629,10 +630,14 @@
 
     .insta-scroll {
       display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory;
-      padding: 2px max(40px, calc((100vw - 1200px) / 2 + 24px)) 6px;
+      padding: 2px 0 6px;
       scrollbar-width: none; -ms-overflow-style: none;
     }
     .insta-scroll::-webkit-scrollbar { display: none; }
+    /* Real flex items, not container padding -- Safari doesn't reliably
+       render leading/trailing padding on a scrolling flex container, so
+       padding alone left the first card flush against the edge. */
+    .insta-scroll-spacer { flex: 0 0 var(--insta-gutter); }
     .insta-card {
       scroll-snap-align: start; flex: 0 0 230px;
       background: #fff; border-radius: 16px; padding: 8px 8px 12px;
@@ -656,12 +661,12 @@
     }
 
     @media (max-width: 640px) {
-      .insta-band { padding: 24px 0 22px; }
+      .insta-band { --insta-gutter: 20px; padding: 24px 0 22px; }
       .insta-band-top { padding: 0 20px 18px; }
       .insta-band-actions { gap: 8px; }
       .insta-follow-btn { padding: 9px 14px; font-size: 12px; }
       .insta-arrow { width: 34px; height: 34px; font-size: 17px; }
-      .insta-scroll { padding: 2px 20px 6px; gap: 12px; }
+      .insta-scroll { padding: 2px 0 6px; gap: 12px; }
       .insta-card { flex-basis: 172px; border-radius: 13px; }
     }
 
@@ -1410,6 +1415,7 @@
           </div>
           <div class="insta-card-cap">Ela's Pool Splash 🌊 Summer birthday done right</div>
         </a>
+        <div class="insta-scroll-spacer" aria-hidden="true"></div>
       </div>
   </div>
 
@@ -1918,7 +1924,8 @@ function igScroll(dir) {
       if (!posts || !posts.length) return;
       var grid = document.getElementById('instaGrid');
       if (!grid) return;
-      grid.innerHTML = posts.map(function (p) {
+      var spacer = '<div class="insta-scroll-spacer" aria-hidden="true"></div>';
+      grid.innerHTML = spacer + posts.map(function (p) {
         var isVideo = p.media_type === 'VIDEO';
         var img = isVideo ? (p.thumbnail_url || p.media_url) : p.media_url;
         var cap = (p.caption || '').split('\n')[0];
@@ -1927,7 +1934,7 @@ function igScroll(dir) {
         var capHtml = cap ? '<div class="insta-card-cap">' + escHtml(cap) + '</div>' : '';
         return '<a href="' + p.permalink + '" class="insta-card" target="_blank" rel="noopener" aria-label="Instagram post">' +
           '<div class="insta-card-img"><img src="' + img + '" alt="" loading="lazy">' + typeHtml + '</div>' + capHtml + '</a>';
-      }).join('');
+      }).join('') + spacer;
     })
     .catch(function () { /* keep the static fallback already in the DOM */ });
 })();
