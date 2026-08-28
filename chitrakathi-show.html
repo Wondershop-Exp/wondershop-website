@@ -97,6 +97,9 @@ a{text-decoration:none}
 .cover-hdr{max-width:var(--max);margin:0 auto;width:100%;padding:12px 24px 0;display:flex;align-items:center;justify-content:space-between}
 .cover-hdr img{height:38px;width:auto}
 .cover-tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:rgba(255,255,255,.14);padding:5px 13px;border-radius:20px}
+.cover-hdr-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.cover-back{font-size:11px;font-weight:700;letter-spacing:.02em;color:#fff;background:rgba(255,255,255,.14);padding:5px 13px;border-radius:20px;text-decoration:none;white-space:nowrap;transition:background .15s}
+.cover-back:hover{background:rgba(255,255,255,.24)}
 
 .cover-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:32px 20px;text-align:center}
 .cover-script{font-family:var(--fs);font-size:clamp(30px,6vw,54px);color:var(--spk);transform:rotate(-6deg);margin-bottom:-10px;text-shadow:0 4px 12px rgba(0,0,0,.35)}
@@ -216,7 +219,10 @@ a{text-decoration:none}
 
   <header class="cover-hdr">
     <a href="index.html"><img src="logo-horizontal-dark.png" alt="Wondershop Experiences"></a>
-    <span class="cover-tag">Add-on Experience</span>
+    <div class="cover-hdr-right">
+      <a href="builder.html?acts=1" class="cover-back">&larr; Back to Activities</a>
+      <span class="cover-tag">Add-on Experience</span>
+    </div>
   </header>
 
   <div class="cover-hero">

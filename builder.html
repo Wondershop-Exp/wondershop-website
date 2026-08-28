@@ -4268,6 +4268,24 @@ function currentActsList(){
 }
 function showAllActs(){actShowAll=true;renderActs(currentActsList());}
 function buildActs(){actFilter='all';const sel=document.getElementById('actSort');if(sel)sel.value='default';document.querySelectorAll('#aChips .chip').forEach((c,i)=>{if(i===0)c.classList.add('on');else c.classList.remove('on');});renderActs(currentActsList());updSelActs();}
+// 2026-08-28, per Shruti — these four activities have their own dedicated
+// pages (magazine-style, with full story/video/photo content); clicking
+// their card here should open that page rather than the in-page photo
+// gallery. Opens in a NEW TAB deliberately, so the in-progress builder
+// cart/state in this tab is never disturbed — the page's own "Back to
+// Activities" link (?acts=1, see the DOMContentLoaded handler below)
+// returns to this same step in a fresh tab, not this one.
+const ACT_DETAIL_PAGES={
+  'science-show':'science-show.html',
+  'bubble-show':'bubble-show.html',
+  'magic-show':'magic-show.html',
+  'chitrakathi-show':'chitrakathi-show.html',
+};
+function actCardClick(id){
+  const page=ACT_DETAIL_PAGES[id];
+  if(page){window.open(page,'_blank');return;}
+  openGallery('act',id);
+}
 function renderActs(list){
   const w=document.getElementById('aCards');w.innerHTML='';
   list.forEach(a=>{
@@ -4291,7 +4309,7 @@ function renderActs(list){
     const mediaHtml=a.realImg
       ? '<div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:contain;object-position:center" alt="'+a.n+'"></div>'
       : '<div class="caro caro-fallback" style="background:'+bg+'">'+a.e+'</div>';
-    const cardClick=a.realImg?' onclick="openGallery(\'act\',\''+a.id+'\')"':'';
+    const cardClick=(ACT_DETAIL_PAGES[a.id]||a.realImg)?' onclick="actCardClick(\''+a.id+'\')"':'';
     w.innerHTML+='<div class="pcard'+(added?' sel':'')+'"'+cardClick+' id="ac-'+a.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">'+priceHtml+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="event.stopPropagation();togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
   });
 }
@@ -6475,6 +6493,15 @@ document.addEventListener('DOMContentLoaded',()=>{
   // below) since s8 is otherwise never visited on this path.
   if(urlParams.get('gifts')==='1'){
     showBuilder();try{buildGifts();}catch(e){}goTo('s8');window.scrollTo(0,0);
+  }
+
+  // ?acts=1 — jump straight to the Activities step (s2), e.g. from the
+  // "Back to Activities" link on a dedicated activity page (science-show.html,
+  // bubble-show.html, magic-show.html, chitrakathi-show.html) opened in a new
+  // tab from an activity card here — see ACT_DETAIL_PAGES/actCardClick()
+  // (2026-08-28, per Shruti).
+  if(urlParams.get('acts')==='1'){
+    showBuilder();try{buildActs();}catch(e){}goTo('s2');window.scrollTo(0,0);
   }
 
   // ?pkg= pre-selection from package pages (e.g. unicorn-basic.html)
