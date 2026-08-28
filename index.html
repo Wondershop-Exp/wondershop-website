@@ -598,13 +598,13 @@
     /* ── INSTAGRAM ── */
     .insta-band {
       background: linear-gradient(135deg, #F77737 0%, #E1306C 50%, #833AB4 100%);
-      border-radius: 28px;
+      width: 100vw; margin-left: 50%; transform: translateX(-50%);
       padding: 30px 0 28px;
-      overflow: hidden;
     }
     .insta-band-top {
       display: flex; align-items: center; justify-content: space-between;
-      gap: 20px; padding: 0 28px 24px; flex-wrap: wrap;
+      gap: 20px; flex-wrap: wrap;
+      padding: 0 max(40px, calc((100vw - 1200px) / 2 + 24px)) 24px;
     }
     .insta-band-id { display: flex; align-items: center; gap: 12px; }
     .insta-band-handle { font-family: var(--fb); font-weight: 700; font-size: 15px; color: #fff; }
@@ -629,7 +629,8 @@
 
     .insta-scroll {
       display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory;
-      padding: 2px 28px 6px; scrollbar-width: none; -ms-overflow-style: none;
+      padding: 2px max(40px, calc((100vw - 1200px) / 2 + 24px)) 6px;
+      scrollbar-width: none; -ms-overflow-style: none;
     }
     .insta-scroll::-webkit-scrollbar { display: none; }
     .insta-card {
@@ -655,12 +656,12 @@
     }
 
     @media (max-width: 640px) {
-      .insta-band { border-radius: 20px; padding: 24px 0 22px; }
-      .insta-band-top { padding: 0 18px 18px; }
+      .insta-band { padding: 24px 0 22px; }
+      .insta-band-top { padding: 0 20px 18px; }
       .insta-band-actions { gap: 8px; }
       .insta-follow-btn { padding: 9px 14px; font-size: 12px; }
       .insta-arrow { width: 34px; height: 34px; font-size: 17px; }
-      .insta-scroll { padding: 2px 18px 6px; gap: 12px; }
+      .insta-scroll { padding: 2px 20px 6px; gap: 12px; }
       .insta-card { flex-basis: 172px; border-radius: 13px; }
     }
 
@@ -1344,8 +1345,9 @@
       <h2 class="sec-h2">Follow the <em>magic</em></h2>
       <p class="sec-sub">Behind-the-scenes moments, real parties, and daily inspiration from Mumbai.</p>
     </div>
+  </div>
 
-    <div class="insta-band">
+  <div class="insta-band">
       <div class="insta-band-top">
         <div class="insta-band-id">
           <div>
@@ -1409,10 +1411,11 @@
           <div class="insta-card-cap">Ela's Pool Splash 🌊 Summer birthday done right</div>
         </a>
       </div>
-    </div>
+  </div>
 
+  <div class="container">
     <div style="margin-top:16px; text-align:right;">
-      <a href="https://instagram.com/wondershop.experiences" class="btn-lnk" target="_blank" rel="noopener" style="font-size:13px;">See all posts on Instagram →</a>
+      <a href="https://instagram.com/wondershop.experiences" class="btn-lnk" target="_blank" rel="noopener" style="font-size:13px; color:#5A2A82;">See all posts on Instagram →</a>
     </div>
   </div>
 </section>
