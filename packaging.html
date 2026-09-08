@@ -85,10 +85,12 @@ table.list tr:hover td{background:var(--li3)}
 .item-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
 .item-row input[type=text]{flex:1;padding:8px 10px;border:1px solid var(--li2);border-radius:6px;font-size:13px;background:#fff}
 .item-row input[type=checkbox]{width:18px;height:18px;flex-shrink:0}
+.item-row input[type=number]{width:58px;flex-shrink:0;padding:8px 6px;border:1px solid var(--li2);border-radius:6px;font-size:13px;background:#fff;text-align:center}
 .icon-btn{background:none;border:none;color:var(--gy);font-size:15px;padding:2px 6px;flex-shrink:0}
 .icon-btn:hover{color:var(--pk)}
 .add-item-btn{background:none;border:1px dashed var(--li);border-radius:6px;color:var(--li);font-size:12px;font-weight:600;padding:6px 10px;margin-top:4px}
 .sec-actions{display:flex;gap:4px;flex-shrink:0}
+.item-remark{font-size:11.5px;color:var(--gy);font-style:italic;margin:-3px 0 8px 26px;padding:4px 10px;background:#fff;border-left:2px solid var(--spk);border-radius:0 6px 6px 0}
 
 .share-box{background:var(--li3);border-radius:var(--rs);padding:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
 .share-box code{background:#fff;padding:8px 12px;border-radius:8px;font-size:13px;flex:1;min-width:200px;overflow-wrap:anywhere}
@@ -350,7 +352,10 @@ async function editList(id){
     document.getElementById('cEventLead').value = d.event_lead||'';
     document.getElementById('cLeadId').value = d.lead_id||'';
     document.getElementById('pasteArea').value='';
-    SECTIONS = (d.sections||[]).map(s=>({header:s.header, items:(s.items||[]).map(it=>({text:it.text, checked:!!it.checked}))}));
+    SECTIONS = (d.sections||[]).map(s=>({header:s.header, items:(s.items||[]).map(it=>({
+      text:it.text, checked:!!it.checked, qty:(it.qty===undefined?null:it.qty),
+      remark:it.remark||'', remarkBy:it.remark_by||'', remarkAt:it.remark_at||''
+    }))}));
     renderShareBox();
     document.getElementById('saveMsg').textContent='';
     renderSections();
@@ -406,7 +411,7 @@ function parsePackingText(raw){
     let t = text.replace(/\s*✅\s*$/,'').trim();
     if(t!==text.trim()) checked=true;
     if(!t) return;
-    ensureDefault().items.push({text:t, checked});
+    ensureDefault().items.push({text:t, checked, qty:null});
   }
   for(let i=0;i<shaped.length;i++){
     const s = shaped[i];
@@ -453,11 +458,14 @@ function renderSections(){
   if(!SECTIONS.length){ wrap.innerHTML = '<div class="empty">No sections yet — paste a list above, insert a template, or add a blank section.</div>'; return; }
   wrap.innerHTML = SECTIONS.map((sec,si)=>{
     const items = sec.items.map((it,ii)=>{
+      const remarkNote = it.remark ? '<div class="item-remark">📝 "'+esc(it.remark)+'"'+(it.remarkBy?' — '+esc(it.remarkBy):'')+(it.remarkAt?', '+esc(it.remarkAt):'')+'</div>' : '';
       return '<div class="item-row">'
         +'<input type="checkbox" '+(it.checked?'checked':'')+' onchange="SECTIONS['+si+'].items['+ii+'].checked=this.checked" title="Pre-checked">'
-        +'<input type="text" value="'+esc(it.text)+'" oninput="SECTIONS['+si+'].items['+ii+'].text=this.value">'
+        +'<input type="text" value="'+esc(it.text)+'" oninput="SECTIONS['+si+'].items['+ii+'].text=this.value" placeholder="Item">'
+        +'<input type="number" min="0" value="'+(it.qty===null||it.qty===undefined?'':it.qty)+'" placeholder="qty" title="Quantity (optional)" oninput="SECTIONS['+si+'].items['+ii+'].qty=this.value===\'\'?null:parseInt(this.value,10)">'
         +'<button class="icon-btn" onclick="removeItem('+si+','+ii+')" title="Remove item">✕</button>'
-        +'</div>';
+        +'</div>'
+        +remarkNote;
     }).join('');
     return '<div class="section-card">'
       +'<div class="sec-head">'
@@ -473,8 +481,8 @@ function renderSections(){
       +'</div>';
   }).join('');
 }
-function addBlankSection(){ SECTIONS.push({header:'', items:[{text:'',checked:false}]}); renderSections(); }
-function addItem(si){ SECTIONS[si].items.push({text:'',checked:false}); renderSections(); }
+function addBlankSection(){ SECTIONS.push({header:'', items:[{text:'',checked:false,qty:null}]}); renderSections(); }
+function addItem(si){ SECTIONS[si].items.push({text:'',checked:false,qty:null}); renderSections(); }
 function removeItem(si,ii){ SECTIONS[si].items.splice(ii,1); renderSections(); }
 function removeSection(si){ SECTIONS.splice(si,1); renderSections(); }
 function moveSection(si,dir){
@@ -506,7 +514,7 @@ function insertTemplate(){
   const id = parseInt(document.getElementById('tplSelect').value, 10);
   const t = TEMPLATES.find(x=>x.id===id);
   if(!t) return;
-  SECTIONS.push({header:t.name, items:(t.items||[]).map(txt=>({text:txt, checked:false}))});
+  SECTIONS.push({header:t.name, items:(t.items||[]).map(txt=>({text:txt, checked:false, qty:null}))});
   renderSections();
   showToast('Inserted "'+t.name+'".');
 }
@@ -553,7 +561,10 @@ async function saveList(){
   const msg = document.getElementById('saveMsg');
   if(!title){ msg.textContent='Give the party a title first.'; msg.style.color='var(--pk)'; return; }
   const payloadSections = SECTIONS
-    .map(s=>({header:(s.header||'').trim()||'Items', items:s.items.filter(it=>it.text.trim()).map(it=>({text:it.text.trim(), checked:!!it.checked}))}))
+    .map(s=>({header:(s.header||'').trim()||'Items', items:s.items.filter(it=>it.text.trim()).map(it=>({
+      text:it.text.trim(), checked:!!it.checked,
+      qty:(it.qty===''||it.qty===undefined||it.qty===null||isNaN(it.qty))?null:parseInt(it.qty,10)
+    }))}))
     .filter(s=>s.items.length);
   const btn = document.getElementById('saveBtn');
   btn.disabled = true; msg.style.color='var(--gy)'; msg.textContent='Saving…';
@@ -570,7 +581,10 @@ async function saveList(){
     }
     CURRENT_LIST_ID = d.id;
     CURRENT_SHARE_URL = d.share_url;
-    SECTIONS = (d.sections||[]).map(s=>({header:s.header, items:(s.items||[]).map(it=>({text:it.text, checked:!!it.checked}))}));
+    SECTIONS = (d.sections||[]).map(s=>({header:s.header, items:(s.items||[]).map(it=>({
+      text:it.text, checked:!!it.checked, qty:(it.qty===undefined?null:it.qty),
+      remark:it.remark||'', remarkBy:it.remark_by||'', remarkAt:it.remark_at||''
+    }))}));
     renderSections();
     renderShareBox();
     msg.style.color='var(--gr)'; msg.textContent='Saved.';

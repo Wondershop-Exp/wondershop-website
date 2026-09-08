@@ -19,6 +19,14 @@ Two very different trust models share this file:
     long random share_token IS the access control, same trust level as
     the WhatsApp link Shruti sends today. Never list/enumerate packaging
     lists from this side — only ever look one up by its exact token.
+
+Quantities + remarks (2026-09-08, migration 021): each item can carry an
+optional qty (set by whoever composes the list, shown as a badge) and a
+free-text remark (left by staff from the tablet view — "didn't find this",
+"packed something different"). Remarks are edited only via the dedicated
+/pack/.../remark endpoint below; the admin composer shows them read-only
+and they survive re-saves of the list content the same way checked state
+does (matched by section header + item text in _write_sections).
 """
 import json
 import logging
@@ -57,6 +65,7 @@ class TemplateIn(BaseModel):
 class ItemIn(BaseModel):
     text: str
     checked: bool = False
+    qty: Optional[int] = None
 
 
 class SectionIn(BaseModel):
@@ -85,6 +94,11 @@ class ListContentIn(BaseModel):
 class CheckIn(BaseModel):
     checked: bool
     checked_by: Optional[str] = None
+
+
+class RemarkIn(BaseModel):
+    remark: str = ""
+    remark_by: Optional[str] = None
 
 
 # ─── templates (admin) ────────────────────────────────────────────────────
@@ -165,6 +179,7 @@ async def _hydrate(lst) -> dict:
         for it in items:
             idd = dict(it)
             idd["checked_at"] = _to_ist_str(idd.get("checked_at"))
+            idd["remark_at"] = _to_ist_str(idd.get("remark_at"))
             item_dicts.append(idd)
             total += 1
             if idd["checked"]:
@@ -249,10 +264,11 @@ async def update_list_meta(list_id: int, body: ListMetaIn, x_admin_password: Opt
 async def _write_sections(list_id: int, sections: List[SectionIn], merge: bool):
     """Replaces a list's whole section/item tree. When merge=True (editing
     an existing list, per PUT /lists/{id}/content below), carries over
-    checked/checked_by/checked_at for any item whose text matches
-    (case/whitespace-insensitive) an existing item under a section with the
-    same header — so re-saving an edited list doesn't wipe out packing
-    progress staff already made on the unchanged items."""
+    checked/checked_by/checked_at AND remark/remark_by/remark_at for any
+    item whose text matches (case/whitespace-insensitive) an existing item
+    under a section with the same header — so re-saving an edited list
+    doesn't wipe out packing progress or staff notes already made on the
+    unchanged items."""
     prior = {}
     if merge:
         existing_sections = await database.fetch_all(
@@ -265,7 +281,10 @@ async def _write_sections(list_id: int, sections: List[SectionIn], merge: bool):
             key_header = (s["header"] or "").strip().lower()
             for it in items:
                 key = (key_header, (it["text"] or "").strip().lower())
-                prior[key] = {"checked": it["checked"], "checked_by": it["checked_by"], "checked_at": it["checked_at"]}
+                prior[key] = {
+                    "checked": it["checked"], "checked_by": it["checked_by"], "checked_at": it["checked_at"],
+                    "remark": it["remark"], "remark_by": it["remark_by"], "remark_at": it["remark_at"],
+                }
         await database.execute("DELETE FROM packaging_sections WHERE packaging_list_id = :lid", values={"lid": list_id})
     else:
         await database.execute("DELETE FROM packaging_sections WHERE packaging_list_id = :lid", values={"lid": list_id})
@@ -285,10 +304,15 @@ async def _write_sections(list_id: int, sections: List[SectionIn], merge: bool):
             checked = carry["checked"] if carry else item.checked
             checked_by = carry["checked_by"] if carry else None
             checked_at = carry["checked_at"] if carry else None
+            remark = carry["remark"] if carry else None
+            remark_by = carry["remark_by"] if carry else None
+            remark_at = carry["remark_at"] if carry else None
             await database.execute(
-                """INSERT INTO packaging_items (section_id, text, sort_order, checked, checked_by, checked_at)
-                   VALUES (:sid, :text, :o, :checked, :by, :at)""",
-                values={"sid": sec_id, "text": text, "o": ii, "checked": checked, "by": checked_by, "at": checked_at},
+                """INSERT INTO packaging_items
+                   (section_id, text, sort_order, checked, checked_by, checked_at, qty, remark, remark_by, remark_at)
+                   VALUES (:sid, :text, :o, :checked, :by, :at, :qty, :remark, :rby, :rat)""",
+                values={"sid": sec_id, "text": text, "o": ii, "checked": checked, "by": checked_by, "at": checked_at,
+                        "qty": item.qty, "remark": remark, "rby": remark_by, "rat": remark_at},
             )
 
 
@@ -336,6 +360,33 @@ async def toggle_pack_item(share_token: str, item_id: int, body: CheckIn):
         """UPDATE packaging_items SET checked = :checked, checked_by = :by,
            checked_at = CASE WHEN :checked THEN NOW() ELSE NULL END WHERE id = :id""",
         values={"id": item_id, "checked": body.checked, "by": (body.checked_by or None)},
+    )
+    await database.execute("UPDATE packaging_lists SET updated_at = NOW() WHERE id = :id", values={"id": lst["id"]})
+    return {"ok": True}
+
+
+@router.patch("/pack/{share_token}/items/{item_id}/remark")
+async def set_pack_item_remark(share_token: str, item_id: int, body: RemarkIn):
+    lst = await database.fetch_one("SELECT * FROM packaging_lists WHERE share_token = :t", values={"t": share_token})
+    if not lst:
+        raise HTTPException(status_code=404, detail="This packing list link isn't valid.")
+    item = await database.fetch_one(
+        """SELECT i.* FROM packaging_items i JOIN packaging_sections s ON i.section_id = s.id
+           WHERE i.id = :iid AND s.packaging_list_id = :lid""",
+        values={"iid": item_id, "lid": lst["id"]},
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found on this list.")
+    remark = (body.remark or "").strip()
+    await database.execute(
+        """UPDATE packaging_items SET remark = :remark, remark_by = :by,
+           remark_at = CASE WHEN :has_remark THEN NOW() ELSE NULL END WHERE id = :id""",
+        values={
+            "id": item_id,
+            "remark": (remark or None),
+            "by": (body.remark_by or None) if remark else None,
+            "has_remark": bool(remark),
+        },
     )
     await database.execute("UPDATE packaging_lists SET updated_at = NOW() WHERE id = :id", values={"id": lst["id"]})
     return {"ok": True}

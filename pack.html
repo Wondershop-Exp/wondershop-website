@@ -6,17 +6,17 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Packing List</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,600;0,700&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700&display=swap" rel="stylesheet">
 <style>
 :root{
   --li:#B59DDE;--li2:#EDE6FA;--li3:#F5F0FF;
-  --pk:#E65A96;--spk:#F5C3D7;
-  --gr:#52C470;--sgr:#DDF3DE;
+  --pk:#E65A96;--pk2:#F0A9C4;
+  --plum:#2E2438;
   --bk:#191919;--gy:#6B7280;--lgy:#F5F2FA;--wh:#FAFAFA;
   --r:16px;--fd:'Lora',serif;--fb:'DM Sans',sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:var(--fb);color:var(--bk);background:var(--wh);margin:0;min-height:100vh;-webkit-user-select:none;user-select:none}
+body{font-family:var(--fb);color:var(--bk);background:var(--wh);margin:0;min-height:100vh}
 h1,h2{font-family:var(--fd);line-height:1.2;margin:0}
 button{cursor:pointer;font-family:var(--fb)}
 input{font-family:var(--fb)}
@@ -31,30 +31,55 @@ input{font-family:var(--fb)}
 .name-card input{width:100%;padding:16px;border:1px solid var(--li2);border-radius:12px;font-size:17px;margin-bottom:14px;text-align:center}
 .name-card button{width:100%;padding:16px;border:none;border-radius:12px;background:var(--pk);color:#fff;font-weight:700;font-size:17px}
 
-#top{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--li2);padding:16px 18px;z-index:10;display:none}
-#top .row1{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-#top h1{font-size:19px}
-#top .meta{font-size:12px;color:var(--gy);margin-top:2px}
-#whoBadge{font-size:11px;color:var(--gy);background:var(--lgy);border-radius:20px;padding:4px 10px;white-space:nowrap}
-.progress-wrap{margin-top:12px}
-.progress-track{background:var(--li2);border-radius:20px;height:10px;overflow:hidden}
-.progress-fill{background:var(--gr);height:100%;border-radius:20px;transition:width .25s}
-.progress-label{font-size:12px;color:var(--gy);margin-top:5px;text-align:right}
+#wrap{display:none;max-width:640px;margin:0 auto;padding:16px 14px 100px}
 
-#content{display:none;max-width:640px;margin:0 auto;padding:16px 14px 100px}
-.section{margin-bottom:22px}
-.section h2{font-size:16px;color:var(--pk);text-transform:uppercase;letter-spacing:.4px;padding:0 4px;margin-bottom:8px}
-.item-card{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--li2);border-radius:12px;padding:16px 16px;margin-bottom:8px;transition:background .15s,border-color .15s}
-.item-card.checked{background:var(--sgr);border-color:var(--gr)}
-.item-card .box{width:28px;height:28px;border-radius:8px;border:2px solid var(--li);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:17px;color:#fff}
-.item-card.checked .box{background:var(--gr);border-color:var(--gr)}
-.item-card .txt{font-size:16px;flex:1}
-.item-card.checked .txt{text-decoration:line-through;color:var(--gy)}
-.item-card .by{font-size:10px;color:var(--gy);white-space:nowrap}
+/* top summary card — matches the approved "Ledger" design */
+#topCard{background:var(--plum);border-radius:18px;padding:20px 22px 24px;box-shadow:0 6px 20px rgba(46,36,56,.18)}
+#topCard .row1{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+#topCard .titleWrap{display:flex;align-items:center;gap:12px;min-width:0}
+#topCard .icon{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+#topCard h1{font-size:21px;font-weight:700;color:#fff;overflow-wrap:anywhere}
+#topCard .meta{font-size:12px;color:#C9B8DC;margin-top:3px}
+#whoBadge{background:rgba(255,255,255,.12);border-radius:20px;padding:6px 12px;font-size:11px;color:#EDE6FA;white-space:nowrap;flex-shrink:0}
+.progress-wrap{margin-top:18px}
+.progress-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.progress-row .lbl{font-size:13px;font-weight:700;color:#fff}
+.progress-row .pct{font-size:12px;color:#C9B8DC}
+.progress-track{background:rgba(255,255,255,.14);border-radius:20px;height:10px;overflow:hidden}
+.progress-fill{background:linear-gradient(90deg,var(--pk),#F08BB0);height:100%;border-radius:20px;transition:width .25s}
 
-#refreshBtn{position:fixed;bottom:18px;right:18px;background:var(--bk);color:#fff;border:none;border-radius:50%;width:54px;height:54px;font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,.25);display:none;align-items:center;justify-content:center}
+#content{margin-top:22px}
+.section{border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(25,25,25,.06);background:#fff;margin-bottom:18px}
+.sec-head{background:var(--plum);padding:13px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sec-head .name{font-size:12px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:#fff}
+.sec-head .count{font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--pk2);white-space:nowrap}
+
+.item{border-bottom:1px solid var(--li3)}
+.item:last-child{border-bottom:none}
+.item-row{display:flex;align-items:center;gap:11px;padding:14px 18px;min-height:30px}
+.item .box{width:25px;height:25px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:2px solid var(--li2);background:#fff}
+.item.checked .box{background:var(--pk);border-color:var(--pk)}
+.item .box svg{display:none}
+.item.checked .box svg{display:block}
+.item .txtwrap{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.item .txt{font-size:15px;line-height:1.4;color:var(--bk)}
+.item.checked .txt{color:#9CA3AF;text-decoration:line-through}
+.item .qty{font-size:11px;font-weight:700;color:#7A5CA8;background:#F3EEFC;border-radius:20px;padding:2px 9px;white-space:nowrap;flex-shrink:0}
+.item.checked .qty{color:#B9B4C2;background:#F5F2FA}
+.item .noteBtn{width:27px;height:27px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:transparent;border:none;padding:0}
+.item .noteBtn.has{background:#FDEDF3}
+.item .noteBtn.open{background:#F3EEFC}
+.item .noteBtn svg{stroke:#B3ACC2}
+.item .noteBtn.has svg{stroke:var(--pk)}
+.item .by{font-size:10px;color:#9CA3AF;white-space:nowrap;text-align:right;flex-shrink:0;line-height:1.3}
+.remark-panel{padding:2px 18px 13px 63px;background:#FBFAFE}
+.remark-panel input{width:100%;font-size:13px;color:#4B4459;background:#fff;border:1.5px solid #E5DAF5;border-radius:9px;padding:9px 12px}
+.remark-panel input::placeholder{color:#B3A9C4}
+.remark-panel input:focus{outline:none;border-color:var(--li)}
+
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bk);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
 .toast.show{opacity:1}
+#refreshBtn{position:fixed;bottom:18px;right:18px;background:var(--bk);color:#fff;border:none;border-radius:50%;width:54px;height:54px;font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,.25);display:none;align-items:center;justify-content:center}
 </style>
 </head>
 <body>
@@ -74,21 +99,36 @@ input{font-family:var(--fb)}
   </div>
 </div>
 
-<div id="top">
-  <div class="row1">
-    <div>
-      <h1 id="listTitle"></h1>
-      <div class="meta" id="listMeta"></div>
+<div id="wrap">
+  <div id="topCard">
+    <div class="row1">
+      <div class="titleWrap">
+        <div class="icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E65A96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+            <path d="m3.3 7 8.7 5 8.7-5"/>
+            <path d="M12 22V12"/>
+          </svg>
+        </div>
+        <div>
+          <h1 id="listTitle"></h1>
+          <div class="meta" id="listMeta"></div>
+        </div>
+      </div>
+      <div id="whoBadge"></div>
     </div>
-    <div id="whoBadge"></div>
+    <div class="progress-wrap">
+      <div class="progress-row">
+        <span class="lbl" id="progLabel">0 / 0 packed</span>
+        <span class="pct" id="progPct">0% done</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+    </div>
   </div>
-  <div class="progress-wrap">
-    <div class="progress-track"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
-    <div class="progress-label" id="progLabel">0 / 0 packed</div>
-  </div>
+
+  <div id="content"></div>
 </div>
 
-<div id="content"></div>
 <button id="refreshBtn" onclick="loadList(true)" title="Refresh">↻</button>
 <div class="toast" id="toast"></div>
 
@@ -98,6 +138,11 @@ const params = new URLSearchParams(location.search);
 const TOKEN = params.get('t');
 let DATA = null;
 let PENDING = {};
+let OPEN_REMARK_ID = null;      // item id whose remark panel is open (single at a time)
+let REMARK_DIRTY = {};          // itemId -> true while unsaved edits are in the box
+
+const CHECK_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+const NOTE_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
 
 function showToast(msg){
   const t=document.getElementById('toast');
@@ -115,6 +160,15 @@ function confirmName(){
   boot();
 }
 
+function findItem(itemId){
+  for(const sec of DATA.sections){
+    for(const it of sec.items){
+      if(it.id===itemId) return it;
+    }
+  }
+  return null;
+}
+
 async function loadList(silent){
   if(!silent){
     document.getElementById('loading').style.display='flex';
@@ -128,8 +182,7 @@ async function loadList(silent){
     DATA = await res.json();
     render();
     document.getElementById('loading').style.display='none';
-    document.getElementById('top').style.display='block';
-    document.getElementById('content').style.display='block';
+    document.getElementById('wrap').style.display='block';
     document.getElementById('refreshBtn').style.display='flex';
   }catch(e){
     document.getElementById('loading').style.display='none';
@@ -146,6 +199,7 @@ function render(){
   const pct = p.total ? Math.round(100*p.checked/p.total) : 0;
   document.getElementById('progFill').style.width = pct+'%';
   document.getElementById('progLabel').textContent = p.checked+' / '+p.total+' packed';
+  document.getElementById('progPct').textContent = pct+'% done';
 
   const content = document.getElementById('content');
   if(!DATA.sections || !DATA.sections.length){
@@ -153,29 +207,42 @@ function render(){
     return;
   }
   content.innerHTML = DATA.sections.map(sec=>{
+    const done = sec.items.filter(it=>it.checked).length;
     const items = sec.items.map(it=>{
       const checked = !!it.checked;
-      const byLabel = checked && it.checked_by ? esc(it.checked_by)+(it.checked_at?(' · '+esc(it.checked_at.split(',')[0])):'') : '';
-      return '<div class="item-card'+(checked?' checked':'')+'" onclick="toggleItem('+it.id+', this)">'
-        +'<div class="box">'+(checked?'✓':'')+'</div>'
-        +'<div class="txt">'+esc(it.text)+'</div>'
-        +(byLabel?'<div class="by">'+byLabel+'</div>':'')
+      const hasQty = it.qty !== null && it.qty !== undefined && it.qty !== '';
+      const hasRemark = !!(it.remark && it.remark.length);
+      const isOpen = OPEN_REMARK_ID === it.id;
+      const byLabel = checked && it.checked_by ? esc(it.checked_by)+(it.checked_at?('<br>'+esc(it.checked_at.split(',')[0])):'') : '';
+      const noteCls = 'noteBtn'+(hasRemark?' has':'')+(isOpen?' open':'');
+      const remarkVal = REMARK_DIRTY[it.id] !== undefined ? REMARK_DIRTY[it.id] : (it.remark || '');
+      return '<div class="item'+(checked?' checked':'')+'" data-item-id="'+it.id+'">'
+        +'<div class="item-row" onclick="toggleItem('+it.id+')">'
+          +'<div class="box">'+CHECK_SVG+'</div>'
+          +'<div class="txtwrap"><span class="txt">'+esc(it.text)+'</span>'
+            +(hasQty?'<span class="qty">×'+esc(it.qty)+'</span>':'')
+          +'</div>'
+          +'<button type="button" class="'+noteCls+'" onclick="event.stopPropagation();toggleNote('+it.id+')">'+NOTE_SVG+'</button>'
+          +(byLabel?'<div class="by">'+byLabel+'</div>':'')
+        +'</div>'
+        +(isOpen?'<div class="remark-panel" onclick="event.stopPropagation()">'
+            +'<input type="text" value="'+esc(remarkVal)+'" placeholder="Didn’t find this, or packed something different? Add a note…" '
+            +'oninput="onRemarkInput('+it.id+',this.value)" onblur="saveRemark('+it.id+')" onkeydown="if(event.key===\'Enter\'){this.blur();}">'
+          +'</div>':'')
         +'</div>';
     }).join('');
-    return '<div class="section"><h2>'+esc(sec.header)+'</h2>'+items+'</div>';
+    return '<div class="section"><div class="sec-head"><span class="name">'+esc(sec.header)+'</span><span class="count">'+done+' / '+sec.items.length+' PACKED</span></div>'+items+'</div>';
   }).join('');
+
+  if(OPEN_REMARK_ID !== null){
+    const el = content.querySelector('.remark-panel input');
+    if(el){ el.focus(); const v=el.value; el.setSelectionRange(v.length, v.length); }
+  }
 }
 
-async function toggleItem(itemId, el){
+async function toggleItem(itemId){
   if(PENDING[itemId]) return;
-  // find item in DATA and flip optimistically
-  let target=null;
-  for(const sec of DATA.sections){
-    for(const it of sec.items){
-      if(it.id===itemId){ target=it; break; }
-    }
-    if(target) break;
-  }
+  const target = findItem(itemId);
   if(!target) return;
   const newChecked = !target.checked;
   target.checked = newChecked;
@@ -198,9 +265,39 @@ async function toggleItem(itemId, el){
   delete PENDING[itemId];
 }
 
+function toggleNote(itemId){
+  OPEN_REMARK_ID = (OPEN_REMARK_ID === itemId) ? null : itemId;
+  render();
+}
+function onRemarkInput(itemId, value){
+  REMARK_DIRTY[itemId] = value;
+}
+async function saveRemark(itemId){
+  if(REMARK_DIRTY[itemId] === undefined) return; // nothing changed
+  const value = REMARK_DIRTY[itemId];
+  const target = findItem(itemId);
+  if(!target) return;
+  if((target.remark||'') === value){ delete REMARK_DIRTY[itemId]; return; }
+  target.remark = value;
+  delete REMARK_DIRTY[itemId];
+  try{
+    const res = await fetch(API+'/api/pack/'+encodeURIComponent(TOKEN)+'/items/'+itemId+'/remark', {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({remark:value, remark_by:getStaffName()})
+    });
+    if(!res.ok) throw new Error();
+    render();
+  }catch(e){
+    showToast("Couldn't save that note — try again.");
+  }
+}
+
 function boot(){
   loadList(false);
-  setInterval(()=>{ if(!Object.keys(PENDING).length) loadList(true); }, 15000);
+  setInterval(()=>{
+    if(!Object.keys(PENDING).length && OPEN_REMARK_ID===null) loadList(true);
+  }, 15000);
 }
 
 if(!TOKEN){
