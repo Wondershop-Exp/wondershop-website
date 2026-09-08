@@ -1725,10 +1725,22 @@ body.browse-mode .browse-cta{display:flex}
 
     <!-- Themed -->
     <div id="thSec">
+      <div class="sort-bar" style="flex-wrap:wrap;row-gap:8px">
+        <div><label for="decThemeSel">Theme</label><br><select id="decThemeSel" onchange="fDec()"><option value="">All Themes</option></select></div>
+        <div><label for="decGenderSel">Gender</label><br><select id="decGenderSel" onchange="fDec()">
+          <option value="">Any</option>
+          <option value="Girls">Girls</option>
+          <option value="Boys">Boys</option>
+          <option value="Both">Unisex</option>
+        </select></div>
+        <div><label for="decAgeSel">Age</label><br><select id="decAgeSel" onchange="fDec()"><option value="">Any age</option></select></div>
+        <button class="showall-link" id="decClearBtn" onclick="clearDecFilters()" style="display:none;align-self:flex-end;margin-bottom:6px">Clear filters</button>
+      </div>
       <div id="fNote" style="background:var(--li3);border-radius:10px;padding:10px 14px;font-size:12px;color:#7B5EA7;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
         <span>Showing themes based on your preferences</span>
         <button class="showall-link" onclick="showAllT()">Show All</button>
       </div>
+      <div id="decEmpty" style="display:none;color:var(--gy);font-size:13px;padding:30px 10px;text-align:center">No decor themes match these filters. <button class="showall-link" onclick="clearDecFilters()">Clear filters</button></div>
       <div class="cards-grid" id="thCards"></div>
     </div>
     <!-- Standard -->
@@ -1779,7 +1791,11 @@ body.browse-mode .browse-cta{display:flex}
       <button class="chip on" onclick="fActs('all',this)">All</button>
       <button class="chip" onclick="fActs('art',this)">🎨 Art</button>
       <button class="chip" onclick="fActs('craft',this)">🔧 Craft</button>
-      <button class="chip" onclick="fActs('experience',this)">✨ Experiences</button>
+      <button class="chip" onclick="fActs('science',this)">🔬 Science</button>
+      <button class="chip" onclick="fActs('sports',this)">🏃 Sports &amp; Physical</button>
+      <button class="chip" onclick="fActs('mystery',this)">🕵️ Mystery &amp; Spy</button>
+      <button class="chip" onclick="fActs('shows',this)">🎭 Shows &amp; Performances</button>
+      <button class="chip" onclick="fActs('experience',this)">✨ Other Experiences</button>
     </div>
     <div class="cards-grid" id="aCards"></div>
     <div id="selActs" style="display:none">
@@ -3011,17 +3027,17 @@ const ACTS=[
   // Duration/age below are still reasonable estimates (not yet confirmed
   // by Shruti) — the r1/r2/r3 price is the only field that's a real,
   // already-established number.
-  {id:'science-show',n:'Science Show',e:'🧪',img:'activity/act-science-show-card',realImg:true,cat:'experience',age:'6-12',dur:'45-60 min',req:'Open space/hall',r1:20000,r2:20000,r3:20000,flat:true,bgs:['linear-gradient(135deg,#5B8EDD,#52C470)'],tag:'new',pers:false,rating:4.7,cnt:12},
-  {id:'bubble-show',n:'Bubble Show',e:'🫧',img:'activity/act-bubble-show-card',realImg:true,cat:'experience',age:'3-12',dur:'45 min',req:'Open space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:false,rating:4.7,cnt:14},
-  {id:'magic-show',n:'Magic Show',e:'🎩',img:'activity/act-magic-show-card',realImg:true,cat:'experience',age:'4-12',dur:'45 min',req:'Any space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#374151,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:16},
+  {id:'science-show',n:'Science Show',e:'🧪',img:'activity/act-science-show-card',realImg:true,cat:'science',age:'6-12',dur:'45-60 min',req:'Open space/hall',r1:20000,r2:20000,r3:20000,flat:true,bgs:['linear-gradient(135deg,#5B8EDD,#52C470)'],tag:'new',pers:false,rating:4.7,cnt:12},
+  {id:'bubble-show',n:'Bubble Show',e:'🫧',img:'activity/act-bubble-show-card',realImg:true,cat:'shows',age:'3-12',dur:'45 min',req:'Open space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:false,rating:4.7,cnt:14},
+  {id:'magic-show',n:'Magic Show',e:'🎩',img:'activity/act-magic-show-card',realImg:true,cat:'shows',age:'4-12',dur:'45 min',req:'Any space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#374151,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:16},
   // Chitrakathi Shadow Puppet Show — added 2026-08-27 per Shruti's brief.
   // ₹40,000 flat / 30 min confirmed by Shruti. Real card photo added
   // 2026-08-27 (img/activity/act-chitrakathi-show-card.jpg, from Shruti's
   // event photos — full-frame resized to 1100px wide, nothing cropped,
   // matching the 4:3 .caro object-fit:contain container).
   // Age/space requirement below are still placeholders, not yet confirmed.
-  {id:'chitrakathi-show',n:'Chitrakathi Shadow Puppet Show',e:'🎭',img:'activity/act-chitrakathi-puppets-card',realImg:true,cat:'experience',age:'5-12',dur:'30 min',req:'Any space (dim lighting for shadow effect)',r1:40000,r2:40000,r3:40000,flat:true,bgs:['linear-gradient(135deg,#191919,#C98A00)'],tag:'new',pers:false,rating:4.8,cnt:1},
-  {id:'bhajan-jamming',n:'Bhajan Jamming',e:'🎶',img:'activity/act-bhajan-jamming-card',realImg:true,cat:'experience',age:'All Ages',dur:'30 min',req:'Any space, power point for speakers',r1:25000,r2:25000,r3:25000,flat:true,bgs:['linear-gradient(135deg,#B34700,#F2A93B)'],tag:'new',pers:false,rating:4.8,cnt:1},
+  {id:'chitrakathi-show',n:'Chitrakathi Shadow Puppet Show',e:'🎭',img:'activity/act-chitrakathi-puppets-card',realImg:true,cat:'shows',age:'5-12',dur:'30 min',req:'Any space (dim lighting for shadow effect)',r1:40000,r2:40000,r3:40000,flat:true,bgs:['linear-gradient(135deg,#191919,#C98A00)'],tag:'new',pers:false,rating:4.8,cnt:1},
+  {id:'bhajan-jamming',n:'Bhajan Jamming',e:'🎶',img:'activity/act-bhajan-jamming-card',realImg:true,cat:'shows',age:'All Ages',dur:'30 min',req:'Any space, power point for speakers',r1:25000,r2:25000,r3:25000,flat:true,bgs:['linear-gradient(135deg,#B34700,#F2A93B)'],tag:'new',pers:false,rating:4.8,cnt:1},
   // Spy Treasure Hunt — added as a general Activities-step option (2026-08-25,
   // per Shruti: "add spy treasure hunt as an activity option... kid level
   // pricing is already explained for packages, follow the same pricing").
@@ -3030,7 +3046,7 @@ const ACTS=[
   // price point already used for Bubble Show, Magic Show, and the Spy
   // package's own MDF Spy Badge station (SPY_ADDON_STATIONS_DATA.s3 —
   // base:9000). Duration (60-75 min) confirmed by Shruti; real photo added 2026-08-27.
-  {id:'spy-treasure-hunt',n:'Spy Treasure Hunt',e:'🗺️',img:'activity/act-spy-treasure-hunt-card',realImg:true,cat:'experience',age:'6-12',dur:'60-75 min',req:'Any space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#374151)'],tag:'new',pers:false,rating:4.7,cnt:10},
+  {id:'spy-treasure-hunt',n:'Spy Treasure Hunt',e:'🗺️',img:'activity/act-spy-treasure-hunt-card',realImg:true,cat:'mystery',age:'6-12',dur:'60-75 min',req:'Any space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#374151)'],tag:'new',pers:false,rating:4.7,cnt:10},
   // ── Package craft activities (per child) ──
   {id:'a22',n:'Sunglasses Decor',e:'🕶️',img:'activity/act-sunglasses-decor',realImg:true,cat:'craft',age:'4-12',dur:'15-20 min',req:'Tables & chairs',r1:350,r2:350,r3:350,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)'],tag:'',pers:true,rating:4.7,cnt:25},
   {id:'a23',n:'Fridge Magnet Making',e:'🧲',img:'activity/act-fridge-magnet',realImg:true,cat:'craft',age:'4-12',dur:'40 min',req:'Tables & chairs',r1:175,r2:175,r3:175,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:20},
@@ -3039,16 +3055,16 @@ const ACTS=[
   // count, not the generic r1/r2/r3 3-tier model (see engagementBandPrice()
   // in actPrice() below). r1/r2/r3 here are just the 20-kid reference price
   // shown on the card before that override kicks in.
-  {id:'eng90',n:'90 Min Sports Engagement',e:'🏃',img:'activity/act-90-min-engagement',realImg:true,cat:'experience',age:'4-14',dur:'90 min',req:'Turf/open ground',r1:24500,r2:24500,r3:24500,flat:true,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'new',pers:false,rating:4.8,cnt:20},
-  {id:'eng120',n:'120 Min Sports Engagement',e:'🏃',img:'activity/act-120-min-engagement',realImg:true,cat:'experience',age:'4-14',dur:'120 min',req:'Turf/open ground',r1:32000,r2:32000,r3:32000,flat:true,bgs:['linear-gradient(135deg,#52C470,#5B8EDD)'],tag:'new',pers:false,rating:4.8,cnt:15},
-  {id:'zorb',n:'Body Zorbing',e:'🫧',img:'activity/act-body-zorbing',realImg:true,cat:'experience',age:'8-14',dur:'Session',req:'Open ground/turf',r1:9500,r2:9500,r3:9500,flat:true,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:false,rating:4.7,cnt:10},
-  {id:'gym',n:'Gymnastics',e:'🤸',img:'activity/act-gymnastics',realImg:true,cat:'experience',age:'5-14',dur:'Session',req:'Open ground/turf',r1:11800,r2:11800,r3:11800,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#B59DDE)'],tag:'new',pers:false,rating:4.7,cnt:8},
+  {id:'eng90',n:'90 Min Sports Engagement',e:'🏃',img:'activity/act-90-min-engagement',realImg:true,cat:'sports',age:'4-14',dur:'90 min',req:'Turf/open ground',r1:24500,r2:24500,r3:24500,flat:true,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'new',pers:false,rating:4.8,cnt:20},
+  {id:'eng120',n:'120 Min Sports Engagement',e:'🏃',img:'activity/act-120-min-engagement',realImg:true,cat:'sports',age:'4-14',dur:'120 min',req:'Turf/open ground',r1:32000,r2:32000,r3:32000,flat:true,bgs:['linear-gradient(135deg,#52C470,#5B8EDD)'],tag:'new',pers:false,rating:4.8,cnt:15},
+  {id:'zorb',n:'Body Zorbing',e:'🫧',img:'activity/act-body-zorbing',realImg:true,cat:'sports',age:'8-14',dur:'Session',req:'Open ground/turf',r1:9500,r2:9500,r3:9500,flat:true,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:false,rating:4.7,cnt:10},
+  {id:'gym',n:'Gymnastics',e:'🤸',img:'activity/act-gymnastics',realImg:true,cat:'sports',age:'5-14',dur:'Session',req:'Open ground/turf',r1:11800,r2:11800,r3:11800,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#B59DDE)'],tag:'new',pers:false,rating:4.7,cnt:8},
   // Mallakhamb — hidden (see visibleActs()) until a real photo is available;
   // data kept in the catalogue so it can be unhidden with one flag flip.
-  {id:'malla',n:'Mallakhamb',e:'🤸',img:'',realImg:false,cat:'experience',age:'8-14',dur:'Session',req:'Open ground/turf',r1:9440,r2:9440,r3:9440,flat:true,bgs:['linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'',pers:false,rating:4.6,cnt:2,hidden:true},
+  {id:'malla',n:'Mallakhamb',e:'🤸',img:'',realImg:false,cat:'sports',age:'8-14',dur:'Session',req:'Open ground/turf',r1:9440,r2:9440,r3:9440,flat:true,bgs:['linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'',pers:false,rating:4.6,cnt:2,hidden:true},
   // ── Theme-restricted (Spy only for now — see themeOnly) ──
-  {id:'a26',n:'Laser Tunnel',e:'🔦',img:'packages/spy/spy-laser-tunnel',realImg:true,cat:'experience',age:'6-12',dur:'20 min',req:'Any space',r1:4000,r2:4000,r3:4000,flat:true,wasP:5000,themeOnly:['spy'],bgs:['linear-gradient(135deg,#374151,#6B7280)'],tag:'',pers:false,rating:4.7,cnt:20},
-  {id:'a27',n:'Dark Room',e:'🌑',img:'packages/spy/act-dark-room',realImg:true,cat:'experience',age:'7-12',dur:'20 min',req:'Blackout-capable space',r1:15000,r2:15000,r3:15000,flat:true,wasP:20000,themeOnly:['spy'],bgs:['linear-gradient(135deg,#191919,#374151)'],tag:'',pers:false,rating:4.8,cnt:15}
+  {id:'a26',n:'Laser Tunnel',e:'🔦',img:'packages/spy/spy-laser-tunnel',realImg:true,cat:'mystery',age:'6-12',dur:'20 min',req:'Any space',r1:4000,r2:4000,r3:4000,flat:true,wasP:5000,themeOnly:['spy'],bgs:['linear-gradient(135deg,#374151,#6B7280)'],tag:'',pers:false,rating:4.7,cnt:20},
+  {id:'a27',n:'Dark Room',e:'🌑',img:'packages/spy/act-dark-room',realImg:true,cat:'mystery',age:'7-12',dur:'20 min',req:'Blackout-capable space',r1:15000,r2:15000,r3:15000,flat:true,wasP:20000,themeOnly:['spy'],bgs:['linear-gradient(135deg,#191919,#374151)'],tag:'',pers:false,rating:4.8,cnt:15}
 ];
 // Filters out theme-restricted activities (Laser Tunnel, Dark Room) unless
 // the current build's theme is one of the ids listed in that activity's
@@ -3169,6 +3185,7 @@ let actFilter='all';
 // (2026-08-16, per Shruti) — reset back to false in doS0() so a fresh Step 0
 // submission re-applies recommendations from scratch.
 let decShowAll=false,actShowAll=false,giftShowAll=false,invShowAll=false;
+let decFilterTheme='',decFilterGender='',decFilterAge='';
 
 // 2026-08-16, per Shruti: "What does the birthday child like most?" —
 // multiselect on Step 0, used to recommend decor/activities/return gifts/
@@ -4194,6 +4211,7 @@ function doS0(){
   // site. If lazy-loading is reintroduced later, build each step's cards
   // only when the user actually navigates to that step, not all up front.
   decShowAll=actShowAll=giftShowAll=invShowAll=false;
+  decFilterTheme='';decFilterGender='';decFilterAge='';resetDecFilterSelects();
   buildDec();buildActs();buildPins();buildInvs();buildGifts();
   document.getElementById('f-gaddr').value='';
   try{if(dt){document.getElementById('f-gdate').value=dt;document.getElementById('f-gdate').max=dt;}}catch(e){}
@@ -4261,6 +4279,19 @@ function buildDec(){
     fNote.style.display=filterApplied?'flex':'none';
     const lbl=fNote.querySelector('span');if(lbl)lbl.textContent='Showing themes that match what your child loves';
   }
+  // Explicit Theme/Gender/Age filters (2026-09-08, per Shruti) — these are
+  // direct user picks from the dropdowns above the grid, so unlike the
+  // soft "preference" narrowing above, they apply even when decShowAll is
+  // true (Show All only bypasses the soft recommendation logic, not an
+  // explicit filter the visitor just set).
+  if(decFilterTheme)fl=fl.filter(t=>t.themeId===decFilterTheme);
+  if(decFilterGender)fl=fl.filter(t=>decGenderMatches(t.gn,decFilterGender));
+  if(decFilterAge)fl=fl.filter(t=>decAgeInRange(t.age,decFilterAge));
+  const anyExplicitDecFilter=!!(decFilterTheme||decFilterGender||decFilterAge);
+  const clearBtn=document.getElementById('decClearBtn');
+  if(clearBtn)clearBtn.style.display=anyExplicitDecFilter?'inline-block':'none';
+  const decEmpty=document.getElementById('decEmpty');
+  if(decEmpty)decEmpty.style.display=(anyExplicitDecFilter&&!fl.length)?'block':'none';
   fl.forEach(t=>tc.innerHTML+=makeTC(t));
   const sc=document.getElementById('stdCards');sc.innerHTML='';
   STD.forEach(t=>{
@@ -4275,6 +4306,52 @@ function buildDec(){
 }
 function showAllT(){decShowAll=true;buildDec();}
 function setDT(type,btn){S.decorType=type;document.querySelectorAll('#s1 .dt-tog .dt-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.getElementById('thSec').style.display=type==='themed'?'block':'none';document.getElementById('stdSec').style.display=type==='standard'?'block':'none';}
+// ── Decor filters: Theme / Gender / Age (2026-09-08, per Shruti) ──
+// Theme names use singular 'Girl' in one legacy entry (uni) and 'Girls'
+// elsewhere — normalize both to match either explicit filter value.
+function decGenderMatches(themeGn,want){
+  const norm=g=>g==='Girl'?'Girls':(g==='Boy'?'Boys':g);
+  return norm(themeGn)===want;
+}
+// t.age is a "min-max" string like "3-5" or "6-12" — true if `want` (a
+// single age) falls inside that inclusive range. No range on the theme ->
+// don't exclude it.
+function decAgeInRange(ageStr,want){
+  const m=(ageStr||'').match(/(\d+)\s*-\s*(\d+)/);
+  if(!m)return true;
+  const w=parseInt(want,10);
+  return w>=parseInt(m[1],10)&&w<=parseInt(m[2],10);
+}
+// Populates the Theme (alphabetical, real theme names) and Age (1-14)
+// dropdowns once from real catalogue data — called on page load, since
+// THEMES never changes during a session.
+function populateDecorFilterSelects(){
+  const themeSel=document.getElementById('decThemeSel');
+  if(themeSel&&themeSel.options.length===1){
+    const sorted=[...THEMES].sort((a,b)=>a.n.localeCompare(b.n));
+    sorted.forEach(t=>{themeSel.innerHTML+='<option value="'+t.id+'">'+t.e+' '+t.n+'</option>';});
+  }
+  const ageSel=document.getElementById('decAgeSel');
+  if(ageSel&&ageSel.options.length===1){
+    for(let a=1;a<=14;a++)ageSel.innerHTML+='<option value="'+a+'">'+a+' yrs</option>';
+  }
+}
+function fDec(){
+  decFilterTheme=document.getElementById('decThemeSel')?.value||'';
+  decFilterGender=document.getElementById('decGenderSel')?.value||'';
+  decFilterAge=document.getElementById('decAgeSel')?.value||'';
+  buildDec();
+}
+function clearDecFilters(){
+  decFilterTheme='';decFilterGender='';decFilterAge='';
+  resetDecFilterSelects();
+  buildDec();
+}
+function resetDecFilterSelects(){
+  const t=document.getElementById('decThemeSel');if(t)t.value='';
+  const g=document.getElementById('decGenderSel');if(g)g.value='';
+  const a=document.getElementById('decAgeSel');if(a)a.value='';
+}
 function selDec(btn,id,n,p){
   const card=btn.closest('.pcard');
   const wasSel=card.classList.contains('sel');
@@ -6427,6 +6504,7 @@ function referWS(){
 // HOMEPAGE JS
 // ══════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',()=>{
+  populateDecorFilterSelects();
   // Nav scroll
   const nav=document.getElementById('main-nav');
   window.addEventListener('scroll',()=>nav?.classList.toggle('scrolled',window.scrollY>30));
