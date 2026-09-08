@@ -145,6 +145,7 @@ table.fields textarea{resize:vertical;min-height:32px}
     <h1>🎈 Wondershop Admin — Bookings</h1>
     <div class="who">
       Editing as <input type="text" id="whoName" onchange="saveName()">
+      <a class="linkbtn" href="packaging.html" target="_blank">📦 Packing lists</a>
       <button class="linkbtn" onclick="logout()">Log out</button>
     </div>
   </div>
@@ -427,8 +428,11 @@ function listActionsCellHtml(r, kind){
   if(kind==='lead'){
     return '<button class="mini-btn" style="border-color:var(--sgr);color:#166534" onclick="event.stopPropagation();quickConvert('+r.lead_id+')">Convert</button>';
   }
-  if(r.status==='Cancelled') return '';
-  return '<button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button>';
+  // 2026-09-08, per Shruti — packaging assist module: quick jump from a
+  // confirmed booking row straight into a pre-filled packing-list composer.
+  const packLink = '<a class="mini-btn" href="packaging.html?lead_id='+r.lead_id+'&title='+encodeURIComponent((r.parent_name||('Booking #'+r.lead_id))+"'s Party")+'&event_lead=" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">📦 Pack list</a>';
+  if(r.status==='Cancelled') return packLink;
+  return packLink+' <button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button>';
 }
 async function quickSetStatus(leadId, newStatus){
   const who = getName();

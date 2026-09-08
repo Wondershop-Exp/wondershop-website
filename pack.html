@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<title>Packing List</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,600;0,700&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --li:#B59DDE;--li2:#EDE6FA;--li3:#F5F0FF;
+  --pk:#E65A96;--spk:#F5C3D7;
+  --gr:#52C470;--sgr:#DDF3DE;
+  --bk:#191919;--gy:#6B7280;--lgy:#F5F2FA;--wh:#FAFAFA;
+  --r:16px;--fd:'Lora',serif;--fb:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--fb);color:var(--bk);background:var(--wh);margin:0;min-height:100vh;-webkit-user-select:none;user-select:none}
+h1,h2{font-family:var(--fd);line-height:1.2;margin:0}
+button{cursor:pointer;font-family:var(--fb)}
+input{font-family:var(--fb)}
+
+#loading,#errState{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:24px;text-align:center;color:var(--gy)}
+#errState h2{color:var(--pk)}
+
+#nameGate{min-height:100vh;display:none;align-items:center;justify-content:center;background:var(--li3);padding:20px}
+.name-card{background:#fff;border-radius:var(--r);padding:32px;width:100%;max-width:380px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.08)}
+.name-card h1{font-size:22px;margin-bottom:8px}
+.name-card p{color:var(--gy);font-size:14px;margin:0 0 18px}
+.name-card input{width:100%;padding:16px;border:1px solid var(--li2);border-radius:12px;font-size:17px;margin-bottom:14px;text-align:center}
+.name-card button{width:100%;padding:16px;border:none;border-radius:12px;background:var(--pk);color:#fff;font-weight:700;font-size:17px}
+
+#top{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--li2);padding:16px 18px;z-index:10;display:none}
+#top .row1{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+#top h1{font-size:19px}
+#top .meta{font-size:12px;color:var(--gy);margin-top:2px}
+#whoBadge{font-size:11px;color:var(--gy);background:var(--lgy);border-radius:20px;padding:4px 10px;white-space:nowrap}
+.progress-wrap{margin-top:12px}
+.progress-track{background:var(--li2);border-radius:20px;height:10px;overflow:hidden}
+.progress-fill{background:var(--gr);height:100%;border-radius:20px;transition:width .25s}
+.progress-label{font-size:12px;color:var(--gy);margin-top:5px;text-align:right}
+
+#content{display:none;max-width:640px;margin:0 auto;padding:16px 14px 100px}
+.section{margin-bottom:22px}
+.section h2{font-size:16px;color:var(--pk);text-transform:uppercase;letter-spacing:.4px;padding:0 4px;margin-bottom:8px}
+.item-card{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--li2);border-radius:12px;padding:16px 16px;margin-bottom:8px;transition:background .15s,border-color .15s}
+.item-card.checked{background:var(--sgr);border-color:var(--gr)}
+.item-card .box{width:28px;height:28px;border-radius:8px;border:2px solid var(--li);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:17px;color:#fff}
+.item-card.checked .box{background:var(--gr);border-color:var(--gr)}
+.item-card .txt{font-size:16px;flex:1}
+.item-card.checked .txt{text-decoration:line-through;color:var(--gy)}
+.item-card .by{font-size:10px;color:var(--gy);white-space:nowrap}
+
+#refreshBtn{position:fixed;bottom:18px;right:18px;background:var(--bk);color:#fff;border:none;border-radius:50%;width:54px;height:54px;font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,.25);display:none;align-items:center;justify-content:center}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bk);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="loading">Loading packing list…</div>
+<div id="errState" style="display:none">
+  <h2>Can't open this list</h2>
+  <p id="errMsg"></p>
+</div>
+
+<div id="nameGate">
+  <div class="name-card">
+    <h1>📦 Packing list</h1>
+    <p>Enter your name so the team can see who packed what.</p>
+    <input type="text" id="staffName" placeholder="Your name" onkeydown="if(event.key==='Enter')confirmName()">
+    <button onclick="confirmName()">Start packing</button>
+  </div>
+</div>
+
+<div id="top">
+  <div class="row1">
+    <div>
+      <h1 id="listTitle"></h1>
+      <div class="meta" id="listMeta"></div>
+    </div>
+    <div id="whoBadge"></div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-track"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+    <div class="progress-label" id="progLabel">0 / 0 packed</div>
+  </div>
+</div>
+
+<div id="content"></div>
+<button id="refreshBtn" onclick="loadList(true)" title="Refresh">↻</button>
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://wondershop-website-production.up.railway.app';
+const params = new URLSearchParams(location.search);
+const TOKEN = params.get('t');
+let DATA = null;
+let PENDING = {};
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1800);
+}
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+function getStaffName(){ return localStorage.getItem('ws_pack_name') || ''; }
+
+function confirmName(){
+  const v = document.getElementById('staffName').value.trim();
+  if(!v){ document.getElementById('staffName').focus(); return; }
+  localStorage.setItem('ws_pack_name', v);
+  document.getElementById('nameGate').style.display='none';
+  boot();
+}
+
+async function loadList(silent){
+  if(!silent){
+    document.getElementById('loading').style.display='flex';
+  }
+  try{
+    const res = await fetch(API+'/api/pack/'+encodeURIComponent(TOKEN));
+    if(!res.ok){
+      const body = await res.json().catch(()=>({}));
+      throw new Error(body.detail || "This packing list link isn't valid.");
+    }
+    DATA = await res.json();
+    render();
+    document.getElementById('loading').style.display='none';
+    document.getElementById('top').style.display='block';
+    document.getElementById('content').style.display='block';
+    document.getElementById('refreshBtn').style.display='flex';
+  }catch(e){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('errState').style.display='flex';
+    document.getElementById('errMsg').textContent = e.message;
+  }
+}
+
+function render(){
+  document.getElementById('listTitle').textContent = DATA.title;
+  document.getElementById('listMeta').textContent = DATA.event_lead ? ('Event lead: '+DATA.event_lead) : '';
+  document.getElementById('whoBadge').textContent = 'Packing as ' + getStaffName();
+  const p = DATA.progress || {checked:0,total:0};
+  const pct = p.total ? Math.round(100*p.checked/p.total) : 0;
+  document.getElementById('progFill').style.width = pct+'%';
+  document.getElementById('progLabel').textContent = p.checked+' / '+p.total+' packed';
+
+  const content = document.getElementById('content');
+  if(!DATA.sections || !DATA.sections.length){
+    content.innerHTML = '<div style="text-align:center;color:var(--gy);padding:40px 10px">No items on this list yet.</div>';
+    return;
+  }
+  content.innerHTML = DATA.sections.map(sec=>{
+    const items = sec.items.map(it=>{
+      const checked = !!it.checked;
+      const byLabel = checked && it.checked_by ? esc(it.checked_by)+(it.checked_at?(' · '+esc(it.checked_at.split(',')[0])):'') : '';
+      return '<div class="item-card'+(checked?' checked':'')+'" onclick="toggleItem('+it.id+', this)">'
+        +'<div class="box">'+(checked?'✓':'')+'</div>'
+        +'<div class="txt">'+esc(it.text)+'</div>'
+        +(byLabel?'<div class="by">'+byLabel+'</div>':'')
+        +'</div>';
+    }).join('');
+    return '<div class="section"><h2>'+esc(sec.header)+'</h2>'+items+'</div>';
+  }).join('');
+}
+
+async function toggleItem(itemId, el){
+  if(PENDING[itemId]) return;
+  // find item in DATA and flip optimistically
+  let target=null;
+  for(const sec of DATA.sections){
+    for(const it of sec.items){
+      if(it.id===itemId){ target=it; break; }
+    }
+    if(target) break;
+  }
+  if(!target) return;
+  const newChecked = !target.checked;
+  target.checked = newChecked;
+  target.checked_by = newChecked ? getStaffName() : null;
+  target.checked_at = newChecked ? 'just now' : null;
+  if(newChecked){ DATA.progress.checked++; } else { DATA.progress.checked = Math.max(0, DATA.progress.checked-1); }
+  render();
+  PENDING[itemId] = true;
+  try{
+    const res = await fetch(API+'/api/pack/'+encodeURIComponent(TOKEN)+'/items/'+itemId, {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({checked:newChecked, checked_by:getStaffName()})
+    });
+    if(!res.ok) throw new Error();
+  }catch(e){
+    showToast("Couldn't save that check — refreshing.");
+    loadList(true);
+  }
+  delete PENDING[itemId];
+}
+
+function boot(){
+  loadList(false);
+  setInterval(()=>{ if(!Object.keys(PENDING).length) loadList(true); }, 15000);
+}
+
+if(!TOKEN){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('errState').style.display='flex';
+  document.getElementById('errMsg').textContent = 'This link is missing its list ID.';
+} else if(getStaffName()){
+  boot();
+} else {
+  document.getElementById('loading').style.display='none';
+  document.getElementById('nameGate').style.display='flex';
+}
+</script>
+</body>
+</html>

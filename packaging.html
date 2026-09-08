@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Wondershop — Packing Lists</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --li:#B59DDE;--li2:#EDE6FA;--li3:#F5F0FF;
+  --pk:#E65A96;--spk:#F5C3D7;
+  --yl:#FFC200;--syl:#FFFBDC;
+  --bl:#5B8EDD;--sbl:#BCD8E8;
+  --gr:#52C470;--sgr:#B7E0B8;
+  --or:#F57A1A;
+  --bk:#191919;--gy:#6B7280;--lgy:#F5F2FA;--wh:#FAFAFA;
+  --r:14px;--rs:10px;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box}
+body{font-family:var(--fb);color:var(--bk);background:var(--wh);margin:0}
+h1,h2,h3{font-family:var(--fd);line-height:1.2;margin:0}
+button{cursor:pointer;font-family:var(--fb)}
+input,textarea,select{font-family:var(--fb)}
+a{color:var(--bl)}
+
+#gate{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--li3)}
+.gate-card{background:#fff;border-radius:var(--r);padding:36px 32px;width:100%;max-width:360px;box-shadow:0 8px 30px rgba(0,0,0,.08)}
+.gate-card h1{font-size:22px;margin-bottom:6px}
+.gate-card p{color:var(--gy);font-size:13px;margin:0 0 18px}
+.gate-card input{width:100%;padding:12px 14px;border:1px solid var(--li2);border-radius:var(--rs);font-size:15px;margin-bottom:10px}
+.gate-card button{width:100%;padding:12px 14px;border:none;border-radius:var(--rs);background:var(--pk);color:#fff;font-weight:700;font-size:15px}
+.gate-err{color:var(--pk);font-size:13px;margin-top:8px;min-height:16px}
+
+#app{display:none;max-width:1000px;margin:0 auto;padding:20px 20px 100px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:10px 0 18px;border-bottom:1px solid var(--li2);margin-bottom:20px}
+.topbar h1{font-size:20px}
+.topbar .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gy)}
+.topbar .who input{padding:6px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13px;width:150px}
+.linkbtn{background:none;border:none;color:var(--bl);font-size:13px;text-decoration:underline;padding:0}
+.back-nav{font-size:13px;margin-bottom:14px;display:inline-block}
+
+.btn{padding:11px 18px;border:none;border-radius:var(--rs);font-weight:700;font-size:14px}
+.btn.pk{background:var(--pk);color:#fff}
+.btn.bk{background:var(--bk);color:#fff}
+.btn.gr{background:var(--gr);color:#fff}
+.btn.gh{background:#fff;border:1px solid var(--li2);color:var(--bk)}
+.btn.sm{padding:6px 12px;font-size:12px;border-radius:8px}
+.btn:disabled{opacity:.5;cursor:default}
+
+.searchbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.searchbar input{flex:1;min-width:180px;padding:12px 14px;border:1px solid var(--li2);border-radius:var(--rs);font-size:15px}
+
+table.list{width:100%;border-collapse:collapse;margin-bottom:20px}
+table.list th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--gy);padding:8px 10px;border-bottom:2px solid var(--li2)}
+table.list td{padding:10px;border-bottom:1px solid var(--li2);font-size:14px;vertical-align:middle}
+table.list tr:hover td{background:var(--li3)}
+.progress-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.progress-0{background:var(--lgy);color:var(--gy)}
+.progress-mid{background:var(--syl);color:#92400e}
+.progress-full{background:var(--sgr);color:#166534}
+.empty{color:var(--gy);font-size:13px;padding:20px 0}
+
+.card{background:#fff;border-radius:var(--r);padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.05);margin-bottom:18px}
+.card h3{font-size:14px;text-transform:uppercase;letter-spacing:.4px;color:var(--pk);margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+@media(max-width:600px){.grid2,.grid3{grid-template-columns:1fr}}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);font-weight:600}
+.fld input,.fld select,.fld textarea{padding:10px 12px;border:1px solid var(--li2);border-radius:8px;font-size:14px}
+
+.paste-box textarea{width:100%;min-height:160px;padding:12px;border:1px solid var(--li2);border-radius:8px;font-size:13px;font-family:ui-monospace,monospace;resize:vertical}
+.paste-hint{font-size:12px;color:var(--gy);margin:6px 0 10px}
+.paste-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+.tpl-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tpl-row select{flex:1;min-width:200px;padding:10px 12px;border:1px solid var(--li2);border-radius:8px;font-size:14px}
+
+.section-card{border:1px solid var(--li2);border-radius:var(--rs);padding:14px;margin-bottom:12px;background:var(--lgy)}
+.section-card .sec-head{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.section-card .sec-head input{flex:1;padding:9px 12px;border:1px solid var(--li2);border-radius:8px;font-size:14px;font-weight:700;background:#fff}
+.item-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.item-row input[type=text]{flex:1;padding:8px 10px;border:1px solid var(--li2);border-radius:6px;font-size:13px;background:#fff}
+.item-row input[type=checkbox]{width:18px;height:18px;flex-shrink:0}
+.icon-btn{background:none;border:none;color:var(--gy);font-size:15px;padding:2px 6px;flex-shrink:0}
+.icon-btn:hover{color:var(--pk)}
+.add-item-btn{background:none;border:1px dashed var(--li);border-radius:6px;color:var(--li);font-size:12px;font-weight:600;padding:6px 10px;margin-top:4px}
+.sec-actions{display:flex;gap:4px;flex-shrink:0}
+
+.share-box{background:var(--li3);border-radius:var(--rs);padding:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+.share-box code{background:#fff;padding:8px 12px;border-radius:8px;font-size:13px;flex:1;min-width:200px;overflow-wrap:anywhere}
+
+.tpl-list{display:flex;flex-direction:column;gap:10px}
+.tpl-item{border:1px solid var(--li2);border-radius:8px;padding:10px 12px;font-size:13px}
+.tpl-item .tpl-name{font-weight:700}
+.tpl-item .tpl-cat{color:var(--gy);font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+.tpl-item .tpl-items{color:var(--gy);margin-top:4px}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bk);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
+.toast.show{opacity:1}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:var(--r);padding:24px;max-width:520px;width:100%;max-height:85vh;overflow:auto}
+.modal h2{font-size:18px;margin-bottom:14px}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-card">
+    <h1>Wondershop — Packing Lists</h1>
+    <p>Internal staff tool. Not for customer access.</p>
+    <input type="password" id="gatePw" placeholder="Admin password">
+    <input type="text" id="gateName" placeholder="Your name (shown on edits you make)">
+    <button onclick="tryLogin()">Enter</button>
+    <div class="gate-err" id="gateErr"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <h1>📦 Packing Lists</h1>
+    <div class="who">
+      Editing as <input type="text" id="whoName" onchange="saveName()">
+      <a class="linkbtn" href="admin.html">Bookings admin</a>
+      <button class="linkbtn" onclick="logout()">Log out</button>
+    </div>
+  </div>
+
+  <div id="listView">
+    <div class="searchbar">
+      <input type="text" id="searchQ" placeholder="Search by party title..." onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="btn bk" onclick="doSearch()">Search</button>
+      <button class="btn pk" onclick="openComposer()">+ New packing list</button>
+      <button class="btn gh" onclick="openTemplatesModal()">Manage templates</button>
+    </div>
+    <table class="list" id="listTable">
+      <thead><tr><th>Party</th><th>Event Lead</th><th>Progress</th><th>Created</th><th></th></tr></thead>
+      <tbody id="listBody"></tbody>
+    </table>
+    <div class="empty" id="listEmpty" style="display:none">No packing lists yet — create one above.</div>
+  </div>
+
+  <div id="composerView" style="display:none">
+    <a class="back-nav linkbtn" href="#" onclick="backToList();return false;">&larr; Back to list</a>
+
+    <div class="card">
+      <h3>Party details</h3>
+      <div class="grid3">
+        <div class="fld"><label>Title</label><input type="text" id="cTitle" placeholder="e.g. Advit's 8th Birthday"></div>
+        <div class="fld"><label>Event lead</label><input type="text" id="cEventLead" placeholder="e.g. Mitika"></div>
+        <div class="fld"><label>Booking ID (optional)</label><input type="number" id="cLeadId" placeholder="e.g. 214"></div>
+      </div>
+    </div>
+
+    <div class="card paste-box">
+      <h3>Paste your list</h3>
+      <div class="paste-hint">Paste the packing list exactly as you'd type it for WhatsApp — headers, dashes, numbered stations, ✅ marks and all. It'll get parsed into editable sections below; nothing here overwrites what you already have, it adds on.</div>
+      <textarea id="pasteArea" placeholder="Decor&#10;- Cutouts&#10;- #8 foil balloon&#10;..."></textarea>
+      <div class="paste-actions" style="margin-top:10px">
+        <button class="btn pk" onclick="parseAndAdd()">Parse &amp; add to list</button>
+        <span style="font-size:12px;color:var(--gy)" id="parseMsg"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Insert a saved template</h3>
+      <div class="tpl-row">
+        <select id="tplSelect"><option value="">Loading templates…</option></select>
+        <button class="btn gh" onclick="insertTemplate()">Insert as section</button>
+        <button class="btn gh" onclick="openTemplatesModal()">Manage templates</button>
+      </div>
+    </div>
+
+    <div id="sectionsWrap"></div>
+    <button class="btn gh" onclick="addBlankSection()">+ Add blank section</button>
+
+    <div class="card" style="margin-top:20px">
+      <h3>Save</h3>
+      <div id="shareBoxWrap"></div>
+      <button class="btn gr" onclick="saveList()" id="saveBtn">Save &amp; get staff link</button>
+      <span style="font-size:12px;color:var(--gy);margin-left:10px" id="saveMsg"></span>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="tplModalBg">
+  <div class="modal">
+    <h2>Packing templates</h2>
+    <p style="font-size:12px;color:var(--gy);margin:-8px 0 14px">Reusable snippets you can drop into any packing list — one per activity, decor set, branding kit, etc.</p>
+    <div class="tpl-list" id="tplList"></div>
+    <hr style="margin:16px 0;border:none;border-top:1px solid var(--li2)">
+    <div class="fld" style="margin-bottom:8px"><label>Name</label><input type="text" id="ntName" placeholder="e.g. Slime — Materials"></div>
+    <div class="fld" style="margin-bottom:8px"><label>Category</label>
+      <select id="ntCategory">
+        <option value="branding">Branding</option>
+        <option value="decor">Decor</option>
+        <option value="activities" selected>Activities</option>
+        <option value="host">Host</option>
+        <option value="hygiene">Hygiene</option>
+        <option value="cake">Cake</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="fld" style="margin-bottom:12px"><label>Items (one per line)</label><textarea id="ntItems" rows="6" style="padding:10px;border:1px solid var(--li2);border-radius:8px;font-size:13px"></textarea></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn pk" onclick="createTemplate()">Add template</button>
+      <button class="btn gh" onclick="closeTemplatesModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://wondershop-website-production.up.railway.app';
+let SECTIONS = [];       // in-memory composer state: [{header, items:[{text,checked}]}]
+let CURRENT_LIST_ID = null;
+let CURRENT_SHARE_URL = null;
+let TEMPLATES = [];
+
+function getPw(){ return localStorage.getItem('ws_admin_pw') || ''; }
+function getName(){ return localStorage.getItem('ws_admin_name') || ''; }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+async function apiCall(path, opts){
+  opts = opts || {};
+  opts.headers = Object.assign({'Content-Type':'application/json','X-Admin-Password':getPw()}, opts.headers||{});
+  const res = await fetch(API+path, opts);
+  if(res.status===401){
+    localStorage.removeItem('ws_admin_pw');
+    document.getElementById('app').style.display='none';
+    document.getElementById('gate').style.display='flex';
+    document.getElementById('gateErr').textContent='Session expired or password incorrect. Please log in again.';
+    throw new Error('unauthorized');
+  }
+  if(!res.ok){
+    const body = await res.json().catch(()=>({}));
+    throw new Error(body.detail || ('Request failed ('+res.status+')'));
+  }
+  return res.json();
+}
+
+async function tryLogin(){
+  const pw = document.getElementById('gatePw').value.trim();
+  const name = document.getElementById('gateName').value.trim();
+  const err = document.getElementById('gateErr');
+  err.textContent='';
+  if(!pw){ err.textContent='Enter the admin password.'; return; }
+  if(!name){ err.textContent='Enter your name — it will be logged against any edits you make.'; return; }
+  localStorage.setItem('ws_admin_pw', pw);
+  localStorage.setItem('ws_admin_name', name);
+  try{
+    await apiCall('/api/admin/packaging/lists');
+  }catch(e){
+    err.textContent = e.message==='unauthorized' ? 'Incorrect password.' : e.message;
+    return;
+  }
+  enterApp();
+}
+function enterApp(){
+  document.getElementById('gate').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('whoName').value = getName();
+  loadTemplates();
+  const params = new URLSearchParams(location.search);
+  if(params.get('lead_id') || params.get('title')){
+    openComposer();
+    if(params.get('title')) document.getElementById('cTitle').value = params.get('title');
+    if(params.get('event_lead')) document.getElementById('cEventLead').value = params.get('event_lead');
+    if(params.get('lead_id')) document.getElementById('cLeadId').value = params.get('lead_id');
+  } else {
+    doSearch();
+  }
+}
+function logout(){
+  localStorage.removeItem('ws_admin_pw');
+  document.getElementById('app').style.display='none';
+  document.getElementById('gate').style.display='flex';
+  document.getElementById('gatePw').value='';
+}
+function saveName(){
+  localStorage.setItem('ws_admin_name', document.getElementById('whoName').value.trim());
+}
+
+// ── List view ────────────────────────────────────────────────────────────
+async function doSearch(){
+  const q = document.getElementById('searchQ').value.trim();
+  const body = document.getElementById('listBody');
+  const empty = document.getElementById('listEmpty');
+  body.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#6B7280">Loading...</td></tr>';
+  try{
+    const d = await apiCall('/api/admin/packaging/lists'+(q?('?search='+encodeURIComponent(q)):''));
+    const rows = d.lists||[];
+    if(!rows.length){ body.innerHTML=''; empty.style.display='block'; return; }
+    empty.style.display='none';
+    body.innerHTML = rows.map(r=>{
+      const pct = r.progress.total ? Math.round(100*r.progress.checked/r.progress.total) : 0;
+      const cls = pct===0 ? 'progress-0' : (pct>=100 ? 'progress-full' : 'progress-mid');
+      return '<tr onclick="editList('+r.id+')" style="cursor:pointer">'
+        +'<td><strong>'+esc(r.title)+'</strong></td>'
+        +'<td>'+esc(r.event_lead||'—')+'</td>'
+        +'<td><span class="progress-pill '+cls+'">'+r.progress.checked+' / '+r.progress.total+'</span></td>'
+        +'<td>'+esc(r.created_at||'')+'</td>'
+        +'<td><a href="#" onclick="event.stopPropagation();copyShareLink(\''+esc(r.share_url)+'\')" class="linkbtn">Copy staff link</a></td>'
+        +'</tr>';
+    }).join('');
+  }catch(e){
+    body.innerHTML = '<tr><td colspan="5" style="padding:16px;color:var(--pk)">'+esc(e.message)+'</td></tr>';
+  }
+}
+function copyShareLink(path){
+  const full = location.origin + location.pathname.replace(/packaging\.html$/,'') + path.replace(/^\//,'');
+  navigator.clipboard.writeText(full).then(()=>showToast('Staff link copied.')).catch(()=>showToast(full));
+}
+
+// ── Composer ─────────────────────────────────────────────────────────────
+function openComposer(){
+  CURRENT_LIST_ID = null; CURRENT_SHARE_URL = null; SECTIONS = [];
+  document.getElementById('cTitle').value='';
+  document.getElementById('cEventLead').value='';
+  document.getElementById('cLeadId').value='';
+  document.getElementById('pasteArea').value='';
+  document.getElementById('shareBoxWrap').innerHTML='';
+  document.getElementById('saveMsg').textContent='';
+  renderSections();
+  document.getElementById('listView').style.display='none';
+  document.getElementById('composerView').style.display='block';
+}
+function backToList(){
+  document.getElementById('composerView').style.display='none';
+  document.getElementById('listView').style.display='block';
+  history.replaceState(null,'',location.pathname);
+  doSearch();
+}
+async function editList(id){
+  try{
+    const d = await apiCall('/api/admin/packaging/lists/'+id);
+    CURRENT_LIST_ID = d.id;
+    CURRENT_SHARE_URL = d.share_url;
+    document.getElementById('cTitle').value = d.title||'';
+    document.getElementById('cEventLead').value = d.event_lead||'';
+    document.getElementById('cLeadId').value = d.lead_id||'';
+    document.getElementById('pasteArea').value='';
+    SECTIONS = (d.sections||[]).map(s=>({header:s.header, items:(s.items||[]).map(it=>({text:it.text, checked:!!it.checked}))}));
+    renderShareBox();
+    document.getElementById('saveMsg').textContent='';
+    renderSections();
+    document.getElementById('listView').style.display='none';
+    document.getElementById('composerView').style.display='block';
+  }catch(e){ showToast(e.message); }
+}
+function renderShareBox(){
+  const wrap = document.getElementById('shareBoxWrap');
+  if(!CURRENT_SHARE_URL){ wrap.innerHTML=''; return; }
+  const full = location.origin + location.pathname.replace(/packaging\.html$/,'') + CURRENT_SHARE_URL.replace(/^\//,'');
+  wrap.innerHTML = '<div class="share-box"><code>'+esc(full)+'</code>'
+    +'<button class="btn sm gh" onclick="navigator.clipboard.writeText(\''+esc(full)+'\').then(()=>showToast(\'Copied.\'))">Copy link</button>'
+    +'<a class="btn sm bk" href="'+esc(full)+'" target="_blank" style="text-decoration:none;display:inline-block">Open staff view</a></div>';
+}
+
+// ── Paste-and-parse ──────────────────────────────────────────────────────
+// Digitizes Shruti's freeform WhatsApp-style packing text. Real examples show
+// ad hoc headers (*Decor*, "Branding:", bare "Spy Treasure hunt setup" lines
+// followed by dashes, "Host: Sunny" as header+single item), numbered
+// "N_stationname - items" lines that pack as ONE unit (never split), trailing
+// ✅ marking something pre-packed, and sometimes no headers at all. This is a
+// best-effort first pass — ops reviews and edits the result before saving, so
+// it doesn't need to be perfect on every format.
+function stripInvisible(s){
+  return s.replace(/[⁠​‌‍﻿]/g,'');
+}
+function parsePackingText(raw){
+  const lines = stripInvisible(raw).split(/\r?\n/).map(l=>l.replace(/\s+$/,''));
+  // classify each non-blank line's shape first
+  const shaped = lines.map(line=>{
+    const t = line.trim();
+    if(!t) return {kind:'blank'};
+    let m;
+    if((m = t.match(/^\*(.+)\*$/))) return {kind:'header', header:m[1].trim()};
+    if((m = t.match(/^\d+_\S/))) return {kind:'item', text:t};                    // "1_vault - ..."
+    if((m = t.match(/^[-•▪]\s*(.+)$/))) return {kind:'item', text:m[1].trim()};   // "- Cutouts"
+    if((m = t.match(/^\d+[.)]\s*(.+)$/))) return {kind:'item', text:m[1].trim()}; // "1. Floor puzzle..."
+    if((m = t.match(/^([A-Za-z][\w /&'-]{1,40}):\s*$/))) return {kind:'header', header:m[1].trim()}; // "Branding:"
+    if((m = t.match(/^([A-Za-z][\w /&']{1,20}):\s+(\S.{0,40})$/))){
+      return {kind:'headerItem', header:m[1].trim(), text:m[2].trim()};           // "Host: Sunny"
+    }
+    return {kind:'plain', text:t};
+  });
+  const sections = [];
+  let current = null;
+  function ensureDefault(){
+    if(!current){ current = {header:'Items', items:[]}; sections.push(current); }
+    return current;
+  }
+  function pushItem(text){
+    let checked=false;
+    let t = text.replace(/\s*✅\s*$/,'').trim();
+    if(t!==text.trim()) checked=true;
+    if(!t) return;
+    ensureDefault().items.push({text:t, checked});
+  }
+  for(let i=0;i<shaped.length;i++){
+    const s = shaped[i];
+    if(s.kind==='blank') continue;
+    if(s.kind==='header'){
+      current = {header:s.header, items:[]};
+      sections.push(current);
+    } else if(s.kind==='headerItem'){
+      current = {header:s.header, items:[]};
+      sections.push(current);
+      pushItem(s.text);
+    } else if(s.kind==='item'){
+      pushItem(s.text);
+    } else if(s.kind==='plain'){
+      // Bare line — treat as a new section header only if the next
+      // non-blank line looks like a bulleted/numbered/N_station item;
+      // otherwise fold it in as a plain item under the current section.
+      let j=i+1; while(j<shaped.length && shaped[j].kind==='blank') j++;
+      const next = shaped[j];
+      if(next && next.kind==='item'){
+        current = {header:s.text, items:[]};
+        sections.push(current);
+      } else {
+        pushItem(s.text);
+      }
+    }
+  }
+  return sections.filter(sec=>sec.items.length);
+}
+function parseAndAdd(){
+  const raw = document.getElementById('pasteArea').value;
+  if(!raw.trim()){ document.getElementById('parseMsg').textContent='Paste some text first.'; return; }
+  const parsed = parsePackingText(raw);
+  if(!parsed.length){ document.getElementById('parseMsg').textContent="Couldn't find any items in that — try adding a section header or a leading dash before each item."; return; }
+  SECTIONS = SECTIONS.concat(parsed);
+  document.getElementById('parseMsg').textContent='Added '+parsed.length+' section'+(parsed.length===1?'':'s')+'. Review below — headers and items are all editable.';
+  document.getElementById('pasteArea').value='';
+  renderSections();
+}
+
+// ── Section/item editor ──────────────────────────────────────────────────
+function renderSections(){
+  const wrap = document.getElementById('sectionsWrap');
+  if(!SECTIONS.length){ wrap.innerHTML = '<div class="empty">No sections yet — paste a list above, insert a template, or add a blank section.</div>'; return; }
+  wrap.innerHTML = SECTIONS.map((sec,si)=>{
+    const items = sec.items.map((it,ii)=>{
+      return '<div class="item-row">'
+        +'<input type="checkbox" '+(it.checked?'checked':'')+' onchange="SECTIONS['+si+'].items['+ii+'].checked=this.checked" title="Pre-checked">'
+        +'<input type="text" value="'+esc(it.text)+'" oninput="SECTIONS['+si+'].items['+ii+'].text=this.value">'
+        +'<button class="icon-btn" onclick="removeItem('+si+','+ii+')" title="Remove item">✕</button>'
+        +'</div>';
+    }).join('');
+    return '<div class="section-card">'
+      +'<div class="sec-head">'
+        +'<input type="text" value="'+esc(sec.header)+'" oninput="SECTIONS['+si+'].header=this.value" placeholder="Section header">'
+        +'<div class="sec-actions">'
+          +'<button class="icon-btn" onclick="moveSection('+si+',-1)" title="Move up">↑</button>'
+          +'<button class="icon-btn" onclick="moveSection('+si+',1)" title="Move down">↓</button>'
+          +'<button class="icon-btn" onclick="removeSection('+si+')" title="Remove section">🗑</button>'
+        +'</div>'
+      +'</div>'
+      +items
+      +'<button class="add-item-btn" onclick="addItem('+si+')">+ Add item</button>'
+      +'</div>';
+  }).join('');
+}
+function addBlankSection(){ SECTIONS.push({header:'', items:[{text:'',checked:false}]}); renderSections(); }
+function addItem(si){ SECTIONS[si].items.push({text:'',checked:false}); renderSections(); }
+function removeItem(si,ii){ SECTIONS[si].items.splice(ii,1); renderSections(); }
+function removeSection(si){ SECTIONS.splice(si,1); renderSections(); }
+function moveSection(si,dir){
+  const nj = si+dir;
+  if(nj<0 || nj>=SECTIONS.length) return;
+  const tmp = SECTIONS[si]; SECTIONS[si]=SECTIONS[nj]; SECTIONS[nj]=tmp;
+  renderSections();
+}
+
+// ── Templates ────────────────────────────────────────────────────────────
+async function loadTemplates(){
+  try{
+    const d = await apiCall('/api/admin/packaging/templates');
+    TEMPLATES = d.templates||[];
+    renderTemplateSelect();
+    renderTemplateList();
+  }catch(e){ /* non-fatal */ }
+}
+function renderTemplateSelect(){
+  const sel = document.getElementById('tplSelect');
+  if(!TEMPLATES.length){ sel.innerHTML='<option value="">No templates yet</option>'; return; }
+  const byCat = {};
+  TEMPLATES.forEach(t=>{ (byCat[t.category]=byCat[t.category]||[]).push(t); });
+  sel.innerHTML = Object.keys(byCat).sort().map(cat=>{
+    return '<optgroup label="'+esc(cat)+'">'+byCat[cat].map(t=>'<option value="'+t.id+'">'+esc(t.name)+'</option>').join('')+'</optgroup>';
+  }).join('');
+}
+function insertTemplate(){
+  const id = parseInt(document.getElementById('tplSelect').value, 10);
+  const t = TEMPLATES.find(x=>x.id===id);
+  if(!t) return;
+  SECTIONS.push({header:t.name, items:(t.items||[]).map(txt=>({text:txt, checked:false}))});
+  renderSections();
+  showToast('Inserted "'+t.name+'".');
+}
+function openTemplatesModal(){ document.getElementById('tplModalBg').classList.add('show'); loadTemplates(); }
+function closeTemplatesModal(){ document.getElementById('tplModalBg').classList.remove('show'); }
+function renderTemplateList(){
+  const wrap = document.getElementById('tplList');
+  if(!TEMPLATES.length){ wrap.innerHTML='<div class="empty">No templates yet — add one below.</div>'; return; }
+  wrap.innerHTML = TEMPLATES.map(t=>{
+    return '<div class="tpl-item"><div class="tpl-name">'+esc(t.name)+'</div>'
+      +'<div class="tpl-cat">'+esc(t.category)+'</div>'
+      +'<div class="tpl-items">'+esc((t.items||[]).join(', '))+'</div>'
+      +'<div style="margin-top:6px"><button class="btn sm gh" onclick="deleteTemplate('+t.id+')">Delete</button></div>'
+      +'</div>';
+  }).join('');
+}
+async function createTemplate(){
+  const name = document.getElementById('ntName').value.trim();
+  const category = document.getElementById('ntCategory').value;
+  const items = document.getElementById('ntItems').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!name){ showToast('Give the template a name.'); return; }
+  if(!items.length){ showToast('Add at least one item.'); return; }
+  try{
+    await apiCall('/api/admin/packaging/templates', {method:'POST', body:JSON.stringify({name, category, items, created_by:getName()})});
+    document.getElementById('ntName').value='';
+    document.getElementById('ntItems').value='';
+    showToast('Template added.');
+    loadTemplates();
+  }catch(e){ showToast(e.message); }
+}
+async function deleteTemplate(id){
+  if(!confirm('Delete this template? This does not affect packing lists already using it.')) return;
+  try{
+    await apiCall('/api/admin/packaging/templates/'+id, {method:'DELETE'});
+    loadTemplates();
+  }catch(e){ showToast(e.message); }
+}
+
+// ── Save ─────────────────────────────────────────────────────────────────
+async function saveList(){
+  const title = document.getElementById('cTitle').value.trim();
+  const eventLead = document.getElementById('cEventLead').value.trim();
+  const leadIdRaw = document.getElementById('cLeadId').value.trim();
+  const msg = document.getElementById('saveMsg');
+  if(!title){ msg.textContent='Give the party a title first.'; msg.style.color='var(--pk)'; return; }
+  const payloadSections = SECTIONS
+    .map(s=>({header:(s.header||'').trim()||'Items', items:s.items.filter(it=>it.text.trim()).map(it=>({text:it.text.trim(), checked:!!it.checked}))}))
+    .filter(s=>s.items.length);
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; msg.style.color='var(--gy)'; msg.textContent='Saving…';
+  try{
+    let d;
+    if(CURRENT_LIST_ID){
+      await apiCall('/api/admin/packaging/lists/'+CURRENT_LIST_ID+'/meta', {method:'PUT', body:JSON.stringify({title, event_lead:eventLead})});
+      d = await apiCall('/api/admin/packaging/lists/'+CURRENT_LIST_ID+'/content', {method:'PUT', body:JSON.stringify({sections:payloadSections, updated_by:getName()})});
+    } else {
+      d = await apiCall('/api/admin/packaging/lists', {method:'POST', body:JSON.stringify({
+        title, event_lead:eventLead, lead_id: leadIdRaw?parseInt(leadIdRaw,10):null,
+        sections:payloadSections, created_by:getName()
+      })});
+    }
+    CURRENT_LIST_ID = d.id;
+    CURRENT_SHARE_URL = d.share_url;
+    SECTIONS = (d.sections||[]).map(s=>({header:s.header, items:(s.items||[]).map(it=>({text:it.text, checked:!!it.checked}))}));
+    renderSections();
+    renderShareBox();
+    msg.style.color='var(--gr)'; msg.textContent='Saved.';
+    showToast('Packing list saved.');
+  }catch(e){
+    msg.style.color='var(--pk)'; msg.textContent=e.message;
+  }
+  btn.disabled=false;
+}
+
+if(getPw()){
+  apiCall('/api/admin/packaging/lists').then(()=>enterApp()).catch(()=>{});
+}
+</script>
+</body>
+</html>
