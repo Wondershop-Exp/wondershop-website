@@ -298,6 +298,25 @@ input,textarea,select{font-family:var(--fb)}
 .bp-line.done{background:var(--gr)}
 @media(max-width:900px){.bp-label{display:none}.bld-progress{gap:4px}.bp-line{width:16px;margin-top:13px}}
 .bp-gap{display:none;font-size:13px;font-weight:700;color:var(--li2);letter-spacing:1px;margin-top:8px}
+/* ── BROWSE MODE (2026-09-08, per Shruti) ──────────────────────────────
+   Customer-facing "just see the options" links — ?browse=decor /
+   ?browse=activities land straight on that step with the wizard chrome
+   (step breadcrumbs, bottom Continue/total bar, per-step remarks box, Add
+   buttons) hidden via body.browse-mode below, so it reads as a pure
+   catalogue rather than a booking flow. The .browse-cta banner (inside
+   #s1/#s2, hidden unless body.browse-mode) is the only way forward from
+   here — it sends anyone who wants to actually add something to the real
+   builder from scratch (builder.html?start=1), same as Shruti's request:
+   "incase they want to add something, they'll need to go to step 0 and
+   start from scratch." !important is needed since updBB()/renderActs()
+   etc. keep re-toggling their own visibility as the customer browses
+   (kids stepper, filter chips, gallery lightbox all still work). */
+body.browse-mode #bldProgress,
+body.browse-mode #bldBB,
+body.browse-mode .rmk-box,
+body.browse-mode .card-btn{display:none!important}
+.browse-cta{display:none}
+body.browse-mode .browse-cta{display:flex}
 /* Below phone width, move the step breadcrumb off the header entirely and
    into a fixed vertical rail on the left — like Amazon's category sidebar.
    It runs from below the header down to above the sticky bottom bar and
@@ -1693,6 +1712,11 @@ input,textarea,select{font-family:var(--fb)}
     <p>Choose a themed decor setup or a classic balloon arrangement. Your Party Experience Lead will personalise every detail after booking.</p>
   </div>
 
+  <div class="browse-cta" style="align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--li3);border:1px solid var(--li2);border-radius:10px;padding:14px 16px;margin-bottom:16px">
+    <div style="font-size:13px;color:#7B5EA7;max-width:640px"><b>Just browsing our decor?</b> Tap any card for more photos. When you're ready to book, start building your birthday to add it to your event.</div>
+    <a href="builder.html?start=1" class="btn-p" style="white-space:nowrap;padding:10px 18px;font-size:13px;flex-shrink:0">Start Building →</a>
+  </div>
+
   <div class="sec-blk">
     <div class="dt-tog">
       <button class="dt-btn on" onclick="setDT('themed',this)">🎭 Themed Decor</button>
@@ -1725,6 +1749,11 @@ input,textarea,select{font-family:var(--fb)}
   <div class="s-hero"><div class="slbl">Step 2 of 9</div>
     <h2>Pick <span class="hl">activities</span></h2>
     <p>Select one or more activities for your guests. Pricing adjusts based on the number of kids.</p>
+  </div>
+
+  <div class="browse-cta" style="align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--li3);border:1px solid var(--li2);border-radius:10px;padding:14px 16px;margin-bottom:16px">
+    <div style="font-size:13px;color:#7B5EA7;max-width:640px"><b>Just browsing our activities?</b> Use the kids count and filters below to see how pricing scales. When you're ready to book, start building your birthday to add one to your event.</div>
+    <a href="builder.html?start=1" class="btn-p" style="white-space:nowrap;padding:10px 18px;font-size:13px;flex-shrink:0">Start Building →</a>
   </div>
 
   <div class="sec-blk">
@@ -2709,7 +2738,11 @@ const THEMES=[
     tierPhotos:{Classic:'img/Decor/decor-spy-arch.jpg',Premium:'img/Decor/decor-spy-1panel.jpg',Luxury:'img/Decor/decor-spy-2panel.jpg',Signature:'img/Decor/decor-spy-3panel.jpg'},
     // 2 extra Premium-tier photos added 2026-08-24 from "Spy Premium - 2.png"
     // / "Spy Premium - 3.jpeg" in the latest img/Decor upload batch.
-    tierExtraPhotos:{Premium:['img/Decor/decor-spy-premium-2.png','img/Decor/decor-spy-premium-3.jpeg']}},
+    // 1 extra Signature-tier photo added 2026-09-06 from "Spy Kpop Signature
+    // Decor .png" (Rs. 25,000 Spy x K-Pop crossover setup: 3 panels, LED
+    // strip name treatment, marquee number light, sunboard cutouts, name-on-
+    // flex birthday panel) - matches the existing Signature spec exactly.
+    tierExtraPhotos:{Premium:['img/Decor/decor-spy-premium-2.png','img/Decor/decor-spy-premium-3.jpeg'],Signature:['img/Decor/decor-spy-kpop-3panel.jpg']}},
   {id:'kpop',n:'K-Pop Party',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-14',gn:'Girls',b:'180 (Purple, Pink, Black)',s:'4 hrs',ni:'Open area, mini stage',tag:'trend',
     // Luxury tier photo updated 2026-08-24 from the "Kpop Luxury.png" file
     // in the latest img/Decor upload batch (replaces the older
@@ -2940,6 +2973,17 @@ const ACTS=[
   {id:'a11',n:'Jacket Decoration',e:'🧥',img:'activity/act-jacket-decoration',realImg:true,cat:'craft',age:'7-12',dur:'60 min',req:'Tables & chairs',r1:1150,r2:1100,r3:1050,flat:false,bgs:['linear-gradient(135deg,#374151,#6B7280)','linear-gradient(135deg,#6B7280,#B59DDE)'],tag:'trend',pers:true,rating:4.8,cnt:45},
   {id:'a12',n:'Dreamcatcher',e:'🌙',img:'activity/act-dreamcatcher',realImg:true,cat:'craft',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:350,r2:350,r3:350,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)','linear-gradient(135deg,#BCD8E8,#B59DDE)'],tag:'',pers:true,rating:4.7,cnt:35},
   {id:'a13',n:'DIY Clock',e:'⏰',img:'activity/act-diy-clock',realImg:true,cat:'craft',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#F2D147,#B7E0B8)','linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:40},
+  // Live T-shirt Printing — added as a general Activities-step station
+  // (2026-09-08, per Shruti: "add live tshirt printing in the activities...
+  // as well", already existed as Return Gift g26). Per-child pricing
+  // reuses that same item's real numbers already established in the
+  // codebase — 550 is g26's own base unit price, 450 is the bulk-package
+  // rate already wired for turf-basic.html's tshirt1 hand-off (see
+  // GIFT_MAP below) — r2 is a straight-line estimate between the two.
+  // Duration/requirements are reasonable estimates, not yet confirmed by
+  // Shruti. Reuses the return-gift product photo (real event photo of the
+  // live heat-press station), re-cropped to the activity card's 4:3 frame.
+  {id:'tshirt-printing',n:'Live T-shirt Printing',e:'👕',img:'activity/act-tshirt-printing',realImg:true,cat:'craft',age:'5-14',dur:'15-20 min',req:'Tables & chairs, power point',r1:550,r2:500,r3:450,flat:false,bgs:['linear-gradient(135deg,#5B8EDD,#374151)','linear-gradient(135deg,#374151,#6B7280)'],tag:'new',pers:true,rating:4.7,cnt:1},
   // ── Experiences (flat rate) ──
   {id:'a15',n:'Tattoo Station',e:'🖊️',img:'activity/act-tattoo-station',realImg:true,cat:'experience',age:'5-12',dur:'Up to 3 hrs',req:'Any space',r1:2500,r2:2500,r3:2500,flat:true,bgs:['linear-gradient(135deg,#374151,#6B7280)'],tag:'pop',pers:false,rating:4.8,cnt:75},
   {id:'a16',n:'Mini Art Station',e:'🖌️',img:'activity/act-mini-art-station',realImg:true,cat:'experience',age:'4-12',dur:'Session',req:'Tables & chairs',r1:5000,r2:5000,r3:5000,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'',pers:false,rating:4.7,cnt:50},
@@ -4187,7 +4231,7 @@ function makeTC(t){
 }
 function buildDec(){
   const tc=document.getElementById('thCards');tc.innerHTML='';
-  let fl=THEME_TIERS,interestApplied=false;
+  let fl=THEME_TIERS,filterApplied=false;
   // decShowAll (set by the "Show All" link, see showAllT()) bypasses every
   // filter below — theme/gender AND interests — same as the pre-existing
   // "Show All" behavior, just now also covering the new interest filter
@@ -4196,16 +4240,25 @@ function buildDec(){
     if(S.theme){fl=THEME_TIERS.filter(t=>t.themeId.toLowerCase().includes(S.theme.toLowerCase())||t.themeName.toLowerCase().includes(S.theme.toLowerCase()));}
     else if(S.children.length){const gs=S.children.map(c=>c.gender).filter(Boolean);if(gs.length)fl=THEME_TIERS.filter(t=>t.gn==='Both'||gs.some(g=>t.gn===g||g==='Either'));}
     if(!fl.length)fl=THEME_TIERS;
+    // 2026-09-08, per Shruti — filterApplied now covers EVERY narrowing
+    // reason (Step 0's Theme Preference dropdown, child gender, AND the
+    // interests chips below), not just the interests chips. Previously a
+    // Theme Preference pick like "Art & Paint Party" silently narrowed
+    // thCards to just that one theme's tiers with no "Show All" escape
+    // hatch at all — the fNote banner below only ever appeared for the
+    // interests-chip case, so anyone who wanted to browse every decor
+    // option after picking a Theme Preference had no way to get there.
+    if(fl.length<THEME_TIERS.length)filterApplied=true;
     // Further narrow to themes matching the child's interests (Step 0),
     // unless narrowing would leave nothing to show.
     if(!interestFilterOff(false)){
       const il=fl.filter(t=>matchesInterests(t.themeName));
-      if(il.length){fl=il;interestApplied=true;}
+      if(il.length){fl=il;filterApplied=true;}
     }
   }
   const fNote=document.getElementById('fNote');
   if(fNote){
-    fNote.style.display=interestApplied?'flex':'none';
+    fNote.style.display=filterApplied?'flex':'none';
     const lbl=fNote.querySelector('span');if(lbl)lbl.textContent='Showing themes that match what your child loves';
   }
   fl.forEach(t=>tc.innerHTML+=makeTC(t));
@@ -6502,6 +6555,24 @@ document.addEventListener('DOMContentLoaded',()=>{
   // (2026-08-28, per Shruti).
   if(urlParams.get('acts')==='1'){
     showBuilder();try{buildActs();}catch(e){}goTo('s2');window.scrollTo(0,0);
+  }
+
+  // ?browse=decor / ?browse=activities — customer-facing "just see the
+  // options" links (2026-09-08, per Shruti: cases where we just need to
+  // show decor options or just activity options, without pulling the
+  // customer into the full booking flow — if they want to add something,
+  // they start building from scratch via the banner's ?start=1 link).
+  // Adds body.browse-mode (see CSS above #bldProgress) which hides the
+  // step breadcrumbs, bottom Continue/total bar, remarks box and Add
+  // buttons — everything else (photo galleries, filters, kids-count
+  // pricing preview) stays live so it's a real look at the catalogue.
+  const browseMode=urlParams.get('browse');
+  if(browseMode==='decor'){
+    document.body.classList.add('browse-mode');
+    showBuilder();showAllT();goTo('s1');window.scrollTo(0,0);
+  }else if(browseMode==='activities'){
+    document.body.classList.add('browse-mode');
+    showBuilder();try{buildActs();}catch(e){}showAllActs();goTo('s2');window.scrollTo(0,0);
   }
 
   // ?pkg= pre-selection from package pages (e.g. unicorn-basic.html)
