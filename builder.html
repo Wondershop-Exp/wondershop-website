@@ -1617,6 +1617,7 @@ body.browse-mode .browse-cta{display:flex}
         <option value="Diary of a Wimpy Kid">Diary of a Wimpy Kid</option>
         <option value="Harry Potter">Harry Potter</option>
         <option value="Frozen">Frozen</option>
+        <option value="Lilo &amp; Stitch">Lilo &amp; Stitch</option>
         <option value="Peppa Pig">Peppa Pig</option>
         <option value="Princess / Disney Princess">Princess / Disney Princess</option>
         <option value="Unicorn & Rainbow">Unicorn &amp; Rainbow</option>
@@ -2758,19 +2759,32 @@ const THEMES=[
     // Decor .png" (Rs. 25,000 Spy x K-Pop crossover setup: 3 panels, LED
     // strip name treatment, marquee number light, sunboard cutouts, name-on-
     // flex birthday panel) - matches the existing Signature spec exactly.
-    tierExtraPhotos:{Premium:['img/Decor/decor-spy-premium-2.png','img/Decor/decor-spy-premium-3.jpeg'],Signature:['img/Decor/decor-spy-kpop-3panel.jpg']}},
+    // 3rd extra Premium-tier photo added 2026-09-09 from "Spy 1 Panel
+    // Option 2.jpg" (per Shruti — "1 Panel" matches this theme's existing
+    // Premium-tier naming convention). New Classic-tier extra added the
+    // same day from "Spy Sustainable.png" — a no-balloon caution-tape/
+    // silhouette backdrop, closest in scale to the existing Classic photo.
+    tierExtraPhotos:{Premium:['img/Decor/decor-spy-premium-2.png','img/Decor/decor-spy-premium-3.jpeg','img/Decor/decor-spy-premium-4.jpg'],Classic:['img/Decor/decor-spy-classic-sustainable.png'],Signature:['img/Decor/decor-spy-kpop-3panel.jpg']}},
   {id:'kpop',n:'K-Pop Party',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-14',gn:'Girls',b:'180 (Purple, Pink, Black)',s:'4 hrs',ni:'Open area, mini stage',tag:'trend',
     // Luxury tier photo updated 2026-08-24 from the "Kpop Luxury.png" file
     // in the latest img/Decor upload batch (replaces the older
     // decor-kpop-2panel.jpg).
     tierPhotos:{Classic:'img/Decor/decor-kpop-arch.jpg',Premium:'img/Decor/decor-kpop-1panel.jpg',Luxury:'img/Decor/decor-kpop-luxury.png',Signature:'img/Decor/decor-kpop-3panel.jpg'}},
-  {id:'hp',n:'Harry Potter',e:'⚡',bg:'linear-gradient(135deg,#374151,#B59DDE)',age:'7-14',gn:'Both',b:'180 (Black, Gold, Red)',s:'4 hrs',ni:'Tables, chairs',tag:'trend',tierPhotos:{Premium:'img/Decor/decor-hp-1panel.jpg',Signature:'img/Decor/decor-hp-3panel.jpg'}},
+  {id:'hp',n:'Harry Potter',e:'⚡',bg:'linear-gradient(135deg,#374151,#B59DDE)',age:'7-14',gn:'Both',b:'180 (Black, Gold, Red)',s:'4 hrs',ni:'Tables, chairs',tag:'trend',
+    // Classic tier filled 2026-09-09 from "Harry Potter Arch.jpg" (per
+    // Shruti — was sitting unlinked; "Arch" matches every other theme's
+    // Classic-tier naming convention) — previously only Premium/Signature.
+    tierPhotos:{Classic:'img/Decor/decor-hp-arch.jpg',Premium:'img/Decor/decor-hp-1panel.jpg',Signature:'img/Decor/decor-hp-3panel.jpg'}},
   {id:'art',n:'Art & Paint Party',e:'🎨',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',age:'4-10',gn:'Both',b:'150 (Colorful mix)',s:'3 hrs',ni:'Tables, chairs',tag:'new',
     // Classic tier photo added 2026-08-24 from "Art Party Decor Classic.png"
     // in the latest img/Decor upload batch — Premium/Luxury unchanged.
     tierPhotos:{Classic:'img/Decor/decor-art-classic.png',Premium:'img/Decor/decor-art-1panel.jpg',Luxury:'img/Decor/decor-art-2panel.jpg'}},
   {id:'science',n:'Science Party',e:'🔬',bg:'linear-gradient(135deg,#BCD8E8,#52C470)',age:'6-12',gn:'Both',b:'150 (Blue, Green, White)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Premium:'img/Decor/decor-science-1panel.jpg'}},
-  {id:'racing',n:'Race Track & Cars',e:'🏎️',bg:'linear-gradient(135deg,#F57A1A,#374151)',age:'3-8',gn:'Boys',b:'150 (Black, Red, Yellow)',s:'3 hrs',ni:'Tables',tag:'pop',tierPhotos:{Luxury:'img/Decor/decor-racing-2panel.jpg'}},
+  {id:'racing',n:'Race Track & Cars',e:'🏎️',bg:'linear-gradient(135deg,#F57A1A,#374151)',age:'3-8',gn:'Boys',b:'150 (Black, Red, Yellow)',s:'3 hrs',ni:'Tables',tag:'pop',
+    tierPhotos:{Luxury:'img/Decor/decor-racing-2panel.jpg'},
+    // Extra Luxury-tier photo added 2026-09-09 from "F1 Luxury.png" (per
+    // Shruti — an alternate F1-style option alongside the existing photo).
+    tierExtraPhotos:{Luxury:['img/Decor/decor-racing-luxury-alt.png']}},
   {id:'football',n:'Football Party',e:'⚽',bg:'linear-gradient(135deg,#52C470,#374151)',age:'5-12',gn:'Both',b:'150 (Green, Black, White)',s:'3 hrs',ni:'Tables',tag:'pop',tierPhotos:{Classic:'img/Decor/decor-football-arch.jpg',Premium:'img/Decor/decor-football-1panel.jpg',Luxury:'img/Decor/decor-football-2panel.jpg',Signature:'img/Decor/decor-football-3panel.jpg'}},
   // ── NEW (added from the latest img/Decor photo batch) — age range, gender
   // and balloon-colour details below are provisional placeholders pending
@@ -2787,7 +2801,28 @@ const THEMES=[
   {id:'malgudi',n:'Malgudi Days',e:'📖',bg:'linear-gradient(135deg,#F2D147,#B7E0B8)',age:'4-10',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-malgudi-3panel.jpg'},tierExtraPhotos:{Signature:['img/Decor/decor-malgudi-3panel-alt.jpg']}},
   {id:'mithai',n:'Mithai Theme',e:'🍬',bg:'linear-gradient(135deg,#F57A1A,#F2D147)',age:'2-8',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-mithai-3panel.jpg'}},
   {id:'nanighar',n:'Nani ka Ghar',e:'👵',bg:'linear-gradient(135deg,#F5C3D7,#F7F296)',age:'3-8',gn:'Both',b:'150 (mixed colours)',s:'3 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-nanighar-3panel.jpg'}},
-  {id:'treasure',n:'The Great Ancient Indian Treasure',e:'🏺',bg:'linear-gradient(135deg,#F2D147,#374151)',age:'6-12',gn:'Both',b:'200 (mixed colours)',s:'4 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-treasure-3panel.jpg'}}
+  {id:'treasure',n:'The Great Ancient Indian Treasure',e:'🏺',bg:'linear-gradient(135deg,#F2D147,#374151)',age:'6-12',gn:'Both',b:'200 (mixed colours)',s:'4 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-treasure-3panel.jpg'}},
+  // Frozen — was already an option in the Step 0 Theme Preference dropdown
+  // with no actual catalogue entry behind it (2026-09-09, per Shruti: "fix
+  // frozen and paw patrol" — the uploaded photo had nowhere to go). Balloon
+  // colours read off the real reference photo (pink/blue/lilac/white,
+  // Anna & Elsa standees). Only a Signature tier photo exists so far
+  // ("3 Panel" naming matches every other theme's Signature convention).
+  // Age/gender are a reasonable estimate for this franchise, not yet
+  // confirmed by Shruti — flag if she wants them adjusted.
+  {id:'frozen',n:'Frozen',e:'❄️',bg:'linear-gradient(135deg,#BCD8E8,#EDE6FA)',age:'3-8',gn:'Girls',b:'200 (Pink, Blue, Lilac, White)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-frozen-3panel.jpg'}},
+  // Paw Patrol — same situation as Frozen: already a Step 0 dropdown
+  // option with no catalogue entry. Colours read off the real reference
+  // photo (blue/red/yellow/white with dalmatian-spot balloons). Only a
+  // Premium tier photo exists so far. Age/gender are a reasonable estimate
+  // (unisex kids' show, younger age group), not yet confirmed by Shruti.
+  {id:'pawpatrol',n:'Paw Patrol',e:'🐾',bg:'linear-gradient(135deg,#5B8EDD,#F2D147)',age:'2-6',gn:'Both',b:'200 (Blue, Red, Yellow, White)',s:'3 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Premium:'img/Decor/decor-pawpatrol-premium.png'}},
+  // Dinos & Unicorns — new crossover theme, added 2026-09-09 per Shruti's
+  // brief: age up to 7, gender both/neutral, balloon colours read off the
+  // real reference photos (pink/purple/mint/yellow/green pastels across
+  // both the unicorn and dino halves), price tiers left at the standard
+  // DECOR_TIER_META rates (same as every other batch — no custom pricing).
+  {id:'dinounicorn',n:'Dinos & Unicorns',e:'🦕',bg:'linear-gradient(135deg,#F5C3D7,#B7E0B8)',age:'2-7',gn:'Both',b:'250 (Pink, Purple, Mint, Yellow, Green)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Luxury:'img/Decor/decor-dinounicorn-luxury.png',Signature:'img/Decor/decor-dinounicorn-signature.png'}}
 ];
 // Extracts the balloon-colour list out of a theme's `b` field, e.g.
 // "150 (Pink, Purple, White)" -> "Pink, Purple, White".
