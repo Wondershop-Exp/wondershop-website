@@ -4348,18 +4348,34 @@ function decGenderMatches(themeGn,want){
   const norm=g=>g==='Girl'?'Girls':(g==='Boy'?'Boys':g);
   return norm(themeGn)===want;
 }
-// t.age is a "min-max" string like "3-5" or "6-12" — true if `want` (a
-// single age) falls inside that inclusive range. No range on the theme ->
-// don't exclude it.
+// Age filter buckets (2026-09-09, per Shruti — replaces the old 1-14
+// single-year dropdown with age RANGES). Boundary years deliberately sit
+// in both neighbouring buckets (e.g. 3 is in both "< 3" and "3-5") — same
+// as how most age-range pickers work, so a 3-year-old's party shows up
+// either way.
+const AGE_BUCKETS=[
+  {value:'lt3',label:'< 3 yrs',lo:0,hi:3},
+  {value:'3-5',label:'3-5 yrs',lo:3,hi:5},
+  {value:'5-7',label:'5-7 yrs',lo:5,hi:7},
+  {value:'7-10',label:'7-10 yrs',lo:7,hi:10},
+  {value:'10-15',label:'10-15 yrs',lo:10,hi:15},
+  {value:'15-18',label:'15-18 yrs',lo:15,hi:18},
+  {value:'18plus',label:'18+ yrs',lo:18,hi:120},
+];
+// t.age is a "min-max" string like "3-5" or "6-12" — true if the SELECTED
+// age bucket's range overlaps that theme's age range at all (any shared
+// year counts as a match). No range on the theme -> don't exclude it.
 function decAgeInRange(ageStr,want){
   const m=(ageStr||'').match(/(\d+)\s*-\s*(\d+)/);
   if(!m)return true;
-  const w=parseInt(want,10);
-  return w>=parseInt(m[1],10)&&w<=parseInt(m[2],10);
+  const bucket=AGE_BUCKETS.find(b=>b.value===want);
+  if(!bucket)return true;
+  const themeLo=parseInt(m[1],10),themeHi=parseInt(m[2],10);
+  return themeLo<=bucket.hi&&themeHi>=bucket.lo;
 }
-// Populates the Theme (alphabetical, real theme names) and Age (1-14)
-// dropdowns once from real catalogue data — called on page load, since
-// THEMES never changes during a session.
+// Populates the Theme (alphabetical, real theme names) and Age (range
+// buckets, see AGE_BUCKETS) dropdowns once from real catalogue data —
+// called on page load, since THEMES never changes during a session.
 function populateDecorFilterSelects(){
   const themeSel=document.getElementById('decThemeSel');
   if(themeSel&&themeSel.options.length===1){
@@ -4368,7 +4384,7 @@ function populateDecorFilterSelects(){
   }
   const ageSel=document.getElementById('decAgeSel');
   if(ageSel&&ageSel.options.length===1){
-    for(let a=1;a<=14;a++)ageSel.innerHTML+='<option value="'+a+'">'+a+' yrs</option>';
+    AGE_BUCKETS.forEach(b=>{ageSel.innerHTML+='<option value="'+b.value+'">'+b.label+'</option>';});
   }
 }
 function fDec(){
