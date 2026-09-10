@@ -39,6 +39,8 @@ from pydantic import BaseModel
 
 from database import database
 from routers.admin import _require_admin
+from routers.leads import _gmail_send, SITE_BASE_URL
+from config import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -99,6 +101,10 @@ class CheckIn(BaseModel):
 class RemarkIn(BaseModel):
     remark: str = ""
     remark_by: Optional[str] = None
+
+
+class SubmitIn(BaseModel):
+    submitted_by: str
 
 
 # ─── templates (admin) ────────────────────────────────────────────────────
@@ -188,6 +194,7 @@ async def _hydrate(lst) -> dict:
     d["sections"] = sec_out
     d["created_at"] = _to_ist_str(d.get("created_at"))
     d["updated_at"] = _to_ist_str(d.get("updated_at"))
+    d["submitted_at"] = _to_ist_str(d.get("submitted_at"))
     d["progress"] = {"checked": checked_count, "total": total}
     d["share_url"] = f"/pack.html?t={d['share_token']}"
     return d
@@ -390,3 +397,77 @@ async def set_pack_item_remark(share_token: str, item_id: int, body: RemarkIn):
     )
     await database.execute("UPDATE packaging_lists SET updated_at = NOW() WHERE id = :id", values={"id": lst["id"]})
     return {"ok": True}
+
+
+# 2026-09-10, per Shruti — "once the checklist is done, give a submit
+# button. ask for a confirmation that all materials has been packed in
+# suitcases and ready to load? on submit, inform Shruti on whatsapp" —
+# then, same day: "let's do email for now instead of whatsapp" (WhatsApp
+# needs a Meta-approved AiSensy template first; email needs nothing new —
+# reuses the same Gmail credentials + EMAIL_TEAM every other notification
+# in this app already sends through). Swapping back to WhatsApp later is a
+# small change: see _send_whatsapp()'s AiSensy setup steps in leads.py.
+async def _notify_packing_submitted(lst_id: int, title: str, share_token: str, submitted_by: str, submitted_at_ist: Optional[str]) -> None:
+    if not settings.GMAIL_CLIENT_ID:
+        logger.warning(f"Packing list #{lst_id}: GMAIL credentials not configured — skipping submit email")
+        return
+    try:
+        list_title = title or "Packing list"
+        link = f"{SITE_BASE_URL}/pack.html?t={share_token}"
+        subject = f"✅ Ready to load — {list_title}"
+        body = f"""{list_title} has been fully packed and is ready to load.
+
+Packed by : {submitted_by}
+Submitted : {submitted_at_ist or 'just now'}
+
+View the checklist: {link}
+
+— Wondershop Packing List
+"""
+        html_body = (
+            f'<div style="font-family:sans-serif;font-size:15px;color:#191919;line-height:1.6">'
+            f'<p style="font-size:17px;font-weight:700;margin:0 0 14px">✅ {list_title} is ready to load</p>'
+            f'<p style="margin:0 0 6px"><strong>Packed by:</strong> {submitted_by}</p>'
+            f'<p style="margin:0 0 18px"><strong>Submitted:</strong> {submitted_at_ist or "just now"}</p>'
+            f'<p style="margin:0"><a href="{link}" style="color:#E65A96">View the checklist</a></p>'
+            f'</div>'
+        )
+        await _gmail_send(to_email=settings.EMAIL_TEAM, subject=subject, body=body, html_body=html_body)
+        logger.info(f"Packing list #{lst_id}: submit email sent to {settings.EMAIL_TEAM}")
+    except Exception as exc:
+        logger.error(f"Packing list #{lst_id}: submit email failed — {exc}")
+
+
+@router.post("/pack/{share_token}/submit")
+async def submit_pack_list(share_token: str, body: SubmitIn):
+    lst = await database.fetch_one("SELECT * FROM packaging_lists WHERE share_token = :t", values={"t": share_token})
+    if not lst:
+        raise HTTPException(status_code=404, detail="This packing list link isn't valid.")
+
+    # Idempotent: a second submit (double-tap, or a teammate opening the
+    # same link after someone already submitted) just returns the existing
+    # state — never sends a second WhatsApp alert.
+    if lst["submitted_at"]:
+        return await _hydrate(lst)
+
+    # Re-check server-side that every item is actually checked — never
+    # trust the client's own progress number for something that fires an
+    # outbound WhatsApp message.
+    counts = await database.fetch_one(
+        """SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE checked) AS done
+           FROM packaging_items i JOIN packaging_sections s ON i.section_id = s.id
+           WHERE s.packaging_list_id = :lid""",
+        values={"lid": lst["id"]},
+    )
+    if not counts or not counts["total"] or counts["done"] < counts["total"]:
+        raise HTTPException(status_code=400, detail="Not every item is checked off yet.")
+
+    by = (body.submitted_by or "").strip() or "Staff"
+    await database.execute(
+        "UPDATE packaging_lists SET submitted_at = NOW(), submitted_by = :by, updated_at = NOW() WHERE id = :id",
+        values={"id": lst["id"], "by": by},
+    )
+    updated = await database.fetch_one("SELECT * FROM packaging_lists WHERE id = :id", values={"id": lst["id"]})
+    result = await _hydrate(updated)
+    await _notify_packing_submitted(lst["id"], updated["title"], updated["share_token"], by, result.get("submitted_at"))
+    return result

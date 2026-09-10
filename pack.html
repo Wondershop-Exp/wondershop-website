@@ -80,6 +80,24 @@ input{font-family:var(--fb)}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bk);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
 .toast.show{opacity:1}
 #refreshBtn{position:fixed;bottom:18px;right:18px;background:var(--bk);color:#fff;border:none;border-radius:50%;width:54px;height:54px;font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,.25);display:none;align-items:center;justify-content:center}
+
+#submitCard{display:none;margin-top:22px;background:#fff;border-radius:16px;padding:20px 22px;text-align:center;box-shadow:0 2px 10px rgba(25,25,25,.06)}
+#submitCard p{color:var(--gy);font-size:13px;margin:6px 0 14px}
+#submitCard .submit-btn{width:100%;padding:15px;border:none;border-radius:12px;background:var(--pk);color:#fff;font-weight:700;font-size:16px}
+#submitCard .submit-btn:disabled{opacity:.6}
+#submitCard .submitted-badge{display:inline-flex;align-items:center;gap:8px;color:#1E8A4C;font-weight:700;font-size:15px}
+#submitCard .submitted-badge svg{flex-shrink:0}
+#submitCard .submitted-meta{color:var(--gy);font-size:12px;margin-top:6px}
+
+#confirmModal{display:none;position:fixed;inset:0;background:rgba(25,20,32,.5);align-items:center;justify-content:center;padding:20px;z-index:200}
+#confirmModal .modal-card{background:#fff;border-radius:var(--r);padding:26px 24px;width:100%;max-width:380px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+#confirmModal h2{font-size:19px;margin-bottom:10px}
+#confirmModal p{color:var(--gy);font-size:14px;line-height:1.5;margin:0 0 20px}
+#confirmModal .modal-actions{display:flex;gap:10px}
+#confirmModal .modal-actions button{flex:1;padding:13px;border-radius:12px;font-weight:700;font-size:14px;border:1px solid var(--li2)}
+#confirmModal .btn-cancel{background:#fff;color:var(--gy)}
+#confirmModal .btn-confirm{background:var(--pk);color:#fff;border-color:var(--pk)}
+#confirmModal .btn-confirm:disabled{opacity:.6}
 </style>
 </head>
 <body>
@@ -127,10 +145,23 @@ input{font-family:var(--fb)}
   </div>
 
   <div id="content"></div>
+
+  <div id="submitCard"></div>
 </div>
 
 <button id="refreshBtn" onclick="loadList(true)" title="Refresh">↻</button>
 <div class="toast" id="toast"></div>
+
+<div id="confirmModal">
+  <div class="modal-card">
+    <h2>Ready to submit?</h2>
+    <p>Confirm all materials have been packed in suitcases and are ready to load?</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-cancel" onclick="closeSubmitConfirm()">Cancel</button>
+      <button type="button" class="btn-confirm" id="confirmBtn" onclick="confirmSubmit()">Yes, submit</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const API = 'https://wondershop-website-production.up.railway.app';
@@ -204,6 +235,7 @@ function render(){
   const content = document.getElementById('content');
   if(!DATA.sections || !DATA.sections.length){
     content.innerHTML = '<div style="text-align:center;color:var(--gy);padding:40px 10px">No items on this list yet.</div>';
+    renderSubmitCard();
     return;
   }
   content.innerHTML = DATA.sections.map(sec=>{
@@ -237,6 +269,69 @@ function render(){
   if(OPEN_REMARK_ID !== null){
     const el = content.querySelector('.remark-panel input');
     if(el){ el.focus(); const v=el.value; el.setSelectionRange(v.length, v.length); }
+  }
+  renderSubmitCard();
+}
+
+// ── Submit ("all packed, ready to load") ────────────────────────────────
+// 2026-09-10, per Shruti — "once the checklist is done, give a submit
+// button. ask for a confirmation that all materials has been packed in
+// suitcases and ready to load? on submit, inform Shruti on whatsapp."
+// Three states: not fully packed yet (card hidden), fully packed and not
+// yet submitted (Submit button), already submitted (green confirmation —
+// DATA.submitted_at/submitted_by come straight from the server, so this
+// stays correct even on a fresh page load of an already-submitted list).
+const CHECK_CIRCLE_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E8A4C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.8 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+
+function renderSubmitCard(){
+  const card = document.getElementById('submitCard');
+  const p = DATA.progress || {checked:0,total:0};
+  if(DATA.submitted_at){
+    card.style.display = 'block';
+    card.innerHTML = '<div class="submitted-badge">'+CHECK_CIRCLE_SVG+'Submitted — ready to load</div>'
+      +'<div class="submitted-meta">'+esc(DATA.submitted_by||'')+' · '+esc(DATA.submitted_at)+'</div>';
+    return;
+  }
+  if(p.total > 0 && p.checked >= p.total){
+    card.style.display = 'block';
+    card.innerHTML = '<p>Everything on this list is checked off.</p>'
+      +'<button type="button" class="submit-btn" onclick="openSubmitConfirm()">Submit — all packed &amp; ready to load</button>';
+    return;
+  }
+  card.style.display = 'none';
+  card.innerHTML = '';
+}
+
+function openSubmitConfirm(){
+  document.getElementById('confirmModal').style.display = 'flex';
+}
+function closeSubmitConfirm(){
+  document.getElementById('confirmModal').style.display = 'none';
+}
+
+async function confirmSubmit(){
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  try{
+    const res = await fetch(API+'/api/pack/'+encodeURIComponent(TOKEN)+'/submit', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({submitted_by: getStaffName()}),
+    });
+    if(!res.ok){
+      const body = await res.json().catch(()=>({}));
+      throw new Error(body.detail || 'Submit failed.');
+    }
+    DATA = await res.json();
+    closeSubmitConfirm();
+    render();
+    showToast('✓ Submitted.');
+  }catch(e){
+    showToast(e.message || "Couldn't submit — try again.");
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Yes, submit';
   }
 }
 
