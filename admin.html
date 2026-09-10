@@ -106,7 +106,12 @@ table.list th.sortable:hover{color:var(--bk)}
 .status-card .btn.convert{background:var(--gr);color:#fff}
 .status-card .btn.cancel{background:var(--pk);color:#fff}
 .section-block h3{font-size:12px;font-weight:700;color:#fff;background:var(--plum);text-transform:uppercase;letter-spacing:1.1px;margin:0;padding:13px 18px}
-table.fields{width:100%;border-collapse:collapse;background:#fff}
+table.fields{width:100%;border-collapse:collapse;background:#fff;table-layout:fixed}
+table.fields th:nth-child(1),table.fields td:nth-child(1){width:20%}
+table.fields th:nth-child(2),table.fields td:nth-child(2){width:28%}
+table.fields th:nth-child(3),table.fields td:nth-child(3){width:22%}
+table.fields th:nth-child(4),table.fields td:nth-child(4){width:20%}
+table.fields th:nth-child(5),table.fields td:nth-child(5){width:10%}
 table.fields th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);padding:8px 10px;background:var(--lgy)}
 table.fields td{padding:8px 10px;border-top:1px solid var(--li2);vertical-align:top}
 table.fields tr.removed td{opacity:.45;text-decoration:line-through}
@@ -117,8 +122,8 @@ table.fields textarea{resize:vertical;min-height:32px}
 .readonly-cell{color:var(--gy);font-size:13px;padding:6px 2px;display:block}
 .readonly-cell.computed{font-style:italic}
 .computed-note{font-size:10px;color:var(--gy);display:block;margin-top:2px}
-.field-label{font-weight:600;font-size:13px;white-space:nowrap}
-.field-label small{display:block;font-weight:400;color:var(--gy);font-size:10px}
+.field-label{font-weight:600;font-size:13px}
+.field-label small{display:block;font-weight:400;color:var(--gy);font-size:10px;white-space:normal;word-break:break-word}
 /* 2026-09-10, per Shruti — Discount % should read "2%" not "2.00". The %
    is a plain visual suffix layered over the input (not part of its value),
    so saving/validation still send a bare number underneath. */
