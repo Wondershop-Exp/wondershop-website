@@ -125,8 +125,18 @@ table.fields textarea{resize:vertical;min-height:32px}
 .computed-note{font-size:10px;color:var(--gy);display:block;margin-top:2px}
 .field-label{font-weight:600;font-size:13px}
 .field-label small{display:block;font-weight:400;color:var(--gy);font-size:10px;white-space:normal;word-break:break-word}
-.einvite-thumb-wrap{display:block;margin-bottom:6px}
-.einvite-thumb{display:block;width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--li2)}
+.einvite-combo{position:relative}
+.einvite-combo-btn{width:100%;display:flex;align-items:center;gap:8px;border:1px solid var(--li2);border-radius:6px;padding:5px 8px;background:#fff;font-size:13px;font-family:inherit;cursor:pointer;text-align:left;color:var(--bk)}
+.einvite-combo-thumb{width:26px;height:26px;object-fit:cover;border-radius:4px;flex-shrink:0}
+.einvite-combo-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.einvite-combo-chev{color:var(--gy);font-size:10px;flex-shrink:0}
+.einvite-combo-panel{position:fixed;z-index:9999;max-height:320px;overflow-y:auto;background:#fff;border:1px solid var(--li2);border-radius:8px;box-shadow:0 8px 24px rgba(25,25,25,.16);padding:4px}
+.einvite-combo-opt{display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:6px;font-size:13px;cursor:pointer}
+.einvite-combo-opt:hover{background:var(--li3)}
+.einvite-combo-opt.selected{background:var(--li3);font-weight:600}
+.einvite-combo-opt img{width:28px;height:28px;object-fit:cover;border-radius:4px;flex-shrink:0}
+.einvite-combo-opt .einvite-combo-noimg{width:28px;height:28px;flex-shrink:0}
+.einvite-combo-opt span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 2026-09-10, per Shruti — Discount % should read "2%" not "2.00". The %
    is a plain visual suffix layered over the input (not part of its value),
    so saving/validation still send a bare number underneath. */
@@ -1115,26 +1125,97 @@ const EINVITE_IMAGES = {
   "Nani ka Ghar (Phone Call)": "nanighar-phonecall.jpg",
 };
 
-function einviteThumbHtml(rid, name){
+function einviteImgSrc(name){
   const fn = EINVITE_IMAGES[name];
-  const src = fn ? 'einvites/'+encodeURIComponent(fn) : '';
-  const hidden = fn ? '' : ' style="display:none"';
-  return '<a class="einvite-thumb-wrap" id="'+rid+'_thumbwrap" href="'+esc(src)+'" target="_blank" rel="noopener"'+hidden+'>'
-    +'<img id="'+rid+'_thumb" class="einvite-thumb" src="'+esc(src)+'" alt="" onerror="this.closest(\'a\').style.display=\'none\'">'
-    +'</a>';
+  return fn ? 'einvites/'+encodeURIComponent(fn) : '';
 }
-function einviteThumbUpdate(rid, name){
-  const wrap = document.getElementById(rid+'_thumbwrap');
-  const img = document.getElementById(rid+'_thumb');
-  if(!wrap || !img) return;
-  const fn = EINVITE_IMAGES[name];
-  if(fn){
-    const src = 'einvites/'+encodeURIComponent(fn);
-    img.src = src; wrap.href = src; wrap.style.display = '';
-  }else{
-    wrap.style.display = 'none';
+
+function einviteComboOptRowHtml(rid, opt, isSelected){
+  const src = einviteImgSrc(opt.value);
+  const imgHtml = src
+    ? '<img src="'+esc(src)+'" alt="" onerror="this.style.visibility=\'hidden\'">'
+    : '<span class="einvite-combo-noimg"></span>';
+  return '<div class="einvite-combo-opt'+(isSelected?' selected':'')+'" onclick="einviteComboPick('+attrJson(rid)+','+attrJson(opt.value)+')">'
+    + imgHtml
+    + '<span>'+esc(opt.label)+'</span>'
+    + '</div>';
+}
+
+// Custom combo replacing a plain <select> for svc_einvite: a closed button
+// (thumbnail + label of the current choice) that opens a panel listing
+// every option with its own thumbnail alongside the name, so two similarly
+// named designs (or two designs sharing a theme) are never confused for
+// each other. Keeps a hidden #{rid}_cc input as the value saveField() and
+// rowSnapshot() actually read — see einviteComboPick().
+function einviteComboHtml(rid, options, current){
+  const opts = options.map(o=> (typeof o==='string') ? {value:o,label:o} : o);
+  if(current && !opts.some(o=>o.value===current)) opts.unshift({value:current, label:current});
+  const selectedOpt = opts.find(o=>o.value===current);
+  const btnSrc = einviteImgSrc(current);
+  const btnImgHidden = btnSrc ? '' : ' style="display:none"';
+  return '<div class="einvite-combo" id="'+rid+'_combo">'
+    +'<button type="button" class="einvite-combo-btn" onclick="einviteComboToggle('+attrJson(rid)+')">'
+      +'<img class="einvite-combo-thumb" id="'+rid+'_combothumb" src="'+esc(btnSrc)+'"'+btnImgHidden+' alt="" onerror="this.style.display=\'none\'">'
+      +'<span class="einvite-combo-label" id="'+rid+'_combolabel">'+esc(selectedOpt?selectedOpt.label:'No selection')+'</span>'
+      +'<span class="einvite-combo-chev">\u25be</span>'
+    +'</button>'
+    +'<div class="einvite-combo-panel" id="'+rid+'_combopanel" hidden>'
+      + opts.map(o=>einviteComboOptRowHtml(rid, o, o.value===current)).join('')
+    +'</div>'
+    +'<input type="hidden" id="'+rid+'_cc" value="'+esc(current||'')+'">'
+  +'</div>';
+}
+function einviteComboToggle(rid){
+  const panel = document.getElementById(rid+'_combopanel');
+  const btn = document.querySelector('#'+rid+'_combo .einvite-combo-btn');
+  if(!panel || !btn) return;
+  const willOpen = panel.hidden;
+  document.querySelectorAll('.einvite-combo-panel').forEach(p=>{ p.hidden = true; });
+  if(willOpen){
+    const r = btn.getBoundingClientRect();
+    panel.style.left = r.left+'px';
+    panel.style.top = (r.bottom+4)+'px';
+    panel.style.width = Math.max(r.width, 240)+'px';
+    panel.hidden = false;
   }
 }
+// A fixed-position panel stays put while the page scrolls out from under
+// it, so just close it on scroll/resize rather than tracking reflow —
+// capture:true so this also catches scrolling inside a nested container
+// (scroll events don't bubble, but the capture phase still reaches it).
+['scroll','resize'].forEach(evt=>{
+  window.addEventListener(evt, ()=>{
+    document.querySelectorAll('.einvite-combo-panel').forEach(p=>{ p.hidden = true; });
+  }, true);
+});
+function einviteComboPick(rid, value){
+  const ccEl = document.getElementById(rid+'_cc');
+  const label = document.getElementById(rid+'_combolabel');
+  const thumb = document.getElementById(rid+'_combothumb');
+  const panel = document.getElementById(rid+'_combopanel');
+  if(!ccEl) return;
+  ccEl.value = value;
+  if(label) label.textContent = value || 'No selection';
+  if(thumb){
+    const src = einviteImgSrc(value);
+    if(src){ thumb.src = src; thumb.style.display = ''; }
+    else{ thumb.style.display = 'none'; }
+  }
+  if(panel){
+    panel.querySelectorAll('.einvite-combo-opt').forEach((el,i)=>{
+      el.classList.toggle('selected', el.querySelector('span:last-child').textContent===value);
+    });
+    panel.hidden = true;
+  }
+  checkRowDirty(rid);  // hidden-input value change isn't a real DOM event, so nudge dirty-tracking directly
+}
+// Close any open combo panel on an outside click (delegated once, not
+// re-attached per render — same pattern as initDirtyTracking() below).
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.einvite-combo')){
+    document.querySelectorAll('.einvite-combo-panel').forEach(p=>{ p.hidden = true; });
+  }
+});
 
 function fieldRowHtml(f, isCustEvent, locked){
   const rid = 'fld_'+f.field_key;
@@ -1196,13 +1277,13 @@ function fieldRowHtml(f, isCustEvent, locked){
     // per Shruti — "+ for multi-select", pricing shown in each option's label).
     ccCell = multiPickerHtml(rid, f.multi_options, f.customer_choice||'', f.multi_with_qty);
   }else if(f.options){
-    // svc_einvite gets a small preview thumbnail above the dropdown, kept
-    // in sync on change (2026-09-10, per Shruti — "thumbnail images for
-    // einvite images", since a native <select> can't show images in its
-    // own options).
+    // svc_einvite gets a custom dropdown with a thumbnail per option
+    // (2026-09-10, per Shruti follow-up — "can this dropdown for invite
+    // have small thumbnails to avoid confusion?"): a native <select> can't
+    // render images inside its own popup in any browser, so this swaps in
+    // a hand-built combo just for this field (see einviteComboHtml()).
     if(f.field_key==='svc_einvite'){
-      ccCell = einviteThumbHtml(rid, f.customer_choice||'')
-        + selectHtml(rid+'_cc', f.options, f.customer_choice||'', ' onchange="einviteThumbUpdate(\''+rid+'\',this.value)"');
+      ccCell = einviteComboHtml(rid, f.options, f.customer_choice||'');
     }else{
       ccCell = selectHtml(rid+'_cc', f.options, f.customer_choice||'');
     }
