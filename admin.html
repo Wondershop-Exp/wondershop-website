@@ -107,13 +107,14 @@ table.list th.sortable:hover{color:var(--bk)}
 .status-card .btn.cancel{background:var(--pk);color:#fff}
 .section-block h3{font-size:12px;font-weight:700;color:#fff;background:var(--plum);text-transform:uppercase;letter-spacing:1.1px;margin:0;padding:13px 18px}
 table.fields{width:100%;border-collapse:collapse;background:#fff;table-layout:fixed}
-table.fields th:nth-child(1),table.fields td:nth-child(1){width:20%}
-table.fields th:nth-child(2),table.fields td:nth-child(2){width:28%}
-table.fields th:nth-child(3),table.fields td:nth-child(3){width:22%}
-table.fields th:nth-child(4),table.fields td:nth-child(4){width:20%}
-table.fields th:nth-child(5),table.fields td:nth-child(5){width:10%}
+table.fields th:nth-child(1),table.fields td:nth-child(1){width:19%}
+table.fields th:nth-child(2),table.fields td:nth-child(2){width:26%}
+table.fields th:nth-child(3),table.fields td:nth-child(3){width:20%}
+table.fields th:nth-child(4),table.fields td:nth-child(4){width:18%}
+table.fields th:nth-child(5),table.fields td:nth-child(5){width:17%}
 table.fields th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);padding:8px 10px;background:var(--lgy)}
 table.fields td{padding:8px 10px;border-top:1px solid var(--li2);vertical-align:top}
+table.fields td:last-child{padding:8px 6px}
 table.fields tr.removed td{opacity:.45;text-decoration:line-through}
 table.fields tr.dirty td{background:#FFF7E0}
 table.fields tr.dirty td.field-label{box-shadow:inset 3px 0 0 var(--pk)}
@@ -130,8 +131,8 @@ table.fields textarea{resize:vertical;min-height:32px}
 .pct-wrap{position:relative}
 .pct-wrap input{padding-right:26px!important}
 .pct-wrap .pct-suffix{position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--gy);font-size:13px;pointer-events:none}
-.row-actions{display:flex;gap:6px;align-items:flex-start}
-.mini-btn{padding:5px 9px;border:1px solid var(--li2);border-radius:6px;background:#fff;font-size:11px;font-weight:600}
+.row-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
+.mini-btn{padding:5px 9px;border:1px solid var(--li2);border-radius:6px;background:#fff;font-size:11px;font-weight:600;white-space:nowrap;flex:0 0 auto}
 .mini-btn.save{background:var(--pk);color:#fff;border-color:var(--pk)}
 .mini-btn.remove{color:var(--pk);border-color:var(--spk)}
 .mini-btn.restore{color:var(--gr);border-color:var(--sgr)}
@@ -141,6 +142,8 @@ table.fields textarea{resize:vertical;min-height:32px}
 .mp-row select{flex:1;min-width:0}
 .mp-qty{width:56px!important;flex:0 0 56px}
 .mp-empty{color:var(--gy);font-size:12px;font-style:italic;padding:4px 0}
+.av-row .av-item-name{flex:0 0 auto;max-width:45%;font-size:12px;color:var(--gy);padding:6px 0;overflow-wrap:break-word}
+.av-row .av-assignee{flex:1;min-width:0}
 
 .log-section{margin-top:30px;border-top:2px solid var(--li2);padding-top:16px}
 .log-section h3{font-size:15px;margin-bottom:10px}
@@ -832,6 +835,75 @@ function mpSync(rid){
   const str = rows.map(r=> withQty ? (r.v+' x'+(r.q||1)) : r.v).join(', ');
   const hidden = document.getElementById(rid+'_cc');
   if(hidden) hidden.value = str;
+  avMpRerender(rid);   // keep the per-item vendor/volunteer picker (if this field has one) in step with the item list
+}
+
+// ── Per-item vendor/volunteer assignment (Activities / Gifts) ──────────────
+// 2026-09-10, per Shruti — "for activities and gifts I'll need vendor/
+// volunteer selection for each line item... I can have the same person do
+// all 5 activities or different people". Assigned Value used to be one
+// free-text box for the whole field, which couldn't express that. There's
+// no new DB column for this (assigned_value is still a single TEXT field
+// per booking_field_override) — instead this renders one read-only item +
+// one "who's doing it" text box per row (mirroring the Customer's Choice
+// picker's current items) and packs them into that same string as
+// "Item: Assignee; Item: Assignee", kept in sync with the #{rid}_av hidden
+// input so saveField()'s existing generic read path needs no changes.
+const AV_ASSIGN = {};   // rid -> {itemName: assigneeText}
+
+function avParse(str){
+  const map = {};
+  if(!str) return map;
+  str.split(';').forEach(seg=>{
+    const idx = seg.indexOf(':');
+    if(idx<0) return;
+    const name = seg.slice(0,idx).trim();
+    const assignee = seg.slice(idx+1).trim();
+    if(name) map[name] = assignee;
+  });
+  return map;
+}
+
+function assignPickerHtml(rid, currentAssignedStr, placeholder){
+  AV_ASSIGN[rid] = avParse(currentAssignedStr);
+  return '<div class="mp-wrap" data-placeholder="'+esc(placeholder||'')+'">'
+    +'<input type="hidden" id="'+rid+'_av" value="'+esc(currentAssignedStr||'')+'">'
+    +'<div class="mp-rows" id="'+rid+'_avrows">'+avMpRowsHtml(rid, placeholder)+'</div>'
+    +'</div>';
+}
+
+function avMpRowsHtml(rid, placeholder){
+  const items = (MP_STATE[rid]||[]).filter(r=>r.v);
+  if(!items.length) return '<div class="mp-empty">Pick items in Customer\'s Choice first.</div>';
+  const map = AV_ASSIGN[rid]||{};
+  return items.map(r=>
+    '<div class="mp-row av-row">'
+      +'<span class="av-item-name">'+esc(r.v)+'</span>'
+      +'<input type="text" class="av-assignee" placeholder="'+esc(placeholder||'Vendor / volunteer name')+'" value="'+esc(map[r.v]||'')+'" oninput="avUpdate('+attrJson(rid)+','+attrJson(r.v)+',this.value)">'
+    +'</div>'
+  ).join('');
+}
+
+function avUpdate(rid, itemName, val){
+  AV_ASSIGN[rid] = AV_ASSIGN[rid] || {};
+  AV_ASSIGN[rid][itemName] = val;
+  avSync(rid);
+}
+
+function avSync(rid){
+  const items = (MP_STATE[rid]||[]).filter(r=>r.v);
+  const map = AV_ASSIGN[rid]||{};
+  const str = items.map(r=> map[r.v] ? (r.v+': '+map[r.v]) : null).filter(Boolean).join('; ');
+  const hidden = document.getElementById(rid+'_av');
+  if(hidden) hidden.value = str;
+}
+
+function avMpRerender(rid){
+  const wrap = document.getElementById(rid+'_avrows');
+  if(!wrap) return;   // this field has no per-item assignment picker
+  const placeholder = wrap.parentElement ? wrap.parentElement.dataset.placeholder : '';
+  wrap.innerHTML = avMpRowsHtml(rid, placeholder);
+  avSync(rid);   // an item may have been removed/renamed — drop its stale assignment from the saved string too
 }
 
 // Trims a numeric string's trailing zeros for display — "2.00" -> "2",
@@ -925,7 +997,12 @@ function fieldRowHtml(f, isCustEvent, locked){
   const isMultiChild = /,/.test(avValue);
   const avPlaceholder = f.placeholder || (isCustEvent ? '' : 'Assign...');
   let avCell;
-  if(f.field_key==='child_genders' && !isMultiChild){
+  if(f.multi_options){
+    // Activities / Gifts — one "who's doing it" box per selected item
+    // instead of a single free-text field for the whole booking (2026-09-10,
+    // per Shruti — different vendors/volunteers can cover different items).
+    avCell = assignPickerHtml(rid, avValue, avPlaceholder);
+  }else if(f.field_key==='child_genders' && !isMultiChild){
     avCell = selectHtml(rid+'_av', GENDER_OPTIONS, avValue);
   }else if(f.field_key==='email'){
     avCell = '<input type="email" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'name@example.com')+'">';
