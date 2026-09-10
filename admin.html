@@ -16,8 +16,13 @@
   --bl:#5B8EDD;--sbl:#BCD8E8;
   --gr:#52C470;--sgr:#B7E0B8;
   --or:#F57A1A;
+  /* 2026-09-11, per Shruti — "make the whole admin panel a little peppy,
+     UI friendly" like packaging.html's staff interface. --plum is that
+     page's header/section-bar color; radii bumped to match its softer,
+     rounder cards instead of this page's flatter/boxier originals. */
+  --plum:#2E2438;
   --bk:#191919;--gy:#6B7280;--lgy:#F5F2FA;--wh:#FAFAFA;
-  --r:14px;--rs:10px;
+  --r:18px;--rs:12px;
   --fd:'Lora',serif;--fb:'DM Sans',sans-serif;
 }
 *{box-sizing:border-box}
@@ -38,21 +43,28 @@ a{color:var(--bl)}
 
 /* ─── App shell ─── */
 #app{display:none;max-width:1200px;margin:0 auto;padding:20px 20px 80px}
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:10px 0 18px;border-bottom:1px solid var(--li2);margin-bottom:20px}
-.topbar h1{font-size:20px}
-.topbar .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gy)}
-.topbar .who input{padding:6px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13px;width:150px}
+.topbar{background:var(--plum);border-radius:18px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;box-shadow:0 6px 20px rgba(46,36,56,.18)}
+.topbar-title{display:flex;align-items:center;gap:12px}
+.topbar-icon{width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.topbar h1{font-size:19px;color:#fff}
+.topbar-sub{font-size:12px;color:#C9B8DC;margin-top:2px}
+.topbar .who{display:flex;align-items:center;gap:10px;font-size:13px;color:#EDE6FA;flex-wrap:wrap}
+.topbar .who input{padding:7px 10px;border:1px solid rgba(255,255,255,.28);border-radius:8px;font-size:13px;width:150px;background:rgba(255,255,255,.08);color:#fff}
+.topbar .who input::placeholder{color:#C9B8DC}
 .linkbtn{background:none;border:none;color:var(--bl);font-size:13px;text-decoration:underline;padding:0}
+.topbar .linkbtn{color:#F0A9C4}
 
 /* ─── List view ─── */
 .searchbar{display:flex;gap:10px;margin-bottom:16px}
 .searchbar input{flex:1;padding:12px 14px;border:1px solid var(--li2);border-radius:var(--rs);font-size:15px}
-.searchbar button{padding:12px 18px;border:none;border-radius:var(--rs);background:var(--bk);color:#fff;font-weight:600}
+.searchbar button{padding:12px 18px;border:none;border-radius:var(--rs);background:var(--pk);color:#fff;font-weight:600}
+#leadTableWrap,#bookingTableWrap{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(25,25,25,.06)}
 table.list{width:100%;border-collapse:collapse}
-table.list th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--gy);padding:8px 10px;border-bottom:2px solid var(--li2)}
+table.list th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--gy);padding:10px;background:var(--li3)}
 table.list td{padding:10px;border-bottom:1px solid var(--li2);font-size:14px}
 table.list tr{cursor:pointer}
 table.list tr:hover td{background:var(--li3)}
+table.list tr:last-child td{border-bottom:none}
 .status-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
 .status-Complete,.status-Converted{background:var(--sgr);color:#166534}
 .status-New,.status-Upcoming{background:var(--sbl);color:#1e3a8a}
@@ -74,26 +86,27 @@ table.list th.sortable:hover{color:var(--bk)}
 
 /* ─── Leads / Bookings tabs ─── */
 .tabs{display:flex;gap:10px;margin-bottom:16px}
-.tab-btn{position:relative;padding:10px 18px;border:1px solid var(--li2);border-radius:var(--rs);background:#fff;font-weight:600;font-size:14px;color:var(--gy)}
-.tab-btn.active{background:var(--bk);color:#fff;border-color:var(--bk)}
+.tab-btn{position:relative;padding:10px 20px;border:1px solid var(--li2);border-radius:20px;background:#fff;font-weight:600;font-size:14px;color:var(--gy)}
+.tab-btn.active{background:var(--plum);color:#fff;border-color:var(--plum)}
 .tab-bubble{display:none;position:absolute;top:-7px;right:-7px;background:var(--pk);color:#fff;font-size:11px;font-weight:700;border-radius:20px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px}
 
 /* ─── Detail view ─── */
 .detail-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
 .detail-head h2{font-size:20px}
 .detail-meta{font-size:12px;color:var(--gy)}
-.section-block{margin-bottom:26px}
-.status-card{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,.05);display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.section-block{margin-bottom:22px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(25,25,25,.06)}
+#statusBlock{margin-bottom:22px}
+.status-card{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:0 2px 10px rgba(25,25,25,.06);display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
 .status-card .fld{display:flex;flex-direction:column;gap:4px;min-width:160px}
 .status-card label{font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);font-weight:600}
 .status-card select,.status-card input{padding:8px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13px}
 .status-card .btns{display:flex;gap:8px;margin-left:auto}
 .status-card .btn{padding:9px 16px;border:none;border-radius:8px;font-size:13px;font-weight:700}
-.status-card .btn.save{background:var(--bk);color:#fff}
+.status-card .btn.save{background:var(--pk);color:#fff}
 .status-card .btn.convert{background:var(--gr);color:#fff}
 .status-card .btn.cancel{background:var(--pk);color:#fff}
-.section-block h3{font-size:15px;color:var(--pk);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px}
-table.fields{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--rs);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.section-block h3{font-size:12px;font-weight:700;color:#fff;background:var(--plum);text-transform:uppercase;letter-spacing:1.1px;margin:0;padding:13px 18px}
+table.fields{width:100%;border-collapse:collapse;background:#fff}
 table.fields th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);padding:8px 10px;background:var(--lgy)}
 table.fields td{padding:8px 10px;border-top:1px solid var(--li2);vertical-align:top}
 table.fields tr.removed td{opacity:.45;text-decoration:line-through}
@@ -114,10 +127,10 @@ table.fields textarea{resize:vertical;min-height:32px}
 .pct-wrap .pct-suffix{position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--gy);font-size:13px;pointer-events:none}
 .row-actions{display:flex;gap:6px;align-items:flex-start}
 .mini-btn{padding:5px 9px;border:1px solid var(--li2);border-radius:6px;background:#fff;font-size:11px;font-weight:600}
-.mini-btn.save{background:var(--bk);color:#fff;border-color:var(--bk)}
+.mini-btn.save{background:var(--pk);color:#fff;border-color:var(--pk)}
 .mini-btn.remove{color:var(--pk);border-color:var(--spk)}
 .mini-btn.restore{color:var(--gr);border-color:var(--sgr)}
-.add-field-btn{margin-top:8px;padding:8px 14px;border:1px dashed var(--li);border-radius:8px;background:none;color:var(--li);font-size:12px;font-weight:600}
+.add-field-btn{margin:10px 14px 14px;padding:8px 14px;border:1px dashed var(--li);border-radius:8px;background:none;color:var(--li);font-size:12px;font-weight:600}
 .mp-wrap{display:flex;flex-direction:column;gap:6px}
 .mp-row{display:flex;gap:6px;align-items:center}
 .mp-row select{flex:1;min-width:0}
@@ -148,7 +161,13 @@ table.fields textarea{resize:vertical;min-height:32px}
 
 <div id="app">
   <div class="topbar">
-    <h1>🎈 Wondershop Admin — Bookings</h1>
+    <div class="topbar-title">
+      <div class="topbar-icon">🎈</div>
+      <div>
+        <h1>Wondershop Admin</h1>
+        <div class="topbar-sub">Bookings</div>
+      </div>
+    </div>
     <div class="who">
       Editing as <input type="text" id="whoName" onchange="saveName()">
       <a class="linkbtn" href="packaging.html" target="_blank">📦 Packing lists</a>
@@ -201,7 +220,7 @@ table.fields textarea{resize:vertical;min-height:32px}
       <h2 id="detTitle"></h2>
       <div class="detail-meta" id="detMeta"></div>
     </div>
-    <div id="statusBlock" class="section-block"></div>
+    <div id="statusBlock"></div>
     <div id="lockBanner"></div>
     <div id="sectionsContainer"></div>
     <div class="log-section">

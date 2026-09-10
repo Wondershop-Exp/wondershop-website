@@ -362,8 +362,8 @@ ASSIGNED_PLACEHOLDERS = {
     # instead used to silently do nothing to the totals. There's no
     # "vendor" for a percentage or a payment amount either, so this
     # placeholder just makes the dead end explicit instead of inviting it.
-    "bill_discount_pct": "Not used in totals — edit Current Value",
-    "bill_advance": "Not used in totals — edit Current Value",
+    "bill_discount_pct": "Not used — edit Current Value",
+    "bill_advance": "Not used — edit Current Value",
 }
 
 
