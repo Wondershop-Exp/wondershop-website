@@ -142,7 +142,6 @@ table.fields textarea{resize:vertical;min-height:32px}
 .mp-row select{flex:1;min-width:0}
 .mp-qty{width:56px!important;flex:0 0 56px}
 .mp-empty{color:var(--gy);font-size:12px;font-style:italic;padding:4px 0}
-.av-row .av-item-name{flex:0 0 auto;max-width:45%;font-size:12px;color:var(--gy);padding:6px 0;overflow-wrap:break-word}
 .av-row .av-assignee{flex:1;min-width:0}
 
 .log-section{margin-top:30px;border-top:2px solid var(--li2);padding-top:16px}
@@ -191,6 +190,7 @@ table.fields textarea{resize:vertical;min-height:32px}
     <div class="tabs">
       <button class="tab-btn active" id="tabLeadBtn" onclick="switchTab('lead')">Leads<span class="tab-bubble" id="leadBubble"></span></button>
       <button class="tab-btn" id="tabBookingBtn" onclick="switchTab('booking')">Bookings<span class="tab-bubble" id="bookingBubble"></span></button>
+      <button class="tab-btn" id="tabVendorBtn" onclick="switchTab('vendor')">Vendors</button>
     </div>
     <div id="leadTableWrap">
       <table class="list">
@@ -222,6 +222,26 @@ table.fields textarea{resize:vertical;min-height:32px}
       </table>
       <div class="empty" id="bookingEmpty" style="display:none">No bookings found.</div>
     </div>
+    <div id="vendorTableWrap" style="display:none">
+      <button class="add-field-btn" style="margin:0 0 12px" onclick="openVendor(null)">+ Add vendor</button>
+      <div id="vendorListWrap">
+        <table class="list">
+          <thead><tr>
+            <th>Name</th><th>Contact</th><th>Mobile</th><th>Deals In</th><th>City</th><th>Status</th>
+          </tr></thead>
+          <tbody id="vendorBody"></tbody>
+        </table>
+        <div class="empty" id="vendorEmpty" style="display:none">No vendors found.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="vendorDetailView" style="display:none">
+    <button class="linkbtn" onclick="backToVendorList()">&larr; Back to list</button>
+    <div class="detail-head">
+      <h2 id="vendorDetTitle"></h2>
+    </div>
+    <div id="vendorFormContainer"></div>
   </div>
 
   <div id="detailView" style="display:none">
@@ -368,8 +388,13 @@ function switchTab(tab){
   ACTIVE_TAB = tab;
   document.getElementById('tabLeadBtn').classList.toggle('active', tab==='lead');
   document.getElementById('tabBookingBtn').classList.toggle('active', tab==='booking');
+  document.getElementById('tabVendorBtn').classList.toggle('active', tab==='vendor');
   document.getElementById('leadTableWrap').style.display = tab==='lead' ? 'block' : 'none';
   document.getElementById('bookingTableWrap').style.display = tab==='booking' ? 'block' : 'none';
+  document.getElementById('vendorTableWrap').style.display = tab==='vendor' ? 'block' : 'none';
+  document.getElementById('searchQ').placeholder = tab==='vendor'
+    ? 'Search vendors by name, contact, phone, email...'
+    : 'Search by name, phone, email, or booking ID...';
 }
 function updateBubble(id, count){
   const el = document.getElementById(id);
@@ -405,7 +430,132 @@ function updateSortHeaders(kind){
 
 async function doSearch(){
   const q = document.getElementById('searchQ').value.trim();
-  await Promise.all([loadTable('lead', q), loadTable('booking', q)]);
+  await Promise.all([loadTable('lead', q), loadTable('booking', q), loadVendors(q)]);
+}
+
+// ── Vendors (2026-09-10, per Shruti — "update the vendor master... and
+// link it to the admin panel"). Plain CRUD over vendor_master, first
+// populated from her supplier-tracking spreadsheet (see
+// backend/scripts/import_vendor_master.py). No override/change-log system
+// like bookings have — vendor_master is a straight team-maintained
+// directory, so Save just writes the row directly.
+let CURRENT_VENDOR_ID = null;
+const VENDOR_FORM_FIELDS = [
+  {key:'name', label:'Vendor Name', required:true},
+  {key:'primary_contact_name', label:'Contact Name'},
+  {key:'primary_mobile', label:'Primary Mobile'},
+  {key:'alternate_mobile', label:'Alternate Mobile'},
+  {key:'whatsapp_number', label:'WhatsApp Number'},
+  {key:'email', label:'Email'},
+  {key:'deals_in', label:'Deals In'},
+  {key:'city', label:'City'},
+  {key:'pincode', label:'Pincode'},
+  {key:'timings', label:'Timings'},
+  {key:'website', label:'Website'},
+  {key:'address', label:'Address', textarea:true},
+  {key:'remarks', label:'Remarks', textarea:true},
+];
+
+async function loadVendors(q){
+  const body = document.getElementById('vendorBody');
+  const empty = document.getElementById('vendorEmpty');
+  if(!body) return;   // view not in the DOM yet on first paint — harmless no-op
+  body.innerHTML = '<tr><td colspan="6" style="padding:16px;color:#6B7280">Loading...</td></tr>';
+  try{
+    const path = '/api/admin/vendors'+(q?('?q='+encodeURIComponent(q)):'');
+    const d = await apiCall(path);
+    const vendors = d.vendors||[];
+    if(!vendors.length){ body.innerHTML=''; empty.style.display='block'; return; }
+    empty.style.display='none';
+    body.innerHTML = vendors.map(v=>
+      '<tr onclick="openVendor('+v.vendor_id+')">'
+        +'<td>'+esc(v.name||'')+'</td>'
+        +'<td>'+esc(v.primary_contact_name||'—')+'</td>'
+        +'<td>'+esc(v.primary_mobile||'—')+'</td>'
+        +'<td>'+esc(v.deals_in||'—')+'</td>'
+        +'<td>'+esc(v.city||'—')+'</td>'
+        +'<td>'+(v.is_active
+            ? '<span class="status-pill status-Converted">Active</span>'
+            : '<span class="status-pill status-NotInterested">Inactive</span>')+'</td>'
+      +'</tr>'
+    ).join('');
+  }catch(e){
+    if(e.message!=='unauthorized') showToast(e.message);
+  }
+}
+
+function openVendor(id){
+  CURRENT_VENDOR_ID = id;
+  document.getElementById('listView').style.display='none';
+  document.getElementById('vendorDetailView').style.display='block';
+  if(id===null){
+    document.getElementById('vendorDetTitle').textContent = 'New Vendor';
+    renderVendorForm({});
+  }else{
+    document.getElementById('vendorDetTitle').textContent = 'Loading...';
+    loadVendorDetail(id);
+  }
+}
+
+function backToVendorList(){
+  CURRENT_VENDOR_ID = null;
+  document.getElementById('vendorDetailView').style.display='none';
+  document.getElementById('listView').style.display='block';
+}
+
+async function loadVendorDetail(id){
+  try{
+    const v = await apiCall('/api/admin/vendors/'+id);
+    document.getElementById('vendorDetTitle').textContent = v.name;
+    renderVendorForm(v);
+  }catch(e){
+    if(e.message!=='unauthorized') showToast(e.message);
+  }
+}
+
+function renderVendorForm(v){
+  const fieldsHtml = VENDOR_FORM_FIELDS.map(f=>{
+    const val = esc(v[f.key]||'');
+    const input = f.textarea
+      ? '<textarea id="vf_'+f.key+'" rows="2" style="width:220px">'+val+'</textarea>'
+      : '<input type="text" id="vf_'+f.key+'" value="'+val+'">';
+    return '<div class="fld">'
+      +'<label>'+esc(f.label)+(f.required?' *':'')+'</label>'
+      +input
+      +'</div>';
+  }).join('');
+  const activeChecked = v.is_active===false ? '' : 'checked';
+  const container = document.getElementById('vendorFormContainer');
+  container.innerHTML =
+      '<div class="status-card" style="align-items:flex-start">'+fieldsHtml+'</div>'
+    + '<div class="section-block" style="padding:16px 18px">'
+      + '<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--gy)">'
+        + '<input type="checkbox" id="vf_is_active" '+activeChecked+' style="width:auto"> Active vendor'
+      + '</label>'
+      + (v.updated_on_ist ? '<div style="font-size:11px;color:var(--gy);margin-top:10px">Last updated '+esc(v.updated_on_ist)+'</div>' : '')
+      + '<div style="margin-top:14px">'
+        + '<button style="padding:10px 20px;border:none;border-radius:8px;background:var(--pk);color:#fff;font-weight:700;font-size:14px;cursor:pointer" onclick="saveVendor()">Save Vendor</button>'
+      + '</div>'
+    + '</div>';
+}
+
+async function saveVendor(){
+  const body = {};
+  VENDOR_FORM_FIELDS.forEach(f=>{ body[f.key] = document.getElementById('vf_'+f.key).value.trim(); });
+  body.is_active = document.getElementById('vf_is_active').checked;
+  if(!body.name){ showToast('Vendor name is required.'); return; }
+  try{
+    const path = CURRENT_VENDOR_ID===null ? '/api/admin/vendors' : ('/api/admin/vendors/'+CURRENT_VENDOR_ID);
+    const method = CURRENT_VENDOR_ID===null ? 'POST' : 'PUT';
+    const result = await apiCall(path, {method: method, body: JSON.stringify(body)});
+    showToast('✓ Vendor saved.');
+    CURRENT_VENDOR_ID = result.vendor_id;
+    document.getElementById('vendorDetTitle').textContent = result.name;
+    renderVendorForm(result);
+    loadVendors(document.getElementById('searchQ').value.trim());
+  }catch(e){
+    showToast(e.message==='unauthorized' ? 'Session expired — please log in again.' : ('Save failed: '+e.message));
+  }
 }
 async function loadTable(kind, q){
   const bodyId = kind==='lead' ? 'leadBody' : 'bookingBody';
@@ -864,22 +1014,21 @@ function avParse(str){
   return map;
 }
 
-function assignPickerHtml(rid, currentAssignedStr, placeholder){
+function assignPickerHtml(rid, currentAssignedStr){
   AV_ASSIGN[rid] = avParse(currentAssignedStr);
-  return '<div class="mp-wrap" data-placeholder="'+esc(placeholder||'')+'">'
+  return '<div class="mp-wrap">'
     +'<input type="hidden" id="'+rid+'_av" value="'+esc(currentAssignedStr||'')+'">'
-    +'<div class="mp-rows" id="'+rid+'_avrows">'+avMpRowsHtml(rid, placeholder)+'</div>'
+    +'<div class="mp-rows" id="'+rid+'_avrows">'+avMpRowsHtml(rid)+'</div>'
     +'</div>';
 }
 
-function avMpRowsHtml(rid, placeholder){
+function avMpRowsHtml(rid){
   const items = (MP_STATE[rid]||[]).filter(r=>r.v);
   if(!items.length) return '<div class="mp-empty">Pick items in Customer\'s Choice first.</div>';
   const map = AV_ASSIGN[rid]||{};
   return items.map(r=>
     '<div class="mp-row av-row">'
-      +'<span class="av-item-name">'+esc(r.v)+'</span>'
-      +'<input type="text" class="av-assignee" placeholder="'+esc(placeholder||'Vendor / volunteer name')+'" value="'+esc(map[r.v]||'')+'" oninput="avUpdate('+attrJson(rid)+','+attrJson(r.v)+',this.value)">'
+      +'<input type="text" class="av-assignee" placeholder="'+esc(r.v)+'" value="'+esc(map[r.v]||'')+'" oninput="avUpdate('+attrJson(rid)+','+attrJson(r.v)+',this.value)">'
     +'</div>'
   ).join('');
 }
@@ -901,8 +1050,7 @@ function avSync(rid){
 function avMpRerender(rid){
   const wrap = document.getElementById(rid+'_avrows');
   if(!wrap) return;   // this field has no per-item assignment picker
-  const placeholder = wrap.parentElement ? wrap.parentElement.dataset.placeholder : '';
-  wrap.innerHTML = avMpRowsHtml(rid, placeholder);
+  wrap.innerHTML = avMpRowsHtml(rid);
   avSync(rid);   // an item may have been removed/renamed — drop its stale assignment from the saved string too
 }
 
@@ -1001,7 +1149,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     // Activities / Gifts — one "who's doing it" box per selected item
     // instead of a single free-text field for the whole booking (2026-09-10,
     // per Shruti — different vendors/volunteers can cover different items).
-    avCell = assignPickerHtml(rid, avValue, avPlaceholder);
+    avCell = assignPickerHtml(rid, avValue);
   }else if(f.field_key==='child_genders' && !isMultiChild){
     avCell = selectHtml(rid+'_av', GENDER_OPTIONS, avValue);
   }else if(f.field_key==='email'){
