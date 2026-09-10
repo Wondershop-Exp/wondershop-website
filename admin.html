@@ -125,6 +125,8 @@ table.fields textarea{resize:vertical;min-height:32px}
 .computed-note{font-size:10px;color:var(--gy);display:block;margin-top:2px}
 .field-label{font-weight:600;font-size:13px}
 .field-label small{display:block;font-weight:400;color:var(--gy);font-size:10px;white-space:normal;word-break:break-word}
+.einvite-thumb-wrap{display:block;margin-bottom:6px}
+.einvite-thumb{display:block;width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--li2)}
 /* 2026-09-10, per Shruti — Discount % should read "2%" not "2.00". The %
    is a plain visual suffix layered over the input (not part of its value),
    so saving/validation still send a bare number underneath. */
@@ -1075,6 +1077,65 @@ function fmtPct(v){
   return String(Math.round(n*100)/100);
 }
 
+// E-Invite thumbnails (2026-09-10, per Shruti — "thumbnail images for
+// einvite images"). Mirrors backend/catalogue_data.py's INVITES list (name
+// -> filename in the einvites/ folder at the repo root, same place
+// admin.html lives, so a bare relative path resolves with no /img/ prefix
+// — see resolve_einvite_image()'s docstring there for why that matters).
+// Keep this in sync if INVITES changes. A few older invites (Spy Squad,
+// Football x Spy Mission (Alt), Imposter Mission) have no matching file in
+// einvites/ yet — those just show no thumbnail (onerror below hides it),
+// not a broken-image icon.
+const EINVITE_IMAGES = {
+  "Art Party": "art-party.jpg",
+  "Frozen (Elsa)": "frozen-elsa.jpg",
+  "Frozen (Anna)": "frozen-anna.jpg",
+  "Ramayana": "ramayana.jpg",
+  "Little Singham": "little-singham.png",
+  "Spy \u00d7 K-Pop": "spy-kpop.jpg",
+  "Spy Detective": "spy-detective.jpg",
+  "Spy Party (Classic)": "spy-party-classic.jpg",
+  "Spy Squad": "spy-squad.jpg",
+  "Unicorn": "unicorn.jpg",
+  "Superhero (3D)": "superhero-3d.jpg",
+  "Superhero (Pop Art)": "superhero-popart.jpg",
+  "Football \u00d7 Spy Mission": "football-spy.jpg",
+  "Football \u00d7 Spy Mission (Alt)": "football-spy-alt.jpg",
+  "Harry Potter": "harry-potter.jpg",
+  "Imposter Mission": "imposter-mission.jpg",
+  "Imposter Mission (Alt)": "imposter-mission-alt.jpg",
+  "K-Pop Idol Collage": "kpop-idol-collage.jpg",
+  "K-Pop Bestie": "kpop-bestie.jpg",
+  "K-Pop Girl Group (Red)": "kpop-girlgroup-red.jpg",
+  "K-Pop Girl Group (Green)": "kpop-girlgroup-green.jpg",
+  "Lilo & Stitch": "lilo-stitch.jpg",
+  "Movie Night (Gold)": "movie-night-gold.jpg",
+  "Movie Night (Classic)": "movie-night-classic.jpg",
+  "Nani ka Ghar (Photoreal)": "nanighar-photoreal.png",
+  "Nani ka Ghar (Phone Call)": "nanighar-phonecall.jpg",
+};
+
+function einviteThumbHtml(rid, name){
+  const fn = EINVITE_IMAGES[name];
+  const src = fn ? 'einvites/'+encodeURIComponent(fn) : '';
+  const hidden = fn ? '' : ' style="display:none"';
+  return '<a class="einvite-thumb-wrap" id="'+rid+'_thumbwrap" href="'+esc(src)+'" target="_blank" rel="noopener"'+hidden+'>'
+    +'<img id="'+rid+'_thumb" class="einvite-thumb" src="'+esc(src)+'" alt="" onerror="this.closest(\'a\').style.display=\'none\'">'
+    +'</a>';
+}
+function einviteThumbUpdate(rid, name){
+  const wrap = document.getElementById(rid+'_thumbwrap');
+  const img = document.getElementById(rid+'_thumb');
+  if(!wrap || !img) return;
+  const fn = EINVITE_IMAGES[name];
+  if(fn){
+    const src = 'einvites/'+encodeURIComponent(fn);
+    img.src = src; wrap.href = src; wrap.style.display = '';
+  }else{
+    wrap.style.display = 'none';
+  }
+}
+
 function fieldRowHtml(f, isCustEvent, locked){
   const rid = 'fld_'+f.field_key;
   const removedCls = f.removed ? ' removed' : '';
@@ -1135,7 +1196,16 @@ function fieldRowHtml(f, isCustEvent, locked){
     // per Shruti — "+ for multi-select", pricing shown in each option's label).
     ccCell = multiPickerHtml(rid, f.multi_options, f.customer_choice||'', f.multi_with_qty);
   }else if(f.options){
-    ccCell = selectHtml(rid+'_cc', f.options, f.customer_choice||'');
+    // svc_einvite gets a small preview thumbnail above the dropdown, kept
+    // in sync on change (2026-09-10, per Shruti — "thumbnail images for
+    // einvite images", since a native <select> can't show images in its
+    // own options).
+    if(f.field_key==='svc_einvite'){
+      ccCell = einviteThumbHtml(rid, f.customer_choice||'')
+        + selectHtml(rid+'_cc', f.options, f.customer_choice||'', ' onchange="einviteThumbUpdate(\''+rid+'\',this.value)"');
+    }else{
+      ccCell = selectHtml(rid+'_cc', f.options, f.customer_choice||'');
+    }
   }else if(f.field_key==='bill_discount_pct'){
     // Trimmed number in the input (still a bare number for saving/
     // validation), "%" as a purely visual suffix layered on top.
