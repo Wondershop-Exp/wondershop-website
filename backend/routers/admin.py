@@ -22,12 +22,19 @@ remarks, removed/restored, new custom field) is appended to
 booking_change_log with an IST timestamp and the name of whoever made it.
 
 ROUND 1 SCOPE (2026-08-15, per Shruti): Grand Total and Balance Due are
-read-only DISPLAYS of the values captured at checkout — they are NOT yet
-live-recalculated when a service/discount changes. Vendor assignment is
-free text for every service for now (a proper vendor-master-table + dropdown
-is planned as a follow-up once Shruti provides the vendor list). Customer's
-Choice for Decor/Host/Music/Photography/Piñata/E-Invite is a dropdown
-constrained to the site's actual catalogue options.
+read-only DISPLAYS — no Current Value/Save on either row, they're always
+system-computed. Balance Due is Grand Total − Advance Paid, live off each
+field's resolved value (2026-08-19). Grand Total itself is the actual
+payable total (client_budget), live-recalculated when Discount % changes
+but NOT re-derived from today's service selections otherwise — an admin
+override like "Host: Premium → Signature" is an operational note, not a
+new price agreement (2026-09-10 — see the recalculation block in
+get_booking_detail() for the exact formula and its one known limitation).
+Vendor assignment is free text for every service for now (a proper
+vendor-master-table + dropdown is planned as a follow-up once Shruti
+provides the vendor list). Customer's Choice for Decor/Host/Music/
+Photography/Piñata/E-Invite is a dropdown constrained to the site's actual
+catalogue options.
 
 NOTE for Shruti: edits made here do NOT re-send emails, do NOT update the
 Google Sheet row, and do NOT recalculate real pricing/payment totals — this
@@ -161,7 +168,9 @@ FIELD_CATALOG = [
 
     # Billing & Rewards — Grand Total / Balance Due are system-calculated
     # displays (read-only, see READ_ONLY_FIELDS below); everything else here
-    # is admin-editable.
+    # is admin-editable. Grand Total = client_budget (the real payable
+    # total), live-recalculated only when Discount % changes — see
+    # get_booking_detail()'s recalculation block (2026-09-10, per Shruti).
     {"key": "bill_grand_total",     "label": "Grand Total",            "section": "Billing & Rewards"},
     {"key": "bill_discount_pct",    "label": "Discount %",             "section": "Billing & Rewards"},
     # 2026-08-24, per Shruti (Image 3c) — "the same [freebies/discounts]
@@ -347,6 +356,14 @@ ASSIGNED_PLACEHOLDERS = {
     "svc_pinata": "Vendor",
     "svc_photo": "Photographer / vendor",
     "svc_gifts": "Vendor",
+    # 2026-09-10, per Shruti — Balance Due only ever reads Discount %/Advance
+    # Paid's CURRENT VALUE (see the Balance Due auto-calc below); Assigned
+    # Value has no effect on either field, so a real number typed in here
+    # instead used to silently do nothing to the totals. There's no
+    # "vendor" for a percentage or a payment amount either, so this
+    # placeholder just makes the dead end explicit instead of inviting it.
+    "bill_discount_pct": "Not used in totals — edit Current Value",
+    "bill_advance": "Not used in totals — edit Current Value",
 }
 
 
@@ -418,7 +435,15 @@ def _derive_original_value(key: str, lead: dict, snap: dict):
         return None  # admin-tracked only, no customer-side source
 
     if key == "bill_grand_total":
-        v = lead.get("order_grand_total")
+        # 2026-09-10, per Shruti — this used to read order_grand_total,
+        # which is actually the CART SUBTOTAL BEFORE DISCOUNT (builder.html
+        # calls it rawT() internally), not what the customer agreed to pay.
+        # client_budget is builder.html's payTotal() — tp() (post-discount)
+        # plus any collection fee/packaging/thank-you-note charges — i.e.
+        # the real Grand Total. order_grand_total is still used internally
+        # (see the live-recalculation block below) to work out how a
+        # changed Discount % should move this number.
+        v = lead.get("client_budget")
         return str(v) if v is not None else None
     if key == "bill_discount_pct":
         v = lead.get("order_discount_pct")
@@ -518,7 +543,7 @@ async def _validate_choice_value(key: str, value: str, derived_original: Optiona
             adv = float(value)
         except ValueError:
             raise HTTPException(status_code=400, detail="Advance Paid must be a number.")
-        grand_total = lead.get("order_grand_total")
+        grand_total = lead.get("client_budget")
         if grand_total is not None and adv > float(grand_total):
             raise HTTPException(status_code=400, detail="Advance Paid cannot exceed the Grand Total.")
 
@@ -776,20 +801,38 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             "updated_at_ist": _to_ist_str(ov["updated_at"]) if ov else None,
         })
 
-    # ─── Balance Due auto-calculation ──────────────────────────────────────
+    # ─── Grand Total / Balance Due auto-calculation ────────────────────────
     # 2026-08-19, per Shruti: "fix the grand total now, it should be
-    # autocalculated." Grand Total itself already comes straight from what
-    # the customer actually agreed to pay at checkout (order_grand_total —
-    # captured live from builder.html's own discount/total math, so it's
-    # already correct and is deliberately NOT re-derived from today's
-    # service selections here — an admin override like "Host: Premium →
-    # Signature" is an operational note, not a new price agreement). What
-    # WASN'T auto-calculated was Balance Due: it used to just echo whatever
-    # order_balance was captured at the original checkout, so correcting
-    # Advance Paid here (e.g. after verifying a bank transfer) never moved
-    # Balance Due. Balance Due is now always Grand Total − Advance Paid,
-    # using each field's live resolved value (i.e. any admin override to
-    # Advance Paid is picked up immediately).
+    # autocalculated." — 2026-09-10 follow-up: "grand total is not getting
+    # updated when I update the discount." Grand Total (now client_budget —
+    # see the getter above) is the amount the customer actually agreed to
+    # pay at checkout, but nothing about that snapshot is affected by an
+    # admin overriding a service later (a "Host: Premium → Signature" note
+    # is operational, not a new price agreement) — EXCEPT Discount %, which
+    # is the one override that directly repriced the checkout total, so
+    # it's the one thing Grand Total DOES move for.
+    #
+    # There's no stored pre-discount subtotal to recompute cleanly from, so
+    # this backs one out: order_grand_total (rawT() in builder.html — the
+    # cart subtotal BEFORE discount, still captured even though it's no
+    # longer what's displayed as "Grand Total") combined with the ORIGINAL
+    # Discount % tells us how much of client_budget was the discount vs.
+    # fixed extras (collection fee / packaging / thank-you-note charges,
+    # which a discount % never touches). Re-applying the NEW Discount % to
+    # that same subtotal and adding those extras back gives the new payable
+    # total:
+    #   new_grand_total = client_budget + subtotal × (original% − new%) / 100
+    # This assumes Grand Total was a straight percentage off the subtotal —
+    # it won't be exact if the original checkout also had a coupon code or
+    # freebie-value savings folded in (Shruti — flag it if you hit one of
+    # those and want it handled too).
+    #
+    # Balance Due was the other half of the 2026-08-19 ask: it used to just
+    # echo whatever order_balance was captured at checkout, so correcting
+    # Advance Paid here never moved it. It's now always Grand Total −
+    # Advance Paid using each field's live resolved value, so it inherits
+    # any Discount %-driven Grand Total change automatically, and any
+    # direct Advance Paid override is picked up immediately too.
     def _money(s):
         if s in (None, ""):
             return None
@@ -799,7 +842,23 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             return None
 
     billing_fields = {f["field_key"]: f for f in sections.get("Billing & Rewards", [])}
-    grand_total_val = _money(billing_fields.get("bill_grand_total", {}).get("customer_choice"))
+    grand_total_field = billing_fields.get("bill_grand_total")
+    grand_total_val = _money(grand_total_field.get("customer_choice")) if grand_total_field else None
+
+    subtotal_val = _money(lead.get("order_grand_total"))
+    discount_field = billing_fields.get("bill_discount_pct")
+    orig_discount_val = _money(discount_field.get("original_value")) if discount_field else None
+    new_discount_val = _money(discount_field.get("customer_choice")) if discount_field else None
+    if (grand_total_field is not None and grand_total_val is not None and subtotal_val is not None
+            and orig_discount_val is not None and new_discount_val is not None
+            and new_discount_val != orig_discount_val):
+        recalculated_total = grand_total_val + subtotal_val * (orig_discount_val - new_discount_val) / 100
+        recalculated_total = max(0.0, recalculated_total)
+        gt_display = str(int(recalculated_total)) if recalculated_total == int(recalculated_total) else str(round(recalculated_total, 2))
+        grand_total_field["customer_choice"] = gt_display
+        grand_total_field["original_value"] = gt_display
+        grand_total_val = recalculated_total
+
     advance_val = _money(billing_fields.get("bill_advance", {}).get("customer_choice"))
     balance_field = billing_fields.get("bill_balance")
     if balance_field is not None and grand_total_val is not None:

@@ -106,6 +106,12 @@ table.fields textarea{resize:vertical;min-height:32px}
 .computed-note{font-size:10px;color:var(--gy);display:block;margin-top:2px}
 .field-label{font-weight:600;font-size:13px;white-space:nowrap}
 .field-label small{display:block;font-weight:400;color:var(--gy);font-size:10px}
+/* 2026-09-10, per Shruti — Discount % should read "2%" not "2.00". The %
+   is a plain visual suffix layered over the input (not part of its value),
+   so saving/validation still send a bare number underneath. */
+.pct-wrap{position:relative}
+.pct-wrap input{padding-right:26px!important}
+.pct-wrap .pct-suffix{position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--gy);font-size:13px;pointer-events:none}
 .row-actions{display:flex;gap:6px;align-items:flex-start}
 .mini-btn{padding:5px 9px;border:1px solid var(--li2);border-radius:6px;background:#fff;font-size:11px;font-weight:600}
 .mini-btn.save{background:var(--bk);color:#fff;border-color:var(--bk)}
@@ -801,13 +807,26 @@ function mpSync(rid){
   if(hidden) hidden.value = str;
 }
 
+// Trims a numeric string's trailing zeros for display — "2.00" -> "2",
+// "7.50" -> "7.5", "10.00" -> "10". Falls back to the raw string if it
+// isn't a plain number (never throws, never used for the saved value).
+function fmtPct(v){
+  const n = parseFloat(v);
+  if(isNaN(n)) return v;
+  return String(Math.round(n*100)/100);
+}
+
 function fieldRowHtml(f, isCustEvent, locked){
   const rid = 'fld_'+f.field_key;
   const removedCls = f.removed ? ' removed' : '';
   // "None selected" instead of a blank note when the customer genuinely left
   // this field empty at checkout (2026-08-19, per Shruti) — distinguishes
   // "we know they selected nothing" from "we have no data for this field".
-  const originalNote = f.admin_only ? '<small>Admin-tracked</small>' : ('<small>Original: '+esc(f.original_value || 'None selected')+'</small>');
+  // 2026-09-10, per Shruti — Discount % should read "2%" not "2.00",
+  // in the "Original: …" caption same as everywhere else it's shown.
+  const origDisplay = f.field_key==='bill_discount_pct' && f.original_value
+    ? fmtPct(f.original_value)+'%' : (f.original_value || 'None selected');
+  const originalNote = f.admin_only ? '<small>Admin-tracked</small>' : ('<small>Original: '+esc(origDisplay)+'</small>');
 
   // ── Read-only fields (Grand Total / Balance Due): plain display, no editing at all
   if(f.read_only){
@@ -815,8 +834,13 @@ function fieldRowHtml(f, isCustEvent, locked){
     // Paid, recalculated on every load) — Grand Total itself still isn't
     // re-derived from today's service selections (it's the amount the
     // customer actually agreed to pay at checkout), so the two get different notes.
+    // 2026-09-10, per Shruti — Grand Total is now live too (recalculates
+    // when Discount % is saved), so it needed its own note instead of
+    // sharing the generic "captured at checkout, never moves" one below.
     const note = f.field_key==='bill_balance'
       ? 'Auto-calculated: Grand Total − Advance Paid (updates as soon as Advance Paid is saved).'
+      : f.field_key==='bill_grand_total'
+      ? 'The amount the customer agreed to pay. Recalculates automatically when Discount % is saved; otherwise unchanged from checkout.'
       : 'Captured at checkout — not re-calculated when services/overrides change here.';
     return '<tr id="'+rid+'" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+'</td>'
@@ -853,6 +877,10 @@ function fieldRowHtml(f, isCustEvent, locked){
     ccCell = multiPickerHtml(rid, f.multi_options, f.customer_choice||'', f.multi_with_qty);
   }else if(f.options){
     ccCell = selectHtml(rid+'_cc', f.options, f.customer_choice||'');
+  }else if(f.field_key==='bill_discount_pct'){
+    // Trimmed number in the input (still a bare number for saving/
+    // validation), "%" as a purely visual suffix layered on top.
+    ccCell = '<span class="pct-wrap"><input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice?fmtPct(f.customer_choice):'')+'" placeholder="'+(f.admin_only?'—':'(use original)')+'"><span class="pct-suffix">%</span></span>';
   }else{
     ccCell = '<input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="'+(f.admin_only?'—':'(use original)')+'">';
   }
@@ -890,10 +918,12 @@ function fieldRowHtml(f, isCustEvent, locked){
     // — readonly (not disabled) so onPincodeInput() can still set .value
     // programmatically and Save still picks it up.
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Auto-fills from pincode')+'" readonly style="background:var(--lgy);cursor:not-allowed">';
+  }else if(f.field_key==='bill_discount_pct'){
+    const displayVal = avValue ? fmtPct(avValue) : avValue;
+    avCell = '<span class="pct-wrap"><input type="number" id="'+rid+'_av" value="'+esc(displayVal)+'" placeholder="'+esc(avPlaceholder)+'" step="0.01" min="0" max="100"><span class="pct-suffix">%</span></span>';
   }else{
-    const numAttrs = f.field_key==='bill_discount_pct' ? ' step="0.01" min="0" max="100"'
-                    : f.field_key==='bill_advance' ? ' step="0.01" min="0"' : '';
-    const avInputType = (f.field_key==='bill_discount_pct'||f.field_key==='bill_advance') ? 'number' : 'text';
+    const numAttrs = f.field_key==='bill_advance' ? ' step="0.01" min="0"' : '';
+    const avInputType = f.field_key==='bill_advance' ? 'number' : 'text';
     avCell = '<input type="'+avInputType+'" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'"'+numAttrs+'>';
   }
 

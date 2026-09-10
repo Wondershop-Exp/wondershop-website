@@ -77,7 +77,10 @@ table.list tr:hover td{background:var(--li3)}
 .paste-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 
 .tpl-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.tpl-row select{flex:1;min-width:200px;padding:10px 12px;border:1px solid var(--li2);border-radius:8px;font-size:14px}
+/* 2026-09-10, per Shruti — native select arrow sat right against the
+   border; swapped for the same custom chevron builder.html's dropdowns
+   use, nudged in from the edge instead. */
+.tpl-row select{flex:1;min-width:200px;padding:10px 34px 10px 12px;border:1px solid var(--li2);border-radius:8px;font-size:14px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;cursor:pointer}
 
 .section-card{border:1px solid var(--li2);border-radius:var(--rs);padding:14px;margin-bottom:12px;background:var(--lgy)}
 .section-card .sec-head{display:flex;gap:8px;align-items:center;margin-bottom:10px}
