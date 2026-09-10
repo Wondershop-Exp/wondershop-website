@@ -261,6 +261,7 @@ table.fields textarea{resize:vertical;min-height:32px}
 </div>
 
 <div class="toast" id="toast"></div>
+<datalist id="vendorNamesList"></datalist>
 
 <script>
 const API = 'https://wondershop-website-production.up.railway.app';
@@ -363,9 +364,20 @@ function enterApp(){
   // edit that appeared to do nothing).
   if(!getName()) highlightWhoName();
   loadStatusOptions();
+  loadVendorNames();
   updateSortHeaders('lead');
   updateSortHeaders('booking');
   doSearch();
+}
+
+let VENDOR_NAMES = [];
+async function loadVendorNames(){
+  try{
+    const d = await apiCall('/api/admin/vendors?active_only=true');
+    VENDOR_NAMES = (d.vendors||[]).map(v=>v.name).filter(Boolean);
+    document.getElementById('vendorNamesList').innerHTML =
+      VENDOR_NAMES.map(n=>'<option value="'+esc(n)+'">').join('');
+  }catch(e){ /* Assigned Value fields still work as plain text if this fails */ }
 }
 
 function logout(){
@@ -1028,7 +1040,7 @@ function avMpRowsHtml(rid){
   const map = AV_ASSIGN[rid]||{};
   return items.map(r=>
     '<div class="mp-row av-row">'
-      +'<input type="text" class="av-assignee" placeholder="'+esc(r.v)+'" value="'+esc(map[r.v]||'')+'" oninput="avUpdate('+attrJson(rid)+','+attrJson(r.v)+',this.value)">'
+      +'<input type="text" class="av-assignee" placeholder="'+esc(r.v)+'" value="'+esc(map[r.v]||'')+'" list="vendorNamesList" autocomplete="off" oninput="avUpdate('+attrJson(rid)+','+attrJson(r.v)+',this.value)">'
     +'</div>'
   ).join('');
 }
@@ -1145,7 +1157,10 @@ function fieldRowHtml(f, isCustEvent, locked){
   const isMultiChild = /,/.test(avValue);
   const avPlaceholder = f.placeholder || (isCustEvent ? '' : 'Assign...');
   let avCell;
-  if(f.multi_options){
+  const VENDOR_PICKER_FIELDS = ['svc_decor', 'svc_host', 'svc_dj', 'svc_photo'];
+  if(VENDOR_PICKER_FIELDS.includes(f.field_key)){
+    avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Vendor name')+'" list="vendorNamesList" autocomplete="off">';
+  }else if(f.multi_options){
     // Activities / Gifts — one "who's doing it" box per selected item
     // instead of a single free-text field for the whole booking (2026-09-10,
     // per Shruti — different vendors/volunteers can cover different items).
