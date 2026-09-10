@@ -655,7 +655,7 @@ async def get_status_options(x_admin_password: Optional[str] = Header(None)):
 # can fetch each table independently (and show its own "new" count badge —
 # "if there are new entries, show a bubble with the number").
 
-SORTABLE_COLUMNS = {"status", "created", "event_date"}
+SORTABLE_COLUMNS = {"status", "created", "event_date", "modified"}
 
 
 @router.get("/bookings")
@@ -679,7 +679,7 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
     # this should move to a SQL-side sort instead.
     rows = await database.fetch_all(
         f"""
-        SELECT lead_id, parent_name, phone, email, event_date, city, status, created_on
+        SELECT lead_id, parent_name, phone, email, event_date, city, status, created_on, updated_on
         FROM leads
         WHERE {' AND '.join(where)}
         """,
@@ -694,6 +694,32 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
             new_count += 1
         enriched.append(row)
 
+    # 2026-09-11, per Shruti — "add modified timestamp column ... add a sort
+    # functionality on this as well." leads.updated_on alone only moves on a
+    # DIRECT-WRITE edit (Customer & Event Details) or a status change — every
+    # override edit (Services/Add-ons/Billing & Rewards, remarks, add/remove
+    # field) writes to booking_field_overrides + booking_change_log instead
+    # and never touches the leads row, so updated_on alone would miss most
+    # actual admin edits. Modified is the more recent of the two: leads.
+    # updated_on, and this lead's latest booking_change_log entry.
+    lead_ids = [row["lead_id"] for row in enriched]
+    latest_change = {}
+    if lead_ids:
+        # Named placeholders per id rather than a single array-bound ANY(:ids)
+        # — safer across `databases`/asyncpg versions, and this only ever
+        # covers however many leads/bookings matched the search (same size
+        # ceiling the sort/slice above already accepts).
+        id_params = {f"lid{i}": lid for i, lid in enumerate(lead_ids)}
+        placeholders = ", ".join(f":{k}" for k in id_params)
+        change_rows = await database.fetch_all(
+            f"SELECT lead_id, MAX(changed_at) AS latest FROM booking_change_log WHERE lead_id IN ({placeholders}) GROUP BY lead_id",
+            values=id_params,
+        )
+        latest_change = {r["lead_id"]: r["latest"] for r in change_rows}
+    for row in enriched:
+        candidates = [v for v in (row.get("updated_on"), latest_change.get(row["lead_id"])) if v is not None]
+        row["modified_on"] = max(candidates) if candidates else None
+
     sort_key = sort if sort in SORTABLE_COLUMNS else "created"
     sort_desc = dir != "asc"
 
@@ -702,6 +728,8 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
             return row["_display_status"]
         if sort_key == "event_date":
             return row["event_date"]
+        if sort_key == "modified":
+            return row["modified_on"]
         return row["created_on"]
 
     # None-safe: always push rows missing the sort value (e.g. no event_date
@@ -721,6 +749,7 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
         "city": row["city"],
         "status": row["_display_status"],
         "created_on_ist": _to_ist_str(row["created_on"]),
+        "modified_on_ist": _to_ist_str(row["modified_on"]),
     } for row in ordered]
     return {"rows": out, "new_count": new_count}
 

@@ -197,6 +197,7 @@ table.fields textarea{resize:vertical;min-height:32px}
           <th>City</th>
           <th class="sortable" onclick="toggleSort('lead','status')">Status<span class="sort-arrow" id="arrow-lead-status"></span></th>
           <th class="sortable" onclick="toggleSort('lead','created')">Created<span class="sort-arrow" id="arrow-lead-created"></span></th>
+          <th class="sortable" onclick="toggleSort('lead','modified')">Modified<span class="sort-arrow" id="arrow-lead-modified"></span></th>
           <th></th>
         </tr></thead>
         <tbody id="leadBody"></tbody>
@@ -211,6 +212,7 @@ table.fields textarea{resize:vertical;min-height:32px}
           <th>City</th>
           <th class="sortable" onclick="toggleSort('booking','status')">Status<span class="sort-arrow" id="arrow-booking-status"></span></th>
           <th class="sortable" onclick="toggleSort('booking','created')">Created<span class="sort-arrow" id="arrow-booking-created"></span></th>
+          <th class="sortable" onclick="toggleSort('booking','modified')">Modified<span class="sort-arrow" id="arrow-booking-modified"></span></th>
           <th></th>
         </tr></thead>
         <tbody id="bookingBody"></tbody>
@@ -380,7 +382,7 @@ function updateBubble(id, count){
 // independent sort state (matching them each having their own tab/query).
 // Clicking a new column defaults to ascending; clicking the active column
 // again flips asc/desc. Keys must match backend SORTABLE_COLUMNS in
-// routers/admin.py (status/created/event_date).
+// routers/admin.py (status/created/event_date/modified).
 let SORT_STATE = { lead: {key:'created', dir:'desc'}, booking: {key:'created', dir:'desc'} };
 function toggleSort(kind, key){
   const s = SORT_STATE[kind];
@@ -391,7 +393,7 @@ function toggleSort(kind, key){
 }
 function updateSortHeaders(kind){
   const s = SORT_STATE[kind];
-  ['status','event_date','created'].forEach(k=>{
+  ['status','event_date','created','modified'].forEach(k=>{
     const el = document.getElementById('arrow-'+kind+'-'+k);
     if(!el) return;
     el.textContent = (s.key===k) ? (s.dir==='asc' ? '▲' : '▼') : '';
@@ -408,7 +410,7 @@ async function loadTable(kind, q){
   const bubbleId = kind==='lead' ? 'leadBubble' : 'bookingBubble';
   const body = document.getElementById(bodyId);
   const empty = document.getElementById(emptyId);
-  body.innerHTML = '<tr><td colspan="7" style="padding:16px;color:#6B7280">Loading...</td></tr>';
+  body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:#6B7280">Loading...</td></tr>';
   try{
     const s = SORT_STATE[kind];
     const path = '/api/admin/bookings?kind='+kind+(q?('&q='+encodeURIComponent(q)):'')+'&sort='+s.key+'&dir='+s.dir;
@@ -426,6 +428,7 @@ async function loadTable(kind, q){
         +'<td>'+esc(r.city||'—')+'</td>'
         +'<td>'+listStatusCellHtml(r, kind)+'</td>'
         +'<td>'+esc(r.created_on_ist||'')+'</td>'
+        +'<td>'+esc(r.modified_on_ist||'')+'</td>'
         +'<td>'+listActionsCellHtml(r, kind)+'</td>'
         +'</tr>';
     }).join('');
