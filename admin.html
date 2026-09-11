@@ -92,9 +92,9 @@ table.list th.sortable:hover{color:var(--bk)}
 
 /* Dashboard tab (2026-09-11, per Shruti/CGO review — "do we have enough
    system in place to track website performance"). Booking/lead KPIs come
-   from /api/admin/dashboard/summary (leads table, always on); the GA4
-   card degrades to a setup note until GA4_PROPERTY_ID/GA4_SERVICE_ACCOUNT_JSON
-   are configured — see backend/GA4_SETUP.md. */
+   from /api/admin/dashboard/summary (leads table, always on). The GA4
+   traffic/builder-funnel card was removed (2026-09-11, per Shruti) — see
+   backend/GA4_SETUP.md if it needs to come back later. */
 .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
 .dash-kpi{background:#fff;border:1px solid var(--li2);border-radius:var(--r);padding:16px 18px}
 .dash-kpi-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gy);margin-bottom:6px}
@@ -105,8 +105,6 @@ table.list th.sortable:hover{color:var(--bk)}
 .dash-kpi-delta.down{color:var(--pk)}
 .dash-card{background:#fff;border:1px solid var(--li2);border-radius:var(--r);padding:18px 20px}
 .dash-card-title{font-size:13px;font-weight:700;color:var(--bk);margin-bottom:12px}
-.dash-ga4-off{color:var(--gy);font-size:13px;line-height:1.7}
-.dash-ga4-off code{background:var(--lgy);padding:1px 6px;border-radius:5px;font-size:12px}
 
 /* Monthly overview (2026-09-11, per Shruti — "we would look at monthly
    revenue... add some graphics around target achieved", sharing her MTD
@@ -314,10 +312,6 @@ table.fields textarea{resize:vertical;min-height:32px}
       <div class="dash-card" style="margin-top:16px">
         <div class="dash-card-title">Weekly Bookings &amp; Revenue (last 12 weeks)</div>
         <div id="dashTrendChart"></div>
-      </div>
-      <div class="dash-card" id="dashGa4Card" style="margin-top:16px">
-        <div class="dash-card-title">Traffic &amp; Builder Funnel (GA4)</div>
-        <div id="dashGa4Content"><div class="empty">Loading…</div></div>
       </div>
     </div>
   </div>
@@ -643,7 +637,10 @@ async function saveDashOverrides(){
 function renderMonthlyTrendTable(trend){
   if(!trend || !trend.length) return '';
   let rows = '';
-  trend.forEach(t=>{
+  // 2026-09-11, per Shruti — most recent month (current) first. The API
+  // returns this oldest-first, so it's reversed here for display only —
+  // nothing else reads this array, so nothing upstream needed to change.
+  [...trend].reverse().forEach(t=>{
     rows += '<tr><td>'+monthShortLabel(t.month)+'</td><td>'+fmtNum(t.bookings)+'</td><td>'+fmtRs(t.actual_revenue)+'</td>'
       + '<td>'+fmtRs(t.estimated_revenue)+'</td><td>'+fmtRs(t.aov)+'</td>'
       + '<td>'+(t.target ? fmtRs(t.target) : '—')+'</td>'
@@ -712,7 +709,6 @@ function renderDashboard(d){
     kpiCard('Repeat Customer Rate', fmtPct(d.repeat_customer_rate_pct), d.repeat_customers+' of '+d.total_booking_customers+' customers', ''),
   ].join('');
   document.getElementById('dashTrendChart').innerHTML = renderTrendChart(d.trend, d.weekly_target_revenue);
-  renderGa4Section(d.ga4);
 }
 function renderTrendChart(trend, weeklyTarget){
   if(!trend || !trend.length) return '<div class="empty">No booking data yet.</div>';
@@ -743,35 +739,6 @@ function renderTrendChart(trend, weeklyTarget){
       + '<text x="'+(w-padR)+'" y="'+(targetY-4).toFixed(1)+'" font-size="9" fill="var(--or)" text-anchor="end">Weekly target</text>';
   }
   return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:auto;max-width:100%">'+targetLine+bars+labels+'</svg>';
-}
-function renderGa4Section(ga4){
-  const el = document.getElementById('dashGa4Content');
-  if(!ga4 || !ga4.configured){
-    el.innerHTML = '<div class="dash-ga4-off">Not connected yet. See <code>backend/GA4_SETUP.md</code> for the one-time setup (create a Google service account, share GA4 Viewer access, set two Railway env vars) — traffic and builder drop-off will appear here automatically once that\'s done.</div>';
-    return;
-  }
-  if(ga4.error){
-    el.innerHTML = '<div class="dash-ga4-off">GA4 is configured but the last fetch failed: '+esc(ga4.error)+'</div>';
-    return;
-  }
-  const ec = ga4.event_counts||{};
-  let html = '<div class="dash-grid" style="margin-bottom:14px">'
-    + kpiCard('Builder Starts', fmtNum(ec.builder_start), 'last 12 weeks', '')
-    + kpiCard('Checkouts Begun', fmtNum(ec.begin_checkout), 'last 12 weeks', '')
-    + kpiCard('Bookings Submitted', fmtNum(ec.booking_request_submitted), 'last 12 weeks', '')
-    + kpiCard('Leads Captured', fmtNum(ec.generate_lead), 'last 12 weeks', '')
-    + '</div>';
-  if(ga4.step_funnel && ga4.step_funnel.length){
-    html += '<div class="dash-card-title">Where builder users drop off</div>';
-    html += '<table class="list"><thead><tr><th>Step</th><th>Views</th><th>Drop-off</th></tr></thead><tbody>';
-    ga4.step_funnel.forEach(s=>{
-      html += '<tr><td>'+esc(s.step_name)+'</td><td>'+fmtNum(s.views)+'</td><td>'+(s.drop_off_pct?('\u2212'+s.drop_off_pct+'%'):'—')+'</td></tr>';
-    });
-    html += '</tbody></table>';
-  } else {
-    html += '<div class="dash-ga4-off">Per-step drop-off needs <code>step_name</code> registered as a GA4 custom dimension (see GA4_SETUP.md step 5) — once registered it takes a day to start appearing.</div>';
-  }
-  el.innerHTML = html;
 }
 function updateBubble(id, count){
   const el = document.getElementById(id);
