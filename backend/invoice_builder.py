@@ -300,7 +300,12 @@ def build_invoice_pdf(data: dict) -> bytes:
            f"{(' &middot; ' + data['event_time']) if data['event_time'] else ''}<br/>{data['venue_line']}",
            size=10, leading=15),
     ]
-    cards_tbl = Table([[bill_card, event_card]], colWidths=[usable_w * 0.5 - 4, usable_w * 0.5 - 4],
+    # colWidths must sum to exactly usable_w (not usable_w - N) — Table's
+    # default hAlign is CENTER, so any narrower total width centers this
+    # table within the frame instead of flushing it to the same left/right
+    # edges as every other table on the page (2026-09-11, per Shruti —
+    # "align of all boxes to be same from left and right edge").
+    cards_tbl = Table([[bill_card, event_card]], colWidths=[usable_w * 0.5, usable_w * 0.5],
                        spaceBefore=0)
     cards_tbl.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (0, 0), _LAVENDER_CARD),
