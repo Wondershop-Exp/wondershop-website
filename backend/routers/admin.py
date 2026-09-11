@@ -53,6 +53,12 @@ from pydantic import BaseModel
 from database import database
 from config import settings
 import catalogue_data as cat
+from types import SimpleNamespace
+from invoice_builder import assemble_invoice_data, build_invoice_pdf, invoice_filename
+from routers.leads import (
+    _services_detail_list, _party_title, _fmt_date_long, _gmail_send,
+    _get_or_create_invoice_number,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -959,6 +965,8 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
         "lead_status_options": LEAD_STATUS_OPTIONS,
         "non_convert_reason_options": NON_CONVERT_REASON_OPTIONS,
         "created_on_ist": _to_ist_str(lead.get("created_on")),
+        "invoice_number": lead.get("invoice_number"),
+        "invoice_sent_at_ist": _to_ist_str(lead.get("invoice_sent_at")) if lead.get("invoice_sent_at") else None,
         "sections": [{"section": s, "fields": sections[s]} for s in sections],
         "change_log": change_log,
     }
@@ -1296,3 +1304,110 @@ async def cancel_booking(lead_id: int, body: ChangedByRequest, x_admin_password:
     await database.execute("UPDATE leads SET status = 'Cancelled' WHERE lead_id = :id", values={"id": lead_id})
     await _log_status_change(lead_id, lead_row["status"], "Cancelled", who, now)
     return {"success": True, "status": "Cancelled"}
+
+
+# ─── INVOICE — SEND / RESEND ────────────────────────────────────────────────
+# 2026-09-11, per Shruti: "had a manual trigger to send the update invoice
+# from admin" — the original invoice already goes out automatically as an
+# email attachment the moment a booking is confirmed (see routers/leads.py's
+# _send_user_ack). This is the follow-up: whenever an admin has changed
+# Discount % / Advance Paid / other billing fields after the fact (via the
+# Billing & Rewards overrides above), this rebuilds the invoice from the
+# CURRENT live-recalculated figures (the same ones get_booking_detail()
+# already computes for this page) and re-sends it — reusing the same
+# invoice number every time so the customer never gets two different
+# numbers for one booking.
+def _money(s):
+    if s in (None, ""):
+        return None
+    try:
+        return float(str(s).replace(",", "").replace("₹", "").replace("Rs.", "").strip())
+    except ValueError:
+        return None
+
+
+@router.post("/bookings/{lead_id}/invoice/send")
+async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    if not body.changed_by or not body.changed_by.strip():
+        raise HTTPException(status_code=400, detail="changed_by is required.")
+
+    lead_row = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    if not lead_row:
+        raise HTTPException(status_code=404, detail="Booking not found.")
+    lead = dict(lead_row)
+    if not lead.get("is_booking"):
+        raise HTTPException(status_code=400, detail="This is a lead, not a confirmed booking — nothing to invoice yet.")
+    if not lead.get("email"):
+        raise HTTPException(status_code=400, detail="This booking has no email on file — nothing to send the invoice to.")
+
+    # Reuse get_booking_detail()'s own live billing recalculation (Discount
+    # %-driven Grand Total, Balance Due = Grand Total − Advance Paid, with
+    # every admin override already folded in) instead of duplicating that
+    # delicate math here.
+    detail = await get_booking_detail(lead_id, x_admin_password)
+    billing = {f["field_key"]: f for s in detail["sections"] if s["section"] == "Billing & Rewards" for f in s["fields"]}
+
+    def _choice(key):
+        f = billing.get(key)
+        return f.get("customer_choice") if f else None
+
+    snap = _parse_snapshot(lead.get("builder_snapshot"))
+    fake_req = SimpleNamespace(builder_snapshot=snap, child_names=lead.get("child_names"), child_ages=lead.get("child_ages"))
+
+    invoice_number = await _get_or_create_invoice_number(lead_id)
+    data = assemble_invoice_data(
+        lead_id=lead_id,
+        invoice_number=invoice_number,
+        invoice_date_str=_fmt_date_long(date_cls.today()),
+        parent_name=lead.get("parent_name"),
+        phone=lead.get("phone"),
+        email=lead.get("email"),
+        event_title=_party_title(fake_req) or "Birthday Party",
+        event_date_str=_fmt_date_long(lead.get("event_date")),
+        event_time=lead.get("event_time"),
+        venue=lead.get("venue"),
+        city=lead.get("city"),
+        services_detail=_services_detail_list(fake_req),
+        subtotal=_money(lead.get("order_grand_total")),
+        discount_pct=_money(_choice("bill_discount_pct")),
+        grand_total=_money(_choice("bill_grand_total")),
+        advance_paid=_money(_choice("bill_advance")),
+        balance_due=_money(_choice("bill_balance")),
+        total_savings=_money(_choice("bill_total_savings")),
+        freebies_text=_choice("bill_freebies"),
+        payment_method=lead.get("payment_method"),
+        gst_enabled=settings.GST_ENABLED,
+        gstin=settings.GSTIN,
+        gst_rate_pct=settings.GST_RATE_PCT,
+    )
+    pdf_bytes = build_invoice_pdf(data)
+    filename = invoice_filename(data)
+
+    who = body.changed_by.strip()
+    subject = f"📄 Your Updated Wondershop Invoice (Order #{lead_id})"
+    first_name = (lead.get("parent_name") or "there").split()[0]
+    body_text = (
+        f"Hi {first_name},\n\n"
+        f"Here's your updated invoice for booking #{lead_id} ({invoice_number}), reflecting the "
+        f"current order figures.\n\n"
+        f"If anything looks off, just reply to this email or WhatsApp us at +91 90044 35362.\n\n"
+        f"Warmly,\nTeam Wondershop 🎈\nwondershopexperiences.com\n"
+    )
+    await _gmail_send(
+        to_email=lead["email"], subject=subject, body=body_text,
+        attachments=[(filename, pdf_bytes, "application", "pdf")],
+    )
+    now = datetime.utcnow()
+    await database.execute("UPDATE leads SET invoice_sent_at = :now WHERE lead_id = :id", values={"now": now, "id": lead_id})
+    await database.execute(
+        """
+        INSERT INTO booking_change_log
+            (lead_id, field_key, field_label, change_type, old_value, new_value, changed_by, changed_at)
+        VALUES
+            (:lead_id, 'invoice', 'Invoice', 'invoice_sent', NULL, :new_v, :by, :ts)
+        """,
+        values={"lead_id": lead_id, "new_v": f"{invoice_number} resent to {lead['email']}", "by": who, "ts": now},
+    )
+    logger.info(f"Lead #{lead_id}: updated invoice ({invoice_number}) sent to {lead['email']} by {who}")
+    return {"success": True, "invoice_number": invoice_number, "sent_to": lead["email"]}
