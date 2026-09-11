@@ -90,6 +90,24 @@ table.list th.sortable:hover{color:var(--bk)}
 .tab-btn.active{background:var(--plum);color:#fff;border-color:var(--plum)}
 .tab-bubble{display:none;position:absolute;top:-7px;right:-7px;background:var(--pk);color:#fff;font-size:11px;font-weight:700;border-radius:20px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px}
 
+/* Dashboard tab (2026-09-11, per Shruti/CGO review — "do we have enough
+   system in place to track website performance"). Booking/lead KPIs come
+   from /api/admin/dashboard/summary (leads table, always on); the GA4
+   card degrades to a setup note until GA4_PROPERTY_ID/GA4_SERVICE_ACCOUNT_JSON
+   are configured — see backend/GA4_SETUP.md. */
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.dash-kpi{background:#fff;border:1px solid var(--li2);border-radius:var(--r);padding:16px 18px}
+.dash-kpi-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gy);margin-bottom:6px}
+.dash-kpi-value{font-family:var(--fd);font-size:24px;font-weight:700;color:var(--bk);line-height:1.2}
+.dash-kpi-sub{font-size:12px;color:var(--gy);margin-top:5px}
+.dash-kpi-delta{font-weight:700}
+.dash-kpi-delta.up{color:var(--gr)}
+.dash-kpi-delta.down{color:var(--pk)}
+.dash-card{background:#fff;border:1px solid var(--li2);border-radius:var(--r);padding:18px 20px}
+.dash-card-title{font-size:13px;font-weight:700;color:var(--bk);margin-bottom:12px}
+.dash-ga4-off{color:var(--gy);font-size:13px;line-height:1.7}
+.dash-ga4-off code{background:var(--lgy);padding:1px 6px;border-radius:5px;font-size:12px}
+
 /* ─── Detail view ─── */
 .detail-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
 .detail-head h2{font-size:20px}
@@ -204,6 +222,7 @@ table.fields textarea{resize:vertical;min-height:32px}
       <button class="tab-btn active" id="tabLeadBtn" onclick="switchTab('lead')">Leads<span class="tab-bubble" id="leadBubble"></span></button>
       <button class="tab-btn" id="tabBookingBtn" onclick="switchTab('booking')">Bookings<span class="tab-bubble" id="bookingBubble"></span></button>
       <button class="tab-btn" id="tabVendorBtn" onclick="switchTab('vendor')">Vendors</button>
+      <button class="tab-btn" id="tabDashBtn" onclick="switchTab('dash')">📊 Dashboard</button>
     </div>
     <div id="leadTableWrap">
       <table class="list">
@@ -245,6 +264,17 @@ table.fields textarea{resize:vertical;min-height:32px}
           <tbody id="vendorBody"></tbody>
         </table>
         <div class="empty" id="vendorEmpty" style="display:none">No vendors found.</div>
+      </div>
+    </div>
+    <div id="dashboardWrap" style="display:none">
+      <div class="dash-grid" id="dashKpis"><div class="empty">Loading…</div></div>
+      <div class="dash-card" style="margin-top:16px">
+        <div class="dash-card-title">Weekly Bookings &amp; Revenue (last 12 weeks)</div>
+        <div id="dashTrendChart"></div>
+      </div>
+      <div class="dash-card" id="dashGa4Card" style="margin-top:16px">
+        <div class="dash-card-title">Traffic &amp; Builder Funnel (GA4)</div>
+        <div id="dashGa4Content"><div class="empty">Loading…</div></div>
       </div>
     </div>
   </div>
@@ -414,12 +444,118 @@ function switchTab(tab){
   document.getElementById('tabLeadBtn').classList.toggle('active', tab==='lead');
   document.getElementById('tabBookingBtn').classList.toggle('active', tab==='booking');
   document.getElementById('tabVendorBtn').classList.toggle('active', tab==='vendor');
+  document.getElementById('tabDashBtn').classList.toggle('active', tab==='dash');
   document.getElementById('leadTableWrap').style.display = tab==='lead' ? 'block' : 'none';
   document.getElementById('bookingTableWrap').style.display = tab==='booking' ? 'block' : 'none';
   document.getElementById('vendorTableWrap').style.display = tab==='vendor' ? 'block' : 'none';
+  document.getElementById('dashboardWrap').style.display = tab==='dash' ? 'block' : 'none';
+  document.getElementById('searchQ').style.display = tab==='dash' ? 'none' : '';
+  document.querySelector('.searchbar button').style.display = tab==='dash' ? 'none' : '';
   document.getElementById('searchQ').placeholder = tab==='vendor'
     ? 'Search vendors by name, contact, phone, email...'
     : 'Search by name, phone, email, or booking ID...';
+  if(tab==='dash') loadDashboard();
+}
+
+// ── Dashboard tab ──────────────────────────────────────────────────────
+let DASH_LOADED = false;
+async function loadDashboard(force){
+  if(DASH_LOADED && !force) return;
+  try{
+    const d = await apiCall('/api/admin/dashboard/summary');
+    renderDashboard(d);
+    DASH_LOADED = true;
+  }catch(e){
+    if(e.message!=='unauthorized') document.getElementById('dashKpis').innerHTML = '<div class="empty">Could not load dashboard: '+esc(e.message)+'</div>';
+  }
+}
+function fmtRs(n){ return (n===null||n===undefined) ? '—' : 'Rs.'+Math.round(n).toLocaleString('en-IN'); }
+function fmtPct(n){ return (n===null||n===undefined) ? '—' : n.toFixed(1)+'%'; }
+function fmtNum(n){ return (n===null||n===undefined) ? '—' : Math.round(n).toLocaleString('en-IN'); }
+function deltaHtml(curr, prev, higherIsBetter){
+  if(curr===null||curr===undefined||prev===null||prev===undefined||prev===0) return '';
+  const pct = ((curr-prev)/Math.abs(prev))*100;
+  const up = pct >= 0;
+  const good = higherIsBetter ? up : !up;
+  return '<span class="dash-kpi-delta '+(good?'up':'down')+'">'+(up?'▲':'▼')+' '+Math.abs(pct).toFixed(0)+'% vs last week</span>';
+}
+function kpiCard(label, value, sub, delta){
+  return '<div class="dash-kpi"><div class="dash-kpi-label">'+esc(label)+'</div><div class="dash-kpi-value">'+value+'</div>'
+    + (sub ? '<div class="dash-kpi-sub">'+esc(sub)+'</div>' : '')
+    + (delta ? '<div class="dash-kpi-sub">'+delta+'</div>' : '')
+    + '</div>';
+}
+function renderDashboard(d){
+  const tw = d.this_week, lw = d.last_week;
+  const targetPct = (tw.revenue && d.weekly_target_revenue) ? Math.min(100, Math.round(tw.revenue/d.weekly_target_revenue*100)) : 0;
+  document.getElementById('dashKpis').innerHTML = [
+    kpiCard('This Week Revenue', fmtRs(tw.revenue), tw.bookings+' bookings · '+targetPct+'% of '+fmtRs(d.weekly_target_revenue)+' target', deltaHtml(tw.revenue, lw.revenue, true)),
+    kpiCard('Last Week Revenue', fmtRs(lw.revenue), lw.bookings+' bookings', ''),
+    kpiCard('AOV (this week)', fmtRs(tw.aov), 'last week: '+fmtRs(lw.aov), deltaHtml(tw.aov, lw.aov, true)),
+    kpiCard('Lead \u2192 Booking Conversion', fmtPct(tw.conversion_pct), 'all-time: '+fmtPct(d.all_time_conversion_pct), deltaHtml(tw.conversion_pct, lw.conversion_pct, true)),
+    kpiCard('Repeat Customer Rate', fmtPct(d.repeat_customer_rate_pct), d.repeat_customers+' of '+d.total_booking_customers+' customers', ''),
+  ].join('');
+  document.getElementById('dashTrendChart').innerHTML = renderTrendChart(d.trend, d.weekly_target_revenue);
+  renderGa4Section(d.ga4);
+}
+function renderTrendChart(trend, weeklyTarget){
+  if(!trend || !trend.length) return '<div class="empty">No booking data yet.</div>';
+  const w = 760, h = 220, padL = 10, padB = 26, padT = 10, padR = 10;
+  const chartW = w - padL - padR, chartH = h - padT - padB;
+  const maxRevenue = Math.max(weeklyTarget||0, ...trend.map(t=>t.revenue||0), 1);
+  const gap = chartW / trend.length;
+  const barW = gap * 0.6;
+  let bars = '', labels = '';
+  trend.forEach((t, i) => {
+    const x = padL + i*gap + (gap-barW)/2;
+    const barH = ((t.revenue||0) / maxRevenue) * chartH;
+    const y = padT + chartH - barH;
+    const isCurrent = i === trend.length - 1;
+    const titleTxt = t.week_start+': '+fmtRs(t.revenue)+' ('+t.bookings+' bookings)';
+    bars += '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+Math.max(barH,1).toFixed(1)+'" rx="3" fill="'+(isCurrent?'var(--pk)':'var(--li)')+'"><title>'+titleTxt+'</title></rect>';
+    if(i % 2 === 0 || i === trend.length-1){
+      const lx = x + barW/2;
+      const d = new Date(t.week_start+'T00:00:00');
+      const lbl = d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+      labels += '<text x="'+lx.toFixed(1)+'" y="'+(h-8)+'" font-size="9" fill="var(--gy)" text-anchor="middle">'+lbl+'</text>';
+    }
+  });
+  let targetLine = '';
+  if(weeklyTarget){
+    const targetY = padT + chartH - (weeklyTarget/maxRevenue)*chartH;
+    targetLine = '<line x1="'+padL+'" y1="'+targetY.toFixed(1)+'" x2="'+(w-padR)+'" y2="'+targetY.toFixed(1)+'" stroke="var(--or)" stroke-width="1.5" stroke-dasharray="5,4"/>'
+      + '<text x="'+(w-padR)+'" y="'+(targetY-4).toFixed(1)+'" font-size="9" fill="var(--or)" text-anchor="end">Weekly target</text>';
+  }
+  return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:auto;max-width:100%">'+targetLine+bars+labels+'</svg>';
+}
+function renderGa4Section(ga4){
+  const el = document.getElementById('dashGa4Content');
+  if(!ga4 || !ga4.configured){
+    el.innerHTML = '<div class="dash-ga4-off">Not connected yet. See <code>backend/GA4_SETUP.md</code> for the one-time setup (create a Google service account, share GA4 Viewer access, set two Railway env vars) — traffic and builder drop-off will appear here automatically once that\'s done.</div>';
+    return;
+  }
+  if(ga4.error){
+    el.innerHTML = '<div class="dash-ga4-off">GA4 is configured but the last fetch failed: '+esc(ga4.error)+'</div>';
+    return;
+  }
+  const ec = ga4.event_counts||{};
+  let html = '<div class="dash-grid" style="margin-bottom:14px">'
+    + kpiCard('Builder Starts', fmtNum(ec.builder_start), 'last 12 weeks', '')
+    + kpiCard('Checkouts Begun', fmtNum(ec.begin_checkout), 'last 12 weeks', '')
+    + kpiCard('Bookings Submitted', fmtNum(ec.booking_request_submitted), 'last 12 weeks', '')
+    + kpiCard('Leads Captured', fmtNum(ec.generate_lead), 'last 12 weeks', '')
+    + '</div>';
+  if(ga4.step_funnel && ga4.step_funnel.length){
+    html += '<div class="dash-card-title">Where builder users drop off</div>';
+    html += '<table class="list"><thead><tr><th>Step</th><th>Views</th><th>Drop-off</th></tr></thead><tbody>';
+    ga4.step_funnel.forEach(s=>{
+      html += '<tr><td>'+esc(s.step_name)+'</td><td>'+fmtNum(s.views)+'</td><td>'+(s.drop_off_pct?('\u2212'+s.drop_off_pct+'%'):'—')+'</td></tr>';
+    });
+    html += '</tbody></table>';
+  } else {
+    html += '<div class="dash-ga4-off">Per-step drop-off needs <code>step_name</code> registered as a GA4 custom dimension (see GA4_SETUP.md step 5) — once registered it takes a day to start appearing.</div>';
+  }
+  el.innerHTML = html;
 }
 function updateBubble(id, count){
   const el = document.getElementById(id);
