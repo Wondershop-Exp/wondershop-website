@@ -33,6 +33,7 @@ from order_form_builder import (
     assemble_order_form_data, fetch_order_form_images, build_order_form_xlsx,
     build_order_form_pdf, order_form_filename,
 )
+from invoice_builder import assemble_invoice_data, build_invoice_pdf, invoice_filename
 import catalogue_data as cat
 
 router = APIRouter()
@@ -1314,6 +1315,67 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
 
 # ─── 1. USER ACK EMAIL ───────────────────────────────────────────────────────
 
+async def _get_or_create_invoice_number(lead_id: int) -> str:
+    """Generates this booking's invoice number the first time an invoice is
+    ever built for it (WSE-{year}-{lead_id:06d}), persists it, and reuses
+    the same number on every later resend — a customer must never see two
+    different invoice numbers for one booking (2026-09-11, per Shruti)."""
+    row = await database.fetch_one(
+        "SELECT invoice_number FROM leads WHERE lead_id = :id", values={"id": lead_id}
+    )
+    if row and row["invoice_number"]:
+        return row["invoice_number"]
+    invoice_number = f"WSE-{datetime.utcnow().year}-{lead_id:06d}"
+    await database.execute(
+        "UPDATE leads SET invoice_number = :inv, invoice_generated_at = :now WHERE lead_id = :id",
+        values={"inv": invoice_number, "now": datetime.utcnow(), "id": lead_id},
+    )
+    return invoice_number
+
+
+async def _build_booking_invoice_pdf(lead_id: int, req: LeadSubmitRequest) -> tuple:
+    """Builds the invoice PDF for a just-submitted booking confirmation,
+    straight from the submission payload (no DB round-trip needed — req IS
+    the just-inserted row). Returns (filename, pdf_bytes). GST fields all
+    come from settings, so this starts showing GSTIN + a CGST/SGST
+    breakdown automatically the moment settings.GST_ENABLED is switched on,
+    with no code change here (2026-09-11, per Shruti — "we might need to
+    add gst later")."""
+    invoice_number = await _get_or_create_invoice_number(lead_id)
+    data = assemble_invoice_data(
+        lead_id=lead_id,
+        invoice_number=invoice_number,
+        invoice_date_str=_fmt_date_long(date.today()),
+        parent_name=req.parent_name,
+        phone=req.phone,
+        email=req.email,
+        event_title=_party_title(req) or "Birthday Party",
+        event_date_str=_fmt_date_long(req.event_date),
+        event_time=req.event_time,
+        venue=req.venue,
+        city=req.city,
+        services_detail=_services_detail_list(req),
+        # order_grand_total is the pre-discount cart subtotal captured at
+        # checkout (see routers/admin.py's Grand Total recalculation
+        # comment) — client_budget is the actual payable total after
+        # discount, i.e. what the confirmation email itself labels
+        # "Payable Total" in _format_order_summary_block().
+        subtotal=req.order_grand_total,
+        discount_pct=req.order_discount_pct,
+        grand_total=req.client_budget if req.client_budget is not None else req.order_grand_total,
+        advance_paid=req.order_advance,
+        balance_due=req.order_balance,
+        total_savings=req.order_total_savings,
+        freebies_text=req.order_freebies_text,
+        payment_method=req.payment_method,
+        gst_enabled=settings.GST_ENABLED,
+        gstin=settings.GSTIN,
+        gst_rate_pct=settings.GST_RATE_PCT,
+    )
+    pdf_bytes = build_invoice_pdf(data)
+    return invoice_filename(data), pdf_bytes
+
+
 async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str] = None,
                           added_service_label: Optional[str] = None, is_upgrade: bool = False) -> None:
     """Confirmation email to the parent who submitted the form. Content and
@@ -1383,15 +1445,36 @@ wondershopexperiences.com
             added_service_label=added_service_label,
         )
         # 2026-08-14, per Shruti: attach the actual .ics calendar invite the
-        # confirmation page/email already promise ("your date is blocked!").
+        # confirmation page/event/email already promise ("your date is
+        # blocked!").
         ics_attachments = []
         if is_booking:
             ics_bytes = _build_ics_bytes(req, lead_id)
             if ics_bytes:
                 ics_attachments = [(f"wondershop-booking-{lead_id}.ics", ics_bytes, "text", "calendar")]
-        await _gmail_send(to_email=req.email, subject=subject, body=body, html_body=html_body, attachments=ics_attachments)
+        # 2026-09-11, per Shruti: "This needs to go as an attachment when
+        # the user confirms the order." Only on the original booking
+        # confirmation, not the /redeem-service "order upgrade" resend
+        # (which already covers that reward via its own updated content) —
+        # the admin panel's manual resend covers any invoice needed after
+        # that point.
+        invoice_attachments = []
+        if is_booking and not is_upgrade:
+            try:
+                invoice_name, invoice_bytes = await _build_booking_invoice_pdf(lead_id, req)
+                invoice_attachments = [(invoice_name, invoice_bytes, "application", "pdf")]
+            except Exception as inv_exc:
+                logger.error(f"Lead #{lead_id}: invoice PDF build failed, sending confirmation without it — {inv_exc}")
+        attachments = ics_attachments + invoice_attachments
+        await _gmail_send(to_email=req.email, subject=subject, body=body, html_body=html_body, attachments=attachments)
+        if invoice_attachments:
+            await database.execute(
+                "UPDATE leads SET invoice_sent_at = :now WHERE lead_id = :id",
+                values={"now": datetime.utcnow(), "id": lead_id},
+            )
         logger.info(f"Lead #{lead_id}: user ACK sent to {req.email}"
-                    f"{' with calendar invite' if ics_attachments else ''}")
+                    f"{' with calendar invite' if ics_attachments else ''}"
+                    f"{' with invoice' if invoice_attachments else ''}")
     except Exception as exc:
         logger.error(f"Lead #{lead_id}: user ACK email failed — {exc}")
 

@@ -752,8 +752,10 @@ function statusBlockHtml(d){
     return '<div class="status-card">'
       +'<div class="fld"><label>Status</label><span class="status-pill '+cls+'" style="padding:8px 14px;font-size:13px">'+esc(d.status||'')+'</span></div>'
       +'<div class="btns">'
+        +'<button class="btn" onclick="sendInvoiceDetail()">'+(d.invoice_sent_at_ist ? 'Resend Updated Invoice' : 'Send Invoice')+'</button>'
         +(d.status!=='Cancelled' ? '<button class="btn cancel" onclick="cancelEventDetail()">Cancel Event</button>' : '')
       +'</div>'
+      +(d.invoice_sent_at_ist ? '<div class="fld"><label>Invoice last sent</label><span>'+esc(d.invoice_sent_at_ist)+(d.invoice_number ? ' · '+esc(d.invoice_number) : '')+'</span></div>' : '')
       +'</div>';
   }
   const opts = LEAD_STATUS_OPTIONS.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===d.status?' selected':'')+'>'+esc(o.label)+'</option>').join('');
@@ -824,6 +826,22 @@ async function convertLeadDetail(){
     if(e.message!=='unauthorized') showToast(e.message);
   }
 }
+async function sendInvoiceDetail(){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); highlightWhoName(); return; }
+  if(!confirm('Send the current invoice to this customer by email now?')) return;
+  try{
+    const res = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/invoice/send', {
+      method:'POST',
+      body: JSON.stringify({changed_by: who}),
+    });
+    showToast('✓ Invoice '+res.invoice_number+' sent to '+res.sent_to+'.');
+    await loadDetail();
+  }catch(e){
+    if(e.message!=='unauthorized') showToast(e.message);
+  }
+}
+
 async function cancelEventDetail(){
   const who = getName();
   if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); highlightWhoName(); return; }

@@ -61,6 +61,15 @@ class Settings(BaseSettings):
     IG_USER_ID: str = ""
     IG_ACCESS_TOKEN: str = ""
 
+    # GST readiness — Wondershop is not GST-registered yet (2026-09, per
+    # Shruti — "will register in sometime"). Keep GST_ENABLED False until
+    # registration is complete; invoice_builder.py already reads these three
+    # settings and will start showing GSTIN + a CGST/SGST breakdown the
+    # moment GST_ENABLED flips to True, with no other code changes needed.
+    GST_ENABLED: bool = False
+    GSTIN: str = ""
+    GST_RATE_PCT: float = 0.0
+
     @property
     def origins(self) -> List[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
