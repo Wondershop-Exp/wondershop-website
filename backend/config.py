@@ -70,6 +70,25 @@ class Settings(BaseSettings):
     GSTIN: str = ""
     GST_RATE_PCT: float = 0.0
 
+    # Admin dashboard (2026-09-11, per Shruti/CGO review — "do we have
+    # enough system in place to track website performance"). Weekly target
+    # is derived as MONTHLY_REVENUE_TARGET / 4.345 (average weeks/month) —
+    # update this single number as the growth target changes, rather than
+    # a stored weekly figure that drifts out of sync with the monthly one.
+    # CGO's PRD target: Rs.1 crore ARR in 9-12 months (~Rs.8-9L/month) —
+    # defaulting to the low end.
+    MONTHLY_REVENUE_TARGET: float = 800000
+
+    # GA4 Data API — read-only traffic + builder-funnel numbers on the
+    # dashboard. Both blank = GA4 cards show a "not connected yet" state
+    # instead of erroring. GA4_SERVICE_ACCOUNT_JSON is the FULL JSON key
+    # file content for a service account with Viewer access on the GA4
+    # property, pasted as one env var (Railway has no file uploads) — never
+    # commit a real value here. See backend/GA4_SETUP.md for the one-time
+    # setup steps.
+    GA4_PROPERTY_ID: str = ""
+    GA4_SERVICE_ACCOUNT_JSON: str = ""
+
     @property
     def origins(self) -> List[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
