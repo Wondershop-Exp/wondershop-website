@@ -1662,6 +1662,11 @@ function fieldRowHtml(f, isCustEvent, locked){
     // Trimmed number in the input (still a bare number for saving/
     // validation), "%" as a purely visual suffix layered on top.
     ccCell = '<span class="pct-wrap"><input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice?fmtPct(f.customer_choice):'')+'" placeholder="'+(f.admin_only?'—':'(use original)')+'"><span class="pct-suffix">%</span></span>';
+  }else if(f.field_key==='event_payment_confirmed_amount'){
+    // 2026-09-11, per Shruti — event-completion payment confirmation. Value
+    // lands in Customer's Choice like every other admin-only field here
+    // (Payment Status above is the precedent), just typed as a number.
+    ccCell = '<input type="number" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="'+(f.admin_only?'—':'(use original)')+'" step="0.01" min="0">';
   }else{
     ccCell = '<input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="'+(f.admin_only?'—':'(use original)')+'">';
   }

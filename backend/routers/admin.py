@@ -191,6 +191,13 @@ FIELD_CATALOG = [
     {"key": "bill_balance",         "label": "Balance Due",            "section": "Billing & Rewards"},
     {"key": "bill_payment_method",  "label": "Payment Method",         "section": "Billing & Rewards"},
     {"key": "bill_payment_status",  "label": "Payment Status",         "section": "Billing & Rewards", "admin_only": True},
+    # 2026-09-11, per Shruti — separate from Payment Status/Method above:
+    # confirms the EVENT ITSELF settled (amount + mode), entered by the
+    # event admin once delivered. The new monthly dashboard's "Realized"
+    # revenue bucket depends on both of these being filled in, not just on
+    # the event date having passed.
+    {"key": "event_payment_confirmed_amount", "label": "Event Payment Confirmed (Rs.)", "section": "Billing & Rewards", "admin_only": True},
+    {"key": "event_payment_confirmed_mode",   "label": "Event Payment Mode",            "section": "Billing & Rewards", "admin_only": True},
     {"key": "bill_coupon_code",     "label": "Coupon Code",            "section": "Billing & Rewards"},
     {"key": "bill_reward_won",      "label": "Reward Won",             "section": "Billing & Rewards"},
     {"key": "bill_reward_redeemed", "label": "Reward Redeemed As",     "section": "Billing & Rewards"},
@@ -262,6 +269,11 @@ EINVITE_OPTIONS = [_opt(x) for x in [
 ]]
 PAYMENT_METHOD_OPTIONS = [_opt(x) for x in ["Cash", "UPI Transfer", "Bank Transfer", "Internal Settle"]]
 PAYMENT_STATUS_OPTIONS = [_opt(x) for x in ["Pending", "Advance Paid Pending Verification", "Advance Paid Verified", "Complete"]]
+# 2026-09-11, per Shruti — event-completion confirmation (distinct from
+# Payment Status/Method above, which track advance-payment collection
+# before the event). This is the event admin confirming how the event
+# itself was settled.
+EVENT_PAYMENT_MODE_OPTIONS = [_opt(x) for x in ["Cash", "GPay", "Internal Settle"]]
 
 # ─── Lead → Booking status workflow (2026-08-19, per Shruti; reworked same
 # day after her follow-up round — see migrations/017_lead_status_workflow.sql
@@ -336,6 +348,7 @@ DROPDOWN_OPTIONS = {
     "svc_einvite": EINVITE_OPTIONS,
     "bill_payment_method": PAYMENT_METHOD_OPTIONS,
     "bill_payment_status": PAYMENT_STATUS_OPTIONS,
+    "event_payment_confirmed_mode": EVENT_PAYMENT_MODE_OPTIONS,
 }
 # Plain value sets, for validation (label text is never compared).
 DROPDOWN_VALUES = {key: {o["value"] for o in opts} for key, opts in DROPDOWN_OPTIONS.items()}
@@ -552,6 +565,14 @@ async def _validate_choice_value(key: str, value: str, derived_original: Optiona
         grand_total = lead.get("client_budget")
         if grand_total is not None and adv > float(grand_total):
             raise HTTPException(status_code=400, detail="Advance Paid cannot exceed the Grand Total.")
+
+    if key == "event_payment_confirmed_amount":
+        try:
+            amt = float(value)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Event Payment Confirmed must be a number.")
+        if amt < 0:
+            raise HTTPException(status_code=400, detail="Event Payment Confirmed can't be negative.")
 
     if key == "bill_coupon_code":
         row = await database.fetch_one(
