@@ -107,11 +107,14 @@ table.list th.sortable:hover{color:var(--bk)}
 .dash-card-title{font-size:13px;font-weight:700;color:var(--bk);margin-bottom:12px}
 
 /* Monthly overview (2026-09-11, per Shruti — "we would look at monthly
-   revenue... add some graphics around target achieved", sharing her MTD
-   tracker sheet as the shape to match). Website/Repeat leads are computed
-   from real `leads` rows; Instagram/Carried Forward aren't logged in the
-   system at all today, so those two stay a manual monthly entry — see the
-   big comment on dashboard.py's _leads_funnel(). */
+   revenue... add some graphics around target achieved", then the fuller
+   rebuild: Realized / Booked / Potential revenue+bookings, each against
+   its own manually-set target, a 6-month trend, and a payment-confirmation
+   gate before revenue counts as Realized — see dashboard.py's
+   _classify_month() for the exact rule. Instagram/Carried-Forward manual
+   entry and the old run-rate "Estimated" figure were dropped in this
+   rebuild; GA4-based Traffic/Builder/Checkout funnels aren't built yet —
+   see backend/GA4_SETUP.md. */
 .dash-card-title-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px}
 .dash-month-nav{display:flex;align-items:center;gap:10px;font-size:13px}
 .dash-month-nav span{font-weight:700;color:var(--bk);min-width:120px;text-align:center;font-family:var(--fd)}
@@ -134,6 +137,11 @@ table.list.static tr:hover td{background:inherit}
 .dash-funnel-row{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;color:var(--gy)}
 .dash-funnel-row b{color:var(--bk);font-weight:700}
 .dash-funnel-empty{font-size:11.5px;color:var(--gy);font-style:italic;margin-top:4px;line-height:1.5}
+.dash-seg-bar{display:flex;height:26px;border-radius:8px;overflow:hidden;background:var(--li2);margin-top:16px}
+.dash-seg-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--gy)}
+.dash-seg-legend .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
+.confirm-flag{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#B5620A;margin-top:10px;background:#FFF4E8;border:1px solid #FCE0BE;border-radius:8px;padding:8px 12px}
+.confirm-flag .dot{width:7px;height:7px;border-radius:50%;background:var(--or);flex-shrink:0}
 
 /* ─── Detail view ─── */
 .detail-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
@@ -301,7 +309,7 @@ table.fields textarea{resize:vertical;min-height:32px}
             <button class="mini-btn" onclick="changeDashMonth(-1)">&larr;</button>
             <span id="dashMonthLabel">—</span>
             <button class="mini-btn" id="dashMonthNextBtn" onclick="changeDashMonth(1)">&rarr;</button>
-            <button class="linkbtn" onclick="toggleDashEdit()">Edit target &amp; manual leads</button>
+            <button class="linkbtn" onclick="toggleDashEdit()">Edit targets</button>
           </div>
         </div>
         <div id="dashMonthlyBody"><div class="empty">Loading…</div></div>
@@ -566,46 +574,62 @@ function renderTargetGauge(pct){
     + '</svg>';
 }
 function renderDashMonthly(d){
-  const gauge = renderTargetGauge(d.pct_target);
-  const targetCaption = d.target
-    ? ('vs '+fmtRs(d.target)+' target'+(d.target_is_override?'':' (default — not set for this month)'))
-    : 'No target set for this month yet';
+  const revGauge = renderTargetGauge(d.revenue_target_pct);
+  const bookGauge = renderTargetGauge(d.bookings_target_pct);
+  const revCaption = d.revenue_target
+    ? ('vs '+fmtRs(d.revenue_target)+' revenue target')
+    : 'No revenue target set for this month yet';
+  const bookCaption = d.bookings_target
+    ? ('vs '+fmtNum(d.bookings_target)+' bookings target')
+    : 'No bookings target set for this month yet';
   const kpis = [
-    kpiCard('Bookings', fmtNum(d.bookings), 'day '+d.days_elapsed+' of '+d.days_in_month, ''),
-    kpiCard('Actual Revenue', fmtRs(d.actual_revenue), 'month to date', ''),
-    kpiCard('Estimated (run-rate)', fmtRs(d.estimated_revenue), 'projected full month', ''),
-    kpiCard('AOV', fmtRs(d.aov), '', ''),
+    kpiCard('Realized Revenue', fmtRs(d.realized_revenue), d.realized_bookings+' event(s) delivered & payment confirmed', ''),
+    kpiCard('Booked Revenue', fmtRs(d.booked_revenue), d.booked_bookings+' confirmed booking(s)'+(d.pending_confirm_count ? ' · '+d.pending_confirm_count+' awaiting confirmation' : ''), ''),
+    kpiCard('Potential Revenue', fmtRs(d.potential_revenue), d.potential_bookings+' warm lead(s) in progress', ''),
+    kpiCard('Total Projected', fmtRs(d.total_revenue), d.total_bookings+' total', ''),
+    kpiCard('AOV', fmtRs(d.aov), 'Realized + Booked', ''),
+    kpiCard('Events in next 14 days', fmtNum(d.confirmed_events_next_14d), 'confirmed bookings', ''),
   ].join('');
   let html = '<div class="dash-monthly-top">'
-    + '<div class="dash-gauge-wrap">'+gauge+'<div class="dash-gauge-caption">'+esc(targetCaption)+'</div></div>'
+    + '<div class="dash-gauge-wrap">'+revGauge+'<div class="dash-gauge-caption">'+esc(revCaption)+'</div></div>'
+    + '<div class="dash-gauge-wrap">'+bookGauge+'<div class="dash-gauge-caption">'+esc(bookCaption)+'</div></div>'
     + '<div class="dash-grid" style="flex:1;min-width:260px">'+kpis+'</div>'
     + '</div>';
+  html += renderSegBar(d);
+  if(d.pending_confirm_count){
+    html += '<div class="confirm-flag"><span class="dot"></span>'+d.pending_confirm_count+' event(s) delivered but not yet payment-confirmed on the admin panel — still counted in Booked, not Realized.</div>';
+  }
   html += renderDashEditForm(d);
   html += renderMonthlyTrendTable(d.trend);
-  html += renderLeadsFunnel(d.leads_funnel);
   document.getElementById('dashMonthlyBody').innerHTML = html;
+}
+function renderSegBar(d){
+  const segs = [
+    {key:'realized', label:'Realized', value:d.realized_revenue, color:'var(--gr)'},
+    {key:'booked', label:'Booked', value:d.booked_revenue, color:'var(--bl)'},
+    {key:'potential', label:'Potential', value:d.potential_revenue, color:'var(--or)'},
+  ];
+  const total = segs.reduce((s,x)=>s+(x.value||0),0);
+  if(!total) return '';
+  let bar = '', legend = '';
+  segs.forEach(s=>{
+    const pct = total ? (s.value/total*100) : 0;
+    if(pct > 0) bar += '<div style="flex:'+pct.toFixed(2)+' 0 0;background:'+s.color+'" title="'+s.label+': '+fmtRs(s.value)+'"></div>';
+    legend += '<span><span class="dot" style="background:'+s.color+'"></span>'+s.label+' — '+fmtRs(s.value)+'</span>';
+  });
+  return '<div class="dash-seg-bar">'+bar+'</div><div class="dash-seg-legend">'+legend+'</div>';
 }
 function renderDashEditForm(d){
   if(!DASH_EDIT_MODE) return '';
-  const ig = d.leads_funnel.instagram || {}, cf = d.leads_funnel.carried_forward || {};
   const v = x => (x===null || x===undefined) ? '' : x;
   const lastUpdated = d.updated_by
     ? '<div class="dash-gauge-caption" style="margin-top:10px">Last updated by '+esc(d.updated_by)+(d.updated_on ? ' · '+new Date(d.updated_on).toLocaleString('en-IN') : '')+'</div>'
     : '';
   return '<div class="dash-edit-form">'
-    + '<h4>Monthly target</h4>'
-    + '<div class="fld-row"><div class="fld"><label>Target revenue (Rs.)</label><input type="number" id="dashEditTarget" value="'+v(d.target)+'"></div></div>'
-    + '<h4>Instagram leads (manual — not tracked in the system yet)</h4>'
+    + '<h4>Monthly targets</h4>'
     + '<div class="fld-row">'
-      + '<div class="fld"><label>Leads</label><input type="number" id="dashEditIgLeads" value="'+v(ig.leads)+'"></div>'
-      + '<div class="fld"><label>Converted</label><input type="number" id="dashEditIgConverted" value="'+v(ig.converted)+'"></div>'
-      + '<div class="fld"><label>Revenue (Rs.)</label><input type="number" id="dashEditIgRevenue" value="'+v(ig.revenue)+'"></div>'
-    + '</div>'
-    + '<h4>Carried forward leads (manual)</h4>'
-    + '<div class="fld-row">'
-      + '<div class="fld"><label>Leads</label><input type="number" id="dashEditCfLeads" value="'+v(cf.leads)+'"></div>'
-      + '<div class="fld"><label>Converted</label><input type="number" id="dashEditCfConverted" value="'+v(cf.converted)+'"></div>'
-      + '<div class="fld"><label>Revenue (Rs.)</label><input type="number" id="dashEditCfRevenue" value="'+v(cf.revenue)+'"></div>'
+      + '<div class="fld"><label>Revenue target (Rs.)</label><input type="number" id="dashEditRevTarget" value="'+v(d.revenue_target)+'"></div>'
+      + '<div class="fld"><label>Bookings target</label><input type="number" id="dashEditBookTarget" value="'+v(d.bookings_target)+'"></div>'
     + '</div>'
     + '<div style="display:flex;gap:8px">'
       + '<button class="mini-btn save" onclick="saveDashOverrides()">Save</button>'
@@ -620,9 +644,8 @@ async function saveDashOverrides(){
   const numOrNull = id => { const v = document.getElementById(id).value; return v===''? null : Number(v); };
   const body = {
     month: offsetMonthStr(DASH_MONTH_OFFSET),
-    monthly_target: numOrNull('dashEditTarget'),
-    instagram: {leads: numOrNull('dashEditIgLeads'), converted: numOrNull('dashEditIgConverted'), revenue: numOrNull('dashEditIgRevenue')},
-    carried_forward: {leads: numOrNull('dashEditCfLeads'), converted: numOrNull('dashEditCfConverted'), revenue: numOrNull('dashEditCfRevenue')},
+    monthly_target: numOrNull('dashEditRevTarget'),
+    bookings_target: numOrNull('dashEditBookTarget'),
     updated_by: who,
   };
   try{
@@ -641,46 +664,17 @@ function renderMonthlyTrendTable(trend){
   // returns this oldest-first, so it's reversed here for display only —
   // nothing else reads this array, so nothing upstream needed to change.
   [...trend].reverse().forEach(t=>{
-    rows += '<tr><td>'+monthShortLabel(t.month)+'</td><td>'+fmtNum(t.bookings)+'</td><td>'+fmtRs(t.actual_revenue)+'</td>'
-      + '<td>'+fmtRs(t.estimated_revenue)+'</td><td>'+fmtRs(t.aov)+'</td>'
+    rows += '<tr><td>'+monthShortLabel(t.month)+'</td>'
+      + '<td>'+fmtNum(t.actual_bookings)+'</td><td>'+fmtRs(t.actual_revenue)+'</td>'
+      + '<td>'+fmtNum(t.potential_bookings)+'</td><td>'+fmtRs(t.potential_revenue)+'</td>'
+      + '<td>'+fmtRs(t.total_revenue)+'</td><td>'+fmtRs(t.aov)+'</td>'
       + '<td>'+(t.target ? fmtRs(t.target) : '—')+'</td>'
       + '<td>'+(t.pct_target!==null && t.pct_target!==undefined ? t.pct_target+'%' : '—')+'</td></tr>';
   });
   return '<div class="dash-card-title" style="margin-top:22px">Monthly Trend (last 6 months)</div>'
     + '<div style="overflow-x:auto"><table class="list static"><thead><tr>'
-    + '<th>Month</th><th>Bookings</th><th>Actual Revenue</th><th>Estimated</th><th>AOV</th><th>Target</th><th>%Target</th>'
+    + '<th>Month</th><th>Bookings (Actual)</th><th>Actual Revenue</th><th>Potential Bookings</th><th>Potential Revenue</th><th>Total Projected</th><th>AOV</th><th>Target</th><th>%Target</th>'
     + '</tr></thead><tbody>'+rows+'</tbody></table></div>';
-}
-function funnelRow(label, value){
-  return '<div class="dash-funnel-row"><span>'+label+'</span><b>'+value+'</b></div>';
-}
-function renderLeadsFunnel(funnel){
-  const cols = [
-    {key:'website', label:'Website Leads', manual:false},
-    {key:'instagram', label:'Instagram', manual:true},
-    {key:'carried_forward', label:'Carried Forward', manual:true},
-    {key:'repeat', label:'Repeat Leads', manual:false},
-  ];
-  let html = '<div class="dash-card-title" style="margin-top:22px">Leads Funnel</div><div class="dash-funnel-grid">';
-  cols.forEach(c=>{
-    const f = funnel[c.key] || {};
-    const isEmpty = c.manual && (f.leads===null || f.leads===undefined);
-    html += '<div class="dash-funnel-col'+(c.manual?' manual':'')+'">'
-      + '<h5>'+esc(c.label)+(c.manual?' <span style="font-weight:400;color:var(--gy);font-size:10px">(manual)</span>':'')+'</h5>';
-    if(isEmpty){
-      html += '<div class="dash-funnel-empty">Not entered yet — click "Edit target &amp; manual leads" above.</div>';
-    } else {
-      html += funnelRow('Leads', fmtNum(f.leads))
-        + funnelRow('Converted Leads', fmtNum(f.converted))
-        + funnelRow('Conversion%', fmtPct(f.conversion_pct))
-        + funnelRow('Orders', fmtNum(f.orders))
-        + funnelRow('Revenue', fmtRs(f.revenue))
-        + funnelRow('AOV', fmtRs(f.aov));
-    }
-    html += '</div>';
-  });
-  html += '</div>';
-  return html;
 }
 function fmtRs(n){ return (n===null||n===undefined) ? '—' : 'Rs.'+Math.round(n).toLocaleString('en-IN'); }
 function fmtPct(n){ return (n===null||n===undefined) ? '—' : n.toFixed(1)+'%'; }
