@@ -96,6 +96,87 @@ def fetch_traffic_and_events(start: date, end: date) -> dict:
     return {"daily_traffic": daily, "event_counts": event_counts}
 
 
+def fetch_daily_events(start: date, end: date, event_names: list) -> list:
+    """Per-day event counts for the given event names (dimensions=[date,
+    eventName]), used to build both day/week/month-bucketed series (Builder
+    Start & Completion, Traffic & Leads Funnel) and fixed-window totals
+    (sum the rows yourself over whatever sub-range you need) from a single
+    GA4 report — cheaper than one API call per grain/window. Returns
+    [{"date": "YYYY-MM-DD", "event_name": str, "count": int}, ...]; a day
+    with zero occurrences of an event simply has no row (caller should
+    default-fill with 0), matching how fetch_traffic_and_events' event_counts
+    already behaves."""
+    from google.analytics.data_v1beta.types import (
+        DateRange, Dimension, Metric, RunReportRequest, FilterExpression, Filter,
+    )
+    client = _client()
+    req = RunReportRequest(
+        property=_property_path(),
+        dimensions=[Dimension(name="date"), Dimension(name="eventName")],
+        metrics=[Metric(name="eventCount")],
+        date_ranges=[DateRange(start_date=start.isoformat(), end_date=end.isoformat())],
+        dimension_filter=FilterExpression(filter=Filter(
+            field_name="eventName",
+            in_list_filter=Filter.InListFilter(values=event_names),
+        )),
+    )
+    resp = client.run_report(req)
+    out = []
+    for row in resp.rows:
+        d = row.dimension_values[0].value  # YYYYMMDD
+        name = row.dimension_values[1].value
+        count = int(row.metric_values[0].value)
+        out.append({"date": f"{d[0:4]}-{d[4:6]}-{d[6:8]}", "event_name": name, "count": count})
+    return out
+
+
+def fetch_daily_step_views(start: date, end: date, step_name: str) -> Optional[list]:
+    """Per-day view counts for ONE builder step (exact step_name match),
+    used to track a grain-bucketed Completion Rate line on the dashboard
+    (see dashboard.py's Builder Start & Completion section). Returns None
+    (not an error) in the same case fetch_step_funnel does — the
+    step_name/step_number custom dimensions aren't registered as valid GA4
+    dimensions at all yet. An EMPTY LIST is a different, valid outcome and
+    is ambiguous on its own: it means either "no one reached this step" or
+    "these events predate the custom dimensions being registered, so they
+    read back as step_name=(not set) and never match this filter" (GA4
+    doesn't backfill custom dimensions onto historical events). The caller
+    disambiguates using fetch_step_funnel's own "(not set)"-only signal
+    rather than guessing from this function alone."""
+    from google.analytics.data_v1beta.types import (
+        DateRange, Dimension, Metric, RunReportRequest,
+        FilterExpression, FilterExpressionList, Filter,
+    )
+    client = _client()
+    req = RunReportRequest(
+        property=_property_path(),
+        dimensions=[Dimension(name="date")],
+        metrics=[Metric(name="eventCount")],
+        date_ranges=[DateRange(start_date=start.isoformat(), end_date=end.isoformat())],
+        dimension_filter=FilterExpression(and_group=FilterExpressionList(expressions=[
+            FilterExpression(filter=Filter(
+                field_name="eventName", string_filter=Filter.StringFilter(value="builder_step_view"),
+            )),
+            FilterExpression(filter=Filter(
+                field_name="customEvent:step_name", string_filter=Filter.StringFilter(value=step_name),
+            )),
+        ])),
+    )
+    try:
+        resp = client.run_report(req)
+    except Exception as exc:
+        msg = str(exc).lower()
+        if "step_name" in msg or "customevent" in msg or "does not exist" in msg or "invalid" in msg:
+            logger.info(f"GA4 daily step views unavailable (custom dimension not registered yet?): {exc}")
+            return None
+        raise
+    out = []
+    for row in resp.rows:
+        d = row.dimension_values[0].value
+        out.append({"date": f"{d[0:4]}-{d[4:6]}-{d[6:8]}", "views": int(row.metric_values[0].value)})
+    return out
+
+
 def fetch_step_funnel(start: date, end: date) -> Optional[list]:
     """Per-step view counts + drop-off for the builder's 9 named steps,
     using the step_name/step_number event-scoped custom dimensions. Returns
