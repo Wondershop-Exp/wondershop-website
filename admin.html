@@ -91,10 +91,12 @@ table.list th.sortable:hover{color:var(--bk)}
 .tab-bubble{display:none;position:absolute;top:-7px;right:-7px;background:var(--pk);color:#fff;font-size:11px;font-weight:700;border-radius:20px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px}
 
 /* Dashboard tab (2026-09-11, per Shruti/CGO review — "do we have enough
-   system in place to track website performance"). Booking/lead KPIs come
-   from /api/admin/dashboard/summary (leads table, always on). The GA4
-   traffic/builder-funnel card was removed (2026-09-11, per Shruti) — see
-   backend/GA4_SETUP.md if it needs to come back later. */
+   system in place to track website performance"). The Weekly Detail
+   section (per-week KPI cards + a 12-week bar chart, from
+   /api/admin/dashboard/summary) was removed 2026-09-12 per Shruti — the
+   Monthly Overview below is now the whole dashboard. dashboard.py's
+   /dashboard/summary endpoint is left in place (unused by the UI, harmless)
+   in case it's wanted again later. */
 .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
 .dash-kpi{background:#fff;border:1px solid var(--li2);border-radius:var(--r);padding:16px 18px}
 .dash-kpi-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gy);margin-bottom:6px}
@@ -315,12 +317,6 @@ table.fields textarea{resize:vertical;min-height:32px}
         <div id="dashMonthlyBody"><div class="empty">Loading…</div></div>
       </div>
 
-      <h3 style="font-size:12px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.6px;margin:22px 0 12px">Weekly detail</h3>
-      <div class="dash-grid" id="dashKpis"><div class="empty">Loading…</div></div>
-      <div class="dash-card" style="margin-top:16px">
-        <div class="dash-card-title">Weekly Bookings &amp; Revenue (last 12 weeks)</div>
-        <div id="dashTrendChart"></div>
-      </div>
     </div>
   </div>
 
@@ -499,21 +495,7 @@ function switchTab(tab){
   document.getElementById('searchQ').placeholder = tab==='vendor'
     ? 'Search vendors by name, contact, phone, email...'
     : 'Search by name, phone, email, or booking ID...';
-  if(tab==='dash') loadDashboard();
-}
-
-// ── Dashboard tab ──────────────────────────────────────────────────────
-let DASH_LOADED = false;
-async function loadDashboard(force){
-  if(!DASH_LOADED || force) loadDashMonthly();
-  if(DASH_LOADED && !force) return;
-  try{
-    const d = await apiCall('/api/admin/dashboard/summary');
-    renderDashboard(d);
-    DASH_LOADED = true;
-  }catch(e){
-    if(e.message!=='unauthorized') document.getElementById('dashKpis').innerHTML = '<div class="empty">Could not load dashboard: '+esc(e.message)+'</div>';
-  }
+  if(tab==='dash') loadDashMonthly();
 }
 
 // ── Monthly overview (Website/Repeat leads auto; Instagram/Carried
@@ -679,60 +661,11 @@ function renderMonthlyTrendTable(trend){
 function fmtRs(n){ return (n===null||n===undefined) ? '—' : 'Rs.'+Math.round(n).toLocaleString('en-IN'); }
 function fmtPct(n){ return (n===null||n===undefined) ? '—' : n.toFixed(1)+'%'; }
 function fmtNum(n){ return (n===null||n===undefined) ? '—' : Math.round(n).toLocaleString('en-IN'); }
-function deltaHtml(curr, prev, higherIsBetter){
-  if(curr===null||curr===undefined||prev===null||prev===undefined||prev===0) return '';
-  const pct = ((curr-prev)/Math.abs(prev))*100;
-  const up = pct >= 0;
-  const good = higherIsBetter ? up : !up;
-  return '<span class="dash-kpi-delta '+(good?'up':'down')+'">'+(up?'▲':'▼')+' '+Math.abs(pct).toFixed(0)+'% vs last week</span>';
-}
 function kpiCard(label, value, sub, delta){
   return '<div class="dash-kpi"><div class="dash-kpi-label">'+esc(label)+'</div><div class="dash-kpi-value">'+value+'</div>'
     + (sub ? '<div class="dash-kpi-sub">'+esc(sub)+'</div>' : '')
     + (delta ? '<div class="dash-kpi-sub">'+delta+'</div>' : '')
     + '</div>';
-}
-function renderDashboard(d){
-  const tw = d.this_week, lw = d.last_week;
-  const targetPct = (tw.revenue && d.weekly_target_revenue) ? Math.min(100, Math.round(tw.revenue/d.weekly_target_revenue*100)) : 0;
-  document.getElementById('dashKpis').innerHTML = [
-    kpiCard('This Week Revenue', fmtRs(tw.revenue), tw.bookings+' bookings · '+targetPct+'% of '+fmtRs(d.weekly_target_revenue)+' target', deltaHtml(tw.revenue, lw.revenue, true)),
-    kpiCard('Last Week Revenue', fmtRs(lw.revenue), lw.bookings+' bookings', ''),
-    kpiCard('AOV (this week)', fmtRs(tw.aov), 'last week: '+fmtRs(lw.aov), deltaHtml(tw.aov, lw.aov, true)),
-    kpiCard('Lead \u2192 Booking Conversion', fmtPct(tw.conversion_pct), 'all-time: '+fmtPct(d.all_time_conversion_pct), deltaHtml(tw.conversion_pct, lw.conversion_pct, true)),
-    kpiCard('Repeat Customer Rate', fmtPct(d.repeat_customer_rate_pct), d.repeat_customers+' of '+d.total_booking_customers+' customers', ''),
-  ].join('');
-  document.getElementById('dashTrendChart').innerHTML = renderTrendChart(d.trend, d.weekly_target_revenue);
-}
-function renderTrendChart(trend, weeklyTarget){
-  if(!trend || !trend.length) return '<div class="empty">No booking data yet.</div>';
-  const w = 760, h = 220, padL = 10, padB = 26, padT = 10, padR = 10;
-  const chartW = w - padL - padR, chartH = h - padT - padB;
-  const maxRevenue = Math.max(weeklyTarget||0, ...trend.map(t=>t.revenue||0), 1);
-  const gap = chartW / trend.length;
-  const barW = gap * 0.6;
-  let bars = '', labels = '';
-  trend.forEach((t, i) => {
-    const x = padL + i*gap + (gap-barW)/2;
-    const barH = ((t.revenue||0) / maxRevenue) * chartH;
-    const y = padT + chartH - barH;
-    const isCurrent = i === trend.length - 1;
-    const titleTxt = t.week_start+': '+fmtRs(t.revenue)+' ('+t.bookings+' bookings)';
-    bars += '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+Math.max(barH,1).toFixed(1)+'" rx="3" fill="'+(isCurrent?'var(--pk)':'var(--li)')+'"><title>'+titleTxt+'</title></rect>';
-    if(i % 2 === 0 || i === trend.length-1){
-      const lx = x + barW/2;
-      const d = new Date(t.week_start+'T00:00:00');
-      const lbl = d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
-      labels += '<text x="'+lx.toFixed(1)+'" y="'+(h-8)+'" font-size="9" fill="var(--gy)" text-anchor="middle">'+lbl+'</text>';
-    }
-  });
-  let targetLine = '';
-  if(weeklyTarget){
-    const targetY = padT + chartH - (weeklyTarget/maxRevenue)*chartH;
-    targetLine = '<line x1="'+padL+'" y1="'+targetY.toFixed(1)+'" x2="'+(w-padR)+'" y2="'+targetY.toFixed(1)+'" stroke="var(--or)" stroke-width="1.5" stroke-dasharray="5,4"/>'
-      + '<text x="'+(w-padR)+'" y="'+(targetY-4).toFixed(1)+'" font-size="9" fill="var(--or)" text-anchor="end">Weekly target</text>';
-  }
-  return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:auto;max-width:100%">'+targetLine+bars+labels+'</svg>';
 }
 function updateBubble(id, count){
   const el = document.getElementById(id);
