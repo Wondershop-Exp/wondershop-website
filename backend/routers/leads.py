@@ -901,6 +901,22 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
                 "total": (unit * qty) if (unit is not None and qty) else None,
                 "image_path": ref["image_path"] if ref else None,
             })
+        # 2026-09-12, per Shruti — "return gift packing, thank you notes...
+        # charges also not showing up": packagingCost()/tagFee() in
+        # builder.html were always folded into the customer's actual
+        # payTotal(), but only ever surfaced here as descriptive text in
+        # `note` (e.g. "Packaging: Gift Wrap") — never as a priced line, so
+        # they were invisible on the invoice/confirmation email even though
+        # the customer was correctly charged for them. Added as their own
+        # priced items (sent as plain rupee amounts from the frontend, not
+        # re-derived from unit prices here, so this always matches what was
+        # actually charged even if those unit prices change later).
+        packaging_cost = snap.get("gift_packaging_cost")
+        thank_you_fee = snap.get("gift_thank_you_fee")
+        if packaging_cost:
+            gift_items.append({"name": f"Packaging ({packaging})" if packaging else "Packaging", "price": packaging_cost})
+        if thank_you_fee:
+            gift_items.append({"name": "Personalised Thank You Note", "price": thank_you_fee})
         out.append({
             "label": "Return Gifts", "items": gift_items,
             "note": " · ".join(note_parts) if note_parts else None,

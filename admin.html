@@ -1457,6 +1457,18 @@ function selectHtml(id, options, current, extraAttrs){
   // Accepts either plain strings or {value,label} objects; normalizes to the latter.
   const opts = options.map(o=> (typeof o==='string') ? {value:o,label:o} : o);
   if(current && !opts.some(o=>o.value===current)) opts.unshift({value:current, label:current});
+  // 2026-09-12, per Shruti — Pinata/Photographer showed A VALUE in the
+  // admin panel even when the customer never selected them: with `current`
+  // blank (the real, correct "not selected" state), no <option> matched it
+  // to get `selected`, so the browser fell back to displaying — and, on
+  // Save, actually reading and persisting — whatever the FIRST real option
+  // happened to be (e.g. "Square Pinata"), as if that had been chosen.
+  // Inserting an explicit blank placeholder here, selected whenever
+  // nothing was actually picked, makes "not selected" render (and save) as
+  // genuinely blank instead of a false first choice. Also fixes the same
+  // latent issue for Host/Music and any other optional dropdown field, plus
+  // a freshly-added multi-picker row.
+  if(!current) opts.unshift({value:'', label:'— Not selected —'});
   return '<select id="'+id+'"'+(extraAttrs||'')+'>'
     + opts.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===current?' selected':'')+'>'+esc(o.label)+'</option>').join('')
     + '</select>';
