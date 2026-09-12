@@ -646,13 +646,45 @@ async def _redeem_any_code(code: str, phone: str, lead_id: int) -> None:
 
 # ─── ORDER SUMMARY / REWARD / DETAIL BLOCKS (plain-text, used as email fallback) ──
 
+# 2026-09-12, per Shruti — she read "Grand Total: Rs.74,000" /
+# "Payable Total: Rs.74,400" on the order summary and (reasonably) expected
+# the 50% advance to be half of the FIRST figure, then asked why it wasn't.
+# order_grand_total is genuinely the pre-discount, pre-add-on package
+# price (see assemble_invoice_data's callers) — everything below shows how
+# it becomes Payable Total: minus the discount, plus whatever Return Gift
+# add-ons and/or the cash-collection fee were chosen. Renamed "Grand Total"
+# -> "Package Subtotal" so the label itself no longer reads as the final
+# number, and this add-ons breakdown makes the gap visible instead of
+# leaving it to be reverse-engineered from two totals.
+_COLLECTION_FEE = 100  # mirrors builder.html's collectFee() flat Rs.100 surcharge
+
+
+def _order_addon_rows(req: LeadSubmitRequest) -> list:
+    """Rows for whatever pushed Payable Total above (Package Subtotal minus
+    Discount) — Return Gift packaging, the personalised thank-you note, and/
+    or the Cash Collection at Venue surcharge. Returns (label, value_str)
+    tuples; empty when nothing applies (the normal case)."""
+    snap = req.builder_snapshot or {}
+    rows = []
+    packaging_cost = snap.get("gift_packaging_cost")
+    if packaging_cost:
+        label = cat.PACKAGING_LABELS.get(snap.get("gift_packaging"))
+        rows.append((f"Packaging ({label})" if label else "Packaging", _fmt_rupees(packaging_cost)))
+    thank_you_fee = snap.get("gift_thank_you_fee")
+    if thank_you_fee:
+        rows.append(("Personalised Thank You Note", _fmt_rupees(thank_you_fee)))
+    if req.payment_method == "collect":
+        rows.append(("Cash Collection Fee", _fmt_rupees(_COLLECTION_FEE)))
+    return rows
+
+
 def _format_order_summary_block(req: LeadSubmitRequest) -> str:
     """Itemised order summary — acts as the customer's on-email bill."""
     if req.order_grand_total is None and req.client_budget is None:
         return ""
     lines = ["\nYOUR ORDER SUMMARY"]
     if req.order_grand_total is not None:
-        lines.append(f"  Grand Total     : {_fmt_rupees(req.order_grand_total)}")
+        lines.append(f"  Package Subtotal: {_fmt_rupees(req.order_grand_total)}")
     if req.order_discount_pct:
         lines.append(f"  Discount        : {req.order_discount_pct:.0f}%")
     # 2026-08-24, per Shruti (Image 3c) — total savings (₹, incl. freebie
@@ -662,6 +694,11 @@ def _format_order_summary_block(req: LeadSubmitRequest) -> str:
         lines.append(f"  Total Savings   : {_fmt_rupees(req.order_total_savings)}")
     if req.order_freebies_text:
         lines.append(f"  Free Perks      : {req.order_freebies_text}")
+    # 2026-09-12, per Shruti — spells out what pushes Payable Total above
+    # (Package Subtotal - Discount), so the jump between the two totals
+    # isn't a mystery.
+    for label, val in _order_addon_rows(req):
+        lines.append(f"  {label:<16}: {val}")
     lines.append(f"  Payable Total   : {_fmt_rupees(req.client_budget)}")
     pay_method_label = _PAYMENT_METHOD_LABELS.get(req.payment_method or "", req.payment_method)
     if pay_method_label:
@@ -1183,7 +1220,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
 
     order_rows = []
     if req.order_grand_total is not None:
-        order_rows.append(("Grand Total", _fmt_rupees(req.order_grand_total)))
+        order_rows.append(("Package Subtotal", _fmt_rupees(req.order_grand_total)))
     if req.order_discount_pct:
         order_rows.append(("Discount", f"{req.order_discount_pct:.0f}%"))
     # 2026-08-24, per Shruti (Image 3c) — same total-savings/freebie figures
@@ -1193,6 +1230,13 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
         order_rows.append(("🎉 Total Savings", _fmt_rupees(req.order_total_savings)))
     if req.order_freebies_text:
         order_rows.append(("🎁 Free Perks Unlocked", req.order_freebies_text))
+    # 2026-09-12, per Shruti — "show the addon row to help the user
+    # understand the values changing": Package Subtotal minus Discount
+    # doesn't land on Payable Total whenever Return Gift packaging, the
+    # thank-you note, or the cash-collection surcharge applied — spell out
+    # whichever of those pushed it back up, right before the total they
+    # explain.
+    order_rows.extend(_order_addon_rows(req))
     if req.client_budget is not None:
         order_rows.append(("Payable Total", _fmt_rupees(req.client_budget)))
     pay_method_label = _PAYMENT_METHOD_LABELS.get(req.payment_method or "", req.payment_method)
