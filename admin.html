@@ -144,6 +144,39 @@ table.list.static tr:hover td{background:inherit}
 .dash-seg-legend .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
 .confirm-flag{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#B5620A;margin-top:10px;background:#FFF4E8;border:1px solid #FCE0BE;border-radius:8px;padding:8px 12px}
 .confirm-flag .dot{width:7px;height:7px;border-radius:50%;background:var(--or);flex-shrink:0}
+/* GA4 funnels (Traffic & Leads, Landing-to-Checkout, Builder Start &
+   Completion) — 2026-09-12, per Shruti's GA4 setup. Ported from the
+   design canvas 1:1 (same class names) so the layout matches what was
+   reviewed there. */
+.card-sub{font-size:12px;color:var(--gy);margin-bottom:14px;line-height:1.6;margin-top:6px}
+.pill-row{display:flex;gap:6px}
+.pill{padding:6px 15px;border-radius:20px;border:1px solid var(--li2);background:#fff;font-size:12.5px;font-weight:600;color:var(--gy);cursor:pointer}
+.pill.active{background:var(--plum);border-color:var(--plum);color:#fff}
+.legend-row{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--gy);margin-top:10px}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.funnel{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.funnel-row{display:flex;align-items:center;gap:16px}
+.funnel-bar-wrap{flex:1;min-width:0}
+.funnel-bar-track{background:var(--lgy);border-radius:7px;height:34px;position:relative}
+.funnel-bar-fill{height:100%;border-radius:7px;background:var(--bl);display:flex;align-items:center;padding:0 12px;color:#fff;font-size:12.5px;font-weight:700;white-space:nowrap;min-width:2px}
+.funnel-meta{width:190px;flex-shrink:0;text-align:right}
+.funnel-meta .name{font-size:12.5px;font-weight:700;color:var(--bk)}
+.funnel-meta .rate{font-size:11px;color:var(--gy);margin-top:1px}
+.builder-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px}
+.bstat{border:1px solid var(--li2);border-radius:var(--rs);padding:14px 16px}
+.bstat .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gy);font-weight:700}
+.bstat .val{font-family:var(--fd);font-size:26px;font-weight:700;margin-top:4px}
+.bstat.start .val{color:var(--bl)}
+.bstat.complete .val{color:var(--gr)}
+.bstat .sub{font-size:11px;color:var(--gy);margin-top:2px}
+.fest-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;margin-top:4px}
+.fest-card{flex:0 0 auto;min-width:148px;border:1px solid var(--li2);border-radius:var(--rs);padding:14px 16px;background:var(--lgy)}
+.fest-card.ops{background:var(--li3);border-color:var(--li)}
+.fest-icon{width:30px;height:30px;border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.fest-name{font-size:13px;font-weight:700;color:var(--bk)}
+.fest-date{font-size:11.5px;color:var(--gy);margin-top:2px}
+.fest-days{font-size:11px;color:var(--pk);font-weight:700;margin-top:6px}
 
 /* ─── Detail view ─── */
 .detail-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
@@ -317,6 +350,10 @@ table.fields textarea{resize:vertical;min-height:32px}
         <div id="dashMonthlyBody"><div class="empty">Loading…</div></div>
       </div>
 
+      <div class="dash-card" id="ga4TrafficCard" style="margin-top:16px"><div class="empty">Loading…</div></div>
+      <div class="dash-card" id="ga4CoreCard" style="margin-top:16px"><div class="empty">Loading…</div></div>
+      <div class="dash-card" id="ga4BuilderCard" style="margin-top:16px"><div class="empty">Loading…</div></div>
+      <div class="dash-card" id="festivalsCard" style="margin-top:16px"><div class="empty">Loading…</div></div>
     </div>
   </div>
 
@@ -495,7 +532,7 @@ function switchTab(tab){
   document.getElementById('searchQ').placeholder = tab==='vendor'
     ? 'Search vendors by name, contact, phone, email...'
     : 'Search by name, phone, email, or booking ID...';
-  if(tab==='dash') loadDashMonthly();
+  if(tab==='dash'){ loadDashMonthly(); loadGa4Funnels(); }
 }
 
 // ── Monthly overview (Website/Repeat leads auto; Instagram/Carried
@@ -584,6 +621,7 @@ function renderDashMonthly(d){
   html += renderDashEditForm(d);
   html += renderMonthlyTrendTable(d.trend);
   document.getElementById('dashMonthlyBody').innerHTML = html;
+  renderFestivals(d.confirmed_events_next_14d);
 }
 function renderSegBar(d){
   const segs = [
@@ -658,6 +696,236 @@ function renderMonthlyTrendTable(trend){
     + '<th>Month</th><th>Bookings (Actual)</th><th>Actual Revenue</th><th>Potential Bookings</th><th>Potential Revenue</th><th>Total Projected</th><th>AOV</th><th>Target</th><th>%Target</th>'
     + '</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
+// ── GA4 funnels (Traffic & Leads, Landing-to-Checkout, Builder Start &
+// Completion) — 2026-09-12, per Shruti completing the GA4 setup. Fetched
+// once per Dashboard-tab visit (GA4_LOADED caches it); the day/week/month
+// pill toggle re-renders client-side from the already-fetched data, no
+// re-fetch on every click, same as the design mockup's period toggle. ──
+let GA4_LOADED = false;
+let GA4_DATA = null;
+let GA4_GRAIN = 'week';
+
+async function loadGa4Funnels(force){
+  if(GA4_LOADED && !force){ renderGa4(); return; }
+  try{
+    const d = await apiCall('/api/admin/dashboard/ga4-funnels');
+    GA4_DATA = d;
+    GA4_LOADED = true;
+    renderGa4();
+  }catch(e){
+    if(e.message!=='unauthorized'){
+      const msg = '<div class="empty">Could not load: '+esc(e.message)+'</div>';
+      ['ga4TrafficCard','ga4CoreCard','ga4BuilderCard'].forEach(id=>{
+        document.getElementById(id).innerHTML = msg;
+      });
+    }
+  }
+}
+function setGa4Grain(g){ GA4_GRAIN = g; renderGa4(); }
+
+function ga4NotConnectedHtml(title){
+  return '<div class="dash-card-title">'+esc(title)+'</div>'
+    + '<div class="empty">GA4 not connected yet. Complete the one-time setup in <code>backend/GA4_SETUP.md</code>, then this section fills in with real numbers.</div>';
+}
+function ga4ErrorHtml(title, err){
+  return '<div class="dash-card-title">'+esc(title)+'</div>'
+    + '<div class="empty">GA4 is configured but the last fetch failed: '+esc(err)+'</div>';
+}
+function pillRowHtml(){
+  const g = GA4_GRAIN;
+  return '<div class="pill-row">'
+    + '<button class="pill'+(g==='day'?' active':'')+'" onclick="setGa4Grain(\'day\')">Day</button>'
+    + '<button class="pill'+(g==='week'?' active':'')+'" onclick="setGa4Grain(\'week\')">Week</button>'
+    + '<button class="pill'+(g==='month'?' active':'')+'" onclick="setGa4Grain(\'month\')">Month</button>'
+    + '</div>';
+}
+function buildLine(data, key, w, h, padL, padR, padT, padB){
+  const chartW=w-padL-padR, chartH=h-padT-padB;
+  const n=data.length;
+  const vals = data.map(d=> d[key]==null?0:d[key]);
+  const max = Math.max.apply(null, vals.concat([1]));
+  const pts=[], dots=[];
+  data.forEach((d,i)=>{
+    const x = padL+(n===1?0:i/(n-1)*chartW);
+    const v = d[key]==null?0:d[key];
+    const y = padT+chartH-(v/max*chartH);
+    pts.push(x.toFixed(1)+','+y.toFixed(1));
+    dots.push({x:x.toFixed(1), y:y.toFixed(1), label:d.label});
+  });
+  return {points: pts.join(' '), dots};
+}
+function grainAxisLabel(label, grain){
+  if(grain==='month'){
+    const parts = label.split('-').map(Number);
+    return new Date(parts[0],parts[1]-1,1).toLocaleDateString('en-IN',{month:'short'});
+  }
+  const d = new Date(label+'T00:00:00');
+  return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+}
+function ga4AxisLabels(dots, grain, n){
+  const step = Math.ceil(n/7) || 1;
+  let out = '';
+  dots.forEach((p,i)=>{
+    if(i % step === 0 || i === n-1){
+      out += '<text x="'+p.x+'" y="{{Y}}" font-size="10" fill="var(--gy)" text-anchor="middle">'+esc(grainAxisLabel(p.label, grain))+'</text>';
+    }
+  });
+  return out;
+}
+
+function renderGa4(){
+  if(!GA4_DATA) return;
+  renderGa4Traffic();
+  renderGa4Core();
+  renderGa4Builder();
+}
+
+function renderGa4Traffic(){
+  const el = document.getElementById('ga4TrafficCard');
+  const d = GA4_DATA;
+  if(!d.configured){ el.innerHTML = ga4NotConnectedHtml('Traffic & Leads Funnel'); return; }
+  if(d.error){ el.innerHTML = ga4ErrorHtml('Traffic & Leads Funnel', d.error); return; }
+  const series = d.traffic[GA4_GRAIN];
+  const line = buildLine(series, 'value', 800, 170, 16, 16, 12, 40);
+  const dotsMarkup = ga4AxisLabels(line.dots, GA4_GRAIN, series.length).replace(/\{\{Y\}\}/g, '152');
+  let circles = '';
+  const step = Math.ceil(series.length/7) || 1;
+  line.dots.forEach((p,i)=>{
+    if(i % step === 0 || i === series.length-1) circles += '<circle cx="'+p.x+'" cy="'+p.y+'" r="3.5" fill="var(--bl)"></circle>';
+  });
+  const funnelMax = (d.leads_funnel[0] && d.leads_funnel[0].value) || 1;
+  let funnelHtml = '<div class="funnel">';
+  d.leads_funnel.forEach(f=>{
+    const pct = Math.max(f.value/funnelMax*100, f.value>0?8:0.6);
+    funnelHtml += '<div class="funnel-row"><div class="funnel-bar-wrap"><div class="funnel-bar-track">'
+      + '<div class="funnel-bar-fill" style="width:'+pct.toFixed(1)+'%">'+fmtNum(f.value)+'</div>'
+      + '</div></div><div class="funnel-meta"><div class="name">'+esc(f.stage)+'</div><div class="rate">'+(f.rate_label?esc(f.rate_label):'starting point')+'</div></div></div>';
+  });
+  funnelHtml += '</div>';
+  el.innerHTML = '<div class="dash-card-title-row"><div class="dash-card-title" style="margin-bottom:0">Traffic &amp; Leads Funnel</div>'+pillRowHtml()+'</div>'
+    + '<div class="card-sub">Website sessions over the selected period, then how they move through the funnel to a confirmed booking (last '+d.window_days+' days).</div>'
+    + '<svg viewBox="0 0 800 170" style="width:100%;height:auto;max-width:100%"><polyline points="'+line.points+'" fill="none" stroke="var(--bl)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></polyline>'+circles+dotsMarkup+'</svg>'
+    + funnelHtml;
+}
+
+function buildTrueFunnel(stages, colors, textColors){
+  const w=800,h=340,padT=10,padB=10,cx=400,maxHalfW=190;
+  const n=stages.length;
+  const bandH=(h-padT-padB)/n;
+  const v0 = stages[0].value || 1;
+  const widths = stages.map(s=> (s.value==null?0:s.value)/v0*maxHalfW*2);
+  return stages.map((s,k)=>{
+    const topW = k===0? widths[0] : widths[k-1];
+    const botW = widths[k];
+    const y0=padT+k*bandH, y1=padT+(k+1)*bandH;
+    const pts=[[cx-topW/2,y0],[cx+topW/2,y0],[cx+botW/2,y1],[cx-botW/2,y1]].map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+    const midY=(y0+y1)/2;
+    const pct = s.value==null? null : (s.value/v0*100);
+    return {points:pts, fill:colors[k], textColor:textColors[k], name:s.name,
+      labelY:(midY+4).toFixed(1), valueX:cx, valueY:(midY+4).toFixed(1),
+      valueFmt: s.value==null? '—' : fmtNum(s.value),
+      pctY:(midY+4).toFixed(1), pctFmt: pct==null? '—' : pct.toFixed(1)+'%'};
+  });
+}
+
+function renderGa4Core(){
+  const el = document.getElementById('ga4CoreCard');
+  const d = GA4_DATA;
+  if(!d.configured){ el.innerHTML = ga4NotConnectedHtml('Landing-to-Checkout Funnel'); return; }
+  if(d.error){ el.innerHTML = ga4ErrorHtml('Landing-to-Checkout Funnel', d.error); return; }
+  const cf = d.core_funnel;
+  const colors = ['#86b6ef','#5598e7','#256abf','#104281'];
+  const textColors = ['var(--plum)','#fff','#fff','#fff'];
+  const bands = buildTrueFunnel(cf.stages, colors, textColors);
+  let svgBands = '';
+  bands.forEach(b=>{
+    svgBands += '<polygon points="'+b.points+'" fill="'+b.fill+'"></polygon>'
+      + '<text x="26" y="'+b.labelY+'" font-size="12.5" font-weight="700" fill="var(--bk)">'+esc(b.name)+'</text>'
+      + '<text x="'+b.valueX+'" y="'+b.valueY+'" font-size="13" font-weight="700" fill="'+b.textColor+'" text-anchor="middle">'+b.valueFmt+'</text>'
+      + '<text x="774" y="'+b.pctY+'" font-size="12" fill="var(--gy)" text-anchor="end">'+b.pctFmt+'</text>';
+  });
+  const legendNames = ['Landed','Clicked "Build a Birthday"','Reached Review Cart','Checkout / Booking Submitted'];
+  let legend = '';
+  legendNames.forEach((l,i)=>{
+    legend += '<div class="legend-item"><span class="legend-dot" style="background:'+colors[i]+'"></span>'+esc(l)+'</div>';
+  });
+  const notReadyNote = cf.ready ? '' : '<div class="card-sub" style="margin-top:10px;margin-bottom:0">"Reached Review Cart" is still collecting data — that step’s tracking was only just registered in GA4 and doesn’t apply to older events. This fills in over the next day or two.</div>';
+  el.innerHTML = '<div class="dash-card-title">Landing-to-Checkout Funnel</div>'
+    + '<div class="card-sub">Every website visit, from first landing to submitting a booking request (last '+d.window_days+' days). "Checkout / Booking Submitted" is the last step tracked on the site — the team confirms and collects payment afterward, off-platform.</div>'
+    + '<svg viewBox="0 0 800 340" style="width:100%;height:auto;max-width:100%">'+svgBands+'</svg>'
+    + '<div class="legend-row">'+legend+'</div>'
+    + notReadyNote;
+}
+
+function renderGa4Builder(){
+  const el = document.getElementById('ga4BuilderCard');
+  const d = GA4_DATA;
+  if(!d.configured){ el.innerHTML = ga4NotConnectedHtml('Builder Start & Completion'); return; }
+  if(d.error){ el.innerHTML = ga4ErrorHtml('Builder Start & Completion', d.error); return; }
+  const startSeries = d.start_rate[GA4_GRAIN];
+  const completeSeries = d.completion_rate ? d.completion_rate[GA4_GRAIN] : null;
+  const startLine = buildLine(startSeries, 'value', 800, 140, 16, 16, 10, 30);
+  const last = startSeries[startSeries.length-1];
+  const lastComplete = completeSeries ? completeSeries[completeSeries.length-1] : null;
+  let completeSvg = '';
+  if(completeSeries){
+    const cLine = buildLine(completeSeries, 'value', 800, 140, 16, 16, 10, 30);
+    completeSvg = '<polyline points="'+cLine.points+'" fill="none" stroke="var(--gr)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></polyline>';
+  }
+  const labels = ga4AxisLabels(startLine.dots, GA4_GRAIN, startSeries.length).replace(/\{\{Y\}\}/g, '130');
+  const grainNoun = {day:'day', week:'week', month:'month'}[GA4_GRAIN];
+  let stepTable = '';
+  if(d.step_ready && d.step_funnel && d.step_funnel.length){
+    let rows = '';
+    d.step_funnel.forEach(s=>{
+      rows += '<tr><td>'+esc(s.step_name)+'</td><td>'+fmtNum(s.views)+'</td><td>'+(s.drop_off_pct ? '−'+s.drop_off_pct.toFixed(0)+'%' : '—')+'</td></tr>';
+    });
+    stepTable = '<div class="dash-card-title" style="margin-top:20px;font-size:12px">Where builder users drop off (last '+d.window_days+' days)</div>'
+      + '<div style="overflow-x:auto"><table class="list static"><thead><tr><th>Step</th><th>Views</th><th>Drop-off</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  } else {
+    stepTable = '<div class="card-sub" style="margin-top:16px;margin-bottom:0">Still collecting per-step data — the step_name/step_number tracking was just registered in GA4 and doesn’t apply to older events. Check back in a day or two.</div>';
+  }
+  el.innerHTML = '<div class="dash-card-title-row"><div class="dash-card-title" style="margin-bottom:0">Builder Start &amp; Completion</div>'+pillRowHtml()+'</div>'
+    + '<div class="card-sub">Builder Start Rate = sessions that open the builder. Completion Rate = builder-starters who reach Review.</div>'
+    + '<div class="builder-stats">'
+      + '<div class="bstat start"><div class="lbl">Builder Start Rate</div><div class="val">'+(last.value==null?'—':last.value+'%')+'</div><div class="sub">latest '+grainNoun+'</div></div>'
+      + '<div class="bstat complete"><div class="lbl">Completion Rate</div><div class="val">'+(lastComplete && lastComplete.value!=null ? lastComplete.value+'%' : '—')+'</div><div class="sub">latest '+grainNoun+' &middot; target &ge;40%</div></div>'
+    + '</div>'
+    + '<svg viewBox="0 0 800 140" style="width:100%;height:auto;max-width:100%"><polyline points="'+startLine.points+'" fill="none" stroke="var(--bl)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></polyline>'+completeSvg+labels+'</svg>'
+    + '<div class="legend-row"><div class="legend-item"><span class="legend-dot" style="background:var(--bl)"></span>Start Rate</div><div class="legend-item"><span class="legend-dot" style="background:var(--gr)"></span>Completion Rate</div></div>'
+    + stepTable;
+}
+
+// ── Upcoming Festivals & Events — gifting-relevant occasions (static
+// calendar facts, no data source needed) + the real confirmed-events count
+// from /dashboard/monthly. "Days away" is computed from today each render,
+// not hardcoded, so this stays correct as time passes. ──
+const FESTIVALS_2026 = [
+  {name:'Navratri Begins', date:'2026-10-11'},
+  {name:'Dussehra', date:'2026-10-20'},
+  {name:'Diwali', date:'2026-11-08'},
+  {name:"Children's Day", date:'2026-11-14'},
+  {name:'Christmas', date:'2026-12-25'},
+];
+function renderFestivals(confirmedNext14d){
+  const now = new Date(); now.setHours(0,0,0,0);
+  const upcoming = FESTIVALS_2026.map(f=>{
+    const dt = new Date(f.date+'T00:00:00');
+    const daysAway = Math.round((dt-now)/86400000);
+    return {name:f.name, daysAway, dateLabel: dt.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})};
+  }).filter(f=>f.daysAway >= 0);
+  let cards = '<div class="fest-card ops"><div class="fest-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--li)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>'
+    + '<div class="fest-name">Confirmed Events</div><div class="fest-date">next 14 days</div><div class="fest-days">'+fmtNum(confirmedNext14d)+' on the calendar</div></div>';
+  upcoming.forEach(f=>{
+    cards += '<div class="fest-card"><div class="fest-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--or)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.6 6.6L21 10l-5 4.2L17.4 21 12 17.4 6.6 21 8 14.2 3 10l6.4-1.4z"/></svg></div>'
+      + '<div class="fest-name">'+esc(f.name)+'</div><div class="fest-date">'+esc(f.dateLabel)+'</div><div class="fest-days">in '+f.daysAway+' days</div></div>';
+  });
+  document.getElementById('festivalsCard').innerHTML =
+    '<div class="dash-card-title">Upcoming Festivals &amp; Events</div>'
+    + '<div class="card-sub">Gifting-relevant occasions ahead, plus confirmed events on the calendar soon.</div>'
+    + '<div class="fest-row">'+cards+'</div>';
+}
+
 function fmtRs(n){ return (n===null||n===undefined) ? '—' : 'Rs.'+Math.round(n).toLocaleString('en-IN'); }
 function fmtPct(n){ return (n===null||n===undefined) ? '—' : n.toFixed(1)+'%'; }
 function fmtNum(n){ return (n===null||n===undefined) ? '—' : Math.round(n).toLocaleString('en-IN'); }

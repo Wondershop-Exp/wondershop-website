@@ -179,6 +179,190 @@ async def dashboard_summary(x_admin_password: Optional[str] = Header(None)):
     }
 
 
+# ─── GA4 funnels (Traffic & Leads, Landing-to-Checkout, Builder Start &
+# Completion) — 2026-09-12, per Shruti completing the one-time GA4 setup
+# (backend/GA4_SETUP.md). All four numbers this section needs come from ONE
+# GA4 fetch (_ga4_funnel_raw_sync, run in a thread since the GA4 SDK is
+# synchronous) bucketed three ways (day/week/month) so the dashboard's
+# period toggle is instant client-side — no re-fetch on every pill click.
+# ─────────────────────────────────────────────────────────────────────────
+
+GA4_DAY_GRAIN_DAYS = 14  # 'day' grain window; 'week'/'month' reuse WEEKS_OF_TREND/MONTHS_OF_TREND above
+FUNNEL_WINDOW_DAYS = 30  # fixed window for the two funnel cards (matches the design mockup's "(last 30 days)")
+
+# The one builder step used for "Reached Review Cart" / Completion Rate —
+# must match SNAMES[9] in builder.html's wsTrackScreen() exactly.
+STEP_REVIEW_NAME = "Review"
+
+
+def _ga4_funnel_raw_sync(range_start, today):
+    """Runs entirely in a worker thread (asyncio.to_thread) — every
+    ga4_client call here is synchronous. One traffic/events fetch + one
+    daily-events-by-name fetch + one daily-Review-views fetch + one fixed
+    30-day step-funnel fetch, all over the same lookback window."""
+    traffic = ga4_client.fetch_traffic_and_events(range_start, today)
+    daily_events = ga4_client.fetch_daily_events(range_start, today, list(ga4_client.FUNNEL_EVENTS))
+    review_views = ga4_client.fetch_daily_step_views(range_start, today, STEP_REVIEW_NAME)
+    step_funnel = ga4_client.fetch_step_funnel(today - timedelta(days=FUNNEL_WINDOW_DAYS), today)
+    return {
+        "daily_traffic": traffic["daily_traffic"],
+        "daily_events": daily_events,
+        "review_views": review_views,
+        "step_funnel": step_funnel,
+    }
+
+
+def _step_data_ready(step_funnel) -> bool:
+    """True once step_name/step_number are actually populating real values
+    — i.e. at least one row isn't GA4's "(not set)" placeholder. GA4 does
+    not backfill custom dimensions onto events recorded before the
+    dimension was registered, so right after setup every row reads back as
+    "(not set)" until enough new events accumulate (see GA4_SETUP.md's
+    troubleshooting section) — that state is expected, not an error."""
+    if not step_funnel:
+        return False
+    return any(s.get("step_name") not in (None, "(not set)", "") for s in step_funnel)
+
+
+def _bucket_series(daily_values: dict, grain: str, now: datetime) -> list:
+    """daily_values: {"YYYY-MM-DD": number}. Returns [{label, value}]
+    oldest-first for the requested grain — day: last GA4_DAY_GRAIN_DAYS
+    individual days; week: last WEEKS_OF_TREND Monday-start weeks (same
+    definition as _week_start above); month: last MONTHS_OF_TREND calendar
+    months (same as the revenue MoM trend). ISO date strings compare
+    correctly as plain strings, so no date parsing is needed to bucket."""
+    if grain == "day":
+        days = [(now - timedelta(days=i)).date() for i in range(GA4_DAY_GRAIN_DAYS - 1, -1, -1)]
+        return [{"label": d.isoformat(), "value": daily_values.get(d.isoformat(), 0)} for d in days]
+    if grain == "month":
+        months = [_add_months(_month_start(now), -(MONTHS_OF_TREND - 1) + i) for i in range(MONTHS_OF_TREND)]
+        out = []
+        for m in months:
+            m_end = _add_months(m, 1)
+            lo, hi = m.date().isoformat(), m_end.date().isoformat()
+            total = sum(v for d, v in daily_values.items() if lo <= d < hi)
+            out.append({"label": _month_key(m), "value": total})
+        return out
+    # 'week' (default)
+    this_week = _week_start(now)
+    weeks = [this_week - timedelta(weeks=i) for i in range(WEEKS_OF_TREND - 1, -1, -1)]
+    out = []
+    for ws in weeks:
+        we = ws + timedelta(days=7)
+        lo, hi = ws.date().isoformat(), we.date().isoformat()
+        total = sum(v for d, v in daily_values.items() if lo <= d < hi)
+        out.append({"label": ws.date().isoformat(), "value": total})
+    return out
+
+
+def _rate_series(numerator_series: list, denominator_series: list) -> list:
+    """Elementwise numerator/denominator*100 per bucket (same label order —
+    both series always come from _bucket_series with the same grain/now, so
+    they line up positionally). None (not 0) when the denominator is 0, so
+    the frontend can draw a gap instead of a misleading flat 0%."""
+    out = []
+    for num, den in zip(numerator_series, denominator_series):
+        value = round(num["value"] / den["value"] * 100, 1) if den["value"] else None
+        out.append({"label": den["label"], "value": value})
+    return out
+
+
+@router.get("/dashboard/ga4-funnels")
+async def dashboard_ga4_funnels(x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+
+    if not ga4_client.is_configured():
+        return {"configured": False}
+
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    range_start = _add_months(_month_start(now), -(MONTHS_OF_TREND - 1)).date()
+
+    try:
+        raw = await asyncio.to_thread(_ga4_funnel_raw_sync, range_start, today)
+    except Exception as exc:
+        logger.error(f"GA4 funnels fetch failed: {exc}")
+        return {"configured": True, "error": str(exc)}
+
+    sessions_by_day = {d["date"]: d["sessions"] for d in raw["daily_traffic"]}
+    builder_start_by_day = {}
+    for row in raw["daily_events"]:
+        if row["event_name"] == "builder_start":
+            builder_start_by_day[row["date"]] = builder_start_by_day.get(row["date"], 0) + row["count"]
+
+    step_ready = _step_data_ready(raw["step_funnel"])
+    review_by_day = {}
+    if step_ready:
+        for row in (raw["review_views"] or []):
+            review_by_day[row["date"]] = review_by_day.get(row["date"], 0) + row["views"]
+
+    grains = ("day", "week", "month")
+    traffic = {g: _bucket_series(sessions_by_day, g, now) for g in grains}
+    builder_start = {g: _bucket_series(builder_start_by_day, g, now) for g in grains}
+    start_rate = {g: _rate_series(builder_start[g], traffic[g]) for g in grains}
+    if step_ready:
+        review = {g: _bucket_series(review_by_day, g, now) for g in grains}
+        completion_rate = {g: _rate_series(review[g], builder_start[g]) for g in grains}
+    else:
+        completion_rate = None
+
+    # ── Fixed 30-day totals, shared by both funnel cards below ──
+    window_start = (today - timedelta(days=FUNNEL_WINDOW_DAYS)).isoformat()
+    sessions_30d = sum(v for d, v in sessions_by_day.items() if d >= window_start)
+    builder_start_30d = sum(v for d, v in builder_start_by_day.items() if d >= window_start)
+    review_30d = sum(v for d, v in review_by_day.items() if d >= window_start) if step_ready else None
+    event_totals_30d = {name: 0 for name in ga4_client.FUNNEL_EVENTS}
+    for row in raw["daily_events"]:
+        if row["date"] >= window_start and row["event_name"] in event_totals_30d:
+            event_totals_30d[row["event_name"]] += row["count"]
+    leads_30d = event_totals_30d["generate_lead"]
+    checkout_30d = event_totals_30d["begin_checkout"]
+    bookings_30d = event_totals_30d["booking_request_submitted"]
+
+    # "Leads Captured" (generate_lead) is a SEPARATE, parallel capture path —
+    # builder.html's wsTrackScreen fires it from an alternate "leave your
+    # details" screen ('slead'/'sleadsent'), shown when someone doesn't
+    # check out, not a stage strictly upstream of Checkout Started. So each
+    # rate below reads against Website Sessions except the one pair that IS
+    # genuinely sequential in the same session (Bookings Confirmed only
+    # fires after Checkout Started) — this deliberately doesn't chain
+    # Leads→Checkout→Bookings the way a strict funnel would, because that
+    # would misrepresent two independent outcomes as one funnel.
+    leads_funnel = [
+        {"stage": "Website Sessions", "value": sessions_30d, "rate_label": None},
+        {"stage": "Leads Captured", "value": leads_30d,
+         "rate_label": (f"{round(leads_30d / sessions_30d * 100, 1)}% of sessions" if sessions_30d else None)},
+        {"stage": "Checkout Started", "value": checkout_30d,
+         "rate_label": (f"{round(checkout_30d / sessions_30d * 100, 1)}% of sessions" if sessions_30d else None)},
+        {"stage": "Bookings Confirmed", "value": bookings_30d,
+         "rate_label": (f"{round(bookings_30d / checkout_30d * 100, 1)}% of checkouts" if checkout_30d else None)},
+    ]
+
+    # Landing-to-Checkout core funnel — genuinely sequential (each stage is
+    # a strict subset of the one above it in the real builder flow).
+    core_funnel = {
+        "ready": step_ready,
+        "stages": [
+            {"name": "Landed on Website", "value": sessions_30d},
+            {"name": 'Clicked "Build a Birthday"', "value": builder_start_30d},
+            {"name": "Reached Review Cart", "value": review_30d if step_ready else None},
+            {"name": "Checkout / Booking Submitted", "value": bookings_30d},
+        ],
+    }
+
+    return {
+        "configured": True,
+        "traffic": traffic,
+        "start_rate": start_rate,
+        "completion_rate": completion_rate,
+        "step_ready": step_ready,
+        "step_funnel": raw["step_funnel"] if step_ready else None,
+        "leads_funnel": leads_funnel,
+        "core_funnel": core_funnel,
+        "window_days": FUNNEL_WINDOW_DAYS,
+    }
+
+
 # ─── Monthly overview (Realized / Booked / Potential) ──────────────────────
 
 def _month_start(dt: datetime) -> datetime:
