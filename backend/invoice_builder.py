@@ -181,12 +181,27 @@ def assemble_invoice_data(
         total_payable = grand_total + cgst + sgst
         gst_block = {"cgst_pct": half, "cgst_amt": cgst, "sgst_pct": half, "sgst_amt": sgst, "total_payable": total_payable}
 
+    # 2026-09-12, per Shruti — "don't say advance paid till it's verified":
+    # no payment method is ever auto-verified (mirrors leads.py's
+    # _payment_status_text). "Cash Deposit at Branch" gets no verified
+    # claim at all — the invoice reads PAYMENT PENDING / "Advance Pending"
+    # until someone actually confirms the deposit; every other method (UPI/
+    # bank transfer, or unknown) can say "Advance Paid" but must flag that
+    # verification is still pending. "Cash Collection at Venue" never has
+    # an advance in the first place (advance_paid is always falsy there),
+    # so it's untouched by this branch.
     if balance_due is not None and balance_due <= 0.01:
         status_label = "PAID IN FULL"
+        advance_label = "Advance Paid"
+    elif advance_paid and payment_method == "branch":
+        status_label = "PAYMENT PENDING"
+        advance_label = "Advance Pending"
     elif advance_paid:
         status_label = "PARTIALLY PAID"
+        advance_label = "Advance Paid (Verification Pending)"
     else:
         status_label = "PAYMENT PENDING"
+        advance_label = "Advance Paid"
 
     venue_line = ", ".join(v for v in [venue, city] if v)
 
@@ -210,6 +225,7 @@ def assemble_invoice_data(
         "gst_block": gst_block,
         "total_payable": total_payable,
         "advance_paid": advance_paid,
+        "advance_label": advance_label,
         "balance_due": balance_due,
         "total_savings": total_savings,
         "freebies_text": freebies_text,
@@ -355,7 +371,10 @@ def build_invoice_pdf(data: dict) -> bytes:
         summary_rows.append([_p(f"SGST ({g['sgst_pct']:.1f}%)", size=10, color=_GRAY), _p(_fmt_rupees(g["sgst_amt"]), size=10, align="right")])
         summary_rows.append([_p("Total Payable (incl. GST)", size=10, bold=True), _p(_fmt_rupees(g["total_payable"]), size=10, bold=True, align="right")])
     if data["advance_paid"]:
-        summary_rows.append([_p("Advance Paid", size=10, color=_GRAY), _p(f"−{_fmt_rupees(data['advance_paid'])}", size=10, color=_GREEN, align="right")])
+        # Pending/unverified branch deposits get a neutral (not "success"
+        # green) amount color too — see advance_label's assembly above.
+        adv_amt_color = _GRAY if data["advance_label"] == "Advance Pending" else _GREEN
+        summary_rows.append([_p(data["advance_label"], size=10, color=_GRAY), _p(f"−{_fmt_rupees(data['advance_paid'])}", size=10, color=adv_amt_color, align="right")])
     summary_tbl = Table(summary_rows, colWidths=[usable_w * 0.55, usable_w * 0.45])
     summary_tbl.setStyle(TableStyle([
         ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),

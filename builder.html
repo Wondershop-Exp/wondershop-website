@@ -1092,6 +1092,11 @@ body.browse-mode .browse-cta{display:flex}
 .rating-row{display:flex;align-items:center;gap:4px;margin-top:3px}
 .star{color:var(--yl);font-size:10px}
 .rating-cnt{font-size:9px;color:var(--gy)}
+
+/* 2026-09-12, per Shruti — nudge customers to Delivery Details right after
+   they add their first return gift, so they don't scroll past it. */
+@keyframes nudgePulse{0%,100%{box-shadow:0 0 0 0 rgba(181,157,222,.55)}50%{box-shadow:0 0 0 8px rgba(181,157,222,0)}}
+.nudge-highlight{border-radius:12px;animation:nudgePulse 1.1s ease-out 2}
 </style>
 </head>
 <body>
@@ -1689,7 +1694,7 @@ body.browse-mode .browse-cta{display:flex}
        forward to Checkout/the custom-request form automatically. -->
   <div class="s0-form">
     <div class="s0-section-title"><span>💬</span> Stay in the Loop</div>
-    <div style="font-size:13px;color:var(--gy);margin-bottom:10px">Optional — leave your WhatsApp number so our team can help if you get stuck, or send you this quote.</div>
+    <div style="font-size:13px;color:var(--gy);margin-bottom:10px">Optional — leave your WhatsApp number so our team can get back to you in case you need any assistance.</div>
     <div class="ig" style="margin-bottom:0"><label>WhatsApp Number <span class="opt">opt.</span></label>
       <div class="pfx-wrap" style="max-width:220px"><span class="pfx">+91</span><input type="tel" id="f-mob" class="pi" placeholder="Mobile" maxlength="10" inputmode="numeric"></div>
     </div>
@@ -2141,7 +2146,7 @@ body.browse-mode .browse-cta{display:flex}
     </div>
 
     <!-- Delivery -->
-    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">
+    <div id="giftDeliverySec" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">
       <div class="sec-lbl" style="font-size:13px;margin-bottom:10px"><span class="dot"></span>Delivery Details</div>
       <div class="ig"><label>Delivery Address <span class="opt">defaults to event venue</span></label><input type="text" id="f-gaddr" placeholder="Start typing the delivery address…" autocomplete="off"></div>
       <!-- 2026-08-16, per Shruti: "Google Maps Link" field removed from the
@@ -4927,7 +4932,23 @@ function renderGifts(){
 }
 function fGifts(f,val,btn){const mp={type:'gTChips',budget:'gBChips',gtheme:'gThChips'};document.querySelectorAll('#'+mp[f]+' .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');gF[f]=val;renderGifts();}
 function showAllGifts(){giftShowAll=true;renderGifts();}
-function addGift(id,n,unit){if(!S.gifts.find(g=>g.id===id))S.gifts.push({id,n,unit,qty:S.kidsCount});renderGifts();updBB(S.screen);updTagNote();}
+function addGift(id,n,unit){
+  const isFirstGift=S.gifts.length===0;
+  if(!S.gifts.find(g=>g.id===id))S.gifts.push({id,n,unit,qty:S.kidsCount});
+  renderGifts();updBB(S.screen);updTagNote();
+  // Nudge the customer down to Delivery Details the first time they add a
+  // gift — same step/screen, but easy to miss below the gift cards grid.
+  if(isFirstGift){
+    setTimeout(()=>{
+      const sec=document.getElementById('giftDeliverySec');
+      if(sec){
+        sec.scrollIntoView({behavior:'smooth',block:'center'});
+        sec.classList.add('nudge-highlight');
+        setTimeout(()=>sec.classList.remove('nudge-highlight'),2200);
+      }
+    },300);
+  }
+}
 function rmGift(id){S.gifts=S.gifts.filter(g=>g.id!==id);renderGifts();updBB(S.screen);updTagNote();}
 function chgQty(id,unit,d){const g=S.gifts.find(g=>g.id===id);if(!g)return;g.qty=Math.max(1,g.qty+d);g.userQty=true;document.getElementById('qty-'+id).textContent=g.qty;document.getElementById('qv-'+id).textContent=g.qty;document.getElementById('qtot-'+id).textContent=(g.qty*unit).toLocaleString('en-IN');updBB(S.screen);updTagNote();}
 // Thank-you note: flat ₹10/item, billed on the total no. of gift items
@@ -5941,13 +5962,38 @@ function buildSnapshot(){
       pinata:      S.pinata   ? {id:S.pinata.id, n:S.pinata.n, p:S.pinata.p} : null,
       einvite:     S.einvite  ? {id:S.einvite.id, n:S.einvite.n, pickup_time:S.pickupTime||null, show_pickup_on_invite:!!S.showPickupOnInvite} : null,
       photo:       S.photo    ? {tier:S.photo.tier, p:S.photo.p}             : null,
-      activities:  S.activities.map(a=>({id:a.id,n:a.n,p:a.p})),
+      // 2026-09-12, per Shruti — "activities coming up as free": S.activities
+      // entries only ever carry r1/r2/r3/flat (per-kid-count rate tiers),
+      // never a `.p` field — reading a.p here always returned undefined, so
+      // every activity landed in the invoice/confirmation-email snapshot
+      // with no price at all and rendered as "Free" (see invoice_builder.py
+      // _line_items_from_services_detail). actPrice()+activityFreebiePrice()
+      // is the same real-price resolution cItems() already uses for the
+      // cart/review totals — mirrored here so the snapshot matches what the
+      // customer was actually charged, freebies (e.g. the ₹55k+ free Tattoo
+      // Station) included.
+      activities:  S.activities.map(a=>{
+        const raw=actPrice(a,S.kidsCount);
+        const fb=activityFreebiePrice(a,raw);
+        return {id:a.id,n:a.n,p:fb.price};
+      }),
       // gift objects carry `.unit` (per-item price), not `.p` — this used to
       // read g.p (always undefined) so gift pricing never actually made it
       // into the snapshot; fixed 2026-08-12.
       gifts:       S.gifts.map(g=>({id:g.id,n:g.n,qty:g.qty,unit:g.unit})),
       gift_packaging:    S.packaging || null,
+      // 2026-09-12, per Shruti — "return gift packing, thank you notes...
+      // charges also not showing up": packagingCost()/tagFee() were always
+      // folded straight into payTotal() (so the customer WAS charged
+      // correctly), but never sent through in the snapshot — so leads.py
+      // had no way to itemise them on the invoice/confirmation email; they
+      // just vanished into the gap between subtotal and grand total. Sent
+      // as plain rupee amounts (not re-derived from price constants
+      // server-side) so the invoice always matches what was actually
+      // charged, even if these unit prices change later.
+      gift_packaging_cost: packagingCost() || null,
       gift_thank_you_note: S.tagType==='note',
+      gift_thank_you_fee: tagFee() || null,
       estimated_total: rawT(),
       pincode:     S.pincode,
       kids_count:  S.kidsCount,
@@ -6078,6 +6124,21 @@ let __scratchReward=null;
 // (as opposed to 'refund'/'discount', which apply to payment or a future
 // booking) — these get the "add to today's booking now?" prompt.
 const SCRATCH_ADDABLE_TYPES=['tattoo','bubble'];
+// 2026-09-12, per Shruti — "a tattoo artist already got added in my cart
+// while building the birthday, showing it again in the scratch might not
+// add value": Tattoo Station is a real, directly-bookable Activities
+// catalogue item (id 'a15') — if the customer already added it to THIS
+// booking (paid, or auto-free via the >=Rs.55k spend threshold), don't
+// also ask "want to add it to today's booking?" for the same service they
+// already have. The reward itself is still shown/won as normal (still
+// valid for a FUTURE booking within its validity window) — only the
+// redundant "add to today's booking" prompt is skipped. Bubble Artist has
+// no equivalent purchasable catalogue item, so it's never suppressed.
+const SCRATCH_DUPLICATE_CHECK_ACT_ID={tattoo:'a15'};
+function scratchRewardAlreadyInCart(type){
+  const actId=SCRATCH_DUPLICATE_CHECK_ACT_ID[type];
+  return !!(actId && S.activities && S.activities.some(a=>a.id===actId));
+}
 
 function scratchAddMonths(months){
   const d=new Date();
@@ -6231,7 +6292,7 @@ function revealScratchCard(){
       // Tattoo/Bubble Artist rewards are services that can be tacked onto
       // THIS booking right now, instead of only being usable later — offer
       // the customer that choice on the spot.
-      if(SCRATCH_ADDABLE_TYPES.includes(__scratchReward.type)&&S._lastLeadId){
+      if(SCRATCH_ADDABLE_TYPES.includes(__scratchReward.type)&&S._lastLeadId&&!scratchRewardAlreadyInCart(__scratchReward.type)){
         document.getElementById('srnQuestion').textContent='Want to add your '+(__scratchReward.label||'reward')+' to today’s booking?';
         document.getElementById('scratchRedeemNow').style.display='block';
       }
