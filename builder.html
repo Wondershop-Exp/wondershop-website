@@ -25,6 +25,23 @@
   gtag('js', new Date());
   gtag('config', window.WS_GA_ID);
 </script>
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '2167312504201807');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=2167312504201807&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
 <!-- ── Google Maps / Places Autocomplete ──────────────────────────
      Replace YOUR_GOOGLE_MAPS_API_KEY below with your real Maps
      JavaScript API key (Google Cloud Console → APIs & Services →
@@ -3638,6 +3655,24 @@ let __wsBuilderStarted = false;
 function wsTrack(name, params){
   try{
     if(typeof gtag === 'function') gtag('event', name, params || {});
+  }catch(e){/* never let analytics break the UX */}
+  // ── Meta Pixel — mirrors the same key funnel events as GA4 above,
+  // mapped to Meta's standard event names so ad optimization/retargeting
+  // understands them. Safe no-op if fbq isn't loaded (ad-blockers etc).
+  try{
+    if(typeof fbq === 'function'){
+      const p = params || {};
+      const currency = p.currency || 'INR';
+      if(name === 'builder_start'){
+        fbq('trackCustom', 'BuilderStart', p);
+      } else if(name === 'begin_checkout'){
+        fbq('track', 'InitiateCheckout', {value: p.value, currency: currency});
+      } else if(name === 'generate_lead'){
+        fbq('track', 'Lead', {value: p.value, currency: currency});
+      } else if(name === 'booking_request_submitted'){
+        fbq('track', 'Purchase', {value: p.value, currency: currency});
+      }
+    }
   }catch(e){/* never let analytics break the UX */}
 }
 function wsTrackScreen(id){
