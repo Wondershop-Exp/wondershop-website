@@ -93,6 +93,20 @@ function reqLine(d, key){
   if(!r) return {val:'', cost:''};
   let v = r.selected || '';
   if(key==='music' && r.addons && r.addons.length) v += (v?' + ':'') + r.addons.map(a=>a.name).join(', ');
+  if(key==='decor' && r.theme_name) v += (v?' — ':'') + r.theme_name;
+  if(r.customization) v += (v?'. ':'') + r.customization;
+  return {val: v, cost: r.cost!=null ? money(r.cost) : ''};
+}
+function returnGiftsLine(d){
+  const r = (d.requirements||{}).return_gifts;
+  if(!r) return {val:'', cost:''};
+  const parts = [];
+  if(r.quantity) parts.push(r.quantity+' pcs');
+  if(r.budget) parts.push(money(r.budget)+'/child');
+  if(r.type) parts.push(r.type);
+  if(r.selected_gift_name) parts.push(r.selected_gift_name);
+  let v = parts.join(' · ');
+  if(r.customization) v += (v?'. ':'') + r.customization;
   return {val: v, cost: r.cost!=null ? money(r.cost) : ''};
 }
 
@@ -112,13 +126,14 @@ function render(d){
     + cat('Addons: Host Gifts', reqLine(d,'host_gifts'), true)
     + cat('Music', reqLine(d,'music'))
     + '<tr><td class="lbl">Activities</td><td>'+val(activitiesNames)+'&nbsp;</td></tr>'
-    + cat('Return Gifts', reqLine(d,'return_gifts'))
+    + cat('Return Gifts', returnGiftsLine(d))
     + '<tr><td class="lbl" style="font-style:italic;background:#fff">Addons: Packaging</td><td>'+val((d.requirements&&d.requirements.packaging&&d.requirements.packaging.selected)||'')+'&nbsp;</td></tr>'
     + '<tr><td class="lbl" style="font-style:italic;background:#fff">Addon: Return Gift Tags</td><td>'+val(reqLine(d,'return_gift_tags').val)+'&nbsp;</td></tr>'
     + cat('Pinata', reqLine(d,'pinata_type'))
     + '<tr><td class="lbl" style="font-style:italic;background:#fff">Addons: Bags / Fillings</td><td>'
         + 'Bags: '+val(reqLine(d,'pinata_bags').val||'—')+' &nbsp;&nbsp; Fillings: '+val(reqLine(d,'pinata_fillings').val||'—')+'&nbsp;</td></tr>'
     + cat('Cake', reqLine(d,'cake'))
+    + cat('Photographer', reqLine(d,'photographer'))
     + '<tr><td class="lbl">Volunteers</td><td>'+val(d.volunteers_general)+'&nbsp;</td></tr>'
     + '<tr><td class="lbl">Lead Volunteer</td><td>'+val(d.lead_volunteer)+'&nbsp;</td></tr>'
     + '<tr><td class="lbl">Sales Lead</td><td>'+val(d.sales_lead_name)+'&nbsp;</td></tr>'
@@ -136,9 +151,10 @@ function render(d){
 
       + '<h2 class="sec">Client &amp; Event Details</h2>'
       + '<table><tr><td class="lbl">Client Name</td><td>'+val(d.client_name)+'&nbsp;</td><td class="lbl">Mobile No.</td><td>'+val(d.mobile)+'&nbsp;</td></tr>'
-        + '<tr><td class="lbl">Child\'s Name</td><td>'+val(d.child_name)+'&nbsp;</td><td class="lbl">Age</td><td>'+val(d.child_age)+'&nbsp;</td></tr>'
+        + '<tr><td class="lbl">Child\'s Name</td><td>'+val(d.child_name)+'&nbsp;</td><td class="lbl">Celebrating Age</td><td>'+val(d.child_age)+'&nbsp;</td></tr>'
         + '<tr><td class="lbl">Gender</td><td>'+val(d.child_gender)+'&nbsp;</td><td class="lbl"># Kids</td><td>'+val(d.kids_count)+'&nbsp;</td></tr>'
-        + '<tr><td class="lbl">Date</td><td>'+val(d.event_date)+'&nbsp;</td><td class="lbl">Event Start / End</td><td>'+val([d.event_start_time,d.event_end_time].filter(Boolean).join(' – '))+'&nbsp;</td></tr>'
+        + '<tr><td class="lbl">Date</td><td>'+val(d.event_date)+'&nbsp;</td><td class="lbl">Theme</td><td>'+val(d.theme)+'&nbsp;</td></tr>'
+        + '<tr><td class="lbl">Event Start / End</td><td colspan="3">'+val([d.event_start_time,d.event_end_time].filter(Boolean).join(' – '))+'&nbsp;</td></tr>'
         + '<tr><td class="lbl">Venue Handover</td><td>'+val(d.venue_handover_time)+'&nbsp;</td><td class="lbl">Packup Time</td><td>'+val(d.packup_time)+'&nbsp;</td></tr>'
         + '<tr><td class="lbl">Venue</td><td colspan="3">'+val(d.venue)+'&nbsp;</td></tr></table>'
 

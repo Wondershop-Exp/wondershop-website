@@ -49,8 +49,9 @@ from pydantic import BaseModel
 from database import database
 from routers.admin import _require_admin, _do_convert_lead
 from catalogue_data import (
-    DECOR_TIER_META, HOST_TIER_PRICES, DJ_TIER_PRICES, PINATA_TIER_PRICES,
-    PACKAGING_LABELS, ACTIVITIES,
+    DECOR_TIER_META, THEMES, HOST_TIER_PRICES, DJ_TIER_PRICES,
+    PHOTO_TIER_PRICES, PHOTO_TIER_FEATURES, PINATA_TIER_PRICES,
+    PACKAGING_LABELS, ACTIVITIES, GIFTS,
 )
 
 router = APIRouter()
@@ -67,30 +68,56 @@ def _to_ist_str(dt) -> Optional[str]:
 
 
 # ─── catalogue (real site pricing) ─────────────────────────────────────────
+# Cross-checked directly against builder.html's own tier cards / filter
+# chips (2026-09-16) rather than reusing earlier assumptions — see the
+# comments below on each spot that turned out to disagree with the live
+# site and was corrected.
 
 MUSIC_LABELS = {"Classic": "Music Essential", "Premium": "Music Plus"}
 MUSIC_ADDONS = [{"name": "Music Lights", "price": 1500}, {"name": "Smoke Machine", "price": 2000}]
-PINATA_LABELS = {
-    "Square Pinata": "Square", "Circle Pinata": "Circle",
-    "Number Pinata": "Number", "Readymade Pinata": "Readymade",
-}
+# Photographer tier cards in builder.html display "Classic Package" /
+# "Premium Package" / "Signature Package" — not the bare tier word.
+PHOTO_LABELS = {"Classic": "Classic Package", "Premium": "Premium Package", "Signature": "Signature Package"}
+# Return Gifts step's own "Filter by Type" chips (builder.html #s8) — the
+# real categories, not a guessed utility/stationery split.
+RETURN_GIFT_TYPES = ["Bags & Pouches", "Games", "Personalized", "Stationery", "Home & Lifestyle"]
+# Decor tier order as Shruti asked for it on the sales form.
+DECOR_TIER_ORDER = ["Classic", "Premium", "Signature", "Luxury"]
 
 
 @router.get("/admin/sales-leads/catalogue")
 async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
-    decor = [{"name": tier, "price": meta["price"]} for tier, meta in DECOR_TIER_META.items()]
-    host = [{"name": tier, "price": price} for tier, price in HOST_TIER_PRICES.items()]
+    # Decor: tier is a plain pick list now (+ "Others") — cost is typed in
+    # by the sales person, not auto-filled, since a real quote is often
+    # negotiated off-tier. Reference prices are still sent along so the
+    # frontend can show them as a hint. decor_themes is the named-design
+    # picker ("select from an existing decor") sourced from the same THEMES
+    # list the public builder uses.
+    decor_tiers = [{"name": t, "price": DECOR_TIER_META[t]["price"]} for t in DECOR_TIER_ORDER if t in DECOR_TIER_META]
+    decor_themes = [{"id": t["id"], "name": t["n"]} for t in THEMES]
+    # Host: no tier dropdown anymore (Shruti — "remove dropdown, just keep
+    # cost") — reference prices are still sent for the hint text next to
+    # the free-entry cost field.
+    host_reference = [{"name": tier, "price": price} for tier, price in HOST_TIER_PRICES.items()]
     music = [{"name": MUSIC_LABELS.get(tier, tier), "price": price} for tier, price in DJ_TIER_PRICES.items()]
+    photographer = [
+        {"name": PHOTO_LABELS.get(tier, tier), "price": price, "features": PHOTO_TIER_FEATURES.get(tier, [])}
+        for tier, price in PHOTO_TIER_PRICES.items()
+    ]
+    # Pinata: builder.html's own card names ARE "Square Pinata" / "Circle
+    # Pinata" / etc. verbatim — a previous draft of this endpoint shortened
+    # them to "Square"/"Circle", which drifted from the live site. Fixed to
+    # match exactly.
     pinata_type = [
-        {"name": PINATA_LABELS.get(name, name), "price": price}
-        for name, price in PINATA_TIER_PRICES.items()
+        {"name": name, "price": price} for name, price in PINATA_TIER_PRICES.items()
     ] + [{"name": "Custom", "price": None, "note": "No fixed price — quote separately"}]
     packaging = [{"id": pid, "label": label} for pid, label in PACKAGING_LABELS.items()]
     activities = [
         {"id": aid, "name": name, "price": price, "flat": flat}
         for aid, name, price, flat in ACTIVITIES
     ]
+    return_gifts_catalogue = [{"id": gid, "name": name, "price": price} for gid, name, _img, price in GIFTS]
 
     threshold_row = await database.fetch_one(
         "SELECT config_value FROM platform_config WHERE config_key = 'gift_tag_free_threshold'"
@@ -102,13 +129,17 @@ async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
     gift_tag_fee = float(fee_row["config_value"]) if fee_row else 15
 
     return {
-        "decor": decor,
-        "host": host,
+        "decor_tiers": decor_tiers,
+        "decor_themes": decor_themes,
+        "host_reference": host_reference,
         "music": music,
         "music_addons": MUSIC_ADDONS,
+        "photographer": photographer,
         "pinata_type": pinata_type,
         "packaging": packaging,
         "activities": activities,
+        "return_gift_types": RETURN_GIFT_TYPES,
+        "return_gifts_catalogue": return_gifts_catalogue,
         "return_gift_tags": {
             "fee_per_gift": gift_tag_fee,
             "free_at_or_above": gift_tag_threshold,
@@ -133,6 +164,7 @@ LEAD_FIELD_MAP = {
     "event_date": "event_date",
     "event_start_time": "event_time",
     "venue": "venue",
+    "theme": "theme",
     "kids_count": "kids_count",
     # 010_order_form.sql already added this column for exactly this purpose
     # ("Event Sales Lead") — reused rather than duplicated.
@@ -298,6 +330,7 @@ async def _full_detail(lead_row) -> dict:
         "event_date": str(lead["event_date"]) if lead.get("event_date") else None,
         "event_start_time": lead.get("event_time"),
         "venue": lead.get("venue"),
+        "theme": lead.get("theme"),
         "kids_count": lead.get("kids_count"),
         "sales_lead_name": lead.get("event_sales_lead"),
         "status": lead.get("status"),

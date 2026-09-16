@@ -74,6 +74,17 @@ table.list tr:hover td{background:var(--li3)}
 .fld{display:flex;flex-direction:column;gap:4px}
 .fld label{font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);font-weight:600}
 .fld input,.fld select,.fld textarea{padding:10px 12px;border:1px solid var(--li2);border-radius:8px;font-size:14px}
+.fld select,.req-grid select,.pick-row select{appearance:none;-webkit-appearance:none;padding-right:34px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;cursor:pointer}
+.ref-note{font-size:11px;color:#9A93A8;margin:4px 0 8px}
+.pick-row{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.pick-row select{flex:1;min-width:160px;padding:9px 34px 9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:12.5px;background-color:#fff}
+.pick-row a{font-size:11.5px;white-space:nowrap}
+.req-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:640px){.req-grid3{grid-template-columns:1fr}}
+.req-grid3 input,.req-grid3 select{padding:10px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px;background:#fff}
+.cust-box{margin-top:8px;width:100%;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:12.5px;min-height:44px;resize:vertical;font-family:var(--fb)}
 .fld textarea{min-height:60px;resize:vertical;font-family:var(--fb)}
 
 .req-row{padding:12px 0;border-bottom:1px solid var(--li3)}
@@ -230,7 +241,7 @@ async function enterApp(){
   document.getElementById('app').style.display='block';
   document.getElementById('whoName').value = getName();
   try{ CATALOGUE = await apiCall('/api/admin/sales-leads/catalogue'); }
-  catch(e){ CATALOGUE = {decor:[],host:[],music:[],music_addons:[],pinata_type:[],packaging:[],activities:[],return_gift_tags:{},cake_note:''}; }
+  catch(e){ CATALOGUE = {decor_tiers:[],decor_themes:[],host_reference:[],music:[],music_addons:[],photographer:[],pinata_type:[],packaging:[],activities:[],return_gift_types:[],return_gifts_catalogue:[],return_gift_tags:{},cake_note:''}; }
   doSearch();
 }
 function logout(){
@@ -364,12 +375,18 @@ function sectionClientDetails(){
   const f = (key,label,type,extra) => '<div class="fld"><label>'+label+'</label>'
     +'<input type="'+type+'" id="f_'+key+'" value="'+esc(d[key]==null?'':d[key])+'" '+(extra||'')
     +' onblur="saveField(\''+key+'\', this.value)"></div>';
+  const genderSel = '<div class="fld"><label>Gender</label><select id="f_child_gender" onchange="saveField(\'child_gender\', this.value)">'
+    + '<option value="">— select —</option>'
+    + '<option value="Male" '+(d.child_gender==='Male'?'selected':'')+'>Male</option>'
+    + '<option value="Female" '+(d.child_gender==='Female'?'selected':'')+'>Female</option>'
+    + '</select></div>';
   return '<div class="card"><h3>1 · Client &amp; Event Details</h3>'
     + '<div class="grid2">' + f('client_name','Client Name','text') + f('mobile','Mobile No.','tel') + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('child_name',"Child's Name",'text') + f('child_age','Age','text') + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('child_gender','Gender','text') + f('kids_count','# Kids','number') + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('event_date','Date','date') + f('sales_lead_name','Sales Lead','text') + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('event_start_time','Event Start Time','time') + f('event_end_time','Event End Time','time') + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + f('child_name',"Child's Name",'text') + f('child_age','Celebrating Age','text') + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + genderSel + f('kids_count','# Kids','number') + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + f('event_date','Date','date') + f('theme','Theme','text') + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + f('sales_lead_name','Sales Lead','text') + f('event_start_time','Event Start Time','time') + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + f('event_end_time','Event End Time','time') + '<div></div>' + '</div>'
     + '<div class="fld" style="margin-top:10px">' + f('venue','Venue','text').replace(/<div class="fld">|<\/div>$/g,'') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('venue_handover_time','Venue Handover Time','time') + f('packup_time','Packup Time','time') + '</div>'
     + '</div>';
@@ -423,7 +440,7 @@ function reqMusicRow(){
   return '<div class="req-row"><div class="rlabel">Music</div><div class="req-grid">'
     + '<select id="req_music_sel" onchange="onReqSelectChange(\'music\')">' + optionsHtml(CATALOGUE.music, r.selected) + '</select>'
     + '<input type="number" id="req_music_cost" placeholder="Cost (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'music\')">'
-    + '</div>' + addonsHtml + '</div>';
+    + '</div>' + addonsHtml + custBox('music', 'Customizations (song requests, timing...)') + '</div>';
 }
 async function onMusicAddonChange(name, price, checked){
   const r = Object.assign({selected:null,cost:null,addons:[]}, req('music'));
@@ -461,6 +478,11 @@ async function onReqTextBlur(key){
   r.selected = el.value === '' ? null : el.value;
   await saveRequirement(key, r);
 }
+async function onReqCustomBlur(key, el){
+  const r = Object.assign({}, req(key));
+  r.customization = el.value === '' ? null : el.value;
+  await saveRequirement(key, r);
+}
 async function setYesNo(key, val){
   const r = Object.assign({}, req(key));
   r.selected = (r.selected===val) ? null : val;
@@ -472,20 +494,110 @@ async function saveRequirement(key, value){
   DATA.requirements[key] = value;
   await patchSheet({requirements:{[key]: value}});
 }
+function custBox(key, placeholder){
+  const r = req(key);
+  return '<textarea class="cust-box" placeholder="'+placeholder+'" onblur="onReqCustomBlur(\''+key+'\', this)">'+esc(r.customization||'')+'</textarea>';
+}
+
+// ── Decor: tier is a plain pick list (cost typed in manually — quotes get
+// negotiated off-tier), plus a customization box, a link to the real decor
+// gallery, and a picker to attach one of the named decor designs. ─────────
+function reqDecorRow(){
+  const r = req('decor');
+  const tiers = CATALOGUE.decor_tiers||[];
+  const tierOpts = '<option value="">— select tier —</option>'
+    + tiers.map(t=>'<option value="'+esc(t.name)+'" '+(t.name===r.selected?'selected':'')+'>'+esc(t.name)+' (ref. '+money(t.price)+')</option>').join('')
+    + '<option value="Others" '+(r.selected==='Others'?'selected':'')+'>Others</option>';
+  const themeOpts = '<option value="">— pick an existing decor design —</option>'
+    + (CATALOGUE.decor_themes||[]).map(t=>'<option value="'+esc(t.name)+'" '+(t.name===r.theme_name?'selected':'')+'>'+esc(t.name)+'</option>').join('');
+  return '<div class="req-row"><div class="rlabel">Decor</div><div class="req-grid">'
+    + '<select id="req_decor_sel" onchange="onReqTextSelectChange(\'decor\')">' + tierOpts + '</select>'
+    + '<input type="number" id="req_decor_cost" placeholder="Cost (₹) — enter manually" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'decor\')">'
+    + '</div>'
+    + custBox('decor', 'Customizations (colours, add-ons, special requests...)')
+    + '<div class="pick-row">'
+      + '<select onchange="onDecorThemePick(this.value)">' + themeOpts + '</select>'
+      + '<a href="gallery.html#sec-decor" target="_blank">View decor gallery ↗</a>'
+    + '</div></div>';
+}
+async function onDecorThemePick(name){
+  if(!name) return;
+  const r = Object.assign({}, req('decor'));
+  r.theme_name = name;
+  await saveRequirement('decor', r);
+  await saveField('theme', name);
+  renderDetail();
+}
+
+// ── Host: cost only — no tier dropdown — plus a customization box and a
+// reference-price hint (the real site's two host tiers). ──────────────────
+function reqHostRow(){
+  const r = req('host');
+  const ref = (CATALOGUE.host_reference||[]).map(h=>h.name+' '+money(h.price)).join(' · ');
+  return '<div class="req-row"><div class="rlabel">Host</div>'
+    + '<input type="number" id="req_host_cost" placeholder="Cost (₹)" style="width:100%;padding:10px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'host\')">'
+    + (ref?('<div class="ref-note">Reference: '+ref+'</div>'):'')
+    + custBox('host', 'Customizations / remarks...')
+    + '</div>';
+}
+
+// ── Return Gifts: quantity / budget-per-child / type, plus customization,
+// a link to the real return-gifts reference, and a picker for an existing
+// catalogue item. ──────────────────────────────────────────────────────
+function reqReturnGiftsRow(){
+  const r = req('return_gifts');
+  const typeOpts = '<option value="">— type —</option>'
+    + (CATALOGUE.return_gift_types||[]).map(t=>'<option '+(t===r.type?'selected':'')+'>'+t+'</option>').join('');
+  const giftOpts = '<option value="">— pick an existing gift —</option>'
+    + (CATALOGUE.return_gifts_catalogue||[]).map(g=>'<option value="'+esc(g.name)+'" '+(g.name===r.selected_gift_name?'selected':'')+'>'+esc(g.name)+' — '+money(g.price)+'</option>').join('');
+  return '<div class="req-row"><div class="rlabel">Return Gifts</div><div class="req-grid3">'
+    + '<input type="number" placeholder="Quantity" value="'+(r.quantity==null?'':r.quantity)+'" onblur="onReturnGiftField(\'quantity\',this.value)">'
+    + '<input type="number" placeholder="Budget / child (₹)" value="'+(r.budget==null?'':r.budget)+'" onblur="onReturnGiftField(\'budget\',this.value)">'
+    + '<select onchange="onReturnGiftField(\'type\',this.value)">'+typeOpts+'</select>'
+    + '</div>'
+    + (r.quantity&&r.budget ? '<div class="ref-note">Reference total: '+money(r.quantity*r.budget)+'</div>' : '')
+    + custBox('return_gifts', 'Customizations / specific items discussed...')
+    + '<div class="pick-row">'
+      + '<select onchange="onReturnGiftPick(this.value)">' + giftOpts + '</select>'
+      + '<a href="blogs.html#return-gifts" target="_blank">View return gift options ↗</a>'
+    + '</div></div>';
+}
+async function onReturnGiftField(field, value){
+  const r = Object.assign({quantity:null,budget:null,type:null,cost:null}, req('return_gifts'));
+  r[field] = (field==='quantity'||field==='budget') ? (value===''?null:Number(value)) : (value||null);
+  if(r.quantity && r.budget) r.cost = r.quantity * r.budget;
+  await saveRequirement('return_gifts', r);
+  renderDetail();
+}
+async function onReturnGiftPick(name){
+  if(!name) return;
+  const r = Object.assign({}, req('return_gifts'));
+  r.selected_gift_name = name;
+  await saveRequirement('return_gifts', r);
+}
+
+// ── Photographer ─────────────────────────────────────────────────────────
+function reqPhotographerRow(){
+  const list = CATALOGUE.photographer||[];
+  const featureNote = list.map(p=>p.name+': '+(p.features||[]).join(', ')).join(' · ');
+  return reqSelectRow('photographer', 'Photographer', list, featureNote);
+}
+
 function sectionRequirements(){
   const gt = CATALOGUE.return_gift_tags || {};
   let html = '<div class="card"><h3>2 · Event Requirements</h3>';
-  html += reqSelectRow('decor', 'Decor', CATALOGUE.decor);
-  html += reqSelectRow('host', 'Host', CATALOGUE.host);
+  html += reqDecorRow();
+  html += reqHostRow();
   html += reqTextRow('host_gifts', 'Host Gifts (Add-on)');
   html += reqMusicRow();
-  html += reqTextRow('return_gifts', 'Return Gifts');
+  html += reqReturnGiftsRow();
   html += reqYesNoRow('return_gift_tags', 'Return Gift Tags (Add-on)', gt.note||'');
   html += reqSelectRowNoPrice('packaging', 'Packaging (Add-on)', CATALOGUE.packaging, o=>o.label);
   html += reqSelectRow('pinata_type', 'Pinata Type', CATALOGUE.pinata_type, 'Custom has no fixed price — quote separately.');
   html += reqYesNoRow('pinata_bags', 'Pinata — Bags (Add-on)');
   html += reqYesNoRow('pinata_fillings', 'Pinata — Fillings (Add-on)');
   html += reqTextRow('cake', 'Cake', CATALOGUE.cake_note||'');
+  html += reqPhotographerRow();
   html += '</div>';
   return html;
 }
@@ -517,10 +629,10 @@ async function saveSched(){
 
 // ── 4. Activities ────────────────────────────────────────────────────────
 function sectionActivities(){
-  return '<div class="card"><h3>4 · Activities</h3>'
+  return '<div class="card"><h3>4 · Activities <a href="gallery.html#sec-diy" target="_blank" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">View activities gallery ↗</a></h3>'
     + '<div class="act-list" id="actList"></div>'
     + '<div class="add-new-act">'
-      + '<input type="text" id="newActInput" placeholder="Not in the list? Type it and add" onkeydown="if(event.key===\'Enter\')submitNewActivity()">'
+      + '<input type="text" id="newActInput" placeholder="Not in the list? Type it as free text and add" onkeydown="if(event.key===\'Enter\')submitNewActivity()">'
       + '<button type="button" onclick="submitNewActivity()">Add</button>'
     + '</div>'
     + '<div class="sugg-list" id="suggList"></div>'
