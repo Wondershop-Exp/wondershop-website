@@ -47,7 +47,10 @@ from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
 from database import database
-from routers.admin import _require_admin, _do_convert_lead
+from routers.admin import (
+    _require_admin, _do_convert_lead,
+    LEAD_STATUS_OPTIONS, NON_CONVERT_REASON_OPTIONS, NON_CONVERT_STATUSES,
+)
 from catalogue_data import (
     DECOR_TIER_META, THEMES, HOST_TIER_PRICES, DJ_TIER_PRICES,
     PHOTO_TIER_PRICES, PHOTO_TIER_FEATURES, PINATA_TIER_PRICES,
@@ -67,6 +70,13 @@ def _to_ist_str(dt) -> Optional[str]:
     return ist.strftime("%d %b %Y, %I:%M %p") + " IST"
 
 
+def _to_ts_ms(dt) -> Optional[float]:
+    """Epoch milliseconds — used by the list view's client-side column
+    sorting (created/last-modified), since the IST display string above
+    isn't lexically sortable."""
+    return dt.timestamp() * 1000 if dt else None
+
+
 # ─── catalogue (real site pricing) ─────────────────────────────────────────
 # Cross-checked directly against builder.html's own tier cards / filter
 # chips (2026-09-16) rather than reusing earlier assumptions — see the
@@ -83,6 +93,17 @@ PHOTO_LABELS = {"Classic": "Classic Package", "Premium": "Premium Package", "Sig
 RETURN_GIFT_TYPES = ["Bags & Pouches", "Games", "Personalized", "Stationery", "Home & Lifestyle"]
 # Decor tier order as Shruti asked for it on the sales form.
 DECOR_TIER_ORDER = ["Classic", "Premium", "Signature", "Luxury"]
+
+# Fixed reference values for the Return Gift Tags add-on note. These used
+# to be read from platform_config (gift_tag_free_threshold /
+# gift_tag_personalisation_fee) — but those config keys don't actually
+# exist in the live table, and the failed query took the ENTIRE catalogue
+# endpoint down with it (2026-09-16, per Shruti: decor/music/photographer
+# all showed up empty in the sales form because of this one bad lookup).
+# Hardcoded instead, matching how every other price on this form already
+# works — a static mirror of the site's pricing, same as catalogue_data.py.
+GIFT_TAG_FEE = 15
+GIFT_TAG_FREE_THRESHOLD = 35000
 
 
 @router.get("/admin/sales-leads/catalogue")
@@ -112,21 +133,15 @@ async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
     pinata_type = [
         {"name": name, "price": price} for name, price in PINATA_TIER_PRICES.items()
     ] + [{"name": "Custom", "price": None, "note": "No fixed price — quote separately"}]
-    packaging = [{"id": pid, "label": label} for pid, label in PACKAGING_LABELS.items()]
+    # Packaging: real site labels, plus a "None" option — Shruti's sales
+    # form needs to record when a client doesn't want packaging at all,
+    # which isn't a real builder.html choice but is a real sales scenario.
+    packaging = [{"id": pid, "label": label} for pid, label in PACKAGING_LABELS.items()] + [{"id": "none", "label": "None"}]
     activities = [
         {"id": aid, "name": name, "price": price, "flat": flat}
         for aid, name, price, flat in ACTIVITIES
     ]
     return_gifts_catalogue = [{"id": gid, "name": name, "price": price} for gid, name, _img, price in GIFTS]
-
-    threshold_row = await database.fetch_one(
-        "SELECT config_value FROM platform_config WHERE config_key = 'gift_tag_free_threshold'"
-    )
-    fee_row = await database.fetch_one(
-        "SELECT config_value FROM platform_config WHERE config_key = 'gift_tag_personalisation_fee'"
-    )
-    gift_tag_threshold = float(threshold_row["config_value"]) if threshold_row else 35000
-    gift_tag_fee = float(fee_row["config_value"]) if fee_row else 15
 
     return {
         "decor_tiers": decor_tiers,
@@ -141,11 +156,18 @@ async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
         "return_gift_types": RETURN_GIFT_TYPES,
         "return_gifts_catalogue": return_gifts_catalogue,
         "return_gift_tags": {
-            "fee_per_gift": gift_tag_fee,
-            "free_at_or_above": gift_tag_threshold,
-            "note": f"₹{gift_tag_fee:.0f}/gift below ₹{gift_tag_threshold:,.0f} order value, free at/above",
+            "fee_per_gift": GIFT_TAG_FEE,
+            "free_at_or_above": GIFT_TAG_FREE_THRESHOLD,
+            "note": f"₹{GIFT_TAG_FEE:.0f}/gift below ₹{GIFT_TAG_FREE_THRESHOLD:,.0f} order value, free at/above",
         },
         "cake_note": "Starting ₹1,850/kg (brochure)",
+        # Same lead-status pipeline admin.html's Leads tab uses — lets the
+        # sales list/detail views render an identical status dropdown +
+        # non-conversion-reason picker (2026-09-16, per Shruti: "add a
+        # button to update status ... same as admin module").
+        "lead_status_options": LEAD_STATUS_OPTIONS,
+        "non_convert_reason_options": NON_CONVERT_REASON_OPTIONS,
+        "non_convert_statuses": sorted(NON_CONVERT_STATUSES),
     }
 
 
@@ -335,6 +357,8 @@ async def _full_detail(lead_row) -> dict:
         "sales_lead_name": lead.get("event_sales_lead"),
         "status": lead.get("status"),
         "is_booking": bool(lead.get("is_booking")),
+        "non_convert_reason": lead.get("non_convert_reason"),
+        "non_convert_reason_other": lead.get("non_convert_reason_other"),
         "client_budget": float(lead["client_budget"]) if lead.get("client_budget") is not None else None,
         "order_advance": float(lead["order_advance"]) if lead.get("order_advance") is not None else None,
         "payment_method": lead.get("payment_method"),
@@ -389,9 +413,10 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
         where += " AND (l.parent_name ILIKE :q OR l.phone ILIKE :q OR l.child_names ILIKE :q)"
         values["q"] = f"%{search}%"
     rows = await database.fetch_all(
-        f"""SELECT l.lead_id, l.parent_name, l.phone, l.child_names, l.event_date, l.is_booking, l.status,
-                   p.id AS playbook_id, p.playbook_stage, p.created_by, p.updated_by, p.updated_at,
-                   p.new_activity_suggestions
+        f"""SELECT l.lead_id, l.parent_name, l.phone, l.event_date, l.is_booking, l.status,
+                   l.child_ages, l.child_genders,
+                   p.id AS playbook_id, p.playbook_stage, p.created_by, p.created_at,
+                   p.updated_by, p.updated_at, p.new_activity_suggestions
             FROM leads l
             JOIN lead_sales_playbook p ON p.lead_id = l.lead_id
             WHERE {where}
@@ -407,14 +432,18 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
             "lead_id": d["lead_id"],
             "client_name": d["parent_name"],
             "mobile": d["phone"],
-            "child_name": d["child_names"],
+            "child_age": d["child_ages"],
+            "child_gender": d["child_genders"],
             "event_date": str(d["event_date"]) if d["event_date"] else None,
             "is_booking": bool(d["is_booking"]),
             "status": d["status"],
             "playbook_stage": d["playbook_stage"],
             "created_by": d["created_by"],
+            "created_at": _to_ist_str(d.get("created_at")),
+            "created_at_ts": _to_ts_ms(d.get("created_at")),
             "updated_by": d["updated_by"],
             "updated_at": _to_ist_str(d.get("updated_at")),
+            "updated_at_ts": _to_ts_ms(d.get("updated_at")),
             "pending_activity_suggestions": len(sugg),
         })
     return {"sheets": out}
