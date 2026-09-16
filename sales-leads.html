@@ -35,7 +35,7 @@ a{color:var(--bl)}
 .gate-card button{width:100%;padding:12px 14px;border:none;border-radius:var(--rs);background:var(--pk);color:#fff;font-weight:700;font-size:15px}
 .gate-err{color:var(--pk);font-size:13px;margin-top:8px;min-height:16px}
 
-#app{display:none;max-width:900px;margin:0 auto;padding:20px 20px 100px}
+#app{display:none;max-width:960px;margin:0 auto;padding:20px 20px 100px}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:10px 0 18px;border-bottom:1px solid var(--li2);margin-bottom:20px}
 .topbar h1{font-size:20px}
 .topbar .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gy);flex-wrap:wrap}
@@ -55,14 +55,20 @@ a{color:var(--bl)}
 .searchbar input{flex:1;min-width:180px;padding:12px 14px;border:1px solid var(--li2);border-radius:var(--rs);font-size:15px}
 
 table.list{width:100%;border-collapse:collapse;margin-bottom:20px}
-table.list th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--gy);padding:8px 10px;border-bottom:2px solid var(--li2)}
-table.list td{padding:10px;border-bottom:1px solid var(--li2);font-size:14px;vertical-align:middle}
+table.list th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--gy);padding:8px 9px;border-bottom:2px solid var(--li2);white-space:nowrap}
+table.list td{padding:10px 9px;border-bottom:1px solid var(--li2);font-size:13.5px;vertical-align:middle;white-space:nowrap}
 table.list tr:hover td{background:var(--li3)}
+th.th-sort{cursor:pointer;user-select:none}
+th.th-sort:hover{color:var(--pk)}
 .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;white-space:nowrap}
 .pill-intake{background:var(--lgy);color:var(--gy)}
 .pill-ops{background:var(--syl);color:#92400e}
 .pill-ready{background:var(--sgr);color:#166534}
 .pill-sugg{background:var(--sor);color:#8a4a10}
+.status-sel{padding:5px 22px 5px 8px;border:1px solid var(--li2);border-radius:8px;font-size:12px;background:#fff;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 7px center;cursor:pointer}
 .empty{color:var(--gy);font-size:13px;padding:20px 0}
 
 .card{background:#fff;border-radius:var(--r);padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.05);margin-bottom:18px}
@@ -98,6 +104,9 @@ table.list tr:hover td{background:var(--li3)}
 .yn{display:flex;gap:8px;max-width:220px}
 .yn button{flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--li2);background:#fff;color:var(--gy);font-weight:700;font-size:13px}
 .yn button.sel{background:var(--pk);border-color:var(--pk);color:#fff}
+.chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+.chip-row button{padding:8px 14px;border-radius:20px;border:1.5px solid var(--li2);background:#fff;color:var(--gy);font-weight:700;font-size:12px;white-space:nowrap}
+.chip-row button.sel{background:var(--pk);border-color:var(--pk);color:#fff}
 
 .sched-row{display:grid;grid-template-columns:110px 1fr 34px;gap:8px;margin-bottom:8px;align-items:center}
 .sched-row input{padding:9px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px}
@@ -168,7 +177,16 @@ table.list tr:hover td{background:var(--li3)}
       <button class="btn pk" onclick="startNewLead()" id="newLeadBtn">+ Register a lead</button>
     </div>
     <table class="list" id="listTable">
-      <thead><tr><th>Client</th><th>Child &amp; Event</th><th>Stage</th><th>Status</th><th></th></tr></thead>
+      <thead><tr>
+        <th>Client</th>
+        <th>Age/Gender</th>
+        <th class="th-sort" id="th_created" onclick="setSort('created')">Created</th>
+        <th class="th-sort" id="th_birthday" onclick="setSort('birthday')">Birthday</th>
+        <th class="th-sort" id="th_modified" onclick="setSort('modified')">Last Modified</th>
+        <th>Stage</th>
+        <th class="th-sort" id="th_status" onclick="setSort('status')">Status</th>
+        <th></th>
+      </tr></thead>
       <tbody id="listBody"></tbody>
     </table>
     <div class="empty" id="listEmpty" style="display:none">No sales leads yet — register one above.</div>
@@ -188,6 +206,12 @@ let CATALOGUE = null;
 let DATA = null;
 let CURRENT_ID = null;
 let SAVING = false;
+let LIST_ROWS = [];
+let SORT_KEY = 'modified';
+let SORT_DIR = 'desc';
+let LEAD_STATUS_OPTIONS = [];
+let NON_CONVERT_REASON_OPTIONS = [];
+let NON_CONVERT_STATUSES = ['Not Interested', 'DND'];
 
 function getPw(){ return localStorage.getItem('ws_admin_pw') || ''; }
 function getName(){ return localStorage.getItem('ws_admin_name') || ''; }
@@ -199,6 +223,26 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('show'),2200);
 }
 const CHECK_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDateStr(iso){
+  if(!iso) return '—';
+  const parts = iso.split('-');
+  if(parts.length<3) return iso;
+  const y=parts[0], m=Number(parts[1]), d=Number(parts[2]);
+  return d+' '+(MONTH_ABBR[m-1]||'')+' '+y;
+}
+function fmtTs(ts){
+  if(!ts) return '—';
+  const dt = new Date(ts);
+  return dt.getDate()+' '+MONTH_ABBR[dt.getMonth()]+' '+dt.getFullYear();
+}
+function ageGender(r){
+  const g = (r.child_gender||'').toString().trim();
+  const letter = g ? g[0].toUpperCase() : '';
+  const age = (r.child_age||'').toString().trim();
+  const combo = letter+age;
+  return combo || '—';
+}
 
 async function apiCall(path, opts){
   opts = opts || {};
@@ -241,7 +285,10 @@ async function enterApp(){
   document.getElementById('app').style.display='block';
   document.getElementById('whoName').value = getName();
   try{ CATALOGUE = await apiCall('/api/admin/sales-leads/catalogue'); }
-  catch(e){ CATALOGUE = {decor_tiers:[],decor_themes:[],host_reference:[],music:[],music_addons:[],photographer:[],pinata_type:[],packaging:[],activities:[],return_gift_types:[],return_gifts_catalogue:[],return_gift_tags:{},cake_note:''}; }
+  catch(e){ CATALOGUE = {decor_tiers:[],decor_themes:[],host_reference:[],music:[],music_addons:[],photographer:[],pinata_type:[],packaging:[],activities:[],return_gift_types:[],return_gifts_catalogue:[],return_gift_tags:{},cake_note:'',lead_status_options:[],non_convert_reason_options:[],non_convert_statuses:['Not Interested','DND']}; }
+  if(CATALOGUE.lead_status_options && CATALOGUE.lead_status_options.length) LEAD_STATUS_OPTIONS = CATALOGUE.lead_status_options;
+  if(CATALOGUE.non_convert_reason_options && CATALOGUE.non_convert_reason_options.length) NON_CONVERT_REASON_OPTIONS = CATALOGUE.non_convert_reason_options;
+  if(CATALOGUE.non_convert_statuses && CATALOGUE.non_convert_statuses.length) NON_CONVERT_STATUSES = CATALOGUE.non_convert_statuses;
   doSearch();
 }
 function logout(){
@@ -255,33 +302,98 @@ function saveName(){ localStorage.setItem('ws_admin_name', document.getElementBy
 // ── list ─────────────────────────────────────────────────────────────────
 const STAGE_LABEL = {sales_intake:'Sales — in progress', sent_to_ops:'Sent to Ops', ops_ready:'Ops Ready'};
 const STAGE_PILL   = {sales_intake:'pill-intake', sent_to_ops:'pill-ops', ops_ready:'pill-ready'};
+const SORT_ACCESSORS = {
+  created:  r => r.created_at_ts || 0,
+  birthday: r => r.event_date || '',
+  modified: r => r.updated_at_ts || 0,
+  status:   r => (r.status||'').toLowerCase(),
+};
+const SORT_LABELS = {created:'Created', birthday:'Birthday', modified:'Last Modified', status:'Status'};
+
+function setSort(key){
+  if(SORT_KEY===key){ SORT_DIR = SORT_DIR==='desc'?'asc':'desc'; }
+  else{ SORT_KEY=key; SORT_DIR = (key==='status')?'asc':'desc'; }
+  renderListRows();
+}
+function sortedRows(){
+  const acc = SORT_ACCESSORS[SORT_KEY];
+  const rows = LIST_ROWS.slice();
+  rows.sort((a,b)=>{
+    const av=acc(a), bv=acc(b);
+    if(av<bv) return SORT_DIR==='asc'?-1:1;
+    if(av>bv) return SORT_DIR==='asc'?1:-1;
+    return 0;
+  });
+  return rows;
+}
+function updateSortHeaders(){
+  Object.keys(SORT_LABELS).forEach(k=>{
+    const el = document.getElementById('th_'+k);
+    if(!el) return;
+    const arrow = (SORT_KEY===k) ? (SORT_DIR==='asc'?' \u25B2':' \u25BC') : '';
+    el.textContent = SORT_LABELS[k]+arrow;
+  });
+}
+function statusCellHtml(r){
+  if(r.is_booking || !LEAD_STATUS_OPTIONS.length){
+    const cls = 'status-'+(r.status||'').replace(/[^A-Za-z]/g,'');
+    return '<span class="pill '+(r.is_booking?'pill-ready':'pill-intake')+'">'+(r.is_booking?'Booking · ':'')+esc(r.status||'')+'</span>';
+  }
+  const opts = LEAD_STATUS_OPTIONS.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===r.status?' selected':'')+'>'+esc(o.label)+'</option>').join('');
+  return '<select class="status-sel" onclick="event.stopPropagation()" onchange="event.stopPropagation();quickSetStatus('+r.lead_id+',this.value)">'+opts+'</select>';
+}
+async function quickSetStatus(leadId, newStatus){
+  const who = getName();
+  if(!who){ showToast('Set "Editing as" name at the top first.'); doSearch(); return; }
+  try{
+    const result = await apiCall('/api/admin/bookings/'+leadId+'/status', {
+      method:'POST', body: JSON.stringify({status:newStatus, changed_by:who}),
+    });
+    if(result && result.is_booking){
+      showToast('✓ Converted to booking — moved to the Bookings tab.');
+    }else{
+      showToast('✓ Status updated to '+newStatus+(NON_CONVERT_STATUSES.includes(newStatus) ? ' — open the lead to record a reason.' : '.'));
+    }
+    doSearch();
+  }catch(e){
+    if(e.message!=='unauthorized') showToast(e.message);
+    doSearch();
+  }
+}
 
 async function doSearch(){
   const q = document.getElementById('searchQ').value.trim();
   const body = document.getElementById('listBody');
   const empty = document.getElementById('listEmpty');
-  body.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#6B7280">Loading...</td></tr>';
+  body.innerHTML = '<tr><td colspan="8" style="padding:16px;color:#6B7280">Loading...</td></tr>';
   try{
     const d = await apiCall('/api/admin/sales-leads'+(q?('?search='+encodeURIComponent(q)):''));
-    const rows = d.sheets||[];
-    if(!rows.length){ body.innerHTML=''; empty.style.display='block'; return; }
+    LIST_ROWS = d.sheets||[];
+    if(!LIST_ROWS.length){ body.innerHTML=''; empty.style.display='block'; return; }
     empty.style.display='none';
-    body.innerHTML = rows.map(r=>{
-      const childEvent = [r.child_name, r.event_date].filter(Boolean).join(' · ') || '—';
-      const stagePill = '<span class="pill '+(STAGE_PILL[r.playbook_stage]||'pill-intake')+'">'+(STAGE_LABEL[r.playbook_stage]||r.playbook_stage)+'</span>';
-      const suggPill = r.pending_activity_suggestions>0 ? ' <span class="pill pill-sugg">'+r.pending_activity_suggestions+' idea'+(r.pending_activity_suggestions>1?'s':'')+'</span>' : '';
-      const statusTxt = r.is_booking ? ('Booking · '+esc(r.status||'')) : esc(r.status||'New');
-      return '<tr onclick="openDetail('+r.lead_id+')" style="cursor:pointer">'
-        +'<td><strong>'+esc(r.client_name||'(no name yet)')+'</strong><br><span style="color:var(--gy);font-size:12px">'+esc(r.mobile||'')+'</span></td>'
-        +'<td>'+esc(childEvent)+'</td>'
-        +'<td>'+stagePill+suggPill+'</td>'
-        +'<td>'+statusTxt+'</td>'
-        +'<td><a href="#" onclick="event.stopPropagation();window.open(\'sales-lead-print.html?lead_id=\'+'+r.lead_id+',\'_blank\')" class="linkbtn">Print</a></td>'
-        +'</tr>';
-    }).join('');
+    renderListRows();
   }catch(e){
-    body.innerHTML = '<tr><td colspan="5" style="padding:16px;color:var(--pk)">'+esc(e.message)+'</td></tr>';
+    body.innerHTML = '<tr><td colspan="8" style="padding:16px;color:var(--pk)">'+esc(e.message)+'</td></tr>';
   }
+}
+function renderListRows(){
+  const body = document.getElementById('listBody');
+  const rows = sortedRows();
+  body.innerHTML = rows.map(r=>{
+    const stagePill = '<span class="pill '+(STAGE_PILL[r.playbook_stage]||'pill-intake')+'">'+(STAGE_LABEL[r.playbook_stage]||r.playbook_stage)+'</span>';
+    const suggPill = r.pending_activity_suggestions>0 ? ' <span class="pill pill-sugg">'+r.pending_activity_suggestions+' idea'+(r.pending_activity_suggestions>1?'s':'')+'</span>' : '';
+    return '<tr onclick="openDetail('+r.lead_id+')" style="cursor:pointer">'
+      +'<td><strong>'+esc(r.client_name||'(no name yet)')+'</strong><br><span style="color:var(--gy);font-size:12px">'+esc(r.mobile||'')+'</span></td>'
+      +'<td>'+esc(ageGender(r))+'</td>'
+      +'<td>'+fmtTs(r.created_at_ts)+'</td>'
+      +'<td>'+fmtDateStr(r.event_date)+'</td>'
+      +'<td>'+fmtTs(r.updated_at_ts)+'</td>'
+      +'<td>'+stagePill+suggPill+'</td>'
+      +'<td>'+statusCellHtml(r)+'</td>'
+      +'<td><a href="#" onclick="event.stopPropagation();window.open(\'sales-lead-print.html?lead_id=\'+'+r.lead_id+',\'_blank\')" class="linkbtn">Print</a></td>'
+      +'</tr>';
+  }).join('');
+  updateSortHeaders();
 }
 
 async function startNewLead(){
@@ -330,6 +442,7 @@ function renderDetail(){
       +'<div style="display:flex;gap:8px;align-items:center">'+stagePill
         +'<a class="btn sm gh" href="sales-lead-print.html?lead_id='+DATA.lead_id+'" target="_blank" style="text-decoration:none;display:inline-block">🖨 Print playbook</a></div>'
     +'</div>'
+    + sectionStatus()
     + sectionClientDetails()
     + sectionRequirements()
     + sectionSchedule()
@@ -366,6 +479,82 @@ async function patchSheet(body){
     showToast(e.message||"Couldn't save.");
   }finally{
     SAVING = false;
+  }
+}
+
+// ── Status (lead pipeline / convert) — same pattern as admin.html's
+// statusBlockHtml(), reusing the shared /api/admin/bookings/{id}/status
+// and /convert endpoints (2026-09-16, per Shruti: "add a button to update
+// status of the lead (same as admin module) as converted or non converted
+// with reason"). ────────────────────────────────────────────────────────
+function sectionStatus(){
+  const d = DATA;
+  if(d.is_booking){
+    return '<div class="card"><h3>Status</h3>'
+      + '<div class="fld"><label>Status</label><span class="pill pill-ready" style="padding:8px 14px;font-size:13px;width:fit-content">'+esc(d.status||'')+'</span></div>'
+      + '<div style="font-size:12px;color:var(--gy);margin-top:8px">This is a confirmed booking — manage its status from the Bookings admin.</div>'
+      + '</div>';
+  }
+  const opts = LEAD_STATUS_OPTIONS.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===d.status?' selected':'')+'>'+esc(o.label)+'</option>').join('');
+  const showReason = NON_CONVERT_STATUSES.includes(d.status);
+  const reasonOpts = ['<option value="">— Select —</option>'].concat(
+    NON_CONVERT_REASON_OPTIONS.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===d.non_convert_reason?' selected':'')+'>'+esc(o.label)+'</option>')
+  ).join('');
+  const isOthers = d.non_convert_reason==='Others';
+  return '<div class="card"><h3>Status</h3>'
+    + '<div class="fld"><label>Status</label><select id="statusSel" onchange="onStatusDropdownChange()">'+opts+'</select></div>'
+    + '<div class="fld" id="reasonFld" style="display:'+(showReason?'flex':'none')+';margin-top:10px">'
+      + '<label>Reason (not converted)</label><select id="statusReasonSel" onchange="onStatusReasonChange()">'+reasonOpts+'</select></div>'
+    + '<div class="fld" id="reasonOtherFld" style="display:'+(showReason&&isOthers?'flex':'none')+';margin-top:10px">'
+      + '<label>Please specify</label><input type="text" id="statusReasonOther" value="'+esc(d.non_convert_reason_other||'')+'"></div>'
+    + '<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">'
+      + '<button type="button" class="btn gr" onclick="convertLeadDetail()">Convert to Booking</button>'
+      + '<button type="button" class="btn bk" onclick="saveDetailStatus()">Save Status</button>'
+    + '</div></div>';
+}
+function onStatusDropdownChange(){
+  const status = document.getElementById('statusSel').value;
+  const show = NON_CONVERT_STATUSES.includes(status);
+  document.getElementById('reasonFld').style.display = show?'flex':'none';
+  document.getElementById('reasonOtherFld').style.display = 'none';
+}
+function onStatusReasonChange(){
+  const isOthers = document.getElementById('statusReasonSel').value==='Others';
+  document.getElementById('reasonOtherFld').style.display = isOthers?'flex':'none';
+}
+async function saveDetailStatus(){
+  const who = getName();
+  if(!who){ showToast('Set "Editing as" name at the top first.'); return; }
+  const status = document.getElementById('statusSel').value;
+  const reasonSel = document.getElementById('statusReasonSel');
+  const reasonOther = document.getElementById('statusReasonOther');
+  try{
+    const result = await apiCall('/api/admin/bookings/'+CURRENT_ID+'/status', {
+      method:'POST', body: JSON.stringify({
+        status: status,
+        non_convert_reason: reasonSel ? reasonSel.value : '',
+        non_convert_reason_other: reasonOther ? reasonOther.value : '',
+        changed_by: who,
+      }),
+    });
+    showToast(result && result.is_booking ? '✓ Converted to booking — moved to the Bookings tab.' : ('✓ Status set to '+status+'.'));
+    DATA = await apiCall('/api/admin/sales-leads/'+CURRENT_ID);
+    renderDetail();
+  }catch(e){
+    showToast(e.message||"Couldn't save that.");
+  }
+}
+async function convertLeadDetail(){
+  const who = getName();
+  if(!who){ showToast('Set "Editing as" name at the top first.'); return; }
+  if(!confirm('Convert this lead into a confirmed booking?')) return;
+  try{
+    await apiCall('/api/admin/bookings/'+CURRENT_ID+'/convert', {method:'POST', body: JSON.stringify({changed_by: who})});
+    showToast('✓ Converted to booking.');
+    DATA = await apiCall('/api/admin/sales-leads/'+CURRENT_ID);
+    renderDetail();
+  }catch(e){
+    showToast(e.message||"Couldn't save that.");
   }
 }
 
@@ -409,12 +598,6 @@ function reqSelectRow(key, label, list, note){
     + '<input type="number" id="req_'+key+'_cost" placeholder="Cost (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\''+key+'\')">'
     + '</div>' + (note?('<div class="req-note">'+note+'</div>'):'') + '</div>';
 }
-function reqSelectRowNoPrice(key, label, list, labelFn){
-  const r = req(key);
-  let opts = '<option value="">— select —</option>';
-  (list||[]).forEach(o=>{ const lbl=labelFn(o); opts += '<option '+(lbl===r.selected?'selected':'')+'>'+esc(lbl)+'</option>'; });
-  return '<div class="req-row"><div class="rlabel">'+label+'</div><select id="req_'+key+'_sel" onchange="onReqTextSelectChange(\''+key+'\')">'+opts+'</select></div>';
-}
 function reqTextRow(key, label, note){
   const r = req(key);
   return '<div class="req-row"><div class="rlabel">'+label+'</div><div class="req-grid">'
@@ -429,25 +612,20 @@ function reqYesNoRow(key, label, note){
     + '<button type="button" class="'+(r.selected==='No'?'sel':'')+'" onclick="setYesNo(\''+key+'\',\'No\')">No</button>'
     + '</div>' + (note?('<div class="req-note">'+note+'</div>'):'') + '</div>';
 }
-function reqMusicRow(){
-  const r = req('music');
-  const addons = (CATALOGUE.music_addons||[]);
-  const checkedAddons = (r.addons||[]).map(a=>a.name);
-  let addonsHtml = addons.map(a=>{
-    const isChecked = checkedAddons.includes(a.name);
-    return '<label class="addon-row"><input type="checkbox" '+(isChecked?'checked':'')+' onchange="onMusicAddonChange(\''+esc(a.name)+'\','+a.price+',this.checked)"> '+esc(a.name)+' ('+money(a.price)+')</label>';
-  }).join('');
-  return '<div class="req-row"><div class="rlabel">Music</div><div class="req-grid">'
-    + '<select id="req_music_sel" onchange="onReqSelectChange(\'music\')">' + optionsHtml(CATALOGUE.music, r.selected) + '</select>'
-    + '<input type="number" id="req_music_cost" placeholder="Cost (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'music\')">'
-    + '</div>' + addonsHtml + custBox('music', 'Customizations (song requests, timing...)') + '</div>';
+// Generic capsule/chip single-select row — same visual pattern as the Yes/No
+// (Return Gift Tags) row, for any small fixed option set (2026-09-16, per
+// Shruti: "packaging / pinata — show capsules like return gift tags").
+function reqChipRow(key, label, options, note){
+  const r = req(key);
+  const chips = options.map(o=>'<button type="button" class="'+(r.selected===o.value?'sel':'')+'" onclick="setChip(\''+key+'\',\''+esc(o.value).replace(/\'/g,"\\'")+'\')">'+esc(o.label)+'</button>').join('');
+  return '<div class="req-row"><div class="rlabel">'+label+'</div><div class="chip-row">'+chips+'</div>'
+    + (note?('<div class="req-note">'+note+'</div>'):'') + '</div>';
 }
-async function onMusicAddonChange(name, price, checked){
-  const r = Object.assign({selected:null,cost:null,addons:[]}, req('music'));
-  let addons = (r.addons||[]).filter(a=>a.name!==name);
-  if(checked) addons.push({name, price});
-  r.addons = addons;
-  await saveRequirement('music', r);
+async function setChip(key, val){
+  const r = Object.assign({}, req(key));
+  r.selected = (r.selected===val) ? null : val;
+  await saveRequirement(key, r);
+  renderDetail();
 }
 async function onReqSelectChange(key){
   const sel = document.getElementById('req_'+key+'_sel');
@@ -500,15 +678,16 @@ function custBox(key, placeholder){
 }
 
 // ── Decor: tier is a plain pick list (cost typed in manually — quotes get
-// negotiated off-tier), plus a customization box, a link to the real decor
-// gallery, and a picker to attach one of the named decor designs. ─────────
+// negotiated off-tier), plus a customization box, a link into the real
+// Build-a-Birthday decor step, and a picker to attach one of the named
+// decor designs (also sourced from Build-a-Birthday's own catalogue). ────
 function reqDecorRow(){
   const r = req('decor');
   const tiers = CATALOGUE.decor_tiers||[];
   const tierOpts = '<option value="">— select tier —</option>'
     + tiers.map(t=>'<option value="'+esc(t.name)+'" '+(t.name===r.selected?'selected':'')+'>'+esc(t.name)+' (ref. '+money(t.price)+')</option>').join('')
     + '<option value="Others" '+(r.selected==='Others'?'selected':'')+'>Others</option>';
-  const themeOpts = '<option value="">— pick an existing decor design —</option>'
+  const themeOpts = '<option value="">— pick from Build-a-Birthday —</option>'
     + (CATALOGUE.decor_themes||[]).map(t=>'<option value="'+esc(t.name)+'" '+(t.name===r.theme_name?'selected':'')+'>'+esc(t.name)+'</option>').join('');
   return '<div class="req-row"><div class="rlabel">Decor</div><div class="req-grid">'
     + '<select id="req_decor_sel" onchange="onReqTextSelectChange(\'decor\')">' + tierOpts + '</select>'
@@ -517,7 +696,7 @@ function reqDecorRow(){
     + custBox('decor', 'Customizations (colours, add-ons, special requests...)')
     + '<div class="pick-row">'
       + '<select onchange="onDecorThemePick(this.value)">' + themeOpts + '</select>'
-      + '<a href="gallery.html#sec-decor" target="_blank">View decor gallery ↗</a>'
+      + '<a href="builder.html" target="_blank">Open Build-a-Birthday (decor) ↗</a>'
     + '</div></div>';
 }
 async function onDecorThemePick(name){
@@ -542,8 +721,8 @@ function reqHostRow(){
 }
 
 // ── Return Gifts: quantity / budget-per-child / type, plus customization,
-// a link to the real return-gifts reference, and a picker for an existing
-// catalogue item. ──────────────────────────────────────────────────────
+// a link into the real Build-a-Birthday return-gifts step, and a picker
+// for an existing catalogue item. ─────────────────────────────────────
 function reqReturnGiftsRow(){
   const r = req('return_gifts');
   const typeOpts = '<option value="">— type —</option>'
@@ -559,7 +738,7 @@ function reqReturnGiftsRow(){
     + custBox('return_gifts', 'Customizations / specific items discussed...')
     + '<div class="pick-row">'
       + '<select onchange="onReturnGiftPick(this.value)">' + giftOpts + '</select>'
-      + '<a href="blogs.html#return-gifts" target="_blank">View return gift options ↗</a>'
+      + '<a href="builder.html" target="_blank">Open Build-a-Birthday (return gifts) ↗</a>'
     + '</div></div>';
 }
 async function onReturnGiftField(field, value){
@@ -583,6 +762,35 @@ function reqPhotographerRow(){
   return reqSelectRow('photographer', 'Photographer', list, featureNote);
 }
 
+// ── Packaging: capsule options (same visual pattern as Return Gift Tags),
+// real site labels plus a "None" choice. ──────────────────────────────
+function reqPackagingRow(){
+  const opts = (CATALOGUE.packaging||[]).map(o=>({value:o.label, label:o.label}));
+  return reqChipRow('packaging', 'Packaging (Add-on)', opts);
+}
+
+// ── Pinata: capsule options (real site names + reference price), with a
+// manual cost override underneath. ─────────────────────────────────────
+function reqPinataRow(){
+  const r = req('pinata_type');
+  const list = CATALOGUE.pinata_type||[];
+  const chips = list.map(o=>{
+    const lbl = o.name + (o.price!=null ? ' — '+money(o.price) : (o.note?' — '+o.note:''));
+    return '<button type="button" class="'+(r.selected===o.name?'sel':'')+'" onclick="onPinataChipPick(\''+esc(o.name).replace(/\'/g,"\\'")+'\')">'+esc(lbl)+'</button>';
+  }).join('');
+  return '<div class="req-row"><div class="rlabel">Pinata Type</div><div class="chip-row">'+chips+'</div>'
+    + '<input type="number" id="req_pinata_type_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'pinata_type\')">'
+    + '<div class="req-note">Custom has no fixed price — quote separately.</div></div>';
+}
+async function onPinataChipPick(name){
+  const opt = (CATALOGUE.pinata_type||[]).find(o=>o.name===name);
+  const r = Object.assign({}, req('pinata_type'));
+  r.selected = (r.selected===name) ? null : name;
+  if(r.selected && opt && opt.price!=null) r.cost = opt.price;
+  await saveRequirement('pinata_type', r);
+  renderDetail();
+}
+
 function sectionRequirements(){
   const gt = CATALOGUE.return_gift_tags || {};
   let html = '<div class="card"><h3>2 · Event Requirements</h3>';
@@ -592,14 +800,34 @@ function sectionRequirements(){
   html += reqMusicRow();
   html += reqReturnGiftsRow();
   html += reqYesNoRow('return_gift_tags', 'Return Gift Tags (Add-on)', gt.note||'');
-  html += reqSelectRowNoPrice('packaging', 'Packaging (Add-on)', CATALOGUE.packaging, o=>o.label);
-  html += reqSelectRow('pinata_type', 'Pinata Type', CATALOGUE.pinata_type, 'Custom has no fixed price — quote separately.');
+  html += reqPackagingRow();
+  html += reqPinataRow();
   html += reqYesNoRow('pinata_bags', 'Pinata — Bags (Add-on)');
   html += reqYesNoRow('pinata_fillings', 'Pinata — Fillings (Add-on)');
   html += reqTextRow('cake', 'Cake', CATALOGUE.cake_note||'');
   html += reqPhotographerRow();
   html += '</div>';
   return html;
+}
+function reqMusicRow(){
+  const r = req('music');
+  const addons = (CATALOGUE.music_addons||[]);
+  const checkedAddons = (r.addons||[]).map(a=>a.name);
+  let addonsHtml = addons.map(a=>{
+    const isChecked = checkedAddons.includes(a.name);
+    return '<label class="addon-row"><input type="checkbox" '+(isChecked?'checked':'')+' onchange="onMusicAddonChange(\''+esc(a.name)+'\','+a.price+',this.checked)"> '+esc(a.name)+' ('+money(a.price)+')</label>';
+  }).join('');
+  return '<div class="req-row"><div class="rlabel">Music</div><div class="req-grid">'
+    + '<select id="req_music_sel" onchange="onReqSelectChange(\'music\')">' + optionsHtml(CATALOGUE.music, r.selected) + '</select>'
+    + '<input type="number" id="req_music_cost" placeholder="Cost (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'music\')">'
+    + '</div>' + addonsHtml + custBox('music', 'Customizations (song requests, timing...)') + '</div>';
+}
+async function onMusicAddonChange(name, price, checked){
+  const r = Object.assign({selected:null,cost:null,addons:[]}, req('music'));
+  let addons = (r.addons||[]).filter(a=>a.name!==name);
+  if(checked) addons.push({name, price});
+  r.addons = addons;
+  await saveRequirement('music', r);
 }
 
 // ── 3. Event Schedule ───────────────────────────────────────────────────
@@ -629,7 +857,7 @@ async function saveSched(){
 
 // ── 4. Activities ────────────────────────────────────────────────────────
 function sectionActivities(){
-  return '<div class="card"><h3>4 · Activities <a href="gallery.html#sec-diy" target="_blank" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">View activities gallery ↗</a></h3>'
+  return '<div class="card"><h3>4 · Activities <a href="builder.html" target="_blank" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">Open Build-a-Birthday (activities) ↗</a></h3>'
     + '<div class="act-list" id="actList"></div>'
     + '<div class="add-new-act">'
       + '<input type="text" id="newActInput" placeholder="Not in the list? Type it as free text and add" onkeydown="if(event.key===\'Enter\')submitNewActivity()">'
