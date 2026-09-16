@@ -214,6 +214,11 @@ PLAYBOOK_SCALAR_FIELDS = [
     "volunteers_general", "lead_volunteer", "decor_assigned_to",
     "music_assigned_to", "ops_lead_name",
     "post_event_missing_items", "post_event_client_feedback", "post_event_internal_notes",
+    # 2026-09-16, per Shruti: "add a t&c column, to be input by the
+    # salesman - optional" — free text, saved via the same generic
+    # saveField()/PATCH path as the notes fields above, section 6 (Confirm
+    # Booking & Balance) on the frontend.
+    "terms_conditions",
 ]
 
 
@@ -381,6 +386,7 @@ async def _full_detail(lead_row) -> dict:
         "venue_handover_time": pb.get("venue_handover_time"),
         "packup_time": pb.get("packup_time"),
         "venue_type": pb.get("venue_type"),
+        "terms_conditions": pb.get("terms_conditions"),
         "requirements": reqs,
         "activities": acts,
         "new_activity_suggestions": sugg,
@@ -550,12 +556,23 @@ async def patch_sheet(lead_id: int, body: PatchIn, x_admin_password: Optional[st
             changed.append(key)
 
     if body.requirements:
-        pb_sets.append("requirements = requirements || :req_patch::jsonb")
+        # 2026-09-16 — was "requirements || :req_patch::jsonb". SQLAlchemy's
+        # text() bind-param parser (which `databases` compiles every raw
+        # query through — see _build_query() in databases/core.py) doesn't
+        # recognise a :name immediately followed by a Postgres :: cast; it
+        # raised "This text() construct doesn't define a bound parameter
+        # named 'req_patch'" on every call, an unhandled exception that
+        # showed up in the browser as a bare "Failed to fetch" (same failure
+        # shape as the missing-column bugs elsewhere in this app, which is
+        # what made it look like the same root cause — it isn't). Verified
+        # directly against the pinned sqlalchemy==2.0.30 from requirements.txt.
+        # CAST(:x AS JSONB) is semantically identical and parses cleanly.
+        pb_sets.append("requirements = requirements || CAST(:req_patch AS JSONB)")
         pb_values["req_patch"] = json.dumps(body.requirements)
         changed.extend(f"requirements.{k}" for k in body.requirements.keys())
 
     if body.event_schedule is not None:
-        pb_sets.append("event_schedule = :sched::jsonb")
+        pb_sets.append("event_schedule = CAST(:sched AS JSONB)")
         pb_values["sched"] = json.dumps(body.event_schedule)
         changed.append("event_schedule")
 
@@ -590,7 +607,9 @@ async def add_activity(lead_id: int, body: ActivityIn, x_admin_password: Optiona
             "name": body.name.strip(), "price": body.price, "flat": bool(body.flat),
             "volunteer": None, "materials": None}
     await database.execute(
-        "UPDATE lead_sales_playbook SET activities = activities || :item::jsonb, updated_by = :by, updated_at = NOW() WHERE lead_id = :id",
+        # See the CAST(...) note above patch_sheet()'s requirements write —
+        # same SQLAlchemy text()-vs-::cast bug, same fix.
+        "UPDATE lead_sales_playbook SET activities = activities || CAST(:item AS JSONB), updated_by = :by, updated_at = NOW() WHERE lead_id = :id",
         values={"id": lead_id, "item": json.dumps([item]), "by": by},
     )
     await _log(pb_row["id"], by, "activity_added", detail=item["name"])
@@ -610,7 +629,7 @@ async def remove_activity(lead_id: int, body: ActivityRemoveIn, x_admin_password
         (body.id and a.get("id") == body.id) or (body.name and not body.id and a.get("name") == body.name)
     )]
     await database.execute(
-        "UPDATE lead_sales_playbook SET activities = :acts::jsonb, updated_by = :by, updated_at = NOW() WHERE lead_id = :id",
+        "UPDATE lead_sales_playbook SET activities = CAST(:acts AS JSONB), updated_by = :by, updated_at = NOW() WHERE lead_id = :id",
         values={"id": lead_id, "acts": json.dumps(kept), "by": by},
     )
     await _log(pb_row["id"], by, "activity_removed", detail=body.name or body.id)
@@ -639,7 +658,7 @@ async def set_activity_field(lead_id: int, body: ActivityFieldIn, x_admin_passwo
     if not found:
         raise HTTPException(status_code=404, detail="That activity isn't on this lead.")
     await database.execute(
-        "UPDATE lead_sales_playbook SET activities = :acts::jsonb, updated_by = :by, updated_at = NOW() WHERE lead_id = :id",
+        "UPDATE lead_sales_playbook SET activities = CAST(:acts AS JSONB), updated_by = :by, updated_at = NOW() WHERE lead_id = :id",
         values={"id": lead_id, "acts": json.dumps(acts), "by": by},
     )
     await _log(pb_row["id"], by, "updated", detail=f"activity assignment: {body.id}")
@@ -658,7 +677,7 @@ async def suggest_new_activity(lead_id: int, body: NewActivityIn, x_admin_passwo
     by = body.added_by.strip() or "Someone"
     entry = {"text": text, "added_by": by, "added_on": datetime.utcnow().isoformat()}
     await database.execute(
-        "UPDATE lead_sales_playbook SET new_activity_suggestions = new_activity_suggestions || :entry::jsonb, "
+        "UPDATE lead_sales_playbook SET new_activity_suggestions = new_activity_suggestions || CAST(:entry AS JSONB), "
         "updated_by = :by, updated_at = NOW() WHERE lead_id = :id",
         values={"id": lead_id, "entry": json.dumps([entry]), "by": by},
     )
