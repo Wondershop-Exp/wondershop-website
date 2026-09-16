@@ -508,7 +508,6 @@ function renderDetail(){
     + sectionActivities()
     + sectionNotes()
     + sectionBilling()
-    + sectionOps()
     + sectionPostEvent()
     + '<div class="hist-toggle" onclick="toggleHistory()">View edit history</div>'
     + '<div id="histPanel"></div>';
@@ -517,15 +516,34 @@ function renderDetail(){
   renderHistory();
 }
 
-async function saveField(key, value){
+// 2026-09-16, per Shruti: "#kids gets refreshed and that no. is not
+// updated in return gifts or activities". Root cause, confirmed live
+// against the production API: a <input type="number"> element's
+// .value is ALWAYS a string, and this generic handler was sending it
+// straight through to the backend as a JSON string (e.g. "7"). The
+// leads.kids_count column is INTEGER, and the PATCH endpoint's `fields`
+// dict has no type coercion (Dict[str, Any], bound straight into the raw
+// SQL) — so a string value there fails Postgres's type check and the
+// request 500s. The visible symptom matched exactly: the # Kids input
+// itself looked "refreshed" (it just still showed whatever was typed —
+// inputs don't revert on a failed save), but since the request never
+// actually succeeded, patchSheet() never got a fresh DATA back and never
+// re-rendered, so Activities/Requirements/Grand Total stayed stale.
+// Fixed by coercing to a real number (or null) here, using the input's
+// own `type` attribute passed through from the onblur handler.
+async function saveField(key, value, inputType){
+  if(inputType === 'number'){
+    value = (value === '' ? null : Number(value));
+  } else {
+    value = (value === '' ? null : value);
+  }
   if(DATA[key] === value) return;
   DATA[key] = value;
-  await patchSheet({fields:{[key]: value === '' ? null : value}});
+  await patchSheet({fields:{[key]: value}});
   // # Kids drives Activities' per-child totals, Pinata Bags' cost, and
   // therefore the Grand Total — resave any already-selected kids-count-
   // dependent add-on so its stored cost (and the total that's summed from
-  // it) doesn't go stale. 2026-09-16, per Shruti: "on updating #kids, the
-  // return gifts / activities / grand total does not get updated".
+  // it) doesn't go stale.
   if(key === 'kids_count') await recalcDerivedCosts();
 }
 
@@ -637,7 +655,7 @@ function sectionClientDetails(){
   const d = DATA;
   const f = (key,label,type,extra) => '<div class="fld"><label>'+label+'</label>'
     +'<input type="'+type+'" id="f_'+key+'" value="'+esc(d[key]==null?'':d[key])+'" '+(extra||'')
-    +' onblur="saveField(\''+key+'\', this.value)"></div>';
+    +' onblur="saveField(\''+key+'\', this.value, this.type)"></div>';
   const genderSel = '<div class="fld"><label>Gender</label><select id="f_child_gender" onchange="saveField(\'child_gender\', this.value)">'
     + '<option value="">— select —</option>'
     + '<option value="Male" '+(d.child_gender==='Male'?'selected':'')+'>Male</option>'
@@ -839,54 +857,106 @@ function reqHostRow(){
 // "return gifts - show total after multiplying quantity" (previously the
 // total only ever appeared when BOTH quantity and budget were filled in,
 // and picking a gift from the catalogue with its own price didn't
-// compute or save a cost at all). ───────────────────────────────────────
+// compute or save a cost at all).
+//
+// Redesigned again the same day, per Shruti: "return gifts - customer can
+// select multiple gifts, add a quantity option (equal to no. of kids by
+// default) for each item selected" — replaces the old single gift
+// dropdown with a checklist of every catalogue gift; ticking one reveals
+// its own quantity input (defaulting to # Kids, then freely editable per
+// item — e.g. 10 of one gift + 5 of another). r.selected_gifts is now an
+// array of {name, price, quantity}; r.cost is the sum of qty × price
+// across all of them. Budget/child stays as a manual fallback total for
+// when no specific catalogue gift applies (a custom/off-catalogue gift
+// being discussed) — used only when nothing is ticked below.
+// ───────────────────────────────────────────────────────────────────────
+function _returnGiftsTotalQty(){
+  const r = req('return_gifts');
+  const gifts = r.selected_gifts || [];
+  if(gifts.length) return gifts.reduce((s,g)=>s+(Number(g.quantity)||0), 0);
+  return r.quantity || 0; // legacy fallback for leads saved before this redesign
+}
 function reqReturnGiftsRow(){
   const r = req('return_gifts');
   const typeOpts = '<option value="">— type —</option>'
     + (CATALOGUE.return_gift_types||[]).map(t=>'<option '+(t===r.type?'selected':'')+'>'+t+'</option>').join('');
-  const giftOpts = '<option value="">— pick an existing gift —</option>'
-    + (CATALOGUE.return_gifts_catalogue||[]).map(g=>'<option value="'+esc(g.name)+'" '+(g.name===r.selected_gift_name?'selected':'')+'>'+esc(g.name)+' — '+money(g.price)+'</option>').join('');
-  const selectedGift = (CATALOGUE.return_gifts_catalogue||[]).find(g=>g.name===r.selected_gift_name);
-  const unitPrice = (r.budget!=null) ? r.budget : (selectedGift ? selectedGift.price : null);
-  const total = (r.quantity && unitPrice!=null) ? r.quantity*unitPrice : null;
-  return '<div class="req-row"><div class="rlabel">Return Gifts</div><div class="req-grid3">'
-    + '<input type="number" placeholder="Quantity" value="'+(r.quantity==null?'':r.quantity)+'" onblur="onReturnGiftField(\'quantity\',this.value)">'
-    + '<input type="number" placeholder="Budget / child (₹)" value="'+(r.budget==null?'':r.budget)+'" onblur="onReturnGiftField(\'budget\',this.value)">'
+  const selectedGifts = r.selected_gifts || [];
+  const catalogue = CATALOGUE.return_gifts_catalogue || [];
+  const kids = DATA.kids_count || 1;
+  const giftRows = catalogue.map(g=>{
+    const sel = selectedGifts.find(x=>x.name===g.name);
+    const checked = !!sel;
+    const qty = checked ? sel.quantity : kids;
+    const nameJs = esc(g.name).replace(/\'/g,"\\'");
+    return '<div class="rg-item" style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--li2)">'
+      + '<label style="flex:1;display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer">'
+        + '<input type="checkbox" '+(checked?'checked':'')+' onchange="onReturnGiftToggle(\''+nameJs+'\','+g.price+',this.checked)">'
+        + esc(g.name)+' — '+money(g.price)
+      + '</label>'
+      + (checked ? '<input type="number" min="1" style="width:80px;padding:7px 9px;border:1px solid var(--li2);border-radius:8px;font-size:13px" value="'+qty+'" title="Quantity" onblur="onReturnGiftQty(\''+nameJs+'\',this.value)">' : '')
+      + (checked ? '<span style="font-size:12.5px;color:var(--gy);min-width:70px;text-align:right">'+money((sel.price!=null?sel.price:g.price)*qty)+'</span>' : '')
+    + '</div>';
+  }).join('');
+  const giftsTotal = selectedGifts.reduce((s,g)=>s+(Number(g.price)||0)*(Number(g.quantity)||0), 0);
+  const total = selectedGifts.length ? giftsTotal : ((r.budget!=null && kids) ? r.budget*kids : null);
+  return '<div class="req-row"><div class="rlabel">Return Gifts</div><div class="req-grid">'
     + '<select onchange="onReturnGiftField(\'type\',this.value)">'+typeOpts+'</select>'
+    + '<input type="number" placeholder="Budget / child (₹) — if not picking from the list below" value="'+(r.budget==null?'':r.budget)+'" onblur="onReturnGiftField(\'budget\',this.value)">'
     + '</div>'
+    + (catalogue.length ? '<div style="margin-top:10px">'+giftRows+'</div>' : '')
     + '<input type="number" id="req_return_gifts_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'return_gifts\')">'
-    + (total!=null ? '<div class="ref-note">Total ('+r.quantity+' × '+money(unitPrice)+'): '+money(total)+'</div>' : '')
+    + (total!=null ? '<div class="ref-note">Total: '+money(total)+'</div>' : '')
     + custBox('return_gifts', 'Customizations / specific items discussed...')
-    + '<div class="pick-row">'
-      + '<select onchange="onReturnGiftPick(this.value)">' + giftOpts + '</select>'
-      + '<a href="builder.html?gifts=1" target="_blank">Open Build-a-Birthday (return gifts) ↗</a>'
-    + '</div></div>';
-}
-function _returnGiftUnitPrice(r){
-  if(r.budget!=null) return r.budget;
-  const g = (CATALOGUE.return_gifts_catalogue||[]).find(g=>g.name===r.selected_gift_name);
-  return g ? g.price : null;
+    + '<div class="pick-row"><a href="builder.html?gifts=1" target="_blank">Open Build-a-Birthday (return gifts) ↗</a></div>'
+    + '</div>';
 }
 async function onReturnGiftField(field, value){
-  const r = Object.assign({quantity:null,budget:null,type:null,cost:null}, req('return_gifts'));
-  r[field] = (field==='quantity'||field==='budget') ? (value===''?null:Number(value)) : (value||null);
-  const unitPrice = _returnGiftUnitPrice(r);
-  if(r.quantity && unitPrice!=null) r.cost = r.quantity * unitPrice;
+  const r = Object.assign({budget:null,type:null,cost:null}, req('return_gifts'));
+  r[field] = (field==='budget') ? (value===''?null:Number(value)) : (value||null);
+  const gifts = r.selected_gifts || [];
+  if(!gifts.length){
+    const kids = DATA.kids_count || 1;
+    r.cost = (field==='budget' && r.budget!=null) ? r.budget*kids : r.cost;
+  }
   await saveRequirement('return_gifts', r);
-  if(field==='quantity') await recalcDerivedCosts();
   renderDetail();
 }
-// Packaging, Return Gift Tags (priced off the Return Gifts quantity) and
-// Pinata Bags (priced off # Kids) are all auto-computed but manually
-// editable. If the value they're derived from changes after the add-on
-// is already selected, re-price it here so the Grand Total stays correct
-// without the sales person having to re-click the option. Only touches
-// add-ons that are already selected; untouched otherwise. Called after
-// the Return Gifts quantity changes, and after # Kids changes (see
+async function onReturnGiftToggle(name, price, checked){
+  const r = Object.assign({}, req('return_gifts'));
+  let gifts = (r.selected_gifts||[]).slice();
+  if(checked){
+    if(!gifts.some(g=>g.name===name)) gifts.push({name, price, quantity: DATA.kids_count || 1});
+  } else {
+    gifts = gifts.filter(g=>g.name!==name);
+  }
+  r.selected_gifts = gifts;
+  r.cost = gifts.reduce((s,g)=>s+(Number(g.price)||0)*(Number(g.quantity)||0), 0) || null;
+  await saveRequirement('return_gifts', r);
+  await recalcDerivedCosts();
+  renderDetail();
+}
+async function onReturnGiftQty(name, value){
+  const r = Object.assign({}, req('return_gifts'));
+  const qty = value==='' ? 0 : Number(value);
+  const gifts = (r.selected_gifts||[]).map(g=> g.name===name ? Object.assign({},g,{quantity:qty}) : g);
+  r.selected_gifts = gifts;
+  r.cost = gifts.reduce((s,g)=>s+(Number(g.price)||0)*(Number(g.quantity)||0), 0) || null;
+  await saveRequirement('return_gifts', r);
+  await recalcDerivedCosts();
+  renderDetail();
+}
+// Packaging, Return Gift Tags (priced off the total Return Gifts quantity
+// — the sum of every selected gift's quantity) and Pinata Bags (priced
+// off # Kids) are all auto-computed but manually editable. If the value
+// they're derived from changes after the add-on is already selected,
+// re-price it here so the Grand Total stays correct without the sales
+// person having to re-click the option. Only touches add-ons that are
+// already selected; untouched otherwise. Called after Return Gifts
+// quantities/selection change, and after # Kids changes (see
 // saveField()). 2026-09-16, per Shruti: "on updating #kids, the return
 // gifts / activities / grand total does not get updated".
 async function recalcDerivedCosts(){
-  const qty = (req('return_gifts').quantity) || 0;
+  const qty = _returnGiftsTotalQty();
   const pkg = req('packaging');
   if(pkg.selected){
     const opt = (CATALOGUE.packaging||[]).find(o=>o.label===pkg.selected);
@@ -912,15 +982,6 @@ async function recalcDerivedCosts(){
     await saveRequirement('pinata_bags', r);
   }
 }
-async function onReturnGiftPick(name){
-  if(!name) return;
-  const r = Object.assign({}, req('return_gifts'));
-  r.selected_gift_name = name;
-  const unitPrice = _returnGiftUnitPrice(r);
-  if(r.quantity && unitPrice!=null) r.cost = r.quantity * unitPrice;
-  await saveRequirement('return_gifts', r);
-  renderDetail();
-}
 
 // ── Photographer ─────────────────────────────────────────────────────────
 function reqPhotographerRow(){
@@ -938,7 +999,7 @@ function reqPhotographerRow(){
 // website — show it on the UI and add to grand total if selected".
 function reqPackagingRow(){
   const r = req('packaging');
-  const qty = (req('return_gifts').quantity) || 0;
+  const qty = _returnGiftsTotalQty();
   const opts = CATALOGUE.packaging||[];
   const chips = opts.map(o=>{
     const lbl = o.price!=null ? o.label+' — '+money(o.price)+'/item' : o.label;
@@ -954,7 +1015,7 @@ async function onPackagingChipPick(label){
   const r = Object.assign({}, req('packaging'));
   r.selected = (r.selected===label) ? null : label;
   if(r.selected && opt && opt.price!=null){
-    const qty = (req('return_gifts').quantity) || 0;
+    const qty = _returnGiftsTotalQty();
     r.cost = opt.price * qty;
   } else if(!r.selected){
     r.cost = null;
@@ -994,7 +1055,7 @@ async function onPinataChipPick(name){
 function reqReturnGiftTagsRow(){
   const r = req('return_gift_tags');
   const gt = CATALOGUE.return_gift_tags || {};
-  const qty = (req('return_gifts').quantity) || 0;
+  const qty = _returnGiftsTotalQty();
   const billedQty = Math.max(gt.min_qty||15, qty);
   const note = (gt.note||'') + (qty ? (' · Billed qty: '+billedQty) : ' · Set a Return Gifts quantity above to price this automatically.');
   return '<div class="req-row"><div class="rlabel">Return Gift Tags (Add-on)</div><div class="yn">'
@@ -1009,7 +1070,7 @@ async function onReturnGiftTagsPick(val){
   const r = Object.assign({}, req('return_gift_tags'));
   r.selected = (r.selected===val) ? null : val;
   if(r.selected==='Yes'){
-    const qty = (req('return_gifts').quantity) || 0;
+    const qty = _returnGiftsTotalQty();
     const billedQty = Math.max(gt.min_qty||15, qty);
     r.cost = billedQty * (gt.unit_price||10);
   } else {
@@ -1393,38 +1454,20 @@ async function confirmBooking(){
   }
 }
 
-// ── 7. Ops assignments ──────────────────────────────────────────────────
-function sectionOps(){
-  const d = DATA;
-  const f = (key,label) => '<div class="fld"><label>'+label+'</label><input type="text" value="'+esc(d[key]||'')+'" onblur="saveField(\''+key+'\', this.value)"></div>';
-  const locked = d.playbook_stage==='sales_intake';
-  return '<div class="card"><h3>7 · Ops — Event Execution'
-      + (locked ? '<span style="font-size:11px;font-weight:400;color:var(--gy);text-transform:none;letter-spacing:0">Send to ops first (section 6) to unlock</span>' : '')
-    +'</h3>'
-    + '<div style="font-size:12px;color:var(--gy);margin:-4px 0 12px">Volunteers (general) below cover the event as a whole for now.</div>'
-    + '<div class="grid2">' + f('decor_assigned_to','Decor Assigned To') + f('music_assigned_to','Music Assigned To') + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('volunteers_general','Volunteers (general)') + f('lead_volunteer','Lead Volunteer') + '</div>'
-    + '<div class="fld" style="margin-top:10px">' + f('ops_lead_name','Ops Lead').replace(/^<div class="fld">|<\/div>$/g,'') + '</div>'
-    + (d.playbook_stage==='ops_ready'
-        ? '<div style="margin-top:14px;font-size:12px;color:var(--gr);font-weight:700">✓ Ops Ready'+(d.ops_ready_at?(' · '+esc(d.ops_ready_at)):'')+'</div>'
-        : '<button type="button" class="btn bk" style="margin-top:14px" '+(locked?'disabled':'')+' onclick="markOpsReady()">Mark Ops Ready</button>')
-    + '</div>';
-}
-async function markOpsReady(){
-  try{
-    DATA = await apiCall('/api/admin/sales-leads/'+CURRENT_ID+'/ops-ready', {method:'POST', body: JSON.stringify({updated_by:getName()})});
-    showToast('Marked ops ready.');
-    renderDetail();
-  }catch(e){
-    showToast(e.message||"Couldn't save that.");
-  }
-}
-
-// ── 8. Post-event notes ─────────────────────────────────────────────────
+// ── 7. Post-event notes ─────────────────────────────────────────────────
+// (Section 7 used to be "Ops — Event Execution" — decor/music assignment,
+// volunteers, and the Mark Ops Ready button. 2026-09-16, per Shruti:
+// "remove ops event execution section" — removed from the sales-facing
+// view. The underlying stage pipeline (sales_intake → sent_to_ops →
+// ops_ready) and the "Confirm Booking & Send to Ops" action in section 6
+// are untouched — this only drops the ops-assignment card and the
+// now-orphaned Mark Ops Ready control that lived in it; the backend
+// /ops-ready endpoint is left in place in case it's still wired up
+// elsewhere (e.g. the admin/ops dashboard).
 function sectionPostEvent(){
   const d = DATA;
   const t = (key,label) => '<div class="fld" style="margin-top:10px"><label>'+label+'</label><textarea onblur="saveField(\''+key+'\', this.value)">'+esc(d[key]||'')+'</textarea></div>';
-  return '<div class="card"><h3>8 · Post-Event Notes</h3>'
+  return '<div class="card"><h3>7 · Post-Event Notes</h3>'
     + t('post_event_missing_items','Missing / Damaged / Left-Behind Items')
     + t('post_event_client_feedback','Client Feedback')
     + t('post_event_internal_notes','Internal Learning / What to Improve')
