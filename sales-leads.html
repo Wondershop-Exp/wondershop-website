@@ -861,14 +861,19 @@ function reqHostRow(){
 //
 // Redesigned again the same day, per Shruti: "return gifts - customer can
 // select multiple gifts, add a quantity option (equal to no. of kids by
-// default) for each item selected" — replaces the old single gift
-// dropdown with a checklist of every catalogue gift; ticking one reveals
-// its own quantity input (defaulting to # Kids, then freely editable per
-// item — e.g. 10 of one gift + 5 of another). r.selected_gifts is now an
-// array of {name, price, quantity}; r.cost is the sum of qty × price
-// across all of them. Budget/child stays as a manual fallback total for
-// when no specific catalogue gift applies (a custom/off-catalogue gift
-// being discussed) — used only when nothing is ticked below.
+// default) for each item selected" — a checklist of every catalogue gift
+// (v2 of this redesign) then per Shruti again: "return gifts - don't give
+// all options, handle it like activities. let the user select options" —
+// replaced with the same search-box + suggestion-dropdown + chosen-list
+// pattern Activities already uses (search/add/remove functions below
+// mirror activityMatches/onActivityPickInput/pickActivitySuggestion/
+// addActivityFromPicker/toggleActivity 1:1). Each chosen gift keeps its
+// own quantity (defaulting to # Kids when added, then freely editable —
+// e.g. 10 of one gift + 5 of another). r.selected_gifts is an array of
+// {name, price, quantity}; r.cost is the sum of qty × price across all of
+// them. Budget/child stays as a manual fallback total for when no
+// specific catalogue gift applies (a custom/off-catalogue gift being
+// discussed) — used only when nothing has been added below.
 // ───────────────────────────────────────────────────────────────────────
 function _returnGiftsTotalQty(){
   const r = req('return_gifts');
@@ -881,34 +886,132 @@ function reqReturnGiftsRow(){
   const typeOpts = '<option value="">— type —</option>'
     + (CATALOGUE.return_gift_types||[]).map(t=>'<option '+(t===r.type?'selected':'')+'>'+t+'</option>').join('');
   const selectedGifts = r.selected_gifts || [];
-  const catalogue = CATALOGUE.return_gifts_catalogue || [];
   const kids = DATA.kids_count || 1;
-  const giftRows = catalogue.map(g=>{
-    const sel = selectedGifts.find(x=>x.name===g.name);
-    const checked = !!sel;
-    const qty = checked ? sel.quantity : kids;
-    const nameJs = esc(g.name).replace(/\'/g,"\\'");
-    return '<div class="rg-item" style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--li2)">'
-      + '<label style="flex:1;display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer">'
-        + '<input type="checkbox" '+(checked?'checked':'')+' onchange="onReturnGiftToggle(\''+nameJs+'\','+g.price+',this.checked)">'
-        + esc(g.name)+' — '+money(g.price)
-      + '</label>'
-      + (checked ? '<input type="number" min="1" style="width:80px;padding:7px 9px;border:1px solid var(--li2);border-radius:8px;font-size:13px" value="'+qty+'" title="Quantity" onblur="onReturnGiftQty(\''+nameJs+'\',this.value)">' : '')
-      + (checked ? '<span style="font-size:12.5px;color:var(--gy);min-width:70px;text-align:right">'+money((sel.price!=null?sel.price:g.price)*qty)+'</span>' : '')
-    + '</div>';
-  }).join('');
+  const chosenHtml = selectedGifts.length
+    ? selectedGifts.map(g=>{
+        const nameJs = esc(g.name).replace(/\'/g,"\\'");
+        const sub = (Number(g.price)||0) * (Number(g.quantity)||0);
+        return '<div class="act-item sel"><div class="act-main" style="cursor:default">'
+          + '<div class="an">'+esc(g.name)+'</div>'
+          + '<input type="number" min="1" style="width:64px;padding:7px 9px;border:1px solid var(--li2);border-radius:8px;font-size:13px" value="'+(g.quantity==null?'':g.quantity)+'" title="Quantity" onblur="onReturnGiftQty(\''+nameJs+'\',this.value)">'
+          + '<div class="ap">'+money(sub)+'</div>'
+          + '<button type="button" class="icon-btn" onclick="removeReturnGift(\''+nameJs+'\')" title="Remove">✕</button>'
+        + '</div></div>';
+      }).join('')
+    : '<div style="font-size:12.5px;color:var(--gy);padding:4px 0 8px">No gifts added yet — search below.</div>';
   const giftsTotal = selectedGifts.reduce((s,g)=>s+(Number(g.price)||0)*(Number(g.quantity)||0), 0);
   const total = selectedGifts.length ? giftsTotal : ((r.budget!=null && kids) ? r.budget*kids : null);
   return '<div class="req-row"><div class="rlabel">Return Gifts</div><div class="req-grid">'
     + '<select onchange="onReturnGiftField(\'type\',this.value)">'+typeOpts+'</select>'
-    + '<input type="number" placeholder="Budget / child (₹) — if not picking from the list below" value="'+(r.budget==null?'':r.budget)+'" onblur="onReturnGiftField(\'budget\',this.value)">'
+    + '<input type="number" placeholder="Budget / child (₹) — if not adding gifts below" value="'+(r.budget==null?'':r.budget)+'" onblur="onReturnGiftField(\'budget\',this.value)">'
     + '</div>'
-    + (catalogue.length ? '<div style="margin-top:10px">'+giftRows+'</div>' : '')
+    + '<div style="margin-top:10px" class="act-list">'+chosenHtml+'</div>'
+    + '<div class="pick-row" style="margin-top:0">'
+      + '<div class="pick-wrap">'
+        + '<input type="text" id="rgPickInput" autocomplete="off" placeholder="Search return gifts to add…" '
+          + 'oninput="onReturnGiftPickInput()" onfocus="onReturnGiftPickInput()" '
+          + 'onkeydown="onReturnGiftPickKeydown(event)" onblur="hideRgSuggestDelayed()">'
+        + '<div class="pick-suggest" id="rgSuggest"></div>'
+      + '</div>'
+      + '<button type="button" class="btn sm gh" onclick="addReturnGiftFromPicker()">Add</button>'
+    + '</div>'
     + '<input type="number" id="req_return_gifts_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'return_gifts\')">'
     + (total!=null ? '<div class="ref-note">Total: '+money(total)+'</div>' : '')
     + custBox('return_gifts', 'Customizations / specific items discussed...')
     + '<div class="pick-row"><a href="builder.html?gifts=1" target="_blank">Open Build-a-Birthday (return gifts) ↗</a></div>'
     + '</div>';
+}
+let RG_SUGGEST_IDX = -1;
+function returnGiftMatches(q){
+  const already = new Set((req('return_gifts').selected_gifts||[]).map(g=>g.name));
+  const ql = (q||'').trim().toLowerCase();
+  return (CATALOGUE.return_gifts_catalogue||[]).filter(g=>!already.has(g.name) && (!ql || g.name.toLowerCase().includes(ql)));
+}
+function onReturnGiftPickInput(){
+  const box = document.getElementById('rgSuggest');
+  const input = document.getElementById('rgPickInput');
+  if(!box || !input) return;
+  const list = returnGiftMatches(input.value);
+  RG_SUGGEST_IDX = -1;
+  box._list = list;
+  if(!list.length){
+    box.innerHTML = '<div class="ps-empty">'+(input.value.trim()?'No match.':'Start typing to search return gifts…')+'</div>';
+  } else {
+    box.innerHTML = list.slice(0,30).map(g=>'<div class="ps-item" onclick="pickReturnGiftSuggestion(\''+esc(g.name).replace(/\'/g,"\\'")+'\')"><span class="ps-name">'+esc(g.name)+'</span><span class="ps-price">'+money(g.price)+'</span></div>').join('');
+  }
+  box.classList.add('show');
+}
+function hideRgSuggestDelayed(){
+  // Delayed so a tap/click on a suggestion (which blurs the input first,
+  // especially on mobile) still registers before the list disappears —
+  // same fix as Activities' hideActSuggestDelayed().
+  setTimeout(()=>{ const b=document.getElementById('rgSuggest'); if(b) b.classList.remove('show'); }, 200);
+}
+function onReturnGiftPickKeydown(e){
+  const box = document.getElementById('rgSuggest');
+  if(!box) return;
+  const list = box._list || [];
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    RG_SUGGEST_IDX = list.length ? Math.min(RG_SUGGEST_IDX+1, list.length-1) : -1;
+    highlightRgSuggest(box);
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    RG_SUGGEST_IDX = list.length ? Math.max(RG_SUGGEST_IDX-1, 0) : -1;
+    highlightRgSuggest(box);
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(RG_SUGGEST_IDX>=0 && list[RG_SUGGEST_IDX]) pickReturnGiftSuggestion(list[RG_SUGGEST_IDX].name);
+    else if(list.length===1) pickReturnGiftSuggestion(list[0].name);
+    else addReturnGiftFromPicker();
+  } else if(e.key==='Escape'){
+    box.classList.remove('show');
+  }
+}
+function highlightRgSuggest(box){
+  Array.from(box.children).forEach((el,i)=>el.classList.toggle('active', i===RG_SUGGEST_IDX));
+  const active = box.children[RG_SUGGEST_IDX];
+  if(active) active.scrollIntoView({block:'nearest'});
+}
+async function pickReturnGiftSuggestion(name){
+  const box = document.getElementById('rgSuggest');
+  if(box) box.classList.remove('show');
+  const input = document.getElementById('rgPickInput');
+  if(input) input.value='';
+  await addReturnGift(name);
+}
+async function addReturnGiftFromPicker(){
+  const input = document.getElementById('rgPickInput');
+  const name = input.value.trim();
+  if(!name) return;
+  const match = (CATALOGUE.return_gifts_catalogue||[]).find(g=>g.name.toLowerCase()===name.toLowerCase());
+  if(!match){ showToast('Pick a gift from the search list.'); return; }
+  await addReturnGift(match.name);
+  input.value='';
+  const box = document.getElementById('rgSuggest');
+  if(box) box.classList.remove('show');
+}
+async function addReturnGift(name){
+  const match = (CATALOGUE.return_gifts_catalogue||[]).find(g=>g.name===name);
+  if(!match) return;
+  const r = Object.assign({}, req('return_gifts'));
+  let gifts = (r.selected_gifts||[]).slice();
+  if(gifts.some(g=>g.name===name)){ showToast('Already added.'); return; }
+  gifts.push({name: match.name, price: match.price, quantity: DATA.kids_count || 1});
+  r.selected_gifts = gifts;
+  r.cost = gifts.reduce((s,g)=>s+(Number(g.price)||0)*(Number(g.quantity)||0), 0) || null;
+  await saveRequirement('return_gifts', r);
+  await recalcDerivedCosts();
+  renderDetail();
+}
+async function removeReturnGift(name){
+  const r = Object.assign({}, req('return_gifts'));
+  const gifts = (r.selected_gifts||[]).filter(g=>g.name!==name);
+  r.selected_gifts = gifts;
+  r.cost = gifts.reduce((s,g)=>s+(Number(g.price)||0)*(Number(g.quantity)||0), 0) || null;
+  await saveRequirement('return_gifts', r);
+  await recalcDerivedCosts();
+  renderDetail();
 }
 async function onReturnGiftField(field, value){
   const r = Object.assign({budget:null,type:null,cost:null}, req('return_gifts'));
@@ -919,20 +1022,6 @@ async function onReturnGiftField(field, value){
     r.cost = (field==='budget' && r.budget!=null) ? r.budget*kids : r.cost;
   }
   await saveRequirement('return_gifts', r);
-  renderDetail();
-}
-async function onReturnGiftToggle(name, price, checked){
-  const r = Object.assign({}, req('return_gifts'));
-  let gifts = (r.selected_gifts||[]).slice();
-  if(checked){
-    if(!gifts.some(g=>g.name===name)) gifts.push({name, price, quantity: DATA.kids_count || 1});
-  } else {
-    gifts = gifts.filter(g=>g.name!==name);
-  }
-  r.selected_gifts = gifts;
-  r.cost = gifts.reduce((s,g)=>s+(Number(g.price)||0)*(Number(g.quantity)||0), 0) || null;
-  await saveRequirement('return_gifts', r);
-  await recalcDerivedCosts();
   renderDetail();
 }
 async function onReturnGiftQty(name, value){
