@@ -205,6 +205,7 @@ th.th-sort:hover{color:var(--pk)}
     </div>
     <table class="list" id="listTable">
       <thead><tr>
+        <th>ID</th>
         <th>Client</th>
         <th>Age/Gender</th>
         <th class="th-sort" id="th_created" onclick="setSort('created')">Created</th>
@@ -406,7 +407,7 @@ async function doSearch(){
   const q = document.getElementById('searchQ').value.trim();
   const body = document.getElementById('listBody');
   const empty = document.getElementById('listEmpty');
-  body.innerHTML = '<tr><td colspan="8" style="padding:16px;color:#6B7280">Loading...</td></tr>';
+  body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:#6B7280">Loading...</td></tr>';
   try{
     const d = await apiCall('/api/admin/sales-leads'+(q?('?search='+encodeURIComponent(q)):''));
     LIST_ROWS = d.sheets||[];
@@ -414,7 +415,7 @@ async function doSearch(){
     empty.style.display='none';
     renderListRows();
   }catch(e){
-    body.innerHTML = '<tr><td colspan="8" style="padding:16px;color:var(--pk)">'+esc(e.message)+'</td></tr>';
+    body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:var(--pk)">'+esc(e.message)+'</td></tr>';
   }
 }
 function renderListRows(){
@@ -424,6 +425,7 @@ function renderListRows(){
     const stagePill = '<span class="pill '+(STAGE_PILL[r.playbook_stage]||'pill-intake')+'">'+(STAGE_LABEL[r.playbook_stage]||r.playbook_stage)+'</span>';
     const suggPill = r.pending_activity_suggestions>0 ? ' <span class="pill pill-sugg">'+r.pending_activity_suggestions+' idea'+(r.pending_activity_suggestions>1?'s':'')+'</span>' : '';
     return '<tr onclick="openDetail('+r.lead_id+')" style="cursor:pointer">'
+      +'<td style="color:var(--gy);font-size:12.5px">#'+r.lead_id+'</td>'
       +'<td><strong>'+esc(r.client_name||'(no name yet)')+'</strong><br><span style="color:var(--gy);font-size:12px">'+esc(r.mobile||'')+'</span></td>'
       +'<td>'+esc(ageGender(r))+'</td>'
       +'<td>'+fmtTs(r.created_at_ts)+'</td>'
@@ -496,7 +498,7 @@ function renderDetail(){
   const stagePill = '<span class="pill stagepill '+(STAGE_PILL[DATA.playbook_stage]||'pill-intake')+'">'+(STAGE_LABEL[DATA.playbook_stage]||DATA.playbook_stage)+'</span>';
   document.getElementById('detailBody').innerHTML =
     '<div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
-      +'<div><h1 style="font-size:19px">'+esc(DATA.client_name||'New Lead')+'</h1>'
+      +'<div><h1 style="font-size:19px">'+esc(DATA.client_name||'New Lead')+' <span style="font-size:13px;font-weight:400;color:var(--gy)">#'+DATA.lead_id+'</span></h1>'
         +'<div style="font-size:12px;color:var(--gy);margin-top:4px">Created by '+esc(DATA.created_by||'—')+' · '+esc(DATA.created_at||'')+'</div></div>'
       +'<div style="display:flex;gap:8px;align-items:center">'+stagePill
         +'<a class="btn sm gh" href="sales-lead-print.html?lead_id='+DATA.lead_id+'" target="_blank" style="text-decoration:none;display:inline-block">🖨 Print playbook</a></div>'
