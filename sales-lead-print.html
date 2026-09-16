@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Playbook — Print</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#2B2440;--labelbg:#F3EEFA;--headbg:#6C4AB6;--rule:#C9BFE0;--white:#FFFFFF;--muted:#6B6480;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box}
+body{font-family:var(--fb);color:#191919;margin:0;background:#726B85}
+.toolbar{position:sticky;top:0;background:#191919;color:#fff;padding:10px 16px;display:flex;gap:12px;align-items:center;justify-content:center;z-index:10}
+.toolbar button{padding:9px 18px;border:none;border-radius:8px;background:#E65A96;color:#fff;font-weight:700;font-size:13px;cursor:pointer;font-family:var(--fb)}
+.toolbar span{font-size:12px;color:#C9B8DC}
+#loading,#errState{padding:60px 20px;text-align:center;color:#fff}
+
+.page{background:#fff;width:210mm;min-height:297mm;margin:18px auto;padding:12mm;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+.letterhead{text-align:center;margin-bottom:6px}
+.letterhead img{height:46px}
+.letterhead .subtitle{font-family:var(--fd);font-weight:700;font-size:19px;color:var(--ink);margin-top:6px}
+.letterhead .note{font-size:11px;font-style:italic;color:var(--muted);margin-top:2px}
+
+h2.sec{font-family:var(--fd);font-weight:700;font-size:13px;color:var(--headbg);text-transform:uppercase;letter-spacing:1px;
+  border-bottom:2px solid var(--headbg);padding-bottom:5px;margin:14px 0 6px}
+
+table{width:100%;border-collapse:collapse;margin-bottom:4px}
+td,th{border:1px solid var(--rule);padding:5px 8px;font-size:11.5px;vertical-align:top}
+td.lbl{background:var(--labelbg);font-weight:700;color:var(--ink);width:22%}
+th{background:var(--headbg);color:#fff;font-family:var(--fd);font-weight:700;font-size:11px;text-align:left;text-transform:uppercase;letter-spacing:.4px}
+.small-note{font-size:9.5px;color:var(--muted);font-style:italic;margin:2px 0 8px}
+.blank-box{min-height:44px}
+
+.page-break{page-break-before:always}
+
+@media print{
+  body{background:#fff}
+  .toolbar{display:none}
+  .page{box-shadow:none;margin:0;width:auto;min-height:0;padding:8mm}
+  @page{size:A4;margin:8mm}
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button onclick="window.print()">🖨 Print / Save as PDF</button>
+  <span id="toolInfo"></span>
+</div>
+
+<div id="loading" style="display:none">Loading playbook…</div>
+<div id="errState" style="display:none"></div>
+<div id="pages"></div>
+
+<script>
+const API = 'https://wondershop-website-production.up.railway.app';
+function getPw(){ return localStorage.getItem('ws_admin_pw') || ''; }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+function money(n){ return (n===null||n===undefined||n==='') ? '—' : ('₹'+Number(n).toLocaleString('en-IN')); }
+function val(v){ return (v===null||v===undefined||v==='') ? '' : esc(v); }
+
+const params = new URLSearchParams(location.search);
+const LEAD_ID = params.get('lead_id');
+
+async function boot(){
+  if(!LEAD_ID){ showErr('No lead specified. Open this page from a lead\'s "Print playbook" link.'); return; }
+  if(!getPw()){ showErr('Not logged in. Open sales-leads.html in another tab, log in, then reload this page.'); return; }
+  document.getElementById('loading').style.display='block';
+  try{
+    const res = await fetch(API+'/api/admin/sales-leads/'+LEAD_ID, {headers:{'X-Admin-Password':getPw()}});
+    if(!res.ok){ const b=await res.json().catch(()=>({})); throw new Error(b.detail||'Could not load this lead.'); }
+    const d = await res.json();
+    document.getElementById('loading').style.display='none';
+    document.getElementById('toolInfo').textContent = (d.client_name||'Lead')+' — '+(d.event_date||'no date yet');
+    render(d);
+  }catch(e){
+    showErr(e.message);
+  }
+}
+function showErr(msg){
+  document.getElementById('loading').style.display='none';
+  const el = document.getElementById('errState');
+  el.style.display='block';
+  el.innerHTML = '<div style="max-width:480px;margin:0 auto"><h2>Can\'t show this playbook</h2><p>'+esc(msg)+'</p></div>';
+}
+
+function reqLine(d, key){
+  const r = (d.requirements||{})[key];
+  if(!r) return {val:'', cost:''};
+  let v = r.selected || '';
+  if(key==='music' && r.addons && r.addons.length) v += (v?' + ':'') + r.addons.map(a=>a.name).join(', ');
+  return {val: v, cost: r.cost!=null ? money(r.cost) : ''};
+}
+
+function render(d){
+  const sched = (d.event_schedule||[]).filter(r=>r.time||r.item);
+  const schedRows = (sched.length?sched:[{time:'',item:''},{time:'',item:''},{time:'',item:''}])
+    .map(r=>'<tr><td style="width:18%">'+val(r.time)+'&nbsp;</td><td>'+val(r.item)+'&nbsp;</td></tr>').join('');
+
+  const activitiesNames = (d.activities||[]).map(a=>a.name).join(', ') || '';
+
+  const cat = (label, r, addon) => '<tr><td class="lbl" style="'+(addon?'font-style:italic;background:#fff':'')+'">'+label+'</td>'
+    + '<td>'+val(r.val)+(r.cost?('&nbsp;&nbsp;<b style="color:#6C4AB6">'+r.cost+'</b>'):'')+'&nbsp;</td></tr>';
+
+  const catRows =
+      cat('Decor', reqLine(d,'decor'))
+    + cat('Host', reqLine(d,'host'))
+    + cat('Addons: Host Gifts', reqLine(d,'host_gifts'), true)
+    + cat('Music', reqLine(d,'music'))
+    + '<tr><td class="lbl">Activities</td><td>'+val(activitiesNames)+'&nbsp;</td></tr>'
+    + cat('Return Gifts', reqLine(d,'return_gifts'))
+    + '<tr><td class="lbl" style="font-style:italic;background:#fff">Addons: Packaging</td><td>'+val((d.requirements&&d.requirements.packaging&&d.requirements.packaging.selected)||'')+'&nbsp;</td></tr>'
+    + '<tr><td class="lbl" style="font-style:italic;background:#fff">Addon: Return Gift Tags</td><td>'+val(reqLine(d,'return_gift_tags').val)+'&nbsp;</td></tr>'
+    + cat('Pinata', reqLine(d,'pinata_type'))
+    + '<tr><td class="lbl" style="font-style:italic;background:#fff">Addons: Bags / Fillings</td><td>'
+        + 'Bags: '+val(reqLine(d,'pinata_bags').val||'—')+' &nbsp;&nbsp; Fillings: '+val(reqLine(d,'pinata_fillings').val||'—')+'&nbsp;</td></tr>'
+    + cat('Cake', reqLine(d,'cake'))
+    + '<tr><td class="lbl">Volunteers</td><td>'+val(d.volunteers_general)+'&nbsp;</td></tr>'
+    + '<tr><td class="lbl">Lead Volunteer</td><td>'+val(d.lead_volunteer)+'&nbsp;</td></tr>'
+    + '<tr><td class="lbl">Sales Lead</td><td>'+val(d.sales_lead_name)+'&nbsp;</td></tr>'
+    + '<tr><td class="lbl">Ops Lead</td><td>'+val(d.ops_lead_name)+'&nbsp;</td></tr>';
+
+  const execRows = (d.activities&&d.activities.length) ? d.activities.map(a=>
+    '<tr><td>'+esc(a.name)+'</td><td>'+val(a.volunteer)+'&nbsp;</td><td>'+val(a.materials)+'&nbsp;</td></tr>'
+  ).join('') : '<tr><td colspan="3" style="color:var(--muted);font-style:italic">No activities chosen yet.</td></tr>';
+
+  document.getElementById('pages').innerHTML =
+    '<div class="page">'
+      + '<div class="letterhead"><img src="logo-horizontal.png" alt="Wondershop Experiences" onerror="this.style.display=\'none\'">'
+        + '<div class="subtitle">ORDER / LEAD FORM</div>'
+        + '<div class="note">For internal use — Client: '+val(d.client_name)+' &nbsp;·&nbsp; Lead #'+d.lead_id+'</div></div>'
+
+      + '<h2 class="sec">Client &amp; Event Details</h2>'
+      + '<table><tr><td class="lbl">Client Name</td><td>'+val(d.client_name)+'&nbsp;</td><td class="lbl">Mobile No.</td><td>'+val(d.mobile)+'&nbsp;</td></tr>'
+        + '<tr><td class="lbl">Child\'s Name</td><td>'+val(d.child_name)+'&nbsp;</td><td class="lbl">Age</td><td>'+val(d.child_age)+'&nbsp;</td></tr>'
+        + '<tr><td class="lbl">Gender</td><td>'+val(d.child_gender)+'&nbsp;</td><td class="lbl"># Kids</td><td>'+val(d.kids_count)+'&nbsp;</td></tr>'
+        + '<tr><td class="lbl">Date</td><td>'+val(d.event_date)+'&nbsp;</td><td class="lbl">Event Start / End</td><td>'+val([d.event_start_time,d.event_end_time].filter(Boolean).join(' – '))+'&nbsp;</td></tr>'
+        + '<tr><td class="lbl">Venue Handover</td><td>'+val(d.venue_handover_time)+'&nbsp;</td><td class="lbl">Packup Time</td><td>'+val(d.packup_time)+'&nbsp;</td></tr>'
+        + '<tr><td class="lbl">Venue</td><td colspan="3">'+val(d.venue)+'&nbsp;</td></tr></table>'
+
+      + '<h2 class="sec">Event Schedule</h2>'
+      + '<table><tr><th style="width:18%">Time</th><th>Item / Activity</th></tr>'+schedRows+'</table>'
+
+      + '<h2 class="sec">Order Categories</h2>'
+      + '<table>'+catRows+'</table>'
+
+      + '<h2 class="sec">Notes / Client Special Instructions</h2>'
+      + '<table><tr><td class="lbl">Special Instructions</td><td class="blank-box">'+val(d.notes_special_instructions)+'&nbsp;</td></tr>'
+        + '<tr><td class="lbl">Changes / Last-Minute Updates</td><td class="blank-box">'+val(d.notes_changes_updates)+'&nbsp;</td></tr></table>'
+    + '</div>'
+
+    + '<div class="page page-break">'
+      + '<div class="letterhead"><img src="logo-horizontal.png" alt="Wondershop Experiences" onerror="this.style.display=\'none\'">'
+        + '<div class="subtitle">EVENT EXECUTION SHEET</div>'
+        + '<div class="note">Ops use on the event day — Client: '+val(d.client_name)+' &nbsp;·&nbsp; '+val(d.event_date)+'</div></div>'
+
+      + '<h2 class="sec">Activities</h2>'
+      + '<div class="small-note">Assign a volunteer (and materials, where relevant) to every activity.</div>'
+      + '<table><tr><th>Activity</th><th>Volunteer</th><th>Materials</th></tr>'+execRows+'</table>'
+
+      + '<h2 class="sec">Assignments</h2>'
+      + '<table><tr><td class="lbl">Decor Assigned To</td><td>'+val(d.decor_assigned_to)+'&nbsp;</td>'
+        + '<td class="lbl">Music Assigned To</td><td>'+val(d.music_assigned_to)+'&nbsp;</td></tr></table>'
+
+      + '<h2 class="sec">Billing</h2>'
+      + '<table><tr><td class="lbl">Grand Total</td><td>'+money(d.client_budget)+'&nbsp;</td>'
+        + '<td class="lbl">Advance / Balance Received</td><td>'+money(d.order_advance)+'&nbsp;</td></tr>'
+        + '<tr><td class="lbl">Payment Method</td><td colspan="3">'+val(d.payment_method)+'&nbsp;</td></tr></table>'
+
+      + '<h2 class="sec">Post-Event Notes</h2>'
+      + '<div class="small-note">To be filled in after the event wraps up.</div>'
+      + '<table><tr><td class="lbl">Missing / Damaged / Left-Behind Items</td><td class="blank-box">'+val(d.post_event_missing_items)+'&nbsp;</td></tr>'
+        + '<tr><td class="lbl">Client Feedback</td><td class="blank-box">'+val(d.post_event_client_feedback)+'&nbsp;</td></tr>'
+        + '<tr><td class="lbl">Internal Learning / What to Improve</td><td class="blank-box">'+val(d.post_event_internal_notes)+'&nbsp;</td></tr></table>'
+    + '</div>';
+}
+
+boot();
+</script>
+</body>
+</html>
