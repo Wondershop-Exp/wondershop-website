@@ -840,7 +840,33 @@ async function onReturnGiftField(field, value){
   r[field] = (field==='quantity'||field==='budget') ? (value===''?null:Number(value)) : (value||null);
   if(r.quantity && r.budget) r.cost = r.quantity * r.budget;
   await saveRequirement('return_gifts', r);
+  if(field==='quantity') await recalcQtyDependentCosts();
   renderDetail();
+}
+// Packaging and Return Gift Tags are both priced off the Return Gifts
+// quantity — if that quantity changes after either add-on is already
+// selected, re-price them so the Grand Total stays correct without the
+// sales person having to re-click the option. Only touches add-ons that
+// are already selected; untouched otherwise.
+async function recalcQtyDependentCosts(){
+  const qty = (req('return_gifts').quantity) || 0;
+  const pkg = req('packaging');
+  if(pkg.selected){
+    const opt = (CATALOGUE.packaging||[]).find(o=>o.label===pkg.selected);
+    if(opt && opt.price!=null){
+      const r = Object.assign({}, pkg);
+      r.cost = opt.price * qty;
+      await saveRequirement('packaging', r);
+    }
+  }
+  const tags = req('return_gift_tags');
+  if(tags.selected==='Yes'){
+    const gt = CATALOGUE.return_gift_tags || {};
+    const billedQty = Math.max(gt.min_qty||15, qty);
+    const r = Object.assign({}, tags);
+    r.cost = billedQty * (gt.unit_price||10);
+    await saveRequirement('return_gift_tags', r);
+  }
 }
 async function onReturnGiftPick(name){
   if(!name) return;
@@ -857,10 +883,37 @@ function reqPhotographerRow(){
 }
 
 // ── Packaging: capsule options (same visual pattern as Return Gift Tags),
-// real site labels plus a "None" choice. ──────────────────────────────
+// real site labels + real site unit prices. Cost = unit price × the
+// Return Gifts quantity above (same basis builder.html uses), auto-
+// computed on pick and kept in sync if that quantity changes afterward
+// (recalcQtyDependentCosts()). 2026-09-16, per Shruti: "...paper gift
+// bag, gift wrap is not getting added — pick up the pricing from the
+// website — show it on the UI and add to grand total if selected".
 function reqPackagingRow(){
-  const opts = (CATALOGUE.packaging||[]).map(o=>({value:o.label, label:o.label}));
-  return reqChipRow('packaging', 'Packaging (Add-on)', opts);
+  const r = req('packaging');
+  const qty = (req('return_gifts').quantity) || 0;
+  const opts = CATALOGUE.packaging||[];
+  const chips = opts.map(o=>{
+    const lbl = o.price!=null ? o.label+' — '+money(o.price)+'/item' : o.label;
+    return '<button type="button" class="'+(r.selected===o.label?'sel':'')+'" onclick="onPackagingChipPick(\''+esc(o.label).replace(/\'/g,"\\'")+'\')">'+esc(lbl)+'</button>';
+  }).join('');
+  const note = qty ? ('Qty from Return Gifts above: '+qty) : 'Set a Return Gifts quantity above to price this automatically.';
+  return '<div class="req-row"><div class="rlabel">Packaging (Add-on)</div><div class="chip-row">'+chips+'</div>'
+    + '<input type="number" id="req_packaging_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'packaging\')">'
+    + '<div class="req-note">'+note+'</div></div>';
+}
+async function onPackagingChipPick(label){
+  const opt = (CATALOGUE.packaging||[]).find(o=>o.label===label);
+  const r = Object.assign({}, req('packaging'));
+  r.selected = (r.selected===label) ? null : label;
+  if(r.selected && opt && opt.price!=null){
+    const qty = (req('return_gifts').quantity) || 0;
+    r.cost = opt.price * qty;
+  } else if(!r.selected){
+    r.cost = null;
+  }
+  await saveRequirement('packaging', r);
+  renderDetail();
 }
 
 // ── Pinata: capsule options (real site names + reference price), with a
@@ -885,19 +938,88 @@ async function onPinataChipPick(name){
   renderDetail();
 }
 
-function sectionRequirements(){
+// ── Return Gift Tags ("Personalised Thank You Note"): Yes/No, priced at
+// ₹10/item with a 15-item minimum billed, same quantity basis as
+// Packaging above (mirrors builder.html's TAG_NOTE_UNIT_PRICE /
+// TAG_NOTE_MIN_QTY exactly). Cost is auto-computed on toggle and kept in
+// sync via recalcQtyDependentCosts() if the Return Gifts quantity
+// changes afterward. 2026-09-16, per Shruti (see Packaging note above).
+function reqReturnGiftTagsRow(){
+  const r = req('return_gift_tags');
   const gt = CATALOGUE.return_gift_tags || {};
+  const qty = (req('return_gifts').quantity) || 0;
+  const billedQty = Math.max(gt.min_qty||15, qty);
+  const note = (gt.note||'') + (qty ? (' · Billed qty: '+billedQty) : ' · Set a Return Gifts quantity above to price this automatically.');
+  return '<div class="req-row"><div class="rlabel">Return Gift Tags (Add-on)</div><div class="yn">'
+    + '<button type="button" class="'+(r.selected==='Yes'?'sel':'')+'" onclick="onReturnGiftTagsPick(\'Yes\')">Yes</button>'
+    + '<button type="button" class="'+(r.selected==='No'?'sel':'')+'" onclick="onReturnGiftTagsPick(\'No\')">No</button>'
+    + '</div>'
+    + '<input type="number" id="req_return_gift_tags_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'return_gift_tags\')">'
+    + '<div class="req-note">'+note+'</div></div>';
+}
+async function onReturnGiftTagsPick(val){
+  const gt = CATALOGUE.return_gift_tags || {};
+  const r = Object.assign({}, req('return_gift_tags'));
+  r.selected = (r.selected===val) ? null : val;
+  if(r.selected==='Yes'){
+    const qty = (req('return_gifts').quantity) || 0;
+    const billedQty = Math.max(gt.min_qty||15, qty);
+    r.cost = billedQty * (gt.unit_price||10);
+  } else {
+    r.cost = null;
+  }
+  await saveRequirement('return_gift_tags', r);
+  renderDetail();
+}
+
+// ── Pinata — Bags: sold in fixed packs of 15 at ₹150/pack. Sales person
+// enters how many bags are needed; cost = packs-needed (rounded up) ×
+// pack price. 2026-09-16, per Shruti, correcting an initial "₹10/bag"
+// figure: "pinnata bags - rs. 150 for 15 bags. it will come in packs of
+// 15".
+function reqPinataBagsRow(){
+  const r = req('pinata_bags');
+  const pb = CATALOGUE.pinata_bags || {};
+  const packSize = pb.pack_size||15, packPrice = pb.pack_price||150;
+  const packs = r.qty ? Math.ceil(r.qty/packSize) : 0;
+  const note = (pb.note||'') + (r.selected==='Yes' && r.qty ? (' · '+packs+' pack(s) needed for '+r.qty+' bags') : '');
+  return '<div class="req-row"><div class="rlabel">Pinata — Bags (Add-on)</div><div class="yn">'
+    + '<button type="button" class="'+(r.selected==='Yes'?'sel':'')+'" onclick="onPinataBagsPick(\'Yes\')">Yes</button>'
+    + '<button type="button" class="'+(r.selected==='No'?'sel':'')+'" onclick="onPinataBagsPick(\'No\')">No</button>'
+    + '</div>'
+    + (r.selected==='Yes' ? '<input type="number" placeholder="Number of bags needed" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.qty==null?'':r.qty)+'" onblur="onPinataBagsQty(this.value)">' : '')
+    + '<input type="number" id="req_pinata_bags_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'pinata_bags\')">'
+    + '<div class="req-note">'+note+'</div></div>';
+}
+async function onPinataBagsPick(val){
+  const r = Object.assign({}, req('pinata_bags'));
+  r.selected = (r.selected===val) ? null : val;
+  if(r.selected!=='Yes'){ r.qty = null; r.cost = null; }
+  await saveRequirement('pinata_bags', r);
+  renderDetail();
+}
+async function onPinataBagsQty(value){
+  const pb = CATALOGUE.pinata_bags || {};
+  const packSize = pb.pack_size||15, packPrice = pb.pack_price||150;
+  const r = Object.assign({}, req('pinata_bags'));
+  r.qty = value==='' ? null : Number(value);
+  r.cost = r.qty ? Math.ceil(r.qty/packSize) * packPrice : null;
+  await saveRequirement('pinata_bags', r);
+  renderDetail();
+}
+
+function sectionRequirements(){
   let html = '<div class="card"><h3>2 · Event Requirements</h3>';
   html += reqDecorRow();
   html += reqHostRow();
   html += reqTextRow('host_gifts', 'Host Gifts (Add-on)');
   html += reqMusicRow();
   html += reqReturnGiftsRow();
-  html += reqYesNoRow('return_gift_tags', 'Return Gift Tags (Add-on)', gt.note||'');
+  html += reqReturnGiftTagsRow();
   html += reqPackagingRow();
   html += reqPinataRow();
-  html += reqYesNoRow('pinata_bags', 'Pinata — Bags (Add-on)');
-  html += reqYesNoRow('pinata_fillings', 'Pinata — Fillings (Add-on)');
+  html += reqPinataBagsRow();
+  html += reqYesNoRow('pinata_fillings', 'Pinata — Fillings (Add-on)', (CATALOGUE.pinata_fillings||{}).note||'');
   html += reqTextRow('cake', 'Cake', CATALOGUE.cake_note||'');
   html += reqPhotographerRow();
   html += '</div>';
