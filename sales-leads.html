@@ -285,7 +285,7 @@ async function enterApp(){
   document.getElementById('app').style.display='block';
   document.getElementById('whoName').value = getName();
   try{ CATALOGUE = await apiCall('/api/admin/sales-leads/catalogue'); }
-  catch(e){ CATALOGUE = {decor_tiers:[],decor_themes:[],host_reference:[],music:[],music_addons:[],photographer:[],pinata_type:[],packaging:[],activities:[],return_gift_types:[],return_gifts_catalogue:[],return_gift_tags:{},cake_note:'',lead_status_options:[],non_convert_reason_options:[],non_convert_statuses:['Not Interested','DND']}; }
+  catch(e){ CATALOGUE = {decor_tiers:[],decor_themes:[],host_reference:[],music:[],music_addons:[],photographer:[],pinata_type:[],packaging:[],activities:[],return_gift_types:[],return_gifts_catalogue:[],return_gift_tags:{},cake_note:'',lead_status_options:[],non_convert_reason_options:[],non_convert_statuses:['Not Interested','DND'],venue_types:[]}; }
   if(CATALOGUE.lead_status_options && CATALOGUE.lead_status_options.length) LEAD_STATUS_OPTIONS = CATALOGUE.lead_status_options;
   if(CATALOGUE.non_convert_reason_options && CATALOGUE.non_convert_reason_options.length) NON_CONVERT_REASON_OPTIONS = CATALOGUE.non_convert_reason_options;
   if(CATALOGUE.non_convert_statuses && CATALOGUE.non_convert_statuses.length) NON_CONVERT_STATUSES = CATALOGUE.non_convert_statuses;
@@ -573,12 +573,30 @@ function sectionClientDetails(){
     + '<div class="grid2">' + f('client_name','Client Name','text') + f('mobile','Mobile No.','tel') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('child_name',"Child's Name",'text') + f('child_age','Celebrating Age','text') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + genderSel + f('kids_count','# Kids','number') + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('event_date','Date','date') + f('theme','Theme','text') + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + f('event_date','Date','date') + themeField() + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('sales_lead_name','Sales Lead','text') + f('event_start_time','Event Start Time','time') + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('event_end_time','Event End Time','time') + '<div></div>' + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + f('event_end_time','Event End Time','time') + venueTypeField() + '</div>'
     + '<div class="fld" style="margin-top:10px">' + f('venue','Venue','text').replace(/<div class="fld">|<\/div>$/g,'') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('venue_handover_time','Venue Handover Time','time') + f('packup_time','Packup Time','time') + '</div>'
     + '</div>';
+}
+// Theme: an "assisted" input — types and filters against Build-a-Birthday's
+// own named decor designs via a native <datalist>, but still accepts free
+// text not in that list (2026-09-16, per Shruti: "add a assisted dropdown,
+// where the user types something and the dropdown filters options. user
+// can input an option outside the list as well").
+function themeField(){
+  const d = DATA;
+  const opts = (CATALOGUE.decor_themes||[]).map(t=>'<option value="'+esc(t.name)+'">').join('');
+  return '<div class="fld"><label>Theme</label>'
+    + '<input type="text" id="f_theme" list="themeDatalist" autocomplete="off" value="'+esc(d.theme==null?'':d.theme)+'" onblur="saveField(\'theme\', this.value)">'
+    + '<datalist id="themeDatalist">'+opts+'</datalist>'
+    + '</div>';
+}
+function venueTypeField(){
+  const d = DATA;
+  const opts = '<option value="">— select —</option>' + (CATALOGUE.venue_types||[]).map(o=>'<option value="'+esc(o.value)+'" '+(o.value===d.venue_type?'selected':'')+'>'+esc(o.label)+'</option>').join('');
+  return '<div class="fld"><label>Venue Type</label><select onchange="saveField(\'venue_type\', this.value)">'+opts+'</select></div>';
 }
 
 // ── 2. Event Requirements ───────────────────────────────────────────────
@@ -696,7 +714,7 @@ function reqDecorRow(){
     + custBox('decor', 'Customizations (colours, add-ons, special requests...)')
     + '<div class="pick-row">'
       + '<select onchange="onDecorThemePick(this.value)">' + themeOpts + '</select>'
-      + '<a href="builder.html" target="_blank">Open Build-a-Birthday (decor) ↗</a>'
+      + '<a href="builder.html?browse=decor" target="_blank">Open Build-a-Birthday (decor) ↗</a>'
     + '</div></div>';
 }
 async function onDecorThemePick(name){
@@ -738,7 +756,7 @@ function reqReturnGiftsRow(){
     + custBox('return_gifts', 'Customizations / specific items discussed...')
     + '<div class="pick-row">'
       + '<select onchange="onReturnGiftPick(this.value)">' + giftOpts + '</select>'
-      + '<a href="builder.html" target="_blank">Open Build-a-Birthday (return gifts) ↗</a>'
+      + '<a href="builder.html?gifts=1" target="_blank">Open Build-a-Birthday (return gifts) ↗</a>'
     + '</div></div>';
 }
 async function onReturnGiftField(field, value){
@@ -855,10 +873,20 @@ async function saveSched(){
   await patchSheet({event_schedule: clean});
 }
 
-// ── 4. Activities ────────────────────────────────────────────────────────
+// ── 4. Activities — one assisted (type-to-search) add field, not a big
+// checklist of every catalogue activity (2026-09-16, per Shruti: "don't
+// show all options, keep the earlier format where you give 1 assisted").
+// Search matches against builder.html's own activity catalogue via a
+// native <datalist>; picks get added the same way the old checklist did.
 function sectionActivities(){
-  return '<div class="card"><h3>4 · Activities <a href="builder.html" target="_blank" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">Open Build-a-Birthday (activities) ↗</a></h3>'
-    + '<div class="act-list" id="actList"></div>'
+  const dl = (CATALOGUE.activities||[]).map(a=>'<option value="'+esc(a.name)+'" label="'+esc(money(a.price)+(a.flat?' flat':'/child'))+'">').join('');
+  return '<div class="card"><h3>4 · Activities <a href="builder.html?browse=activities" target="_blank" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">Open Build-a-Birthday (activities) ↗</a></h3>'
+    + '<div class="pick-row" style="margin-top:0">'
+      + '<input type="text" id="actPickInput" list="actDatalist" autocomplete="off" placeholder="Search activities to add…" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addActivityFromPicker();}">'
+      + '<datalist id="actDatalist">'+dl+'</datalist>'
+      + '<button type="button" class="btn sm gh" onclick="addActivityFromPicker()">Add</button>'
+    + '</div>'
+    + '<div class="act-list" id="actList" style="margin-top:12px"></div>'
     + '<div class="add-new-act">'
       + '<input type="text" id="newActInput" placeholder="Not in the list? Type it as free text and add" onkeydown="if(event.key===\'Enter\')submitNewActivity()">'
       + '<button type="button" onclick="submitNewActivity()">Add</button>'
@@ -866,27 +894,38 @@ function sectionActivities(){
     + '<div class="sugg-list" id="suggList"></div>'
     + '</div>';
 }
+async function addActivityFromPicker(){
+  const input = document.getElementById('actPickInput');
+  const name = input.value.trim();
+  if(!name) return;
+  const match = (CATALOGUE.activities||[]).find(a=>a.name===name);
+  if(!match){ showToast('Pick an activity from the search list, or use the free-text box below for something new.'); return; }
+  if((DATA.activities||[]).some(a=>a.id===match.id)){ showToast('Already added.'); input.value=''; return; }
+  await toggleActivity(match.id, match.name, match.price, match.flat);
+  input.value='';
+}
 function renderActivities(){
   const listEl = document.getElementById('actList');
   if(!listEl) return;
   const chosen = DATA.activities || [];
-  const chosenIds = new Set(chosen.map(a=>a.id));
-  listEl.innerHTML = (CATALOGUE.activities||[]).map(a=>{
-    const isSel = chosenIds.has(a.id);
-    const picked = chosen.find(x=>x.id===a.id) || {};
-    const priceLbl = money(a.price) + (a.flat ? ' flat' : '/child');
-    return '<div class="act-item'+(isSel?' sel':'')+'">'
-      + '<div class="act-main" onclick="toggleActivity(\''+a.id+'\',\''+esc(a.name).replace(/\'/g,"\\'")+'\','+a.price+','+(a.flat?'true':'false')+')">'
-        + '<div class="box">'+CHECK_SVG+'</div>'
-        + '<div class="an">'+esc(a.name)+'</div>'
-        + '<div class="ap">'+priceLbl+'</div>'
-      + '</div>'
-      + '<div class="act-assign">'
-        + '<input type="text" placeholder="Volunteer" value="'+esc(picked.volunteer||'')+'" onclick="event.stopPropagation()" onblur="onActivityAssign(\''+a.id+'\',\'volunteer\',this.value)">'
-        + '<input type="text" placeholder="Materials" value="'+esc(picked.materials||'')+'" onclick="event.stopPropagation()" onblur="onActivityAssign(\''+a.id+'\',\'materials\',this.value)">'
-      + '</div>'
-      + '</div>';
-  }).join('');
+  if(!chosen.length){
+    listEl.innerHTML = '<div style="font-size:12.5px;color:var(--gy);padding:4px 0 8px">No activities added yet — search above.</div>';
+  }else{
+    listEl.innerHTML = chosen.map(a=>{
+      const priceLbl = money(a.price) + (a.flat ? ' flat' : '/child');
+      return '<div class="act-item sel">'
+        + '<div class="act-main" style="cursor:default">'
+          + '<div class="an">'+esc(a.name)+'</div>'
+          + '<div class="ap">'+priceLbl+'</div>'
+          + '<button type="button" class="icon-btn" onclick="toggleActivity(\''+a.id+'\',\''+esc(a.name).replace(/\'/g,"\\'")+'\',null,null)" title="Remove">✕</button>'
+        + '</div>'
+        + '<div class="act-assign" style="display:grid">'
+          + '<input type="text" placeholder="Volunteer" value="'+esc(a.volunteer||'')+'" onblur="onActivityAssign(\''+a.id+'\',\'volunteer\',this.value)">'
+          + '<input type="text" placeholder="Materials" value="'+esc(a.materials||'')+'" onblur="onActivityAssign(\''+a.id+'\',\'materials\',this.value)">'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }
 
   const suggEl = document.getElementById('suggList');
   const sugg = DATA.new_activity_suggestions || [];

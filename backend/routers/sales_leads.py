@@ -93,6 +93,19 @@ PHOTO_LABELS = {"Classic": "Classic Package", "Premium": "Premium Package", "Sig
 RETURN_GIFT_TYPES = ["Bags & Pouches", "Games", "Personalized", "Stationery", "Home & Lifestyle"]
 # Decor tier order as Shruti asked for it on the sales form.
 DECOR_TIER_ORDER = ["Classic", "Premium", "Signature", "Luxury"]
+# Venue Type — same options + labels as builder.html's own Venue Type
+# picker (#s0 venueGrid / checkout coVenueGrid), verified directly against
+# the live markup (2026-09-16, per Shruti: "add venue type in event
+# details (take options from website)").
+VENUE_TYPES = [
+    {"value": "Home", "label": "Home"},
+    {"value": "Society Banquet", "label": "Banquet Hall"},
+    {"value": "Club", "label": "Club / Resort"},
+    {"value": "Restaurant", "label": "Restaurant"},
+    {"value": "Outdoor", "label": "Outdoor"},
+    {"value": "Other", "label": "Other"},
+    {"value": "Not Decided", "label": "Not Decided Yet"},
+]
 
 # Fixed reference values for the Return Gift Tags add-on note. These used
 # to be read from platform_config (gift_tag_free_threshold /
@@ -168,6 +181,7 @@ async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
         "lead_status_options": LEAD_STATUS_OPTIONS,
         "non_convert_reason_options": NON_CONVERT_REASON_OPTIONS,
         "non_convert_statuses": sorted(NON_CONVERT_STATUSES),
+        "venue_types": VENUE_TYPES,
     }
 
 
@@ -195,7 +209,7 @@ LEAD_FIELD_MAP = {
 
 # Scalar fields that live on lead_sales_playbook (not on `leads`).
 PLAYBOOK_SCALAR_FIELDS = [
-    "event_end_time", "venue_handover_time", "packup_time",
+    "event_end_time", "venue_handover_time", "packup_time", "venue_type",
     "notes_special_instructions", "notes_changes_updates",
     "volunteers_general", "lead_volunteer", "decor_assigned_to",
     "music_assigned_to", "ops_lead_name",
@@ -366,6 +380,7 @@ async def _full_detail(lead_row) -> dict:
         "event_end_time": pb.get("event_end_time"),
         "venue_handover_time": pb.get("venue_handover_time"),
         "packup_time": pb.get("packup_time"),
+        "venue_type": pb.get("venue_type"),
         "requirements": reqs,
         "activities": acts,
         "new_activity_suggestions": sugg,
