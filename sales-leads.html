@@ -95,6 +95,16 @@ th.th-sort:hover{color:var(--pk)}
 .pick-row select{flex:1;min-width:160px;padding:9px 34px 9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:12.5px;background-color:#fff}
 .pick-row input[type="text"]{flex:1;min-width:160px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:12.5px;background-color:#fff;font-family:var(--fb)}
 .pick-row a{font-size:11.5px;white-space:nowrap}
+.pick-wrap{position:relative;flex:1;min-width:160px}
+.pick-wrap input[type="text"]{width:100%}
+.pick-suggest{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--li2);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:230px;overflow-y:auto;z-index:60;-webkit-overflow-scrolling:touch}
+.pick-suggest.show{display:block}
+.pick-suggest .ps-item{padding:11px 12px;font-size:13px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--li3)}
+.pick-suggest .ps-item:last-child{border-bottom:none}
+.pick-suggest .ps-item:hover,.pick-suggest .ps-item.active{background:var(--li3)}
+.pick-suggest .ps-name{color:var(--bk);font-weight:600}
+.pick-suggest .ps-price{color:var(--gy);font-size:12px;white-space:nowrap;flex-shrink:0}
+.pick-suggest .ps-empty{padding:11px 12px;font-size:12.5px;color:var(--gy)}
 .req-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 @media(max-width:640px){.req-grid3{grid-template-columns:1fr}}
 .req-grid3 input,.req-grid3 select{padding:10px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px;background:#fff}
@@ -933,14 +943,23 @@ async function saveSched(){
 // ── 4. Activities — one assisted (type-to-search) add field, not a big
 // checklist of every catalogue activity (2026-09-16, per Shruti: "don't
 // show all options, keep the earlier format where you give 1 assisted").
-// Search matches against builder.html's own activity catalogue via a
-// native <datalist>; picks get added the same way the old checklist did.
+// 2026-09-16, per Shruti follow-up — "activities dropdown is not working on
+// phone": the previous version used a native <input list="..."> (HTML5
+// <datalist>), and datalist suggestions are unreliable on mobile — iOS
+// Safari effectively never shows them, and mobile Chrome is inconsistent.
+// This is a hand-built suggestion list instead (a plain absolutely-
+// positioned div, filtered on every keystroke/focus, tap-to-pick), which
+// behaves identically on desktop and mobile since it doesn't rely on any
+// browser-native autocomplete UI.
 function sectionActivities(){
-  const dl = (CATALOGUE.activities||[]).map(a=>'<option value="'+esc(a.name)+'" label="'+esc(money(a.price)+(a.flat?' flat':'/child'))+'">').join('');
   return '<div class="card"><h3>4 · Activities <a href="builder.html?browse=activities" target="_blank" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">Open Build-a-Birthday (activities) ↗</a></h3>'
     + '<div class="pick-row" style="margin-top:0">'
-      + '<input type="text" id="actPickInput" list="actDatalist" autocomplete="off" placeholder="Search activities to add…" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addActivityFromPicker();}">'
-      + '<datalist id="actDatalist">'+dl+'</datalist>'
+      + '<div class="pick-wrap">'
+        + '<input type="text" id="actPickInput" autocomplete="off" placeholder="Search activities to add…" '
+          + 'oninput="onActivityPickInput()" onfocus="onActivityPickInput()" '
+          + 'onkeydown="onActivityPickKeydown(event)" onblur="hideActSuggestDelayed()">'
+        + '<div class="pick-suggest" id="actSuggest"></div>'
+      + '</div>'
       + '<button type="button" class="btn sm gh" onclick="addActivityFromPicker()">Add</button>'
     + '</div>'
     + '<div class="act-list" id="actList" style="margin-top:12px"></div>'
@@ -951,15 +970,81 @@ function sectionActivities(){
     + '<div class="sugg-list" id="suggList"></div>'
     + '</div>';
 }
+let ACT_SUGGEST_IDX = -1;
+function activityMatches(q){
+  const already = new Set((DATA.activities||[]).map(a=>a.id));
+  const ql = (q||'').trim().toLowerCase();
+  return (CATALOGUE.activities||[]).filter(a=>!already.has(a.id) && (!ql || a.name.toLowerCase().includes(ql)));
+}
+function onActivityPickInput(){
+  const box = document.getElementById('actSuggest');
+  const input = document.getElementById('actPickInput');
+  if(!box || !input) return;
+  const list = activityMatches(input.value);
+  ACT_SUGGEST_IDX = -1;
+  box._list = list;
+  if(!list.length){
+    box.innerHTML = '<div class="ps-empty">'+(input.value.trim()?'No match — use the free-text box below.':'Start typing to search activities…')+'</div>';
+  } else {
+    box.innerHTML = list.slice(0,30).map(a=>{
+      const priceLbl = money(a.price) + (a.flat ? ' flat' : '/child');
+      return '<div class="ps-item" onclick="pickActivitySuggestion(\''+a.id+'\')"><span class="ps-name">'+esc(a.name)+'</span><span class="ps-price">'+priceLbl+'</span></div>';
+    }).join('');
+  }
+  box.classList.add('show');
+}
+function hideActSuggestDelayed(){
+  // Delayed so a tap/click on a suggestion (which blurs the input first,
+  // especially on mobile) still registers before the list disappears.
+  setTimeout(()=>{ const b=document.getElementById('actSuggest'); if(b) b.classList.remove('show'); }, 200);
+}
+function onActivityPickKeydown(e){
+  const box = document.getElementById('actSuggest');
+  if(!box) return;
+  const list = box._list || [];
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    ACT_SUGGEST_IDX = list.length ? Math.min(ACT_SUGGEST_IDX+1, list.length-1) : -1;
+    highlightActSuggest(box);
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    ACT_SUGGEST_IDX = list.length ? Math.max(ACT_SUGGEST_IDX-1, 0) : -1;
+    highlightActSuggest(box);
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(ACT_SUGGEST_IDX>=0 && list[ACT_SUGGEST_IDX]) pickActivitySuggestion(list[ACT_SUGGEST_IDX].id);
+    else if(list.length===1) pickActivitySuggestion(list[0].id);
+    else addActivityFromPicker();
+  } else if(e.key==='Escape'){
+    box.classList.remove('show');
+  }
+}
+function highlightActSuggest(box){
+  Array.from(box.children).forEach((el,i)=>el.classList.toggle('active', i===ACT_SUGGEST_IDX));
+  const active = box.children[ACT_SUGGEST_IDX];
+  if(active) active.scrollIntoView({block:'nearest'});
+}
+async function pickActivitySuggestion(id){
+  const match = (CATALOGUE.activities||[]).find(a=>a.id===id);
+  const box = document.getElementById('actSuggest');
+  if(box) box.classList.remove('show');
+  const input = document.getElementById('actPickInput');
+  if(input) input.value='';
+  if(!match) return;
+  if((DATA.activities||[]).some(a=>a.id===match.id)){ showToast('Already added.'); return; }
+  await toggleActivity(match.id, match.name, match.price, match.flat);
+}
 async function addActivityFromPicker(){
   const input = document.getElementById('actPickInput');
   const name = input.value.trim();
   if(!name) return;
-  const match = (CATALOGUE.activities||[]).find(a=>a.name===name);
+  const match = (CATALOGUE.activities||[]).find(a=>a.name.toLowerCase()===name.toLowerCase());
   if(!match){ showToast('Pick an activity from the search list, or use the free-text box below for something new.'); return; }
   if((DATA.activities||[]).some(a=>a.id===match.id)){ showToast('Already added.'); input.value=''; return; }
   await toggleActivity(match.id, match.name, match.price, match.flat);
   input.value='';
+  const box = document.getElementById('actSuggest');
+  if(box) box.classList.remove('show');
 }
 function renderActivities(){
   const listEl = document.getElementById('actList');
