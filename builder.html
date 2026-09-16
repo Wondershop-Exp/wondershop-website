@@ -1771,6 +1771,18 @@ body.browse-mode .browse-cta{display:flex}
       <div style="background:var(--li3);border-radius:10px;padding:10px 14px;font-size:12px;color:#7B5EA7;margin-bottom:12px">🎨 These are reference setups — every decor can be customized to your theme. Balloon colours, flex designs, age and cutouts are all customizable.</div>
       <div class="cards-grid" id="stdCards"></div>
     </div>
+
+    <!-- Decor Add-ons — only relevant for Classic tier, which doesn't
+         include the child's name on the "Happy Birthday" bunting by
+         default (2026-09-13, per Shruti). Hidden entirely otherwise; see
+         syncDecorAddonsUI(). -->
+    <div id="decorAddonsSec" style="display:none;margin-top:16px">
+      <div class="sec-lbl" style="font-size:13px;margin-bottom:8px"><span class="dot"></span>Decor Add-ons</div>
+      <div style="font-size:12px;color:var(--gy);margin-bottom:8px">Classic decor's "Happy Birthday" bunting is generic — add your child's name to it for a small fee.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="pkg-btn" id="decorAddonNameBunting" onclick="toggleDecorNameBunting(this)">🏷️ Add Child's Name to Bunting<div style="font-size:10px;color:var(--gy)">₹200</div></button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2671,7 +2683,7 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Code.gs) was retired 2026-08-11 to stop writing duplicate, drifting
 // rows — see the "Consolidate leads + bookings" commits.
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',pickupTime:'',showPickupOnInvite:false,giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,venueLocality:'',interests:[],interestOther:'',FIT:20000,remarks:{}};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},decorAddons:{nameBunting:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',pickupTime:'',showPickupOnInvite:false,giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,venueLocality:'',interests:[],interestOther:'',FIT:20000,remarks:{}};
 
 // ── Google Places Autocomplete (2026-08-16, per Shruti) ─────────────
 // Wires real address autocomplete onto the checkout venue address and
@@ -2745,7 +2757,14 @@ function djAddonsText(){const p=[];if(S.djAddons.lights)p.push('Music Lights (Rs
 const DECOR_TIER_META=[
   {tier:'Classic',price:6500,spec:[
     {l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'Up to 2'},
-    {l:'Happy Birthday, Name & Age',v:'Paper bunting (HBD & name), foil balloon (age)'},
+    // 2026-09-13, per Shruti — split out of the old combined "Happy
+    // Birthday, Name & Age" row: the generic HBD bunting + age balloon stay
+    // included, but printing the child's actual NAME on the bunting is now
+    // a separate paid add-on (see NAME_BUNTING_PRICE / Decor Add-ons below)
+    // — Premium+ tiers already include a name-personalized flex/LED print
+    // as standard, so this only applies at Classic tier.
+    {l:'Happy Birthday & Age',v:'Paper bunting (HBD), foil balloon (age)'},
+    {l:'Name on Bunting',v:'Not included — add for ₹200',na:true},
     {l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},
     {l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'},
   ]},
@@ -2768,6 +2787,12 @@ const DECOR_TIER_META=[
     {l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-14 ft'},
   ]},
 ];
+// Classic-tier decor's "Happy Birthday" bunting is generic (no child's
+// name) by default — printing the child's actual name on it is a separate
+// ₹200 add-on, toggled via the "Decor Add-ons" section on Step 1 (only
+// shown when a Classic-tier decor is selected; S.decorAddons.nameBunting).
+// 2026-09-13, per Shruti.
+const NAME_BUNTING_PRICE=200;
 const THEMES=[
   {id:'uni',n:'Unicorn Magic',e:'🦄',bg:'linear-gradient(135deg,#F5C3D7,#EDE6FA)',age:'3-5',gn:'Girl',b:'150 (Pink, Purple, White)',s:'3 hrs',ni:'Tables, chairs',tag:'pop',tierPhotos:{Classic:'img/Decor/decor-uni-arch.jpg',Premium:'img/Decor/decor-uni-1panel.jpg',Luxury:'img/Decor/decor-uni-2panel.jpg',Signature:'img/Decor/decor-uni-3panel.jpg'}},
   {id:'jungle',n:'Jungle Safari',e:'🌴',bg:'linear-gradient(135deg,#52C470,#B7E0B8)',age:'3-8',gn:'Both',b:'200 (Green, Yellow, Orange)',s:'3.5 hrs',ni:'Tables, chairs, props',tag:'trend',tierPhotos:{Signature:'img/Decor/decor-jungle-3panel.jpg'}},
@@ -3385,6 +3410,7 @@ function orderedActivities(){
 function cItems(){
   const items=[];
   if(S.decor)items.push({cat:'Decor',n:S.decor.n,p:S.decor.p,id:S.decor.id});
+  if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)items.push({cat:'Addons',n:'Name on Bunting',p:NAME_BUNTING_PRICE,id:'decor-name-bunting'});
   orderedActivities().forEach(a=>{
     const nm=a.id==='spy-mission'?(spyStationTier(S.kidsCount).stations+' Mission Stations ('+S.kidsCount+' kids)'):a.n;
     const rawPrice=actPrice(a,S.kidsCount);
@@ -3489,11 +3515,11 @@ function thumbFor(cat,id){
     if(id==='unicorn-tshirt')return e('👕');
     const g=GIFTS.find(x=>x.id===id);if(!g)return e('🎁');return g.img?{type:'img',src:'img/'+g.img}:e(g.e,g.bg);
   }
-  if(cat==='Addons'){if(id==='dj-lights')return e('💡');if(id==='dj-smoke')return e('💨');return e('🕵️');}
+  if(cat==='Addons'){if(id==='dj-lights')return e('💡');if(id==='dj-smoke')return e('💨');if(id==='decor-name-bunting')return e('🏷️');return e('🕵️');}
   return e('✨');
 }
 function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e');box.style.background='var(--li2)';box.textContent='✨';}
-function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.djAddons.lights)t+=1500;if(S.djAddons.smoke)t+=2000;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p;S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
+function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)t+=NAME_BUNTING_PRICE;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.djAddons.lights)t+=1500;if(S.djAddons.smoke)t+=2000;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p;S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
 function rawT(){return cItems().reduce((s,i)=>s+i.p,0)}
 // 2026-08-18, per Shruti — "discounts should be very clearly called out,
 // even the einvite one". rawT() already reflects any free-pinata/free-
@@ -3716,6 +3742,7 @@ function goTo(id){
   if(id==='s9')buildRev();
   if(id==='s6'){chkFreeInv();buildInvs();}
   if(id==='s8')updTagNote();
+  if(id==='s1')syncDecorAddonsUI();
   if(id==='s3')syncHostDom();
   if(id==='s4')syncDjAddonsDom();
   if(id==='s2'){try{document.getElementById('kDisp2').textContent=S.kidsCount;}catch(e){}}
@@ -4376,6 +4403,7 @@ function buildDec(){
     sc.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'std\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+stdThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tierPill+'</div>'+specHtml+'<div class="card-pr-row"><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
   });
   if(S.decor)document.getElementById('dc-'+S.decor.id)?.classList.add('sel');
+  syncDecorAddonsUI();
   const dtBtns=document.querySelectorAll('#s1 .dt-tog .dt-btn');
   if(dtBtns.length===2){if(S.decorType==='standard'){dtBtns[0].classList.remove('on');dtBtns[1].classList.add('on');document.getElementById('thSec').style.display='none';document.getElementById('stdSec').style.display='block';}else{dtBtns[0].classList.add('on');dtBtns[1].classList.remove('on');document.getElementById('thSec').style.display='block';document.getElementById('stdSec').style.display='none';}}
 }
@@ -4451,8 +4479,10 @@ function selDec(btn,id,n,p){
     const b=c.querySelector('.card-btn');
     if(b){b.classList.remove('added');b.textContent='Add';}
   });
+  S.decorAddons.nameBunting=false;
   if(wasSel){S.decor=null;}
   else{card.classList.add('sel');S.decor={id,n,p};const b=card.querySelector('.card-btn');if(b){b.classList.add('added');b.textContent='✓ Added';}}
+  syncDecorAddonsUI();
   updBB(S.screen);
 }
 
@@ -4689,6 +4719,21 @@ function musicLabel(tier){return tier==='Classic'?'Music Essential':tier==='Prem
 function selTier(card,type,tier,p){const wasSel=card.classList.contains('sel');document.querySelectorAll('#'+type+'Cards .tier-card').forEach(c=>c.classList.remove('sel'));if(wasSel){S[type]=null;}else{card.classList.add('sel');S[type]={tier,p};}updBB(S.screen);}
 function syncHostDom(){if(!S.host)return;const map={'Premium':0,'Signature':1};const idx=map[S.host.tier];if(idx===undefined)return;const cards=document.querySelectorAll('#hostCards .tier-card');cards.forEach((c,i)=>c.classList.toggle('sel',i===idx));}
 function toggleDjAddon(btn,key){S.djAddons[key]=!S.djAddons[key];btn.classList.toggle('on',S.djAddons[key]);updBB(S.screen);}
+function toggleDecorNameBunting(btn){S.decorAddons.nameBunting=!S.decorAddons.nameBunting;btn.classList.toggle('on',S.decorAddons.nameBunting);updBB(S.screen);}
+// Shows/hides the Decor Add-ons section based on whether the CURRENTLY
+// selected decor is Classic tier (every Classic-tier id — themed or
+// standard — ends in '-classic', see themeTierEntries()/STD above).
+// Clears the addon whenever it's hidden so switching away from Classic
+// can't silently leave a stale ₹200 charge in the cart.
+function syncDecorAddonsUI(){
+  const sec=document.getElementById('decorAddonsSec');
+  if(!sec)return;
+  const isClassic=!!(S.decor&&S.decor.id&&S.decor.id.endsWith('-classic'));
+  sec.style.display=isClassic?'block':'none';
+  if(!isClassic)S.decorAddons.nameBunting=false;
+  const btn=document.getElementById('decorAddonNameBunting');
+  if(btn)btn.classList.toggle('on',!!S.decorAddons.nameBunting);
+}
 function syncDjAddonsDom(){const l=document.getElementById('djAddonLights');const s=document.getElementById('djAddonSmoke');if(l)l.classList.toggle('on',!!S.djAddons.lights);if(s)s.classList.toggle('on',!!S.djAddons.smoke);}
 
 // ── PINATA ──
@@ -5098,7 +5143,7 @@ function rmRevItem(cat,id){
   else if(cat==='E-Invite')S.einvite=null;
   else if(cat==='Photographer'){S.photo=null;}
   else if(cat==='Return Gifts')S.gifts=S.gifts.filter(g=>g.id!==id);
-  else if(cat==='Addons'){if(id==='dj-lights')S.djAddons.lights=false;else if(id==='dj-smoke')S.djAddons.smoke=false;else S.spyExtras=S.spyExtras.filter(x=>x.id!==id);}
+  else if(cat==='Addons'){if(id==='dj-lights')S.djAddons.lights=false;else if(id==='dj-smoke')S.djAddons.smoke=false;else if(id==='decor-name-bunting')S.decorAddons.nameBunting=false;else S.spyExtras=S.spyExtras.filter(x=>x.id!==id);}
   buildRev();
   updBB(S.screen);
 }
@@ -5864,6 +5909,7 @@ function buildSummaryText(){
   lines.push('');
   lines.push('--- Builder Selections ---');
   if(S.decor)lines.push('Decor: '+S.decor.n+' (₹'+S.decor.p.toLocaleString('en-IN')+')');
+  if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)lines.push('Decor Add-on: Name on Bunting (₹'+NAME_BUNTING_PRICE.toLocaleString('en-IN')+')');
   if(S.activities.length)lines.push('Activities: '+S.activities.map(a=>a.n).join(', '));
   if(S.host)lines.push('Host: '+S.host.tier+' (₹'+S.host.p.toLocaleString('en-IN')+')');
   if(S.dj)lines.push('Music: '+musicLabel(S.dj.tier)+' (₹'+S.dj.p.toLocaleString('en-IN')+')');
@@ -6029,6 +6075,11 @@ function buildSnapshot(){
       gift_packaging_cost: packagingCost() || null,
       gift_thank_you_note: S.tagType==='note',
       gift_thank_you_fee: tagFee() || null,
+      // 2026-09-13, per Shruti — Classic-tier decor's Name-on-Bunting add-on.
+      // Sent as a plain rupee amount (not re-derived from NAME_BUNTING_PRICE
+      // server-side) so the invoice/confirmation email always matches what
+      // was actually charged, even if this price changes later.
+      decor_name_bunting_fee: (S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting) ? NAME_BUNTING_PRICE : null,
       estimated_total: rawT(),
       pincode:     S.pincode,
       kids_count:  S.kidsCount,
@@ -6600,6 +6651,20 @@ function wsReportAbandonedCart(){
   document.addEventListener(evt, wsResetAbandonTimer, {passive:true});
   document.addEventListener(evt, wsResetPhonePromptTimer, {passive:true});
 });
+
+// Tab closed / navigated away before the 10-minute idle timer ever got a
+// chance to fire — this is the actual common case (someone abandons by
+// closing the tab, not by leaving it open and idle), and closing a tab
+// kills any pending setTimeout before it runs, so the idle timer alone
+// misses it almost every time. 2026-09-16, per Shruti: "cart abandonment
+// - leads are not flowing in the google sheet" — traced live: the report
+// pipeline itself (this endpoint → Apps Script → Sheet) works correctly;
+// it just almost never got triggered, because only the idle path existed.
+// wsReportAbandonedCart() already no-ops without a phone number or after
+// a real submission (S._abandonReported), so this is safe to fire
+// unconditionally on every tab close — mirrors finalizeAndNotify's own
+// pagehide handling above.
+window.addEventListener('pagehide', wsReportAbandonedCart);
 
 function toggleScratchTerms(){
   const body=document.getElementById('scratchTermsBody');
