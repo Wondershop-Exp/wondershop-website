@@ -237,6 +237,12 @@ LEAD_FIELD_MAP = {
     "sales_lead_name": "event_sales_lead",
 }
 
+# LEAD_FIELD_MAP keys whose target `leads` column is a real numeric type
+# (kids_count is INTEGER) — coerced in patch_sheet() below since `fields`
+# is untyped (Dict[str, Any]) and a raw JS input's .value arrives as a
+# string, which Postgres's raw-SQL binding otherwise rejects outright.
+NUMERIC_LEAD_FIELDS = {"kids_count"}
+
 # Scalar fields that live on lead_sales_playbook (not on `leads`).
 PLAYBOOK_SCALAR_FIELDS = [
     "event_end_time", "venue_handover_time", "packup_time", "venue_type",
@@ -577,6 +583,21 @@ async def patch_sheet(lead_id: int, body: PatchIn, x_admin_password: Optional[st
     for key, val in body.fields.items():
         if key in LEAD_FIELD_MAP:
             col = LEAD_FIELD_MAP[key]
+            # `fields` is Dict[str, Any] with no per-key type coercion —
+            # a value straight from a JS `<input type="number">` (whose
+            # .value is always a string) was going straight into a raw
+            # SQL UPDATE against an INTEGER column and failing Postgres's
+            # type check with an unhandled 500. Confirmed live: PATCHing
+            # kids_count="7" (string) 500'd, kids_count=7 (number) worked.
+            # 2026-09-16, per Shruti: "#kids gets refreshed and that no.
+            # is not updated in return gifts or activities" — this was the
+            # actual cause (the frontend fix sends a real number now too;
+            # this is defense-in-depth against the same bug recurring).
+            if key in NUMERIC_LEAD_FIELDS and val is not None:
+                try:
+                    val = int(val)
+                except (TypeError, ValueError):
+                    raise HTTPException(status_code=400, detail=f"{key} must be a number")
             lead_sets.append(f"{col} = :{col}")
             lead_values[col] = val
             changed.append(key)
