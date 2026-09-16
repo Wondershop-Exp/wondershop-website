@@ -107,16 +107,32 @@ VENUE_TYPES = [
     {"value": "Not Decided", "label": "Not Decided Yet"},
 ]
 
-# Fixed reference values for the Return Gift Tags add-on note. These used
-# to be read from platform_config (gift_tag_free_threshold /
-# gift_tag_personalisation_fee) — but those config keys don't actually
-# exist in the live table, and the failed query took the ENTIRE catalogue
-# endpoint down with it (2026-09-16, per Shruti: decor/music/photographer
-# all showed up empty in the sales form because of this one bad lookup).
-# Hardcoded instead, matching how every other price on this form already
-# works — a static mirror of the site's pricing, same as catalogue_data.py.
-GIFT_TAG_FEE = 15
-GIFT_TAG_FREE_THRESHOLD = 35000
+# Return Gift Tags ("Personalised Thank You Note") pricing — mirrors
+# builder.html's own TAG_NOTE_UNIT_PRICE / TAG_NOTE_MIN_QTY exactly
+# (₹10/item, billed for at least 15 items even if fewer return gifts are
+# ordered). This REPLACES an earlier GIFT_TAG_FEE=15 / free-above-₹35,000
+# pair that was never actually checked against the live site despite a
+# comment here claiming it had been — corrected 2026-09-16 per Shruti:
+# "price for return gift tags... is not getting added — pick up the
+# pricing from the website".
+TAG_NOTE_UNIT_PRICE = 10
+TAG_NOTE_MIN_QTY = 15
+
+# Packaging (Paper Gift Bag / Gift Wrap / Both) — mirrors builder.html's
+# own PACKAGING_UNIT_PRICE exactly. Quantity basis is the same return-gift
+# quantity the tag-note price above uses (packagingQty() on the live
+# site). Added 2026-09-16 alongside the return-gift-tags fix, per the same
+# request ("...paper gift bag, gift wrap is not getting added").
+PACKAGING_UNIT_PRICE = {"paper-bag": 35, "wrap": 30, "both": 60}
+
+# Pinata add-ons — sales-only (no equivalent on the live customer site).
+# Bags are sold in fixed packs of 15 at ₹150/pack (2026-09-16, per Shruti,
+# correcting an initial "₹10/bag" figure: "pinnata bags - rs. 150 for 15
+# bags. it will come in packs of 15"). Fillings have no fixed price yet —
+# "team will confirm once we build the pinata - mention it on UI" — so
+# that catalogue entry is note-only, with no unit price / cost field.
+PINATA_BAGS_PACK_SIZE = 15
+PINATA_BAGS_PACK_PRICE = 150
 
 
 @router.get("/admin/sales-leads/catalogue")
@@ -146,10 +162,14 @@ async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
     pinata_type = [
         {"name": name, "price": price} for name, price in PINATA_TIER_PRICES.items()
     ] + [{"name": "Custom", "price": None, "note": "No fixed price — quote separately"}]
-    # Packaging: real site labels, plus a "None" option — Shruti's sales
-    # form needs to record when a client doesn't want packaging at all,
-    # which isn't a real builder.html choice but is a real sales scenario.
-    packaging = [{"id": pid, "label": label} for pid, label in PACKAGING_LABELS.items()] + [{"id": "none", "label": "None"}]
+    # Packaging: real site labels + real site unit prices, plus a "None"
+    # option — Shruti's sales form needs to record when a client doesn't
+    # want packaging at all, which isn't a real builder.html choice but is
+    # a real sales scenario (None carries no price).
+    packaging = [
+        {"id": pid, "label": label, "price": PACKAGING_UNIT_PRICE.get(pid)}
+        for pid, label in PACKAGING_LABELS.items()
+    ] + [{"id": "none", "label": "None", "price": None}]
     activities = [
         {"id": aid, "name": name, "price": price, "flat": flat}
         for aid, name, price, flat in ACTIVITIES
@@ -169,9 +189,17 @@ async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
         "return_gift_types": RETURN_GIFT_TYPES,
         "return_gifts_catalogue": return_gifts_catalogue,
         "return_gift_tags": {
-            "fee_per_gift": GIFT_TAG_FEE,
-            "free_at_or_above": GIFT_TAG_FREE_THRESHOLD,
-            "note": f"₹{GIFT_TAG_FEE:.0f}/gift below ₹{GIFT_TAG_FREE_THRESHOLD:,.0f} order value, free at/above",
+            "unit_price": TAG_NOTE_UNIT_PRICE,
+            "min_qty": TAG_NOTE_MIN_QTY,
+            "note": f"₹{TAG_NOTE_UNIT_PRICE:.0f}/item, billed for at least {TAG_NOTE_MIN_QTY} items",
+        },
+        "pinata_bags": {
+            "pack_size": PINATA_BAGS_PACK_SIZE,
+            "pack_price": PINATA_BAGS_PACK_PRICE,
+            "note": f"₹{PINATA_BAGS_PACK_PRICE:.0f} per pack of {PINATA_BAGS_PACK_SIZE} bags",
+        },
+        "pinata_fillings": {
+            "note": "Price to be confirmed by the team once the pinata is built",
         },
         "cake_note": "Starting ₹1,850/kg (brochure)",
         # Same lead-status pipeline admin.html's Leads tab uses — lets the
