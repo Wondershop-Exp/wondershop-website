@@ -83,7 +83,16 @@ th.th-sort:hover{color:var(--pk)}
 .card h3 .stagepill{font-size:10.5px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
 .grid3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px 16px}
-@media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr}}
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px 16px}
+@media(max-width:640px){.grid2,.grid3,.grid4{grid-template-columns:1fr}}
+.readonly-amt{padding:10px 12px;border:1px solid var(--li2);border-radius:8px;font-size:14px;background:var(--li3);color:var(--bk);font-weight:700}
+.disc-box{margin:12px 0 4px}
+.disc-row{font-size:13px;padding:10px 12px;border-radius:8px;background:var(--li3);color:var(--bk)}
+.disc-row b{font-weight:700}
+.disc-row.disc-pos{background:var(--sgr);color:#1a6630}
+.disc-row.disc-neg{background:var(--spk);color:#93264a}
+.disc-note{font-size:12px;color:var(--gy)}
+.opt{font-weight:400;text-transform:none;color:#9A93A8;font-size:10.5px;letter-spacing:0}
 .fld{display:flex;flex-direction:column;gap:4px}
 .fld label{font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);font-weight:600}
 .fld input,.fld select,.fld textarea{padding:10px 12px;border:1px solid var(--li2);border-radius:8px;font-size:14px}
@@ -1132,23 +1141,61 @@ function sectionNotes(){
 }
 
 // ── 6. Confirm booking & billing ────────────────────────────────────────
+// 2026-09-16, per Shruti: "one grand total should be read only, where it
+// gets derived from the selection done by the sales team. add a total
+// agreed with the client on. calculate discount and show the discount %
+// and discount value clearly. Add a t&c column, to be input by the
+// salesman - optional." The old single "Grand Total" input (which actually
+// saved to leads.client_budget) is now the "Total Agreed with Client"
+// field — same field, same id, same confirmBooking() payload, just
+// relabelled — and a separate read-only display shows DATA.estimated_total
+// (the derived, itemised total from requirements + activities). Discount
+// is computed client-side, live, as the agreed total is typed.
 const PAYMENT_METHODS = ['Cash','UPI Transfer','Bank Transfer','Internal Settle'];
 function sectionBilling(){
   const d = DATA;
   const pmOpts = '<option value="">— select —</option>' + PAYMENT_METHODS.map(m=>'<option '+(m===d.payment_method?'selected':'')+'>'+m+'</option>').join('');
   const label = d.playbook_stage==='sales_intake' ? 'Confirm Booking &amp; Send to Ops' : 'Update Billing Details';
   return '<div class="card"><h3>6 · Confirm Booking &amp; Balance</h3>'
-    + '<div class="billing-box">Itemised reference total from requirements + activities above: <b>'+money(d.estimated_total)+'</b>'
-      + (d.kids_count?'':' <br>(activities priced per child use ×1 until # Kids is filled in above)')
-    + '</div>'
-    + '<div class="grid3">'
-      + '<div class="fld"><label>Grand Total (₹)</label><input type="number" id="bill_grand_total" value="'+(d.client_budget==null?'':d.client_budget)+'"></div>'
+    + (d.kids_count?'':'<div class="ref-note">Activities priced per child use ×1 until # Kids is filled in above.</div>')
+    + '<div class="grid4">'
+      + '<div class="fld"><label>Grand Total (from selections)</label><div class="readonly-amt" id="bill_est_total">'+(money(d.estimated_total)||'₹0')+'</div></div>'
+      + '<div class="fld"><label>Total Agreed with Client (₹)</label><input type="number" id="bill_grand_total" value="'+(d.client_budget==null?'':d.client_budget)+'" oninput="updateDiscountPreview()"></div>'
       + '<div class="fld"><label>Balance / Advance Received (₹)</label><input type="number" id="bill_advance" value="'+(d.order_advance==null?'':d.order_advance)+'"></div>'
       + '<div class="fld"><label>Payment Method</label><select id="bill_pm">'+pmOpts+'</select></div>'
     + '</div>'
+    + '<div class="disc-box" id="discBox">'+discountHtml(d.estimated_total, d.client_budget)+'</div>'
+    + '<div class="fld" style="margin-top:12px"><label>Terms &amp; Conditions <span class="opt">optional</span></label>'
+      + '<textarea placeholder="Any terms/conditions agreed with the client..." onblur="saveField(\'terms_conditions\', this.value)">'+esc(d.terms_conditions||'')+'</textarea></div>'
     + '<button type="button" class="btn gr" style="margin-top:14px" onclick="confirmBooking()">'+label+'</button>'
     + '<span style="font-size:12px;color:var(--gy);margin-left:10px">'+(d.is_booking?('Booking confirmed'+(d.sent_to_ops_at?(' · sent to ops '+esc(d.sent_to_ops_at)):'')):'Still a lead — not yet confirmed')+'</span>'
     + '</div>';
+}
+// Discount = the derived (itemised) grand total minus what was actually
+// agreed with the client. Positive => a discount was given; negative =>
+// the agreed total is above the derived total (no discount — flagged, not
+// hidden, so a typo or a premium/rush booking stands out either way).
+function discountHtml(estimatedTotal, agreedTotal){
+  const est = Number(estimatedTotal) || 0;
+  if(agreedTotal===null || agreedTotal===undefined || agreedTotal===''){
+    return '<div class="disc-note">Enter the total agreed with the client to see the discount.</div>';
+  }
+  const agreed = Number(agreedTotal);
+  if(isNaN(agreed)) return '<div class="disc-note">Enter the total agreed with the client to see the discount.</div>';
+  const diff = est - agreed;
+  const pct = est > 0 ? (diff / est * 100) : 0;
+  if(diff > 0.004){
+    return '<div class="disc-row disc-pos">Discount given: <b>'+money(diff)+'</b> ('+pct.toFixed(1)+'%)</div>';
+  } else if(diff < -0.004){
+    return '<div class="disc-row disc-neg">Agreed total is <b>'+money(-diff)+'</b> ('+(-pct).toFixed(1)+'%) above the derived grand total — no discount.</div>';
+  }
+  return '<div class="disc-row">No discount — agreed total matches the derived grand total.</div>';
+}
+function updateDiscountPreview(){
+  const box = document.getElementById('discBox');
+  if(!box) return;
+  const val = document.getElementById('bill_grand_total').value;
+  box.innerHTML = discountHtml(DATA.estimated_total, val===''?null:val);
 }
 async function confirmBooking(){
   const gt = document.getElementById('bill_grand_total').value;
