@@ -1055,27 +1055,38 @@ async function addActivityFromPicker(){
   const box = document.getElementById('actSuggest');
   if(box) box.classList.remove('show');
 }
+// 2026-09-16, per Shruti: "show total with no. of kids also" — each
+// per-child activity now shows what it actually comes to once # Kids is
+// applied, plus a subtotal for the whole activities list underneath. "also
+// remove volunteer and materials from this, sales right now" — those two
+// fields were Ops-only inputs living inside the sales intake view; sales
+// doesn't use them, so they're out of this render for now (the data and
+// the /activities/field endpoint are untouched, so nothing is lost — this
+// only removes the inputs from this card).
 function renderActivities(){
   const listEl = document.getElementById('actList');
   if(!listEl) return;
   const chosen = DATA.activities || [];
+  const kids = DATA.kids_count || null;
   if(!chosen.length){
     listEl.innerHTML = '<div style="font-size:12.5px;color:var(--gy);padding:4px 0 8px">No activities added yet — search above.</div>';
   }else{
     listEl.innerHTML = chosen.map(a=>{
-      const priceLbl = money(a.price) + (a.flat ? ' flat' : '/child');
+      let priceLbl = money(a.price) + (a.flat ? ' flat' : '/child');
+      if(!a.flat){
+        const lineTotal = (a.price||0) * (kids || 1);
+        priceLbl += ' · ' + (kids ? ('Total for '+kids+' kids: '+money(lineTotal)) : ('Total (×1 — # Kids not set): '+money(lineTotal)));
+      }
       return '<div class="act-item sel">'
         + '<div class="act-main" style="cursor:default">'
           + '<div class="an">'+esc(a.name)+'</div>'
           + '<div class="ap">'+priceLbl+'</div>'
           + '<button type="button" class="icon-btn" onclick="toggleActivity(\''+a.id+'\',\''+esc(a.name).replace(/\'/g,"\\'")+'\',null,null)" title="Remove">✕</button>'
         + '</div>'
-        + '<div class="act-assign" style="display:grid">'
-          + '<input type="text" placeholder="Volunteer" value="'+esc(a.volunteer||'')+'" onblur="onActivityAssign(\''+a.id+'\',\'volunteer\',this.value)">'
-          + '<input type="text" placeholder="Materials" value="'+esc(a.materials||'')+'" onblur="onActivityAssign(\''+a.id+'\',\'materials\',this.value)">'
-        + '</div>'
         + '</div>';
     }).join('');
+    const activitiesTotal = chosen.reduce((sum,a)=> sum + (a.flat ? (a.price||0) : (a.price||0)*(kids||1)), 0);
+    listEl.innerHTML += '<div class="ref-note" style="margin-top:8px">Activities total'+(kids?(' for '+kids+' kids'):' (×1 — # Kids not set)')+': <b style="color:var(--bk)">'+money(activitiesTotal)+'</b></div>';
   }
 
   const suggEl = document.getElementById('suggList');
@@ -1224,7 +1235,7 @@ function sectionOps(){
   return '<div class="card"><h3>7 · Ops — Event Execution'
       + (locked ? '<span style="font-size:11px;font-weight:400;color:var(--gy);text-transform:none;letter-spacing:0">Send to ops first (section 6) to unlock</span>' : '')
     +'</h3>'
-    + '<div style="font-size:12px;color:var(--gy);margin:-4px 0 12px">Volunteer &amp; materials per activity are set on each activity in section 4 above.</div>'
+    + '<div style="font-size:12px;color:var(--gy);margin:-4px 0 12px">Volunteers (general) below cover the event as a whole for now.</div>'
     + '<div class="grid2">' + f('decor_assigned_to','Decor Assigned To') + f('music_assigned_to','Music Assigned To') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('volunteers_general','Volunteers (general)') + f('lead_volunteer','Lead Volunteer') + '</div>'
     + '<div class="fld" style="margin-top:10px">' + f('ops_lead_name','Ops Lead').replace(/^<div class="fld">|<\/div>$/g,'') + '</div>'
