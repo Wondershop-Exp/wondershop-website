@@ -131,6 +131,7 @@ table.list tr:hover td{background:var(--li3)}
     <div class="who">
       Editing as <input type="text" id="whoName" onchange="saveName()">
       <a class="linkbtn" href="admin.html">Bookings admin</a>
+      <a class="linkbtn" href="sales-leads.html">Sales leads</a>
       <button class="linkbtn" onclick="logout()">Log out</button>
     </div>
   </div>
@@ -158,6 +159,11 @@ table.list tr:hover td{background:var(--li3)}
         <div class="fld"><label>Title</label><input type="text" id="cTitle" placeholder="e.g. Advit's 8th Birthday"></div>
         <div class="fld"><label>Event lead</label><input type="text" id="cEventLead" placeholder="e.g. Mitika"></div>
         <div class="fld"><label>Booking ID (optional)</label><input type="number" id="cLeadId" placeholder="e.g. 214"></div>
+      </div>
+      <div class="grid3">
+        <div class="fld"><label>Event date</label><input type="text" id="cEventDate" placeholder="e.g. 12Sep"></div>
+        <div class="fld"><label>Event time</label><input type="text" id="cEventTime" placeholder="e.g. 11am"></div>
+        <div class="fld"><label>Venue</label><input type="text" id="cVenue" placeholder="e.g. Andheri"></div>
       </div>
     </div>
 
@@ -282,6 +288,9 @@ function enterApp(){
     if(params.get('title')) document.getElementById('cTitle').value = params.get('title');
     if(params.get('event_lead')) document.getElementById('cEventLead').value = params.get('event_lead');
     if(params.get('lead_id')) document.getElementById('cLeadId').value = params.get('lead_id');
+    if(params.get('event_date')) document.getElementById('cEventDate').value = params.get('event_date');
+    if(params.get('event_time')) document.getElementById('cEventTime').value = params.get('event_time');
+    if(params.get('venue')) document.getElementById('cVenue').value = params.get('venue');
   } else {
     doSearch();
   }
@@ -333,6 +342,9 @@ function openComposer(){
   document.getElementById('cTitle').value='';
   document.getElementById('cEventLead').value='';
   document.getElementById('cLeadId').value='';
+  document.getElementById('cEventDate').value='';
+  document.getElementById('cEventTime').value='';
+  document.getElementById('cVenue').value='';
   document.getElementById('pasteArea').value='';
   document.getElementById('shareBoxWrap').innerHTML='';
   document.getElementById('saveMsg').textContent='';
@@ -354,6 +366,9 @@ async function editList(id){
     document.getElementById('cTitle').value = d.title||'';
     document.getElementById('cEventLead').value = d.event_lead||'';
     document.getElementById('cLeadId').value = d.lead_id||'';
+    document.getElementById('cEventDate').value = d.event_date||'';
+    document.getElementById('cEventTime').value = d.event_time||'';
+    document.getElementById('cVenue').value = d.venue||'';
     document.getElementById('pasteArea').value='';
     SECTIONS = (d.sections||[]).map(s=>({header:s.header, items:(s.items||[]).map(it=>({
       text:it.text, checked:!!it.checked, qty:(it.qty===undefined?null:it.qty),
@@ -561,6 +576,9 @@ async function saveList(){
   const title = document.getElementById('cTitle').value.trim();
   const eventLead = document.getElementById('cEventLead').value.trim();
   const leadIdRaw = document.getElementById('cLeadId').value.trim();
+  const eventDate = document.getElementById('cEventDate').value.trim();
+  const eventTime = document.getElementById('cEventTime').value.trim();
+  const venue = document.getElementById('cVenue').value.trim();
   const msg = document.getElementById('saveMsg');
   if(!title){ msg.textContent='Give the party a title first.'; msg.style.color='var(--pk)'; return; }
   const payloadSections = SECTIONS
@@ -574,11 +592,12 @@ async function saveList(){
   try{
     let d;
     if(CURRENT_LIST_ID){
-      await apiCall('/api/admin/packaging/lists/'+CURRENT_LIST_ID+'/meta', {method:'PUT', body:JSON.stringify({title, event_lead:eventLead})});
+      await apiCall('/api/admin/packaging/lists/'+CURRENT_LIST_ID+'/meta', {method:'PUT', body:JSON.stringify({title, event_lead:eventLead, event_date:eventDate, event_time:eventTime, venue})});
       d = await apiCall('/api/admin/packaging/lists/'+CURRENT_LIST_ID+'/content', {method:'PUT', body:JSON.stringify({sections:payloadSections, updated_by:getName()})});
     } else {
       d = await apiCall('/api/admin/packaging/lists', {method:'POST', body:JSON.stringify({
         title, event_lead:eventLead, lead_id: leadIdRaw?parseInt(leadIdRaw,10):null,
+        event_date:eventDate, event_time:eventTime, venue,
         sections:payloadSections, created_by:getName()
       })});
     }
