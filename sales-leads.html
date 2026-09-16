@@ -35,7 +35,14 @@ a{color:var(--bl)}
 .gate-card button{width:100%;padding:12px 14px;border:none;border-radius:var(--rs);background:var(--pk);color:#fff;font-weight:700;font-size:15px}
 .gate-err{color:var(--pk);font-size:13px;margin-top:8px;min-height:16px}
 
-#app{display:none;max-width:960px;margin:0 auto;padding:20px 20px 100px}
+#app{display:none;max-width:960px;margin:0 auto;padding:20px 20px 110px}
+/* Sticky Grand Total bar (mirrors builder.html's .bld-bb bottom price bar) */
+.gt-bar{position:fixed;left:0;right:0;bottom:0;z-index:500;background:#fff;border-top:1.5px solid var(--li2);
+  box-shadow:0 -4px 16px rgba(0,0,0,.07);padding-bottom:env(safe-area-inset-bottom, 0px)}
+.gt-bar-inner{max-width:960px;margin:0 auto;padding:12px 20px;display:flex;align-items:baseline;justify-content:center;gap:10px;flex-wrap:wrap}
+.gt-bar .gt-label{font-size:12px;color:var(--gy);font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.gt-bar .gt-note{font-size:10.5px;color:#9A93A8;font-weight:500;text-transform:none;letter-spacing:0}
+.gt-bar .gt-amt{font-family:var(--fd);font-size:21px;font-weight:700;color:var(--bk)}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:10px 0 18px;border-bottom:1px solid var(--li2);margin-bottom:20px}
 .topbar h1{font-size:20px}
 .topbar .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gy);flex-wrap:wrap}
@@ -196,6 +203,20 @@ th.th-sort:hover{color:var(--pk)}
   <div id="detailView" style="display:none">
     <a class="back-nav linkbtn" href="#" onclick="backToList();return false;">&larr; Back to list</a>
     <div id="detailBody"></div>
+  </div>
+</div>
+
+<!-- Sticky Grand Total bar — mirrors Build-a-Birthday's bottom price bar,
+     live off DATA.estimated_total (server-computed: every requirement's
+     cost + music add-ons + activities, per-child ones × kids count) so it
+     updates as the salesman adds/edits services (2026-09-16, per Shruti:
+     "add a sticky grand total like in the BAB as the salesman adds
+     services"). Shown only over the detail view — see openDetail()/
+     backToList(). -->
+<div class="gt-bar" id="gtBar" style="display:none">
+  <div class="gt-bar-inner">
+    <span class="gt-label">Estimated Total<span class="gt-note" id="gtNote"> &middot; activities priced per child use &times;1 until # Kids is filled in</span></span>
+    <span class="gt-amt" id="gtAmt">₹0</span>
   </div>
 </div>
 
@@ -414,8 +435,26 @@ async function startNewLead(){
 function backToList(){
   document.getElementById('detailView').style.display='none';
   document.getElementById('listView').style.display='block';
+  document.getElementById('gtBar').style.display='none';
   CURRENT_ID = null; DATA = null;
   doSearch();
+}
+
+// Sticky Grand Total bar — reads the server-computed DATA.estimated_total
+// (see _estimate_total() in sales_leads.py: every requirement's cost +
+// music add-ons + activities, per-child ones × kids_count). Hooked into
+// renderHistory() below, which every save path (field/requirement/activity/
+// status) already calls after refreshing DATA, so the total stays live as
+// the salesman works through the page without a separate update call at
+// each site.
+function updateGrandTotalBar(){
+  const bar = document.getElementById('gtBar');
+  if(!bar) return;
+  if(!DATA || !CURRENT_ID){ bar.style.display='none'; return; }
+  bar.style.display='block';
+  document.getElementById('gtAmt').textContent = money(DATA.estimated_total||0) || '₹0';
+  const noteEl = document.getElementById('gtNote');
+  if(noteEl) noteEl.style.display = DATA.kids_count ? 'none' : 'inline';
 }
 
 // ── detail / composer ───────────────────────────────────────────────────
@@ -709,14 +748,31 @@ function reqDecorRow(){
   const themeOpts = '<option value="">— pick from Build-a-Birthday —</option>'
     + (CATALOGUE.decor_themes||[]).map(t=>'<option value="'+esc(t.name)+'" '+(t.name===r.theme_name?'selected':'')+'>'+esc(t.name)+'</option>').join('');
   return '<div class="req-row"><div class="rlabel">Decor</div><div class="req-grid">'
-    + '<select id="req_decor_sel" onchange="onReqTextSelectChange(\'decor\')">' + tierOpts + '</select>'
-    + '<input type="number" id="req_decor_cost" placeholder="Cost (₹) — enter manually" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'decor\')">'
+    + '<select id="req_decor_sel" onchange="onDecorTierChange()">' + tierOpts + '</select>'
+    + '<input type="number" id="req_decor_cost" placeholder="Cost (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'decor\')">'
     + '</div>'
     + custBox('decor', 'Customizations (colours, add-ons, special requests...)')
     + '<div class="pick-row">'
       + '<select onchange="onDecorThemePick(this.value)">' + themeOpts + '</select>'
       + '<a href="builder.html?browse=decor" target="_blank">Open Build-a-Birthday (decor) ↗</a>'
     + '</div></div>';
+}
+// 2026-09-16, per Shruti: "decor - by default, add the decor price based on
+// the selection. user can edit it" — picking a tier auto-fills the cost
+// field from that tier's reference price (CATALOGUE.decor_tiers); the cost
+// input stays a normal editable field, so a manually typed/negotiated price
+// still sticks (onblur -> onReqCostBlur). "Others" has no reference price
+// in the catalogue, so it leaves whatever cost is already there untouched.
+async function onDecorTierChange(){
+  const sel = document.getElementById('req_decor_sel');
+  const tierName = sel.value;
+  const r = Object.assign({}, req('decor'));
+  r.selected = tierName || null;
+  const tier = (CATALOGUE.decor_tiers||[]).find(t=>t.name===tierName);
+  if(tier && tier.price!=null) r.cost = tier.price;
+  const costEl = document.getElementById('req_decor_cost');
+  if(costEl) costEl.value = r.cost==null?'':r.cost;
+  await saveRequirement('decor', r);
 }
 async function onDecorThemePick(name){
   if(!name) return;
@@ -1072,6 +1128,7 @@ function toggleHistory(){
   p.style.display = (p.style.display==='block') ? 'none' : 'block';
 }
 function renderHistory(){
+  updateGrandTotalBar();
   const p = document.getElementById('histPanel');
   if(!p) return;
   const log = DATA.activity_log || [];
