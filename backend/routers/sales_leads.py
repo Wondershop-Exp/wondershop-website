@@ -126,13 +126,16 @@ TAG_NOTE_MIN_QTY = 15
 PACKAGING_UNIT_PRICE = {"paper-bag": 35, "wrap": 30, "both": 60}
 
 # Pinata add-ons — sales-only (no equivalent on the live customer site).
-# Bags are sold in fixed packs of 15 at ₹150/pack (2026-09-16, per Shruti,
-# correcting an initial "₹10/bag" figure: "pinnata bags - rs. 150 for 15
-# bags. it will come in packs of 15"). Fillings have no fixed price yet —
-# "team will confirm once we build the pinata - mention it on UI" — so
-# that catalogue entry is note-only, with no unit price / cost field.
-PINATA_BAGS_PACK_SIZE = 15
-PINATA_BAGS_PACK_PRICE = 150
+# Bags: flat ₹12/bag, one bag per child by default (kids_count), same
+# per-child pattern activities already use — no manual quantity entry.
+# (2026-09-16, per Shruti — two corrections in sequence: first "₹10/bag",
+# then "₹150 for 15 bags, packs of 15", then finally "remove quantity
+# from pinata bags, just charge 12 rs. per bag" — this is the final,
+# current figure and it replaces the pack-of-15 model entirely.)
+# Fillings have no fixed price yet — "team will confirm once we build the
+# pinata - mention it on UI" — so that catalogue entry is note-only, with
+# no unit price / cost field.
+PINATA_BAG_UNIT_PRICE = 12
 
 
 @router.get("/admin/sales-leads/catalogue")
@@ -194,9 +197,8 @@ async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
             "note": f"₹{TAG_NOTE_UNIT_PRICE:.0f}/item, billed for at least {TAG_NOTE_MIN_QTY} items",
         },
         "pinata_bags": {
-            "pack_size": PINATA_BAGS_PACK_SIZE,
-            "pack_price": PINATA_BAGS_PACK_PRICE,
-            "note": f"₹{PINATA_BAGS_PACK_PRICE:.0f} per pack of {PINATA_BAGS_PACK_SIZE} bags",
+            "unit_price": PINATA_BAG_UNIT_PRICE,
+            "note": f"₹{PINATA_BAG_UNIT_PRICE:.0f}/bag, one per child",
         },
         "pinata_fillings": {
             "note": "Price to be confirmed by the team once the pinata is built",

@@ -521,6 +521,12 @@ async function saveField(key, value){
   if(DATA[key] === value) return;
   DATA[key] = value;
   await patchSheet({fields:{[key]: value === '' ? null : value}});
+  // # Kids drives Activities' per-child totals, Pinata Bags' cost, and
+  // therefore the Grand Total — resave any already-selected kids-count-
+  // dependent add-on so its stored cost (and the total that's summed from
+  // it) doesn't go stale. 2026-09-16, per Shruti: "on updating #kids, the
+  // return gifts / activities / grand total does not get updated".
+  if(key === 'kids_count') await recalcDerivedCosts();
 }
 
 async function patchSheet(body){
@@ -533,7 +539,16 @@ async function patchSheet(body){
     });
     if(!res.ok){ const b=await res.json().catch(()=>({})); throw new Error(b.detail||'Save failed'); }
     DATA = await res.json();
-    renderHistory();
+    // Re-render the whole detail view, not just history/the sticky bar —
+    // a save can be as small as one scalar field (e.g. # Kids), but
+    // Activities' per-child totals, Requirements' quantity-derived totals,
+    // and the Billing section's read-only Grand Total all depend on
+    // fields that a single-field save doesn't touch directly, and were
+    // going stale until the next full reopen. renderDetail() itself calls
+    // renderActivities()/renderSchedule()/renderHistory() (which in turn
+    // updates the sticky Grand Total bar), so this one call keeps every
+    // section current. 2026-09-16, per Shruti (see saveField() above).
+    renderDetail();
   }catch(e){
     showToast(e.message||"Couldn't save.");
   }finally{
@@ -816,39 +831,61 @@ function reqHostRow(){
 
 // ── Return Gifts: quantity / budget-per-child / type, plus customization,
 // a link into the real Build-a-Birthday return-gifts step, and a picker
-// for an existing catalogue item. ─────────────────────────────────────
+// for an existing catalogue item. Total = quantity × unit price, where
+// unit price is the manually-typed Budget/child if set, else the picked
+// catalogue gift's own price — shown live and also written to an
+// editable Cost (₹) field (same pattern as every other add-on row), so
+// it's what actually feeds the Grand Total. 2026-09-16, per Shruti:
+// "return gifts - show total after multiplying quantity" (previously the
+// total only ever appeared when BOTH quantity and budget were filled in,
+// and picking a gift from the catalogue with its own price didn't
+// compute or save a cost at all). ───────────────────────────────────────
 function reqReturnGiftsRow(){
   const r = req('return_gifts');
   const typeOpts = '<option value="">— type —</option>'
     + (CATALOGUE.return_gift_types||[]).map(t=>'<option '+(t===r.type?'selected':'')+'>'+t+'</option>').join('');
   const giftOpts = '<option value="">— pick an existing gift —</option>'
     + (CATALOGUE.return_gifts_catalogue||[]).map(g=>'<option value="'+esc(g.name)+'" '+(g.name===r.selected_gift_name?'selected':'')+'>'+esc(g.name)+' — '+money(g.price)+'</option>').join('');
+  const selectedGift = (CATALOGUE.return_gifts_catalogue||[]).find(g=>g.name===r.selected_gift_name);
+  const unitPrice = (r.budget!=null) ? r.budget : (selectedGift ? selectedGift.price : null);
+  const total = (r.quantity && unitPrice!=null) ? r.quantity*unitPrice : null;
   return '<div class="req-row"><div class="rlabel">Return Gifts</div><div class="req-grid3">'
     + '<input type="number" placeholder="Quantity" value="'+(r.quantity==null?'':r.quantity)+'" onblur="onReturnGiftField(\'quantity\',this.value)">'
     + '<input type="number" placeholder="Budget / child (₹)" value="'+(r.budget==null?'':r.budget)+'" onblur="onReturnGiftField(\'budget\',this.value)">'
     + '<select onchange="onReturnGiftField(\'type\',this.value)">'+typeOpts+'</select>'
     + '</div>'
-    + (r.quantity&&r.budget ? '<div class="ref-note">Reference total: '+money(r.quantity*r.budget)+'</div>' : '')
+    + '<input type="number" id="req_return_gifts_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'return_gifts\')">'
+    + (total!=null ? '<div class="ref-note">Total ('+r.quantity+' × '+money(unitPrice)+'): '+money(total)+'</div>' : '')
     + custBox('return_gifts', 'Customizations / specific items discussed...')
     + '<div class="pick-row">'
       + '<select onchange="onReturnGiftPick(this.value)">' + giftOpts + '</select>'
       + '<a href="builder.html?gifts=1" target="_blank">Open Build-a-Birthday (return gifts) ↗</a>'
     + '</div></div>';
 }
+function _returnGiftUnitPrice(r){
+  if(r.budget!=null) return r.budget;
+  const g = (CATALOGUE.return_gifts_catalogue||[]).find(g=>g.name===r.selected_gift_name);
+  return g ? g.price : null;
+}
 async function onReturnGiftField(field, value){
   const r = Object.assign({quantity:null,budget:null,type:null,cost:null}, req('return_gifts'));
   r[field] = (field==='quantity'||field==='budget') ? (value===''?null:Number(value)) : (value||null);
-  if(r.quantity && r.budget) r.cost = r.quantity * r.budget;
+  const unitPrice = _returnGiftUnitPrice(r);
+  if(r.quantity && unitPrice!=null) r.cost = r.quantity * unitPrice;
   await saveRequirement('return_gifts', r);
-  if(field==='quantity') await recalcQtyDependentCosts();
+  if(field==='quantity') await recalcDerivedCosts();
   renderDetail();
 }
-// Packaging and Return Gift Tags are both priced off the Return Gifts
-// quantity — if that quantity changes after either add-on is already
-// selected, re-price them so the Grand Total stays correct without the
-// sales person having to re-click the option. Only touches add-ons that
-// are already selected; untouched otherwise.
-async function recalcQtyDependentCosts(){
+// Packaging, Return Gift Tags (priced off the Return Gifts quantity) and
+// Pinata Bags (priced off # Kids) are all auto-computed but manually
+// editable. If the value they're derived from changes after the add-on
+// is already selected, re-price it here so the Grand Total stays correct
+// without the sales person having to re-click the option. Only touches
+// add-ons that are already selected; untouched otherwise. Called after
+// the Return Gifts quantity changes, and after # Kids changes (see
+// saveField()). 2026-09-16, per Shruti: "on updating #kids, the return
+// gifts / activities / grand total does not get updated".
+async function recalcDerivedCosts(){
   const qty = (req('return_gifts').quantity) || 0;
   const pkg = req('packaging');
   if(pkg.selected){
@@ -867,12 +904,22 @@ async function recalcQtyDependentCosts(){
     r.cost = billedQty * (gt.unit_price||10);
     await saveRequirement('return_gift_tags', r);
   }
+  const pb = req('pinata_bags');
+  if(pb.selected==='Yes'){
+    const pbCat = CATALOGUE.pinata_bags || {};
+    const r = Object.assign({}, pb);
+    r.cost = (pbCat.unit_price||12) * (DATA.kids_count || 1);
+    await saveRequirement('pinata_bags', r);
+  }
 }
 async function onReturnGiftPick(name){
   if(!name) return;
   const r = Object.assign({}, req('return_gifts'));
   r.selected_gift_name = name;
+  const unitPrice = _returnGiftUnitPrice(r);
+  if(r.quantity && unitPrice!=null) r.cost = r.quantity * unitPrice;
   await saveRequirement('return_gifts', r);
+  renderDetail();
 }
 
 // ── Photographer ─────────────────────────────────────────────────────────
@@ -886,7 +933,7 @@ function reqPhotographerRow(){
 // real site labels + real site unit prices. Cost = unit price × the
 // Return Gifts quantity above (same basis builder.html uses), auto-
 // computed on pick and kept in sync if that quantity changes afterward
-// (recalcQtyDependentCosts()). 2026-09-16, per Shruti: "...paper gift
+// (recalcDerivedCosts()). 2026-09-16, per Shruti: "...paper gift
 // bag, gift wrap is not getting added — pick up the pricing from the
 // website — show it on the UI and add to grand total if selected".
 function reqPackagingRow(){
@@ -942,7 +989,7 @@ async function onPinataChipPick(name){
 // ₹10/item with a 15-item minimum billed, same quantity basis as
 // Packaging above (mirrors builder.html's TAG_NOTE_UNIT_PRICE /
 // TAG_NOTE_MIN_QTY exactly). Cost is auto-computed on toggle and kept in
-// sync via recalcQtyDependentCosts() if the Return Gifts quantity
+// sync via recalcDerivedCosts() if the Return Gifts quantity
 // changes afterward. 2026-09-16, per Shruti (see Packaging note above).
 function reqReturnGiftTagsRow(){
   const r = req('return_gift_tags');
@@ -972,38 +1019,35 @@ async function onReturnGiftTagsPick(val){
   renderDetail();
 }
 
-// ── Pinata — Bags: sold in fixed packs of 15 at ₹150/pack. Sales person
-// enters how many bags are needed; cost = packs-needed (rounded up) ×
-// pack price. 2026-09-16, per Shruti, correcting an initial "₹10/bag"
-// figure: "pinnata bags - rs. 150 for 15 bags. it will come in packs of
-// 15".
+// ── Pinata — Bags: flat ₹12/bag, one bag per child (# Kids) by default —
+// same per-child pattern Activities already uses, so no manual quantity
+// entry. 2026-09-16, per Shruti, replacing the pack-of-15 model from
+// earlier the same day: "remove quantity from pinata bags. just charge
+// 12 rs. per bag". Cost auto-computes off DATA.kids_count on toggle and
+// stays in sync if # Kids changes afterward (recalcDerivedCosts(),
+// called from saveField() below). Cost stays manually editable via the
+// usual Cost (₹) input, consistent with every other add-on row.
 function reqPinataBagsRow(){
   const r = req('pinata_bags');
   const pb = CATALOGUE.pinata_bags || {};
-  const packSize = pb.pack_size||15, packPrice = pb.pack_price||150;
-  const packs = r.qty ? Math.ceil(r.qty/packSize) : 0;
-  const note = (pb.note||'') + (r.selected==='Yes' && r.qty ? (' · '+packs+' pack(s) needed for '+r.qty+' bags') : '');
+  const kids = DATA.kids_count || null;
+  const note = (pb.note||'') + (r.selected==='Yes' ? (kids ? (' · '+kids+' kids × ₹'+(pb.unit_price||12)) : ' · # Kids not set — using ×1 until it is') : '');
   return '<div class="req-row"><div class="rlabel">Pinata — Bags (Add-on)</div><div class="yn">'
     + '<button type="button" class="'+(r.selected==='Yes'?'sel':'')+'" onclick="onPinataBagsPick(\'Yes\')">Yes</button>'
     + '<button type="button" class="'+(r.selected==='No'?'sel':'')+'" onclick="onPinataBagsPick(\'No\')">No</button>'
     + '</div>'
-    + (r.selected==='Yes' ? '<input type="number" placeholder="Number of bags needed" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.qty==null?'':r.qty)+'" onblur="onPinataBagsQty(this.value)">' : '')
     + '<input type="number" id="req_pinata_bags_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'pinata_bags\')">'
     + '<div class="req-note">'+note+'</div></div>';
 }
 async function onPinataBagsPick(val){
+  const pb = CATALOGUE.pinata_bags || {};
   const r = Object.assign({}, req('pinata_bags'));
   r.selected = (r.selected===val) ? null : val;
-  if(r.selected!=='Yes'){ r.qty = null; r.cost = null; }
-  await saveRequirement('pinata_bags', r);
-  renderDetail();
-}
-async function onPinataBagsQty(value){
-  const pb = CATALOGUE.pinata_bags || {};
-  const packSize = pb.pack_size||15, packPrice = pb.pack_price||150;
-  const r = Object.assign({}, req('pinata_bags'));
-  r.qty = value==='' ? null : Number(value);
-  r.cost = r.qty ? Math.ceil(r.qty/packSize) * packPrice : null;
+  if(r.selected==='Yes'){
+    r.cost = (pb.unit_price||12) * (DATA.kids_count || 1);
+  } else {
+    r.cost = null;
+  }
   await saveRequirement('pinata_bags', r);
   renderDetail();
 }
