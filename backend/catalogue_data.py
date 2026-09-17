@@ -25,7 +25,14 @@ DECOR_TIER_META = {
             ("Panels", "NA", True),
             ("Balloons", "Up to 200", False),
             ("Balloon Colours", "Up to 2", False),
-            ("Happy Birthday, Name & Age", "Paper bunting (HBD & name), foil balloon (age)", False),
+            # 2026-09-13, per Shruti — split out of the old combined "Happy
+            # Birthday, Name & Age" row: generic HBD bunting + age balloon
+            # stay included, but the child's actual NAME on the bunting is
+            # now a separate ₹200 add-on (see decor_name_bunting_fee in
+            # leads.py) — mirrors the same split in builder.html's
+            # DECOR_TIER_META.
+            ("Happy Birthday & Age", "Paper bunting (HBD), foil balloon (age)", False),
+            ("Name on Bunting", "Not included — add for ₹200", True),
             ("Cutouts", "Not included", True),
             ("Welcome Decor", "Not included", True),
             ("Cake Table", "Not included", True),
@@ -227,6 +234,14 @@ PINATA_TIER_PRICES = {
 
 
 # ─── E-Invite ────────────────────────────────────────────────────────────
+
+# Video invite tier pricing (2026-09-17, per Shruti — sales module e-invite
+# section). Not part of the main builder.html gallery flow (that's flat
+# ₹500/design + a ₹1,000 Custom Design tier); mirrors the two-tier system
+# used on the standalone theme pages instead (unicorn-basic.html /
+# spy-basic.html / turf-basic.html's EINVITE_TIERS), since that is what
+# actually offers a video option. Keep in sync by hand if those change.
+EINVITE_TIER_PRICES = {"Static": 500, "Video + Reminder": 2000}
 
 INVITES = [
     ("i1", "Art Party", "art-party.jpg"), ("i2", "Frozen (Elsa)", "frozen-elsa.jpg"),

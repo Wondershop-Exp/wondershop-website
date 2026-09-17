@@ -76,7 +76,8 @@ table.list tr:last-child td{border-bottom:none}
    date. on clicking - the values should get sorted in desc/asc." */
 table.list th.sortable{cursor:pointer;user-select:none}
 table.list th.sortable:hover{color:var(--bk)}
-.sort-arrow{margin-left:4px;font-size:10px;display:inline-block;min-width:8px}
+.sort-arrow{margin-left:4px;font-size:10px;display:inline-block;min-width:8px;opacity:.4}
+.sort-arrow.active{opacity:1;color:var(--pk);font-weight:700}
 
 /* ─── Locked record banner ─── */
 /* 2026-08-19, per Shruti follow-up: "if a booking is marked as cancelled, no
@@ -1040,7 +1041,9 @@ function updateSortHeaders(kind){
   ['status','event_date','created','modified'].forEach(k=>{
     const el = document.getElementById('arrow-'+kind+'-'+k);
     if(!el) return;
-    el.textContent = (s.key===k) ? (s.dir==='asc' ? '▲' : '▼') : '';
+    const active = s.key===k;
+    el.textContent = active ? (s.dir==='asc' ? '▲' : '▼') : '⇅';
+    el.classList.toggle('active', active);
   });
 }
 
