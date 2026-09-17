@@ -45,6 +45,7 @@ VENDOR_FIELDS = [
     "whatsapp_number", "email", "deals_in", "address", "city", "pincode",
     "timings", "website", "remarks", "is_active",
     "bank_account_holder_name", "bank_name", "bank_account_number", "bank_ifsc_code",
+    "preferred_payment_mode", "gst_number",
 ]
 
 # Explicit column list for reads — everything EXCEPT the bytea file itself,
@@ -75,6 +76,8 @@ class VendorRequest(BaseModel):
     bank_name: Optional[str] = None
     bank_account_number: Optional[str] = None
     bank_ifsc_code: Optional[str] = None
+    preferred_payment_mode: Optional[str] = None
+    gst_number: Optional[str] = None
 
 
 def _row_out(r) -> dict:
@@ -91,6 +94,10 @@ def _values_for_write(body: VendorRequest) -> dict:
     v["name"] = v["name"].strip()
     if v.get("bank_ifsc_code"):
         v["bank_ifsc_code"] = v["bank_ifsc_code"].strip().upper() or None
+    if v.get("gst_number"):
+        v["gst_number"] = v["gst_number"].strip().upper() or None
+    if v.get("preferred_payment_mode"):
+        v["preferred_payment_mode"] = v["preferred_payment_mode"].strip().lower() or None
     return v
 
 
