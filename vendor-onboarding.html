@@ -51,14 +51,14 @@ a{color:var(--pk)}
 }
 .fld input:focus,.fld textarea:focus,.fld select:focus{outline:none;border-color:var(--li)}
 .fld textarea{resize:vertical;min-height:70px}
-.fld select{appearance:auto}
+.fld select{appearance:auto;padding-right:38px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:480px){.row2{grid-template-columns:1fr}}
 
 .or-div{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--gy);font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
 .or-div::before,.or-div::after{content:'';flex:1;height:1px;background:var(--li2)}
 
-.upload-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1.5px dashed var(--li);border-radius:12px;padding:20px;text-align:center;background:var(--li3);cursor:pointer;transition:border-color .15s}
+.upload-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;margin-top:18px;border:1.5px dashed var(--li);border-radius:12px;padding:20px;text-align:center;background:var(--li3);cursor:pointer;transition:border-color .15s}
 .upload-box:hover{border-color:var(--pk)}
 .upload-box input{display:none}
 .upload-box .ic{font-size:26px}
@@ -106,9 +106,26 @@ a{color:var(--pk)}
           <input type="text" id="f_contact">
         </div>
         <div class="fld">
-          <label>What do you deal in? <span class="opt">(e.g. Decor, Catering, Photography)</span></label>
-          <input type="text" id="f_deals">
+          <label>What do you deal in?</label>
+          <select id="f_deals">
+            <option value="">Select...</option>
+            <option value="Event Volunteer">Event Volunteer</option>
+            <option value="Photographer">Photographer</option>
+            <option value="Decorator">Decorator</option>
+            <option value="Stationery Store">Stationery Store</option>
+            <option value="Personalization Store">Personalization Store</option>
+            <option value="Gift Shop">Gift Shop</option>
+            <option value="Packaging Store">Packaging Store</option>
+            <option value="Art & Craft Store">Art & Craft Store</option>
+            <option value="Host">Host</option>
+            <option value="DJ">DJ</option>
+            <option value="Others">Others</option>
+          </select>
         </div>
+      </div>
+      <div class="fld" id="dealsOtherFld" style="display:none">
+        <label>Please specify</label>
+        <input type="text" id="f_deals_other">
       </div>
       <div class="row2">
         <div class="fld">
@@ -229,6 +246,12 @@ document.getElementById('f_gst').addEventListener('input', function(){
   this.value = this.value.toUpperCase();
 });
 
+const dealsSelect = document.getElementById('f_deals');
+const dealsOtherFld = document.getElementById('dealsOtherFld');
+dealsSelect.addEventListener('change', () => {
+  dealsOtherFld.style.display = dealsSelect.value === 'Others' ? 'block' : 'none';
+});
+
 function showErr(msg){
   const box = document.getElementById('errBox');
   box.textContent = msg;
@@ -264,6 +287,13 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
     return;
   }
 
+  let deals = dealsSelect.value;
+  if(deals === 'Others'){
+    const dealsOther = document.getElementById('f_deals_other').value.trim();
+    if(!dealsOther){ showErr('Please tell us what you deal in.'); return; }
+    deals = dealsOther;
+  }
+
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
   btn.textContent = 'Submitting…';
@@ -275,7 +305,7 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   fd.append('alternate_mobile', document.getElementById('f_alt_mobile').value.trim());
   fd.append('whatsapp_number', document.getElementById('f_whatsapp').value.trim());
   fd.append('email', document.getElementById('f_email').value.trim());
-  fd.append('deals_in', document.getElementById('f_deals').value.trim());
+  fd.append('deals_in', deals);
   fd.append('gst_number', document.getElementById('f_gst').value.trim());
   fd.append('address', document.getElementById('f_address').value.trim());
   fd.append('city', document.getElementById('f_city').value.trim());
