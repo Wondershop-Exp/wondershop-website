@@ -292,7 +292,7 @@ table.fields textarea{resize:vertical;min-height:32px}
     <div class="tabs">
       <button class="tab-btn active" id="tabLeadBtn" onclick="switchTab('lead')">Leads<span class="tab-bubble" id="leadBubble"></span></button>
       <button class="tab-btn" id="tabBookingBtn" onclick="switchTab('booking')">Bookings<span class="tab-bubble" id="bookingBubble"></span></button>
-      <button class="tab-btn" id="tabVendorBtn" onclick="switchTab('vendor')">Vendors<span class="tab-bubble" id="vendorBubble"></span></button>
+      <button class="tab-btn" id="tabVendorBtn" onclick="switchTab('vendor')">Partners<span class="tab-bubble" id="vendorBubble"></span></button>
       <button class="tab-btn" id="tabDashBtn" onclick="switchTab('dash')">📊 Dashboard</button>
     </div>
     <div id="leadTableWrap">
@@ -334,7 +334,7 @@ table.fields textarea{resize:vertical;min-height:32px}
       <div class="empty" id="bookingEmpty" style="display:none">No bookings found.</div>
     </div>
     <div id="vendorTableWrap" style="display:none">
-      <button class="add-field-btn" style="margin:0 0 12px" onclick="window.open('vendor-onboarding.html','_blank')">+ Add vendor</button>
+      <button class="add-field-btn" style="margin:0 0 12px" onclick="window.open('vendor-onboarding.html','_blank')">+ Add partner</button>
       <div id="vendorListWrap">
         <table class="list">
           <thead><tr>
@@ -342,7 +342,7 @@ table.fields textarea{resize:vertical;min-height:32px}
           </tr></thead>
           <tbody id="vendorBody"></tbody>
         </table>
-        <div class="empty" id="vendorEmpty" style="display:none">No vendors found.</div>
+        <div class="empty" id="vendorEmpty" style="display:none">No partners found.</div>
       </div>
     </div>
     <div id="dashboardWrap" style="display:none">
@@ -563,7 +563,7 @@ function switchTab(tab){
   document.getElementById('searchQ').style.display = tab==='dash' ? 'none' : '';
   document.querySelector('.searchbar button').style.display = tab==='dash' ? 'none' : '';
   document.getElementById('searchQ').placeholder = tab==='vendor'
-    ? 'Search vendors by name, contact, phone, email...'
+    ? 'Search partners by name, contact, phone, email...'
     : 'Search by name, phone, email, or booking ID...';
   if(tab==='dash'){ loadDashMonthly(); loadGa4Funnels(); }
 }
@@ -1057,7 +1057,7 @@ async function doSearch(){
 // directory, so Save just writes the row directly.
 let CURRENT_VENDOR_ID = null;
 const VENDOR_FORM_FIELDS = [
-  {key:'name', label:'Vendor Name', required:true},
+  {key:'name', label:'Partner Name', required:true},
   {key:'primary_contact_name', label:'Contact Name'},
   {key:'primary_mobile', label:'Primary Mobile'},
   {key:'alternate_mobile', label:'Alternate Mobile'},
@@ -1132,7 +1132,7 @@ function openVendor(id){
   document.getElementById('listView').style.display='none';
   document.getElementById('vendorDetailView').style.display='block';
   if(id===null){
-    document.getElementById('vendorDetTitle').textContent = 'New Vendor';
+    document.getElementById('vendorDetTitle').textContent = 'New Partner';
     renderVendorForm({});
   }else{
     document.getElementById('vendorDetTitle').textContent = 'Loading...';
@@ -1183,7 +1183,7 @@ function renderVendorForm(v){
   // save, not just activating) clears it — see update_vendor() in
   // routers/vendors.py.
   const pendingBanner = (v.onboarding_source==='self_submitted' && !v.onboarding_reviewed)
-    ? '<div class="lock-banner" style="background:var(--sbl);color:#1e3a8a;border-color:transparent">📥 Submitted by the vendor'+(v.submitted_on_ist?(' on '+esc(v.submitted_on_ist)):'')+' via the onboarding form — not yet reviewed. Check the bank details below, then Save to mark it reviewed.</div>'
+    ? '<div class="lock-banner" style="background:var(--sbl);color:#1e3a8a;border-color:transparent">📥 Submitted by the partner'+(v.submitted_on_ist?(' on '+esc(v.submitted_on_ist)):'')+' via the onboarding form — not yet reviewed. Check the bank details below, then Save to mark it reviewed.</div>'
     : '';
   const chequeLink = v.has_cancelled_cheque
     ? '<button class="mini-btn" onclick="viewVendorCheque('+v.vendor_id+')">📎 View uploaded cheque / passbook photo</button>'
@@ -1199,11 +1199,11 @@ function renderVendorForm(v){
     + '</div>'
     + '<div class="section-block" style="padding:16px 18px">'
       + '<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--gy)">'
-        + '<input type="checkbox" id="vf_is_active" '+activeChecked+' style="width:auto"> Active vendor'
+        + '<input type="checkbox" id="vf_is_active" '+activeChecked+' style="width:auto"> Active partner'
       + '</label>'
       + (v.updated_on_ist ? '<div style="font-size:11px;color:var(--gy);margin-top:10px">Last updated '+esc(v.updated_on_ist)+'</div>' : '')
       + '<div style="margin-top:14px">'
-        + '<button style="padding:10px 20px;border:none;border-radius:8px;background:var(--pk);color:#fff;font-weight:700;font-size:14px;cursor:pointer" onclick="saveVendor()">Save Vendor</button>'
+        + '<button style="padding:10px 20px;border:none;border-radius:8px;background:var(--pk);color:#fff;font-weight:700;font-size:14px;cursor:pointer" onclick="saveVendor()">Save Partner</button>'
       + '</div>'
     + '</div>';
 }
@@ -1213,12 +1213,12 @@ async function saveVendor(){
   VENDOR_FORM_FIELDS.forEach(f=>{ body[f.key] = document.getElementById('vf_'+f.key).value.trim(); });
   VENDOR_BANK_FIELDS.forEach(f=>{ body[f.key] = document.getElementById('vf_'+f.key).value.trim(); });
   body.is_active = document.getElementById('vf_is_active').checked;
-  if(!body.name){ showToast('Vendor name is required.'); return; }
+  if(!body.name){ showToast('Partner name is required.'); return; }
   try{
     const path = CURRENT_VENDOR_ID===null ? '/api/admin/vendors' : ('/api/admin/vendors/'+CURRENT_VENDOR_ID);
     const method = CURRENT_VENDOR_ID===null ? 'POST' : 'PUT';
     const result = await apiCall(path, {method: method, body: JSON.stringify(body)});
-    showToast('✓ Vendor saved.');
+    showToast('✓ Partner saved.');
     CURRENT_VENDOR_ID = result.vendor_id;
     document.getElementById('vendorDetTitle').textContent = result.name;
     renderVendorForm(result);
@@ -2058,7 +2058,7 @@ function fieldRowHtml(f, isCustEvent, locked){
   let avCell;
   const VENDOR_PICKER_FIELDS = ['svc_decor', 'svc_host', 'svc_dj', 'svc_photo'];
   if(VENDOR_PICKER_FIELDS.includes(f.field_key)){
-    avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Vendor name')+'" list="vendorNamesList" autocomplete="off">';
+    avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Partner name')+'" list="vendorNamesList" autocomplete="off">';
   }else if(f.multi_options){
     // Activities / Gifts — one "who's doing it" box per selected item
     // instead of a single free-text field for the whole booking (2026-09-10,
