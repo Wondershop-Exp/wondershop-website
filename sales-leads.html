@@ -67,6 +67,8 @@ table.list td{padding:10px 9px;border-bottom:1px solid var(--li2);font-size:13.5
 table.list tr:hover td{background:var(--li3)}
 th.th-sort{cursor:pointer;user-select:none}
 th.th-sort:hover{color:var(--pk)}
+.sort-arrow{margin-left:4px;font-size:10px;display:inline-block;min-width:8px;opacity:.4}
+.sort-arrow.active{opacity:1;color:var(--pk);font-weight:700}
 .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;white-space:nowrap}
 .pill-intake{background:var(--lgy);color:var(--gy)}
 .pill-ops{background:var(--syl);color:#92400e}
@@ -327,7 +329,7 @@ async function enterApp(){
   document.getElementById('app').style.display='block';
   document.getElementById('whoName').value = getName();
   try{ CATALOGUE = await apiCall('/api/admin/sales-leads/catalogue'); }
-  catch(e){ CATALOGUE = {decor_tiers:[],decor_themes:[],host_reference:[],music:[],music_addons:[],photographer:[],pinata_type:[],packaging:[],activities:[],return_gift_types:[],return_gifts_catalogue:[],return_gift_tags:{},cake_note:'',lead_status_options:[],non_convert_reason_options:[],non_convert_statuses:['Not Interested','DND'],venue_types:[]}; }
+  catch(e){ CATALOGUE = {decor_tiers:[],decor_themes:[],host_reference:[],music:[],music_addons:[],photographer:[],einvite_type:[],pinata_type:[],packaging:[],activities:[],return_gift_types:[],return_gifts_catalogue:[],return_gift_tags:{},cake_note:'',lead_status_options:[],non_convert_reason_options:[],non_convert_statuses:['Not Interested','DND'],venue_types:[]}; }
   if(CATALOGUE.lead_status_options && CATALOGUE.lead_status_options.length) LEAD_STATUS_OPTIONS = CATALOGUE.lead_status_options;
   if(CATALOGUE.non_convert_reason_options && CATALOGUE.non_convert_reason_options.length) NON_CONVERT_REASON_OPTIONS = CATALOGUE.non_convert_reason_options;
   if(CATALOGUE.non_convert_statuses && CATALOGUE.non_convert_statuses.length) NON_CONVERT_STATUSES = CATALOGUE.non_convert_statuses;
@@ -385,8 +387,9 @@ function updateSortHeaders(){
   Object.keys(SORT_LABELS).forEach(k=>{
     const el = document.getElementById('th_'+k);
     if(!el) return;
-    const arrow = (SORT_KEY===k) ? (SORT_DIR==='asc'?' \u25B2':' \u25BC') : '';
-    el.textContent = SORT_LABELS[k]+arrow;
+    const active = SORT_KEY===k;
+    const arrow = active ? (SORT_DIR==='asc'?'\u25B2':'\u25BC') : '\u21C5';
+    el.innerHTML = esc(SORT_LABELS[k])+' <span class="sort-arrow'+(active?' active':'')+'">'+arrow+'</span>';
   });
 }
 function statusCellHtml(r){
@@ -1094,6 +1097,88 @@ function reqPhotographerRow(){
   return reqSelectRow('photographer', 'Photographer', list, featureNote);
 }
 
+// ── E-Invite: type (Static / Video + Reminder — real website pricing,
+// same reqSelectRow pattern as Photographer) plus Save the Date as a
+// separate yes/no add-on with a manually-quoted cost (2026-09-17, per
+// Shruti — "add einvite section as well, ask for details that we ask on
+// the website if the user clicks on einvite. also give an option for
+// video invite and save the date. charges same as the website." Save the
+// Date has no website page to price it off, so — per follow-up — it's
+// quoted per-lead like Custom Decor/Pinata, with no reference price
+// shown). The detail fields (matching builder.html's own E-Invite step)
+// only appear once either add-on is actually selected.
+function reqEinviteRow(){
+  let html = reqSelectRow('einvite_type', 'E-Invite Type', CATALOGUE.einvite_type,
+    'Design shared separately by the team once the details below are confirmed.');
+  html += reqYesNoCostRow('save_the_date', 'Save the Date (Add-on)', 'No fixed price — quote separately.');
+  const hasEinvite = !!req('einvite_type').selected;
+  const hasStd = req('save_the_date').selected === 'Yes';
+  if(hasEinvite || hasStd) html += reqEinviteDetailsBlock();
+  return html;
+}
+// Generic Yes/No + manually-typed Cost row — same shape as the Yes/No add-
+// ons above (Return Gift Tags, Pinata Bags) but without their auto-pricing
+// logic, for an add-on that's simply quoted by hand.
+function reqYesNoCostRow(key, label, note){
+  const r = req(key);
+  return '<div class="req-row"><div class="rlabel">'+label+'</div><div class="yn">'
+    + '<button type="button" class="'+(r.selected==='Yes'?'sel':'')+'" onclick="onYesNoCostPick(\''+key+'\',\'Yes\')">Yes</button>'
+    + '<button type="button" class="'+(r.selected==='No'?'sel':'')+'" onclick="onYesNoCostPick(\''+key+'\',\'No\')">No</button>'
+    + '</div>'
+    + '<input type="number" id="req_'+key+'_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\''+key+'\')">'
+    + (note?('<div class="req-note">'+note+'</div>'):'') + '</div>';
+}
+async function onYesNoCostPick(key, val){
+  const r = Object.assign({}, req(key));
+  r.selected = (r.selected===val) ? null : val;
+  if(r.selected!=='Yes') r.cost = null;
+  await saveRequirement(key, r);
+  renderDetail();
+}
+// Detail fields the website itself asks once an e-invite is picked (see
+// builder.html's #eiDetail step) — child name(s)/age, date/time, optional
+// pickup time + "show on invite" toggle, venue, RSVP name/mobile, and any
+// special instruction. Pre-filled from the lead's own Client & Event
+// Details (section 1) the same way builder.html's prefillEiFields() does,
+// but saved as their own copy here (requirements.einvite_details) since
+// the invite's wording can legitimately differ — e.g. multiple children
+// joined with "&", or "Venue to be announced" while the real venue is
+// still unconfirmed.
+function reqEinviteDetailsBlock(){
+  const d = req('einvite_details');
+  const v = (k, fb) => esc(d[k]!=null ? d[k] : (fb!=null ? fb : ''));
+  const pickup = d.pickup_time || '';
+  return '<div class="req-row" style="background:var(--li3);border-radius:10px;padding:12px 14px;margin-top:4px">'
+    + '<div class="rlabel">E-Invite Details</div>'
+    + '<div class="req-grid">'
+      + '<input type="text" placeholder="Child Name(s) on Invite" value="'+v('names', DATA.child_name)+'" onblur="saveEinviteDetail(\'names\', this.value)">'
+      + '<input type="text" placeholder="Child Age" value="'+v('age', DATA.child_age)+'" onblur="saveEinviteDetail(\'age\', this.value)">'
+    + '</div>'
+    + '<div class="req-grid" style="margin-top:8px">'
+      + '<input type="date" value="'+v('date', DATA.event_date)+'" onblur="saveEinviteDetail(\'date\', this.value)">'
+      + '<input type="time" value="'+v('start_time', DATA.event_start_time)+'" onblur="saveEinviteDetail(\'start_time\', this.value)">'
+    + '</div>'
+    + '<div class="req-grid" style="margin-top:8px">'
+      + '<input type="time" placeholder="Pickup Time (optional)" value="'+esc(pickup)+'" onblur="saveEinviteDetail(\'pickup_time\', this.value)">'
+      + '<label class="addon-row" style="margin-top:0"><input type="checkbox" '+(d.show_pickup_on_invite?'checked':'')+' onchange="saveEinviteDetail(\'show_pickup_on_invite\', this.checked)"> Show pickup time on invite</label>'
+    + '</div>'
+    + '<input type="text" placeholder="Venue / Address" style="width:100%;margin-top:8px;padding:10px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+v('venue', DATA.venue)+'" onblur="saveEinviteDetail(\'venue\', this.value)">'
+    + '<div class="req-grid" style="margin-top:8px">'
+      + '<input type="text" placeholder="RSVP Name (optional)" value="'+v('rsvp_name')+'" onblur="saveEinviteDetail(\'rsvp_name\', this.value)">'
+      + '<input type="tel" placeholder="RSVP Mobile (optional)" maxlength="10" value="'+v('rsvp_mobile', DATA.mobile)+'" onblur="saveEinviteDetail(\'rsvp_mobile\', this.value)">'
+    + '</div>'
+    + '<input type="text" placeholder="Any special instruction (optional)" style="width:100%;margin-top:8px;padding:10px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+v('instructions')+'" onblur="saveEinviteDetail(\'instructions\', this.value)">'
+    + '</div>';
+}
+async function saveEinviteDetail(field, value){
+  const r = Object.assign({}, req('einvite_details'));
+  // Booleans (the "show on invite" checkbox) always store as-is; text
+  // fields store null when cleared rather than an empty string, matching
+  // every other requirements.* field in this module.
+  r[field] = (typeof value === 'boolean') ? value : (value === '' ? null : value);
+  await saveRequirement('einvite_details', r);
+}
+
 // ── Packaging: capsule options (same visual pattern as Return Gift Tags),
 // real site labels + real site unit prices. Cost = unit price × the
 // Return Gifts quantity above (same basis builder.html uses), auto-
@@ -1231,6 +1316,7 @@ function sectionRequirements(){
   html += reqYesNoRow('pinata_fillings', 'Pinata — Fillings (Add-on)', (CATALOGUE.pinata_fillings||{}).note||'');
   html += reqTextRow('cake', 'Cake', CATALOGUE.cake_note||'');
   html += reqPhotographerRow();
+  html += reqEinviteRow();
   html += '</div>';
   return html;
 }

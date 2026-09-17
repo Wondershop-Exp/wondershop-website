@@ -54,7 +54,7 @@ from routers.admin import (
 from catalogue_data import (
     DECOR_TIER_META, THEMES, HOST_TIER_PRICES, DJ_TIER_PRICES,
     PHOTO_TIER_PRICES, PHOTO_TIER_FEATURES, PINATA_TIER_PRICES,
-    PACKAGING_LABELS, ACTIVITIES, GIFTS,
+    PACKAGING_LABELS, ACTIVITIES, GIFTS, EINVITE_TIER_PRICES,
 )
 
 router = APIRouter()
@@ -153,6 +153,14 @@ async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
     # cost") — reference prices are still sent for the hint text next to
     # the free-entry cost field.
     host_reference = [{"name": tier, "price": price} for tier, price in HOST_TIER_PRICES.items()]
+    # 2026-09-17, per Shruti — sales module e-invite section: "give an
+    # option for video invite and save the date. charges same as the
+    # website." Static/Video + Reminder pricing straight from
+    # EINVITE_TIER_PRICES (see catalogue_data.py for where that's sourced
+    # from). Save the Date isn't a real website item — Shruti confirmed it
+    # has no fixed price and is quoted per-lead, so it's not in this list;
+    # the frontend renders it as a plain cost-entry add-on instead.
+    einvite_type = [{"name": name, "price": price} for name, price in EINVITE_TIER_PRICES.items()]
     music = [{"name": MUSIC_LABELS.get(tier, tier), "price": price} for tier, price in DJ_TIER_PRICES.items()]
     photographer = [
         {"name": PHOTO_LABELS.get(tier, tier), "price": price, "features": PHOTO_TIER_FEATURES.get(tier, [])}
@@ -186,6 +194,7 @@ async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
         "music": music,
         "music_addons": MUSIC_ADDONS,
         "photographer": photographer,
+        "einvite_type": einvite_type,
         "pinata_type": pinata_type,
         "packaging": packaging,
         "activities": activities,
