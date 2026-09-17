@@ -296,11 +296,18 @@ table.fields textarea{resize:vertical;min-height:32px}
       <button class="tab-btn" id="tabDashBtn" onclick="switchTab('dash')">📊 Dashboard</button>
     </div>
     <div id="leadTableWrap">
+      <div id="leadOriginChips" style="margin:2px 0 12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <button class="pill active" data-val="all" onclick="setLeadOriginFilter('all')">All leads</button>
+        <button class="pill" data-val="website" onclick="setLeadOriginFilter('website')">🌐 Website</button>
+        <button class="pill" data-val="sales" onclick="setLeadOriginFilter('sales')">📞 Sales team</button>
+        <button class="add-field-btn" style="margin-left:auto" onclick="registerSalesLead()">+ Register a lead (sales)</button>
+      </div>
       <table class="list">
         <thead><tr>
           <th>ID</th><th>Parent</th><th>Phone</th>
           <th class="sortable" onclick="toggleSort('lead','event_date')">Event Date<span class="sort-arrow" id="arrow-lead-event_date"></span></th>
           <th>City</th>
+          <th>Origin</th>
           <th class="sortable" onclick="toggleSort('lead','status')">Status<span class="sort-arrow" id="arrow-lead-status"></span></th>
           <th class="sortable" onclick="toggleSort('lead','created')">Created<span class="sort-arrow" id="arrow-lead-created"></span></th>
           <th class="sortable" onclick="toggleSort('lead','modified')">Modified<span class="sort-arrow" id="arrow-lead-modified"></span></th>
@@ -316,6 +323,7 @@ table.fields textarea{resize:vertical;min-height:32px}
           <th>ID</th><th>Parent</th><th>Phone</th>
           <th class="sortable" onclick="toggleSort('booking','event_date')">Event Date<span class="sort-arrow" id="arrow-booking-event_date"></span></th>
           <th>City</th>
+          <th>Origin</th>
           <th class="sortable" onclick="toggleSort('booking','status')">Status<span class="sort-arrow" id="arrow-booking-status"></span></th>
           <th class="sortable" onclick="toggleSort('booking','created')">Created<span class="sort-arrow" id="arrow-booking-created"></span></th>
           <th class="sortable" onclick="toggleSort('booking','modified')">Modified<span class="sort-arrow" id="arrow-booking-modified"></span></th>
@@ -526,6 +534,7 @@ function switchTab(tab){
   document.getElementById('tabDashBtn').classList.toggle('active', tab==='dash');
   document.getElementById('leadTableWrap').style.display = tab==='lead' ? 'block' : 'none';
   document.getElementById('bookingTableWrap').style.display = tab==='booking' ? 'block' : 'none';
+  document.getElementById('leadOriginChips').style.display = tab==='lead' ? 'flex' : 'none';
   document.getElementById('vendorTableWrap').style.display = tab==='vendor' ? 'block' : 'none';
   document.getElementById('dashboardWrap').style.display = tab==='dash' ? 'block' : 'none';
   document.getElementById('searchQ').style.display = tab==='dash' ? 'none' : '';
@@ -1097,36 +1106,103 @@ async function saveVendor(){
     showToast(e.message==='unauthorized' ? 'Session expired — please log in again.' : ('Save failed: '+e.message));
   }
 }
+// 2026-09-17, per Shruti — "shall we merge them into 1?" (the admin Leads
+// tab and the sales module's own separate list). Rather than merging the
+// two DETAIL pages (very different editors — this page's generic
+// field-table works for any booking shape, sales-leads.html's bespoke UI
+// is purpose-built for a sales rep building an event up over calls), this
+// page becomes the one combined LIST: every lead/booking regardless of
+// origin, with an Origin badge + filter, and a click on a sales-origin row
+// opens sales-leads.html's own detail view instead of this page's.
+// LAST_ROWS caches the last-fetched rows per kind so the origin filter can
+// re-render instantly without refetching.
+let LAST_ROWS = {lead: [], booking: []};
+let LEAD_ORIGIN_FILTER = 'all'; // 'all' | 'website' | 'sales'
+
 async function loadTable(kind, q){
   const bodyId = kind==='lead' ? 'leadBody' : 'bookingBody';
   const emptyId = kind==='lead' ? 'leadEmpty' : 'bookingEmpty';
   const bubbleId = kind==='lead' ? 'leadBubble' : 'bookingBubble';
   const body = document.getElementById(bodyId);
-  const empty = document.getElementById(emptyId);
-  body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:#6B7280">Loading...</td></tr>';
+  body.innerHTML = '<tr><td colspan="10" style="padding:16px;color:#6B7280">Loading...</td></tr>';
   try{
     const s = SORT_STATE[kind];
     const path = '/api/admin/bookings?kind='+kind+(q?('&q='+encodeURIComponent(q)):'')+'&sort='+s.key+'&dir='+s.dir;
     const d = await apiCall(path);
-    const rows = d.rows||[];
+    LAST_ROWS[kind] = d.rows||[];
     updateBubble(bubbleId, d.new_count||0);
-    if(!rows.length){ body.innerHTML=''; empty.style.display='block'; return; }
-    empty.style.display='none';
-    body.innerHTML = rows.map(r=>{
-      return '<tr onclick="openBooking('+r.lead_id+')">'
-        +'<td>#'+r.lead_id+'</td>'
-        +'<td>'+esc(r.parent_name||'')+'</td>'
-        +'<td>'+esc(r.phone||'')+'</td>'
-        +'<td>'+esc(r.event_date||'—')+'</td>'
-        +'<td>'+esc(r.city||'—')+'</td>'
-        +'<td>'+listStatusCellHtml(r, kind)+'</td>'
-        +'<td>'+esc(r.created_on_ist||'')+'</td>'
-        +'<td>'+esc(r.modified_on_ist||'')+'</td>'
-        +'<td>'+listActionsCellHtml(r, kind)+'</td>'
-        +'</tr>';
-    }).join('');
+    renderRows(kind);
   }catch(e){
     if(e.message!=='unauthorized') showToast(e.message);
+  }
+}
+
+function originBadgeHtml(origin){
+  const isSales = origin === 'Sales';
+  return '<span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;background:'
+    +(isSales?'#EDE6FA':'#E8F5E9')+';color:'+(isSales?'#6B46C1':'#166534')+'">'+esc(origin||'Website')+'</span>';
+}
+
+function renderRows(kind){
+  const bodyId = kind==='lead' ? 'leadBody' : 'bookingBody';
+  const emptyId = kind==='lead' ? 'leadEmpty' : 'bookingEmpty';
+  const body = document.getElementById(bodyId);
+  const empty = document.getElementById(emptyId);
+  let rows = LAST_ROWS[kind];
+  if(kind==='lead' && LEAD_ORIGIN_FILTER!=='all'){
+    rows = rows.filter(r => (LEAD_ORIGIN_FILTER==='sales') === (r.origin==='Sales'));
+  }
+  if(!rows.length){ body.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  body.innerHTML = rows.map(r=>{
+    // Sales-origin rows (leads AND their converted bookings, since
+    // lead_origin stays 'sales_module' permanently) open the sales
+    // module's own detail page in a new tab — it has the full playbook
+    // (decor/host/DJ/photographer/gifts/billing/ops) this page's generic
+    // field-table editor was never built to show. Everything else keeps
+    // opening this page's own detail view, unchanged.
+    const isSalesOrigin = r.origin === 'Sales';
+    const trOnclick = isSalesOrigin
+      ? "event.stopPropagation();window.open('sales-leads.html?lead_id='+"+r.lead_id+",'_blank')"
+      : "openBooking("+r.lead_id+")";
+    return '<tr onclick="'+trOnclick+'">'
+      +'<td>#'+r.lead_id+'</td>'
+      +'<td>'+esc(r.parent_name||'')+'</td>'
+      +'<td>'+esc(r.phone||'')+'</td>'
+      +'<td>'+esc(r.event_date||'—')+'</td>'
+      +'<td>'+esc(r.city||'—')+'</td>'
+      +'<td>'+originBadgeHtml(r.origin)+'</td>'
+      +'<td>'+listStatusCellHtml(r, kind)+'</td>'
+      +'<td>'+esc(r.created_on_ist||'')+'</td>'
+      +'<td>'+esc(r.modified_on_ist||'')+'</td>'
+      +'<td>'+listActionsCellHtml(r, kind)+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function setLeadOriginFilter(val){
+  LEAD_ORIGIN_FILTER = val;
+  document.querySelectorAll('#leadOriginChips .pill').forEach(c=>c.classList.toggle('active', c.dataset.val===val));
+  renderRows('lead');
+}
+
+// "+ Register a lead (sales)" on the combined Leads tab — the sales
+// module's own list used to be the only place this action lived
+// (startNewLead() in sales-leads.html); now it's reachable from the
+// combined list too, so an admin never has to detour through the sales
+// module just to create a sales-origin lead. Creates it via the same
+// /api/admin/sales-leads POST sales-leads.html uses, then opens it there
+// (this page has no editor for a sales lead's playbook) and refreshes the
+// list so the new row shows up immediately.
+async function registerSalesLead(){
+  const who = getName();
+  if(!who){ showToast('Set "Editing as" name at the top first.'); highlightWhoName(); return; }
+  try{
+    const d = await apiCall('/api/admin/sales-leads', {method:'POST', body: JSON.stringify({created_by: who})});
+    window.open('sales-leads.html?lead_id='+d.lead_id, '_blank');
+    if(ACTIVE_TAB==='lead') loadTable('lead', document.getElementById('searchQ').value.trim());
+  }catch(e){
+    showToast(e.message==='unauthorized' ? 'Session expired — please log in again.' : ('Could not register lead: '+e.message));
   }
 }
 
