@@ -757,11 +757,22 @@ async function setChip(key, val){
 }
 async function onReqSelectChange(key){
   const sel = document.getElementById('req_'+key+'_sel');
-  const opt = sel.options[sel.selectedIndex];
-  const price = opt.dataset.price;
   const r = Object.assign({}, req(key));
-  r.selected = sel.value || null;
-  r.cost = (price===''||price===undefined) ? r.cost : Number(price);
+  const newSelected = sel.value || null;
+  if(!newSelected && r.selected && r.cost){
+    if(!confirm('Unselecting this will reset its cost to ₹0. Continue?')){
+      sel.value = r.selected;
+      return;
+    }
+  }
+  r.selected = newSelected;
+  if(!newSelected){
+    r.cost = null;
+  }else{
+    const opt = sel.options[sel.selectedIndex];
+    const price = opt.dataset.price;
+    r.cost = (price===''||price===undefined) ? r.cost : Number(price);
+  }
   const costEl = document.getElementById('req_'+key+'_cost');
   if(costEl) costEl.value = r.cost==null?'':r.cost;
   await saveRequirement(key, r);
@@ -837,9 +848,19 @@ async function onDecorTierChange(){
   const sel = document.getElementById('req_decor_sel');
   const tierName = sel.value;
   const r = Object.assign({}, req('decor'));
+  if(!tierName && r.selected && r.cost){
+    if(!confirm('Unselecting this will reset its cost to ₹0. Continue?')){
+      sel.value = r.selected;
+      return;
+    }
+  }
   r.selected = tierName || null;
-  const tier = (CATALOGUE.decor_tiers||[]).find(t=>t.name===tierName);
-  if(tier && tier.price!=null) r.cost = tier.price;
+  if(!tierName){
+    r.cost = null;
+  }else{
+    const tier = (CATALOGUE.decor_tiers||[]).find(t=>t.name===tierName);
+    if(tier && tier.price!=null) r.cost = tier.price;
+  }
   const costEl = document.getElementById('req_decor_cost');
   if(costEl) costEl.value = r.cost==null?'':r.cost;
   await saveRequirement('decor', r);
@@ -1229,8 +1250,16 @@ function reqPinataRow(){
 async function onPinataChipPick(name){
   const opt = (CATALOGUE.pinata_type||[]).find(o=>o.name===name);
   const r = Object.assign({}, req('pinata_type'));
-  r.selected = (r.selected===name) ? null : name;
-  if(r.selected && opt && opt.price!=null) r.cost = opt.price;
+  const deselecting = r.selected===name;
+  if(deselecting && r.cost){
+    if(!confirm('Unselecting this will reset its cost to ₹0. Continue?')) return;
+  }
+  r.selected = deselecting ? null : name;
+  if(!r.selected){
+    r.cost = null;
+  }else if(opt && opt.price!=null){
+    r.cost = opt.price;
+  }
   await saveRequirement('pinata_type', r);
   renderDetail();
 }
