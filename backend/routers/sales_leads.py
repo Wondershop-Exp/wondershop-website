@@ -397,6 +397,32 @@ async def _full_detail(lead_row) -> dict:
             values={"pid": pb["id"]},
         )
 
+    # 2026-09-17, per Shruti — "leads from sales module also tie into the
+    # dashboard". They already did for lead/booking COUNTS (dashboard.py's
+    # queries have no lead_origin filter), but revenue was invisible for any
+    # sales lead that hadn't been confirmed yet: every dashboard revenue
+    # figure (Weekly trend, Monthly Realized/Booked/Potential) reads
+    # leads.client_budget, and confirm_booking() below is the ONLY place
+    # that ever wrote it for a sales-module lead — so a warm, in-progress
+    # sales lead's running total (decor + host + gifts + ... picked so far)
+    # never reached client_budget, and showed up as ₹0 everywhere,
+    # including the new potential-revenue-by-rep table. Keeping
+    # client_budget mirrored to the live estimate here — the one chokepoint
+    # every read AND every save path already returns through — fixes that
+    # for every consumer at once, without touching each save endpoint
+    # individually. Stops once a lead is a confirmed booking, so it never
+    # overwrites the final Grand Total a sales rep deliberately typed in at
+    # confirm-booking time.
+    estimated_total = _estimate_total(reqs, acts, lead.get("kids_count"))
+    if not lead.get("is_booking"):
+        stored_budget = float(lead["client_budget"]) if lead.get("client_budget") is not None else None
+        if stored_budget != estimated_total:
+            await database.execute(
+                "UPDATE leads SET client_budget = :v WHERE lead_id = :id",
+                values={"v": estimated_total, "id": lead["lead_id"]},
+            )
+            lead["client_budget"] = estimated_total
+
     out = {
         "lead_id": lead["lead_id"],
         "client_name": lead.get("parent_name"),
@@ -449,7 +475,7 @@ async def _full_detail(lead_row) -> dict:
         "updated_by": pb.get("updated_by"),
         "updated_at": _to_ist_str(pb.get("updated_at")),
 
-        "estimated_total": _estimate_total(reqs, acts, lead.get("kids_count")),
+        "estimated_total": estimated_total,
 
         "activity_log": [
             {"actor": r["actor"], "action": r["action"], "detail": r["detail"], "at": _to_ist_str(r["created_at"])}

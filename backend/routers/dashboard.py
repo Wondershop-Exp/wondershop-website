@@ -468,6 +468,86 @@ async def _potential_in_month(month_start: datetime, month_end: datetime) -> dic
     }
 
 
+# 2026-09-17, per Shruti — two new Monthly Overview tables: leads by
+# source (Website / Instagram / Sales Team) and sales-rep performance.
+# Both scope to the requested month's lead CREATION date (created_on),
+# same as everything else on this endpoint keys off requested_month/now.
+#
+# Source attribution is best-effort, not exact: lead_source_detail only
+# carries a value when the visit arrived with a utm_source= param, so an
+# organic Instagram click with no UTM tag lands in "Website" rather than
+# "Instagram" here — same limitation the existing (manually-entered)
+# Instagram figure in dashboard_monthly_overrides has always had, just
+# computed instead of typed in. Sales Team leads are exact (lead_origin is
+# always set correctly at creation — see sales_leads.py's create_sheet()).
+async def _leads_by_source_in_month(month_start: datetime, month_end: datetime) -> list:
+    rows = await database.fetch_all(
+        """
+        SELECT
+          CASE
+            WHEN lead_origin = 'sales_module' THEN 'Sales Team'
+            WHEN lead_source_detail ILIKE :ig_pattern THEN 'Instagram'
+            ELSE 'Website'
+          END AS source,
+          COUNT(*) AS leads,
+          COUNT(*) FILTER (WHERE is_booking = TRUE AND status != 'Cancelled') AS bookings,
+          COALESCE(SUM(COALESCE(client_budget, order_grand_total, 0))
+                   FILTER (WHERE is_booking = TRUE AND status != 'Cancelled'), 0) AS confirmed_revenue
+        FROM leads
+        WHERE created_on >= :start AND created_on < :end
+        GROUP BY 1
+        """,
+        # % goes in the bound value, not the raw SQL text — matches how
+        # every other ILIKE search in this codebase (e.g. admin.py's name/
+        # phone/email search) binds its wildcard, rather than risking a
+        # literal '%' in SQL text tripping up the driver's paramstyle.
+        values={"start": month_start, "end": month_end, "ig_pattern": "%instagram%"},
+    )
+    order = {"Website": 0, "Instagram": 1, "Sales Team": 2}
+    out = [{
+        "source": r["source"],
+        "leads": r["leads"],
+        "bookings": r["bookings"],
+        "confirmed_revenue": round(float(r["confirmed_revenue"] or 0), 2),
+        "conversion_pct": round(r["bookings"] / r["leads"] * 100, 1) if r["leads"] else None,
+    } for r in rows]
+    out.sort(key=lambda r: order.get(r["source"], 99))
+    return out
+
+
+# Rep = lead_sales_playbook.created_by (who registered the lead — always
+# set, required at creation) not leads.event_sales_lead (an editable,
+# often-blank "currently assigned to" field) — 2026-09-17, per Shruti.
+# potential_revenue leans on the client_budget-sync fix just above
+# (_full_detail()) — without it every warm sales lead's client_budget
+# would still read NULL/0 here, since nothing else ever wrote it pre-
+# confirmation.
+async def _sales_rep_performance_in_month(month_start: datetime, month_end: datetime) -> list:
+    rows = await database.fetch_all(
+        """
+        SELECT
+          COALESCE(NULLIF(TRIM(p.created_by), ''), '(unknown)') AS rep,
+          COUNT(*) AS leads,
+          COUNT(*) FILTER (WHERE l.is_booking = TRUE AND l.status != 'Cancelled') AS bookings,
+          COALESCE(SUM(l.client_budget) FILTER (WHERE l.is_booking = TRUE AND l.status != 'Cancelled'), 0) AS confirmed_revenue,
+          COALESCE(SUM(l.client_budget) FILTER (WHERE l.is_booking = FALSE AND l.status = ANY(:statuses)), 0) AS potential_revenue
+        FROM leads l
+        JOIN lead_sales_playbook p ON p.lead_id = l.lead_id
+        WHERE l.lead_origin = 'sales_module' AND l.created_on >= :start AND l.created_on < :end
+        GROUP BY 1
+        ORDER BY confirmed_revenue DESC, leads DESC
+        """,
+        values={"statuses": list(POTENTIAL_STATUSES), "start": month_start, "end": month_end},
+    )
+    return [{
+        "rep": r["rep"],
+        "leads": r["leads"],
+        "bookings": r["bookings"],
+        "confirmed_revenue": round(float(r["confirmed_revenue"] or 0), 2),
+        "potential_revenue": round(float(r["potential_revenue"] or 0), 2),
+    } for r in rows]
+
+
 async def _month_summary(month_start: datetime, now: datetime) -> dict:
     month_end = _add_months(month_start, 1)
     today = now.date()
@@ -548,6 +628,10 @@ async def dashboard_monthly(month: Optional[str] = None, x_admin_password: Optio
         values={"today": now.date(), "in14": (now + timedelta(days=14)).date()},
     )
 
+    requested_month_end = _add_months(requested_month, 1)
+    leads_by_source = await _leads_by_source_in_month(requested_month, requested_month_end)
+    sales_rep_performance = await _sales_rep_performance_in_month(requested_month, requested_month_end)
+
     return {
         "month": _month_key(requested_month),
         "generated_at": now.isoformat(),
@@ -560,6 +644,10 @@ async def dashboard_monthly(month: Optional[str] = None, x_admin_password: Optio
         "confirmed_events_next_14d": confirmed_events_row["cnt"] or 0,
         "updated_by": this_ov["updated_by"] if this_ov else None,
         "updated_on": this_ov["updated_on"].isoformat() if (this_ov and this_ov["updated_on"]) else None,
+        # 2026-09-17, per Shruti — leads-by-source and sales-rep performance
+        # tables, scoped to this same requested month (lead creation date).
+        "leads_by_source": leads_by_source,
+        "sales_rep_performance": sales_rep_performance,
     }
 
 
