@@ -334,7 +334,7 @@ table.fields textarea{resize:vertical;min-height:32px}
       <div class="empty" id="bookingEmpty" style="display:none">No bookings found.</div>
     </div>
     <div id="vendorTableWrap" style="display:none">
-      <button class="add-field-btn" style="margin:0 0 12px" onclick="openVendor(null)">+ Add vendor</button>
+      <button class="add-field-btn" style="margin:0 0 12px" onclick="window.open('vendor-onboarding.html','_blank')">+ Add vendor</button>
       <div id="vendorListWrap">
         <table class="list">
           <thead><tr>
@@ -1068,6 +1068,7 @@ const VENDOR_FORM_FIELDS = [
   {key:'pincode', label:'Pincode'},
   {key:'timings', label:'Timings'},
   {key:'website', label:'Website'},
+  {key:'gst_number', label:'GST Number'},
   {key:'address', label:'Address', textarea:true},
   {key:'remarks', label:'Remarks', textarea:true},
 ];
@@ -1078,6 +1079,7 @@ const VENDOR_FORM_FIELDS = [
 // existing PUT /vendors/{id} also marks the record reviewed (see
 // routers/vendors.py's update_vendor()).
 const VENDOR_BANK_FIELDS = [
+  {key:'preferred_payment_mode', label:'Preferred Payment Mode (cash / gpay)'},
   {key:'bank_account_holder_name', label:'Account Holder Name'},
   {key:'bank_name', label:'Bank Name'},
   {key:'bank_account_number', label:'Account Number'},

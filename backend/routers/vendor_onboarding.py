@@ -64,6 +64,8 @@ async def submit_vendor_onboarding(
     bank_name: Optional[str] = Form(None),
     bank_account_number: Optional[str] = Form(None),
     bank_ifsc_code: Optional[str] = Form(None),
+    preferred_payment_mode: Optional[str] = Form(None),
+    gst_number: Optional[str] = Form(None),
     cancelled_cheque: Optional[UploadFile] = File(None),
 ):
     name = _clean(name)
@@ -85,6 +87,25 @@ async def submit_vendor_onboarding(
     has_full_bank_details = bool(
         bank_account_holder_name and bank_name and bank_account_number and bank_ifsc_code
     )
+
+    # Optional — "cash" or "gpay" per Shruti (2026-09-17, "add preferred
+    # payment mode - cash / gpay"). Blank/omitted is fine; anything else
+    # is rejected rather than silently dropped, so a typo in a future
+    # frontend build fails loudly instead of writing garbage.
+    preferred_payment_mode = _clean(preferred_payment_mode)
+    if preferred_payment_mode:
+        preferred_payment_mode = preferred_payment_mode.lower()
+        if preferred_payment_mode not in ("cash", "gpay"):
+            raise HTTPException(status_code=400, detail="Preferred payment mode must be Cash or GPay.")
+
+    # Optional GSTIN (2026-09-17, "ask for gst info as well - optional").
+    # Only length-checked when given, same as IFSC — GSTIN format/checksum
+    # validation isn't worth the false-rejection risk on a vendor's phone.
+    gst_number = _clean(gst_number)
+    if gst_number:
+        gst_number = gst_number.upper()
+        if len(gst_number) != 15:
+            raise HTTPException(status_code=400, detail="GST number should be 15 characters.")
 
     file_bytes = None
     file_name = None
@@ -125,6 +146,8 @@ async def submit_vendor_onboarding(
         "bank_name": bank_name,
         "bank_account_number": bank_account_number,
         "bank_ifsc_code": bank_ifsc_code,
+        "preferred_payment_mode": preferred_payment_mode,
+        "gst_number": gst_number,
         "cancelled_cheque_file": file_bytes,
         "cancelled_cheque_filename": file_name,
         "cancelled_cheque_content_type": file_content_type if file_bytes else None,

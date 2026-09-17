@@ -44,20 +44,21 @@ a{color:var(--pk)}
 .fld{margin-top:14px}
 .fld label{display:block;font-size:13px;font-weight:600;color:var(--bk);margin-bottom:6px}
 .fld label .opt{font-weight:400;color:var(--gy)}
-.fld input[type=text],.fld input[type=tel],.fld input[type=email],.fld textarea{
+.fld input[type=text],.fld input[type=tel],.fld input[type=email],.fld textarea,.fld select{
   width:100%;padding:12px 14px;border:1.5px solid var(--li2);border-radius:10px;
   font-family:var(--fb);font-size:14.5px;color:var(--bk);background:var(--wh);
   transition:border-color .15s;
 }
-.fld input:focus,.fld textarea:focus{outline:none;border-color:var(--li)}
+.fld input:focus,.fld textarea:focus,.fld select:focus{outline:none;border-color:var(--li)}
 .fld textarea{resize:vertical;min-height:70px}
+.fld select{appearance:auto}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:480px){.row2{grid-template-columns:1fr}}
 
 .or-div{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--gy);font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
 .or-div::before,.or-div::after{content:'';flex:1;height:1px;background:var(--li2)}
 
-.upload-box{border:1.5px dashed var(--li);border-radius:12px;padding:20px;text-align:center;background:var(--li3);cursor:pointer;transition:border-color .15s}
+.upload-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1.5px dashed var(--li);border-radius:12px;padding:20px;text-align:center;background:var(--li3);cursor:pointer;transition:border-color .15s}
 .upload-box:hover{border-color:var(--pk)}
 .upload-box input{display:none}
 .upload-box .ic{font-size:26px}
@@ -119,6 +120,16 @@ a{color:var(--pk)}
           <input type="tel" id="f_whatsapp" inputmode="numeric">
         </div>
       </div>
+      <div class="row2">
+        <div class="fld">
+          <label>Alternate Mobile Number <span class="opt">(optional)</span></label>
+          <input type="tel" id="f_alt_mobile" inputmode="numeric">
+        </div>
+        <div class="fld">
+          <label>GST Number <span class="opt">(optional)</span></label>
+          <input type="text" id="f_gst" style="text-transform:uppercase" maxlength="15">
+        </div>
+      </div>
       <div class="fld">
         <label>Email <span class="opt">(optional)</span></label>
         <input type="email" id="f_email">
@@ -140,6 +151,15 @@ a{color:var(--pk)}
 
       <div class="sec-h">Payment Details</div>
       <div class="sec-sub">Upload a cancelled cheque or a bank passbook photo — <strong>or</strong> fill in your bank details manually below. Either one works, we just need one of them so we can pay you correctly.</div>
+
+      <div class="fld">
+        <label>Preferred Payment Mode <span class="opt">(optional)</span></label>
+        <select id="f_payment_mode">
+          <option value="">Select...</option>
+          <option value="cash">Cash</option>
+          <option value="gpay">GPay</option>
+        </select>
+      </div>
 
       <label class="upload-box" id="uploadBox" for="f_cheque">
         <input type="file" id="f_cheque" accept="image/jpeg,image/png,image/webp,application/pdf">
@@ -205,6 +225,9 @@ fileInput.addEventListener('change', () => {
 document.getElementById('f_bank_ifsc').addEventListener('input', function(){
   this.value = this.value.toUpperCase();
 });
+document.getElementById('f_gst').addEventListener('input', function(){
+  this.value = this.value.toUpperCase();
+});
 
 function showErr(msg){
   const box = document.getElementById('errBox');
@@ -249,12 +272,15 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   fd.append('name', name);
   fd.append('primary_contact_name', document.getElementById('f_contact').value.trim());
   fd.append('primary_mobile', mobile);
+  fd.append('alternate_mobile', document.getElementById('f_alt_mobile').value.trim());
   fd.append('whatsapp_number', document.getElementById('f_whatsapp').value.trim());
   fd.append('email', document.getElementById('f_email').value.trim());
   fd.append('deals_in', document.getElementById('f_deals').value.trim());
+  fd.append('gst_number', document.getElementById('f_gst').value.trim());
   fd.append('address', document.getElementById('f_address').value.trim());
   fd.append('city', document.getElementById('f_city').value.trim());
   fd.append('pincode', document.getElementById('f_pincode').value.trim());
+  fd.append('preferred_payment_mode', document.getElementById('f_payment_mode').value);
   fd.append('bank_account_holder_name', bankHolder);
   fd.append('bank_name', bankName);
   fd.append('bank_account_number', bankAcc);

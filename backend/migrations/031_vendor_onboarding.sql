@@ -45,6 +45,13 @@ ALTER TABLE vendor_master ADD COLUMN IF NOT EXISTS onboarding_source VARCHAR(20)
 ALTER TABLE vendor_master ADD COLUMN IF NOT EXISTS onboarding_reviewed BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE vendor_master ADD COLUMN IF NOT EXISTS submitted_on TIMESTAMPTZ;
 
+-- 2026-09-17, per Shruti — "add alternate mobile no." (alternate_mobile
+-- already existed on vendor_master from the original spreadsheet import;
+-- this just wires it into the onboarding form) "also add preferred
+-- payment mode - cash / gpay" and "ask for gst info as well - optional".
+ALTER TABLE vendor_master ADD COLUMN IF NOT EXISTS preferred_payment_mode VARCHAR(20);
+ALTER TABLE vendor_master ADD COLUMN IF NOT EXISTS gst_number             VARCHAR(15);
+
 -- New self-submitted vendors arrive inactive until reviewed — a public
 -- form must never be able to publish an active-looking vendor record
 -- un-reviewed. is_active already defaults to TRUE at the table level, so
