@@ -1290,7 +1290,7 @@ function renderRows(kind){
       +'<td>#'+r.lead_id+'</td>'
       +'<td>'+esc(r.parent_name||'')+'</td>'
       +'<td>'+esc(r.phone||'')+'</td>'
-      +'<td>'+esc(r.event_date||'—')+'</td>'
+      +'<td style="white-space:nowrap">'+fmtEventDate(r.event_date)+'</td>'
       +'<td>'+esc(r.city||'—')+'</td>'
       +'<td>'+originBadgeHtml(r.origin)+'</td>'
       +'<td>'+listStatusCellHtml(r, kind)+'</td>'
@@ -1328,6 +1328,20 @@ async function registerSalesLead(){
 }
 
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+// 2026-09-17, per Shruti — "event date format: dd-mmm-yy" / "make event
+// date in single line". Parsed from the plain 'YYYY-MM-DD' string rather
+// than `new Date(s)` to avoid UTC-parsing day-shift bugs; falls back to
+// the raw string if it's ever not that shape.
+function fmtEventDate(s){
+  if(!s) return '—';
+  const parts = String(s).split('-');
+  if(parts.length !== 3) return esc(s);
+  const [y, m, d] = parts;
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const mi = parseInt(m, 10) - 1;
+  if(mi < 0 || mi > 11 || !d || !y) return esc(s);
+  return d.padStart(2,'0')+'-'+months[mi]+'-'+y.slice(-2);
+}
 
 // 2026-08-19, per Shruti (reworked same day into the Leads/Bookings split —
 // "convert to booking and save status buttons are not eligible for confirmed
@@ -1354,8 +1368,8 @@ function listActionsCellHtml(r, kind){
   // 2026-09-08, per Shruti — packaging assist module: quick jump from a
   // confirmed booking row straight into a pre-filled packing-list composer.
   const packLink = '<a class="mini-btn" href="packaging.html?lead_id='+r.lead_id+'&title='+encodeURIComponent((r.parent_name||('Booking #'+r.lead_id))+"'s Party")+'&event_lead=" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">📦 Pack list</a>';
-  if(r.status==='Cancelled') return packLink;
-  return packLink+' <button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button>';
+  if(r.status==='Cancelled') return '<div style="display:flex">'+packLink+'</div>';
+  return '<div style="display:flex;flex-wrap:wrap;gap:8px">'+packLink+'<button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button></div>';
 }
 async function quickSetStatus(leadId, newStatus){
   const who = getName();
