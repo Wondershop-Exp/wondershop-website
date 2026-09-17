@@ -652,9 +652,9 @@ function renderDashMonthly(d){
     html += '<div class="confirm-flag"><span class="dot"></span>'+d.pending_confirm_count+' event(s) delivered but not yet payment-confirmed on the admin panel — still counted in Booked, not Realized.</div>';
   }
   html += renderDashEditForm(d);
+  html += renderMonthlyTrendTable(d.trend);
   html += renderLeadsBySourceTable(d.leads_by_source);
   html += renderSalesRepTable(d.sales_rep_performance);
-  html += renderMonthlyTrendTable(d.trend);
   document.getElementById('dashMonthlyBody').innerHTML = html;
   renderFestivals(d.confirmed_events_next_14d);
 }
