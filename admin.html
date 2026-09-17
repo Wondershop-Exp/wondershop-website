@@ -629,9 +629,53 @@ function renderDashMonthly(d){
     html += '<div class="confirm-flag"><span class="dot"></span>'+d.pending_confirm_count+' event(s) delivered but not yet payment-confirmed on the admin panel — still counted in Booked, not Realized.</div>';
   }
   html += renderDashEditForm(d);
+  html += renderLeadsBySourceTable(d.leads_by_source);
+  html += renderSalesRepTable(d.sales_rep_performance);
   html += renderMonthlyTrendTable(d.trend);
   document.getElementById('dashMonthlyBody').innerHTML = html;
   renderFestivals(d.confirmed_events_next_14d);
+}
+// 2026-09-17, per Shruti — "add a table showing leads from different
+// sources - website, instagram, sales team" (admin dashboard). Both this
+// and the sales-rep table below are scoped to the same month currently
+// selected (d.month / the ←/→ pickers above), same as the rest of the
+// Monthly Overview section. Source attribution is best-effort: Sales Team
+// is always exact (set at lead creation), but Instagram depends on the
+// lead having arrived with a utm_source containing "instagram" — an
+// organic Instagram click with no UTM tag falls into Website instead. See
+// _leads_by_source_in_month() in dashboard.py for the exact rule.
+function renderLeadsBySourceTable(rows){
+  if(!rows || !rows.length) return '';
+  const body = rows.map(r=>{
+    return '<tr><td>'+esc(r.source)+'</td>'
+      + '<td>'+fmtNum(r.leads)+'</td><td>'+fmtNum(r.bookings)+'</td>'
+      + '<td>'+(r.conversion_pct!==null && r.conversion_pct!==undefined ? r.conversion_pct+'%' : '—')+'</td>'
+      + '<td>'+fmtRs(r.confirmed_revenue)+'</td></tr>';
+  }).join('');
+  return '<div class="dash-card-title" style="margin-top:22px">Leads by Source</div>'
+    + '<div style="overflow-x:auto"><table class="list static"><thead><tr>'
+    + '<th>Source</th><th>Leads</th><th>Bookings</th><th>Conversion</th><th>Confirmed Revenue</th>'
+    + '</tr></thead><tbody>'+body+'</tbody></table></div>';
+}
+// "add a table showing sales leads created by different sales leads (name,
+// #leads, #bookings, confirmed revenue, potential revenue (warm leads))".
+// Rep = whoever registered the lead (lead_sales_playbook.created_by), not
+// the editable "Event Sales Lead" field — per Shruti, 2026-09-17.
+// Potential Revenue only shows real numbers now that a sales lead's
+// running estimate is synced into client_budget as it's built up (see
+// _full_detail()'s client_budget sync in sales_leads.py) — before that
+// fix this column would have read ₹0 for every warm, unconfirmed lead.
+function renderSalesRepTable(rows){
+  if(!rows || !rows.length) return '';
+  const body = rows.map(r=>{
+    return '<tr><td>'+esc(r.rep)+'</td>'
+      + '<td>'+fmtNum(r.leads)+'</td><td>'+fmtNum(r.bookings)+'</td>'
+      + '<td>'+fmtRs(r.confirmed_revenue)+'</td><td>'+fmtRs(r.potential_revenue)+'</td></tr>';
+  }).join('');
+  return '<div class="dash-card-title" style="margin-top:22px">Sales Rep Performance</div>'
+    + '<div style="overflow-x:auto"><table class="list static"><thead><tr>'
+    + '<th>Sales Rep</th><th>Leads</th><th>Bookings</th><th>Confirmed Revenue</th><th>Potential Revenue (Warm)</th>'
+    + '</tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 function renderSegBar(d){
   const segs = [
