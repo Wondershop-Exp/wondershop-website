@@ -706,7 +706,7 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
     # this should move to a SQL-side sort instead.
     rows = await database.fetch_all(
         f"""
-        SELECT lead_id, parent_name, phone, email, event_date, city, status, created_on, updated_on
+        SELECT lead_id, parent_name, phone, email, event_date, city, status, created_on, updated_on, lead_origin
         FROM leads
         WHERE {' AND '.join(where)}
         """,
@@ -777,6 +777,14 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
         "status": row["_display_status"],
         "created_on_ist": _to_ist_str(row["created_on"]),
         "modified_on_ist": _to_ist_str(row["modified_on"]),
+        # 2026-09-17, per Shruti — merging the admin Leads tab and the sales
+        # module's own list into one browsable list: every row now says
+        # where it came from, so the frontend can badge/filter Website vs
+        # Sales-team leads and route a click into whichever detail page
+        # actually has the right editor for that lead (sales-leads.html's
+        # bespoke playbook UI for lead_origin='sales_module', this page's
+        # generic field-table editor for everything else).
+        "origin": "Sales" if row.get("lead_origin") == "sales_module" else "Website",
     } for row in ordered]
     return {"rows": out, "new_count": new_count}
 

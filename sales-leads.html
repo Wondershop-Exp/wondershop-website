@@ -331,7 +331,20 @@ async function enterApp(){
   if(CATALOGUE.lead_status_options && CATALOGUE.lead_status_options.length) LEAD_STATUS_OPTIONS = CATALOGUE.lead_status_options;
   if(CATALOGUE.non_convert_reason_options && CATALOGUE.non_convert_reason_options.length) NON_CONVERT_REASON_OPTIONS = CATALOGUE.non_convert_reason_options;
   if(CATALOGUE.non_convert_statuses && CATALOGUE.non_convert_statuses.length) NON_CONVERT_STATUSES = CATALOGUE.non_convert_statuses;
-  doSearch();
+  // 2026-09-17, per Shruti — merging the admin Leads tab and this page's
+  // list into one combined list on admin.html: a sales-origin row there now
+  // opens this page in a new tab as `sales-leads.html?lead_id=123` instead
+  // of dropping the admin into this page's own list to search it out again.
+  // openDetail() fetches the lead itself, so this can jump straight there
+  // without a doSearch() first; "back to list" still populates LIST_ROWS
+  // via its own doSearch() call, so browsing from here afterwards works
+  // exactly as before.
+  const deepLinkId = new URLSearchParams(location.search).get('lead_id');
+  if(deepLinkId){
+    openDetail(Number(deepLinkId));
+  }else{
+    doSearch();
+  }
 }
 function logout(){
   localStorage.removeItem('ws_admin_pw');
