@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vendor Onboarding — Wondershop Experiences</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo-square.png">
+<link rel="apple-touch-icon" href="logo-square.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --li:#B59DDE;--li2:#EDE6FA;--li3:#F5F0FF;
+  --pk:#E65A96;--spk:#F5C3D7;
+  --yl:#FFC200;--syl:#FFF8D6;
+  --bk:#191919;--gy:#6B7280;--wh:#FAFAFA;
+  --gr:#22C55E;--sgr:#DCFCE7;
+  --rd:#DC2626;--srd:#FEE2E2;
+  --r:14px;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif;
+  --max:640px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);color:var(--bk);background:var(--wh);overflow-x:hidden;min-height:100vh}
+h1,h2{font-family:var(--fd);line-height:1.25}
+p{line-height:1.65;color:var(--gy)}
+img{display:block;max-width:100%}
+a{color:var(--pk)}
+.wrap{max-width:var(--max);margin:0 auto;padding:28px 20px 60px}
+
+.hdr{display:flex;justify-content:center;padding:26px 0 8px}
+.hdr img{height:44px;width:auto}
+
+.card{background:#fff;border:1px solid var(--li2);border-radius:20px;padding:28px 24px;margin-top:18px;box-shadow:0 10px 30px rgba(181,157,222,.10)}
+.title{font-size:26px;font-weight:700;text-align:center}
+.sub{text-align:center;margin-top:8px;font-size:14.5px}
+
+.sec-h{font-family:var(--fd);font-size:17px;font-weight:700;margin:26px 0 4px;padding-bottom:8px;border-bottom:1px solid var(--li2)}
+.sec-sub{font-size:12.5px;color:var(--gy);margin-bottom:14px}
+
+.fld{margin-top:14px}
+.fld label{display:block;font-size:13px;font-weight:600;color:var(--bk);margin-bottom:6px}
+.fld label .opt{font-weight:400;color:var(--gy)}
+.fld input[type=text],.fld input[type=tel],.fld input[type=email],.fld textarea{
+  width:100%;padding:12px 14px;border:1.5px solid var(--li2);border-radius:10px;
+  font-family:var(--fb);font-size:14.5px;color:var(--bk);background:var(--wh);
+  transition:border-color .15s;
+}
+.fld input:focus,.fld textarea:focus{outline:none;border-color:var(--li)}
+.fld textarea{resize:vertical;min-height:70px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:480px){.row2{grid-template-columns:1fr}}
+
+.or-div{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--gy);font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+.or-div::before,.or-div::after{content:'';flex:1;height:1px;background:var(--li2)}
+
+.upload-box{border:1.5px dashed var(--li);border-radius:12px;padding:20px;text-align:center;background:var(--li3);cursor:pointer;transition:border-color .15s}
+.upload-box:hover{border-color:var(--pk)}
+.upload-box input{display:none}
+.upload-box .ic{font-size:26px}
+.upload-box .txt{font-size:13.5px;color:var(--gy);margin-top:6px}
+.upload-box .fname{font-size:13.5px;font-weight:700;color:var(--bk);margin-top:6px;word-break:break-all}
+.upload-note{font-size:11.5px;color:var(--gy);margin-top:8px}
+
+.bank-grid{background:var(--li3);border-radius:12px;padding:14px 14px 4px;margin-top:14px}
+
+.err-box{display:none;background:var(--srd);color:var(--rd);border-radius:10px;padding:12px 14px;font-size:13.5px;margin-top:18px}
+.err-box.show{display:block}
+
+.submit-btn{width:100%;margin-top:26px;padding:15px;border:none;border-radius:12px;background:var(--pk);color:#fff;font-family:var(--fb);font-weight:700;font-size:15.5px;cursor:pointer;transition:opacity .15s}
+.submit-btn:disabled{opacity:.6;cursor:default}
+
+.success-wrap{text-align:center;padding:30px 10px}
+.success-wrap .ic{font-size:46px}
+.success-wrap h2{margin-top:14px;font-size:22px}
+.success-wrap p{margin-top:8px}
+
+.ft{text-align:center;margin-top:26px;font-size:12.5px;color:var(--gy)}
+.ft a{color:var(--gy);text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="hdr">
+    <a href="index.html"><img src="logo-horizontal.png" alt="Wondershop Experiences"></a>
+  </div>
+
+  <div class="card" id="formCard">
+    <div class="title">Vendor Onboarding</div>
+    <div class="sub">Tell us a bit about your business and how we should pay you — this takes about 3 minutes.</div>
+
+    <form id="vendorForm">
+      <div class="sec-h">Business Details</div>
+      <div class="fld">
+        <label>Business / Vendor Name *</label>
+        <input type="text" id="f_name" required>
+      </div>
+      <div class="row2">
+        <div class="fld">
+          <label>Contact Person <span class="opt">(optional)</span></label>
+          <input type="text" id="f_contact">
+        </div>
+        <div class="fld">
+          <label>What do you deal in? <span class="opt">(e.g. Decor, Catering, Photography)</span></label>
+          <input type="text" id="f_deals">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="fld">
+          <label>Mobile Number *</label>
+          <input type="tel" id="f_mobile" inputmode="numeric" placeholder="10-digit mobile number" required>
+        </div>
+        <div class="fld">
+          <label>WhatsApp Number <span class="opt">(if different)</span></label>
+          <input type="tel" id="f_whatsapp" inputmode="numeric">
+        </div>
+      </div>
+      <div class="fld">
+        <label>Email <span class="opt">(optional)</span></label>
+        <input type="email" id="f_email">
+      </div>
+      <div class="fld">
+        <label>Address</label>
+        <textarea id="f_address"></textarea>
+      </div>
+      <div class="row2">
+        <div class="fld">
+          <label>City</label>
+          <input type="text" id="f_city">
+        </div>
+        <div class="fld">
+          <label>Pincode</label>
+          <input type="text" id="f_pincode" inputmode="numeric" maxlength="6">
+        </div>
+      </div>
+
+      <div class="sec-h">Payment Details</div>
+      <div class="sec-sub">Upload a cancelled cheque or a bank passbook photo — <strong>or</strong> fill in your bank details manually below. Either one works, we just need one of them so we can pay you correctly.</div>
+
+      <label class="upload-box" id="uploadBox" for="f_cheque">
+        <input type="file" id="f_cheque" accept="image/jpeg,image/png,image/webp,application/pdf">
+        <div class="ic">📄</div>
+        <div class="txt" id="uploadTxt">Tap to upload a cancelled cheque or passbook photo</div>
+      </label>
+      <div class="upload-note">JPG, PNG or PDF, up to 5MB.</div>
+
+      <div class="or-div">or enter manually</div>
+
+      <div class="bank-grid">
+        <div class="fld">
+          <label>Account Holder Name</label>
+          <input type="text" id="f_bank_holder">
+        </div>
+        <div class="fld">
+          <label>Bank Name</label>
+          <input type="text" id="f_bank_name">
+        </div>
+        <div class="row2">
+          <div class="fld">
+            <label>Account Number</label>
+            <input type="text" id="f_bank_acc" inputmode="numeric">
+          </div>
+          <div class="fld">
+            <label>IFSC Code</label>
+            <input type="text" id="f_bank_ifsc" style="text-transform:uppercase" maxlength="11">
+          </div>
+        </div>
+      </div>
+
+      <div class="err-box" id="errBox"></div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">Submit Details</button>
+    </form>
+  </div>
+
+  <div class="ft">Having trouble? WhatsApp us at <a href="https://wa.me/919742240477" target="_blank" rel="noopener">+91 97422 40477</a></div>
+</div>
+
+<script>
+const WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+const fileInput = document.getElementById('f_cheque');
+const uploadTxt = document.getElementById('uploadTxt');
+const uploadBox = document.getElementById('uploadBox');
+
+fileInput.addEventListener('change', () => {
+  const f = fileInput.files[0];
+  if(!f){ uploadTxt.textContent = 'Tap to upload a cancelled cheque or passbook photo'; uploadTxt.className='txt'; return; }
+  if(f.size > MAX_FILE_BYTES){
+    uploadTxt.textContent = 'That file is too large — please pick one under 5MB.';
+    uploadBox.style.borderColor = 'var(--rd)';
+    fileInput.value = '';
+    return;
+  }
+  uploadBox.style.borderColor = 'var(--gr)';
+  uploadTxt.textContent = '✓ ' + f.name;
+  uploadTxt.className = 'fname';
+});
+
+document.getElementById('f_bank_ifsc').addEventListener('input', function(){
+  this.value = this.value.toUpperCase();
+});
+
+function showErr(msg){
+  const box = document.getElementById('errBox');
+  box.textContent = msg;
+  box.classList.add('show');
+  box.scrollIntoView({behavior:'smooth', block:'center'});
+}
+function hideErr(){
+  document.getElementById('errBox').classList.remove('show');
+}
+
+document.getElementById('vendorForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideErr();
+
+  const name = document.getElementById('f_name').value.trim();
+  const mobile = document.getElementById('f_mobile').value.trim().replace(/\D/g, '');
+  if(!name){ showErr('Please enter your business or vendor name.'); return; }
+  if(mobile.length !== 10){ showErr('Please enter a valid 10-digit mobile number.'); return; }
+
+  const bankHolder = document.getElementById('f_bank_holder').value.trim();
+  const bankName = document.getElementById('f_bank_name').value.trim();
+  const bankAcc = document.getElementById('f_bank_acc').value.trim();
+  const bankIfsc = document.getElementById('f_bank_ifsc').value.trim();
+  const hasFullBankDetails = bankHolder && bankName && bankAcc && bankIfsc;
+  const hasFile = fileInput.files.length > 0;
+
+  if(!hasFullBankDetails && !hasFile){
+    showErr('Please either upload a cancelled cheque/passbook photo, or fill in all four bank detail fields.');
+    return;
+  }
+  if(bankIfsc && bankIfsc.length !== 11){
+    showErr('IFSC code should be 11 characters (e.g. HDFC0001234).');
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  const fd = new FormData();
+  fd.append('name', name);
+  fd.append('primary_contact_name', document.getElementById('f_contact').value.trim());
+  fd.append('primary_mobile', mobile);
+  fd.append('whatsapp_number', document.getElementById('f_whatsapp').value.trim());
+  fd.append('email', document.getElementById('f_email').value.trim());
+  fd.append('deals_in', document.getElementById('f_deals').value.trim());
+  fd.append('address', document.getElementById('f_address').value.trim());
+  fd.append('city', document.getElementById('f_city').value.trim());
+  fd.append('pincode', document.getElementById('f_pincode').value.trim());
+  fd.append('bank_account_holder_name', bankHolder);
+  fd.append('bank_name', bankName);
+  fd.append('bank_account_number', bankAcc);
+  fd.append('bank_ifsc_code', bankIfsc);
+  if(hasFile) fd.append('cancelled_cheque', fileInput.files[0]);
+
+  try{
+    const res = await fetch(WS_API_BASE + '/api/vendor-onboarding/submit', {method:'POST', body: fd});
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok){
+      showErr(data.detail || 'Something went wrong — please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Submit Details';
+      return;
+    }
+    document.getElementById('formCard').innerHTML =
+      '<div class="success-wrap">'
+        + '<div class="ic">🎉</div>'
+        + '<h2>Thank you!</h2>'
+        + '<p>Your details have been submitted. Our team will review them and get in touch if we need anything else.</p>'
+      + '</div>';
+  }catch(err){
+    showErr('Could not reach our server — please check your connection and try again.');
+    btn.disabled = false;
+    btn.textContent = 'Submit Details';
+  }
+});
+</script>
+
+</body>
+</html>

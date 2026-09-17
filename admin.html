@@ -292,7 +292,7 @@ table.fields textarea{resize:vertical;min-height:32px}
     <div class="tabs">
       <button class="tab-btn active" id="tabLeadBtn" onclick="switchTab('lead')">Leads<span class="tab-bubble" id="leadBubble"></span></button>
       <button class="tab-btn" id="tabBookingBtn" onclick="switchTab('booking')">Bookings<span class="tab-bubble" id="bookingBubble"></span></button>
-      <button class="tab-btn" id="tabVendorBtn" onclick="switchTab('vendor')">Vendors</button>
+      <button class="tab-btn" id="tabVendorBtn" onclick="switchTab('vendor')">Vendors<span class="tab-bubble" id="vendorBubble"></span></button>
       <button class="tab-btn" id="tabDashBtn" onclick="switchTab('dash')">📊 Dashboard</button>
     </div>
     <div id="leadTableWrap">
@@ -338,7 +338,7 @@ table.fields textarea{resize:vertical;min-height:32px}
       <div id="vendorListWrap">
         <table class="list">
           <thead><tr>
-            <th>Name</th><th>Contact</th><th>Mobile</th><th>Deals In</th><th>City</th><th>Status</th>
+            <th>Name</th><th>Contact</th><th>Mobile</th><th>Deals In</th><th>City</th><th>Origin</th><th>Status</th>
           </tr></thead>
           <tbody id="vendorBody"></tbody>
         </table>
@@ -465,6 +465,29 @@ async function apiCall(path, opts){
     throw new Error(body.detail || ('Request failed ('+res.status+')'));
   }
   return res.json();
+}
+
+// 2026-09-17, per Shruti — vendor onboarding's cancelled-cheque file.
+// GET /vendors/{id}/cancelled-cheque needs the admin password as a real
+// header (routers/vendors.py's _require_admin only reads the X-Admin-
+// Password header, not a query param), so a plain <a href> can't
+// authenticate it — and even if the endpoint accepted a query param
+// instead, putting the admin password in a URL means it ends up in
+// browser history/server logs, which this avoids entirely. Fetches the
+// file with the header set (like apiCall(), but this one endpoint returns
+// a binary file, not JSON) and opens it from an in-memory blob URL.
+async function viewVendorCheque(vendorId){
+  try{
+    const res = await fetch(API+'/api/admin/vendors/'+vendorId+'/cancelled-cheque', {headers:{'X-Admin-Password':getPw()}});
+    if(res.status===401){ showToast('Session expired — please log in again.'); return; }
+    if(!res.ok){ showToast('Could not load the file.'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }catch(e){
+    showToast('Could not load the file: '+e.message);
+  }
 }
 
 async function tryLogin(){
@@ -1048,16 +1071,29 @@ const VENDOR_FORM_FIELDS = [
   {key:'address', label:'Address', textarea:true},
   {key:'remarks', label:'Remarks', textarea:true},
 ];
+// 2026-09-17, per Shruti — vendor onboarding form's bank/payment fields,
+// shown in their own section below rather than mixed into the grid above
+// (see renderVendorForm()) since they're sensitive and worth visually
+// separating. Editable here same as everything else — saving via the
+// existing PUT /vendors/{id} also marks the record reviewed (see
+// routers/vendors.py's update_vendor()).
+const VENDOR_BANK_FIELDS = [
+  {key:'bank_account_holder_name', label:'Account Holder Name'},
+  {key:'bank_name', label:'Bank Name'},
+  {key:'bank_account_number', label:'Account Number'},
+  {key:'bank_ifsc_code', label:'IFSC Code'},
+];
 
 async function loadVendors(q){
   const body = document.getElementById('vendorBody');
   const empty = document.getElementById('vendorEmpty');
   if(!body) return;   // view not in the DOM yet on first paint — harmless no-op
-  body.innerHTML = '<tr><td colspan="6" style="padding:16px;color:#6B7280">Loading...</td></tr>';
+  body.innerHTML = '<tr><td colspan="7" style="padding:16px;color:#6B7280">Loading...</td></tr>';
   try{
     const path = '/api/admin/vendors'+(q?('?q='+encodeURIComponent(q)):'');
     const d = await apiCall(path);
     const vendors = d.vendors||[];
+    updateBubble('vendorBubble', d.pending_review_count||0);
     if(!vendors.length){ body.innerHTML=''; empty.style.display='block'; return; }
     empty.style.display='none';
     body.innerHTML = vendors.map(v=>
@@ -1067,6 +1103,7 @@ async function loadVendors(q){
         +'<td>'+esc(v.primary_mobile||'—')+'</td>'
         +'<td>'+esc(v.deals_in||'—')+'</td>'
         +'<td>'+esc(v.city||'—')+'</td>'
+        +'<td>'+vendorOriginCellHtml(v)+'</td>'
         +'<td>'+(v.is_active
             ? '<span class="status-pill status-Converted">Active</span>'
             : '<span class="status-pill status-NotInterested">Inactive</span>')+'</td>'
@@ -1075,6 +1112,17 @@ async function loadVendors(q){
   }catch(e){
     if(e.message!=='unauthorized') showToast(e.message);
   }
+}
+// 2026-09-17, per Shruti — vendor onboarding form: a self-submitted
+// vendor (routers/vendor_onboarding.py) lands here as an ordinary,
+// inactive row flagged onboarding_reviewed=FALSE (see
+// migrations/031_vendor_onboarding.sql) rather than a separate queue, so
+// this just needs a way to spot it in the list — same "New" idea the
+// Leads tab already uses, via the tab bubble + this badge.
+function vendorOriginCellHtml(v){
+  if(v.onboarding_source!=='self_submitted') return '<span style="color:var(--gy);font-size:12.5px">Team</span>';
+  if(!v.onboarding_reviewed) return '<span class="status-pill status-New">Pending review</span>';
+  return '<span style="color:var(--gy);font-size:12.5px">Self-submitted</span>';
 }
 
 function openVendor(id){
@@ -1117,10 +1165,36 @@ function renderVendorForm(v){
       +input
       +'</div>';
   }).join('');
+  const bankFieldsHtml = VENDOR_BANK_FIELDS.map(f=>{
+    const val = esc(v[f.key]||'');
+    return '<div class="fld">'
+      +'<label>'+esc(f.label)+'</label>'
+      +'<input type="text" id="vf_'+f.key+'" value="'+val+'">'
+      +'</div>';
+  }).join('');
   const activeChecked = v.is_active===false ? '' : 'checked';
+  // 2026-09-17, per Shruti — vendor onboarding form. A self-submitted,
+  // not-yet-reviewed vendor gets a banner up top (mirrors admin.html's
+  // existing lockBanner pattern on the booking detail page) so it's
+  // obvious this came in through the public form rather than being typed
+  // in by the team, and hasn't been looked at yet. Saving this form (any
+  // save, not just activating) clears it — see update_vendor() in
+  // routers/vendors.py.
+  const pendingBanner = (v.onboarding_source==='self_submitted' && !v.onboarding_reviewed)
+    ? '<div class="lock-banner" style="background:var(--sbl);color:#1e3a8a;border-color:transparent">📥 Submitted by the vendor'+(v.submitted_on_ist?(' on '+esc(v.submitted_on_ist)):'')+' via the onboarding form — not yet reviewed. Check the bank details below, then Save to mark it reviewed.</div>'
+    : '';
+  const chequeLink = v.has_cancelled_cheque
+    ? '<button class="mini-btn" onclick="viewVendorCheque('+v.vendor_id+')">📎 View uploaded cheque / passbook photo</button>'
+    : '<div style="font-size:12.5px;color:var(--gy)">No cheque or passbook photo on file — bank fields below were entered manually.</div>';
   const container = document.getElementById('vendorFormContainer');
   container.innerHTML =
-      '<div class="status-card" style="align-items:flex-start">'+fieldsHtml+'</div>'
+      pendingBanner
+    + '<div class="status-card" style="align-items:flex-start">'+fieldsHtml+'</div>'
+    + '<div class="section-block" style="padding:16px 18px;margin-top:14px">'
+      + '<h3>Bank / Payment Details</h3>'
+      + '<div class="status-card" style="align-items:flex-start;margin-top:10px">'+bankFieldsHtml+'</div>'
+      + '<div style="margin-top:12px">'+chequeLink+'</div>'
+    + '</div>'
     + '<div class="section-block" style="padding:16px 18px">'
       + '<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--gy)">'
         + '<input type="checkbox" id="vf_is_active" '+activeChecked+' style="width:auto"> Active vendor'
@@ -1135,6 +1209,7 @@ function renderVendorForm(v){
 async function saveVendor(){
   const body = {};
   VENDOR_FORM_FIELDS.forEach(f=>{ body[f.key] = document.getElementById('vf_'+f.key).value.trim(); });
+  VENDOR_BANK_FIELDS.forEach(f=>{ body[f.key] = document.getElementById('vf_'+f.key).value.trim(); });
   body.is_active = document.getElementById('vf_is_active').checked;
   if(!body.name){ showToast('Vendor name is required.'); return; }
   try{
