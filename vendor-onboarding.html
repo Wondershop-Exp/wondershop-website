@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vendor Onboarding — Wondershop Experiences</title>
+<title>Partner Onboarding — Wondershop Experiences</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="logo-square.png">
 <link rel="apple-touch-icon" href="logo-square.png">
@@ -91,13 +91,13 @@ a{color:var(--pk)}
   </div>
 
   <div class="card" id="formCard">
-    <div class="title">Vendor Onboarding</div>
+    <div class="title">Partner Onboarding</div>
     <div class="sub">Tell us a bit about your business and how we should pay you — this takes about 3 minutes.</div>
 
     <form id="vendorForm">
       <div class="sec-h">Business Details</div>
       <div class="fld">
-        <label>Business / Vendor Name *</label>
+        <label>Business / Partner Name *</label>
         <input type="text" id="f_name" required>
       </div>
       <div class="row2">
@@ -268,7 +268,7 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
 
   const name = document.getElementById('f_name').value.trim();
   const mobile = document.getElementById('f_mobile').value.trim().replace(/\D/g, '');
-  if(!name){ showErr('Please enter your business or vendor name.'); return; }
+  if(!name){ showErr('Please enter your business or partner name.'); return; }
   if(mobile.length !== 10){ showErr('Please enter a valid 10-digit mobile number.'); return; }
 
   const bankHolder = document.getElementById('f_bank_holder').value.trim();
