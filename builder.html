@@ -4450,7 +4450,11 @@ function setDT(type,btn){S.decorType=type;document.querySelectorAll('#s1 .dt-tog
 // elsewhere — normalize both to match either explicit filter value.
 function decGenderMatches(themeGn,want){
   const norm=g=>g==='Girl'?'Girls':(g==='Boy'?'Boys':g);
-  return norm(themeGn)===want;
+  const gn=norm(themeGn);
+  // A unisex theme (gn:'Both') matches a specific Boys/Girls pick too —
+  // only the "Unisex" filter itself is narrowed to gn==='Both' exactly.
+  if(want==='Both')return gn==='Both';
+  return gn===want||gn==='Both';
 }
 // Age filter buckets (2026-09-09, per Shruti — replaces the old 1-14
 // single-year dropdown with age RANGES). Boundary years deliberately sit
