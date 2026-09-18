@@ -171,13 +171,6 @@ button{cursor:pointer;font-family:var(--fb)}
    of empty white space compared to Promise (character row) and Mission
    (photo). Reuses only existing brand colors (--li/--li2/--li3/--pk/--spk). */
 .wwa-hero{background:radial-gradient(circle at 10% 15%,var(--li3) 0%,rgba(245,240,255,0) 55%),radial-gradient(circle at 90% 10%,var(--spk) 0%,rgba(245,195,215,0) 50%),radial-gradient(circle at 50% 100%,var(--li2) 0%,rgba(237,230,250,0) 60%),linear-gradient(160deg,#F3E9FF 0%,var(--lgy) 45%,#FDEBF2 100%);position:relative;overflow:hidden}
-.hero-scrapbook{position:absolute;inset:0;pointer-events:none;z-index:0}
-.polaroid{position:absolute;width:150px;background:#fff;padding:8px 8px 22px;border-radius:6px;box-shadow:0 14px 28px rgba(90,42,130,.22);pointer-events:none}
-.polaroid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:2px;display:block}
-.polaroid-1{top:calc(var(--nav-h) + 20px);left:2.5%;transform:rotate(-9deg)}
-.polaroid-1 img{object-position:50% 20%}
-.polaroid-2{bottom:2%;right:3%;transform:rotate(7deg);width:132px}
-@media(max-width:980px){.polaroid{display:none}}
 .wwa-hero .container{position:relative;z-index:1}
 .wwa-decor{position:relative;display:inline-block}
 .wwa-decor svg{position:absolute;pointer-events:none}
@@ -266,10 +259,6 @@ button{cursor:pointer;font-family:var(--fb)}
 
 <!-- WHO WE ARE + KIDS ICONS -->
 <section class="sec sec-alt wwa-hero" style="padding-top:calc(var(--nav-h) + 24px);padding-bottom:12px">
-  <div class="hero-scrapbook" aria-hidden="true">
-    <div class="polaroid polaroid-1"><img src="img/theme-uni.jpg" alt="" loading="lazy"></div>
-    <div class="polaroid polaroid-2"><img src="img/Our%20Story/Sidhant/1.jpg" alt="" loading="lazy"></div>
-  </div>
   <div class="container">
     <div class="sec-head" style="margin-bottom:32px">
       <div class="sec-tag">Who We Are</div>
