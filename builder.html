@@ -3071,8 +3071,8 @@ function actPriceRaw(a,kids){
   if(a.id==='eng90')return engagementBandPrice(90,kids);
   if(a.id==='eng120')return engagementBandPrice(120,kids);
   if(a.id==='hair-styling')return kids<=20?4500:kids<=30?5000:6000;
-  if(a.id==='bubble-show')return 9000;
-  if(a.id==='magic-show')return 9000;
+  if(a.id==='bubble-show')return 8500;
+  if(a.id==='magic-show')return 8500;
   if(a.id==='science-show')return 20000;
   if(a.id==='chitrakathi-show')return 40000;
   if(a.id==='bhajan-jamming')return 25000;
@@ -3081,7 +3081,7 @@ function actPriceRaw(a,kids){
 const ACTS=[
   // ── Art (per child) ──
   {id:'a1',n:'Canvas Painting',e:'🖼️',img:'act-canvas-painting',realImg:true,cat:'art',age:'4-12',dur:'45 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'pop',pers:true,rating:4.8,cnt:95},
-  {id:'a2',n:'Tote Bag Painting',e:'👜',img:'activity/act-tote-bag-painting',realImg:true,cat:'art',age:'5-12',dur:'45 min',req:'Tables & chairs',r1:750,r2:700,r3:650,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#B59DDE)','linear-gradient(135deg,#F5C3D7,#E65A96)'],tag:'',pers:true,rating:4.7,cnt:70},
+  {id:'a2',n:'Tote Bag Painting',e:'👜',img:'activity/act-tote-bag-painting',realImg:true,cat:'art',age:'5-12',dur:'45 min',req:'Tables & chairs',r1:750,r2:750,r3:750,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#B59DDE)','linear-gradient(135deg,#F5C3D7,#E65A96)'],tag:'',pers:true,rating:4.7,cnt:70},
   {id:'a4',n:'Texture Art',e:'🎨',img:'activity/act-texture-art',realImg:true,cat:'art',age:'5-12',dur:'45 min',req:'Tables & chairs',r1:900,r2:850,r3:800,flat:false,bgs:['linear-gradient(135deg,#F2D147,#F57A1A)','linear-gradient(135deg,#F57A1A,#E65A96)'],tag:'new',pers:true,rating:4.7,cnt:40},
   {id:'a5',n:'Mosaic Art',e:'🔷',img:'activity/act-mosaic-art',realImg:true,cat:'art',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:950,r2:900,r3:850,flat:false,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)','linear-gradient(135deg,#5B8EDD,#B59DDE)'],tag:'new',pers:true,rating:4.8,cnt:35},
   {id:'a6',n:'Tie & Dye',e:'👕',img:'activity/act-tie-dye',realImg:true,cat:'art',age:'6-12',dur:'60 min',req:'Tables & aprons',r1:950,r2:900,r3:850,flat:false,bgs:['linear-gradient(135deg,#E65A96,#F57A1A)','linear-gradient(135deg,#F2D147,#52C470)'],tag:'trend',pers:true,rating:4.8,cnt:50},
@@ -3132,8 +3132,8 @@ const ACTS=[
   // by Shruti) — the r1/r2/r3 price is the only field that's a real,
   // already-established number.
   {id:'science-show',n:'Science Show',e:'🧪',img:'activity/act-science-show-card',realImg:true,cat:'science',age:'6-12',dur:'30 min',req:'Open space/hall',r1:20000,r2:20000,r3:20000,flat:true,bgs:['linear-gradient(135deg,#5B8EDD,#52C470)'],tag:'new',pers:false,rating:4.7,cnt:12},
-  {id:'bubble-show',n:'Bubble Show',e:'🫧',img:'activity/act-bubble-show-card',realImg:true,cat:'shows',age:'3-12',dur:'30 min',req:'Open space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:false,rating:4.7,cnt:14},
-  {id:'magic-show',n:'Magic Show',e:'🎩',img:'activity/act-magic-show-card',realImg:true,cat:'shows',age:'4-12',dur:'30 min',req:'Any space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#374151,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:16},
+  {id:'bubble-show',n:'Bubble Show',e:'🫧',img:'activity/act-bubble-show-card',realImg:true,cat:'shows',age:'3-12',dur:'30 min',req:'Open space',r1:8500,r2:8500,r3:8500,flat:true,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:false,rating:4.7,cnt:14},
+  {id:'magic-show',n:'Magic Show',e:'🎩',img:'activity/act-magic-show-card',realImg:true,cat:'shows',age:'4-12',dur:'30 min',req:'Any space',r1:8500,r2:8500,r3:8500,flat:true,bgs:['linear-gradient(135deg,#374151,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:16},
   // Chitrakathi Shadow Puppet Show — added 2026-08-27 per Shruti's brief.
   // ₹40,000 flat / 30 min confirmed by Shruti. Real card photo added
   // 2026-08-27 (img/activity/act-chitrakathi-show-card.jpg, from Shruti's
