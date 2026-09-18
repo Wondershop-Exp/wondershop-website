@@ -479,22 +479,8 @@ button{cursor:pointer;font-family:var(--fb)}
         <h2 class="sec-h2">Props</h2>
         <span class="act-badge grn">Optional extras</span>
       </div>
-      <p class="sec-sub">Per-child props, priced by headcount.</p>
+      <p class="sec-sub">Optional extras — some priced per child, some per piece with your own quantity.</p>
       <div class="act-grid" id="propsGrid"></div>
-    </div>
-  </section>
-
-  <hr class="divider">
-
-  <!-- ADD-ONS (per-piece, quantity-adjustable) -->
-  <section class="sec">
-    <div class="container">
-      <div class="act-section-hdr">
-        <h2 class="sec-h2">Add-ons</h2>
-        <span class="act-badge grn">Optional extras</span>
-      </div>
-      <p class="sec-sub">Priced per piece — set your own quantity.</p>
-      <div class="act-grid" id="qtyAddonsGrid"></div>
     </div>
   </section>
 
@@ -789,9 +775,10 @@ const PROPS_ADDONS = [
   {id:'pr1', ic:'🕶️', name:'Sunglasses', d:'One per child.', perChild:75},
   {id:'pr2', ic:'🧢', img:'img/packages/spy/spy-prop-cap-icon.png', name:'Caps', d:'One per child.', perChild:75},
 ];
-// Add-ons — priced per piece, quantity chosen by the user rather than
-// auto-tied to headcount (2026-09-18, per Shruti). See QTY_ADDONS state
-// below and renderQtyAddons()/changeQtyAddon().
+// Quantity add-ons — priced per piece, quantity chosen by the user rather
+// than auto-tied to headcount, rendered inside the Props section alongside
+// PROPS_ADDONS (2026-09-18, per Shruti — keep medals in Props, no separate
+// section). See qtyAddonQty state and renderProps()/changeQtyAddon().
 const QTY_ADDONS = [
   {id:'medal', ic:'🏅', img:'img/return-gifts/spy-medals.jpg', name:'Spy Medals', d:'A medal for every agent — a nice photo &amp; debrief moment.', perPiece:50},
 ];
@@ -1041,21 +1028,37 @@ function pinataGridSelect(id) {
 }
 
 // ── PROPS ──
+// Two kinds of items share this one section/grid: PROPS_ADDONS (simple
+// per-child toggle-add — Sunglasses, Caps) and QTY_ADDONS (per-piece,
+// user-editable quantity via a +/- stepper — Spy Medals). Both render into
+// #propsGrid so they read as a single "Props" list (2026-09-18, per Shruti
+// — keep medals inside Props rather than a separate Add-ons section).
 function propPrice(item, kids) { return item.perChild * kids; }
-function renderProps() { renderToggleGrid('propsGrid', PROPS_ADDONS, selectedProps, propPrice, 'toggleProp'); }
-function toggleProp(id) {
-  const idx = selectedProps.indexOf(id);
-  if (idx > -1) selectedProps.splice(idx, 1);
-  else selectedProps.push(id);
-  renderProps();
-  updateSticky();
-}
-
-// ── QUANTITY ADD-ONS (per piece, e.g. Spy Medals) ──
 function qtyAddonPrice(item) { return item.perPiece * (qtyAddonQty[item.id] || 0); }
-function renderQtyAddons() {
-  const grid = document.getElementById('qtyAddonsGrid');
-  grid.innerHTML = QTY_ADDONS.map(item => {
+function renderProps() {
+  const grid = document.getElementById('propsGrid');
+  const toggleCards = PROPS_ADDONS.map(item => {
+    const price = propPrice(item, kidsCount);
+    const added = selectedProps.includes(item.id);
+    const priceNote = ' <span style="font-size:11px;color:var(--gy);font-weight:500">(' + fmtINR(item.perChild) + '/child)</span>';
+    const iconHtml = item.img
+      ? '<img class="addon-act-ic-img" src="' + item.img + '" alt="' + item.name + '" style="cursor:pointer" onclick="event.stopPropagation();openLightbox([\'' + item.img + '\'],0)">'
+      : '<div class="addon-act-ic">' + item.ic + '</div>';
+    return '<div class="addon-act-card' + (added ? ' added' : '') + '">' +
+      '<div class="addon-act-top">' +
+        iconHtml +
+        '<div class="addon-act-info">' +
+          '<div class="addon-act-n">' + item.name + '</div>' +
+          '<div class="addon-act-d">' + item.d + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="addon-act-foot">' +
+        '<div class="addon-act-price">' + fmtINR(price) + priceNote + '</div>' +
+        '<button class="btn-addon-add' + (added ? ' added' : '') + '" onclick="toggleProp(\'' + item.id + '\')">' + (added ? '✓ Added' : '+ Add') + '</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  const qtyCards = QTY_ADDONS.map(item => {
     const qty = qtyAddonQty[item.id] || 0;
     const added = qty > 0;
     const iconHtml = item.img
@@ -1079,22 +1082,30 @@ function renderQtyAddons() {
       (added ? '<button class="qty-addon-remove" onclick="removeQtyAddon(\'' + item.id + '\')">Remove</button>' : '') +
     '</div>';
   }).join('');
+  grid.innerHTML = toggleCards + qtyCards;
+}
+function toggleProp(id) {
+  const idx = selectedProps.indexOf(id);
+  if (idx > -1) selectedProps.splice(idx, 1);
+  else selectedProps.push(id);
+  renderProps();
+  updateSticky();
 }
 function addQtyAddon(id) {
   // Default quantity: one per kid currently on the form (matches "one per
   // agent") — fully editable right away via the +/- stepper.
   qtyAddonQty[id] = kidsCount;
-  renderQtyAddons();
+  renderProps();
   updateSticky();
 }
 function changeQtyAddon(id, d) {
   qtyAddonQty[id] = Math.max(1, (qtyAddonQty[id] || 0) + d);
-  renderQtyAddons();
+  renderProps();
   updateSticky();
 }
 function removeQtyAddon(id) {
   delete qtyAddonQty[id];
-  renderQtyAddons();
+  renderProps();
   updateSticky();
 }
 
@@ -1311,7 +1322,6 @@ renderMusic();
 renderEinvite();
 renderPinata();
 renderProps();
-renderQtyAddons();
 renderEntry();
 renderPhoto();
 renderGifts();
