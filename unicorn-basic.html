@@ -1913,17 +1913,23 @@ function totalPrice() {
 }
 
 // ── PACKAGE DISCOUNT ──
-// 2026-08-18, per Shruti — this package guarantees a flat ₹3,500 discount
-// by default; if the customer adds more services, the guarantee scales up
-// to 10% of the total, capped at ₹3,999 (whichever of the flat ₹3,500 or
-// that 10%-capped amount is bigger). On top of THAT, the same value-based
-// auto-discount slabs as builder.html still apply too — whichever of the
-// package guarantee or the sitewide auto-discount is bigger wins overall,
-// so a customer who adds enough extras to earn an even bigger sitewide
-// discount automatically gets that instead (see
-// maybeShowBiggerDiscountToast() in updateSticky()).
-const UNICORN_PKG_DISCOUNT = 3500;
-const UNICORN_PKG_DISCOUNT_PCT = 10;
+// 2026-08-18, per Shruti — this package guarantees a flat discount by
+// default; if the customer adds more services, the guarantee scales up to
+// a % of the total, capped below (whichever of the flat or that %-capped
+// amount is bigger). On top of THAT, the same value-based auto-discount
+// slabs as builder.html still apply too — whichever of the package
+// guarantee or the sitewide auto-discount is bigger wins overall, so a
+// customer who adds enough extras to earn an even bigger sitewide discount
+// automatically gets that instead (see maybeShowBiggerDiscountToast() in
+// updateSticky()).
+// 2026-09-18, per Shruti — package price raised from ₹23,000 to ₹24,000
+// (MRP unchanged at ₹26,500): flat discount lowered ₹3,500 → ₹2,500 (was
+// 13% OFF, now ≈9% OFF at the default ₹26,500 total). The scaling % was
+// also lowered 10% → 9% so it doesn't immediately override the new flat
+// amount right at the default total (9% of ₹26,500 = ₹2,385 < ₹2,500, so
+// the flat ₹2,500 still wins there, same as before).
+const UNICORN_PKG_DISCOUNT = 2500;
+const UNICORN_PKG_DISCOUNT_PCT = 9;
 const UNICORN_PKG_DISCOUNT_PCT_CAP = 3999;
 const DISCOUNT_SLABS = [
   {min:25000, max:35000, pct:5, cap:1500},
@@ -1936,7 +1942,7 @@ function autoDiscountInfo(total) {
   const amt = Math.min(Math.round(total * slab.pct / 100), slab.cap);
   return {pct:slab.pct, amt, cap:slab.cap};
 }
-// Combines the package's own guarantee (flat ₹3,500, or 10% of the total
+// Combines the package's own guarantee (flat ₹2,500, or 9% of the total
 // capped at ₹3,999 — whichever is bigger) with the value-based
 // auto-discount slabs — whichever of THOSE two is worth more in rupees
 // wins. pct is recomputed from the winning amount so the "X% OFF" badge
