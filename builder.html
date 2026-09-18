@@ -2993,7 +2993,7 @@ function spyStationAddonPrice(code,kids){
 // ENGAGEMENT_BANDS/engagementPrice() in turf-basic.html (2026-08-10). Kept
 // here too so eng90/eng120 price identically whether picked on the package
 // page or the general Activities catalogue.
-const ENGAGEMENT_BANDS=[{max:10,p90:14500,p120:18500},{max:20,p90:24500,p120:32000},{max:30,p90:35000,p120:46000},{max:40,p90:44000,p120:57000},{max:50,p90:50000,p120:64500}];
+const ENGAGEMENT_BANDS=[{max:10,p90:14500,p120:18500},{max:20,p90:35000,p120:42000},{max:30,p90:35000,p120:46000},{max:40,p90:44000,p120:57000},{max:50,p90:50000,p120:64500}];
 function engagementBandPrice(duration,kids){
   const key=duration===120?'p120':'p90';
   for(const b of ENGAGEMENT_BANDS){if(kids<=b.max)return b[key];}
@@ -3139,8 +3139,8 @@ const ACTS=[
   // count, not the generic r1/r2/r3 3-tier model (see engagementBandPrice()
   // in actPrice() below). r1/r2/r3 here are just the 20-kid reference price
   // shown on the card before that override kicks in.
-  {id:'eng90',n:'90 Min Sports Engagement',e:'🏃',img:'activity/act-90-min-engagement',realImg:true,cat:'sports',age:'4-14',dur:'90 min',req:'Turf/open ground',r1:24500,r2:24500,r3:24500,flat:true,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'new',pers:false,rating:4.8,cnt:20},
-  {id:'eng120',n:'120 Min Sports Engagement',e:'🏃',img:'activity/act-120-min-engagement',realImg:true,cat:'sports',age:'4-14',dur:'120 min',req:'Turf/open ground',r1:32000,r2:32000,r3:32000,flat:true,bgs:['linear-gradient(135deg,#52C470,#5B8EDD)'],tag:'new',pers:false,rating:4.8,cnt:15},
+  {id:'eng90',n:'90 Min Sports Engagement',e:'🏃',img:'activity/act-90-min-engagement',realImg:true,cat:'sports',age:'4-14',dur:'90 min',req:'Turf/open ground',r1:35000,r2:35000,r3:35000,flat:true,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'new',pers:false,rating:4.8,cnt:20},
+  {id:'eng120',n:'120 Min Sports Engagement',e:'🏃',img:'activity/act-120-min-engagement',realImg:true,cat:'sports',age:'4-14',dur:'120 min',req:'Turf/open ground',r1:42000,r2:42000,r3:42000,flat:true,bgs:['linear-gradient(135deg,#52C470,#5B8EDD)'],tag:'new',pers:false,rating:4.8,cnt:15},
   {id:'zorb',n:'Body Zorbing',e:'🫧',img:'activity/act-body-zorbing',realImg:true,cat:'sports',age:'8-14',dur:'Session',req:'Open ground/turf',r1:9500,r2:9500,r3:9500,flat:true,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:false,rating:4.7,cnt:10},
   {id:'gym',n:'Gymnastics',e:'🤸',img:'activity/act-gymnastics',realImg:true,cat:'sports',age:'5-14',dur:'Session',req:'Open ground/turf',r1:11800,r2:11800,r3:11800,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#B59DDE)'],tag:'new',pers:false,rating:4.7,cnt:8},
   // Mallakhamb — hidden (see visibleActs()) until a real photo is available;
@@ -3547,7 +3547,20 @@ function trueMRP(){return cItems().reduce((s,i)=>s+(i.wasP!=null?i.wasP:i.p),0)}
 // still advertised a discounted one. S._pkgAutoDiscount (set only in the
 // Unicorn/Turf ingest below, never for Spy) opts a package-origin cart
 // back into the normal auto-discount instead of zeroing it.
+// Sports Engagement (eng90/eng120 — 90/120 Min Sports Engagement) is
+// excluded from the discount base below, thin margin on that line item,
+// 2026-09-18 per Shruti: "discount will only be applicable on" the
+// non-engagement portion of the cart. The rupee amount this produces is
+// still subtracted from the FULL cart total (engagement included) wherever
+// autoDiscountAmt()/pkgGuaranteedAmt() are used.
+function engagementCartValue(){
+  return cItems().filter(i=>i.id==='eng90'||i.id==='eng120').reduce((s,i)=>s+i.p,0);
+}
+function nonEngagementTotal(gt){
+  return Math.max((gt||0)-engagementCartValue(),0);
+}
 function autoDiscountAmt(gt){
+  gt=nonEngagementTotal(gt);
   let pct=0,cap=0;
   if(gt>=45000){pct=9;cap=4500;}
   else if(gt>=35000){pct=7;cap=2500;}
@@ -3566,6 +3579,7 @@ function autoDiscountAmt(gt){
 // "swap to the bigger discount + popup" behavior when extras push the
 // auto-discount past the guarantee.
 function pkgGuaranteedAmt(gt){
+  gt=nonEngagementTotal(gt);
   let amt=S._pkgFlatDiscount||0;
   if(S._pkgPctDiscount){
     const pctAmt=Math.min((gt||0)*S._pkgPctDiscount/100,S._pkgPctCap!=null?S._pkgPctCap:Infinity);
@@ -7094,7 +7108,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       // turf-basic.html's own TURF_PKG_DISCOUNT_PCT/CAP exactly so the two
       // pages always land on the same final total.
       S._pkgPctDiscount=10;
-      S._pkgPctCap=4750;
+      S._pkgPctCap=1500;
       if(pkgData.kidsCount)S.kidsCount=pkgData.kidsCount;
       S.activities=[];
       // Activity is optional on Turf (see 2026-08-05 change) — only add it
