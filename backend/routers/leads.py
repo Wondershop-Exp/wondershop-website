@@ -236,6 +236,25 @@ def _phone_local(phone: Optional[str]) -> str:
         p = p[3:]
     return p or "—"
 
+# id -> display name, sourced from catalogue_data.THEMES (the same list
+# builder.html's own theme picker is generated from) so a new theme added
+# there is automatically labelled correctly here too, with no raw id ever
+# reaching a customer- or team-facing message again.
+# "uni" gets its own override to "Unicorn Package" rather than the
+# catalogue's "Unicorn Magic" (which stays as-is for decor-theme
+# references elsewhere) — 2026-09-18, per Shruti's exact wording for how
+# this field should read in the confirmation email/team alerts.
+_THEME_LABELS = {t["id"]: t["n"] for t in cat.THEMES}
+_THEME_LABELS["uni"] = "Unicorn Package"
+
+def _theme_label(theme_id: Optional[str]) -> str:
+    """Human-readable theme name for emails/WhatsApp — falls back to the
+    raw id (rather than disappearing) if it's ever missing from the
+    catalogue, e.g. a package hand-off using a non-catalogue id."""
+    if not theme_id:
+        return "—"
+    return _THEME_LABELS.get(theme_id, theme_id)
+
 def _cap_first(s: Optional[str]) -> str:
     """Capitalises only the first letter, leaving the rest of the name's
     casing untouched (so 'test' -> 'Test', 'McDonald' stays 'McDonald')."""
@@ -1239,7 +1258,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
         ("Turning Age", req.child_ages),  # age being celebrated, not calendar age as of event date — see builder.html's ageForEvent()
         ("Event Date", _fmt_date_long(req.event_date) if req.event_date else None),
         ("Kids Count", req.kids_count),
-        ("Theme", req.theme),
+        ("Theme", _theme_label(req.theme)),
         ("Interests", req.interests),
         ("Other Interest", req.interest_other),
         ("Venue", req.venue),
@@ -1396,7 +1415,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
 </td></tr>
 <tr><td style="padding:0 26px 26px">{footer}</td></tr>
 </table>
-<div style="font-size:11px;color:#B3A7C4;margin-top:14px">Wondershop Experiences · Godrej Platinum, Vikhroli East, Mumbai</div>
+<div style="font-size:11px;color:#B3A7C4;margin-top:14px">Wondershop Experiences · 409, Ajmera Sikova, Ghatkopar West, Mumbai – 400086</div>
 </td></tr>
 </table>
 </body></html>"""
@@ -1520,7 +1539,7 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Opti
 
 Your details:
   Event Date  : {req.event_date.isoformat() if req.event_date else '—'}
-  Theme       : {req.theme or '—'}
+  Theme       : {_theme_label(req.theme)}
   City        : {req.city or '—'}
 {remarks_block}{order_block}{services_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{referral_block}{tnc_line}
 If you have any questions in the meantime, WhatsApp us at +91 90044 35362.
@@ -1613,7 +1632,7 @@ CHILDREN
 EVENT
   Date       : {req.event_date or '—'}
   Kids Count : {req.kids_count or '—'}
-  Theme      : {req.theme or '—'}
+  Theme      : {_theme_label(req.theme)}
   Venue      : {req.venue or '—'} ({req.location_type or '—'})
   City       : {req.city or '—'}   Pincode: {req.pincode or '—'}
   Budget     : {budget_str}
@@ -1957,7 +1976,7 @@ async def _send_whatsapp_alerts(lead_id: int, req: LeadSubmitRequest) -> None:
         params = [
             req.parent_name or "—",
             req.phone or "—",
-            req.theme or "—",
+            _theme_label(req.theme),
             req.city or "—",
             budget_str,
         ]

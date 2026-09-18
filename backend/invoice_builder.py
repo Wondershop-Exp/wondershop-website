@@ -59,7 +59,7 @@ _CATEGORY_HEX = {
 }
 
 _BUSINESS_NAME    = "Wondershop Experiences"
-_BUSINESS_ADDRESS = "Godrej Platinum, Vikhroli East, Mumbai, Maharashtra, India"
+_BUSINESS_ADDRESS = "409, Ajmera Sikova, Ghatkopar West, Mumbai – 400086, Maharashtra, India"
 _BUSINESS_PHONE   = "+91 97422 40477"
 _BUSINESS_EMAIL   = "contact@wondershopexperiences.com"
 
