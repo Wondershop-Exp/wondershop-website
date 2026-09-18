@@ -27,17 +27,17 @@ src="https://www.facebook.com/tr?id=2167312504201807&ev=PageView&noscript=1"
 <!-- End Meta Pixel Code -->
 <link rel="icon" type="image/png" href="logo-square.png">
 <link rel="apple-touch-icon" href="logo-square.png">
-<meta name="description" content="Turf Takeover Party birthday package by Wondershop — decor, engagement, music, e-invite and an optional activity, from ₹38,700 for 20 kids in Mumbai.">
+<meta name="description" content="Turf Takeover Party birthday package by Wondershop — decor, engagement, music, e-invite and an optional activity, from ₹52,000 for 20 kids in Mumbai.">
 <link rel="canonical" href="https://wondershopexperiences.com/turf-basic.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Wondershop Experiences">
 <meta property="og:title" content="Wondershop Experiences | Turf Birthday Parties Mumbai">
-<meta property="og:description" content="Turf Takeover Party birthday package by Wondershop — decor, engagement, music, e-invite and an optional activity, from ₹38,700 for 20 kids in Mumbai.">
+<meta property="og:description" content="Turf Takeover Party birthday package by Wondershop — decor, engagement, music, e-invite and an optional activity, from ₹52,000 for 20 kids in Mumbai.">
 <meta property="og:url" content="https://wondershopexperiences.com/turf-basic.html">
 <meta property="og:image" content="https://wondershopexperiences.com/img/hero-banner-1.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Wondershop Experiences | Turf Birthday Parties Mumbai">
-<meta name="twitter:description" content="Turf Takeover Party birthday package by Wondershop — decor, engagement, music, e-invite and an optional activity, from ₹38,700 for 20 kids in Mumbai.">
+<meta name="twitter:description" content="Turf Takeover Party birthday package by Wondershop — decor, engagement, music, e-invite and an optional activity, from ₹52,000 for 20 kids in Mumbai.">
 <meta name="twitter:image" content="https://wondershopexperiences.com/img/hero-banner-1.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -307,7 +307,7 @@ button{cursor:pointer;font-family:var(--fb)}
   "offers": {
     "@type": "Offer",
     "priceCurrency": "INR",
-    "price": "38700",
+    "price": "52000",
     "url": "https://wondershopexperiences.com/turf-basic.html"
   }
 }
@@ -366,6 +366,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="pkg-tag-row">
             <span class="pkg-theme-tag">⚽ Turf Party Theme</span>
             <span class="pkg-tag">⭐ Fan Favourite</span>
+            <span class="pkg-tag" style="background:var(--yl);color:var(--bk)">🔥 Launch Offer &mdash; Limited Time</span>
           </div>
           <h1 class="pkg-h1">Turf <em>Takeover</em> Party</h1>
           <p class="pkg-desc">A high-energy turf birthday — decor you choose, 90 or 120 minutes of football-ground games run by a trained host, music, and an optional activity. Everything handled. Nothing to worry about.</p>
@@ -379,7 +380,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <div class="pkg-price-note">Estimated total for your party</div>
             <div class="pkg-price-row">
               <span class="pkg-price-orig" id="heroPriceOrig"></span>
-              <span class="pkg-price" id="heroPrice">₹38,700</span>
+              <span class="pkg-price" id="heroPrice">₹52,000</span>
               <span class="pkg-discount-badge" id="heroDiscountBadge"></span>
             </div>
             <div class="pkg-price-sub">For 20 kids by default · pricing scales with your headcount</div>
@@ -702,7 +703,7 @@ button{cursor:pointer;font-family:var(--fb)}
     <div class="sticky-left">
       <div class="sticky-price-row">
         <div class="sticky-price-orig" id="stickyOrig"></div>
-        <div class="sticky-price" id="stickyTotal">₹38,700</div>
+        <div class="sticky-price" id="stickyTotal">₹52,000</div>
         <span class="sticky-discount-badge" id="stickyDiscountBadge"></span>
         <div class="sticky-base" id="stickyBase">· Turf Takeover Party</div>
       </div>
@@ -789,7 +790,7 @@ const ENGAGEMENT_TIERS = [
 ];
 const ENGAGEMENT_BANDS = [
   {max:10, p90:14500, p120:18500},
-  {max:20, p90:24500, p120:32000},
+  {max:20, p90:35000, p120:42000},
   {max:30, p90:35000, p120:46000},
   {max:40, p90:44000, p120:57000},
   {max:50, p90:50000, p120:64500},
@@ -1166,10 +1167,22 @@ const DISCOUNT_SLABS = [
   {min:35000, max:45000, pct:7, cap:2500},
   {min:45000, max:Infinity, pct:9, cap:4500}
 ];
+// Sports Engagement (90/120 min turf games) is excluded from the discount
+// base below — thin margin on that line item, 2026-09-18 per Shruti — so
+// engagementValue()/nonEngagementTotal() strip it out before any discount
+// math runs. The rupee discount that comes out is still subtracted from the
+// FULL total (engagement included) everywhere this is used.
+function engagementValue() {
+  return selectedEngagement ? engagementPrice(selectedEngagement.duration, kidsCount) : 0;
+}
+function nonEngagementTotal(total) {
+  return Math.max((total || 0) - engagementValue(), 0);
+}
 function autoDiscountInfo(total) {
-  const slab = DISCOUNT_SLABS.find(s => total >= s.min && total < s.max);
+  const t = nonEngagementTotal(total);
+  const slab = DISCOUNT_SLABS.find(s => t >= s.min && t < s.max);
   if (!slab) return {pct:0, amt:0, cap:0};
-  const amt = Math.min(Math.round(total * slab.pct / 100), slab.cap);
+  const amt = Math.min(Math.round(t * slab.pct / 100), slab.cap);
   return {pct:slab.pct, amt, cap:slab.cap};
 }
 
@@ -1181,10 +1194,15 @@ function autoDiscountInfo(total) {
 // extras to earn a bigger sitewide discount automatically gets that
 // instead (see maybeShowBiggerDiscountToast() below). Applies to the whole
 // total including Return Gifts, same as the old flat coupon did.
+// 2026-09-18, per Shruti — launch-offer repricing: guaranteed discount cut
+// from 10%-capped-₹4,750 to 10%-capped-₹1,500, computed on the
+// non-engagement portion of the total (see nonEngagementTotal() above), so
+// the default package (₹53,500 total: ₹11,000 decor + ₹35,000 engagement +
+// ₹7,500 music/e-invite) lands on a flat ₹1,500 off -> ₹52,000.
 const TURF_PKG_DISCOUNT_PCT = 10;
-const TURF_PKG_DISCOUNT_CAP = 4750;
+const TURF_PKG_DISCOUNT_CAP = 1500;
 function pkgDiscountInfo(total) {
-  const guaranteed = Math.min(Math.round(total * TURF_PKG_DISCOUNT_PCT / 100), TURF_PKG_DISCOUNT_CAP);
+  const guaranteed = Math.min(Math.round(nonEngagementTotal(total) * TURF_PKG_DISCOUNT_PCT / 100), TURF_PKG_DISCOUNT_CAP);
   const auto = autoDiscountInfo(total);
   const amt = Math.max(guaranteed, auto.amt);
   const pct = total ? Math.round(amt / total * 100) : 0;
