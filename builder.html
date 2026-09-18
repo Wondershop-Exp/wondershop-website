@@ -579,6 +579,7 @@ body.browse-mode .browse-cta{display:flex}
 .act-card-spec b{color:var(--bk);font-weight:600}
 .card-pr-row{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:8px}
 .card-price{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--bk)}
+.card-price-orig{font-size:12px;color:var(--gy);text-decoration:line-through;font-weight:500;margin-right:4px}
 .card-ppc{font-size:9px;color:var(--gy)}
 .card-btn{background:var(--li);color:#fff;border:none;border-radius:12px;padding:6px 14px;font-size:12px;font-weight:700;transition:background .15s}
 .card-btn:hover{background:#9d84cc}
@@ -616,7 +617,8 @@ body.browse-mode .browse-cta{display:flex}
 .gal-info-card h4{font-family:var(--fd);font-size:15px;font-weight:700;margin:0 0 8px;color:#fff}
 .gal-info-card ul{margin:0 0 20px;padding-left:18px}
 .gal-info-card li{font-size:13px;line-height:1.6;color:#D8D5DE;margin-bottom:4px}
-.gal-info-note{font-size:12px;line-height:1.65;color:#B8B4C0;background:rgba(255,255,255,.07);border-radius:10px;padding:12px 14px}
+.gal-info-note{font-size:14px;line-height:1.65;color:#D8D5DE;background:rgba(255,255,255,.07);border-radius:10px;padding:12px 14px}
+@media(min-width:768px){.gal-info-note{max-width:820px}}
 .card-btn.added{background:var(--gr)}
 .card-btn.rmv{background:#fee2e2;color:#dc2626}
 
@@ -2783,7 +2785,7 @@ const DECOR_TIER_META=[
     {l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},
     {l:'Cake Table',v:'1 Cylindrical Cake Table'},{l:'Decor Width',v:'8-9 ft'},
   ]},
-  {tier:'Signature',price:25000,spec:[
+  {tier:'Signature',price:25000,origPrice:30000,spec:[
     {l:'Panels',v:'3 panels'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'as per the reference image'},
     {l:'Happy Birthday, Name & Age',v:'Printed on Flex, Age light'},
     {l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + Balloon Welcome arch'},
@@ -2824,7 +2826,7 @@ const THEMES=[
     // Classic tier filled 2026-09-09 from "Harry Potter Arch.jpg" (per
     // Shruti — was sitting unlinked; "Arch" matches every other theme's
     // Classic-tier naming convention) — previously only Premium/Signature.
-    tierPhotos:{Classic:'img/Decor/decor-hp-arch.jpg',Premium:'img/Decor/decor-hp-1panel.jpg',Signature:'img/Decor/decor-hp-3panel.jpg'}},
+    tierPhotos:{Classic:'img/Decor/decor-hp-arch.jpg',Premium:'img/Decor/decor-hp-1panel.jpg'}},
   {id:'art',n:'Art & Paint Party',e:'🎨',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',age:'4-10',gn:'Both',b:'150 (Colorful mix)',s:'3 hrs',ni:'Tables, chairs',tag:'new',
     // Classic tier photo added 2026-08-24 from "Art Party Decor Classic.png"
     // in the latest img/Decor upload batch — Premium/Luxury unchanged.
@@ -2843,11 +2845,20 @@ const THEMES=[
   {id:'indianpalace',n:'Indian Palace',e:'🏯',bg:'linear-gradient(135deg,#F5C3D7,#F2D147)',age:'4-10',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-indianpalace-3panel.jpg'}},
   {id:'railways',n:'Indian Railways',e:'🚂',bg:'linear-gradient(135deg,#5B8EDD,#374151)',age:'3-8',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-railways-3panel.jpg'}},
   {id:'katseye',n:'Katseye',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-16',gn:'Girls',b:'150 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',
-    // Classic + Luxury tiers added 2026-08-24 from "Katseye Kpop Classic.png"
-    // / "Katseye Luxury.png" in the latest img/Decor upload batch — Signature
-    // unchanged.
-    tierPhotos:{Classic:'img/Decor/decor-katseye-classic.png',Luxury:'img/Decor/decor-katseye-luxury.png',Signature:'img/Decor/decor-katseye-3panel.jpg'}},
-  {id:'stitch',n:'Lilo & Stitch',e:'🌺',bg:'linear-gradient(135deg,#5B8EDD,#B7E0B8)',age:'2-6',gn:'Both',b:'150 (Blue, Turquoise, White)',s:'2.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Premium:'img/Decor/decor-stitch-1panel.jpg'}},
+    // Classic tier added 2026-08-24 from "Katseye Kpop Classic.png" in the
+    // latest img/Decor upload batch. Luxury tier removed 2026-09-18 per
+    // Shruti.
+    tierPhotos:{Classic:'img/Decor/decor-katseye-classic.png',Signature:'img/Decor/decor-katseye-3panel.jpg'},
+    // 2026-09-18, per Shruti — Katseye's Signature setup genuinely costs
+    // more (extra Floor Flex + Neon Light Strip) and sits outside the
+    // sitewide Signature launch-offer discount: flat ₹30,000, no
+    // strike-through/origPrice, no Launch Offer badge (makeTC()/STD card
+    // render both gate on `t.origP!=null`).
+    tierOverrides:{Signature:{price:30000,origPrice:null,extraSpec:[{l:'Floor Flex',v:'Included'},{l:'Neon Light Strip',v:'Included'}]}}},
+  {id:'stitch',n:'Lilo & Stitch',e:'🌺',bg:'linear-gradient(135deg,#5B8EDD,#B7E0B8)',age:'2-6',gn:'Both',b:'150 (Blue, Turquoise, White)',s:'2.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Premium:'img/Decor/decor-stitch-1panel.jpg'},
+    // 2026-09-18, per Shruti — Lilo & Stitch's Premium setup is priced
+    // higher than the shared Premium default: flat ₹18,000.
+    tierOverrides:{Premium:{price:18000}}},
   {id:'malgudi',n:'Malgudi Days',e:'📖',bg:'linear-gradient(135deg,#F2D147,#B7E0B8)',age:'4-10',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-malgudi-3panel.jpg'},tierExtraPhotos:{Signature:['img/Decor/decor-malgudi-3panel-alt.jpg']}},
   {id:'mithai',n:'Mithai Theme',e:'🍬',bg:'linear-gradient(135deg,#F57A1A,#F2D147)',age:'2-8',gn:'Both',b:'180 (mixed colours)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-mithai-3panel.jpg'}},
   {id:'nanighar',n:'Nani ka Ghar',e:'👵',bg:'linear-gradient(135deg,#F5C3D7,#F7F296)',age:'3-8',gn:'Both',b:'150 (mixed colours)',s:'3 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Signature:'img/Decor/decor-nanighar-3panel.jpg'}},
@@ -2867,12 +2878,8 @@ const THEMES=[
   // Premium tier photo exists so far. Age/gender are a reasonable estimate
   // (unisex kids' show, younger age group), not yet confirmed by Shruti.
   {id:'pawpatrol',n:'Paw Patrol',e:'🐾',bg:'linear-gradient(135deg,#5B8EDD,#F2D147)',age:'2-6',gn:'Both',b:'200 (Blue, Red, Yellow, White)',s:'3 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Premium:'img/Decor/decor-pawpatrol-premium.png'}},
-  // Dinos & Unicorns — new crossover theme, added 2026-09-09 per Shruti's
-  // brief: age up to 7, gender both/neutral, balloon colours read off the
-  // real reference photos (pink/purple/mint/yellow/green pastels across
-  // both the unicorn and dino halves), price tiers left at the standard
-  // DECOR_TIER_META rates (same as every other batch — no custom pricing).
-  {id:'dinounicorn',n:'Dinos & Unicorns',e:'🦕',bg:'linear-gradient(135deg,#F5C3D7,#B7E0B8)',age:'2-7',gn:'Both',b:'250 (Pink, Purple, Mint, Yellow, Green)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Luxury:'img/Decor/decor-dinounicorn-luxury.png',Signature:'img/Decor/decor-dinounicorn-signature.png'}}
+  // Dinos & Unicorns theme removed entirely 2026-09-18 per Shruti — both
+  // its Luxury and Signature tiers (the only tiers it had) were removed.
 ];
 // Extracts the balloon-colour list out of a theme's `b` field, e.g.
 // "150 (Pink, Purple, White)" -> "Pink, Purple, White".
@@ -2917,10 +2924,19 @@ function themeTierEntries(t){
   return DECOR_TIER_META.filter(tm=>t.tierPhotos&&t.tierPhotos[tm.tier]).map(tm=>{
     const spec=tm.spec.map(s=>s.v==='__THEME__'?Object.assign({},s,{v:colors}):s);
     const extra=(t.tierExtraPhotos&&t.tierExtraPhotos[tm.tier])||[];
+    // Per-theme tier overrides (price/origPrice/extra inclusions) — used
+    // sparingly for a theme whose real cost or inclusions genuinely differ
+    // from the shared DECOR_TIER_META default (Katseye Signature's extra
+    // Floor Flex/Neon Light Strip setup, Lilo & Stitch's pricier Premium
+    // panel), 2026-09-18 per Shruti.
+    const ov=(t.tierOverrides&&t.tierOverrides[tm.tier])||null;
+    const finalSpec=ov&&ov.extraSpec?spec.concat(ov.extraSpec):spec;
+    const price=ov&&ov.price!=null?ov.price:tm.price;
+    const origPrice=ov?(ov.origPrice!==undefined?ov.origPrice:tm.origPrice):tm.origPrice;
     return {
       id:t.id+'-'+tm.tier.toLowerCase(), themeId:t.id, themeName:t.n, tier:tm.tier,
       n:t.n+' - '+tm.tier, e:t.e, bg:t.bg, age:t.age, gn:t.gn, tag:t.tag, s:t.s, ni:t.ni,
-      p:tm.price, spec,
+      p:price, origP:origPrice, spec:finalSpec,
       gallery:[{type:'img',src:t.tierPhotos[tm.tier]}].concat(extra.map(src=>({type:'img',src}))),
     };
   });
@@ -2945,7 +2961,7 @@ const STD_META=[
 const STD=STD_META.map(m=>{
   const tm=DECOR_TIER_META.find(x=>x.tier===m.tier);
   const spec=tm.spec.map(s=>s.v==='__THEME__'?Object.assign({},s,{v:'As per theme'}):s);
-  return {id:'std-'+m.tier.toLowerCase(),n:m.n,tier:m.tier,e:m.e,img:m.img,bg:m.bg,p:tm.price,spec};
+  return {id:'std-'+m.tier.toLowerCase(),n:m.n,tier:m.tier,e:m.e,img:m.img,bg:m.bg,p:tm.price,origP:tm.origPrice,spec};
 });
 // actPrice: r1=<12 kids, r2=13-25 kids, r3=>25 kids. flat=true → rate is total, false → rate × kids
 // Spy package "Mission Stations" pricing — same tiers/minimum-bill formula as
@@ -4361,10 +4377,16 @@ function variantBadge(t){
 // clubbing every panel variant of a theme into a single card/price.
 function makeTC(t){
   const tagHtml=t.tag?TAG_MAP[t.tag]:'';
+  // Launch-offer badge on every Signature-tier card (real MRP ₹30,000,
+  // struck through to ₹25,000) — 2026-09-18, per Shruti. Katseye's
+  // Signature is a flat ₹30,000 with no discount (see its tierOverrides
+  // above), so it has no origP and is excluded from both automatically.
+  const launchTag=(t.tier==='Signature'&&t.origP!=null)?'<span class="tag" style="background:var(--yl);color:var(--bk)">🔥 Launch Offer</span>':'';
   const added=S.decor&&S.decor.id===t.id;
   const tierPill='<span class="tag" style="'+(TIER_TAG_STYLE[t.tier]||'')+'">'+t.tier+'</span>';
   const specHtml='<ul class="act-card-spec">'+t.spec.map(s=>'<li'+(s.na?' class="na"':'')+'><b>'+s.l+':</b> '+s.v+'</li>').join('')+'</ul>';
-  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+t.gallery[0].src+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tierPill+tagHtml+'<span class="tag pk">'+t.gn+'</span></div>'+specHtml+'<div class="card-pr-row"><div><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+  const priceOrigHtml=t.origP!=null?'<div class="card-price-orig">₹'+t.origP.toLocaleString('en-IN')+'</div>':'';
+  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+t.gallery[0].src+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tierPill+launchTag+tagHtml+'<span class="tag pk">'+t.gn+'</span></div>'+specHtml+'<div class="card-pr-row"><div>'+priceOrigHtml+'<div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
 }
 function buildDec(){
   const tc=document.getElementById('thCards');tc.innerHTML='';
@@ -4416,8 +4438,10 @@ function buildDec(){
   STD.forEach(t=>{
     const added=S.decor&&S.decor.id===t.id;
     const tierPill='<span class="tag" style="'+(TIER_TAG_STYLE[t.tier]||'')+'">'+t.tier+'</span>';
+    const launchTag=(t.tier==='Signature'&&t.origP!=null)?'<span class="tag" style="background:var(--yl);color:var(--bk)">🔥 Launch Offer</span>':'';
     const specHtml='<ul class="act-card-spec">'+t.spec.map(s=>'<li'+(s.na?' class="na"':'')+'><b>'+s.l+':</b> '+s.v+'</li>').join('')+'</ul>';
-    sc.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'std\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+stdThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tierPill+'</div>'+specHtml+'<div class="card-pr-row"><div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+    const priceOrigHtml=t.origP!=null?'<div class="card-price-orig">₹'+t.origP.toLocaleString('en-IN')+'</div>':'';
+    sc.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'std\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+stdThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tierPill+launchTag+'</div>'+specHtml+'<div class="card-pr-row"><div>'+priceOrigHtml+'<div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
   });
   if(S.decor)document.getElementById('dc-'+S.decor.id)?.classList.add('sel');
   syncDecorAddonsUI();
@@ -4631,6 +4655,17 @@ function injectRemarksBoxes(){
 // 'info' item — a details card (what's included / not included) built live
 // from the entry's own data, rather than an image.
 let galItems=[],galIdx=0,galKind='',galObj=null;
+// "N Balloons Arch" for Classic (no panels), "N Panel Decor" for
+// Premium/Luxury/Signature — replaces the old raw Balloons-count caption
+// (2026-09-18, per Shruti — clearer than just repeating "Up to N").
+function decorCapacityDesc(obj){
+  if(obj.tier==='Classic'){
+    const m=((obj.spec.find(s=>s.l==='Balloons')||{}).v||'').match(/\d+/);
+    return (m?m[0]:'')+' Balloons Arch';
+  }
+  const m=((obj.spec.find(s=>s.l==='Panels')||{}).v||'').match(/\d+/);
+  return (m?m[0]:'')+' Panel Decor';
+}
 function galMediaFor(kind,obj){
   let items;
   if(obj.gallery&&obj.gallery.length)items=obj.gallery.slice();
@@ -4674,7 +4709,7 @@ function openGallery(kind,id){
   galIdx=0;
   document.getElementById('galName').textContent=obj.n;
   document.getElementById('galDesc').textContent=(kind==='theme'||kind==='std')
-    ? ('₹'+obj.p.toLocaleString('en-IN')+'  ·  '+obj.tier+' tier  ·  '+((obj.spec.find(s=>s.l==='Balloons')||{}).v||''))
+    ? ('₹'+obj.p.toLocaleString('en-IN')+'  ·  '+obj.tier+' tier  ·  '+decorCapacityDesc(obj))
     : kind==='pinata'
     ? ('₹'+obj.p.toLocaleString('en-IN')+'  ·  '+obj.d)
     : kind==='gift'
