@@ -198,6 +198,16 @@ button{cursor:pointer;font-family:var(--fb)}
 .dj-addon-btn:hover{border-color:var(--li)}
 .dj-addon-btn.on{background:var(--li2);border-color:var(--li);color:#7B5EA7}
 
+/* Quantity add-ons (e.g. Spy Medals) — priced per piece, with an
+   explicit +/- quantity stepper instead of a per-child auto toggle
+   (2026-09-18, per Shruti). Stepper styling matches builder.html's
+   review-page qty-ctrl so it feels consistent once carried over there. */
+.qty-ctrl{display:flex;align-items:stretch;justify-content:space-between;border:1.5px solid var(--li);border-radius:10px;overflow:hidden;background:#fff}
+.qty-btn{flex:0 0 34px;height:34px;border:none;background:#fff;font-size:16px;font-weight:700;color:var(--li);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.qty-btn:hover{background:var(--li3)}
+.qty-val{flex:1;min-width:28px;text-align:center;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--li2);border-right:1px solid var(--li2)}
+.qty-addon-remove{border:none;background:none;color:var(--gy);font-size:11px;font-weight:600;text-decoration:underline;cursor:pointer;margin-top:6px;padding:0}
+
 /* T&C */
 .tnc-note{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gy);margin-top:20px}
 .tnc-note a{color:var(--li);font-weight:600}
@@ -476,6 +486,20 @@ button{cursor:pointer;font-family:var(--fb)}
 
   <hr class="divider">
 
+  <!-- ADD-ONS (per-piece, quantity-adjustable) -->
+  <section class="sec">
+    <div class="container">
+      <div class="act-section-hdr">
+        <h2 class="sec-h2">Add-ons</h2>
+        <span class="act-badge grn">Optional extras</span>
+      </div>
+      <p class="sec-sub">Priced per piece — set your own quantity.</p>
+      <div class="act-grid" id="qtyAddonsGrid"></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
   <!-- MUSIC -->
   <section class="sec">
     <div class="container">
@@ -691,7 +715,7 @@ const DECOR_TIERS = [
 // per-child rate (Cap Decoration: r1/r2/r3 850/800/750) — shown struck-through
 // next to the discounted spy price so the saving is visible.
 const ADDON_STATIONS = [
-  {id:'s1', ic:'🔬', img:'img/activity/act-science-show.jpg', name:'Science Show', d:'Live science demo that wows the whole party.', dur:'30 min', flat:20000},
+  {id:'s1', ic:'🔬', img:'img/activity/act-science-show.jpg', name:'Science Show', d:'Live science demo that wows the whole party.', dur:'30 min', flat:20000, link:'science-show.html'},
   {id:'s2', ic:'🧢', img:'img/activity/act-cap-decoration-sq.jpg', name:'Cap Decor', d:'Kids decorate their own caps to take home.', dur:'20-30 min', base:12000, cap:30, per:400, discountFromGeneric:{r1:850,r2:800,r3:750}},
   {id:'s3', ic:'🕵️', img:'img/packages/spy/spy-badge-mdf-sq.jpg', name:'MDF Spy Badge', d:'Paint &amp; personalize a wooden spy badge.', dur:'15-20 min', base:9000, cap:30, per:300},
   {id:'s4', ic:'🧪', img:'img/activity/act-slime.jpg', name:'Slime', d:'Hands-on slime making station.', dur:'15-20 min', base:11000, cap:30, per:450},
@@ -743,7 +767,7 @@ const PINATA_TIERS = [
   {id:'square', name:'Square Pinata', price:2000, d:'12" × 12", flat briefcase-style', img:'img/pin-square-1.jpg'},
   {id:'circle', name:'Circle Pinata', price:2100, d:'Round shape', img:'img/pin-circle-1.jpg'},
   {id:'number', name:'Number Pinata', price:2400, d:'Shaped as your child\'s age', img:'img/pin-number-1.jpg'},
-  {id:'readymade', name:'Readymade Pinata', price:500, d:'Predecided designs, cannot be personalized — quickest option'},
+  {id:'readymade', name:'Readymade Pinata', price:500, d:'Predecided designs, cannot be personalized — quickest option', img:'img/pin-readymade-1.jpg'},
 ];
 // 2026-08-18, per Shruti — "let's not give free pinata": the ₹40k pinata
 // mechanic is removed entirely; pinata always charges full price. Kept as a
@@ -764,6 +788,12 @@ function finalTotal() {
 const PROPS_ADDONS = [
   {id:'pr1', ic:'🕶️', name:'Sunglasses', d:'One per child.', perChild:75},
   {id:'pr2', ic:'🧢', img:'img/packages/spy/spy-prop-cap-icon.png', name:'Caps', d:'One per child.', perChild:75},
+];
+// Add-ons — priced per piece, quantity chosen by the user rather than
+// auto-tied to headcount (2026-09-18, per Shruti). See QTY_ADDONS state
+// below and renderQtyAddons()/changeQtyAddon().
+const QTY_ADDONS = [
+  {id:'medal', ic:'🏅', img:'img/return-gifts/spy-medals.jpg', name:'Spy Medals', d:'A medal for every agent — a nice photo &amp; debrief moment.', perPiece:50},
 ];
 // Entry Options — single-select, optional.
 const ENTRY_TIERS = [
@@ -801,6 +831,7 @@ function toggleDjAddon(btn,key){
 let selectedEinvite = null;     // one of EINVITE_TIERS or null
 let selectedPinata = null;      // one of PINATA_TIERS or null
 let selectedProps = [];         // array of PROPS_ADDONS ids
+let qtyAddonQty = {};           // {QTY_ADDONS id: quantity}, e.g. {medal: 20}
 let selectedEntry = null;       // one of ENTRY_TIERS or null
 let selectedPhotographer = null;// one of PHOTO_TIERS or null
 let selectedGifts = [];         // array of GIFT_ITEMS ids
@@ -918,7 +949,7 @@ function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
       '<div class="addon-act-top">' +
         iconHtml +
         '<div class="addon-act-info">' +
-          '<div class="addon-act-n">' + item.name + '</div>' +
+          '<div class="addon-act-n">' + (item.link ? '<a href="' + item.link + '" target="_blank" rel="noopener" style="color:inherit" onclick="event.stopPropagation()">' + item.name + '</a>' : item.name) + '</div>' +
           '<div class="addon-act-d">' + item.d + '</div>' +
           durHtml +
         '</div>' +
@@ -983,7 +1014,11 @@ function pinataDiscountFor(tier) {
 function renderPinataGrid(gridId, items, selected) {
   const grid = document.getElementById(gridId);
   grid.innerHTML = items.map(t => {
-    const img = t.img ? '<div style="position:relative;margin-bottom:10px"><img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;display:block" loading="lazy"><div style="position:absolute;bottom:8px;left:8px;background:rgba(25,25,25,.68);color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px">🖼 3 photos</div></div>' : '';
+    // Readymade only has one photographed design on file so far, unlike
+    // Square/Circle/Number which genuinely have 3 each — don't claim
+    // "3 photos" on a tier that only has one (2026-09-18, per Shruti).
+    const photoBadge = t.id === 'readymade' ? '' : '<div style="position:absolute;bottom:8px;left:8px;background:rgba(25,25,25,.68);color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px">🖼 3 photos</div>';
+    const img = t.img ? '<div style="position:relative;margin-bottom:10px"><img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;display:block" loading="lazy">' + photoBadge + '</div>' : '';
     const disc = pinataDiscountFor(t);
     const priceHtml = disc <= 0
       ? '<div class="act-card-p">' + fmtINR(t.price) + '</div>'
@@ -1013,6 +1048,53 @@ function toggleProp(id) {
   if (idx > -1) selectedProps.splice(idx, 1);
   else selectedProps.push(id);
   renderProps();
+  updateSticky();
+}
+
+// ── QUANTITY ADD-ONS (per piece, e.g. Spy Medals) ──
+function qtyAddonPrice(item) { return item.perPiece * (qtyAddonQty[item.id] || 0); }
+function renderQtyAddons() {
+  const grid = document.getElementById('qtyAddonsGrid');
+  grid.innerHTML = QTY_ADDONS.map(item => {
+    const qty = qtyAddonQty[item.id] || 0;
+    const added = qty > 0;
+    const iconHtml = item.img
+      ? '<img class="addon-act-ic-img" src="' + item.img + '" alt="' + item.name + '">'
+      : '<div class="addon-act-ic">' + item.ic + '</div>';
+    const ctrlHtml = added
+      ? '<div class="qty-ctrl"><button class="qty-btn" onclick="changeQtyAddon(\'' + item.id + '\',-1)">−</button><span class="qty-val" id="qav-' + item.id + '">' + qty + '</span><button class="qty-btn" onclick="changeQtyAddon(\'' + item.id + '\',1)">+</button></div>'
+      : '<button class="btn-addon-add" onclick="addQtyAddon(\'' + item.id + '\')">+ Add</button>';
+    return '<div class="addon-act-card' + (added ? ' added' : '') + '">' +
+      '<div class="addon-act-top">' +
+        iconHtml +
+        '<div class="addon-act-info">' +
+          '<div class="addon-act-n">' + item.name + '</div>' +
+          '<div class="addon-act-d">' + item.d + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="addon-act-foot">' +
+        '<div class="addon-act-price">' + fmtINR(qtyAddonPrice(item)) + ' <span style="font-size:11px;color:var(--gy);font-weight:500">(' + fmtINR(item.perPiece) + '/piece)</span></div>' +
+        ctrlHtml +
+      '</div>' +
+      (added ? '<button class="qty-addon-remove" onclick="removeQtyAddon(\'' + item.id + '\')">Remove</button>' : '') +
+    '</div>';
+  }).join('');
+}
+function addQtyAddon(id) {
+  // Default quantity: one per kid currently on the form (matches "one per
+  // agent") — fully editable right away via the +/- stepper.
+  qtyAddonQty[id] = kidsCount;
+  renderQtyAddons();
+  updateSticky();
+}
+function changeQtyAddon(id, d) {
+  qtyAddonQty[id] = Math.max(1, (qtyAddonQty[id] || 0) + d);
+  renderQtyAddons();
+  updateSticky();
+}
+function removeQtyAddon(id) {
+  delete qtyAddonQty[id];
+  renderQtyAddons();
   updateSticky();
 }
 
@@ -1055,6 +1137,7 @@ function totalPrice() {
     const item = GIFT_ITEMS.find(g => g.id === id);
     if (item) t += item.perChild * kidsCount;
   });
+  QTY_ADDONS.forEach(item => { t += qtyAddonPrice(item); });
   return t;
 }
 
@@ -1122,7 +1205,8 @@ function updateSticky() {
   // selectedEinvite is only counted as an "add-on" here if it's a real
   // paid pick — the always-included Static tier (includedInPackage:true)
   // shouldn't inflate the add-on count.
-  const extrasCount = selectedStations.length + selectedProps.length + selectedGifts.length +
+  const qtyAddonsActiveCount = Object.keys(qtyAddonQty).filter(id => qtyAddonQty[id] > 0).length;
+  const extrasCount = selectedStations.length + selectedProps.length + selectedGifts.length + qtyAddonsActiveCount +
     (selectedMusic ? 1 : 0) + (djLightsAddon ? 1 : 0) + (djSmokeAddon ? 1 : 0) + (selectedEinvite && !selectedEinvite.includedInPackage ? 1 : 0) +
     (selectedPinata ? 1 : 0) + (selectedEntry ? 1 : 0) + (selectedPhotographer ? 1 : 0);
   if (extrasCount) parts.push('+' + extrasCount + ' add-on' + (extrasCount > 1 ? 's' : ''));
@@ -1172,6 +1256,10 @@ function proceedToBuilder() {
         name: selectedPinata.name + (pinataDiscount() >= selectedPinata.price ? ' (Included)' : pinataDiscount() > 0 ? ' (₹500 off)' : '')
       }) : null,
       props: selectedProps,
+      // Quantity add-ons (e.g. Spy Medals) — carries the user's chosen
+      // quantity through verbatim, unlike props/gifts which resolve to
+      // kidsCount on the builder.html review page.
+      qtyAddons: Object.keys(qtyAddonQty).filter(id => qtyAddonQty[id] > 0).map(id => ({id: id, qty: qtyAddonQty[id]})),
       entry: selectedEntry,
       photographer: selectedPhotographer,
       gifts: selectedGifts,
@@ -1223,6 +1311,7 @@ renderMusic();
 renderEinvite();
 renderPinata();
 renderProps();
+renderQtyAddons();
 renderEntry();
 renderPhoto();
 renderGifts();

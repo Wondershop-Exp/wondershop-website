@@ -131,11 +131,22 @@ def _line_items_from_services_detail(services_detail: list) -> list:
             })
         else:
             price = entry.get("price")
+            amount = float(price) if price is not None else None
+            description = entry.get("name") or "—"
+            # 2026-09-13, per Shruti — Decor's Name-on-Bunting add-on (and any
+            # future single-item category addon) folds into this same row
+            # rather than needing its own line, matching how Return Gifts
+            # folds its packaging/thank-you-note fees into one total.
+            for addon in entry.get("addons", []):
+                addon_price = addon.get("price")
+                if addon_price is not None:
+                    amount = (amount or 0.0) + float(addon_price)
+                description += f" + {addon.get('name', '')}"
             rows.append({
                 "label": label,
-                "description": entry.get("name") or "—",
-                "amount": float(price) if price is not None else None,
-                "free": entry.get("free", price is None),
+                "description": description,
+                "amount": amount,
+                "free": entry.get("free", amount is None),
             })
     return rows
 
@@ -165,8 +176,20 @@ def assemble_invoice_data(
     gst_enabled: bool = False,
     gstin: Optional[str] = None,
     gst_rate_pct: float = 0.0,
+    extra_fee_rows: Optional[list] = None,
 ) -> dict:
     line_items = _line_items_from_services_detail(services_detail)
+    # Order-level fees that pushed Payable Total above Package Subtotal
+    # minus Discount but aren't tied to any one service category — Return
+    # Gift packaging, the personalised thank-you note, Name on Bunting,
+    # and/or the Cash Collection at Venue surcharge (see routers/leads.py's
+    # _order_addon_rows_raw, the same source the confirmation email's
+    # breakdown already uses). Appended as their own line items so the
+    # invoice's itemised total actually reconciles with the total shown
+    # (2026-09-18, per Shruti — "cash collection fee breakup is not
+    # showing up").
+    for label, amount in (extra_fee_rows or []):
+        line_items.append({"label": label, "description": "—", "amount": amount, "free": False})
 
     discount_amt = None
     if subtotal is not None and grand_total is not None:

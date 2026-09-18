@@ -836,7 +836,7 @@ const ACTIVITY_OPTIONS = [
   {id:'a23', name:'Fridge Magnet', img:'img/activity/act-fridge-magnet-sq.jpg', r1:175, r2:175, r3:175, d:'Each child creates their own painted fridge magnet — a little party memory to take home.'},
   {id:'bubble-show', name:'Bubble Show', img:'img/activity/act-bubble-show.jpg', flat:9000, d:'A giant-bubble performance and hands-on bubble play.'},
   {id:'magic-show', name:'Magic Show', img:'img/activity/act-magic-show.jpg', flat:9000, d:'An interactive magic performance with birthday-kid participation.'},
-  {id:'science-show', name:'Science Show', img:'img/activity/act-science-show.jpg', flat:20000, d:'A hands-on science performance full of wow-moments.'},
+  {id:'science-show', name:'Science Show', img:'img/activity/act-science-show.jpg', flat:20000, d:'A hands-on science performance full of wow-moments.', link:'science-show.html'},
 ];
 function activityPrice(opt, kids) {
   if (opt.hairBand) return kids <= 20 ? 4500 : kids <= 30 ? 5000 : 6000;
@@ -990,7 +990,7 @@ function renderActivity() {
     const img = a.img ? '<img class="act-card-ic-img" src="' + a.img + '" alt="' + a.name + '">' : '<div class="act-card-ic">✂️</div>';
     return '<div class="act-card' + (sel ? ' sel' : '') + '" data-act="' + a.id + '" onclick="selectAct(this)">' +
       img +
-      '<div class="act-card-n">' + a.name + '</div>' +
+      '<div class="act-card-n">' + (a.link ? '<a href="' + a.link + '" target="_blank" rel="noopener" style="color:inherit" onclick="event.stopPropagation()">' + a.name + '</a>' : a.name) + '</div>' +
       '<div class="act-card-p">' + fmtINR(price) + '</div>' +
       '<div class="act-card-d">' + a.d + '</div>' +
     '</div>';
