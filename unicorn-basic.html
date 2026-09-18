@@ -213,6 +213,7 @@ button{cursor:pointer;font-family:var(--fb)}
 .incl-card-ic-img{width:26px;height:26px;object-fit:contain;flex-shrink:0;display:block}
 .incl-card-h{font-family:var(--fd);font-size:13.5px;font-weight:700;color:var(--bk);text-align:left;text-transform:uppercase;letter-spacing:0.3px}
 .incl-card-body{font-size:11.5px;color:var(--gy);line-height:1.5}
+.incl-included-badge{margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;background:var(--sgr);color:#166534;font-size:9.5px;font-weight:700;border-radius:20px;padding:3px 9px;letter-spacing:.4px;white-space:nowrap;text-transform:uppercase}
 .expand-btn{background:none;border:none;font-size:12px;color:var(--li);font-weight:600;cursor:pointer;padding:0;margin-top:10px;display:flex;align-items:center;gap:4px}
 .expand-btn svg{transition:transform .2s}
 .expand-btn.open svg{transform:rotate(180deg)}
@@ -473,6 +474,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="incl-card-top">
             <img class="incl-card-ic-img" src="img/icons/icon-decor.png" alt="">
             <div class="incl-card-h">Decor</div>
+            <span class="incl-included-badge">✓ Included</span>
           </div>
           <div class="incl-card-body">Classic is included by default. Upgrade to a bigger tier below if you'd like.</div>
           <div class="detail-list show" id="decor">
@@ -480,7 +482,6 @@ button{cursor:pointer;font-family:var(--fb)}
               <li>Balloon arch</li>
               <li>Up to 200 balloons (up to 2 colours)</li>
               <li>Happy Birthday paper bunting</li>
-              <li>Name paper bunting</li>
               <li>Age foil balloon</li>
             </ul>
           </div>
@@ -499,6 +500,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="incl-card-top">
             <img class="incl-card-ic-img" src="img/icons/icon-host.png" alt="">
             <div class="incl-card-h">Host</div>
+            <span class="incl-included-badge">✓ Included</span>
           </div>
           <div class="incl-card-body">Premium Host is included by default. Upgrade to a bigger tier below if you'd like.</div>
           <div class="detail-list show" id="host">
@@ -515,6 +517,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="incl-card-top">
             <img class="incl-card-ic-img" src="img/icons/icon-activities.png?v=2" alt="">
             <div class="incl-card-h">1 Activity</div>
+            <span class="incl-included-badge">✓ Included</span>
           </div>
           <div class="incl-card-body">Pick one activity below — your host runs it, all materials provided.</div>
           <div class="detail-list show" id="act">
@@ -533,6 +536,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="incl-card-top">
             <img class="incl-card-ic-img" src="img/icons/icon-tattoo.png" alt="">
             <div class="incl-card-h">Tattoo Station</div>
+            <span class="incl-included-badge">✓ Included</span>
           </div>
           <div class="incl-card-body">Included as standard for every booking.</div>
           <div class="detail-list show" id="tattoo">
@@ -548,6 +552,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="incl-card-top">
             <img class="incl-card-ic-img" src="img/icons/icon-invite.png" alt="">
             <div class="incl-card-h">E-Invite</div>
+            <span class="incl-included-badge">✓ Included</span>
           </div>
           <div class="incl-card-body">Custom digital invite in the unicorn theme.</div>
           <div class="detail-list show" id="einv">
@@ -564,6 +569,7 @@ button{cursor:pointer;font-family:var(--fb)}
           <div class="incl-card-top">
             <img class="incl-card-ic-img" src="img/icons/icon-pinata.png" alt="">
             <div class="incl-card-h">Pinata</div>
+            <span class="incl-included-badge">✓ Included</span>
           </div>
           <div class="incl-card-body">Square Pinata is included by default. Switch shapes below if you'd like.</div>
           <div class="detail-list show" id="pinata-incl">
@@ -1457,7 +1463,7 @@ function addonActPrice(id, kids) {
 // `na:true` entries render greyed-out and also drive the decor gallery's
 // "Not Included" list (see updateGalStage below).
 const DECOR_TIERS = [
-  {id:'basic', name:'Classic', price:5000, origPrice:6500, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'Up to 2'},{l:'Happy Birthday, Name & Age',v:'Paper bunting (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/unicorn/unicorn-decor-basic.jpg'},
+  {id:'basic', name:'Classic', price:5000, origPrice:6500, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'Up to 2'},{l:'Happy Birthday & Age',v:'Paper bunting (HBD), foil balloon (age)'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/unicorn/unicorn-decor-basic.jpg'},
   {id:'p1', name:'Premium', price:10000, origPrice:11000, spec:[{l:'Panels',v:'1'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/unicorn/unicorn-decor-p1.jpg', imgFit:'contain'},
   {id:'p2', name:'Luxury', price:17000, origPrice:18000, spec:[{l:'Panels',v:'2'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},{l:'Cake Table',v:'Included'},{l:'Decor Width',v:'8-9 ft'}], img:'img/packages/unicorn/unicorn-decor-p2.jpg'},
   {id:'sig', name:'Signature', price:24000, origPrice:25000, spec:[{l:'Panels',v:'3'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-14 ft'}], img:'img/packages/unicorn/unicorn-decor-sig.jpg'},
