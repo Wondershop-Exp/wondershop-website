@@ -1345,7 +1345,7 @@ body.browse-mode .browse-cta{display:flex}
     </div>
     <div class="why-grid" style="margin-top:32px">
       <div class="why-card"><div class="why-ic">🗺️</div><div class="why-t">All across Mumbai</div><div class="why-d">From South Mumbai to the suburbs — wherever you celebrate, your child's birthday gets the same care, creativity, and attention to detail.</div></div>
-      <div class="why-card"><div class="why-ic">🌱</div><div class="why-t">Born in 2023</div><div class="why-d">Young, intentional, and built for today's parents. In just over two years, we've grown from a spark of an idea into Mumbai's most-loved children's birthday experience — 200+ events and counting.</div></div>
+      <div class="why-card"><div class="why-ic">🌱</div><div class="why-t">Born in 2023</div><div class="why-d">Young, intentional, and built for today's parents. In just over two years, we've grown from a spark of an idea into Mumbai's most-loved children's birthday experience — 300+ events and counting.</div></div>
       <div class="why-card"><div class="why-ic">🎂</div><div class="why-t">Specialists in Ages 1–12</div><div class="why-d">From a baby's first birthday to a ten-year-old's themed extravaganza — no cookie-cutter packages, just experiences designed to fit your child perfectly.</div></div>
     </div>
 
@@ -6886,17 +6886,20 @@ document.addEventListener('DOMContentLoaded',()=>{
       // means checkout shows the real matching discount instead of a
       // pre-filled coupon banner that never actually moved the total.
       S._pkgAutoDiscount=true;
-      // 2026-08-18, per Shruti — Unicorn Magic guarantees a flat ₹3,500
-      // discount by default; if the customer adds more services, the
-      // guarantee scales up to 10% of the total, capped at ₹3,999
-      // (pkgGuaranteedAmt() takes whichever of the two is bigger). On top
-      // of THAT, the normal auto-discount slabs still apply too — whichever
-      // of the package guarantee or the sitewide auto-discount is bigger
-      // wins overall (see discountAmt()), matching unicorn-basic.html's own
+      // 2026-08-18, per Shruti — Unicorn Magic guarantees a flat discount by
+      // default; if the customer adds more services, the guarantee scales
+      // up to a % of the total, capped below (pkgGuaranteedAmt() takes
+      // whichever of the two is bigger). On top of THAT, the normal
+      // auto-discount slabs still apply too — whichever of the package
+      // guarantee or the sitewide auto-discount is bigger wins overall (see
+      // discountAmt()), matching unicorn-basic.html's own
       // UNICORN_PKG_DISCOUNT/_PCT/_PCT_CAP exactly so the two pages always
       // land on the same final total.
-      S._pkgFlatDiscount=3500;
-      S._pkgPctDiscount=10;
+      // 2026-09-18, per Shruti — package price raised ₹23,000 → ₹24,000
+      // (MRP unchanged ₹26,500): flat discount 3500 → 2500, scaling % 10 →
+      // 9, mirroring unicorn-basic.html's own UNICORN_PKG_DISCOUNT/_PCT.
+      S._pkgFlatDiscount=2500;
+      S._pkgPctDiscount=9;
       S._pkgPctCap=3999;
       // Return Gifts here are real catalogue items with real per-child
       // pricing (fixed 2026-08-18 — this used to reference a package-only
