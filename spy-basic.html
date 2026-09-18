@@ -698,11 +698,12 @@ const DECOR_TIERS = [
 
 // Activity Addon Stations — some flat, some tiered above 30 kids.
 // discountFromGeneric mirrors the matching generic-catalogue activity's real
-// per-child rate (Cap Decoration: r1/r2/r3 850/800/750) — shown struck-through
+// per-child rate (Cap Decoration: r1/r2/r3 600/600/600, flat since 2026-09-18)
+// — shown struck-through
 // next to the discounted spy price so the saving is visible.
 const ADDON_STATIONS = [
   {id:'s1', ic:'🔬', img:'img/activity/act-science-show.jpg', name:'Science Show', d:'Live science demo that wows the whole party.', dur:'30 min', flat:20000, link:'science-show.html'},
-  {id:'s2', ic:'🧢', img:'img/activity/act-cap-decoration-sq.jpg', name:'Cap Decor', d:'Kids decorate their own caps to take home.', dur:'20-30 min', base:12000, cap:30, per:400, discountFromGeneric:{r1:850,r2:800,r3:750}},
+  {id:'s2', ic:'🧢', img:'img/activity/act-cap-decoration-sq.jpg', name:'Cap Decor', d:'Kids decorate their own caps to take home.', dur:'20-30 min', base:12000, cap:30, per:400, discountFromGeneric:{r1:600,r2:600,r3:600}},
   {id:'s3', ic:'🕵️', img:'img/packages/spy/spy-badge-mdf-sq.jpg', name:'MDF Spy Badge', d:'Paint &amp; personalize a wooden spy badge.', dur:'15-20 min', base:9000, cap:30, per:300},
   {id:'s4', ic:'🧪', img:'img/activity/act-slime.jpg', name:'Slime', d:'Hands-on slime making station.', dur:'15-20 min', base:11000, cap:30, per:450},
   {id:'s7', ic:'🕶️', img:'img/activity/act-sunglasses-decor-sq.jpg', name:'Sunglasses Decor', d:'Customise &amp; take home a unique pair.', dur:'15-20 min', r1:350, r2:350, r3:350},
