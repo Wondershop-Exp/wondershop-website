@@ -2760,7 +2760,7 @@ function djAddonsText(){const p=[];if(S.djAddons.lights)p.push('Music Lights (Rs
 // matching photo yet).
 const DECOR_TIER_META=[
   {tier:'Classic',price:6500,spec:[
-    {l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'Up to 2'},
+    {l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'As per the reference image'},
     // 2026-09-13, per Shruti — split out of the old combined "Happy
     // Birthday, Name & Age" row: the generic HBD bunting + age balloon stay
     // included, but printing the child's actual NAME on the bunting is now
@@ -2773,7 +2773,7 @@ const DECOR_TIER_META=[
     {l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'},
   ]},
   {tier:'Premium',price:11000,spec:[
-    {l:'Panels',v:'1 Flex based panel of dimensions Width = 5Ft and Height 7Ft'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},
+    {l:'Panels',v:'1 Flex based panel of dimensions Width = 5Ft and Height 7Ft'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'As per the reference image'},
     {l:'Happy Birthday and Name',v:'Printed on Flex'},{l:'Age',v:'Foil Balloon'},
     {l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},
     {l:'Cake Table',v:'Not included',na:true},{l:'Welcome Board',v:'Not included',na:true},
@@ -2786,7 +2786,7 @@ const DECOR_TIER_META=[
     {l:'Cake Table',v:'1 Cylindrical Cake Table'},{l:'Decor Width',v:'8-9 ft'},
   ]},
   {tier:'Signature',price:25000,origPrice:30000,spec:[
-    {l:'Panels',v:'3 panels'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'as per the reference image'},
+    {l:'Panels',v:'3 panels'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'As per the reference image'},
     {l:'Happy Birthday, Name & Age',v:'Printed on Flex, Age light'},
     {l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + Balloon Welcome arch'},
     {l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-13Ft'},
@@ -3042,7 +3042,7 @@ function actPriceRaw(a,kids){
   // 2026-08-11 (was a flat ₹4,999 placeholder). mirror-decor added
   // 2026-08-11 — it was previously pushed into the cart via the package-page
   // handoff with no matching case here, so it silently priced as NaN.
-  if(a.id==='glitter')return 4000;
+  if(a.id==='glitter')return kids<=30?4000:kids<=50?5000:6000;
   if(a.id==='slime')return kids<=15?6300:kids<=30?11000:11000+(kids-30)*350;
   if(a.id==='jelly-swimbags')return kids*280;
   if(a.id==='hairbrush-decor')return kids*400;
@@ -3116,9 +3116,9 @@ const ACTS=[
   // hair styling for boys, hair styling for girls and glitter station").
   // r1/r2/r3 below are just the card's pre-kids-count display price — the
   // real total still comes from actPriceRaw()'s id-specific banded pricing.
-  {id:'hair-styling',n:'Hair Styling for Boys',e:'💇',img:'activity/act-boys-hair-styling',realImg:true,cat:'experience',age:'5-12',dur:'Up to 2 hrs',req:'Any space',r1:4500,r2:5000,r3:6000,flat:true,bgs:['linear-gradient(135deg,#5B8EDD,#374151)'],tag:'new',pers:false,rating:4.6,cnt:20},
-  {id:'hair-styling-girls',n:'Hair Styling for Girls',e:'💇‍♀️',img:'activity/act-hair-styling-girls',realImg:true,cat:'experience',age:'5-12',dur:'Up to 2 hrs',req:'Any space',r1:3500,r2:5500,r3:7000,flat:true,bgs:['linear-gradient(135deg,#E65A96,#F5C3D7)'],tag:'new',pers:false,rating:4.7,cnt:25},
-  {id:'glitter',n:'Glitter Station',e:'✨',img:'activity/act-glitter',realImg:true,cat:'art',age:'4-12',dur:'Session',req:'Tables & chairs',r1:4000,r2:4000,r3:4000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#B59DDE)'],tag:'new',pers:false,rating:4.6,cnt:30},
+  {id:'hair-styling',n:'Hair Styling for Boys',e:'💇',img:'activity/act-boys-hair-styling',realImg:true,cat:'experience',age:'5-12',dur:'Up to 3 hrs',req:'Any space',r1:4500,r2:5000,r3:6000,flat:true,bgs:['linear-gradient(135deg,#5B8EDD,#374151)'],tag:'new',pers:false,rating:4.6,cnt:20},
+  {id:'hair-styling-girls',n:'Hair Styling for Girls',e:'💇‍♀️',img:'activity/act-hair-styling-girls',realImg:true,cat:'experience',age:'5-12',dur:'Up to 3 hrs',req:'Any space',r1:3500,r2:5500,r3:7000,flat:true,bgs:['linear-gradient(135deg,#E65A96,#F5C3D7)'],tag:'new',pers:false,rating:4.7,cnt:25},
+  {id:'glitter',n:'Glitter Station',e:'✨',img:'activity/act-glitter',realImg:true,cat:'art',age:'4-12',dur:'Up to 3 hrs',req:'Tables & chairs',r1:4000,r2:4000,r3:4000,flat:false,bgs:['linear-gradient(135deg,#F2D147,#B59DDE)'],tag:'new',pers:false,rating:4.6,cnt:30},
   // Science/Bubble/Magic Show — same situation as Hair Styling/Glitter
   // above: 'science-show'/'bubble-show'/'magic-show' already had real flat
   // pricing wired into actPriceRaw() (₹20,000/₹9,000/₹9,000 — Science Show's
@@ -3131,9 +3131,9 @@ const ACTS=[
   // Duration/age below are still reasonable estimates (not yet confirmed
   // by Shruti) — the r1/r2/r3 price is the only field that's a real,
   // already-established number.
-  {id:'science-show',n:'Science Show',e:'🧪',img:'activity/act-science-show-card',realImg:true,cat:'science',age:'6-12',dur:'45-60 min',req:'Open space/hall',r1:20000,r2:20000,r3:20000,flat:true,bgs:['linear-gradient(135deg,#5B8EDD,#52C470)'],tag:'new',pers:false,rating:4.7,cnt:12},
-  {id:'bubble-show',n:'Bubble Show',e:'🫧',img:'activity/act-bubble-show-card',realImg:true,cat:'shows',age:'3-12',dur:'45 min',req:'Open space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:false,rating:4.7,cnt:14},
-  {id:'magic-show',n:'Magic Show',e:'🎩',img:'activity/act-magic-show-card',realImg:true,cat:'shows',age:'4-12',dur:'45 min',req:'Any space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#374151,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:16},
+  {id:'science-show',n:'Science Show',e:'🧪',img:'activity/act-science-show-card',realImg:true,cat:'science',age:'6-12',dur:'30 min',req:'Open space/hall',r1:20000,r2:20000,r3:20000,flat:true,bgs:['linear-gradient(135deg,#5B8EDD,#52C470)'],tag:'new',pers:false,rating:4.7,cnt:12},
+  {id:'bubble-show',n:'Bubble Show',e:'🫧',img:'activity/act-bubble-show-card',realImg:true,cat:'shows',age:'3-12',dur:'30 min',req:'Open space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:false,rating:4.7,cnt:14},
+  {id:'magic-show',n:'Magic Show',e:'🎩',img:'activity/act-magic-show-card',realImg:true,cat:'shows',age:'4-12',dur:'30 min',req:'Any space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#374151,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:16},
   // Chitrakathi Shadow Puppet Show — added 2026-08-27 per Shruti's brief.
   // ₹40,000 flat / 30 min confirmed by Shruti. Real card photo added
   // 2026-08-27 (img/activity/act-chitrakathi-show-card.jpg, from Shruti's
@@ -3142,15 +3142,7 @@ const ACTS=[
   // Age/space requirement below are still placeholders, not yet confirmed.
   {id:'chitrakathi-show',n:'Chitrakathi Shadow Puppet Show',e:'🎭',img:'activity/act-chitrakathi-puppets-card',realImg:true,cat:'shows',age:'5-12',dur:'30 min',req:'Any space (dim lighting for shadow effect)',r1:40000,r2:40000,r3:40000,flat:true,bgs:['linear-gradient(135deg,#191919,#C98A00)'],tag:'new',pers:false,rating:4.8,cnt:1},
   {id:'bhajan-jamming',n:'Bhajan Jamming',e:'🎶',img:'activity/act-bhajan-jamming-card',realImg:true,cat:'shows',age:'All Ages',dur:'30 min',req:'Any space, power point for speakers',r1:25000,r2:25000,r3:25000,flat:true,bgs:['linear-gradient(135deg,#B34700,#F2A93B)'],tag:'new',pers:false,rating:4.8,cnt:1},
-  // Spy Treasure Hunt — added as a general Activities-step option (2026-08-25,
-  // per Shruti: "add spy treasure hunt as an activity option... kid level
-  // pricing is already explained for packages, follow the same pricing").
-  // No standalone treasure-hunt price exists anywhere in the codebase, so
-  // this follows the site's established ₹9,000-flat "add-on experience"
-  // price point already used for Bubble Show, Magic Show, and the Spy
-  // package's own MDF Spy Badge station (SPY_ADDON_STATIONS_DATA.s3 —
-  // base:9000). Duration (60-75 min) confirmed by Shruti; real photo added 2026-08-27.
-  {id:'spy-treasure-hunt',n:'Spy Treasure Hunt',e:'🗺️',img:'activity/act-spy-treasure-hunt-card',realImg:true,cat:'mystery',age:'6-12',dur:'60-75 min',req:'Any space',r1:9000,r2:9000,r3:9000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#374151)'],tag:'new',pers:false,rating:4.7,cnt:10},
+  // Spy Treasure Hunt removed from the general Activities catalogue 2026-09-18 per Shruti.
   // ── Package craft activities (per child) ──
   {id:'a22',n:'Sunglasses Decor',e:'🕶️',img:'activity/act-sunglasses-decor',realImg:true,cat:'craft',age:'4-12',dur:'15-20 min',req:'Tables & chairs',r1:350,r2:350,r3:350,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)'],tag:'',pers:true,rating:4.7,cnt:25},
   {id:'a23',n:'Fridge Magnet Making',e:'🧲',img:'activity/act-fridge-magnet',realImg:true,cat:'craft',age:'4-12',dur:'40 min',req:'Tables & chairs',r1:175,r2:175,r3:175,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:20},
@@ -4588,7 +4580,7 @@ function renderActs(list){
     const tagHtml=a.tag?TAG_MAP[a.tag]:'';
     const persHtml=a.pers?'<span class="tag" style="background:#F0FDF4;color:#1a6630">✦ Take-home</span>':'';
     const flatTag=a.flat?'<span class="tag" style="background:#FEF9C3;color:#92400E">Flat rate</span>':'';
-    const priceNote=(a.id==='eng90'||a.id==='eng120'||a.id==='a21')?('for '+k+' kids · scales with headcount'):a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child';
+    const priceNote=(a.id==='eng90'||a.id==='eng120'||a.id==='a21'||a.id==='glitter')?('for '+k+' kids · scales with headcount'):a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child';
     // 2026-08-24, per Shruti — once this card is the actual claimed Tattoo/
     // ₹5k-credit freebie, its price here shows the live discount too (not
     // just the Review page/mini-list) — same activityFreebiePrice() basis.

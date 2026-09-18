@@ -777,10 +777,10 @@ pkgCReset();
 // arch up to full flex-panel installs), Turf-themed copy. All 4 tiers now
 // have real uploaded photos (2026-08-10).
 const DECOR_TIERS = [
-  {id:'p1', name:'Premium', price:10000, origPrice:11000, spec:[{l:'Panels',v:'1 Flex based panel of dimensions Width = 5Ft and Height 7Ft'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},{l:'Happy Birthday and Name',v:'Printed on Flex'},{l:'Age',v:'Foil Balloon'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Welcome Board',v:'Not included',na:true},{l:'Age Light',v:'Not included',na:true},{l:'Floor Flex',v:'Not included',na:true},{l:'Decor Width',v:'6-7Ft'}], img:'img/Decor/turf-decor-premium.png'},
-  {id:'basic', name:'Classic', price:5000, origPrice:6500, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'Up to 2'},{l:'Happy Birthday, Name & Age',v:'Paper bunting (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/Decor/turf-decor-classic.jpg'},
+  {id:'p1', name:'Premium', price:10000, origPrice:11000, spec:[{l:'Panels',v:'1 Flex based panel of dimensions Width = 5Ft and Height 7Ft'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'As per the reference image'},{l:'Happy Birthday and Name',v:'Printed on Flex'},{l:'Age',v:'Foil Balloon'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Welcome Board',v:'Not included',na:true},{l:'Age Light',v:'Not included',na:true},{l:'Floor Flex',v:'Not included',na:true},{l:'Decor Width',v:'6-7Ft'}], img:'img/Decor/turf-decor-premium.png'},
+  {id:'basic', name:'Classic', price:5000, origPrice:6500, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'As per the reference image'},{l:'Happy Birthday, Name & Age',v:'Paper bunting (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/Decor/turf-decor-classic.jpg'},
   {id:'p2', name:'Luxury', price:17000, origPrice:18000, spec:[{l:'Panels',v:'2 flex based panels'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per the reference image'},{l:'Happy Birthday, Name and Age',v:'Printed on Flex'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},{l:'Cake Table',v:'1 Cylindrical Cake Table'},{l:'Decor Width',v:'8-9 ft'}], img:'img/Decor/turf-decor-luxury.jpg'},
-  {id:'sig', name:'Signature', price:25000, origPrice:30000, spec:[{l:'Panels',v:'3 panels'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'as per the reference image'},{l:'Happy Birthday, Name & Age',v:'Printed on Flex, Age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + Balloon Welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-13Ft'}], img:'img/Decor/turf-decor-signature.jpg'},
+  {id:'sig', name:'Signature', price:25000, origPrice:30000, spec:[{l:'Panels',v:'3 panels'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'As per the reference image'},{l:'Happy Birthday, Name & Age',v:'Printed on Flex, Age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + Balloon Welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-13Ft'}], img:'img/Decor/turf-decor-signature.jpg'},
 ];
 
 // Engagement — replaces the flat Host concept. Priced by duration × kid-count
@@ -834,16 +834,18 @@ const ACTIVITY_OPTIONS = [
   {id:'a8', name:'Cupcake Decor', img:'img/activity/act-cupcake-decor-sq.jpg', r1:250, r2:250, r3:250, d:'Kids decorate their own cupcakes with icing and sprinkles. A sweet creation they get to eat!'},
   {id:'a9', name:'Cap Decoration', img:'img/activity/act-cap-decoration.jpg', r1:600, r2:600, r3:600, d:'Kids decorate their own cap with patches, pins and paint.'},
   {id:'a15', name:'Tattoo Station', img:'img/activity/act-tattoo-station.jpg', flat:2500, d:'Temporary tattoo artist on-site for every child.'},
-  {id:'glitter', name:'Glitter Station', img:'img/activity/act-glitter.jpg', flat:4000, d:'Skin-safe glitter and gems for a glamorous party look kids love.'},
-  {id:'hair-styling', name:'Boys Hair Styling', img:'img/activity/act-boys-hair-styling.jpg', hairBand:true, d:'Hair gel and hair-safe spray colours used to create spikes and fun styled looks for the boys at the party.'},
+  {id:'glitter', name:'Glitter Station', img:'img/activity/act-glitter.jpg', glitterBand:true, d:'Skin-safe glitter and gems for a glamorous party look kids love. Up to 3 hours.'},
+  {id:'hair-styling', name:'Boys Hair Styling', img:'img/activity/act-boys-hair-styling.jpg', hairBand:true, d:'Hair gel and hair-safe spray colours used to create spikes and fun styled looks for the boys at the party. Up to 3 hours.'},
   {id:'a22', name:'Sunglasses Decor', img:'img/activity/act-sunglasses-decor-sq.jpg', r1:350, r2:350, r3:350, d:'Plain sunnies + stickers, gems & paint pens. Kids customise and take home their unique pair.'},
   {id:'a23', name:'Fridge Magnet', img:'img/activity/act-fridge-magnet-sq.jpg', r1:175, r2:175, r3:175, d:'Each child creates their own painted fridge magnet — a little party memory to take home.'},
-  {id:'bubble-show', name:'Bubble Show', img:'img/activity/act-bubble-show.jpg', flat:9000, d:'A giant-bubble performance and hands-on bubble play.'},
-  {id:'magic-show', name:'Magic Show', img:'img/activity/act-magic-show.jpg', flat:9000, d:'An interactive magic performance with birthday-kid participation.'},
-  {id:'science-show', name:'Science Show', img:'img/activity/act-science-show.jpg', flat:20000, d:'A hands-on science performance full of wow-moments.', link:'science-show.html'},
+  {id:'bubble-show', name:'Bubble Show', img:'img/activity/act-bubble-show.jpg', flat:9000, d:'A giant-bubble performance and hands-on bubble play. 30 min.'},
+  {id:'magic-show', name:'Magic Show', img:'img/activity/act-magic-show.jpg', flat:9000, d:'An interactive magic performance with birthday-kid participation. 30 min.'},
+  {id:'science-show', name:'Science Show', img:'img/activity/act-science-show.jpg', flat:20000, d:'A hands-on science performance full of wow-moments. 30 min.', link:'science-show.html'},
 ];
 function activityPrice(opt, kids) {
   if (opt.hairBand) return kids <= 20 ? 4500 : kids <= 30 ? 5000 : 6000;
+  // Glitter Station — banded flat total, 2026-09-18 per Shruti.
+  if (opt.glitterBand) return kids <= 30 ? 4000 : kids <= 50 ? 5000 : 6000;
   if (opt.flat != null) return opt.flat;
   const r = kids <= 12 ? opt.r1 : kids <= 25 ? opt.r2 : opt.r3;
   return r * kids;
