@@ -679,21 +679,21 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="act-card" data-act="glitter" data-name="Glitter Station" onclick="selectAct(this)">
           <img class="act-card-ic-img" src="img/activity/act-glitter.jpg" alt="Glitter Station">
           <div class="act-card-n">Glitter Station</div>
-          <div class="act-card-d">Skin-safe glitter and gems for a glamorous party look kids love.</div>
+          <div class="act-card-d">Skin-safe glitter and gems for a glamorous party look kids love. Up to 3 hours.</div>
           <div class="act-card-extra" id="actExtraGlitter" style="display:none"></div>
         </div>
 
         <div class="act-card" data-act="hair-styling-girls" data-name="Hair Styling for Girls" onclick="selectAct(this)">
           <img class="act-card-ic-img" src="img/activity/act-hair-styling-girls.jpg" alt="Hair Styling for Girls" onerror="this.src='img/theme-uni.jpg'">
           <div class="act-card-n">Hair Styling for Girls</div>
-          <div class="act-card-d">Braids, curls and fun styled looks with hair-safe accessories for the girls at the party.</div>
+          <div class="act-card-d">Braids, curls and fun styled looks with hair-safe accessories for the girls at the party. Up to 3 hours.</div>
           <div class="act-card-extra" id="actExtraHairGirls" style="display:none"></div>
         </div>
 
         <div class="act-card" data-act="hair-styling" data-name="Hair Styling for Boys" onclick="selectAct(this)">
           <img class="act-card-ic-img" src="img/activity/act-boys-hair-styling.jpg" alt="Hair Styling for Boys">
           <div class="act-card-n">Hair Styling for Boys</div>
-          <div class="act-card-d">Hair gel and hair-safe spray colours used to create spikes and fun styled looks for the boys at the party.</div>
+          <div class="act-card-d">Hair gel and hair-safe spray colours used to create spikes and fun styled looks for the boys at the party. Up to 3 hours.</div>
           <div class="act-card-extra" id="actExtraHairBoys" style="display:none"></div>
         </div>
 
@@ -812,7 +812,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <img class="addon-act-ic-img" src="img/activity/act-glitter.jpg" alt="Glitter Station">
             <div class="addon-act-info">
               <div class="addon-act-n">Glitter Station</div>
-              <div class="addon-act-d">Skin-safe glitter and gems for a glamorous party look kids love.</div>
+              <div class="addon-act-d">Skin-safe glitter and gems for a glamorous party look kids love. Up to 3 hours.</div>
             </div>
           </div>
           <div class="addon-act-foot">
@@ -940,7 +940,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <img class="addon-act-ic-img" src="img/activity/act-bubble-show.jpg" alt="Bubble Show">
             <div class="addon-act-info">
               <div class="addon-act-n"><a href="bubble-show.html" target="_blank" style="color:inherit">Bubble Show</a></div>
-              <div class="addon-act-d">Giant bubble performance</div>
+              <div class="addon-act-d">Giant bubble performance. 30 min.</div>
               <div class="addon-act-meta">⏱ 30 min</div>
             </div>
           </div>
@@ -956,7 +956,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <img class="addon-act-ic-img" src="img/activity/act-magic-show.jpg" alt="Magic Show">
             <div class="addon-act-info">
               <div class="addon-act-n"><a href="magic-show.html" target="_blank" style="color:inherit">Magic Show</a></div>
-              <div class="addon-act-d">Live magic performance</div>
+              <div class="addon-act-d">Live magic performance. 30 min.</div>
               <div class="addon-act-meta">⏱ 30 min</div>
             </div>
           </div>
@@ -972,7 +972,7 @@ button{cursor:pointer;font-family:var(--fb)}
             <img class="addon-act-ic-img" src="img/activity/act-science-show.jpg" alt="Science Show">
             <div class="addon-act-info">
               <div class="addon-act-n"><a href="science-show.html" target="_blank" style="color:inherit">Science Show</a></div>
-              <div class="addon-act-d">Live science demo that wows the whole party</div>
+              <div class="addon-act-d">Live science demo that wows the whole party. 30 min.</div>
               <div class="addon-act-meta">⏱ 30 min</div>
             </div>
           </div>
@@ -1388,7 +1388,7 @@ const TATTOO_PRICE = 2500;
 // the cart actually charges for the same activity id. Cupcake/Sunglasses/
 // Fridge Magnet/Dreamcatcher rates updated 2026-08-11 (per Shruti, flat
 // per-child, no headcount tiering): Cupcake ₹250, Fridge Magnet ₹175,
-// Sunglasses ₹350, Dreamcatcher ₹350. Canvas Tote Bag Painting / Soft Toy
+// Sunglasses ₹350, Dreamcatcher ₹850 (updated 2026-09-18). Canvas Tote Bag Painting / Soft Toy
 // Making unchanged. Colouring Station (a25) also got real pricing
 // 2026-08-11 — banded flat total (₹4,500 ≤30 kids / ₹5,500 ≤50 / ₹6,500
 // above), handled below instead of via this per-child table. Glitter
@@ -1400,11 +1400,11 @@ const REAL_ACT_RATES = {
   a22: {r1:350,  r2:350, r3:350},  // Sunglasses Decor
   a23: {r1:175,  r2:175, r3:175},  // Fridge Magnet Making
   a2:  {r1:750,  r2:700, r3:650},  // Canvas Tote Bag Painting
-  a12: {r1:350,  r2:350, r3:350},  // Dreamcatcher
+  a12: {r1:850,  r2:850, r3:850},  // Dreamcatcher
   a10: {r1:1000, r2:950, r3:900},  // Soft Toy Making
 };
 function addonActPrice(id, kids) {
-  if (id === 'glitter') return 4000;
+  if (id === 'glitter') return kids <= 30 ? 4000 : kids <= 50 ? 5000 : 6000;
   if (id === 'a25') return kids <= 30 ? 4500 : kids <= 50 ? 5500 : 6500; // Colouring Station
   // Hair Styling for Boys — reuses the same real banded pricing as the
   // 'hair-styling' catalogue entry used elsewhere on the site (turf-basic.html,
@@ -1456,10 +1456,10 @@ function addonActPrice(id, kids) {
 // `na:true` entries render greyed-out and also drive the decor gallery's
 // "Not Included" list (see updateGalStage below).
 const DECOR_TIERS = [
-  {id:'basic', name:'Classic', price:5000, origPrice:6500, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'Up to 2'},{l:'Happy Birthday & Age',v:'Paper bunting (HBD), foil balloon (age)'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/unicorn/unicorn-decor-basic.jpg'},
-  {id:'p1', name:'Premium', price:10000, origPrice:11000, spec:[{l:'Panels',v:'1 Flex based panel of dimensions Width = 5Ft and Height 7Ft'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},{l:'Happy Birthday and Name',v:'Printed on Flex'},{l:'Age',v:'Foil Balloon'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Welcome Board',v:'Not included',na:true},{l:'Age Light',v:'Not included',na:true},{l:'Floor Flex',v:'Not included',na:true},{l:'Decor Width',v:'6-7Ft'}], img:'img/packages/unicorn/unicorn-decor-p1.jpg', imgFit:'contain'},
+  {id:'basic', name:'Classic', price:5000, origPrice:6500, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'As per the reference image'},{l:'Happy Birthday & Age',v:'Paper bunting (HBD), foil balloon (age)'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/unicorn/unicorn-decor-basic.jpg'},
+  {id:'p1', name:'Premium', price:10000, origPrice:11000, spec:[{l:'Panels',v:'1 Flex based panel of dimensions Width = 5Ft and Height 7Ft'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'As per the reference image'},{l:'Happy Birthday and Name',v:'Printed on Flex'},{l:'Age',v:'Foil Balloon'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Welcome Board',v:'Not included',na:true},{l:'Age Light',v:'Not included',na:true},{l:'Floor Flex',v:'Not included',na:true},{l:'Decor Width',v:'6-7Ft'}], img:'img/packages/unicorn/unicorn-decor-p1.jpg', imgFit:'contain'},
   {id:'p2', name:'Luxury', price:17000, origPrice:18000, spec:[{l:'Panels',v:'2 flex based panels'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per the reference image'},{l:'Happy Birthday, Name and Age',v:'Printed on Flex'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},{l:'Cake Table',v:'1 Cylindrical Cake Table'},{l:'Decor Width',v:'8-9 ft'}], img:'img/packages/unicorn/unicorn-decor-p2.jpg'},
-  {id:'sig', name:'Signature', price:25000, origPrice:30000, spec:[{l:'Panels',v:'3 panels'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'as per the reference image'},{l:'Happy Birthday, Name & Age',v:'Printed on Flex, Age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + Balloon Welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-13Ft'}], img:'img/packages/unicorn/unicorn-decor-sig.jpg'},
+  {id:'sig', name:'Signature', price:25000, origPrice:30000, spec:[{l:'Panels',v:'3 panels'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'As per the reference image'},{l:'Happy Birthday, Name & Age',v:'Printed on Flex, Age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + Balloon Welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-13Ft'}], img:'img/packages/unicorn/unicorn-decor-sig.jpg'},
 ];
 // Host — added as its own selectable section 2026-08-10 (previously bundled
 // non-selectably at the Classic price via the HOST_PRICE constant below).
