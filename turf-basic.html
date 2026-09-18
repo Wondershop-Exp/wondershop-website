@@ -413,16 +413,16 @@ button{cursor:pointer;font-family:var(--fb)}
         <div class="incl-card">
           <img class="incl-card-ic-img" src="img/icons/icon-decor.png" alt="">
           <div class="incl-card-h">Decor</div>
-          <div class="incl-card-body">Premium is included by default — a 1-panel balloon arch (up to 300 balloons, up to 3 colours) with a flex print or LED Happy Birthday + name and an age foil balloon. Switch to a different tier below if you'd like.</div>
+          <div class="incl-card-body">Premium is included by default — a Flex based panel (Width 5Ft, Height 7Ft) with up to 300 balloons (up to 3 colours), your child's Happy Birthday + name printed on flex, and an age foil balloon. Switch to a different tier below if you'd like.</div>
           <button class="expand-btn" id="btn-decor" onclick="toggleDetail('decor','btn-decor','See full list')">
             <span>See full list</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="detail-list" id="decor">
             <ul>
-              <li>1-panel balloon arch</li>
+              <li>1 Flex based panel (Width 5Ft, Height 7Ft)</li>
               <li>Up to 300 balloons (up to 3 colours)</li>
-              <li>Flex print or LED Happy Birthday + name</li>
+              <li>Happy Birthday + name printed on flex</li>
               <li>Age foil balloon</li>
               <li>Cutouts as per reference photo</li>
             </ul>
@@ -435,6 +435,9 @@ button{cursor:pointer;font-family:var(--fb)}
             <ul>
               <li>Welcome decor (add-on)</li>
               <li>Cake table setup (add-on)</li>
+              <li>Welcome board</li>
+              <li>Age light</li>
+              <li>Floor flex</li>
             </ul>
           </div>
         </div>
@@ -774,10 +777,10 @@ pkgCReset();
 // arch up to full flex-panel installs), Turf-themed copy. All 4 tiers now
 // have real uploaded photos (2026-08-10).
 const DECOR_TIERS = [
-  {id:'p1', name:'Premium', price:10000, origPrice:11000, spec:[{l:'Panels',v:'1'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/Decor/turf-decor-premium.png'},
+  {id:'p1', name:'Premium', price:10000, origPrice:11000, spec:[{l:'Panels',v:'1 Flex based panel of dimensions Width = 5Ft and Height 7Ft'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'Up to 3'},{l:'Happy Birthday and Name',v:'Printed on Flex'},{l:'Age',v:'Foil Balloon'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Welcome Board',v:'Not included',na:true},{l:'Age Light',v:'Not included',na:true},{l:'Floor Flex',v:'Not included',na:true},{l:'Decor Width',v:'6-7Ft'}], img:'img/Decor/turf-decor-premium.png'},
   {id:'basic', name:'Classic', price:5000, origPrice:6500, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'Up to 2'},{l:'Happy Birthday, Name & Age',v:'Paper bunting (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/Decor/turf-decor-classic.jpg'},
-  {id:'p2', name:'Luxury', price:17000, origPrice:18000, spec:[{l:'Panels',v:'2'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},{l:'Cake Table',v:'Included'},{l:'Decor Width',v:'8-9 ft'}], img:'img/Decor/turf-decor-luxury.jpg'},
-  {id:'sig', name:'Signature', price:24000, origPrice:25000, spec:[{l:'Panels',v:'3'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'As per theme'},{l:'Happy Birthday, Name & Age',v:'Flex print or LED light (HBD & name), 3ft age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-14 ft'}], img:'img/Decor/turf-decor-signature.jpg'},
+  {id:'p2', name:'Luxury', price:17000, origPrice:18000, spec:[{l:'Panels',v:'2 flex based panels'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per the reference image'},{l:'Happy Birthday, Name and Age',v:'Printed on Flex'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},{l:'Cake Table',v:'1 Cylindrical Cake Table'},{l:'Decor Width',v:'8-9 ft'}], img:'img/Decor/turf-decor-luxury.jpg'},
+  {id:'sig', name:'Signature', price:24000, origPrice:25000, spec:[{l:'Panels',v:'3 panels'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'as per the reference image'},{l:'Happy Birthday, Name & Age',v:'Printed on Flex, Age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + Balloon Welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-13Ft'}], img:'img/Decor/turf-decor-signature.jpg'},
 ];
 
 // Engagement — replaces the flat Host concept. Priced by duration × kid-count
