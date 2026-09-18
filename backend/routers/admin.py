@@ -57,7 +57,7 @@ from types import SimpleNamespace
 from invoice_builder import assemble_invoice_data, build_invoice_pdf, invoice_filename
 from routers.leads import (
     _services_detail_list, _party_title, _fmt_date_long, _gmail_send,
-    _get_or_create_invoice_number,
+    _get_or_create_invoice_number, _order_addon_rows_raw,
 )
 
 router = APIRouter()
@@ -1382,7 +1382,7 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
         return f.get("customer_choice") if f else None
 
     snap = _parse_snapshot(lead.get("builder_snapshot"))
-    fake_req = SimpleNamespace(builder_snapshot=snap, child_names=lead.get("child_names"), child_ages=lead.get("child_ages"))
+    fake_req = SimpleNamespace(builder_snapshot=snap, child_names=lead.get("child_names"), child_ages=lead.get("child_ages"), payment_method=lead.get("payment_method"))
 
     invoice_number = await _get_or_create_invoice_number(lead_id)
     data = assemble_invoice_data(
@@ -1406,6 +1406,7 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
         total_savings=_money(_choice("bill_total_savings")),
         freebies_text=_choice("bill_freebies"),
         payment_method=lead.get("payment_method"),
+        extra_fee_rows=_order_addon_rows_raw(fake_req),
         gst_enabled=settings.GST_ENABLED,
         gstin=settings.GSTIN,
         gst_rate_pct=settings.GST_RATE_PCT,

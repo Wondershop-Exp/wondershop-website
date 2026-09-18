@@ -402,6 +402,7 @@ src="https://www.facebook.com/tr?id=2167312504201807&ev=PageView&noscript=1"
       margin: 0 auto 20px; font-size: 40px;
       box-shadow: 0 6px 20px rgba(181,157,222,.2);
     }
+    .hiw-icon img { width: 44px; height: 44px; object-fit: contain; display: block; }
     .hiw-n { font-family: var(--fd); font-size: 13px; font-weight: 700; color: var(--li); margin-bottom: 6px; }
     .hiw-t { font-family: var(--fd); font-size: 16px; font-weight: 600; color: var(--bk); margin-bottom: 8px; }
     .hiw-d { font-family: var(--fb); font-size: 13px; color: var(--gy); line-height: 1.6; }
@@ -1042,25 +1043,25 @@ src="https://www.facebook.com/tr?id=2167312504201807&ev=PageView&noscript=1"
 
     <div class="hiw-grid">
       <div class="hiw-step">
-        <div class="hiw-icon">🎈</div>
+        <div class="hiw-icon"><img src="img/icons/star.png" alt="" loading="lazy"></div>
         <div class="hiw-n">Step 1</div>
         <div class="hiw-t">Tell us about the birthday star</div>
         <div class="hiw-d">What do they love? What's their vibe?</div>
       </div>
       <div class="hiw-step">
-        <div class="hiw-icon">🛍️</div>
+        <div class="hiw-icon"><img src="img/icons/picking.png" alt="" loading="lazy"></div>
         <div class="hiw-n">Step 2</div>
         <div class="hiw-t">Pick your services</div>
         <div class="hiw-d">Decor, activities, host, music, pinata, e-invite, photographer, return gifts — choose what you need.</div>
       </div>
       <div class="hiw-step">
-        <div class="hiw-icon">💡</div>
+        <div class="hiw-icon"><img src="img/icons/personalize.png" alt="" loading="lazy"></div>
         <div class="hiw-n">Step 3</div>
         <div class="hiw-t">Review &amp; personalise</div>
         <div class="hiw-d">See your full plan with live pricing. Edit anything.</div>
       </div>
       <div class="hiw-step">
-        <div class="hiw-icon">🚀</div>
+        <div class="hiw-icon"><img src="img/icons/magic.png" alt="" loading="lazy"></div>
         <div class="hiw-n">Step 4</div>
         <div class="hiw-t">We bring the magic</div>
         <div class="hiw-d">Confirm and let us handle everything from setup to execution. Prepare yourself to enjoy the moment.</div>
@@ -1120,7 +1121,7 @@ src="https://www.facebook.com/tr?id=2167312504201807&ev=PageView&noscript=1"
           </svg>
         </div>
         <div class="why-t">You enjoy the party</div>
-        <div class="why-d">We handle setup and execution. You show up, celebrate, and enjoy every moment.</div>
+        <div class="why-d">We handle setup and execution so it's hassle-free for parents. You simply show up, celebrate, and soak in every moment.</div>
       </div>
       <div class="why-card">
         <div class="why-ic">
@@ -1696,6 +1697,7 @@ const FRAMES = [
   { src: 'img/hero-banner-2.jpg' },
   { src: 'img/hero-banner-3.jpg' },
   { src: 'img/hero-banner-4.jpg' },
+  { src: 'img/hero-banner-5.jpg' },
 ];
 let cCur = 0, cTimer;
 const frontImg = document.getElementById('hc-front-img');

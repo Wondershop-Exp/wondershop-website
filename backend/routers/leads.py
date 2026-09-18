@@ -659,23 +659,37 @@ async def _redeem_any_code(code: str, phone: str, lead_id: int) -> None:
 _COLLECTION_FEE = 100  # mirrors builder.html's collectFee() flat Rs.100 surcharge
 
 
-def _order_addon_rows(req: LeadSubmitRequest) -> list:
+def _order_addon_rows_raw(req: LeadSubmitRequest) -> list:
     """Rows for whatever pushed Payable Total above (Package Subtotal minus
-    Discount) — Return Gift packaging, the personalised thank-you note, and/
-    or the Cash Collection at Venue surcharge. Returns (label, value_str)
-    tuples; empty when nothing applies (the normal case)."""
+    Discount) — Return Gift packaging, the personalised thank-you note, the
+    Name on Bunting fee, and/or the Cash Collection at Venue surcharge.
+    Returns (label, amount_float) tuples; empty when nothing applies (the
+    normal case). Raw amounts so callers can either format them as text
+    (_order_addon_rows below) or hand them to the PDF invoice as real line
+    items (see invoice_builder.assemble_invoice_data's extra_fee_rows,
+    2026-09-18, per Shruti — the Cash Collection Fee wasn't showing up in
+    the invoice breakup)."""
     snap = req.builder_snapshot or {}
     rows = []
     packaging_cost = snap.get("gift_packaging_cost")
     if packaging_cost:
         label = cat.PACKAGING_LABELS.get(snap.get("gift_packaging"))
-        rows.append((f"Packaging ({label})" if label else "Packaging", _fmt_rupees(packaging_cost)))
+        rows.append((f"Packaging ({label})" if label else "Packaging", float(packaging_cost)))
     thank_you_fee = snap.get("gift_thank_you_fee")
     if thank_you_fee:
-        rows.append(("Personalised Thank You Note", _fmt_rupees(thank_you_fee)))
+        rows.append(("Personalised Thank You Note", float(thank_you_fee)))
+    name_bunting_fee = snap.get("decor_name_bunting_fee")
+    if name_bunting_fee:
+        rows.append(("Name on Bunting", float(name_bunting_fee)))
     if req.payment_method == "collect":
-        rows.append(("Cash Collection Fee", _fmt_rupees(_COLLECTION_FEE)))
+        rows.append(("Cash Collection Fee", float(_COLLECTION_FEE)))
     return rows
+
+
+def _order_addon_rows(req: LeadSubmitRequest) -> list:
+    """Text-formatted (label, value_str) version of _order_addon_rows_raw,
+    for the plain-text email summary blocks."""
+    return [(label, _fmt_rupees(amount)) for label, amount in _order_addon_rows_raw(req)]
 
 
 def _format_order_summary_block(req: LeadSubmitRequest) -> str:
@@ -843,11 +857,20 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
     decor = snap.get("decor") or {}
     if decor.get("n"):
         decor_ref = cat.resolve_decor(decor.get("id"), decor.get("p"))
-        out.append({
+        decor_entry = {
             "label": "Decor", "name": decor.get("n"), "price": decor.get("p"),
             "image_path": decor_ref["image_path"] if decor_ref else None,
             "inclusions": [(l, v) for l, v, na in (decor_ref["spec"] if decor_ref else []) if not na],
-        })
+        }
+        # 2026-09-13, per Shruti — Classic tier's "Happy Birthday" bunting is
+        # generic by default; printing the child's name on it is a separate
+        # paid add-on. Sent as a plain rupee amount from the frontend (not
+        # re-derived from a price constant here), same convention as the
+        # Return Gifts packaging/thank-you-note fees below.
+        name_bunting_fee = snap.get("decor_name_bunting_fee")
+        if name_bunting_fee:
+            decor_entry["addons"] = [{"name": "Name on Bunting", "price": name_bunting_fee}]
+        out.append(decor_entry)
     else:
         out.append({"label": "Decor", "not_selected": True})
 
@@ -1000,6 +1023,8 @@ def _format_services_block(req: LeadSubmitRequest, added_service_label: Optional
         lines.append(f"  {svc['label']}: {svc['name']}{price_bit}")
         for label, val in svc.get("inclusions", []):
             lines.append(f"      - {label}{': ' + val if val else ''}")
+        for addon in svc.get("addons", []):
+            lines.append(f"      + {addon['name']} — {_fmt_rupees(addon['price'])}")
     lines.append("")
     return "\n".join(lines) + "\n"
 
@@ -1067,10 +1092,14 @@ def _html_services_section(req: LeadSubmitRequest, added_service_label: Optional
                 for label, val in incl
             )
             incl_html = f'<ul style="margin:6px 0 0;padding-left:16px;font-size:12px;color:#5B5169;line-height:1.5">{incl_items}</ul>'
+        addons_html = "".join(
+            f'<div style="font-size:12.5px;color:#5B5169;margin-top:2px">+ {_html_escape(a["name"])} — {_html_escape(_fmt_rupees(a["price"]))}</div>'
+            for a in svc.get("addons", [])
+        )
         text_html = (
             f'<div style="font-size:14px;font-weight:700;color:{BRAND_PURPLE}">{_html_escape(svc["label"])}</div>'
             f'<div style="font-size:13.5px;color:#2D2140">{_html_escape(svc["name"])}{price_bit}</div>'
-            f'{incl_html}'
+            f'{incl_html}{addons_html}'
         )
         cards.append(
             f'<div style="display:flex;align-items:flex-start;padding:12px 0;border-bottom:1px solid #F0E9FA">'
@@ -1428,6 +1457,7 @@ async def _build_booking_invoice_pdf(lead_id: int, req: LeadSubmitRequest) -> tu
         total_savings=req.order_total_savings,
         freebies_text=req.order_freebies_text,
         payment_method=req.payment_method,
+        extra_fee_rows=_order_addon_rows_raw(req),
         gst_enabled=settings.GST_ENABLED,
         gstin=settings.GSTIN,
         gst_rate_pct=settings.GST_RATE_PCT,
