@@ -832,6 +832,8 @@ body.browse-mode .browse-cta{display:flex}
 .rv-total{background:#fff;border:1.5px solid var(--li2);border-radius:var(--r);padding:16px;margin-top:4px}
 .disc-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--gr);font-weight:600;margin-bottom:8px}
 .total-row{display:flex;align-items:center;justify-content:space-between;font-family:var(--fd);font-size:20px;font-weight:700;color:var(--bk);margin-bottom:6px}
+.rv-strike{text-decoration:line-through;color:var(--gy);font-weight:500}
+.coupon-chip{display:inline-flex;align-items:center;gap:4px;background:var(--sgr);color:#1a6630;font-size:11px;font-weight:700;border-radius:12px;padding:3px 8px;white-space:nowrap}
 .adv-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--li);font-weight:600}
 
 
@@ -2203,8 +2205,8 @@ body.browse-mode .browse-cta{display:flex}
   </div>
   <div id="rvBody"></div>
   <div class="rv-total" id="rvTotal">
-    <div class="total-row"><span>Total</span><span id="rvTotal2">₹0</span></div>
-    <div class="disc-row" id="rvDiscRow" style="display:none">🎉 You have saved <span id="rvDiscAmt"></span></div>
+    <div class="total-row"><span>Total</span><span><span id="rvTotalOrig" class="rv-strike" style="display:none;margin-right:8px;font-size:14px"></span><span id="rvTotal2">₹0</span></span></div>
+    <div class="disc-row" id="rvDiscRow" style="display:none"><span>🎉 You saved <span id="rvDiscAmt"></span></span><span class="coupon-chip">🎟️ Coupon Applied</span></div>
     <div class="adv-row" id="rvAdvRow"><span>Advance to be paid</span><span id="rvAdv">₹0</span></div>
   </div>
   <div style="background:var(--spk);border-radius:14px;padding:16px 18px;margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -2333,7 +2335,7 @@ body.browse-mode .browse-cta{display:flex}
     <div class="sec-lbl"><span class="dot"></span>Order Summary</div>
     <div class="amt-box">
       <div class="amt-row"><span>Grand Total</span><span id="co-gt">₹0</span></div>
-      <div class="amt-row" id="co-dr" style="display:none"><span>Discount</span><span id="co-disc" style="color:var(--gr)"></span></div>
+      <div class="amt-row" id="co-dr" style="display:none"><span>Discount</span><span><span class="coupon-chip">🎟️ Coupon Applied</span> <span id="co-disc" style="color:var(--gr)"></span></span></div>
       <!-- 2026-08-24, per Shruti (Image 3) — "Don't show the discount/
            freebie bar at checkout page. Add the freebies and discounts in
            the order summary." The .bb-freebies badge row is hidden on this
@@ -5122,14 +5124,28 @@ function buildRev(){
   // bottom bar (updBB()) and checkout Order Summary (updCoAmt()), so this
   // screen never disagrees with either of them.
   const mrp=trueMRP();const totalSavings=mrp-tpv;
-  if(totalSavings>0){document.getElementById('rvDiscRow').style.display='flex';document.getElementById('rvDiscAmt').textContent='₹'+totalSavings.toLocaleString('en-IN');}
-  else document.getElementById('rvDiscRow').style.display='none';
   // Same total concept as the header cart badge / bottom bar / checkout
   // Payable Total — payTotal() (tp() + collection fee + packaging + thank
   // you note fee), not the bare discounted subtotal, so this figure never
   // disagrees with the others (2026-08-16, per Shruti — "total at both
   // places different").
-  document.getElementById('rvTotal2').textContent='₹'+payTotal().toLocaleString('en-IN');
+  const payv=payTotal();
+  if(totalSavings>0){
+    document.getElementById('rvDiscRow').style.display='flex';
+    document.getElementById('rvDiscAmt').textContent='₹'+totalSavings.toLocaleString('en-IN');
+    // 2026-09-18, per Shruti — "total should be shown as the actual total
+    // 26500, strike it to 24000 with a preapplied coupon." The struck
+    // figure is payv+totalSavings (i.e. what Total would read with no
+    // discount at all — same fee/packaging/tag add-ons, just undiscounted),
+    // not the bare mrp, so it lines up with rvTotal2 which already
+    // includes those add-ons.
+    document.getElementById('rvTotalOrig').style.display='inline';
+    document.getElementById('rvTotalOrig').textContent='₹'+(payv+totalSavings).toLocaleString('en-IN');
+  }else{
+    document.getElementById('rvDiscRow').style.display='none';
+    document.getElementById('rvTotalOrig').style.display='none';
+  }
+  document.getElementById('rvTotal2').textContent='₹'+payv.toLocaleString('en-IN');
   document.getElementById('rvAdv').textContent='₹'+advv.toLocaleString('en-IN');
 }
 // Remove a single selection directly from the Review page without having to
@@ -5264,6 +5280,7 @@ function updCoAmt(){
   // Discount always equals the rest of the breakdown, and nothing is hidden.
   const mrp=trueMRP();const totalSavings=mrp-tpv;
   document.getElementById('co-gt').textContent='₹'+mrp.toLocaleString('en-IN');
+  document.getElementById('co-gt').classList.toggle('rv-strike',totalSavings>0);
   if(totalSavings>0){document.getElementById('co-dr').style.display='flex';document.getElementById('co-disc').textContent='-₹'+totalSavings.toLocaleString('en-IN')+(dpv>0?' ('+dpv+'%)':'');}
   else document.getElementById('co-dr').style.display='none';
   const freebieNames=unlockedFreebieNames(gt);
