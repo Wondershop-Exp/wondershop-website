@@ -125,9 +125,12 @@ button{cursor:pointer;font-family:var(--fb)}
    in filename order. The source photos are already self-captioned
    (bio/education/family baked into the graphic), so the on-page copy
    is kept to just name, role, and social links. (2026-08-16, per Shruti) */
-.founders-duo{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:20px;max-width:840px;margin-left:auto;margin-right:auto}
-@media(max-width:800px){.founders-duo{grid-template-columns:1fr;gap:24px;max-width:360px}}
-.founder-col{display:flex;flex-direction:column;align-items:center}
+/* Stacked one after another, not side by side — two carousels crossfading
+   in the same eyeline at once read as visually busy/distracting (2026-09-18
+   per Shruti). Each founder now gets a full section of their own, run
+   sequentially down the page. */
+.founders-duo{display:flex;flex-direction:column;align-items:center;gap:56px;margin-top:20px;max-width:420px;margin-left:auto;margin-right:auto}
+.founder-col{display:flex;flex-direction:column;align-items:center;width:100%}
 .founder-carousel{position:relative;width:100%;max-width:390px;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:var(--li2);box-shadow:0 6px 20px rgba(0,0,0,.1)}
 .founder-carousel img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1s ease}
 .founder-carousel img.active{opacity:1}
@@ -396,7 +399,7 @@ button{cursor:pointer;font-family:var(--fb)}
       <a href="builder.html?lead=1" class="btn-owh">📞 Call Me to Plan</a>
       <a href="https://wa.me/919742240477" target="_blank" class="btn-owh">💬 WhatsApp Us</a>
     </div>
-    <div style="margin-top:28px;font-size:13px;color:rgba(255,255,255,.6)">contact@wondershopexperiences.com &nbsp;·&nbsp; Godrej Platinum, Vikhroli East, Mumbai</div>
+    <div style="margin-top:28px;font-size:13px;color:rgba(255,255,255,.6)">contact@wondershopexperiences.com &nbsp;·&nbsp; 409, Ajmera Sikova, Ghatkopar West, Mumbai – 400086</div>
   </div>
 </section>
 
