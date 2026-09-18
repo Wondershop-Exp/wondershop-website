@@ -1799,7 +1799,12 @@ const STD=[
   {id:'std4',n:'3 Flex + Arch',e:'🌟',img:'std-flex3',bg:'linear-gradient(135deg,#EDE6FA,#FAFAFA)',p:9000,d:'3 printed flex panels + arch · Grand setup · 4 hrs'}
 ];
 // actPrice: r1=<12 kids, r2=13-25 kids, r3=>25 kids. flat=true → rate is total, false → rate × kids
-function actPrice(a,kids){const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;}
+function actPrice(a,kids){
+  // Nail Art Station (a21) — banded flat total, 2026-09-18 per Shruti:
+  // Rs.3,500 up to 30 kids, Rs.4,500 up to 50, Rs.5,000 above 50.
+  if(a.id==='a21')return kids<=30?3500:kids<=50?4500:5000;
+  const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;
+}
 const ACTS=[
   // ── Art (per child) ──
   {id:'a1',n:'Canvas Painting',e:'🖼️',img:'act-art',cat:'art',age:'4-12',dur:'45 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'pop',pers:true,rating:4.8,cnt:95},
@@ -1814,17 +1819,17 @@ const ACTS=[
   {id:'a9',n:'Cap Decoration',e:'🧢',img:'act-diy',cat:'craft',age:'5-12',dur:'45 min',req:'Tables & chairs',r1:600,r2:600,r3:600,flat:false,bgs:['linear-gradient(135deg,#F2D147,#F57A1A)','linear-gradient(135deg,#F57A1A,#E65A96)'],tag:'pop',pers:true,rating:4.9,cnt:120},
   {id:'a10',n:'Soft Toy Making',e:'🧸',img:'act-diy',cat:'craft',age:'4-10',dur:'60 min',req:'Tables & chairs',r1:1000,r2:950,r3:900,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#EDE6FA)','linear-gradient(135deg,#EDE6FA,#B59DDE)'],tag:'rec',pers:true,rating:4.9,cnt:90},
   {id:'a11',n:'Jacket Decoration',e:'🧥',img:'act-diy',cat:'craft',age:'7-12',dur:'60 min',req:'Tables & chairs',r1:1150,r2:1100,r3:1050,flat:false,bgs:['linear-gradient(135deg,#374151,#6B7280)','linear-gradient(135deg,#6B7280,#B59DDE)'],tag:'trend',pers:true,rating:4.8,cnt:45},
-  {id:'a12',n:'Dreamcatcher',e:'🌙',img:'act-diy',cat:'craft',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:350,r2:350,r3:350,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)','linear-gradient(135deg,#BCD8E8,#B59DDE)'],tag:'',pers:true,rating:4.7,cnt:35},
-  {id:'a13',n:'DIY Clock',e:'⏰',img:'act-diy',cat:'craft',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#F2D147,#B7E0B8)','linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:40},
+  {id:'a12',n:'Dreamcatcher',e:'🌙',img:'act-diy',cat:'craft',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:850,r2:850,r3:850,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#BCD8E8)','linear-gradient(135deg,#BCD8E8,#B59DDE)'],tag:'',pers:true,rating:4.7,cnt:35},
+  {id:'a13',n:'DIY Clock',e:'⏰',img:'act-diy',cat:'craft',age:'6-12',dur:'60 min',req:'Tables & chairs',r1:950,r2:950,r3:950,flat:false,bgs:['linear-gradient(135deg,#F2D147,#B7E0B8)','linear-gradient(135deg,#B7E0B8,#52C470)'],tag:'',pers:true,rating:4.6,cnt:40},
   {id:'a14',n:'Journaling',e:'📔',img:'act-yoga',cat:'craft',age:'7-12',dur:'45 min',req:'Tables & chairs',r1:850,r2:850,r3:850,flat:false,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)','linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:true,rating:4.6,cnt:25},
   // ── Experiences (flat rate) ──
   {id:'a15',n:'Tattoo Station',e:'🖊️',img:'act-mystery',cat:'experience',age:'5-12',dur:'Up to 3 hrs',req:'Any space',r1:2500,r2:2500,r3:2500,flat:true,bgs:['linear-gradient(135deg,#374151,#6B7280)'],tag:'pop',pers:false,rating:4.8,cnt:75},
   {id:'a16',n:'Mini Art Station',e:'🖌️',img:'act-art',cat:'experience',age:'4-12',dur:'Session',req:'Tables & chairs',r1:3500,r2:4000,r3:5000,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'',pers:false,rating:4.7,cnt:50},
   {id:'a17',n:'Mascot Visit',e:'🦸',img:'act-immersive',cat:'experience',age:'3-12',dur:'2 hrs',req:'Any space',r1:4000,r2:4000,r3:4000,flat:true,bgs:['linear-gradient(135deg,#E65A96,#F57A1A)','linear-gradient(135deg,#F57A1A,#F2D147)'],tag:'pop',pers:false,rating:4.9,cnt:60},
-  {id:'a18',n:'Pottery Station',e:'🏺',img:'act-science',cat:'experience',age:'5-12',dur:'3 hrs',req:'Tables & aprons',r1:5000,r2:5000,r3:5000,flat:true,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)','linear-gradient(135deg,#52C470,#BCD8E8)'],tag:'new',pers:false,rating:4.7,cnt:30},
+  {id:'a18',n:'Pottery Station',e:'🏺',img:'act-science',cat:'experience',age:'5-12',dur:'3 hrs',req:'Tables & aprons',r1:6000,r2:6000,r3:6000,flat:true,bgs:['linear-gradient(135deg,#B7E0B8,#52C470)','linear-gradient(135deg,#52C470,#BCD8E8)'],tag:'new',pers:false,rating:4.7,cnt:30},
   {id:'a19',n:'Storytelling',e:'📖',img:'act-magic',cat:'experience',age:'3-10',dur:'Up to 2 hrs',req:'Seated space',r1:11000,r2:12500,r3:15000,flat:true,bgs:['linear-gradient(135deg,#191919,#374151)','linear-gradient(135deg,#B59DDE,#EDE6FA)'],tag:'rec',pers:false,rating:4.9,cnt:85},
   {id:'a20',n:'Makeover Station',e:'💅',img:'act-dance',cat:'experience',age:'6-12',dur:'3 hrs',req:'Any space',r1:6000,r2:6500,r3:7000,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#E65A96,#B59DDE)'],tag:'trend',pers:false,rating:4.8,cnt:55},
-  {id:'a21',n:'Nail Art Station',e:'💅',img:'act-dance',cat:'experience',age:'6-12',dur:'3 hrs',req:'Any space',r1:3500,r2:3500,r3:3500,flat:true,bgs:['linear-gradient(135deg,#EDE6FA,#F5C3D7)'],tag:'',pers:false,rating:4.7,cnt:40}
+  {id:'a21',n:'Nail Art Station',e:'💅',img:'act-dance',cat:'experience',age:'6-12',dur:'3 hrs',req:'Any space',r1:3500,r2:3500,r3:3500,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#F5C3D7)'],tag:'',pers:false,rating:4.7,cnt:40}
 ];
 const PINATAS=[
   {id:'p1',n:'Dinosaur',e:'🦕',img:'pin-dino',d:'2ft × 1ft × 1.5ft',p:2000,bg:'linear-gradient(135deg,#B7E0B8,#F7F296)'},
@@ -2042,7 +2047,7 @@ function renderActs(list){
     const persHtml=a.pers?'<span class="tag" style="background:#F0FDF4;color:#1a6630">✦ Take-home</span>':'';
     const flatTag=a.flat?'<span class="tag" style="background:#FEF9C3;color:#92400E">Flat rate</span>':'';
     const starsHtml='<div class="rating-row"><span class="star">★</span><span style="font-size:10px;font-weight:700;color:var(--bk)">'+a.rating+'</span><span class="rating-cnt">('+a.cnt+' events)</span></div>';
-    const priceNote=a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child';
+    const priceNote=a.id==='a21'?('for '+k+' kids · scales with headcount'):a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child';
     w.innerHTML+='<div class="pcard" id="ac-'+a.id+'"><div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center top" loading="lazy" alt="'+a.n+'"></div><div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span><span class="tag">Ages '+a.age+'</span>'+persHtml+'</div>'+starsHtml+'<div class="card-detail">📍 '+a.req+'</div><div class="card-pr-row"><div><div class="card-price">₹'+tot.toLocaleString('en-IN')+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
   });
 }
