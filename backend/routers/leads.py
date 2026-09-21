@@ -40,7 +40,8 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Live site — used to build absolute links (T&C) and inline email images.
-SITE_BASE_URL = "https://wondershop-exp.github.io/wondershop-website"
+# Custom domain live 2026-09-21 (was https://wondershop-exp.github.io/wondershop-website).
+SITE_BASE_URL = "https://www.wondershopexperiences.com"
 MASCOT_URL    = f"{SITE_BASE_URL}/img/icons/icon-mascot.png"
 LOGO_URL      = f"{SITE_BASE_URL}/logo-horizontal.png"
 TERMS_URL     = f"{SITE_BASE_URL}/terms.html"

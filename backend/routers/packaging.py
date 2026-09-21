@@ -79,6 +79,9 @@ class ListCreateIn(BaseModel):
     title: str
     lead_id: Optional[int] = None
     event_lead: Optional[str] = None
+    event_date: Optional[str] = None
+    event_time: Optional[str] = None
+    venue: Optional[str] = None
     sections: List[SectionIn] = []
     created_by: Optional[str] = None
 
@@ -86,6 +89,9 @@ class ListCreateIn(BaseModel):
 class ListMetaIn(BaseModel):
     title: Optional[str] = None
     event_lead: Optional[str] = None
+    event_date: Optional[str] = None
+    event_time: Optional[str] = None
+    venue: Optional[str] = None
 
 
 class ListContentIn(BaseModel):
@@ -233,9 +239,10 @@ async def create_list(body: ListCreateIn, x_admin_password: Optional[str] = Head
         raise HTTPException(status_code=400, detail="Title is required.")
     token = secrets.token_urlsafe(18)
     list_id = await database.execute(
-        """INSERT INTO packaging_lists (lead_id, title, event_lead, share_token, created_by)
-           VALUES (:lead_id, :title, :event_lead, :token, :created_by) RETURNING id""",
+        """INSERT INTO packaging_lists (lead_id, title, event_lead, event_date, event_time, venue, share_token, created_by)
+           VALUES (:lead_id, :title, :event_lead, :event_date, :event_time, :venue, :token, :created_by) RETURNING id""",
         values={"lead_id": body.lead_id, "title": body.title.strip(), "event_lead": body.event_lead,
+                "event_date": body.event_date, "event_time": body.event_time, "venue": body.venue,
                 "token": token, "created_by": body.created_by},
     )
     await _write_sections(list_id, body.sections, merge=False)
@@ -262,6 +269,12 @@ async def update_list_meta(list_id: int, body: ListMetaIn, x_admin_password: Opt
         sets.append("title = :title"); values["title"] = body.title.strip()
     if body.event_lead is not None:
         sets.append("event_lead = :event_lead"); values["event_lead"] = body.event_lead
+    if body.event_date is not None:
+        sets.append("event_date = :event_date"); values["event_date"] = body.event_date
+    if body.event_time is not None:
+        sets.append("event_time = :event_time"); values["event_time"] = body.event_time
+    if body.venue is not None:
+        sets.append("venue = :venue"); values["venue"] = body.venue
     if sets:
         sets.append("updated_at = NOW()")
         await database.execute(f"UPDATE packaging_lists SET {', '.join(sets)} WHERE id = :id", values=values)
@@ -407,14 +420,20 @@ async def set_pack_item_remark(share_token: str, item_id: int, body: RemarkIn):
 # reuses the same Gmail credentials + EMAIL_TEAM every other notification
 # in this app already sends through). Swapping back to WhatsApp later is a
 # small change: see _send_whatsapp()'s AiSensy setup steps in leads.py.
-async def _notify_packing_submitted(lst_id: int, title: str, share_token: str, submitted_by: str, submitted_at_ist: Optional[str]) -> None:
+async def _notify_packing_submitted(lst_id: int, title: str, share_token: str, submitted_by: str, submitted_at_ist: Optional[str],
+                                     event_date: Optional[str] = None, event_time: Optional[str] = None, venue: Optional[str] = None) -> None:
     if not settings.GMAIL_CLIENT_ID:
         logger.warning(f"Packing list #{lst_id}: GMAIL credentials not configured — skipping submit email")
         return
     try:
         list_title = title or "Packing list"
         link = f"{SITE_BASE_URL}/pack.html?t={share_token}"
-        subject = f"✅ Ready to load — {list_title}"
+        # "Ready to load — sg's Party, 12Sep 11am Andheri" — date/time/venue
+        # are each optional (a list may not have them filled in yet), so the
+        # trailing ", ..." bit is only added when at least one is present.
+        detail_bits = [b for b in [event_date, event_time, venue] if b and b.strip()]
+        detail_suffix = f", {' '.join(b.strip() for b in detail_bits)}" if detail_bits else ""
+        subject = f"Ready to load — {list_title}{detail_suffix}"
         body = f"""{list_title} has been fully packed and is ready to load.
 
 Packed by : {submitted_by}
@@ -469,5 +488,6 @@ async def submit_pack_list(share_token: str, body: SubmitIn):
     )
     updated = await database.fetch_one("SELECT * FROM packaging_lists WHERE id = :id", values={"id": lst["id"]})
     result = await _hydrate(updated)
-    await _notify_packing_submitted(lst["id"], updated["title"], updated["share_token"], by, result.get("submitted_at"))
+    await _notify_packing_submitted(lst["id"], updated["title"], updated["share_token"], by, result.get("submitted_at"),
+                                     event_date=updated["event_date"], event_time=updated["event_time"], venue=updated["venue"])
     return result
