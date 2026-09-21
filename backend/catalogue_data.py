@@ -14,7 +14,7 @@ the change here too. Last synced: 2026-08-12.
 import re
 from typing import Optional
 
-SITE_BASE_URL = "https://wondershop-exp.github.io/wondershop-website"
+SITE_BASE_URL = "https://www.wondershopexperiences.com"
 
 # ─── Decor ──────────────────────────────────────────────────────────────
 

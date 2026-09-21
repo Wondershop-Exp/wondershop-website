@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from config import settings
+from security import security_middleware
 from database import connect_db, disconnect_db
 from routers import catalogue, cart, leads, config, admin, instagram, packaging, vendors, dashboard, sales_leads, vendor_onboarding
 
@@ -26,8 +27,16 @@ app = FastAPI(
     title="Wondershop Experiences API",
     description="Build a Birthday platform — source of truth: WS_DataDictionary_v1.docx",
     version="2.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url="/docs" if settings.ENABLE_API_DOCS else None,
+    redoc_url="/redoc" if settings.ENABLE_API_DOCS else None,
+    openapi_url="/openapi.json" if settings.ENABLE_API_DOCS else None,
 )
+
+# Added BEFORE the CORS middleware on purpose: the last middleware added is the
+# outermost one, and CORS must wrap everything so that our 429/413 replies still
+# carry CORS headers (otherwise the browser hides the message from the page).
+app.middleware("http")(security_middleware)
 
 app.add_middleware(
     CORSMiddleware,

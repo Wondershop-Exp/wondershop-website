@@ -227,7 +227,7 @@ async def fetch_order_form_images(data: dict) -> dict:
         # fixes e-invite thumbnails 404ing in the order form).
         url = f"{SITE_BASE_URL}/{urllib.parse.quote(path)}"
         try:
-            async with httpx.AsyncClient(timeout=8) as client:
+            async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
                 r = await client.get(url)
             if r.status_code == 200:
                 return key, r.content

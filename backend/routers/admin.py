@@ -41,6 +41,7 @@ Google Sheet row, and do NOT recalculate real pricing/payment totals — this
 page is a team-facing record-keeping + assignment tool on top of the
 booking, not a re-trigger of the customer-facing flow.
 """
+import hmac
 import json
 import logging
 import re
@@ -73,7 +74,9 @@ IST_OFFSET = timedelta(hours=5, minutes=30)
 def _require_admin(x_admin_password: Optional[str] = Header(None)):
     if not settings.ADMIN_PASSWORD:
         raise HTTPException(status_code=503, detail="Admin page is not configured (ADMIN_PASSWORD not set).")
-    if not x_admin_password or x_admin_password != settings.ADMIN_PASSWORD:
+    # Constant-time compare (a plain != leaks how many leading characters matched).
+    if not x_admin_password or not hmac.compare_digest(
+            x_admin_password.encode("utf-8"), settings.ADMIN_PASSWORD.encode("utf-8")):
         raise HTTPException(status_code=401, detail="Incorrect admin password.")
 
 

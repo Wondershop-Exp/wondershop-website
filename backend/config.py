@@ -6,6 +6,9 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     SECRET_KEY: str = "dev-secret-change-in-prod"
     ALLOWED_ORIGINS: str = "http://localhost:3000"
+    # Interactive API docs (/docs, /redoc, /openapi.json) list every endpoint, so
+    # they are OFF by default. Set ENABLE_API_DOCS=true locally if you need them.
+    ENABLE_API_DOCS: bool = False
 
     GMAIL_CLIENT_ID: str = ""
     GMAIL_CLIENT_SECRET: str = ""

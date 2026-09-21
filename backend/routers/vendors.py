@@ -28,6 +28,7 @@ fetched raw, once, only by the dedicated download endpoint at the bottom)
 — both to keep the list/detail responses light and because raw bytes
 can't serialize into JSON anyway.
 """
+import re
 import logging
 from typing import Optional
 
@@ -154,12 +155,21 @@ async def get_vendor_cancelled_cheque(vendor_id: int, x_admin_password: Optional
     )
     if not row or not row["cancelled_cheque_file"]:
         raise HTTPException(status_code=404, detail="No file on file for this vendor.")
-    filename = row["cancelled_cheque_filename"] or "cancelled-cheque"
-    content_type = row["cancelled_cheque_content_type"] or "application/octet-stream"
+    # Never echo an unexpected type back: anything other than a known image/PDF is
+    # served as a plain download, and the filename is stripped to safe characters.
+    safe_types = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
+    stored_type = row["cancelled_cheque_content_type"]
+    content_type = stored_type if stored_type in safe_types else "application/octet-stream"
+    disposition = "inline" if content_type in safe_types else "attachment"
+    filename = re.sub(r"[^A-Za-z0-9._ -]", "_", row["cancelled_cheque_filename"] or "cancelled-cheque").strip(" .")[:100] or "cancelled-cheque"
     return Response(
         content=bytes(row["cancelled_cheque_file"]),
         media_type=content_type,
-        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        headers={
+            "Content-Disposition": f'{disposition}; filename="{filename}"',
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store",
+        },
     )
 
 

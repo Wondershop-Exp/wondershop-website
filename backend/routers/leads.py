@@ -2328,20 +2328,6 @@ async def redeem_service_now(req: RedeemServiceRequest):
     return {"success": True, "message": f"{label} added to your booking!"}
 
 
-@router.get("/status/{lead_id}")
-async def get_lead_status(lead_id: int):
-    """Current lead status — for internal dashboard use."""
-    row = await database.fetch_one(
-        """
-        SELECT lead_id, parent_name, phone, event_date, status,
-               lead_source, converted_on, order_id
-        FROM leads WHERE lead_id = :id
-        """,
-        values={"id": lead_id},
-    )
-    return dict(row) if row else {}
-
-
 @router.post("/abandoned-cart")
 async def report_abandoned_cart(req: AbandonedCartRequest):
     """
