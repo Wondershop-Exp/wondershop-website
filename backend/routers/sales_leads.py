@@ -385,6 +385,70 @@ def _estimate_total(requirements: dict, activities: list, kids_count: Optional[i
     return round(total, 2)
 
 
+# ─── "completely blank" leads (2026-09-21, per Shruti) ───────────────────────
+# "+ Register a lead" creates the row straight away, so a stray click leaves an
+# empty lead behind. A lead may be deleted ONLY while nothing at all has been
+# filled in — the check runs on the server, so a real lead can never be removed
+# through this, whatever the page says.
+
+def _has_content(v) -> bool:
+    """True if a value holds anything a person could have entered. Numbers count
+    (a typed 0 is still an entry) — callers that store a computed 0 (e.g.
+    client_budget, which _full_detail keeps mirrored to the running estimate)
+    handle that themselves."""
+    if v is None or v is False:
+        return False
+    if isinstance(v, str):
+        return v.strip() != ""
+    if isinstance(v, dict):
+        return any(_has_content(x) for x in v.values())
+    if isinstance(v, (list, tuple)):
+        return any(_has_content(x) for x in v)
+    return True
+
+
+def _json_val(v):
+    if isinstance(v, (str, bytes)):
+        try:
+            return json.loads(v)
+        except ValueError:
+            return v
+    return v
+
+
+def _is_blank_sheet(lead, pb) -> bool:
+    lead, pb = dict(lead or {}), dict(pb or {})
+    if not lead or not pb:
+        return False
+    if lead.get("is_booking") or lead.get("status") != "New":
+        return False
+    name = (lead.get("parent_name") or "").strip()
+    if name and name != "New Sales Lead":
+        return False
+    # every field a salesperson can type into on the leads side
+    for col in ("phone", "child_names", "child_ages", "child_genders", "event_date", "event_time",
+                "venue", "theme", "kids_count", "event_sales_lead", "payment_method",
+                "non_convert_reason", "non_convert_reason_other", "order_id", "converted_on"):
+        if _has_content(lead.get(col)):
+            return False
+    # money columns: the page keeps client_budget mirrored to the running estimate
+    # (0 when nothing is picked), so only a NON-zero amount counts as content.
+    for col in ("client_budget", "order_advance"):
+        v = lead.get(col)
+        if v is not None and float(v) != 0:
+            return False
+    # …and on the playbook side
+    if pb.get("playbook_stage") != "sales_intake" or pb.get("sent_to_ops_by") or pb.get("ops_ready_by"):
+        return False
+    for col in PLAYBOOK_SCALAR_FIELDS:
+        if _has_content(pb.get(col)):
+            return False
+    for col in ("requirements", "activities", "new_activity_suggestions", "event_schedule"):
+        if _has_content(_json_val(pb.get(col))):
+            return False
+    return True
+
+
 async def _full_detail(lead_row) -> dict:
     lead = dict(lead_row)
     pb_row = await database.fetch_one("SELECT * FROM lead_sales_playbook WHERE lead_id = :id", values={"id": lead["lead_id"]})
@@ -447,6 +511,7 @@ async def _full_detail(lead_row) -> dict:
         "sales_lead_name": lead.get("event_sales_lead"),
         "status": lead.get("status"),
         "is_booking": bool(lead.get("is_booking")),
+        "is_blank": _is_blank_sheet(lead, pb),
         "non_convert_reason": lead.get("non_convert_reason"),
         "non_convert_reason_other": lead.get("non_convert_reason_other"),
         "client_budget": float(lead["client_budget"]) if lead.get("client_budget") is not None else None,
@@ -515,6 +580,18 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
             ORDER BY p.updated_at DESC LIMIT 300""",
         values=values,
     )
+    # Cheap pre-filter on what the list query already has, then the full check
+    # on those few rows only.
+    cand = [r["lead_id"] for r in rows
+            if not r["is_booking"] and r["status"] == "New" and r["playbook_stage"] == "sales_intake"
+            and not (r["phone"] or "").strip() and not r["event_date"]
+            and (r["parent_name"] or "").strip() in ("", "New Sales Lead")]
+    blank_ids = set()
+    if cand:
+        lrows = await database.fetch_all("SELECT * FROM leads WHERE lead_id = ANY(:ids)", values={"ids": cand})
+        prows = await database.fetch_all("SELECT * FROM lead_sales_playbook WHERE lead_id = ANY(:ids)", values={"ids": cand})
+        pmap = {p["lead_id"]: p for p in prows}
+        blank_ids = {l["lead_id"] for l in lrows if _is_blank_sheet(l, pmap.get(l["lead_id"]))}
     out = []
     for r in rows:
         d = dict(r)
@@ -528,6 +605,7 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
             "child_gender": d["child_genders"],
             "event_date": str(d["event_date"]) if d["event_date"] else None,
             "is_booking": bool(d["is_booking"]),
+            "is_blank": d["lead_id"] in blank_ids,
             "status": d["status"],
             "playbook_stage": d["playbook_stage"],
             "created_by": d["created_by"],
@@ -600,6 +678,35 @@ async def get_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
     _require_admin(x_admin_password)
     lead_row = await _get_lead_row(lead_id)
     return await _full_detail(lead_row)
+
+
+class DeleteBlankIn(BaseModel):
+    updated_by: str = ""
+
+
+@router.post("/admin/sales-leads/{lead_id}/delete-blank")
+async def delete_blank_sheet(lead_id: int, body: DeleteBlankIn, x_admin_password: Optional[str] = Header(None)):
+    """Removes a lead that was registered by mistake — refuses (409) unless it is
+    still completely blank. Nothing else can be deleted through this."""
+    _require_admin(x_admin_password)
+    lead_row = await _get_lead_row(lead_id)
+    pb_row = await _get_playbook_row(lead_id)
+    if not _is_blank_sheet(lead_row, pb_row):
+        raise HTTPException(
+            status_code=409,
+            detail="This lead has details filled in, so it can't be deleted here. "
+                   "Set its status to Not Interested instead if you no longer need it.",
+        )
+    try:
+        async with database.transaction():
+            # the edit-trail rows go with the playbook (ON DELETE CASCADE)
+            await database.execute("DELETE FROM lead_sales_playbook WHERE lead_id = :id", values={"id": lead_id})
+            await database.execute("DELETE FROM leads WHERE lead_id = :id AND lead_origin = 'sales_module'", values={"id": lead_id})
+    except Exception as exc:  # something else still points at this lead — leave everything as it was
+        logger.warning(f"Blank sales lead {lead_id} could not be deleted: {exc}")
+        raise HTTPException(status_code=409, detail="This lead is linked to other records, so it can't be deleted.")
+    logger.info(f"Blank sales lead #{lead_id} deleted by {(body.updated_by or 'someone').strip() or 'someone'}")
+    return {"ok": True, "lead_id": lead_id}
 
 
 # ─── update ──────────────────────────────────────────────────────────────

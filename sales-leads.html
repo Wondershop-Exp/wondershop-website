@@ -57,6 +57,14 @@ a{color:var(--bl)}
 .btn.gh{background:#fff;border:1px solid var(--li2);color:var(--bk)}
 .btn.sm{padding:6px 12px;font-size:12px;border-radius:8px}
 .btn:disabled{opacity:.5;cursor:default}
+/* 2026-09-21, per Shruti: "+ Register a lead" straight away creates a lead, so an
+   accidental click left an empty lead behind — it now asks first. */
+.confirm-back{position:fixed;inset:0;z-index:900;background:rgba(25,25,25,.45);display:none;align-items:center;justify-content:center;padding:16px}
+.confirm-back.show{display:flex}
+.confirm-card{background:#fff;border-radius:var(--r);padding:26px 26px 22px;width:100%;max-width:380px;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+.confirm-card h2{font-size:19px;margin:0 0 8px}
+.confirm-card p{color:var(--gy);font-size:14px;line-height:1.45;margin:0 0 20px}
+.confirm-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 
 .searchbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
 .searchbar input{flex:1;min-width:180px;padding:12px 14px;border:1px solid var(--li2);border-radius:var(--rs);font-size:15px}
@@ -261,6 +269,26 @@ th.th-sort:hover{color:var(--pk)}
   </div>
 </div>
 
+<div class="confirm-back" id="newLeadConfirm" onclick="if(event.target===this)closeNewLeadConfirm()">
+  <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="ncTitle">
+    <h2 id="ncTitle">Register a new lead?</h2>
+    <p>This adds a new, blank lead to the list. Clicked by mistake? Just go back &mdash; nothing will be created.</p>
+    <div class="confirm-actions">
+      <button class="btn gh" id="newLeadCancel" onclick="closeNewLeadConfirm()">Go back</button>
+      <button class="btn pk" id="newLeadYes" onclick="confirmNewLead()">Yes, register lead</button>
+    </div>
+  </div>
+</div>
+<div class="confirm-back" id="deleteLeadConfirm" onclick="if(event.target===this)closeDeleteLead()">
+  <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="dlTitle">
+    <h2 id="dlTitle">Delete this blank lead?</h2>
+    <p id="dlText">This lead has nothing filled in. It will be removed for good.</p>
+    <div class="confirm-actions">
+      <button class="btn gh" id="deleteLeadKeep" onclick="closeDeleteLead()">Keep it</button>
+      <button class="btn pk" id="deleteLeadYes" onclick="confirmDeleteLead()">Yes, delete</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -468,13 +496,29 @@ function renderListRows(){
       +'<td>'+fmtTs(r.updated_at_ts)+'</td>'
       +'<td>'+stagePill+suggPill+'</td>'
       +'<td>'+statusCellHtml(r)+'</td>'
-      +'<td><a href="#" onclick="event.stopPropagation();window.open(\'sales-lead-print.html?lead_id=\'+'+r.lead_id+',\'_blank\')" class="linkbtn">Print</a></td>'
+      +'<td><a href="#" onclick="event.stopPropagation();window.open(\'sales-lead-print.html?lead_id=\'+'+r.lead_id+',\'_blank\')" class="linkbtn">Print</a>'
+        +(r.is_blank ? ' <a href="#" onclick="event.stopPropagation();askDeleteLead('+r.lead_id+');return false" class="linkbtn" style="color:#B42318;margin-left:8px">Delete</a>' : '')+'</td>'
       +'</tr>';
   }).join('');
   updateSortHeaders();
 }
 
-async function startNewLead(){
+// "+ Register a lead" only opens this question — the lead is created when
+// (and only when) "Yes, register lead" is pressed. "Go back", Esc, or a click
+// outside the box all leave everything untouched. Focus starts on "Go back"
+// so a stray Enter/Space can't create a lead either.
+function startNewLead(){
+  document.getElementById('newLeadConfirm').classList.add('show');
+  document.getElementById('newLeadCancel').focus();
+}
+function closeNewLeadConfirm(){
+  document.getElementById('newLeadConfirm').classList.remove('show');
+}
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape'){ closeNewLeadConfirm(); closeDeleteLead(); }
+});
+async function confirmNewLead(){
+  closeNewLeadConfirm();
   const btn = document.getElementById('newLeadBtn');
   btn.disabled = true;
   try{
@@ -485,6 +529,34 @@ async function startNewLead(){
     showToast(e.message);
   }finally{
     btn.disabled = false;
+  }
+}
+
+// Delete a lead that is still completely blank (registered by mistake). The
+// server re-checks and refuses (409) if anything has been filled in.
+let DELETE_LEAD_ID = null;
+function askDeleteLead(id){
+  DELETE_LEAD_ID = id;
+  document.getElementById('dlText').textContent = 'Lead #'+id+' has nothing filled in. It will be removed for good.';
+  document.getElementById('deleteLeadConfirm').classList.add('show');
+  document.getElementById('deleteLeadKeep').focus();
+}
+function closeDeleteLead(){
+  document.getElementById('deleteLeadConfirm').classList.remove('show');
+  DELETE_LEAD_ID = null;
+}
+async function confirmDeleteLead(){
+  const id = DELETE_LEAD_ID;
+  document.getElementById('deleteLeadConfirm').classList.remove('show');
+  DELETE_LEAD_ID = null;
+  if(id===null) return;
+  try{
+    await apiCall('/api/admin/sales-leads/'+id+'/delete-blank', {method:'POST', body: JSON.stringify({updated_by: getName() || 'Admin'})});
+    showToast('Blank lead deleted.');
+    if(CURRENT_ID===id){ backToList(); } else { doSearch(); }
+  }catch(e){
+    showToast(e.message);
+    if(CURRENT_ID===null) doSearch();
   }
 }
 
@@ -610,6 +682,7 @@ function renderDetail(){
       +'<div><h1 style="font-size:19px">'+esc(DATA.client_name||'New Lead')+' <span style="font-size:13px;font-weight:400;color:var(--gy)">#'+DATA.lead_id+'</span></h1>'
         +'<div style="font-size:12px;color:var(--gy);margin-top:4px">Created by '+esc(DATA.created_by||'—')+' · '+esc(DATA.created_at||'')+'</div></div>'
       +'<div style="display:flex;gap:8px;align-items:center">'+stagePill
+        +(DATA.is_blank ? '<button type="button" class="btn sm gh" id="discardLeadBtn" style="color:#B42318" onclick="askDeleteLead('+DATA.lead_id+')">🗑 Delete blank lead</button>' : '')
         +'<a class="btn sm gh" href="sales-lead-print.html?lead_id='+DATA.lead_id+'" target="_blank" style="text-decoration:none;display:inline-block">🖨 Print playbook</a></div>'
     +'</div>'
     + sectionStatus()
