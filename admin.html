@@ -443,6 +443,28 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
   .bd-bar-in{justify-content:space-between;gap:6px 14px}
   .bd-bar .m .v{font-size:17px}
 }
+
+/* ─── Collapsible sections (2026-09-21, per Shruti — "make the sections
+   collapsible, so that we can reduce the scroll"; same behaviour on admin.html's
+   booking page and sales-leads.html). Click a section heading to fold it. ─── */
+.sec-toggle{cursor:pointer;user-select:none;-webkit-user-select:none}
+.sec-toggle:focus-visible{outline:2px solid var(--plum);outline-offset:-2px;border-radius:8px}
+.sec-title{min-width:0;flex:0 1 auto}
+.sec-chev{margin-left:auto;flex:0 0 auto;width:9px;height:9px;border-right:2px solid var(--gy);border-bottom:2px solid var(--gy);transform:rotate(45deg) translate(-2px,-2px);transition:transform .15s,border-color .15s}
+.sec-toggle:hover .sec-chev{border-color:var(--pk)}
+.sec-collapsed .sec-chev{transform:rotate(-45deg)}
+.sec-collapsed > .sec-body{display:none}
+.sec-badge{display:none;flex:0 0 auto;background:#FFF4E8;border:1px solid #FCE0BE;color:#B5620A;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;letter-spacing:0;text-transform:none}
+.sec-collapsed .sec-badge:not(:empty){display:inline-block}
+.sec-tools{display:flex;justify-content:flex-end;margin:-6px 0 12px}
+.sec-all{background:none;border:none;color:var(--gy);font-size:12.5px;font-weight:600;padding:4px 2px;text-decoration:underline;text-underline-offset:3px}
+.sec-all:hover{color:var(--plum)}
+.sec-all:focus-visible{outline:2px solid var(--plum);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){.sec-chev{transition:none}}
+.section-block.sec-collapsed h3{padding-bottom:20px}
+.log-section h3{display:flex;align-items:center;gap:8px}
+.log-section.sec-collapsed h3{margin-bottom:0}
+.bd-nav .sec-all{flex:0 0 auto;margin-left:auto;padding:8px 14px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -1093,6 +1115,7 @@ function renderBookingHead(d){
 function bdJump(ev, id){
   ev.preventDefault();
   const el = document.getElementById(id);
+  if(el && el.classList.contains('sec-collapsed')) secToggle(el);   // jumping to a folded section opens it
   if(el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 function renderBookingNav(d){
@@ -1101,7 +1124,8 @@ function renderBookingNav(d){
   nav.innerHTML = d.sections.map(s => {
     const id = 'sect-'+secId(s.section);
     return '<a href="#'+id+'" onclick="bdJump(event,\''+id+'\')">'+esc(s.section)+'</a>';
-  }).join('') + '<a href="#bdLog" onclick="bdJump(event,\'bdLog\')">Modification trail</a>';
+  }).join('') + '<a href="#bdLog" onclick="bdJump(event,\'bdLog\')">Modification trail</a>'
+    + '<button type="button" class="sec-all" id="secAllBtn" onclick="secToggleAll()">Collapse all</button>';
 }
 
 function renderBookingBar(d){
@@ -1124,6 +1148,12 @@ function updateDirtyCount(){
   const el = document.getElementById('bdUnsaved');
   if(!bar || !el) return;
   const n = document.querySelectorAll('#sectionsContainer tr.dirty').length;
+  // A folded section still holds its unsaved edits — say so on its heading.
+  document.querySelectorAll('#sectionsContainer .section-block').forEach(blk => {
+    const badge = blk.querySelector(':scope > h3 .sec-badge');
+    const c = blk.querySelectorAll('tr.dirty').length;
+    if(badge) badge.textContent = c ? c+' unsaved' : '';
+  });
   el.style.display = n ? 'inline-block' : 'none';
   el.textContent = n+' unsaved change'+(n > 1 ? 's' : '')+' — press Save on each row';
   bar.style.display = (BD_HAS_MONEY || n) ? 'block' : 'none';
@@ -1165,6 +1195,80 @@ function enhanceChips(root){
     sel.classList.add('chipified');
     sel.parentNode.insertBefore(wrap, sel);
   });
+}
+
+// ── Collapsible sections ────────────────────────────────────────────────
+// 2026-09-21, per Shruti — "make the sections collapsible, so that we can
+// reduce the scroll." Applied AFTER each render (secWire) rather than baked
+// into every section's markup, so it works for every card/section that has
+// a top-level <h3> without touching the code that builds them. Which
+// sections are folded is remembered in this browser (localStorage, keyed by
+// heading text) so it survives re-renders and reloads.
+const SEC_KEY = 'ws_admin_collapsed_v1';
+let SEC_COLLAPSED = (function(){
+  try{ return new Set(JSON.parse(localStorage.getItem(SEC_KEY) || '[]')); }catch(e){ return new Set(); }
+})();
+function secSave(){
+  try{ localStorage.setItem(SEC_KEY, JSON.stringify(Array.from(SEC_COLLAPSED))); }catch(e){ /* private mode: just don't remember */ }
+}
+function secApply(card, collapsed){
+  card.classList.toggle('sec-collapsed', collapsed);
+  const h = card.querySelector(':scope > h3');
+  if(h) h.setAttribute('aria-expanded', String(!collapsed));
+}
+function secToggle(card){
+  const collapsed = !card.classList.contains('sec-collapsed');
+  secApply(card, collapsed);
+  if(collapsed) SEC_COLLAPSED.add(card.dataset.secKey); else SEC_COLLAPSED.delete(card.dataset.secKey);
+  secSave();
+  secUpdateAllBtn();
+}
+function secToggleAll(){
+  const cards = Array.prototype.slice.call(document.querySelectorAll('[data-sec-key]'));
+  const collapse = cards.some(c => !c.classList.contains('sec-collapsed'));
+  cards.forEach(c => {
+    secApply(c, collapse);
+    if(collapse) SEC_COLLAPSED.add(c.dataset.secKey); else SEC_COLLAPSED.delete(c.dataset.secKey);
+  });
+  secSave();
+  secUpdateAllBtn();
+}
+function secUpdateAllBtn(){
+  const btn = document.getElementById('secAllBtn');
+  if(!btn) return;
+  const anyOpen = Array.prototype.some.call(document.querySelectorAll('[data-sec-key]'), c => !c.classList.contains('sec-collapsed'));
+  btn.textContent = anyOpen ? 'Collapse all' : 'Expand all';
+}
+function secWire(cards){
+  Array.prototype.forEach.call(cards, card => {
+    const h = card.querySelector(':scope > h3');
+    if(!h || card.dataset.secKey) return;
+    const first = h.firstChild;
+    const key = ((first && first.nodeType === 3) ? first.textContent : h.textContent).trim();
+    card.dataset.secKey = key;
+    const title = document.createElement('span');
+    title.className = 'sec-title';
+    while(h.firstChild) title.appendChild(h.firstChild);
+    const badge = document.createElement('span');
+    badge.className = 'sec-badge';
+    const chev = document.createElement('span');
+    chev.className = 'sec-chev';
+    chev.setAttribute('aria-hidden', 'true');
+    h.appendChild(title); h.appendChild(badge); h.appendChild(chev);
+    const body = document.createElement('div');
+    body.className = 'sec-body';
+    while(h.nextSibling) body.appendChild(h.nextSibling);
+    card.appendChild(body);
+    h.classList.add('sec-toggle');
+    h.tabIndex = 0;
+    h.setAttribute('role', 'button');
+    h.addEventListener('click', e => { if(e.target.closest('a')) return; secToggle(card); });
+    h.addEventListener('keydown', e => {
+      if((e.key === 'Enter' || e.key === ' ') && e.target === h){ e.preventDefault(); secToggle(card); }
+    });
+    secApply(card, SEC_COLLAPSED.has(key));
+  });
+  secUpdateAllBtn();
 }
 
 // ── Monthly overview (Website/Repeat leads auto; Instagram/Carried
@@ -2247,6 +2351,8 @@ function renderDetail(d){
   // a baseline to compare against as the admin types (2026-08-19, per
   // Shruti — "highlight the row wherever the user is changing any value").
   enhanceChips(container);
+  secWire(container.querySelectorAll('.section-block'));
+  secWire([document.getElementById('bdLog')]);
   container.querySelectorAll('tr[id^="fld_"]').forEach(row=>{
     row.classList.remove('dirty');
     row.dataset.initial = rowSnapshot(row.id);
