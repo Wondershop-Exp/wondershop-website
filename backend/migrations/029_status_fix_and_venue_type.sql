@@ -20,6 +20,19 @@
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS non_convert_reason VARCHAR(100);
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS non_convert_reason_other TEXT;
 
+-- Same class of bug, same fix, found the same way (tested directly
+-- against the live API): adding an Activity, suggesting a new activity,
+-- and the "Convert/Save Status" buttons above all failed with the exact
+-- same connection-level crash. `lead_sales_playbook.activities` and
+-- `.new_activity_suggestions` are both in migrations/028's CREATE TABLE —
+-- but that statement is `CREATE TABLE IF NOT EXISTS`, so if the table
+-- already existed from an earlier partial run of 028 (before these two
+-- columns were added to the file during that session), the CREATE was
+-- silently skipped in full and the table never picked them up. Re-adding
+-- them here is a no-op if they're already there and a direct fix if not.
+ALTER TABLE lead_sales_playbook ADD COLUMN IF NOT EXISTS activities JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE lead_sales_playbook ADD COLUMN IF NOT EXISTS new_activity_suggestions JSONB NOT NULL DEFAULT '[]';
+
 -- Venue Type — new field for the sales module's Client & Event Details
 -- section (2026-09-16, per Shruti: "add venue type in event details").
 -- Lives on the playbook (not `leads`) since it's specific to this module,
