@@ -8,13 +8,19 @@ leads.py's /submit, meant to be hit by a vendor filling in vendor-
 onboarding.html from a link the team sends them, not by anyone signed into
 the admin panel.
 
-A submission lands as an ordinary vendor_master row — inactive, flagged
+(2026-09-21) A submission whose mobile number already belongs to a vendor is
+merged into that vendor instead of creating a duplicate — blanks are filled in,
+while changed values and ALL bank details are held for approval in the Partners
+tab (see _update_existing_vendor below and migrations/032_vendor_pending_update.sql).
+
+Otherwise, a submission lands as an ordinary vendor_master row — inactive, flagged
 onboarding_source='self_submitted' / onboarding_reviewed=FALSE — so it
 shows up in admin.html's existing Vendors tab (sorted to the top, with a
 "Pending review" badge) rather than needing a separate review screen. See
 migrations/031_vendor_onboarding.sql for the columns this writes to, and
 routers/vendors.py for the admin-side read/review endpoints.
 """
+import json
 import logging
 import re
 from typing import Optional
@@ -52,6 +58,83 @@ def _safe_filename(name: Optional[str]) -> str:
     name = (name or "").replace("\\", "/").split("/")[-1]
     name = re.sub(r"[^A-Za-z0-9._ -]", "_", name).strip(" .")
     return (name or "cancelled-cheque")[:100]
+
+
+# ─── Matching a submission to a vendor we already have ──────────────────────
+# (2026-09-21, per Shruti — "form match on mobile number and update the
+# existing vendor instead" of creating a duplicate.) A public form must never
+# be able to change what we pay a vendor, so:
+#   * fields that are blank on the existing vendor are filled in directly;
+#   * a DIFFERENT value for a field that already has one, and ALL bank details
+#     and the cheque file, are held as a "pending update" that a team member
+#     approves in the Partners tab (routers/vendors.py: pending/apply|dismiss).
+# The reply to the vendor is identical whether or not a match was found, so the
+# form can't be used to find out which phone numbers are in our vendor list.
+_PLAIN_FIELDS = [
+    "name", "primary_contact_name", "alternate_mobile", "whatsapp_number", "email",
+    "deals_in", "address", "city", "pincode", "preferred_payment_mode", "gst_number",
+]
+_BANK_FIELDS = ["bank_account_holder_name", "bank_name", "bank_account_number", "bank_ifsc_code"]
+_DIGITS = "right(regexp_replace(COALESCE({c}, ''), '[^0-9]', '', 'g'), 10)"
+
+
+def _same(field: str, a: Optional[str], b: Optional[str]) -> bool:
+    if field in ("alternate_mobile", "whatsapp_number"):
+        return _normalize_mobile(a) == _normalize_mobile(b)
+    norm = lambda x: re.sub(r"\s+", " ", (x or "").strip()).lower()
+    return norm(a) == norm(b)
+
+
+async def _update_existing_vendor(mobile: str, values: dict, file_bytes, file_name, file_type) -> bool:
+    """If a vendor with this mobile (primary or alternate) already exists,
+    merge the submission into it and return True; otherwise return False and
+    let the caller create a new vendor."""
+    prim, alt = _DIGITS.format(c="primary_mobile"), _DIGITS.format(c="alternate_mobile")
+    cols = ", ".join(_PLAIN_FIELDS + _BANK_FIELDS)
+    async with database.transaction():
+        existing = await database.fetch_one(
+            f"SELECT vendor_id, {cols} FROM vendor_master "
+            f"WHERE duplicate_of_id IS NULL AND ({prim} = :m OR {alt} = :m) "
+            f"ORDER BY ({prim} = :m) DESC, vendor_id ASC LIMIT 1",
+            {"m": mobile},
+        )
+        if not existing:
+            return False
+
+        fill, pending = {}, {}
+        for f in _PLAIN_FIELDS:
+            new = values.get(f)
+            if not new:
+                continue
+            cur = existing[f]
+            if not (cur or "").strip():
+                fill[f] = new
+            elif not _same(f, cur, new):
+                pending[f] = new
+        for f in _BANK_FIELDS:
+            new = values.get(f)
+            if new and not _same(f, existing[f], new):
+                pending[f] = new
+
+        sets = [f"{f} = :{f}" for f in fill]
+        params = {"id": existing["vendor_id"], "pending": json.dumps(pending) if pending else None, **fill}
+        # The newest submission replaces any earlier held-back values.
+        sets.append("pending_update = CAST(:pending AS JSONB)")
+        if pending or file_bytes:
+            sets.append("pending_submitted_on = NOW()")
+        if fill or pending or file_bytes:
+            sets += ["onboarding_reviewed = FALSE", "submitted_on = NOW()"]
+        if file_bytes:
+            sets += ["pending_cheque_file = :pcf", "pending_cheque_filename = :pcn", "pending_cheque_content_type = :pct"]
+            params.update({"pcf": file_bytes, "pcn": file_name, "pct": file_type})
+        await database.execute(
+            f"UPDATE vendor_master SET {', '.join(sets)} WHERE vendor_id = :id", params
+        )
+    logger.info(
+        f"Vendor onboarding form matched existing vendor {existing['vendor_id']} ({mobile}): "
+        f"filled {sorted(fill)}, held for approval {sorted(pending)}{' + cheque' if file_bytes else ''}"
+    )
+    return True
 
 
 def _clean(s: Optional[str]) -> Optional[str]:
@@ -187,6 +270,10 @@ async def submit_vendor_onboarding(
         "cancelled_cheque_filename": file_name,
         "cancelled_cheque_content_type": file_content_type if file_bytes else None,
     }
+    # Already one of our vendors? Merge into that record instead of duplicating.
+    if await _update_existing_vendor(mobile, values, file_bytes, file_name, file_content_type):
+        return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}
+
     cols = ", ".join(values.keys())
     placeholders = ", ".join(f":{k}" for k in values.keys())
     await database.execute(

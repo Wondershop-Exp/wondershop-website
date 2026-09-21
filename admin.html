@@ -699,9 +699,9 @@ async function apiCall(path, opts){
 // browser history/server logs, which this avoids entirely. Fetches the
 // file with the header set (like apiCall(), but this one endpoint returns
 // a binary file, not JSON) and opens it from an in-memory blob URL.
-async function viewVendorCheque(vendorId){
+async function viewVendorCheque(vendorId, pending){
   try{
-    const res = await fetch(API+'/api/admin/vendors/'+vendorId+'/cancelled-cheque', {headers:{'X-Admin-Password':getPw()}});
+    const res = await fetch(API+'/api/admin/vendors/'+vendorId+'/cancelled-cheque'+(pending?'?pending=true':''), {headers:{'X-Admin-Password':getPw()}});
     if(res.status===401){ showToast('Session expired — please log in again.'); return; }
     if(!res.ok){ showToast('Could not load the file.'); return; }
     const blob = await res.blob();
@@ -1831,8 +1831,12 @@ async function loadVendors(q){
 // this just needs a way to spot it in the list — same "New" idea the
 // Leads tab already uses, via the tab bubble + this badge.
 function vendorOriginCellHtml(v){
-  if(v.onboarding_source!=='self_submitted') return '<span style="color:var(--gy);font-size:12.5px">Team</span>';
+  // 2026-09-21: an existing partner who re-submits the form is matched by
+  // mobile number (no duplicate row) — anything that differs from what we
+  // have is held for approval, shown here as "Update to approve".
+  if(v.has_pending_update) return '<span class="status-pill status-New">Update to approve</span>';
   if(!v.onboarding_reviewed) return '<span class="status-pill status-New">Pending review</span>';
+  if(v.onboarding_source!=='self_submitted') return '<span style="color:var(--gy);font-size:12.5px">Team</span>';
   return '<span style="color:var(--gy);font-size:12.5px">Self-submitted</span>';
 }
 
@@ -1865,6 +1869,60 @@ async function loadVendorDetail(id){
   }
 }
 
+const VENDOR_PENDING_LABELS = {
+  name:'Partner name', primary_contact_name:'Contact name', alternate_mobile:'Alternate mobile',
+  whatsapp_number:'WhatsApp number', email:'Email', deals_in:'Deals in', address:'Address', city:'City',
+  pincode:'Pincode', preferred_payment_mode:'Preferred payment mode', gst_number:'GST number',
+  bank_account_holder_name:'Account holder name', bank_name:'Bank name',
+  bank_account_number:'Account number', bank_ifsc_code:'IFSC code'
+};
+// Banner(s) at the top of a partner's page: (1) a brand-new form submission
+// or blanks auto-filled on an existing partner, not yet reviewed; (2) details
+// that differ from what we have (and ALL bank details / cheque files from an
+// existing partner) — held back until approved here, never live automatically.
+function vendorPendingBannerHtml(v){
+  let html = '';
+  const when = v.submitted_on_ist ? (' on '+esc(v.submitted_on_ist)) : '';
+  if(!v.onboarding_reviewed){
+    html += (v.onboarding_source==='self_submitted')
+      ? '<div class="lock-banner" style="background:var(--sbl);color:#1e3a8a;border-color:transparent">📥 Submitted by the partner'+when+' via the onboarding form — not yet reviewed. Check the bank details below, then Save to mark it reviewed.</div>'
+      : '<div class="lock-banner" style="background:var(--sbl);color:#1e3a8a;border-color:transparent">📥 This partner filled in the onboarding form'+when+'. Details that were blank have been filled in automatically — have a look, then Save to mark it reviewed.</div>';
+  }
+  if(v.has_pending_update){
+    const pu = v.pending_update||{};
+    const rows = Object.keys(VENDOR_PENDING_LABELS).filter(k=>pu[k]).map(k=>
+      '<tr><td style="padding:6px 10px;font-weight:600;white-space:nowrap">'+esc(VENDOR_PENDING_LABELS[k])+'</td>'
+      +'<td style="padding:6px 10px;color:var(--gy)">'+(v[k]?esc(v[k]):'<em>(blank)</em>')+'</td>'
+      +'<td style="padding:6px 10px;font-weight:600">'+esc(pu[k])+'</td></tr>').join('');
+    const chequeRow = v.has_pending_cheque
+      ? '<tr><td style="padding:6px 10px;font-weight:600">Cheque / passbook photo</td><td style="padding:6px 10px;color:var(--gy)">'+(v.has_cancelled_cheque?'(one already on file)':'<em>(none)</em>')+'</td>'
+        +'<td style="padding:6px 10px"><button class="mini-btn" onclick="viewVendorCheque('+v.vendor_id+',true)">📎 View new file</button></td></tr>'
+      : '';
+    html += '<div class="section-block" style="padding:14px 18px;margin-bottom:14px;border:1.5px solid var(--pk)">'
+      + '<div style="font-weight:700;font-size:15px;color:var(--pk);margin:0 0 6px">⏳ Waiting for your approval</div>'
+      + '<div style="font-size:13px;color:var(--gy);margin-bottom:10px">This partner re-submitted the onboarding form'+(v.pending_submitted_on_ist?(' on '+esc(v.pending_submitted_on_ist)):'')+'. These details are <b>not live yet</b> — check them (bank details especially, ideally against the cheque photo), then approve or keep what you have.</div>'
+      + '<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--gy)"><th style="padding:6px 10px">Field</th><th style="padding:6px 10px">Current</th><th style="padding:6px 10px">Submitted</th></tr></thead><tbody>'+rows+chequeRow+'</tbody></table></div>'
+      + '<div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">'
+        + '<button style="padding:9px 18px;border:none;border-radius:8px;background:var(--pk);color:#fff;font-weight:700;font-size:13.5px;cursor:pointer" onclick="resolveVendorPending(\'apply\')">Apply their details</button>'
+        + '<button style="padding:9px 18px;border:1.5px solid var(--gy);border-radius:8px;background:#fff;color:var(--gy);font-weight:700;font-size:13.5px;cursor:pointer" onclick="resolveVendorPending(\'dismiss\')">Keep current details</button>'
+      + '</div>'
+      + '</div>';
+  }
+  return html;
+}
+async function resolveVendorPending(action){
+  if(CURRENT_VENDOR_ID===null) return;
+  try{
+    const result = await apiCall('/api/admin/vendors/'+CURRENT_VENDOR_ID+'/pending/'+action, {method:'POST'});
+    showToast(action==='apply' ? '✓ Their details have been applied.' : '✓ Kept the current details.');
+    document.getElementById('vendorDetTitle').textContent = result.name;
+    renderVendorForm(result);
+    loadVendors(document.getElementById('searchQ').value.trim());
+  }catch(e){
+    showToast(e.message==='unauthorized' ? 'Session expired — please log in again.' : ('Could not update: '+e.message));
+  }
+}
+
 function renderVendorForm(v){
   const fieldsHtml = VENDOR_FORM_FIELDS.map(f=>{
     const val = esc(v[f.key]||'');
@@ -1891,9 +1949,7 @@ function renderVendorForm(v){
   // in by the team, and hasn't been looked at yet. Saving this form (any
   // save, not just activating) clears it — see update_vendor() in
   // routers/vendors.py.
-  const pendingBanner = (v.onboarding_source==='self_submitted' && !v.onboarding_reviewed)
-    ? '<div class="lock-banner" style="background:var(--sbl);color:#1e3a8a;border-color:transparent">📥 Submitted by the partner'+(v.submitted_on_ist?(' on '+esc(v.submitted_on_ist)):'')+' via the onboarding form — not yet reviewed. Check the bank details below, then Save to mark it reviewed.</div>'
-    : '';
+  const pendingBanner = vendorPendingBannerHtml(v);
   const chequeLink = v.has_cancelled_cheque
     ? '<button class="mini-btn" onclick="viewVendorCheque('+v.vendor_id+')">📎 View uploaded cheque / passbook photo</button>'
     : '<div style="font-size:12.5px;color:var(--gy)">No cheque or passbook photo on file — bank fields below were entered manually.</div>';

@@ -29,6 +29,7 @@ fetched raw, once, only by the dedicated download endpoint at the bottom)
 can't serialize into JSON anyway.
 """
 import re
+import json
 import logging
 from typing import Optional
 
@@ -55,7 +56,25 @@ VENDOR_READ_COLUMNS = VENDOR_FIELDS + [
     "vendor_id", "duplicate_of_id", "created_on", "updated_on",
     "onboarding_source", "onboarding_reviewed", "submitted_on",
     "cancelled_cheque_filename", "cancelled_cheque_content_type",
+    # A vendor who already exists (matched by mobile number) and re-submits the
+    # public form gets their new details parked here until a team member approves
+    # them — see routers/vendor_onboarding.py and migrations/032.
+    "pending_update", "pending_submitted_on",
+    "pending_cheque_filename", "pending_cheque_content_type",
 ]
+
+# Fields a pending update is allowed to write when approved (never is_active,
+# never the raw mobile number the vendor was matched on).
+PENDING_APPLY_FIELDS = [
+    "name", "primary_contact_name", "alternate_mobile", "whatsapp_number", "email",
+    "deals_in", "address", "city", "pincode", "preferred_payment_mode", "gst_number",
+    "bank_account_holder_name", "bank_name", "bank_account_number", "bank_ifsc_code",
+]
+
+# A vendor needs a look if it was never reviewed OR has a held-back update.
+_NEEDS_REVIEW_SQL = (
+    "(onboarding_reviewed = FALSE OR pending_update IS NOT NULL OR pending_cheque_filename IS NOT NULL)"
+)
 
 
 class VendorRequest(BaseModel):
@@ -87,6 +106,17 @@ def _row_out(r) -> dict:
     d["updated_on_ist"] = _to_ist_str(d.pop("updated_on", None))
     d["submitted_on_ist"] = _to_ist_str(d.pop("submitted_on", None))
     d["has_cancelled_cheque"] = bool(d.get("cancelled_cheque_filename"))
+    pu = d.get("pending_update")
+    if isinstance(pu, (str, bytes)):
+        try:
+            pu = json.loads(pu)
+        except ValueError:
+            pu = None
+    d["pending_update"] = pu if isinstance(pu, dict) and pu else None
+    d["has_pending_cheque"] = bool(d.pop("pending_cheque_filename", None))
+    d.pop("pending_cheque_content_type", None)
+    d["has_pending_update"] = bool(d["pending_update"]) or d["has_pending_cheque"]
+    d["pending_submitted_on_ist"] = _to_ist_str(d.pop("pending_submitted_on", None))
     return d
 
 
@@ -118,15 +148,15 @@ async def list_vendors(q: Optional[str] = None, active_only: bool = False, pendi
     if active_only:
         where.append("is_active = TRUE")
     if pending_review:
-        where.append("onboarding_reviewed = FALSE")
+        where.append(_NEEDS_REVIEW_SQL)
     where_sql = ("WHERE " + " AND ".join(where)) if where else ""
     cols = ", ".join(VENDOR_READ_COLUMNS)
     rows = await database.fetch_all(
-        f"SELECT {cols} FROM vendor_master {where_sql} ORDER BY onboarding_reviewed ASC, name ASC",
+        f"SELECT {cols} FROM vendor_master {where_sql} ORDER BY (NOT {_NEEDS_REVIEW_SQL}) ASC, name ASC",
         values=values,
     )
     pending_row = await database.fetch_one(
-        "SELECT COUNT(*) AS cnt FROM vendor_master WHERE onboarding_reviewed = FALSE"
+        f"SELECT COUNT(*) AS cnt FROM vendor_master WHERE {_NEEDS_REVIEW_SQL}"
     )
     return {"vendors": [_row_out(r) for r in rows], "total": len(rows), "pending_review_count": pending_row["cnt"] or 0}
 
@@ -142,28 +172,31 @@ async def get_vendor(vendor_id: int, x_admin_password: Optional[str] = Header(No
 
 
 @router.get("/vendors/{vendor_id}/cancelled-cheque")
-async def get_vendor_cancelled_cheque(vendor_id: int, x_admin_password: Optional[str] = Header(None)):
+async def get_vendor_cancelled_cheque(vendor_id: int, pending: bool = False, x_admin_password: Optional[str] = Header(None)):
     """Streams back the raw file a vendor uploaded through the public
     onboarding form (or one added by hand later, if that's ever wired up).
     Admin-only, like everything else here — this is the one place the raw
     bytea column is actually read."""
     _require_admin(x_admin_password)
+    # ?pending=true → the file a vendor sent through the form that is still
+    # waiting for approval; otherwise the file currently on record.
+    prefix = "pending_cheque" if pending else "cancelled_cheque"
     row = await database.fetch_one(
-        "SELECT cancelled_cheque_file, cancelled_cheque_filename, cancelled_cheque_content_type "
+        f"SELECT {prefix}_file AS f, {prefix}_filename AS fn, {prefix}_content_type AS ct "
         "FROM vendor_master WHERE vendor_id = :id",
         {"id": vendor_id},
     )
-    if not row or not row["cancelled_cheque_file"]:
+    if not row or not row["f"]:
         raise HTTPException(status_code=404, detail="No file on file for this vendor.")
     # Never echo an unexpected type back: anything other than a known image/PDF is
     # served as a plain download, and the filename is stripped to safe characters.
     safe_types = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
-    stored_type = row["cancelled_cheque_content_type"]
+    stored_type = row["ct"]
     content_type = stored_type if stored_type in safe_types else "application/octet-stream"
     disposition = "inline" if content_type in safe_types else "attachment"
-    filename = re.sub(r"[^A-Za-z0-9._ -]", "_", row["cancelled_cheque_filename"] or "cancelled-cheque").strip(" .")[:100] or "cancelled-cheque"
+    filename = re.sub(r"[^A-Za-z0-9._ -]", "_", row["fn"] or "cancelled-cheque").strip(" .")[:100] or "cancelled-cheque"
     return Response(
-        content=bytes(row["cancelled_cheque_file"]),
+        content=bytes(row["f"]),
         media_type=content_type,
         headers={
             "Content-Disposition": f'{disposition}; filename="{filename}"',
@@ -209,3 +242,66 @@ async def update_vendor(vendor_id: int, body: VendorRequest, x_admin_password: O
         values,
     )
     return _row_out(row)
+
+
+@router.post("/vendors/{vendor_id}/pending/apply")
+async def apply_pending_update(vendor_id: int, x_admin_password: Optional[str] = Header(None)):
+    """Approve what an existing vendor sent through the public onboarding form:
+    writes the held-back values (and cheque file, if any) onto the vendor and
+    marks it reviewed. Only the whitelisted fields above can ever be written."""
+    _require_admin(x_admin_password)
+    row = await database.fetch_one(
+        "SELECT pending_update, pending_cheque_filename FROM vendor_master WHERE vendor_id = :id",
+        {"id": vendor_id},
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Vendor not found.")
+    pu = row["pending_update"]
+    if isinstance(pu, (str, bytes)):
+        try:
+            pu = json.loads(pu)
+        except ValueError:
+            pu = None
+    pu = pu if isinstance(pu, dict) else {}
+    has_file = bool(row["pending_cheque_filename"])
+    if not pu and not has_file:
+        raise HTTPException(status_code=404, detail="There is nothing waiting for approval on this vendor.")
+    sets, values = [], {"id": vendor_id}
+    for k in PENDING_APPLY_FIELDS:
+        if k in pu and pu[k] not in (None, ""):
+            sets.append(f"{k} = :{k}")
+            values[k] = pu[k]
+    if has_file:
+        sets += [
+            "cancelled_cheque_file = pending_cheque_file",
+            "cancelled_cheque_filename = pending_cheque_filename",
+            "cancelled_cheque_content_type = pending_cheque_content_type",
+        ]
+    sets += [
+        "pending_update = NULL", "pending_submitted_on = NULL",
+        "pending_cheque_file = NULL", "pending_cheque_filename = NULL", "pending_cheque_content_type = NULL",
+        "onboarding_reviewed = TRUE",
+    ]
+    read_cols = ", ".join(VENDOR_READ_COLUMNS)
+    out = await database.fetch_one(
+        f"UPDATE vendor_master SET {', '.join(sets)} WHERE vendor_id = :id RETURNING {read_cols}", values
+    )
+    logger.info(f"Vendor {vendor_id}: pending onboarding update applied")
+    return _row_out(out)
+
+
+@router.post("/vendors/{vendor_id}/pending/dismiss")
+async def dismiss_pending_update(vendor_id: int, x_admin_password: Optional[str] = Header(None)):
+    """Keep the vendor's current details and throw away what was held back."""
+    _require_admin(x_admin_password)
+    read_cols = ", ".join(VENDOR_READ_COLUMNS)
+    out = await database.fetch_one(
+        "UPDATE vendor_master SET pending_update = NULL, pending_submitted_on = NULL, "
+        "pending_cheque_file = NULL, pending_cheque_filename = NULL, pending_cheque_content_type = NULL, "
+        f"onboarding_reviewed = TRUE WHERE vendor_id = :id RETURNING {read_cols}",
+        {"id": vendor_id},
+    )
+    if not out:
+        raise HTTPException(status_code=404, detail="Vendor not found.")
+    logger.info(f"Vendor {vendor_id}: pending onboarding update dismissed")
+    return _row_out(out)
