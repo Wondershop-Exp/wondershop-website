@@ -86,7 +86,7 @@ table.list th.sortable:hover{color:var(--bk)}
 .lock-banner{background:var(--spk);color:#8a1a44;padding:10px 16px;border-radius:var(--rs);font-size:13px;font-weight:600;margin-bottom:16px}
 
 /* ─── Leads / Bookings tabs ─── */
-.tabs{display:flex;gap:10px;margin-bottom:16px}
+.tabs{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
 .tab-btn{position:relative;padding:10px 20px;border:1px solid var(--li2);border-radius:20px;background:#fff;font-weight:600;font-size:14px;color:var(--gy)}
 .tab-btn.active{background:var(--plum);color:#fff;border-color:var(--plum)}
 .tab-bubble{display:none;position:absolute;top:-7px;right:-7px;background:var(--pk);color:#fff;font-size:11px;font-weight:700;border-radius:20px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px}
@@ -195,20 +195,6 @@ table.list.static tr:hover td{background:inherit}
 .status-card .btn.convert{background:var(--gr);color:#fff}
 .status-card .btn.cancel{background:var(--pk);color:#fff}
 .section-block h3{font-size:12px;font-weight:700;color:#fff;background:var(--plum);text-transform:uppercase;letter-spacing:1.1px;margin:0;padding:13px 18px}
-table.fields{width:100%;border-collapse:collapse;background:#fff;table-layout:fixed}
-table.fields th:nth-child(1),table.fields td:nth-child(1){width:19%}
-table.fields th:nth-child(2),table.fields td:nth-child(2){width:26%}
-table.fields th:nth-child(3),table.fields td:nth-child(3){width:20%}
-table.fields th:nth-child(4),table.fields td:nth-child(4){width:18%}
-table.fields th:nth-child(5),table.fields td:nth-child(5){width:17%}
-table.fields th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);padding:8px 10px;background:var(--lgy)}
-table.fields td{padding:8px 10px;border-top:1px solid var(--li2);vertical-align:top}
-table.fields td:last-child{padding:8px 6px}
-table.fields tr.removed td{opacity:.45;text-decoration:line-through}
-table.fields tr.dirty td{background:#FFF7E0}
-table.fields tr.dirty td.field-label{box-shadow:inset 3px 0 0 var(--pk)}
-table.fields input,table.fields textarea,table.fields select{width:100%;border:1px solid var(--li2);border-radius:6px;padding:6px 8px;font-size:13px;background:#fff}
-table.fields textarea{resize:vertical;min-height:32px}
 .readonly-cell{color:var(--gy);font-size:13px;padding:6px 2px;display:block}
 .readonly-cell.computed{font-style:italic}
 .computed-note{font-size:10px;color:var(--gy);display:block;margin-top:2px}
@@ -253,6 +239,210 @@ table.fields textarea{resize:vertical;min-height:32px}
 .empty{color:var(--gy);font-size:13px;padding:20px 0}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bk);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
 .toast.show{opacity:1}
+
+/* ─── Calendar tab ─── */
+/* 2026-09-21, per Shruti — "a new tab - calendar - where we can look at all
+   events for a month in one go. color code green for confirmed, yellow for
+   warm." Chip/pill colours here are semantic (state), so they live on their
+   own tokens rather than the brand accents. */
+.cal-card,.cal-modal{
+  --cal-ok-bg:#D3F0DA;--cal-ok-ink:#14532D;--cal-ok-dot:#3DB35C;
+  --cal-warm-bg:#FFEFA8;--cal-warm-ink:#6B4200;--cal-warm-dot:#F5B800;
+}
+.cal-card{background:#fff;border:1px solid var(--li2);border-radius:var(--r);padding:20px 22px 16px;box-shadow:0 2px 10px rgba(25,25,25,.05)}
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:14px 20px;flex-wrap:wrap;margin-bottom:16px}
+.cal-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cal-title{font-family:var(--fd);font-size:25px;font-weight:700;letter-spacing:-.2px;min-width:200px;margin:0 6px;text-align:center}
+.cal-title span{color:var(--gy);font-weight:400}
+.cal-arrow{width:36px;height:36px;border-radius:50%;border:1px solid var(--li2);background:#fff;color:var(--plum);font-size:20px;line-height:1;display:inline-flex;align-items:center;justify-content:center;padding:0 0 2px;transition:background .15s,border-color .15s}
+.cal-arrow:hover{background:var(--li3);border-color:var(--li)}
+.cal-today-btn{margin-left:6px;padding:8px 16px;border-radius:20px;border:1px solid var(--li2);background:#fff;font-size:13px;font-weight:600;color:var(--plum);transition:background .15s,border-color .15s}
+.cal-today-btn:hover{background:var(--li3);border-color:var(--li)}
+.cal-filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cal-filter{display:inline-flex;align-items:center;gap:8px;padding:7px 14px 7px 12px;border-radius:20px;border:1.5px solid var(--li2);background:#fff;font-size:13px;font-weight:600;color:var(--gy);transition:background .15s,border-color .15s,color .15s}
+.cal-filter .dot{width:11px;height:11px;border-radius:50%;border:2px solid #C4BDD0;background:transparent;flex:0 0 auto}
+.cal-filter b{font-variant-numeric:tabular-nums;font-weight:700}
+.cal-filter.ok.on{background:var(--cal-ok-bg);border-color:var(--cal-ok-dot);color:var(--cal-ok-ink)}
+.cal-filter.ok.on .dot{background:var(--cal-ok-dot);border-color:var(--cal-ok-dot)}
+.cal-filter.warm.on{background:var(--cal-warm-bg);border-color:var(--cal-warm-dot);color:var(--cal-warm-ink)}
+.cal-filter.warm.on .dot{background:var(--cal-warm-dot);border-color:var(--cal-warm-dot)}
+.cal-refresh{width:36px;height:36px;border-radius:50%;border:1px solid var(--li2);background:#fff;color:var(--gy);font-size:16px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+.cal-refresh:hover{background:var(--li3);color:var(--plum)}
+.cal-refresh.spin span{display:inline-block;animation:calspin .8s linear infinite}
+@keyframes calspin{to{transform:rotate(360deg)}}
+.cal-note{background:var(--li3);border:1px dashed var(--li);border-radius:var(--rs);padding:10px 14px;font-size:13px;color:var(--plum);margin-bottom:12px}
+.cal-note.err{background:#FFF0F5;border:1px solid var(--spk);color:#8a1a44}
+.cal-note button{margin-left:8px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--li2);border-radius:14px;overflow:hidden}
+.cal-dow{padding:9px 10px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--gy);background:var(--li3);border-bottom:1px solid var(--li2);border-right:1px solid var(--li2)}
+.cal-dow:nth-child(7n){border-right:none}
+.cal-dow.we{color:var(--pk)}
+.cal-cell{min-height:120px;padding:8px 8px 7px;border-right:1px solid var(--li2);border-bottom:1px solid var(--li2);display:flex;flex-direction:column;gap:5px;background:#fff;min-width:0;transition:background .12s}
+.cal-cell:nth-child(7n){border-right:none}
+.cal-cell.last{border-bottom:none}
+.cal-cell.we{background:#FCFAFF}
+.cal-cell.out{background:var(--lgy)}
+.cal-cell.today{background:#FBF6FF}
+.cal-cell.has{cursor:pointer}
+.cal-cell.has:hover{background:var(--li3)}
+.cal-cell:focus-visible{outline:2px solid var(--plum);outline-offset:-2px}
+.cal-num{align-self:flex-start;min-width:26px;height:26px;padding:0 7px;border-radius:13px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--bk);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cal-cell.out .cal-num{color:#A9A3B5}
+.cal-cell.today .cal-num{background:var(--plum);color:#fff}
+.cal-chips{display:flex;flex-direction:column;gap:4px;min-width:0}
+.cal-chip{display:flex;align-items:center;gap:6px;width:100%;padding:4px 8px;border:none;border-radius:8px;font-size:12px;font-weight:600;text-align:left;line-height:1.3;min-width:0;transition:box-shadow .12s,filter .12s}
+.cal-chip .d{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.cal-chip .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.cal-chip.ok{background:var(--cal-ok-bg);color:var(--cal-ok-ink)}
+.cal-chip.ok .d{background:var(--cal-ok-dot)}
+.cal-chip.warm{background:var(--cal-warm-bg);color:var(--cal-warm-ink)}
+.cal-chip.warm .d{background:var(--cal-warm-dot)}
+.cal-chip:hover{filter:brightness(.96);box-shadow:0 1px 5px rgba(25,25,25,.14)}
+.cal-chip:focus-visible,.cal-ev:focus-visible,.cal-x:focus-visible,.cal-filter:focus-visible,.cal-arrow:focus-visible,.cal-today-btn:focus-visible,.cal-refresh:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+.cal-chip.x{display:none}
+.cal-more{font-size:11.5px;font-weight:700;color:var(--gy);padding:1px 8px}
+.cal-foot{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:14px;font-size:12px;color:var(--gy);line-height:1.5}
+.cal-foot b{color:var(--bk);font-weight:700}
+
+/* Day detail sheet */
+.cal-modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(46,36,56,.5)}
+.cal-modal.open{display:flex}
+.cal-sheet{background:#fff;border-radius:var(--r);width:100%;max-width:480px;max-height:min(80vh,640px);display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(46,36,56,.35)}
+.cal-sheet-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 18px 14px 22px;border-bottom:1px solid var(--li2)}
+.cal-sheet-head h3{font-size:19px}
+.cal-sheet-head p{margin:4px 0 0;font-size:12.5px;color:var(--gy)}
+.cal-x{width:34px;height:34px;border-radius:50%;border:1px solid var(--li2);background:#fff;color:var(--gy);font-size:15px;line-height:1;flex:0 0 auto}
+.cal-x:hover{background:var(--li3);color:var(--plum)}
+.cal-list{overflow-y:auto;padding:10px 12px 14px;display:flex;flex-direction:column;gap:2px}
+.cal-ev{display:flex;align-items:flex-start;gap:12px;width:100%;padding:12px;border:none;background:none;border-radius:12px;text-align:left}
+.cal-ev:hover{background:var(--li3)}
+.cal-ev .d{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:0 0 auto}
+.cal-ev .d.ok{background:var(--cal-ok-dot)}
+.cal-ev .d.warm{background:var(--cal-warm-dot)}
+.cal-ev-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.cal-ev-top{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px}
+.cal-ev-name{font-weight:700;font-size:15px;color:var(--bk)}
+.cal-ev-meta{display:flex;flex-wrap:wrap;align-items:center;gap:3px 12px;font-size:12.5px;color:var(--gy)}
+.cal-pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.cal-pill.ok{background:var(--cal-ok-bg);color:var(--cal-ok-ink)}
+.cal-pill.warm{background:var(--cal-warm-bg);color:var(--cal-warm-ink)}
+.cal-ev-go{color:var(--li);font-size:20px;line-height:1.2;align-self:center}
+
+@media (max-width:720px){
+  .cal-card{padding:14px 12px 12px}
+  .cal-title{font-size:18px;min-width:0;flex:1;margin:0;white-space:nowrap}
+  .cal-arrow{width:32px;height:32px}
+  .cal-nav{width:100%}
+  .cal-dow{padding:8px 2px;text-align:center;font-size:10px;letter-spacing:.2px}
+  .cal-cell{min-height:66px;padding:5px 2px;align-items:center;gap:4px}
+  .cal-num{align-self:center}
+  .cal-chips{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:4px;padding:0 2px}
+  .cal-chip,.cal-chip.x{display:block;width:10px;height:10px;padding:0;border-radius:50%;pointer-events:none}
+  .cal-chip.ok{background:var(--cal-ok-dot)}
+  .cal-chip.warm{background:var(--cal-warm-dot)}
+  .cal-chip .d,.cal-chip .n,.cal-more{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .cal-refresh.spin span{animation:none}
+}
+
+/* ─── Booking detail restyle ─── */
+/* 2026-09-21, per Shruti — "I liked the sales UI more than the admin
+   booking edit page ui ... improve the admin page a bit." Same data, same
+   saving rules and the same original-vs-assigned audit trail as before; only
+   the presentation changed to borrow from sales-leads.html: a summary card
+   up top, card sections, each field laid out as labelled inputs instead of
+   table columns, tap-to-pick chips for short dropdowns, and a sticky
+   Grand Total / Advance / Balance bar. */
+#detailView{padding-bottom:88px}
+.bd-topline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.bd-head{background:#fff;border:1px solid var(--li2);border-radius:var(--r);padding:22px 24px 20px;margin-bottom:16px;box-shadow:0 2px 10px rgba(25,25,25,.05)}
+.bd-eyebrow{font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--gy)}
+.bd-title-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;margin:6px 0 18px}
+.bd-title{font-family:var(--fd);font-size:28px;font-weight:700;letter-spacing:-.2px}
+.bd-tags{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bd-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px 24px;padding-top:18px;border-top:1px solid var(--li2)}
+.bd-fact .k{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--gy);margin-bottom:4px}
+.bd-fact .v{font-size:14.5px;font-weight:600;color:var(--bk);overflow-wrap:anywhere}
+.bd-fact .v.none{color:#B4AEC0;font-weight:500}
+.bd-fact .v a{color:var(--bk);text-decoration:none;border-bottom:1px dashed var(--li)}
+
+.bd-nav{position:sticky;top:0;z-index:30;display:flex;gap:8px;overflow-x:auto;padding:10px 2px;margin:0 0 12px;background:var(--wh);scrollbar-width:none}
+.bd-nav::-webkit-scrollbar{display:none}
+.bd-nav a{flex:0 0 auto;padding:8px 16px;border-radius:20px;border:1px solid var(--li2);background:#fff;color:var(--gy);font-size:13px;font-weight:600;text-decoration:none;transition:border-color .15s,color .15s}
+.bd-nav a:hover{border-color:var(--li);color:var(--plum)}
+.bd-nav a:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+
+.status-card{border:1px solid var(--li2);padding:18px 22px;box-shadow:0 2px 10px rgba(25,25,25,.04)}
+.status-card select,.status-card input{padding:10px 12px;border-radius:8px;font-size:14px}
+.status-card .fld .status-pill{align-self:flex-start}
+.status-card .btn{padding:10px 18px;border-radius:10px;font-size:13.5px}
+
+#sectionsContainer{counter-reset:bdsec}
+.section-block{border:1px solid var(--li2);border-radius:var(--r);box-shadow:0 2px 10px rgba(25,25,25,.04);margin-bottom:18px;scroll-margin-top:70px}
+.section-block h3{counter-increment:bdsec;background:none;color:var(--pk);font-size:13px;letter-spacing:.7px;padding:20px 24px 10px;display:flex;align-items:center;gap:8px}
+.section-block h3::before{content:counter(bdsec) " ·"}
+.section-block .add-field-btn{margin:6px 24px 20px}
+
+table.fields,table.fields tbody{display:block;width:100%}
+table.fields thead{display:none}
+table.fields tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"label label act" "cc av rm";gap:12px 20px;align-items:start;padding:18px 24px;border-top:1px solid var(--li2);transition:background .15s}
+table.fields td{display:block;min-width:0;padding:0}
+table.fields td:nth-child(1){grid-area:label}
+table.fields td:nth-child(2){grid-area:cc}
+table.fields td:nth-child(3){grid-area:av}
+table.fields td:nth-child(4){grid-area:rm}
+table.fields td:nth-child(5){grid-area:act;justify-self:end}
+table.fields td:empty{display:none}
+table.fields td[data-label]::before{content:attr(data-label);display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.35px;color:var(--gy);margin-bottom:6px}
+table.fields td.field-label{align-self:center;font-size:15px;font-weight:700}
+table.fields td.field-label small{margin-top:3px;font-size:12px;font-weight:400;color:var(--gy)}
+table.fields tr.ro{grid-template-columns:minmax(0,1fr) minmax(0,2fr);grid-template-areas:"label val";align-items:center}
+table.fields tr.ro td:nth-child(2){grid-area:val}
+table.fields tr.ro .readonly-cell{font-style:normal;font-size:14px}
+table.fields tr.ro .computed-note{font-size:11.5px;margin-top:3px}
+table.fields tr.removed td{opacity:.45;text-decoration:line-through}
+table.fields tr.removed td:nth-child(5){opacity:1;text-decoration:none}
+table.fields tr.dirty{background:#FFFAEB;box-shadow:inset 3px 0 0 var(--pk)}
+table.fields input,table.fields textarea,table.fields select{width:100%;border:1px solid var(--li2);border-radius:8px;padding:10px 12px;font-size:14px;background-color:#fff;color:var(--bk)}
+table.fields input:focus,table.fields textarea:focus,table.fields select:focus{outline:2px solid var(--li);outline-offset:0;border-color:var(--li)}
+table.fields select{appearance:none;-webkit-appearance:none;padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer}
+table.fields select.chipified{display:none}
+table.fields textarea{resize:vertical;height:42px;min-height:42px}
+table.fields .row-actions{flex-wrap:nowrap}
+table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{padding:8px 14px;border-radius:20px;border:1.5px solid var(--li2);background:#fff;color:var(--gy);font-weight:700;font-size:12.5px;line-height:1.3;text-align:left;transition:border-color .12s,color .12s,background .12s}
+.chips button:hover{border-color:var(--li);color:var(--plum)}
+.chips button.sel{background:var(--pk);border-color:var(--pk);color:#fff}
+.chips button:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+
+.log-section{background:#fff;border:1px solid var(--li2);border-radius:var(--r);padding:20px 24px;margin-top:18px;scroll-margin-top:70px}
+.log-section h3{font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:var(--pk);margin-bottom:8px}
+
+.bd-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#fff;border-top:1.5px solid var(--li2);box-shadow:0 -4px 16px rgba(0,0,0,.07);padding:10px 20px calc(10px + env(safe-area-inset-bottom,0px))}
+.bd-bar-in{max-width:1160px;margin:0 auto;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 30px}
+.bd-bar .m .k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gy)}
+.bd-bar .m .v{font-family:var(--fd);font-size:20px;font-weight:700;color:var(--bk);font-variant-numeric:tabular-nums}
+.bd-bar .m.due .v{color:var(--pk)}
+.bd-bar .m.due.clear .v{color:#1a6630}
+.bd-unsaved{background:#FFF4E8;border:1px solid #FCE0BE;color:#B5620A;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700}
+
+@media (max-width:760px){
+  .bd-head{padding:18px 16px}
+  .bd-title{font-size:23px}
+  .bd-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .section-block h3{padding:18px 16px 8px}
+  .section-block .add-field-btn{margin:6px 16px 16px}
+  table.fields tr{grid-template-columns:minmax(0,1fr);grid-template-areas:"label" "cc" "av" "rm" "act";gap:12px;padding:16px}
+  table.fields td:nth-child(5){justify-self:stretch}
+  table.fields tr.ro{grid-template-columns:minmax(0,1fr);grid-template-areas:"label" "val"}
+  .log-section{padding:18px 16px}
+  .bd-bar{padding-left:14px;padding-right:14px}
+  .bd-bar-in{justify-content:space-between;gap:6px 14px}
+  .bd-bar .m .v{font-size:17px}
+}
 </style>
 </head>
 <body>
@@ -295,6 +485,7 @@ table.fields textarea{resize:vertical;min-height:32px}
       <button class="tab-btn" id="tabBookingBtn" onclick="switchTab('booking')">Bookings<span class="tab-bubble" id="bookingBubble"></span></button>
       <button class="tab-btn" id="tabVendorBtn" onclick="switchTab('vendor')">Partners<span class="tab-bubble" id="vendorBubble"></span></button>
       <button class="tab-btn" id="tabDashBtn" onclick="switchTab('dash')">📊 Dashboard</button>
+      <button class="tab-btn" id="tabCalBtn" onclick="switchTab('cal')">📅 Calendar</button>
     </div>
     <div id="leadTableWrap">
       <div id="leadOriginChips" style="margin:2px 0 12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -365,6 +556,9 @@ table.fields textarea{resize:vertical;min-height:32px}
       <div class="dash-card" id="ga4BuilderCard" style="margin-top:16px"><div class="empty">Loading…</div></div>
       <div class="dash-card" id="festivalsCard" style="margin-top:16px"><div class="empty">Loading…</div></div>
     </div>
+    <div id="calendarWrap" style="display:none">
+      <div class="cal-card" id="calCard"><div class="empty">Loading…</div></div>
+    </div>
   </div>
 
   <div id="vendorDetailView" style="display:none">
@@ -376,22 +570,25 @@ table.fields textarea{resize:vertical;min-height:32px}
   </div>
 
   <div id="detailView" style="display:none">
-    <button class="linkbtn" onclick="backToList()">&larr; Back to list</button>
-    <div class="detail-head">
-      <h2 id="detTitle"></h2>
-      <div class="detail-meta" id="detMeta"></div>
+    <div class="bd-topline">
+      <button class="linkbtn" id="bdBackBtn" onclick="backToList()">&larr; Back to list</button>
+      <span id="bdTopRight"></span>
     </div>
+    <div id="bdHead"></div>
     <div id="statusBlock"></div>
     <div id="lockBanner"></div>
+    <div id="bdNav"></div>
     <div id="sectionsContainer"></div>
-    <div class="log-section">
+    <div class="log-section" id="bdLog">
       <h3>Modification Trail</h3>
       <div id="logContainer"></div>
     </div>
+    <div class="bd-bar" id="bdBar" style="display:none"></div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="cal-modal" id="calModal" onclick="if(event.target===this)calCloseDay()"></div>
 <datalist id="vendorNamesList"></datalist>
 
 <script>
@@ -556,17 +753,418 @@ function switchTab(tab){
   document.getElementById('tabBookingBtn').classList.toggle('active', tab==='booking');
   document.getElementById('tabVendorBtn').classList.toggle('active', tab==='vendor');
   document.getElementById('tabDashBtn').classList.toggle('active', tab==='dash');
+  document.getElementById('tabCalBtn').classList.toggle('active', tab==='cal');
   document.getElementById('leadTableWrap').style.display = tab==='lead' ? 'block' : 'none';
   document.getElementById('bookingTableWrap').style.display = tab==='booking' ? 'block' : 'none';
   document.getElementById('leadOriginChips').style.display = tab==='lead' ? 'flex' : 'none';
   document.getElementById('vendorTableWrap').style.display = tab==='vendor' ? 'block' : 'none';
   document.getElementById('dashboardWrap').style.display = tab==='dash' ? 'block' : 'none';
-  document.getElementById('searchQ').style.display = tab==='dash' ? 'none' : '';
-  document.querySelector('.searchbar button').style.display = tab==='dash' ? 'none' : '';
+  document.getElementById('calendarWrap').style.display = tab==='cal' ? 'block' : 'none';
+  // Dashboard and Calendar have nothing to search, so hide the search bar.
+  document.getElementById('searchQ').style.display = (tab==='dash'||tab==='cal') ? 'none' : '';
+  document.querySelector('.searchbar button').style.display = (tab==='dash'||tab==='cal') ? 'none' : '';
   document.getElementById('searchQ').placeholder = tab==='vendor'
     ? 'Search partners by name, contact, phone, email...'
     : 'Search by name, phone, email, or booking ID...';
   if(tab==='dash'){ loadDashMonthly(); loadGa4Funnels(); }
+  if(tab==='cal'){ loadCalendar(); }
+}
+
+// ── Calendar tab ────────────────────────────────────────────────────────
+// 2026-09-21, per Shruti — "a new tab - calendar - where we can look at all
+// events for a month in one go. color code green for confirmed, yellow for
+// warm." Built entirely on the existing /api/admin/bookings list endpoint
+// (no backend change):
+//   • Confirmed (green) = every non-cancelled BOOKING with an event date.
+//   • Warm (yellow)     = every LEAD in an active-conversation status
+//     (CAL_WARM_STATUSES) — the same definition the Dashboard's "Potential"
+//     revenue uses (dashboard.py's POTENTIAL_STATUSES), so the two never
+//     disagree. Plain "New" leads aren't warm yet, so they're left off; add
+//     'New' to CAL_WARM_STATUSES if you'd rather see those too.
+// Leads/bookings with no event date can't be placed on a day — they're
+// counted in a footnote instead. The list endpoint caps at 200 rows per kind
+// (latest event date first), so CAL_TRUNCATED flags when older months may be
+// incomplete.
+const CAL_WARM_STATUSES = ['Initial Discussions Done', 'Proposal Sent', 'Negotiations Ongoing'];
+const CAL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const CAL_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const CAL_WEEK_STARTS_ON = 1;   // 1 = Monday, 0 = Sunday
+const CAL_MAX_CHIPS = 3;        // chips per day cell before "+N more"
+const CAL_FETCH_LIMIT = 200;    // the list endpoint's per-kind row cap
+let CAL_Y = new Date().getFullYear();
+let CAL_M = new Date().getMonth();
+let CAL_LEADS = [], CAL_BOOKINGS = [];
+let CAL_LOADED = false, CAL_LOADING = false, CAL_ERR = '';
+let CAL_EVENTS = {};            // 'YYYY-MM-DD' -> [event, ...]
+let CAL_UNDATED = 0, CAL_TRUNCATED = false;
+let CAL_SHOW = {ok: true, warm: true};
+let CAL_OPEN_DAY = null;
+
+function calPad(n){ return n < 10 ? '0'+n : ''+n; }
+function calKey(y, m, d){ return y+'-'+calPad(m+1)+'-'+calPad(d); }
+function calTodayKey(){ const t = new Date(); return calKey(t.getFullYear(), t.getMonth(), t.getDate()); }
+
+async function loadCalendar(){
+  if(CAL_LOADING) return;
+  CAL_LOADING = true; CAL_ERR = '';
+  renderCalendar();
+  try{
+    const res = await Promise.all([
+      apiCall('/api/admin/bookings?kind=lead&sort=event_date&dir=desc'),
+      apiCall('/api/admin/bookings?kind=booking&sort=event_date&dir=desc'),
+    ]);
+    CAL_LEADS = res[0].rows || [];
+    CAL_BOOKINGS = res[1].rows || [];
+    CAL_LOADED = true;
+  }catch(e){
+    if(e.message !== 'unauthorized') CAL_ERR = e.message || 'Something went wrong.';
+  }
+  CAL_LOADING = false;
+  buildCalEvents();
+  renderCalendar();
+  if(CAL_OPEN_DAY) renderCalModal();
+}
+
+function buildCalEvents(){
+  const ev = {};
+  let undated = 0;
+  function add(r, kind){
+    if(!r.event_date){ undated++; return; }
+    const key = String(r.event_date).slice(0, 10);
+    (ev[key] = ev[key] || []).push({
+      id: Number(r.lead_id),
+      name: r.parent_name || ('Lead #'+r.lead_id),
+      city: r.city || '',
+      phone: r.phone || '',
+      origin: r.origin === 'Sales' ? 'Sales' : 'Website',
+      kind: kind,
+      status: r.status || '',
+    });
+  }
+  CAL_BOOKINGS.forEach(r => { if(r.status !== 'Cancelled') add(r, 'ok'); });
+  CAL_LEADS.forEach(r => { if(CAL_WARM_STATUSES.indexOf(r.status) > -1) add(r, 'warm'); });
+  Object.keys(ev).forEach(k => ev[k].sort((a, b) =>
+    (a.kind === b.kind ? 0 : (a.kind === 'ok' ? -1 : 1)) || a.name.localeCompare(b.name)));
+  CAL_EVENTS = ev;
+  CAL_UNDATED = undated;
+  CAL_TRUNCATED = CAL_LEADS.length >= CAL_FETCH_LIMIT || CAL_BOOKINGS.length >= CAL_FETCH_LIMIT;
+}
+
+function calEventLabel(e){
+  return e.kind === 'ok' ? ('Confirmed'+(e.status ? ' · '+e.status : '')) : ('Warm'+(e.status ? ' · '+e.status : ''));
+}
+
+function renderCalendar(){
+  const card = document.getElementById('calCard');
+  if(!card) return;
+  const monthPrefix = CAL_Y+'-'+calPad(CAL_M+1)+'-';
+  let nOk = 0, nWarm = 0;
+  Object.keys(CAL_EVENTS).forEach(k => {
+    if(k.indexOf(monthPrefix) !== 0) return;
+    CAL_EVENTS[k].forEach(e => { if(e.kind === 'ok') nOk++; else nWarm++; });
+  });
+
+  let html = '<div class="cal-head">'
+    + '<div class="cal-nav">'
+    +   '<button class="cal-arrow" onclick="calShift(-1)" aria-label="Previous month">&lsaquo;</button>'
+    +   '<h2 class="cal-title">'+CAL_MONTHS[CAL_M]+' <span>'+CAL_Y+'</span></h2>'
+    +   '<button class="cal-arrow" onclick="calShift(1)" aria-label="Next month">&rsaquo;</button>'
+    +   '<button class="cal-today-btn" onclick="calToday()">Today</button>'
+    + '</div>'
+    + '<div class="cal-filters">'
+    +   '<button class="cal-filter ok'+(CAL_SHOW.ok?' on':'')+'" aria-pressed="'+CAL_SHOW.ok+'" onclick="calToggle(\'ok\')"><i class="dot"></i>Confirmed <b>'+nOk+'</b></button>'
+    +   '<button class="cal-filter warm'+(CAL_SHOW.warm?' on':'')+'" aria-pressed="'+CAL_SHOW.warm+'" onclick="calToggle(\'warm\')"><i class="dot"></i>Warm <b>'+nWarm+'</b></button>'
+    +   '<button class="cal-refresh'+(CAL_LOADING?' spin':'')+'" onclick="loadCalendar()" title="Refresh" aria-label="Refresh calendar"><span>&#8635;</span></button>'
+    + '</div>'
+    + '</div>';
+
+  if(CAL_ERR){
+    html += '<div class="cal-note err">Couldn’t load events — '+esc(CAL_ERR)+'<button class="linkbtn" onclick="loadCalendar()">Try again</button></div>';
+  }else if(!CAL_LOADED){
+    html += '<div class="cal-note">Loading events…</div>';
+  }else if(nOk + nWarm === 0){
+    html += '<div class="cal-note">No confirmed or warm events in '+CAL_MONTHS[CAL_M]+' '+CAL_Y+'.</div>';
+  }
+
+  const first = new Date(CAL_Y, CAL_M, 1);
+  const offset = (first.getDay() - CAL_WEEK_STARTS_ON + 7) % 7;
+  const daysInMonth = new Date(CAL_Y, CAL_M+1, 0).getDate();
+  const rows = Math.ceil((offset + daysInMonth) / 7);
+  const todayKey = calTodayKey();
+
+  html += '<div class="cal-grid" role="grid" aria-label="'+CAL_MONTHS[CAL_M]+' '+CAL_Y+'">';
+  for(let i = 0; i < 7; i++){
+    const dow = (CAL_WEEK_STARTS_ON + i) % 7;
+    html += '<div class="cal-dow'+((dow === 0 || dow === 6) ? ' we' : '')+'" role="columnheader">'+CAL_DAYS[dow].slice(0, 3)+'</div>';
+  }
+  for(let i = 0; i < rows * 7; i++){
+    const dt = new Date(CAL_Y, CAL_M, 1 - offset + i);
+    const key = calKey(dt.getFullYear(), dt.getMonth(), dt.getDate());
+    const list = (CAL_EVENTS[key] || []).filter(e => CAL_SHOW[e.kind]);
+    const dow = dt.getDay();
+    const cls = ['cal-cell',
+      dt.getMonth() === CAL_M ? '' : 'out',
+      (dow === 0 || dow === 6) ? 'we' : '',
+      key === todayKey ? 'today' : '',
+      list.length ? 'has' : '',
+      i >= (rows - 1) * 7 ? 'last' : ''].filter(Boolean).join(' ');
+    const label = dt.getDate() + ' ' + CAL_MONTHS[dt.getMonth()] + (list.length ? ', '+list.length+' event'+(list.length > 1 ? 's' : '') : '');
+    const chips = list.map((e, idx) =>
+      '<button class="cal-chip '+e.kind+(idx >= CAL_MAX_CHIPS ? ' x' : '')+'"'
+      + ' title="'+esc(e.name+(e.city ? ' · '+e.city : '')+' — '+calEventLabel(e))+'"'
+      + ' onclick="event.stopPropagation();calOpen('+e.id+',\''+e.origin+'\')">'
+      + '<i class="d"></i><span class="n">'+esc(e.name)+'</span></button>').join('');
+    const more = list.length > CAL_MAX_CHIPS ? '<span class="cal-more">+'+(list.length - CAL_MAX_CHIPS)+' more</span>' : '';
+    html += '<div class="'+cls+'" role="gridcell" aria-label="'+esc(label)+'"'
+      + (list.length ? ' tabindex="0" onclick="calDay(\''+key+'\')" onkeydown="if(event.target===this&&(event.key===\'Enter\'||event.key===\' \')){event.preventDefault();calDay(\''+key+'\')}"' : '')
+      + '><span class="cal-num">'+(dt.getDate() === 1 ? '1 '+CAL_MONTHS[dt.getMonth()].slice(0, 3) : dt.getDate())+'</span>'
+      + '<div class="cal-chips">'+chips+more+'</div></div>';
+  }
+  html += '</div>';
+
+  html += '<div class="cal-foot">'
+    + '<span><b>Confirmed</b> = bookings that aren’t cancelled.</span>'
+    + '<span><b>Warm</b> = leads in discussion, proposal or negotiation.</span>'
+    + (CAL_UNDATED ? '<span>'+CAL_UNDATED+' confirmed/warm item'+(CAL_UNDATED > 1 ? 's have' : ' has')+' no event date yet, so '+(CAL_UNDATED > 1 ? 'aren’t' : 'isn’t')+' shown.</span>' : '')
+    + (CAL_TRUNCATED ? '<span>Showing the 200 latest leads and bookings by event date — older months may be incomplete.</span>' : '')
+    + '</div>';
+
+  card.innerHTML = html;
+}
+
+function calShift(delta){
+  CAL_M += delta;
+  while(CAL_M < 0){ CAL_M += 12; CAL_Y--; }
+  while(CAL_M > 11){ CAL_M -= 12; CAL_Y++; }
+  renderCalendar();
+}
+function calToday(){
+  const t = new Date();
+  CAL_Y = t.getFullYear(); CAL_M = t.getMonth();
+  renderCalendar();
+}
+function calToggle(kind){
+  CAL_SHOW[kind] = !CAL_SHOW[kind];
+  renderCalendar();
+  if(CAL_OPEN_DAY) renderCalModal();
+}
+
+// Clicking any event on the calendar (confirmed or warm, website or sales
+// team) opens its full admin view right here (2026-09-21, per Shruti). For
+// sales-team events that page shows a link across to their sales playbook.
+function calOpen(id){
+  calCloseDay();
+  openBooking(id);
+}
+
+function calDay(key){
+  CAL_OPEN_DAY = key;
+  renderCalModal();
+  const x = document.getElementById('calModalClose');
+  if(x) x.focus();
+}
+function calCloseDay(){
+  CAL_OPEN_DAY = null;
+  renderCalModal();
+}
+function renderCalModal(){
+  const modal = document.getElementById('calModal');
+  if(!modal) return;
+  if(!CAL_OPEN_DAY){ modal.classList.remove('open'); modal.innerHTML = ''; return; }
+  const p = CAL_OPEN_DAY.split('-').map(Number);
+  const dt = new Date(p[0], p[1]-1, p[2]);
+  const list = (CAL_EVENTS[CAL_OPEN_DAY] || []).filter(e => CAL_SHOW[e.kind]);
+  const nOk = list.filter(e => e.kind === 'ok').length;
+  const nWarm = list.length - nOk;
+  const sub = list.length
+    ? [nOk ? nOk+' confirmed' : '', nWarm ? nWarm+' warm' : ''].filter(Boolean).join(' · ')
+    : 'Nothing scheduled';
+  const rows = list.map(e =>
+    '<button class="cal-ev" onclick="calOpen('+e.id+',\''+e.origin+'\')">'
+    + '<i class="d '+e.kind+'"></i>'
+    + '<span class="cal-ev-main">'
+    +   '<span class="cal-ev-top"><span class="cal-ev-name">'+esc(e.name)+'</span><span class="cal-pill '+e.kind+'">'+esc(calEventLabel(e))+'</span></span>'
+    +   '<span class="cal-ev-meta"><span>#'+e.id+'</span>'
+    +     (e.city ? '<span>'+esc(e.city)+'</span>' : '')
+    +     (e.phone ? '<span>'+esc(e.phone)+'</span>' : '')
+    +     originBadgeHtml(e.origin)
+    +   '</span>'
+    + '</span>'
+    + '<span class="cal-ev-go" aria-hidden="true">'+'&rsaquo;'+'</span>'
+    + '</button>').join('');
+  modal.innerHTML = '<div class="cal-sheet" role="dialog" aria-modal="true" aria-labelledby="calModalTitle">'
+    + '<div class="cal-sheet-head"><div>'
+    +   '<h3 id="calModalTitle">'+CAL_DAYS[dt.getDay()]+', '+dt.getDate()+' '+CAL_MONTHS[dt.getMonth()]+' '+dt.getFullYear()+'</h3>'
+    +   '<p>'+sub+'</p></div>'
+    +   '<button class="cal-x" id="calModalClose" onclick="calCloseDay()" aria-label="Close">&#10005;</button>'
+    + '</div>'
+    + '<div class="cal-list">'+(rows || '<div class="empty">No events on this day.</div>')+'</div>'
+    + '</div>';
+  modal.classList.add('open');
+}
+
+// Esc closes the day sheet; ← / → change month and T jumps to today while the
+// Calendar tab is showing (and no text field has focus).
+document.addEventListener('keydown', function(ev){
+  if(CAL_OPEN_DAY && ev.key === 'Escape'){ calCloseDay(); return; }
+  if(ACTIVE_TAB !== 'cal' || CAL_OPEN_DAY) return;
+  if(document.getElementById('listView').style.display === 'none') return;
+  if(/INPUT|TEXTAREA|SELECT/.test((ev.target && ev.target.tagName) || '')) return;
+  if(ev.key === 'ArrowLeft'){ calShift(-1); }
+  else if(ev.key === 'ArrowRight'){ calShift(1); }
+  else if(ev.key === 't' || ev.key === 'T'){ calToday(); }
+});
+
+// ── Booking detail: summary header, section nav, total bar, chip selects ──
+// (2026-09-21 restyle — see the "Booking detail restyle" CSS block.)
+let CURRENT_ORIGIN = 'Website';
+let BD_HAS_MONEY = false;
+function findRowOrigin(id){
+  const pools = [LAST_ROWS.lead, LAST_ROWS.booking, CAL_LEADS, CAL_BOOKINGS];
+  for(const rows of pools){
+    const r = (rows || []).find(x => Number(x.lead_id) === Number(id));
+    if(r) return r.origin === 'Sales' ? 'Sales' : 'Website';
+  }
+  return 'Website';
+}
+function bdField(d, key){
+  for(const s of d.sections){
+    const f = s.fields.find(x => x.field_key === key);
+    if(f) return f;
+  }
+  return null;
+}
+// The value the team is currently working with: an assigned/updated value if
+// there is one, else the current value.
+function bdVal(d, key){
+  const f = bdField(d, key);
+  if(!f) return '';
+  const v = (f.assigned_value !== null && f.assigned_value !== undefined && f.assigned_value !== '') ? f.assigned_value : f.customer_choice;
+  return v == null ? '' : String(v);
+}
+function bdLongDate(s){
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || '');
+  if(!m) return s || '';
+  const dt = new Date(+m[1], +m[2]-1, +m[3]);
+  return CAL_DAYS[dt.getDay()].slice(0, 3)+', '+dt.getDate()+' '+CAL_MONTHS[dt.getMonth()].slice(0, 3)+' '+dt.getFullYear();
+}
+function bdTime(s){
+  const m = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec((s || '').trim());
+  if(!m) return s || '';
+  const h = +m[1];
+  return ((h % 12) || 12)+':'+m[2]+' '+(h >= 12 ? 'PM' : 'AM');
+}
+function bdChildLine(d){
+  const names = bdVal(d, 'child_names').split(',').map(x => x.trim()).filter(Boolean);
+  const ages = bdVal(d, 'child_ages').split(',').map(x => x.trim()).filter(Boolean);
+  if(names.length && names.length === ages.length) return names.map((n, i) => n+' ('+ages[i]+')').join(', ');
+  return names.join(', ') + (ages.length ? (names.length ? ' · age ' : 'Age ') + ages.join(', ') : '');
+}
+function bdMoney(s){
+  if(s === null || s === undefined || s === '') return null;
+  const n = parseFloat(String(s).replace(/,/g, '').replace(/₹|Rs\.?/g, '').trim());
+  return isNaN(n) ? null : n;
+}
+function bdRupees(n){ return n === null ? '—' : '₹'+Math.round(n).toLocaleString('en-IN'); }
+
+function renderBookingHead(d){
+  const name = bdVal(d, 'parent_name') || ('Lead #'+d.lead_id);
+  const phone = bdVal(d, 'phone');
+  const facts = [
+    ['Event date', esc(bdLongDate(bdVal(d, 'event_date')))],
+    ['Time', esc(bdTime(bdVal(d, 'event_time')))],
+    ['Venue', esc([bdVal(d, 'venue'), bdVal(d, 'city')].filter(Boolean).join(', '))],
+    ['Theme', esc(bdVal(d, 'theme'))],
+    ['Kids', esc(bdVal(d, 'kids_count'))],
+    ['Child', esc(bdChildLine(d))],
+    ['Phone', phone ? '<a href="tel:'+esc(phone.replace(/[^0-9+]/g, ''))+'">'+esc(phone)+'</a>' : ''],
+  ];
+  document.getElementById('bdHead').innerHTML = '<div class="bd-head">'
+    + '<div class="bd-eyebrow">'+(d.is_booking ? 'Booking' : 'Lead')+' #'+d.lead_id+' · Created '+esc(d.created_on_ist || '')+'</div>'
+    + '<div class="bd-title-row"><h2 class="bd-title">'+esc(name)+'</h2>'
+    +   '<div class="bd-tags"><span class="status-pill status-'+(d.status || '').replace(/[^A-Za-z]/g, '')+'" style="padding:6px 14px;font-size:12.5px">'+esc(d.status || '')+'</span>'+originBadgeHtml(CURRENT_ORIGIN)+'</div></div>'
+    + '<div class="bd-facts">'+facts.map(f =>
+        '<div class="bd-fact"><div class="k">'+f[0]+'</div><div class="v'+(f[1] ? '' : ' none')+'">'+(f[1] || '—')+'</div></div>').join('')+'</div>'
+    + '</div>';
+  document.getElementById('bdTopRight').innerHTML = CURRENT_ORIGIN === 'Sales'
+    ? '<a class="linkbtn" href="sales-leads.html?lead_id='+d.lead_id+'" target="_blank">Open sales playbook ↗</a>' : '';
+}
+
+function bdJump(ev, id){
+  ev.preventDefault();
+  const el = document.getElementById(id);
+  if(el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+function renderBookingNav(d){
+  const nav = document.getElementById('bdNav');
+  nav.className = 'bd-nav';
+  nav.innerHTML = d.sections.map(s => {
+    const id = 'sect-'+secId(s.section);
+    return '<a href="#'+id+'" onclick="bdJump(event,\''+id+'\')">'+esc(s.section)+'</a>';
+  }).join('') + '<a href="#bdLog" onclick="bdJump(event,\'bdLog\')">Modification trail</a>';
+}
+
+function renderBookingBar(d){
+  const bar = document.getElementById('bdBar');
+  const gt = bdMoney(bdVal(d, 'bill_grand_total'));
+  const advF = bdField(d, 'bill_advance');
+  const adv = advF ? bdMoney(advF.customer_choice) : null;   // Balance Due is computed from this same Current Value
+  const bal = bdMoney(bdVal(d, 'bill_balance'));
+  BD_HAS_MONEY = gt !== null || adv !== null || bal !== null;
+  bar.innerHTML = '<div class="bd-bar-in">'
+    + '<div class="m"><div class="k">Grand total</div><div class="v">'+bdRupees(gt)+'</div></div>'
+    + '<div class="m"><div class="k">Advance paid</div><div class="v">'+bdRupees(adv)+'</div></div>'
+    + '<div class="m due'+(bal !== null && bal <= 0 ? ' clear' : '')+'"><div class="k">Balance due</div><div class="v">'+bdRupees(bal)+'</div></div>'
+    + '<span class="bd-unsaved" id="bdUnsaved" style="display:none"></span>'
+    + '</div>';
+  updateDirtyCount();
+}
+function updateDirtyCount(){
+  const bar = document.getElementById('bdBar');
+  const el = document.getElementById('bdUnsaved');
+  if(!bar || !el) return;
+  const n = document.querySelectorAll('#sectionsContainer tr.dirty').length;
+  el.style.display = n ? 'inline-block' : 'none';
+  el.textContent = n+' unsaved change'+(n > 1 ? 's' : '')+' — press Save on each row';
+  bar.style.display = (BD_HAS_MONEY || n) ? 'block' : 'none';
+}
+
+// Short dropdowns (2–5 real options: tiers, payment method/status, gender…)
+// become tap-to-pick chips like the sales page. The real <select> stays in
+// the DOM, hidden, and is kept in sync + fires 'change', so saveField(),
+// the dirty-row highlight and everything else that reads it work unchanged.
+function enhanceChips(root){
+  root.querySelectorAll('tr[id^="fld_"] td > select').forEach(sel => {
+    if(sel.classList.contains('chipified')) return;
+    const all = Array.prototype.slice.call(sel.options);
+    const real = all.filter(o => o.value !== '');
+    if(real.length < 2 || real.length > 5) return;
+    const hasBlank = all.length > real.length;
+    const wrap = document.createElement('div');
+    wrap.className = 'chips';
+    wrap.setAttribute('role', 'group');
+    real.forEach(o => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = o.textContent;
+      b.dataset.v = o.value;
+      const on = sel.value === o.value;
+      b.classList.toggle('sel', on);
+      b.setAttribute('aria-pressed', String(on));
+      b.addEventListener('click', () => {
+        sel.value = (sel.value === o.value && hasBlank) ? '' : o.value;
+        wrap.querySelectorAll('button').forEach(x => {
+          const isOn = x.dataset.v === sel.value;
+          x.classList.toggle('sel', isOn);
+          x.setAttribute('aria-pressed', String(isOn));
+        });
+        sel.dispatchEvent(new Event('change', {bubbles: true}));
+      });
+      wrap.appendChild(b);
+    });
+    sel.classList.add('chipified');
+    sel.parentNode.insertBefore(wrap, sel);
+  });
 }
 
 // ── Monthly overview (Website/Repeat leads auto; Instagram/Carried
@@ -1050,6 +1648,7 @@ function updateSortHeaders(kind){
 async function doSearch(){
   const q = document.getElementById('searchQ').value.trim();
   await Promise.all([loadTable('lead', q), loadTable('booking', q), loadVendors(q)]);
+  if(ACTIVE_TAB==='cal') loadCalendar();
 }
 
 // ── Vendors (2026-09-10, per Shruti — "update the vendor master... and
@@ -1441,8 +2040,18 @@ function attrJson(v){ return esc(JSON.stringify(v)); }
 
 async function openBooking(id){
   CURRENT_LEAD_ID = id;
+  CURRENT_ORIGIN = findRowOrigin(id);
+  const back = {cal:'calendar', booking:'bookings', lead:'leads'}[ACTIVE_TAB] || 'list';
+  document.getElementById('bdBackBtn').innerHTML = '&larr; Back to '+back;
+  document.getElementById('bdHead').innerHTML = '<div class="empty">Loading…</div>';
+  document.getElementById('bdTopRight').innerHTML = '';
+  document.getElementById('bdNav').className = '';
+  document.getElementById('bdNav').innerHTML = '';
+  document.getElementById('sectionsContainer').innerHTML = '';
+  document.getElementById('bdBar').style.display = 'none';
   document.getElementById('listView').style.display='none';
   document.getElementById('detailView').style.display='block';
+  window.scrollTo(0, 0);
   await loadDetail();
 }
 
@@ -1588,8 +2197,9 @@ async function cancelEventDetail(){
 }
 
 function renderDetail(d){
-  document.getElementById('detTitle').textContent = (d.is_booking?'Booking #':'Lead #')+d.lead_id;
-  document.getElementById('detMeta').textContent = 'Status: '+d.status+' · Created '+d.created_on_ist;
+  renderBookingHead(d);
+  renderBookingNav(d);
+  renderBookingBar(d);
 
   // Prefer the options bundled with this response (always fresh/available)
   // over the boot-time cache, which may not have resolved yet.
@@ -1618,7 +2228,7 @@ function renderDetail(d){
     const isCustEvent = sec.section==='Customer & Event Details';
     const col3Label = isCustEvent ? 'Updated Value' : 'Assigned Value';
     const rowsHtml = sec.fields.map(f=>fieldRowHtml(f, isCustEvent, d.locked)).join('');
-    return '<div class="section-block">'
+    return '<div class="section-block" id="sect-'+secId(sec.section)+'">'
       +'<h3>'+esc(sec.section)+'</h3>'
       +'<table class="fields"><thead><tr><th>Field</th><th>Current Value</th><th>'+col3Label+'</th><th>Remarks</th><th></th></tr></thead>'
       +'<tbody id="sec-'+secId(sec.section)+'">'+rowsHtml+'</tbody></table>'
@@ -1636,10 +2246,12 @@ function renderDetail(d){
   // Snapshot every row's freshly-rendered values so checkRowDirty() below has
   // a baseline to compare against as the admin types (2026-08-19, per
   // Shruti — "highlight the row wherever the user is changing any value").
+  enhanceChips(container);
   container.querySelectorAll('tr[id^="fld_"]').forEach(row=>{
     row.classList.remove('dirty');
     row.dataset.initial = rowSnapshot(row.id);
   });
+  updateDirtyCount();
 }
 
 function secId(name){ return name.replace(/[^A-Za-z0-9]/g,''); }
@@ -1660,6 +2272,7 @@ function checkRowDirty(rid){
   const row = document.getElementById(rid);
   if(!row || row.dataset.initial===undefined) return;
   row.classList.toggle('dirty', rowSnapshot(rid) !== row.dataset.initial);
+  updateDirtyCount();
 }
 (function initDirtyTracking(){
   const container = document.getElementById('sectionsContainer');
@@ -1979,6 +2592,7 @@ document.addEventListener('click', e=>{
 
 function fieldRowHtml(f, isCustEvent, locked){
   const rid = 'fld_'+f.field_key;
+  const col3 = isCustEvent ? 'Updated value' : 'Assigned value';
   const removedCls = f.removed ? ' removed' : '';
   // "None selected" instead of a blank note when the customer genuinely left
   // this field empty at checkout (2026-08-19, per Shruti) — distinguishes
@@ -2003,7 +2617,7 @@ function fieldRowHtml(f, isCustEvent, locked){
       : f.field_key==='bill_grand_total'
       ? 'The amount the customer agreed to pay. Recalculates automatically when Discount % is saved; otherwise unchanged from checkout.'
       : 'Captured at checkout — not re-calculated when services/overrides change here.';
-    return '<tr id="'+rid+'" data-key="'+esc(f.field_key)+'">'
+    return '<tr id="'+rid+'" class="ro" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+'</td>'
       +'<td colspan="3"><span class="readonly-cell computed">'+esc(f.customer_choice||'—')+'<span class="computed-note">'+note+'</span></span></td>'
       +'<td></td>'
@@ -2019,9 +2633,9 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(locked){
     return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
-      +'<td><span class="readonly-cell">'+esc(f.customer_choice||'—')+'</span></td>'
-      +'<td><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>'
-      +'<td><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
+      +'<td data-label="Current value"><span class="readonly-cell">'+esc(f.customer_choice||'—')+'</span></td>'
+      +'<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>'
+      +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
       +'</tr>';
   }
@@ -2118,9 +2732,9 @@ function fieldRowHtml(f, isCustEvent, locked){
 
   return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
-    +'<td>'+ccCell+'</td>'
-    +'<td>'+avCell+'</td>'
-    +'<td><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
+    +'<td data-label="Current value">'+ccCell+'</td>'
+    +'<td data-label="'+col3+'">'+avCell+'</td>'
+    +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
       +'<button class="mini-btn save" onclick="saveField('+attrJson(f.field_key)+', false)">Save</button>'
       +actions
