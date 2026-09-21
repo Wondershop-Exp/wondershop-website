@@ -71,3 +71,34 @@ img/activity/**/*.mp4
 # General scratch folder used during editing sessions (stale git lock
 # backups, old preview crops, etc.) — never real site content.
 _to_delete/
+
+# Business/vendor spreadsheets (ERP exports, supplier master data, etc.) —
+# this is a public repo (GitHub Pages), so these should never be committed.
+# Wondershop_PreLaunch_QA_Test_Plan.xlsx predates this rule and stays
+# tracked as-is; this only stops NEW xlsx files from being added by
+# accident (e.g. a broad `git add .`). (2026-09-13, per Shruti)
+*.xlsx
+
+# Stray Node.js installer that ended up in the repo root — unrelated to
+# the site, shouldn't be versioned. (2026-09-13)
+node-v24.20.0.pkg
+
+# Internal working documents — NOT part of the website. This repo is public and
+# GitHub Pages serves every committed file, so anything listed here would be
+# downloadable at www.wondershopexperiences.com/<filename>. They stay on disk;
+# they were dropped from tracking with `git rm --cached`. (2026-09-21, ahead of
+# the go-live on www.wondershopexperiences.com)
+TASKS.md
+pricing-context.md
+content-bank.md
+carousel-content-brief.md
+Homepage-Banner-Design-Brief.md
+Wondershop_SEO_Audit_July2026.md
+WS-Carousel-Designer-Brief.docx
+WS_DataDictionary_v1.docx
+Wondershop_PreLaunch_QA_Test_Plan.xlsx
+Google_Sheet_Lead_Capture_Setup.txt
+Google_Sheet_Lead_Capture_Setup/
+Invite Templates-*.zip
+# Vendor contact list (names, phone numbers, emails) — one-time import source only.
+backend/scripts/vendor_master_clean.csv
