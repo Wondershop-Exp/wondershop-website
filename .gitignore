@@ -102,3 +102,6 @@ Google_Sheet_Lead_Capture_Setup/
 Invite Templates-*.zip
 # Vendor contact list (names, phone numbers, emails) — one-time import source only.
 backend/scripts/vendor_master_clean.csv
+
+# Big videos not used by the site (moved here 2026-09-21); keep local, never commit
+unused/
