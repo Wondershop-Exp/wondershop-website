@@ -45,7 +45,6 @@ a{color:var(--bl)}
 #app{display:none;max-width:1200px;margin:0 auto;padding:20px 20px 80px}
 .topbar{background:var(--plum);border-radius:18px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;box-shadow:0 6px 20px rgba(46,36,56,.18)}
 .topbar-title{display:flex;align-items:center;gap:12px}
-.topbar-icon{width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
 .topbar h1{font-size:19px;color:#fff}
 .topbar-sub{font-size:12px;color:#C9B8DC;margin-top:2px}
 .topbar .who{display:flex;align-items:center;gap:10px;font-size:13px;color:#EDE6FA;flex-wrap:wrap}
@@ -237,6 +236,11 @@ table.list.static tr:hover td{background:inherit}
 .log-entry{font-size:13px;padding:8px 0;border-bottom:1px solid var(--li3);color:var(--bk)}
 .log-entry .ts{color:var(--gy);font-size:11px}
 .empty{color:var(--gy);font-size:13px;padding:20px 0}
+.empty-state{text-align:center;padding:44px 24px 48px}
+.empty-state .es-ic{width:52px;height:52px;border-radius:50%;background:var(--li3);color:var(--li);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.empty-state .es-ic svg{width:24px;height:24px}
+.empty-state .empty-t{font-size:15px;font-weight:600;color:var(--plum);margin-bottom:4px}
+.empty-state .empty-s{font-size:13px;color:var(--gy);max-width:340px;margin:0 auto;line-height:1.5}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bk);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
 .toast.show{opacity:1}
 
@@ -483,7 +487,6 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
 <div id="app">
   <div class="topbar">
     <div class="topbar-title">
-      <div class="topbar-icon">🎈</div>
       <div>
         <h1>Wondershop Admin</h1>
         <div class="topbar-sub">Bookings</div>
@@ -529,7 +532,7 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
         </tr></thead>
         <tbody id="leadBody"></tbody>
       </table>
-      <div class="empty" id="leadEmpty" style="display:none">No leads found.</div>
+      <div class="empty-state" id="leadEmpty" data-hint="New enquiries from the website and your sales team will show up here." style="display:none"><div class="es-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l2.6-7.2A2 2 0 0 1 7.5 4.5h9a2 2 0 0 1 1.9 1.3L21 13"/><path d="M3 13v5a1.5 1.5 0 0 0 1.5 1.5h15A1.5 1.5 0 0 0 21 18v-5h-5.5a3.5 3.5 0 0 1-7 0H3z"/></svg></div><div class="empty-t">No leads found</div><div class="empty-s"></div></div>
     </div>
     <div id="bookingTableWrap" style="display:none">
       <table class="list">
@@ -545,7 +548,7 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
         </tr></thead>
         <tbody id="bookingBody"></tbody>
       </table>
-      <div class="empty" id="bookingEmpty" style="display:none">No bookings found.</div>
+      <div class="empty-state" id="bookingEmpty" data-hint="Confirmed bookings will show up here." style="display:none"><div class="es-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l2.6-7.2A2 2 0 0 1 7.5 4.5h9a2 2 0 0 1 1.9 1.3L21 13"/><path d="M3 13v5a1.5 1.5 0 0 0 1.5 1.5h15A1.5 1.5 0 0 0 21 18v-5h-5.5a3.5 3.5 0 0 1-7 0H3z"/></svg></div><div class="empty-t">No bookings found</div><div class="empty-s"></div></div>
     </div>
     <div id="vendorTableWrap" style="display:none">
       <button class="add-field-btn" style="margin:0 0 12px" onclick="window.open('vendor-onboarding.html','_blank')">+ Add partner</button>
@@ -556,7 +559,7 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
           </tr></thead>
           <tbody id="vendorBody"></tbody>
         </table>
-        <div class="empty" id="vendorEmpty" style="display:none">No partners found.</div>
+        <div class="empty-state" id="vendorEmpty" data-hint="Partners you add will show up here." style="display:none"><div class="es-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l2.6-7.2A2 2 0 0 1 7.5 4.5h9a2 2 0 0 1 1.9 1.3L21 13"/><path d="M3 13v5a1.5 1.5 0 0 0 1.5 1.5h15A1.5 1.5 0 0 0 21 18v-5h-5.5a3.5 3.5 0 0 1-7 0H3z"/></svg></div><div class="empty-t">No partners found</div><div class="empty-s"></div></div>
       </div>
     </div>
     <div id="dashboardWrap" style="display:none">
@@ -1802,7 +1805,7 @@ async function loadVendors(q){
     const d = await apiCall(path);
     const vendors = d.vendors||[];
     updateBubble('vendorBubble', d.pending_review_count||0);
-    if(!vendors.length){ body.innerHTML=''; empty.style.display='block'; return; }
+    if(!vendors.length){ body.innerHTML=''; setEmptyHint(empty); empty.style.display='block'; return; }
     empty.style.display='none';
     body.innerHTML = vendors.map(v=>
       '<tr onclick="openVendor('+v.vendor_id+')">'
@@ -1946,6 +1949,13 @@ async function saveVendor(){
 let LAST_ROWS = {lead: [], booking: []};
 let LEAD_ORIGIN_FILTER = 'all'; // 'all' | 'website' | 'sales'
 
+function setEmptyHint(el){
+  const q = ((document.getElementById('searchQ')||{}).value||'').trim();
+  let msg = el.getAttribute('data-hint') || '';
+  if(q) msg = 'Nothing matches your search. Try a different name, phone, email or ID.';
+  else if(el.id==='leadEmpty' && typeof LEAD_ORIGIN_FILTER!=='undefined' && LEAD_ORIGIN_FILTER!=='all') msg = 'No leads match this filter. Try \u201cAll leads\u201d.';
+  const sub = el.querySelector('.empty-s'); if(sub) sub.textContent = msg;
+}
 async function loadTable(kind, q){
   const bodyId = kind==='lead' ? 'leadBody' : 'bookingBody';
   const emptyId = kind==='lead' ? 'leadEmpty' : 'bookingEmpty';
@@ -1979,7 +1989,7 @@ function renderRows(kind){
   if(kind==='lead' && LEAD_ORIGIN_FILTER!=='all'){
     rows = rows.filter(r => (LEAD_ORIGIN_FILTER==='sales') === (r.origin==='Sales'));
   }
-  if(!rows.length){ body.innerHTML=''; empty.style.display='block'; return; }
+  if(!rows.length){ body.innerHTML=''; setEmptyHint(empty); empty.style.display='block'; return; }
   empty.style.display='none';
   body.innerHTML = rows.map(r=>{
     // Sales-origin rows (leads AND their converted bookings, since
