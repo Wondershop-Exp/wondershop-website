@@ -89,6 +89,13 @@ class Settings(BaseSettings):
     # property, pasted as one env var (Railway has no file uploads) — never
     # commit a real value here. See backend/GA4_SETUP.md for the one-time
     # setup steps.
+    # Traffic / funnel numbers from GA4 are ignored before this date
+    # (YYYY-MM-DD; blank = use everything GA4 has). 2026-09-21, per Shruti:
+    # visits recorded while the site was still being tested (before it went
+    # live on www.wondershopexperiences.com) must not show on the dashboard.
+    # GA4 itself can't be purged from our side, so the dashboard just
+    # starts counting here. Override with the ANALYTICS_START_DATE env var.
+    ANALYTICS_START_DATE: str = "2026-09-21"
     GA4_PROPERTY_ID: str = ""
     GA4_SERVICE_ACCOUNT_JSON: str = ""
 

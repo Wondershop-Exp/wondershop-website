@@ -67,7 +67,7 @@ _LOGO_PATH = os.path.join(os.path.dirname(__file__), "assets", "logo-horizontal.
 
 _PAYMENT_METHOD_LABELS = {
     "online":  "UPI / Bank Transfer",
-    "branch":  "Cash Deposit at Branch",
+    "branch":  "Cash Deposit at Wondershop Experiences Head Office",
     "collect": "Cash Collection at Venue",
 }
 
@@ -76,7 +76,8 @@ def _fmt_rupees(amount) -> str:
     if amount is None:
         return "—"
     try:
-        return f"Rs. {float(amount):,.0f}"
+        v = float(amount)
+        return f"−Rs. {abs(v):,.0f}" if v < 0 else f"Rs. {v:,.0f}"
     except (TypeError, ValueError):
         return "—"
 
@@ -177,6 +178,8 @@ def assemble_invoice_data(
     gstin: Optional[str] = None,
     gst_rate_pct: float = 0.0,
     extra_fee_rows: Optional[list] = None,
+    advance_confirmed: Optional[bool] = None,
+    discount_amt: Optional[float] = None,
 ) -> dict:
     line_items = _line_items_from_services_detail(services_detail)
     # Order-level fees that pushed Payable Total above Package Subtotal
@@ -191,8 +194,7 @@ def assemble_invoice_data(
     for label, amount in (extra_fee_rows or []):
         line_items.append({"label": label, "description": "—", "amount": amount, "free": False})
 
-    discount_amt = None
-    if subtotal is not None and grand_total is not None:
+    if discount_amt is None and subtotal is not None and grand_total is not None:
         discount_amt = max(0.0, subtotal - grand_total)
 
     gst_block = None
@@ -206,7 +208,7 @@ def assemble_invoice_data(
 
     # 2026-09-12, per Shruti — "don't say advance paid till it's verified":
     # no payment method is ever auto-verified (mirrors leads.py's
-    # _payment_status_text). "Cash Deposit at Branch" gets no verified
+    # _payment_status_text). "Cash Deposit at Wondershop Experiences Head Office" gets no verified
     # claim at all — the invoice reads PAYMENT PENDING / "Advance Pending"
     # until someone actually confirms the deposit; every other method (UPI/
     # bank transfer, or unknown) can say "Advance Paid" but must flag that
@@ -215,6 +217,10 @@ def assemble_invoice_data(
     # so it's untouched by this branch.
     if balance_due is not None and balance_due <= 0.01:
         status_label = "PAID IN FULL"
+        advance_label = "Advance Paid"
+    elif advance_paid and advance_confirmed:
+        # Admin-panel invoice, after the team marked the advance Verified.
+        status_label = "PARTIALLY PAID"
         advance_label = "Advance Paid"
     elif advance_paid and payment_method == "branch":
         status_label = "PAYMENT PENDING"

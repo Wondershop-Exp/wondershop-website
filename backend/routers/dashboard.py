@@ -70,9 +70,26 @@ def _conversion_pct(bucket: dict) -> Optional[float]:
     return round(bucket["bookings"] / bucket["leads"] * 100, 1) if bucket["leads"] else None
 
 
+def _clamp_ga4_start(start, today):
+    """Never look further back than settings.ANALYTICS_START_DATE (the go-live
+    day) — earlier GA4 traffic is test data. Blank/invalid setting = no
+    clamp. Never later than `today`, so a start date set in the future
+    can't produce an inverted range."""
+    raw = (settings.ANALYTICS_START_DATE or "").strip()
+    if not raw:
+        return start
+    try:
+        floor = datetime.strptime(raw, "%Y-%m-%d").date()
+    except ValueError:
+        logger.warning(f"ANALYTICS_START_DATE {raw!r} is not YYYY-MM-DD — ignoring it")
+        return start
+    return min(max(start, floor), today)
+
+
 async def _fetch_ga4_summary(start, end) -> dict:
     if not ga4_client.is_configured():
         return {"configured": False}
+    start = _clamp_ga4_start(start, end)
     try:
         traffic = await asyncio.to_thread(ga4_client.fetch_traffic_and_events, start, end)
     except Exception as exc:
@@ -200,10 +217,12 @@ def _ga4_funnel_raw_sync(range_start, today):
     ga4_client call here is synchronous. One traffic/events fetch + one
     daily-events-by-name fetch + one daily-Review-views fetch + one fixed
     30-day step-funnel fetch, all over the same lookback window."""
+    range_start = _clamp_ga4_start(range_start, today)
     traffic = ga4_client.fetch_traffic_and_events(range_start, today)
     daily_events = ga4_client.fetch_daily_events(range_start, today, list(ga4_client.FUNNEL_EVENTS))
     review_views = ga4_client.fetch_daily_step_views(range_start, today, STEP_REVIEW_NAME)
-    step_funnel = ga4_client.fetch_step_funnel(today - timedelta(days=FUNNEL_WINDOW_DAYS), today)
+    step_funnel = ga4_client.fetch_step_funnel(
+        _clamp_ga4_start(today - timedelta(days=FUNNEL_WINDOW_DAYS), today), today)
     return {
         "daily_traffic": traffic["daily_traffic"],
         "daily_events": daily_events,
@@ -548,6 +567,35 @@ async def _sales_rep_performance_in_month(month_start: datetime, month_end: date
     } for r in rows]
 
 
+# How far past the current month the Monthly Trend / month picker will reach
+# for months that already have a confirmed booking. Capped so one mistyped
+# event date (say 2099) can't make the dashboard run hundreds of queries.
+MAX_FUTURE_MONTHS = 24
+
+
+async def _latest_booking_month(now: datetime) -> datetime:
+    """First-of-month for the latest month that has a confirmed, non-cancelled
+    booking (event_date in the future), never earlier than the current month
+    and never more than MAX_FUTURE_MONTHS ahead. 2026-09-21, per Shruti:
+    "show future months as well for which we have a booking" — bookings are
+    taken well in advance, so Oct/Nov revenue has to be visible today."""
+    this_month = _month_start(now)
+    limit = _add_months(this_month, MAX_FUTURE_MONTHS + 1).date()
+    row = await database.fetch_one(
+        """
+        SELECT MAX(event_date) AS last_event FROM leads
+        WHERE is_booking = TRUE AND status != 'Cancelled'
+          AND event_date IS NOT NULL AND event_date < :limit
+        """,
+        values={"limit": limit},
+    )
+    last = row["last_event"] if row else None
+    if not last:
+        return this_month
+    last_month = datetime(last.year, last.month, 1, tzinfo=this_month.tzinfo)
+    return max(this_month, last_month)
+
+
 async def _month_summary(month_start: datetime, now: datetime) -> dict:
     month_end = _add_months(month_start, 1)
     today = now.date()
@@ -592,8 +640,13 @@ async def dashboard_monthly(month: Optional[str] = None, x_admin_password: Optio
     )
     overrides_by_month = {r["month_start"].isoformat(): dict(r) for r in overrides_rows}
 
+    # Trailing MONTHS_OF_TREND months up to today, plus every upcoming month
+    # through the latest one that has a confirmed booking.
+    latest_booking_month = await _latest_booking_month(now)
+    months_ahead = (latest_booking_month.year - _month_start(now).year) * 12 + (latest_booking_month.month - _month_start(now).month)
+
     trend = []
-    for i in range(MONTHS_OF_TREND):
+    for i in range(MONTHS_OF_TREND + months_ahead):
         m = _add_months(_month_start(now), -(MONTHS_OF_TREND - 1) + i)
         summary = await _month_summary(m, now)
         ov = overrides_by_month.get(m.date().isoformat())
@@ -641,6 +694,8 @@ async def dashboard_monthly(month: Optional[str] = None, x_admin_password: Optio
         "revenue_target_pct": revenue_target_pct,
         "bookings_target_pct": bookings_target_pct,
         "trend": trend,
+        "latest_booking_month": _month_key(latest_booking_month),
+        "months_ahead": months_ahead,
         "confirmed_events_next_14d": confirmed_events_row["cnt"] or 0,
         "updated_by": this_ov["updated_by"] if this_ov else None,
         "updated_on": this_ov["updated_on"].isoformat() if (this_ov and this_ov["updated_on"]) else None,

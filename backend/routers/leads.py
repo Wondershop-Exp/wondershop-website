@@ -185,7 +185,7 @@ class AbandonedCartRequest(BaseModel):
 # for the order-summary email/order-form (2026-08-12, per Shruti).
 _PAYMENT_METHOD_LABELS = {
     "online":  "UPI / Bank Transfer",
-    "branch":  "Cash Deposit at Branch",
+    "branch":  "Cash Deposit at Wondershop Experiences Head Office",
     "collect": "Cash Collection at Venue",
 }
 
@@ -402,7 +402,17 @@ async def _get_gmail_access_token() -> str:
                 "grant_type":    "refresh_token",
             },
         )
-    r.raise_for_status()
+    if r.status_code != 200:
+        # Google's own reason (invalid_grant = refresh token expired/revoked,
+        # invalid_client = wrong client id/secret) is what tells you which
+        # Railway variable to fix, so keep it in the message.
+        try:
+            j = r.json()
+            reason = f"{j.get('error', 'unknown')}: {j.get('error_description', '')}".strip()
+        except Exception:
+            reason = r.text[:200]
+        raise Exception(f"Gmail sign-in failed (HTTP {r.status_code}, {reason}). "
+                        f"The GMAIL_* variables on Railway need re-authorising.")
     return r.json()["access_token"]
 
 async def _gmail_send(to_email: str, subject: str, body: str, html_body: Optional[str] = None,
@@ -434,6 +444,23 @@ async def _gmail_send(to_email: str, subject: str, body: str, html_body: Optiona
         )
     if r.status_code not in (200, 201):
         raise Exception(f"Gmail API error {r.status_code}: {r.text}")
+
+
+async def _record_email_status(lead_id: int, kind: str, ok: bool, error: Optional[str] = None) -> None:
+    """Stamp the outcome of a booking email on the lead (kind = 'customer' or
+    'team') so the admin booking page can show it. Never raises: this runs
+    in the failure path of the email itself, and it also has to survive the
+    columns not existing yet (migration 033 not run)."""
+    if kind not in ("customer", "team"):
+        return
+    try:
+        await database.execute(
+            f"UPDATE leads SET {kind}_email_status = :s, {kind}_email_error = :e, {kind}_email_at = :t WHERE lead_id = :id",
+            values={"s": "sent" if ok else "failed", "e": None if ok else (error or "unknown error")[:600],
+                    "t": datetime.utcnow(), "id": lead_id},
+        )
+    except Exception as exc:
+        logger.warning(f"Lead #{lead_id}: could not record {kind} email status — {exc}")
 
 
 # ─── REWARD CODE ISSUE / REDEMPTION ──────────────────────────────────────────
@@ -1501,6 +1528,8 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Opti
     if not req.email or "@" not in req.email or "." not in req.email.split("@")[-1]:
         return   # skip if no email or obviously invalid (e.g. test placeholder "string")
     if not settings.GMAIL_CLIENT_ID:
+        logger.error(f"Lead #{lead_id}: GMAIL_CLIENT_ID is not set on this server — customer confirmation NOT sent")
+        await _record_email_status(lead_id, "customer", False, "Email is not configured on the server (GMAIL_* variables missing).")
         return
 
     try:
@@ -1585,8 +1614,10 @@ wondershopexperiences.com
         logger.info(f"Lead #{lead_id}: user ACK sent to {req.email}"
                     f"{' with calendar invite' if ics_attachments else ''}"
                     f"{' with invoice' if invoice_attachments else ''}")
+        await _record_email_status(lead_id, "customer", True)
     except Exception as exc:
         logger.error(f"Lead #{lead_id}: user ACK email failed — {exc}")
+        await _record_email_status(lead_id, "customer", False, str(exc))
 
 
 # ─── 2. TEAM NOTIFICATION EMAIL ──────────────────────────────────────────────
@@ -1596,6 +1627,7 @@ async def _send_team_email(lead_id: int, req: LeadSubmitRequest, reward_code: Op
     """Alert email to the Wondershop team."""
     if not settings.GMAIL_CLIENT_ID:
         logger.warning("GMAIL credentials not configured — skipping team email")
+        await _record_email_status(lead_id, "team", False, "Email is not configured on the server (GMAIL_* variables missing).")
         return
 
     try:
@@ -1681,8 +1713,10 @@ SOURCE
         )
         logger.info(f"Lead #{lead_id}: team email sent to {settings.EMAIL_TEAM}"
                     f"{' with order form attached' if attachments else ''}")
+        await _record_email_status(lead_id, "team", True)
     except Exception as exc:
         logger.error(f"Lead #{lead_id}: team email failed — {exc}")
+        await _record_email_status(lead_id, "team", False, str(exc))
 
 
 # ─── 3. GOOGLE SHEET ─────────────────────────────────────────────────────────

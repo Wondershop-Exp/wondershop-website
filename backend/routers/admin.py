@@ -56,8 +56,13 @@ from config import settings
 import catalogue_data as cat
 from types import SimpleNamespace
 from invoice_builder import assemble_invoice_data, build_invoice_pdf, invoice_filename
+from booking_pricing import (
+    recompute_grand_total, freebie_activity_names, parse_csv as _parse_csv_names,
+    PACKAGING_KEY_TO_LABEL, PACKAGING_UNIT_PRICE, DJ_LIGHTS_PRICE, DJ_SMOKE_PRICE,
+    TAG_NOTE_UNIT_PRICE, TAG_NOTE_MIN_QTY,
+)
 from routers.leads import (
-    _services_detail_list, _party_title, _fmt_date_long, _gmail_send,
+    _services_detail_list, _party_title, _fmt_date_long, _gmail_send, _get_gmail_access_token,
     _get_or_create_invoice_number, _order_addon_rows_raw,
 )
 
@@ -210,6 +215,8 @@ SECTIONS = ["Customer & Event Details", "Services", "Add-ons", "Billing & Reward
 CATALOG_BY_KEY = {f["key"]: f for f in FIELD_CATALOG}
 
 DIRECT_WRITE_FIELDS = {f["key"] for f in FIELD_CATALOG if f["section"] == "Customer & Event Details"}
+# Payment Status values that mean the team HAS seen the advance arrive.
+ADVANCE_CONFIRMED_STATUSES = ("Advance Paid Verified", "Complete")
 READ_ONLY_FIELDS = {"bill_grand_total", "bill_balance", "bill_total_savings", "bill_freebies"}
 
 # ─── Dropdown option lists ────────────────────────────────────────────────
@@ -342,7 +349,24 @@ def _is_locked(is_booking: bool, status: Optional[str]) -> bool:
         return status == "Cancelled"
     return status in NON_CONVERT_STATUSES
 
+# 2026-09-21, per Shruti (Image 7): the four Add-ons rows were plain text
+# boxes — they are now dropdowns of the values the site itself offers. Prices
+# shown are the same ones builder.html charges (mirrored in booking_pricing.py).
+ADDON_LIGHTS_OPTIONS = [_opt("Yes", f"Yes - Rs. {DJ_LIGHTS_PRICE}"), _opt("No")]
+ADDON_SMOKE_OPTIONS = [_opt("Yes", f"Yes - Rs. {DJ_SMOKE_PRICE}"), _opt("No")]
+ADDON_NOTE_OPTIONS = [_opt("Yes", f"Yes - Rs. {TAG_NOTE_UNIT_PRICE}/gift (min. {TAG_NOTE_MIN_QTY})"), _opt("No")]
+ADDON_PACKAGING_OPTIONS = [
+    _opt("Paper Gift Bag", f"Paper Gift Bag - Rs. {PACKAGING_UNIT_PRICE['paper-bag']}/gift"),
+    _opt("Gift Wrap", f"Gift Wrap - Rs. {PACKAGING_UNIT_PRICE['wrap']}/gift"),
+    _opt("Gift Wrap + Paper Bag", f"Gift Wrap + Paper Bag - Rs. {PACKAGING_UNIT_PRICE['both']}/gift"),
+    _opt("No packaging"),
+]
+
 DROPDOWN_OPTIONS = {
+    "addon_dj_lights": ADDON_LIGHTS_OPTIONS,
+    "addon_dj_smoke": ADDON_SMOKE_OPTIONS,
+    "addon_gift_packaging": ADDON_PACKAGING_OPTIONS,
+    "addon_gift_note": ADDON_NOTE_OPTIONS,
     "svc_decor": DECOR_OPTIONS,
     "svc_host": HOST_OPTIONS,
     "svc_dj": DJ_OPTIONS,
@@ -400,6 +424,13 @@ def _parse_snapshot(raw) -> dict:
         return {}
 
 
+_CUSTOMER_PAYMENT_LABELS = {
+    "online": "UPI / Bank Transfer",
+    "branch": "Cash Deposit at Wondershop Experiences Head Office",
+    "collect": "Cash Collection at Venue",
+}
+
+
 def _derive_original_value(key: str, lead: dict, snap: dict):
     """Returns the value originally captured from the customer for a given
     field key, or None if not applicable / not filled in."""
@@ -449,7 +480,14 @@ def _derive_original_value(key: str, lead: dict, snap: dict):
         v = lead.get("dj_smoke_machine_addon")
         return None if v is None else ("Yes" if v else "No")
     if key == "addon_gift_packaging":
-        return snap.get("gift_packaging")
+        pk = snap.get("gift_packaging")
+        if pk:
+            return PACKAGING_KEY_TO_LABEL.get(pk, pk)
+        return "No packaging" if snap.get("gifts") else None
+    if key == "bill_payment_method":
+        # Was missing, so the admin page said "None selected" for every order.
+        pm = lead.get("payment_method")
+        return _CUSTOMER_PAYMENT_LABELS.get(pm, pm) if pm else None
     if key == "addon_gift_note":
         v = snap.get("gift_thank_you_note")
         return None if v is None else ("Yes" if v else "No")
@@ -858,6 +896,9 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             "options": DROPDOWN_OPTIONS.get(key),
             "multi_options": MULTI_OPTIONS.get(key),
             "multi_with_qty": key in MULTI_WITH_QTY,
+            # Items the customer got FREE at checkout (the Tattoo Station unlocked
+            # by the discount slabs) — shown as locked "Freebie" rows, not editable.
+            "locked_items": (freebie_activity_names(snap) or None) if key == "svc_activities" else None,
             "placeholder": ASSIGNED_PLACEHOLDERS.get(key),
             "original_value": original_value,
             "customer_choice": customer_choice,
@@ -870,36 +911,23 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
 
     # ─── Grand Total / Balance Due auto-calculation ────────────────────────
     # 2026-08-19, per Shruti: "fix the grand total now, it should be
-    # autocalculated." — 2026-09-10 follow-up: "grand total is not getting
-    # updated when I update the discount." Grand Total (now client_budget —
-    # see the getter above) is the amount the customer actually agreed to
-    # pay at checkout, but nothing about that snapshot is affected by an
-    # admin overriding a service later (a "Host: Premium → Signature" note
-    # is operational, not a new price agreement) — EXCEPT Discount %, which
-    # is the one override that directly repriced the checkout total, so
-    # it's the one thing Grand Total DOES move for.
+    # autocalculated." 2026-09-10: it followed Discount % only. 2026-09-21
+    # (Image 3/6): "grand total not changing even after making changes at the
+    # admin side like changing category of the host, adding music, changing
+    # the discount %" and "upon adding gifts, the final amount did not
+    # change" — so Grand Total now follows EVERY change on this page.
     #
-    # There's no stored pre-discount subtotal to recompute cleanly from, so
-    # this backs one out: order_grand_total (rawT() in builder.html — the
-    # cart subtotal BEFORE discount, still captured even though it's no
-    # longer what's displayed as "Grand Total") combined with the ORIGINAL
-    # Discount % tells us how much of client_budget was the discount vs.
-    # fixed extras (collection fee / packaging / thank-you-note charges,
-    # which a discount % never touches). Re-applying the NEW Discount % to
-    # that same subtotal and adding those extras back gives the new payable
-    # total:
-    #   new_grand_total = client_budget + subtotal × (original% − new%) / 100
-    # This assumes Grand Total was a straight percentage off the subtotal —
-    # it won't be exact if the original checkout also had a coupon code or
-    # freebie-value savings folded in (Shruti — flag it if you hit one of
-    # those and want it handled too).
+    # The customer's checkout total (leads.client_budget) is the starting
+    # point; booking_pricing.recompute_grand_total() prices each difference
+    # between what was booked (builder_snapshot) and what the page says now
+    # (service tiers, music add-ons, activities, gifts + their packaging /
+    # note fees, Discount %) and adds it on. An untouched booking therefore
+    # always equals its checkout total. The rules and known limits are in
+    # that module's docstring, and the itemised changes travel with the
+    # response ("breakdown") so the page can show its working.
     #
-    # Balance Due was the other half of the 2026-08-19 ask: it used to just
-    # echo whatever order_balance was captured at checkout, so correcting
-    # Advance Paid here never moved it. It's now always Grand Total −
-    # Advance Paid using each field's live resolved value, so it inherits
-    # any Discount %-driven Grand Total change automatically, and any
-    # direct Advance Paid override is picked up immediately too.
+    # Balance Due = Grand Total − Advance Paid, using each field's live
+    # value (so it follows all of the above, and any Advance override).
     def _money(s):
         if s in (None, ""):
             return None
@@ -908,31 +936,50 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
         except ValueError:
             return None
 
+    def _num_str(v):
+        return str(int(v)) if v == int(v) else str(round(v, 2))
+
+    all_fields = {f["field_key"]: f for fl in sections.values() for f in fl}
     billing_fields = {f["field_key"]: f for f in sections.get("Billing & Rewards", [])}
     grand_total_field = billing_fields.get("bill_grand_total")
     grand_total_val = _money(grand_total_field.get("customer_choice")) if grand_total_field else None
 
-    subtotal_val = _money(lead.get("order_grand_total"))
     discount_field = billing_fields.get("bill_discount_pct")
     orig_discount_val = _money(discount_field.get("original_value")) if discount_field else None
     new_discount_val = _money(discount_field.get("customer_choice")) if discount_field else None
-    if (grand_total_field is not None and grand_total_val is not None and subtotal_val is not None
-            and orig_discount_val is not None and new_discount_val is not None
-            and new_discount_val != orig_discount_val):
-        recalculated_total = grand_total_val + subtotal_val * (orig_discount_val - new_discount_val) / 100
-        recalculated_total = max(0.0, recalculated_total)
-        gt_display = str(int(recalculated_total)) if recalculated_total == int(recalculated_total) else str(round(recalculated_total, 2))
-        grand_total_field["customer_choice"] = gt_display
-        grand_total_field["original_value"] = gt_display
-        grand_total_val = recalculated_total
+
+    pricing = None
+    if grand_total_field is not None:
+        pricing = recompute_grand_total(
+            lead, snap,
+            {k: f.get("customer_choice") for k, f in all_fields.items()},
+            {k for k, f in all_fields.items() if f.get("removed")},
+            orig_discount_val, new_discount_val,
+        )
+    if pricing:
+        grand_total_val = pricing["grand_total"]
+        grand_total_field["customer_choice"] = _num_str(grand_total_val)
+        grand_total_field["checkout_total"] = pricing["checkout_total"]
+        grand_total_field["breakdown"] = pricing["adjustments"]
+        grand_total_field["unpriced"] = pricing["unpriced"]
 
     advance_val = _money(billing_fields.get("bill_advance", {}).get("customer_choice"))
     balance_field = billing_fields.get("bill_balance")
     if balance_field is not None and grand_total_val is not None:
         computed_balance = grand_total_val - (advance_val or 0)
-        display = str(int(computed_balance)) if computed_balance == int(computed_balance) else str(computed_balance)
+        display = _num_str(computed_balance)
         balance_field["customer_choice"] = display
         balance_field["original_value"] = display
+
+    # 2026-09-21, per Shruti (Image 4): until the team has confirmed the
+    # advance actually arrived (Payment Status = Advance Paid Verified or
+    # Complete) it must not read "Advance Paid" — it shows as Advance Pending.
+    pay_status_field = billing_fields.get("bill_payment_status")
+    advance_confirmed = ((pay_status_field or {}).get("customer_choice") in ADVANCE_CONFIRMED_STATUSES)
+    adv_field = billing_fields.get("bill_advance")
+    if adv_field is not None:
+        adv_field["label"] = "Advance Paid" if advance_confirmed else "Advance Pending"
+        adv_field["advance_confirmed"] = advance_confirmed
 
     # Custom (admin-added) fields not in the predefined catalog
     for key, ov in overrides.items():
@@ -999,6 +1046,18 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
         "created_on_ist": _to_ist_str(lead.get("created_on")),
         "invoice_number": lead.get("invoice_number"),
         "invoice_sent_at_ist": _to_ist_str(lead.get("invoice_sent_at")) if lead.get("invoice_sent_at") else None,
+        # Whether the booking emails actually went out (migration 033) — a Gmail
+        # failure used to be visible only in the Railway log.
+        "email_status": {
+            kind: {
+                "status": lead.get(f"{kind}_email_status"),
+                "error": lead.get(f"{kind}_email_error"),
+                "at_ist": _to_ist_str(lead.get(f"{kind}_email_at")) if lead.get(f"{kind}_email_at") else None,
+            } for kind in ("customer", "team")
+        },
+        "advance_confirmed": advance_confirmed,
+        "pricing": ({"subtotal": pricing["subtotal"], "checkout_total": pricing["checkout_total"], "discount_amt": pricing["discount_amt"],
+                     "adjustments": pricing["adjustments"], "unpriced": pricing["unpriced"]} if pricing else None),
         "sections": [{"section": s, "fields": sections[s]} for s in sections],
         "change_log": change_log,
     }
@@ -1130,6 +1189,19 @@ async def update_booking_field(lead_id: int, body: FieldUpdateRequest, x_admin_p
     new_remarks = (body.remarks or "").strip()
 
     derived_original = None if CATALOG_BY_KEY.get(key, {}).get("admin_only") else _derive_original_value(key, lead, snap)
+
+    # 2026-09-21, per Shruti (Image 5): a freebie unlocked through the discount
+    # slabs (the Tattoo Station) is not editable — it can't be dropped from the
+    # activities list or have the whole field removed.
+    if key == "svc_activities":
+        locked = freebie_activity_names(snap)
+        if locked:
+            kept = {n for n, _q in _parse_csv_names(new_customer_choice)}
+            if body.removed or (new_customer_choice and any(n not in kept for n in locked)):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{', '.join(locked)} is a free booking unlocked through the discount slabs and can't be removed or changed here.",
+                )
 
     await _validate_choice_value(key, new_customer_choice, derived_original, lead)
 
@@ -1378,6 +1450,7 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
     # every admin override already folded in) instead of duplicating that
     # delicate math here.
     detail = await get_booking_detail(lead_id, x_admin_password)
+    pricing = detail.get("pricing")
     billing = {f["field_key"]: f for s in detail["sections"] if s["section"] == "Billing & Rewards" for f in s["fields"]}
 
     def _choice(key):
@@ -1401,7 +1474,7 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
         venue=lead.get("venue"),
         city=lead.get("city"),
         services_detail=_services_detail_list(fake_req),
-        subtotal=_money(lead.get("order_grand_total")),
+        subtotal=(pricing["subtotal"] if pricing else _money(lead.get("order_grand_total"))),
         discount_pct=_money(_choice("bill_discount_pct")),
         grand_total=_money(_choice("bill_grand_total")),
         advance_paid=_money(_choice("bill_advance")),
@@ -1409,7 +1482,15 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
         total_savings=_money(_choice("bill_total_savings")),
         freebies_text=_choice("bill_freebies"),
         payment_method=lead.get("payment_method"),
-        extra_fee_rows=_order_addon_rows_raw(fake_req),
+        # Original fee rows + one signed row per admin change (the Discount
+        # % change isn't a row — the summary's Discount line already shows it),
+        # so the itemised list explains why the total moved.
+        extra_fee_rows=_order_addon_rows_raw(fake_req) + [
+            (f"Updated — {a['label']}", a["amount"])
+            for a in ((pricing or {}).get("adjustments") or []) if not a["label"].startswith("Discount")
+        ],
+        advance_confirmed=bool(detail.get("advance_confirmed")),
+        discount_amt=(pricing.get("discount_amt") if pricing else None),
         gst_enabled=settings.GST_ENABLED,
         gstin=settings.GSTIN,
         gst_rate_pct=settings.GST_RATE_PCT,
@@ -1444,3 +1525,33 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
     )
     logger.info(f"Lead #{lead_id}: updated invoice ({invoice_number}) sent to {lead['email']} by {who}")
     return {"success": True, "invoice_number": invoice_number, "sent_to": lead["email"]}
+
+
+# ─── EMAIL CHECK ────────────────────────────────────────────────────────────
+# 2026-09-21, per Shruti: "mail didn't go for the booking that we just did".
+# One button on the admin page that answers "can this server send email right
+# now?" without needing the Railway logs: it checks the three GMAIL_* settings
+# exist, that Google still accepts the stored refresh token, then sends a real
+# test message to the team address. The reply carries Google's own reason when
+# something is wrong. Nothing secret is ever returned.
+@router.post("/email-check")
+async def email_check(x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+
+    missing = [n for n in ("GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN") if not getattr(settings, n, "")]
+    if missing:
+        return {"ok": False, "stage": "settings",
+                "message": f"Not set on the server (Railway → Variables): {', '.join(missing)}."}
+    try:
+        await _get_gmail_access_token()
+    except Exception as exc:
+        return {"ok": False, "stage": "sign-in", "message": str(exc)}
+    try:
+        await _gmail_send(
+            to_email=settings.EMAIL_TEAM,
+            subject="Wondershop email check — this server can send email",
+            body="This is a test message from the admin panel's email check. If you can read it, booking emails can be sent.",
+        )
+    except Exception as exc:
+        return {"ok": False, "stage": "send", "message": str(exc)[:500]}
+    return {"ok": True, "stage": "sent", "message": f"Test email sent to {settings.EMAIL_TEAM}. Check that inbox (and Spam)."}

@@ -2328,7 +2328,7 @@ body.browse-mode .browse-cta{display:flex}
         <div class="ls-upi-name">WONDERSHOP COLLECTIVE LLP · Federal Bank</div>
         <p class="ls-pay-note">After paying, WhatsApp your screenshot to <b>+91 90044 35362</b> and we'll confirm your booking immediately.</p>
       </div>
-      <div class="pay-opt" onclick="selPay(this,'branch')"><div class="pay-radio"></div><div><div class="pay-name">🏦 Cash Deposit at Branch</div><div class="pay-desc">Wondershop Experiences, 409, Ajmera Sikova, Ghatkopar West, Mumbai – 400086.</div></div></div>
+      <div class="pay-opt" onclick="selPay(this,'branch')"><div class="pay-radio"></div><div><div class="pay-name">🏦 Cash Deposit at Wondershop Experiences Head Office</div><div class="pay-desc">Wondershop Experiences, 409, Ajmera Sikova, Ghatkopar West, Mumbai – 400086.</div></div></div>
       <div class="pay-opt" onclick="selPay(this,'collect')"><div class="pay-radio"></div><div><div class="pay-name">💵 Cash Collection at Venue</div><div class="pay-desc">Our team collects at your event venue. Additional charge of ₹100 applies.</div></div></div>
     </div>
   </div>
@@ -2427,7 +2427,7 @@ body.browse-mode .browse-cta{display:flex}
     <div class="sec-lbl"><span class="dot"></span>Your Order Summary</div>
     <div class="amt-box">
       <div class="amt-row tot"><span>Payable Total</span><span id="confPt">₹0</span></div>
-      <div class="amt-row adv"><span>⚡ Advance Received (Pending Confirmation)</span><span id="confAdv">₹0</span></div>
+      <div class="amt-row adv"><span>⚡ Advance to be paid</span><span id="confAdv">₹0</span></div>
       <div class="amt-row" id="confRefundRow" style="display:none"><span style="font-size:11px;color:var(--gr)">🎁 Scratch card refund</span><span id="confRefundVal" style="font-size:12px;color:var(--gr)"></span></div>
       <div class="amt-row tot" id="confFinalBalRow" style="display:none"><span>Final balance due</span><span id="confFinalBal"></span></div>
       <span id="confBal" style="display:none"></span>
@@ -3684,7 +3684,7 @@ function payTotal(){return tp()+collectFee()+packagingCost()+tagFee()}
 // Mirrors backend leads.py's _PAYMENT_METHOD_LABELS / _payment_status_text
 // exactly — keep these two in sync if either side changes (2026-08-12, per
 // Shruti — "save and display payment method").
-const PAY_METHOD_LABELS={online:'UPI / Bank Transfer',branch:'Cash Deposit at Branch',collect:'Cash Collection at Venue'};
+const PAY_METHOD_LABELS={online:'UPI / Bank Transfer',branch:'Cash Deposit at Wondershop Experiences Head Office',collect:'Cash Collection at Venue'};
 function payStatusText(){return S.payMethod==='collect'?'⏳ Pending — to be collected at venue':'⏳ Pending Verification';}
 
 // ── NAVIGATION ──

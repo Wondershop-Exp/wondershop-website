@@ -23,7 +23,7 @@ from catalogue_data import SITE_BASE_URL
 # import — leads.py imports FROM this module).
 _PAYMENT_METHOD_LABELS = {
     "online":  "UPI / Bank Transfer",
-    "branch":  "Cash Deposit at Branch",
+    "branch":  "Cash Deposit at Wondershop Experiences Head Office",
     "collect": "Cash Collection at Venue",
 }
 

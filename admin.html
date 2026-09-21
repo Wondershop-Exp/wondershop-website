@@ -229,6 +229,20 @@ table.list.static tr:hover td{background:inherit}
 .mp-row select{flex:1;min-width:0}
 .mp-qty{width:56px!important;flex:0 0 56px}
 .mp-empty{color:var(--gy);font-size:12px;font-style:italic;padding:4px 0}
+/* Freebie unlocked through the discount slabs (Tattoo Station): shown, never editable. */
+.mp-row.mp-locked{background:#F1FBF3;border:1px solid #B7E0B8;border-radius:10px;padding:7px 10px;gap:8px}
+.mp-locked .mp-fb-name{font-weight:600;color:var(--bk);font-size:13px;white-space:nowrap}
+.mp-locked .mp-fb-tag{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#1a6630;background:#fff;border:1px solid #B7E0B8;border-radius:8px;padding:2px 8px;white-space:nowrap}
+.mp-locked .mp-fb-lock{font-size:11px;color:var(--gy)}
+/* Grand Total working, shown under the read-only figure. */
+.gt-title{display:block;margin-top:6px;font-weight:700;font-style:normal;color:var(--bk)}
+.gt-breakdown{margin:3px 0 0;padding:0;list-style:none;font-style:normal}
+.gt-breakdown li{display:flex;justify-content:space-between;gap:14px;font-size:11px;color:var(--bk);padding:1px 0}
+.gt-breakdown li b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.gt-breakdown li b.pos{color:#B4232C}
+.gt-breakdown li b.neg{color:#1a6630}
+.gt-warn{display:block;margin-top:5px;color:var(--or);font-style:normal}
+.mail-ok{color:#1a6630}.mail-bad{color:#B4232C}
 .av-row .av-assignee{flex:1;min-width:0}
 
 .log-section{margin-top:30px;border-top:2px solid var(--li2);padding-top:16px}
@@ -430,6 +444,7 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
 .bd-bar .m .k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gy)}
 .bd-bar .m .v{font-family:var(--fd);font-size:20px;font-weight:700;color:var(--bk);font-variant-numeric:tabular-nums}
 .bd-bar .m.due .v{color:var(--pk)}
+.bd-bar .m.pend .v{color:var(--or)}
 .bd-bar .m.due.clear .v{color:#1a6630}
 .bd-unsaved{background:#FFF4E8;border:1px solid #FCE0BE;color:#B5620A;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700}
 
@@ -496,6 +511,7 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
       Editing as <input type="text" id="whoName" onchange="saveName()">
       <a class="linkbtn" href="packaging.html" target="_blank">📦 Packing lists</a>
       <a class="linkbtn" href="sales-leads.html" target="_blank">🗒️ Sales leads</a>
+      <button class="linkbtn" onclick="checkEmail()" title="Sends a test email to the team inbox and reports why if it can't">✉ Check email</button>
       <button class="linkbtn" onclick="logout()">Log out</button>
     </div>
   </div>
@@ -1136,11 +1152,13 @@ function renderBookingBar(d){
   const gt = bdMoney(bdVal(d, 'bill_grand_total'));
   const advF = bdField(d, 'bill_advance');
   const adv = advF ? bdMoney(advF.customer_choice) : null;   // Balance Due is computed from this same Current Value
+  // Until the team confirms the advance arrived (Payment Status), it is only "pending".
+  const advPending = !(d.advance_confirmed);
   const bal = bdMoney(bdVal(d, 'bill_balance'));
   BD_HAS_MONEY = gt !== null || adv !== null || bal !== null;
   bar.innerHTML = '<div class="bd-bar-in">'
     + '<div class="m"><div class="k">Grand total</div><div class="v">'+bdRupees(gt)+'</div></div>'
-    + '<div class="m"><div class="k">Advance paid</div><div class="v">'+bdRupees(adv)+'</div></div>'
+    + '<div class="m'+(advPending ? ' pend' : '')+'"><div class="k">'+(advPending ? 'Advance pending' : 'Advance paid')+'</div><div class="v">'+bdRupees(adv)+'</div></div>'
     + '<div class="m due'+(bal !== null && bal <= 0 ? ' clear' : '')+'"><div class="k">Balance due</div><div class="v">'+bdRupees(bal)+'</div></div>'
     + '<span class="bd-unsaved" id="bdUnsaved" style="display:none"></span>'
     + '</div>';
@@ -1169,6 +1187,7 @@ function updateDirtyCount(){
 function enhanceChips(root){
   root.querySelectorAll('tr[id^="fld_"] td > select').forEach(sel => {
     if(sel.classList.contains('chipified')) return;
+    if(sel.closest('tr').id.indexOf('fld_addon_') === 0) return;   // Add-ons stay proper dropdowns (2026-09-21, per Shruti)
     const all = Array.prototype.slice.call(sel.options);
     const real = all.filter(o => o.value !== '');
     if(real.length < 2 || real.length > 5) return;
@@ -1277,6 +1296,7 @@ function secWire(cards){
 // ── Monthly overview (Website/Repeat leads auto; Instagram/Carried
 // Forward + the monthly target are entered by hand — see dashboard.py) ──
 let DASH_MONTH_OFFSET = 0;   // 0 = current month, -1 = one month back, ...
+let DASH_MAX_OFFSET = 0;     // how many months ahead have confirmed bookings (set from the API)
 let DASH_MONTHLY_DATA = null;
 let DASH_EDIT_MODE = false;
 
@@ -1295,7 +1315,9 @@ function monthShortLabel(monthStr){
   return new Date(y, m-1, 1).toLocaleDateString('en-IN',{month:'short',year:'numeric'});
 }
 function changeDashMonth(delta){
-  if(DASH_MONTH_OFFSET + delta > 0) return; // never navigate into the future
+  // Forward only as far as the latest month that has a confirmed booking
+  // (2026-09-21, per Shruti — bookings run months ahead).
+  if(DASH_MONTH_OFFSET + delta > DASH_MAX_OFFSET) return;
   DASH_MONTH_OFFSET += delta;
   DASH_EDIT_MODE = false;
   loadDashMonthly();
@@ -1306,7 +1328,8 @@ async function loadDashMonthly(){
     const d = await apiCall('/api/admin/dashboard/monthly?month='+offsetMonthStr(DASH_MONTH_OFFSET));
     DASH_MONTHLY_DATA = d;
     document.getElementById('dashMonthLabel').textContent = monthLabel(d.month);
-    document.getElementById('dashMonthNextBtn').disabled = (DASH_MONTH_OFFSET >= 0);
+    DASH_MAX_OFFSET = d.months_ahead || 0;
+    document.getElementById('dashMonthNextBtn').disabled = (DASH_MONTH_OFFSET >= DASH_MAX_OFFSET);
     renderDashMonthly(d);
   }catch(e){
     if(e.message!=='unauthorized') document.getElementById('dashMonthlyBody').innerHTML = '<div class="empty">Could not load: '+esc(e.message)+'</div>';
@@ -1466,15 +1489,21 @@ function renderMonthlyTrendTable(trend){
   // 2026-09-11, per Shruti — most recent month (current) first. The API
   // returns this oldest-first, so it's reversed here for display only —
   // nothing else reads this array, so nothing upstream needed to change.
+  const curMonth = offsetMonthStr(0);
+  let hasUpcoming = false;
   [...trend].reverse().forEach(t=>{
-    rows += '<tr><td>'+monthShortLabel(t.month)+'</td>'
+    const upcoming = t.month > curMonth;
+    if(upcoming) hasUpcoming = true;
+    rows += '<tr><td>'+monthShortLabel(t.month)
+      + (upcoming ? ' <span style="font-size:10px;font-weight:700;color:var(--plum);background:var(--li2);border-radius:8px;padding:1px 7px;margin-left:4px">Upcoming</span>' : '')
+      + '</td>'
       + '<td>'+fmtNum(t.actual_bookings)+'</td><td>'+fmtRs(t.actual_revenue)+'</td>'
       + '<td>'+fmtNum(t.potential_bookings)+'</td><td>'+fmtRs(t.potential_revenue)+'</td>'
       + '<td>'+fmtRs(t.total_revenue)+'</td><td>'+fmtRs(t.aov)+'</td>'
       + '<td>'+(t.target ? fmtRs(t.target) : '—')+'</td>'
       + '<td>'+(t.pct_target!==null && t.pct_target!==undefined ? t.pct_target+'%' : '—')+'</td></tr>';
   });
-  return '<div class="dash-card-title" style="margin-top:22px">Monthly Trend (last 6 months)</div>'
+  return '<div class="dash-card-title" style="margin-top:22px">Monthly Trend ('+(hasUpcoming ? 'last 6 months + upcoming months with bookings' : 'last 6 months')+')</div>'
     + '<div style="overflow-x:auto"><table class="list static"><thead><tr>'
     + '<th>Month</th><th>Bookings (Actual)</th><th>Actual Revenue</th><th>Potential Bookings</th><th>Potential Revenue</th><th>Total Projected</th><th>AOV</th><th>Target</th><th>%Target</th>'
     + '</tr></thead><tbody>'+rows+'</tbody></table></div>';
@@ -2264,6 +2293,7 @@ function statusBlockHtml(d){
         +(d.status!=='Cancelled' ? '<button class="btn cancel" onclick="cancelEventDetail()">Cancel Event</button>' : '')
       +'</div>'
       +(d.invoice_sent_at_ist ? '<div class="fld"><label>Invoice last sent</label><span>'+esc(d.invoice_sent_at_ist)+(d.invoice_number ? ' · '+esc(d.invoice_number) : '')+'</span></div>' : '')
+      +emailStatusHtml(d)
       +'</div>';
   }
   const opts = LEAD_STATUS_OPTIONS.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===d.status?' selected':'')+'>'+esc(o.label)+'</option>').join('');
@@ -2282,7 +2312,28 @@ function statusBlockHtml(d){
       +'<button class="btn convert" onclick="convertLeadDetail()">Convert to Booking</button>'
       +'<button class="btn save" onclick="saveDetailStatus()">Save Status</button>'
     +'</div>'
+    +emailStatusHtml(d)
     +'</div>';
+}
+// Did the booking emails actually go out? (recorded by the server, migration 033)
+function emailStatusHtml(d){
+  const es = d.email_status || {};
+  const line = (label, e) => {
+    if(!e || !e.status) return '<div class="fld"><label>'+label+'</label><span style="color:var(--gy)">No record</span></div>';
+    if(e.status === 'sent') return '<div class="fld"><label>'+label+'</label><span class="mail-ok">✓ Sent'+(e.at_ist ? ' · '+esc(e.at_ist) : '')+'</span></div>';
+    return '<div class="fld" style="flex-basis:100%"><label>'+label+'</label><span class="mail-bad">✗ Not sent'+(e.at_ist ? ' · '+esc(e.at_ist) : '')+' — '+esc(e.error || 'unknown error')+'</span></div>';
+  };
+  return line('Confirmation email (customer)', es.customer) + line('Order email (team)', es.team);
+}
+async function checkEmail(){
+  showToast('Checking email…');
+  try{
+    const r = await apiCall('/api/admin/email-check', {method:'POST'});
+    if(r.ok){ showToast('✓ '+r.message); }
+    else{ alert('Email is NOT working ('+r.stage+').\n\n'+r.message); }
+  }catch(e){
+    if(e.message!=='unauthorized') alert('Could not run the email check: '+e.message);
+  }
 }
 function onStatusDropdownChange(){
   const status = document.getElementById('statusSel').value;
@@ -2482,7 +2533,7 @@ function selectHtml(id, options, current, extraAttrs){
 // hidden #{rid}_cc input, so saveField()'s existing generic
 // `document.getElementById(rid+'_cc').value` read path needs no changes at
 // all to pick this up (2026-08-18, per Shruti — "+ for multi-select").
-const MP_OPTIONS = {}, MP_STATE = {}, MP_WITHQTY = {};
+const MP_OPTIONS = {}, MP_STATE = {}, MP_WITHQTY = {}, MP_LOCKED = {};
 
 function mpParse(str, withQty){
   if(!str) return [];
@@ -2495,13 +2546,21 @@ function mpParse(str, withQty){
   });
 }
 
-function multiPickerHtml(rid, options, currentStr, withQty){
+function multiPickerHtml(rid, options, currentStr, withQty, lockedItems){
   MP_OPTIONS[rid] = options;
   MP_WITHQTY[rid] = !!withQty;
-  MP_STATE[rid] = mpParse(currentStr, withQty);
+  MP_LOCKED[rid] = lockedItems || [];
+  const rows = mpParse(currentStr, withQty);
+  // Freebies (e.g. the Tattoo Station unlocked by the discount slabs) are pinned
+  // to the top, flagged locked: no dropdown, no remove button.
+  rows.forEach(r => { if(MP_LOCKED[rid].indexOf(r.v) >= 0) r.locked = true; });
+  MP_LOCKED[rid].slice().reverse().forEach(n => { if(!rows.some(r => r.v === n)) rows.unshift({v:n, q:1, locked:true}); });
+  rows.sort((a, b) => (b.locked ? 1 : 0) - (a.locked ? 1 : 0));
+  MP_STATE[rid] = rows;
+  const startStr = rows.filter(r=>r.v).map(r=> withQty ? (r.v+' x'+(r.q||1)) : r.v).join(', ');
   const addLabel = withQty ? '+ Add gift' : '+ Add activity';
   return '<div class="mp-wrap">'
-    +'<input type="hidden" id="'+rid+'_cc" value="'+esc(currentStr||'')+'">'
+    +'<input type="hidden" id="'+rid+'_cc" value="'+esc(startStr)+'">'
     +'<div class="mp-rows" id="'+rid+'_mprows">'+mpRowsHtml(rid)+'</div>'
     +'<button type="button" class="mini-btn" onclick="mpAdd('+attrJson(rid)+')">'+addLabel+'</button>'
     +'</div>';
@@ -2511,8 +2570,14 @@ function mpRowsHtml(rid){
   const rows = MP_STATE[rid]||[];
   if(!rows.length) return '<div class="mp-empty">None selected.</div>';
   const withQty = MP_WITHQTY[rid];
+  const lockedNames = MP_LOCKED[rid] || [];
   return rows.map((r,i)=>{
-    const opts = [{value:'', label:'— Select —'}].concat(MP_OPTIONS[rid]||[]);
+    if(r.locked){
+      return '<div class="mp-row mp-locked"><span>🎁</span><span class="mp-fb-name">'+esc(r.v)+'</span>'
+        +'<span class="mp-fb-lock">Unlocked by your discount slab — can\'t be edited</span>'
+        +'<span class="mp-fb-tag">Freebie</span></div>';
+    }
+    const opts = [{value:'', label:'— Select —'}].concat((MP_OPTIONS[rid]||[]).filter(o => lockedNames.indexOf(o.value) < 0));
     const sel = selectHtml(rid+'_mps'+i, opts, r.v, ' onchange="mpUpdate('+attrJson(rid)+','+i+',this.value,null)"');
     const qtyHtml = withQty ? '<input type="number" min="1" class="mp-qty" value="'+esc(r.q)+'" oninput="mpUpdate('+attrJson(rid)+','+i+',null,this.value)">' : '';
     return '<div class="mp-row">'+sel+qtyHtml+'<button type="button" class="mini-btn remove" onclick="mpRemove('+attrJson(rid)+','+i+')">✕</button></div>';
@@ -2762,6 +2827,30 @@ document.addEventListener('click', e=>{
   }
 });
 
+// The Grand Total row's explanation: the checkout total, then each priced change.
+function grandTotalNoteHtml(f){
+  let h = 'Recalculates automatically from the changes on this page — services, add-ons, activities, gifts and Discount %.';
+  const b = f.breakdown || [];
+  if(b.length){
+    h += '<span class="gt-title">Checkout total '+bdRupees(f.checkout_total)+', then:</span><ul class="gt-breakdown">'
+      + b.map(x => '<li><span>'+esc(x.label)+'</span><b class="'+(x.amount>0?'pos':'neg')+'">'+(x.amount>0?'+':'−')+bdRupees(Math.abs(x.amount))+'</b></li>').join('')
+      + '</ul>';
+  }else{
+    h += ' No changes yet, so it equals the checkout total.';
+  }
+  if(f.unpriced && f.unpriced.length){
+    h += '<span class="gt-warn">⚠ Not priced automatically: '+esc(f.unpriced.join('; '))+' — use Discount % to adjust the total if this should change it.</span>';
+  }
+  return h;
+}
+
+// Discount % and Advance take their value from Current Value only, so they have
+// no Assigned Value box (2026-09-21, per Shruti: "remove assigned value"). The
+// hidden empty input keeps saveField() working and clears any old stray value.
+function noAssignedCell(rid){
+  return '<input type="hidden" id="'+rid+'_av" value=""><span class="readonly-cell">—</span>';
+}
+
 function fieldRowHtml(f, isCustEvent, locked){
   const rid = 'fld_'+f.field_key;
   const col3 = isCustEvent ? 'Updated value' : 'Assigned value';
@@ -2773,7 +2862,10 @@ function fieldRowHtml(f, isCustEvent, locked){
   // in the "Original: …" caption same as everywhere else it's shown.
   const origDisplay = f.field_key==='bill_discount_pct' && f.original_value
     ? fmtPct(f.original_value)+'%' : (f.original_value || 'None selected');
-  const originalNote = f.admin_only ? '<small>Admin-tracked</small>' : ('<small>Original: '+esc(origDisplay)+'</small>');
+  let originalNote = f.admin_only ? '<small>Admin-tracked</small>' : ('<small>Original: '+esc(origDisplay)+'</small>');
+  if(f.field_key==='bill_advance' && !f.advance_confirmed){
+    originalNote += '<small style="color:var(--or)">Not yet confirmed — set Payment Status to “Advance Paid Verified” once it has arrived</small>';
+  }
 
   // ── Read-only fields (Grand Total / Balance Due): plain display, no editing at all
   if(f.read_only){
@@ -2784,14 +2876,16 @@ function fieldRowHtml(f, isCustEvent, locked){
     // 2026-09-10, per Shruti — Grand Total is now live too (recalculates
     // when Discount % is saved), so it needed its own note instead of
     // sharing the generic "captured at checkout, never moves" one below.
+    // 2026-09-21, per Shruti (Images 3 & 6): Grand Total now follows every
+    // change on this page, and shows its working underneath.
     const note = f.field_key==='bill_balance'
-      ? 'Auto-calculated: Grand Total − Advance Paid (updates as soon as Advance Paid is saved).'
+      ? 'Auto-calculated: Grand Total − Advance (follows Grand Total changes and Advance edits as soon as they are saved).'
       : f.field_key==='bill_grand_total'
-      ? 'The amount the customer agreed to pay. Recalculates automatically when Discount % is saved; otherwise unchanged from checkout.'
+      ? grandTotalNoteHtml(f)
       : 'Captured at checkout — not re-calculated when services/overrides change here.';
     return '<tr id="'+rid+'" class="ro" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+'</td>'
-      +'<td colspan="3"><span class="readonly-cell computed">'+esc(f.customer_choice||'—')+'<span class="computed-note">'+note+'</span></span></td>'
+      +'<td colspan="3"><div class="readonly-cell computed">'+esc(f.customer_choice||'—')+'<div class="computed-note">'+note+'</div></div></td>'
       +'<td></td>'
       +'</tr>';
   }
@@ -2806,7 +2900,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
       +'<td data-label="Current value"><span class="readonly-cell">'+esc(f.customer_choice||'—')+'</span></td>'
-      +'<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>'
+      +'<td data-label="'+col3+'"><span class="readonly-cell">'+esc((f.field_key==='bill_discount_pct'||f.field_key==='bill_advance') ? '—' : (f.assigned_value||'—'))+'</span></td>'
       +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
       +'</tr>';
@@ -2821,7 +2915,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     // Activities / Gifts — several items per booking, so this is a row-per-item
     // picker (see multiPickerHtml) rather than a single <select> (2026-08-18,
     // per Shruti — "+ for multi-select", pricing shown in each option's label).
-    ccCell = multiPickerHtml(rid, f.multi_options, f.customer_choice||'', f.multi_with_qty);
+    ccCell = multiPickerHtml(rid, f.multi_options, f.customer_choice||'', f.multi_with_qty, f.locked_items);
   }else if(f.options){
     // svc_einvite gets a custom dropdown with a thumbnail per option
     // (2026-09-10, per Shruti follow-up — "can this dropdown for invite
@@ -2887,13 +2981,10 @@ function fieldRowHtml(f, isCustEvent, locked){
     // — readonly (not disabled) so onPincodeInput() can still set .value
     // programmatically and Save still picks it up.
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Auto-fills from pincode')+'" readonly style="background:var(--lgy);cursor:not-allowed">';
-  }else if(f.field_key==='bill_discount_pct'){
-    const displayVal = avValue ? fmtPct(avValue) : avValue;
-    avCell = '<span class="pct-wrap"><input type="number" id="'+rid+'_av" value="'+esc(displayVal)+'" placeholder="'+esc(avPlaceholder)+'" step="0.01" min="0" max="100"><span class="pct-suffix">%</span></span>';
+  }else if(f.field_key==='bill_discount_pct' || f.field_key==='bill_advance'){
+    avCell = noAssignedCell(rid);
   }else{
-    const numAttrs = f.field_key==='bill_advance' ? ' step="0.01" min="0"' : '';
-    const avInputType = f.field_key==='bill_advance' ? 'number' : 'text';
-    avCell = '<input type="'+avInputType+'" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'"'+numAttrs+'>';
+    avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'">';
   }
 
   const actions = isCustEvent
