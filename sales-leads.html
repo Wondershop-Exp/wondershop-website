@@ -47,14 +47,20 @@ a{color:var(--bl)}
 .topbar h1{font-size:20px}
 .topbar .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gy);flex-wrap:wrap}
 .topbar .who input{padding:6px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13px;width:150px}
-/* Always-on save-status pill (no button) — 2026-09-22, per Shruti: "give
-   an option to save, without any button - I don't know whether data is
-   being saved on not." Every field/requirement/schedule edit on this page
-   already auto-saves on blur (patchSheet()); this just makes that visible
-   live instead of silent. */
-.save-status{display:none;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:6px 13px;border-radius:20px;background:var(--lgy);color:var(--gy);white-space:nowrap;position:fixed;top:14px;right:16px;z-index:600;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+/* Explicit Save button (no longer a passive dot) — 2026-09-22, per
+   Shruti: "instead of save dot, I want a save button which updates when I
+   confirm." Every field still auto-saves on blur (patchSheet()) same as
+   before — this button gives an explicit, clickable way to confirm that:
+   clicking it blurs whatever field is focused (flushing its pending save)
+   and the button's own label/color updates through the save, so clicking
+   it is a deliberate, visible confirmation rather than trusting a passive
+   indicator. */
+.save-status{display:none;align-items:center;gap:7px;font-size:12.5px;font-weight:700;padding:8px 16px;border-radius:20px;background:var(--lgy);color:var(--gy);white-space:nowrap;position:fixed;top:14px;right:16px;z-index:600;box-shadow:0 2px 10px rgba(0,0,0,.12);border:none;cursor:pointer;font-family:var(--fb)}
+.save-status:disabled{cursor:default}
 @media (max-width:660px){.save-status{top:auto;bottom:78px;right:12px}}
 .save-status .ss-dot{width:7px;height:7px;border-radius:50%;background:#C9C2D6;flex:0 0 auto}
+.save-status.dirty{color:#B5620A;background:#FFF4E8}
+.save-status.dirty .ss-dot{background:var(--yl)}
 .save-status.saving{color:#B5620A;background:#FFF4E8}
 .save-status.saving .ss-dot{background:var(--yl);animation:ssPulse 1s ease-in-out infinite}
 .save-status.saved{color:#2E8A47;background:#EAF8EC}
@@ -235,7 +241,7 @@ th.th-sort:hover{color:var(--pk)}
     <h1>🗒️ Sales Leads &amp; Playbook</h1>
     <div class="who">
       Editing as <input type="text" id="whoName" onchange="saveName()">
-      <span class="save-status" id="saveStatus"><span class="ss-dot"></span><span id="saveStatusText">Saved</span></span>
+      <button type="button" class="save-status" id="saveStatus" onclick="onSaveBtnClick()"><span class="ss-dot"></span><span id="saveStatusText">Save</span></button>
       <a class="linkbtn" href="admin.html">Bookings admin</a>
       <a class="linkbtn" href="packaging.html">Packing lists</a>
       <button class="linkbtn" onclick="logout()">Log out</button>
@@ -339,12 +345,46 @@ function showToast(msg){
 // once the PATCH resolves, "Not saved" if it fails -- and errors stay
 // shown (don't auto-hide) so a failed save is never mistaken for a
 // successful one.
+let LAST_FAILED_BODY = null;
 function setSaveStatus(state, msg){
   const el = document.getElementById('saveStatus');
   if(!el) return;
   el.style.display = 'inline-flex';
   el.className = 'save-status ' + state;
+  el.disabled = (state === 'saving');
   document.getElementById('saveStatusText').textContent = msg;
+}
+// Flips the button to "Save" (dirty/unsaved) the instant someone starts
+// typing in a text field or textarea on the detail page, ahead of the
+// normal onblur autosave firing — so the button visibly has something to
+// confirm rather than sitting on a stale "Saved" while you're mid-edit.
+document.addEventListener('input', function(e){
+  const t = e.target;
+  const db = document.getElementById('detailBody');
+  if(CURRENT_ID && t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA') && db && db.contains(t)){
+    setSaveStatus('dirty', 'Save');
+  }
+});
+// Clicking the Save button — 2026-09-22, per Shruti: "instead of save dot,
+// I want a save button which updates when I confirm." Blurs whichever
+// field is currently focused, which flushes that field's existing onblur
+// autosave (saveField()/saveRequirement()/etc. -> patchSheet()) right away
+// instead of waiting for the salesperson to click elsewhere -- so this is
+// a deliberate "confirm it saved" action layered on top of the autosave,
+// not a replacement for it. A failed save retries from here too.
+function onSaveBtnClick(){
+  const el = document.getElementById('saveStatus');
+  if(el.classList.contains('error') && LAST_FAILED_BODY){
+    patchSheet(LAST_FAILED_BODY);
+    return;
+  }
+  const db = document.getElementById('detailBody');
+  const active = document.activeElement;
+  if(active && db && db.contains(active) && typeof active.blur === 'function'){
+    active.blur();
+  } else {
+    setSaveStatus('saved', 'Saved');
+  }
 }
 const CHECK_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -792,10 +832,12 @@ async function patchSheet(body){
     // updates the sticky Grand Total bar), so this one call keeps every
     // section current. 2026-09-16, per Shruti (see saveField() above).
     renderDetail();
+    LAST_FAILED_BODY = null;
     setSaveStatus('saved', 'Saved');
   }catch(e){
+    LAST_FAILED_BODY = body;
     showToast(e.message||"Couldn't save.");
-    setSaveStatus('error', 'Not saved — '+(e.message||'try again'));
+    setSaveStatus('error', 'Retry save');
   }finally{
     SAVING = false;
   }
