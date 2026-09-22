@@ -339,6 +339,7 @@ ACTIVITIES = [
     ("gym", "Gymnastics", 11800, True),
     ("a26", "Laser Tunnel", 4000, True),
     ("a27", "Dark Room", 15000, True),
+    ("a28", "Spy Treasure Hunt", 1500, False),
 ]
 
 # ─── Return Gifts ────────────────────────────────────────────────────────
