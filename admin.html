@@ -84,6 +84,18 @@ table.list th.sortable:hover{color:var(--bk)}
    that are marked as not converted." */
 .lock-banner{background:var(--spk);color:#8a1a44;padding:10px 16px;border-radius:var(--rs);font-size:13px;font-weight:600;margin-bottom:16px}
 
+/* Spy Agent Registration (2026-09-22, per Shruti follow-up) — shown on
+   any Spy-theme BOOKING; uploading an invite creates its public
+   registration link. */
+.spy-reg-card{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:0 2px 10px rgba(25,25,25,.06);margin-bottom:22px}
+.spy-reg-card .srh{display:flex;align-items:center;gap:8px;font-family:var(--fd);font-size:15px;color:var(--plum);margin-bottom:10px;font-weight:700}
+.spy-reg-card .srb{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.spy-reg-card .sr-link{flex:1;min-width:220px;padding:9px 12px;background:var(--lgy);border-radius:var(--rs);font-size:12.5px;color:var(--gy);word-break:break-all}
+.spy-reg-card .sr-btn{padding:9px 16px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
+.spy-reg-card .sr-btn.primary{background:var(--pk);color:#fff}
+.spy-reg-card .sr-btn.ghost{background:#fff;border:1px solid var(--li2);color:var(--plum)}
+.spy-reg-card .sr-status{font-size:12px;color:var(--gr);font-weight:600}
+
 /* ─── Leads / Bookings tabs ─── */
 .tabs{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
 .tab-btn{position:relative;padding:10px 20px;border:1px solid var(--li2);border-radius:20px;background:#fff;font-weight:600;font-size:14px;color:var(--gy)}
@@ -618,6 +630,7 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
     <div id="bdHead"></div>
     <div id="statusBlock"></div>
     <div id="lockBanner"></div>
+    <div id="spyRegBlock" style="display:none"></div>
     <div id="bdNav"></div>
     <div id="sectionsContainer"></div>
     <div class="log-section" id="bdLog">
@@ -1183,6 +1196,95 @@ function renderBookingBar(d){
     + '</div>';
   updateDirtyCount();
 }
+// ── Spy Agent Registration (2026-09-22, per Shruti follow-up) ──────────
+// Shown on any Spy-theme BOOKING (is_booking + theme contains "spy").
+// Uploading an invite is the trigger: it creates the public registration
+// link (spy-agent-registration.html?t=...) the first time, and just
+// swaps the image (keeping the same link) after that.
+let SPY_REG_LEAD_ID = null;
+
+function renderSpyRegistrationBlock(d){
+  const block = document.getElementById('spyRegBlock');
+  if(!block) return;
+  SPY_REG_LEAD_ID = d.lead_id;
+  const theme = (bdVal(d, 'theme') || '').toLowerCase();
+  const isSpyBooking = !!d.is_booking && theme.indexOf('spy') !== -1;
+  if(!isSpyBooking){
+    block.style.display = 'none';
+    block.innerHTML = '';
+    return;
+  }
+  block.style.display = 'block';
+  block.innerHTML = '<div class="spy-reg-card"><div class="srh">\ud83d\udd75\ufe0f Spy Agent Registration Page</div><div class="srb"><span class="sr-status" style="color:var(--gy)">Loading\u2026</span></div></div>';
+  apiCall('/api/spy-registration/admin/'+d.lead_id)
+    .then(status => renderSpyRegistrationBody(d.lead_id, status))
+    .catch(e => {
+      const b = block.querySelector('.srb');
+      if(b) b.innerHTML = '<span style="color:var(--pk)">Could not load: '+esc(e.message)+'</span>';
+    });
+}
+
+function renderSpyRegistrationBody(leadId, status){
+  if(SPY_REG_LEAD_ID !== leadId) return;   // admin navigated to a different booking before this resolved
+  const block = document.getElementById('spyRegBlock');
+  if(!block || block.style.display === 'none') return;
+  const shareUrl = status.exists ? (window.location.origin + status.share_url) : '';
+  const linkHtml = status.exists
+    ? '<div class="sr-link" id="srLinkText">'+esc(shareUrl)+'</div>'
+      +'<button type="button" class="sr-btn ghost" onclick="copySpyRegLink()">Copy Link</button>'
+    : '';
+  const uploadLabel = !status.exists ? 'Upload Invite &amp; Generate Link' : (status.has_invite ? 'Replace Invite' : 'Upload Invite');
+  const helpText = !status.exists
+    ? '<div style="font-size:12px;color:var(--gy);margin-top:8px">Upload the party&rsquo;s invite image to generate its registration link \u2014 the page will show that invite automatically.</div>'
+    : '';
+  block.innerHTML =
+    '<div class="spy-reg-card">'
+    + '<div class="srh">\ud83d\udd75\ufe0f Spy Agent Registration Page</div>'
+    + '<div class="srb">'
+    +   linkHtml
+    +   '<label class="sr-btn primary" style="display:inline-block;cursor:pointer">'+uploadLabel+'<input type="file" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="uploadSpyInvite('+leadId+',this)"></label>'
+    +   (status.exists && status.has_invite ? '<span class="sr-status">\u2713 Invite uploaded'+(status.invite_image_name ? ' ('+esc(status.invite_image_name)+')' : '')+'</span>' : '')
+    + '</div>'
+    + helpText
+    + '</div>';
+}
+
+function copySpyRegLink(){
+  const el = document.getElementById('srLinkText');
+  if(!el) return;
+  const text = el.textContent;
+  (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+    .then(()=>showToast('Link copied'))
+    .catch(()=>showToast('Could not copy \u2014 long-press to select the link text'));
+}
+
+async function uploadSpyInvite(leadId, inputEl){
+  const file = inputEl.files && inputEl.files[0];
+  if(!file) return;
+  const fd = new FormData();
+  fd.append('invite_image', file);
+  try{
+    const res = await fetch(API+'/api/spy-registration/admin/'+leadId+'/invite', {
+      method: 'POST',
+      headers: {'X-Admin-Password': getPw()},
+      body: fd,
+    });
+    if(res.status===401){ showToast('Session expired \u2014 please log in again.'); return; }
+    if(!res.ok){
+      const body = await res.json().catch(()=>({}));
+      throw new Error(body.detail || ('Upload failed ('+res.status+')'));
+    }
+    await res.json();
+    showToast('Invite uploaded \u2014 link is live');
+    const status = await apiCall('/api/spy-registration/admin/'+leadId);
+    renderSpyRegistrationBody(leadId, status);
+  }catch(e){
+    showToast('Could not upload: '+e.message);
+  }finally{
+    inputEl.value = '';
+  }
+}
+
 function updateDirtyCount(){
   const bar = document.getElementById('bdBar');
   const el = document.getElementById('bdUnsaved');
@@ -2462,6 +2564,8 @@ function renderDetail(d){
   }else{
     lockBanner.innerHTML = '';
   }
+
+  renderSpyRegistrationBlock(d);
 
   const container = document.getElementById('sectionsContainer');
   container.innerHTML = d.sections.map(sec=>{

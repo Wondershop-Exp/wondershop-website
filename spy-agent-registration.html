@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Registration — Wondershop Experiences</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0a0414;
+    --bg-mid:#1a0b2e;
+    --neon:#c77dff;
+    --neon-bright:#e0aaff;
+    --magenta:#e040fb;
+    --ink:#f4ecff;
+    --ink-dim:#c9b8e8;
+    --gold:#f4a932;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg-deep);
+    color:var(--ink);
+    font-family:'Poppins',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .headline,.stamp,.agent-name-big{font-family:'Bebas Neue',sans-serif;letter-spacing:1px}
+
+  /* ── HERO / INVITE ───────────────────────────────────────────── */
+  .hero{
+    position:relative;
+    overflow:hidden;
+    background:radial-gradient(120% 90% at 50% 0%, #2a1147 0%, #170a2b 45%, #0a0414 100%);
+    padding:36px 20px 56px;
+    text-align:center;
+  }
+  .hero::before, .hero::after{
+    content:"";
+    position:absolute;
+    top:-10%;
+    width:60%;
+    height:60%;
+    background:radial-gradient(circle, rgba(199,125,255,0.22) 0%, transparent 70%);
+    pointer-events:none;
+  }
+  .hero::before{left:-15%}
+  .hero::after{right:-15%}
+  .ws-badge{
+    font-size:11px;
+    letter-spacing:3px;
+    color:var(--ink-dim);
+    text-transform:uppercase;
+    margin-bottom:18px;
+  }
+  .arch{
+    position:relative;
+    max-width:480px;
+    margin:0 auto;
+    padding:38px 24px 30px;
+    border:2px solid var(--neon);
+    border-bottom:none;
+    border-radius:200px 200px 0 0;
+    box-shadow:0 0 24px 2px rgba(199,125,255,0.55), inset 0 0 30px rgba(199,125,255,0.18);
+    background:rgba(20,8,38,0.35);
+  }
+  .hat-icon{font-size:42px;filter:drop-shadow(0 0 10px rgba(199,125,255,0.8));margin-bottom:6px}
+  .stamp{
+    display:inline-block;
+    border:2px solid var(--ink);
+    color:var(--ink);
+    font-size:20px;
+    letter-spacing:4px;
+    padding:4px 16px;
+    margin:8px 0 20px;
+    transform:rotate(-2deg);
+  }
+  .attn{
+    color:var(--neon-bright);
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  .assign{
+    color:var(--ink);
+    font-size:14px;
+    line-height:1.6;
+    max-width:340px;
+    margin:0 auto 18px;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+  }
+  .agent-name-big{
+    font-size:56px;
+    color:var(--magenta);
+    text-shadow:0 0 18px rgba(224,64,251,0.75);
+    line-height:1;
+  }
+  .quest-line{
+    font-size:18px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--ink);
+    margin:6px 0 26px;
+  }
+  .mission-details-label{
+    color:var(--neon-bright);
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  .mission-line{
+    font-size:14px;
+    color:var(--ink);
+    line-height:1.9;
+    text-transform:uppercase;
+    letter-spacing:0.3px;
+  }
+  .venue-block{margin:14px 0}
+  .confirm-line{
+    font-size:12.5px;
+    color:var(--ink-dim);
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    margin-top:14px;
+  }
+  .confirm-line b{color:var(--magenta)}
+  .cta-btn{
+    display:inline-block;
+    margin-top:26px;
+    padding:14px 34px;
+    background:linear-gradient(135deg,var(--magenta),#7b2ff7);
+    color:#fff;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    border:none;
+    border-radius:30px;
+    cursor:pointer;
+    box-shadow:0 0 20px rgba(224,64,251,0.55);
+    text-decoration:none;
+  }
+  .invite-photo{
+    max-width:480px;
+    width:100%;
+    margin:0 auto 28px;
+    display:block;
+    border-radius:14px;
+    box-shadow:0 0 30px rgba(199,125,255,0.35);
+  }
+
+  /* ── FORM SECTION ─────────────────────────────────────────────── */
+  .form-section{
+    background:linear-gradient(180deg,#0a0414 0%, #120826 100%);
+    padding:44px 18px 70px;
+  }
+  .form-wrap{max-width:520px;margin:0 auto}
+  .form-title{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:34px;
+    letter-spacing:2px;
+    color:var(--neon-bright);
+    text-align:center;
+    text-shadow:0 0 14px rgba(199,125,255,0.5);
+  }
+  .form-subtitle{
+    text-align:center;
+    color:var(--ink-dim);
+    font-size:13px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    margin-top:6px;
+    margin-bottom:22px;
+  }
+  .intro-card, .guidelines-card, .privacy-card{
+    background:rgba(199,125,255,0.06);
+    border:1px solid rgba(199,125,255,0.3);
+    border-radius:14px;
+    padding:18px 20px;
+    margin-bottom:18px;
+    font-size:13.5px;
+    line-height:1.7;
+    color:var(--ink-dim);
+  }
+  .guidelines-card ul{margin:10px 0 0 18px}
+  .guidelines-card li{margin-bottom:4px}
+  .guidelines-card b, .privacy-card b{color:var(--ink)}
+  .card-heading{
+    color:var(--neon-bright);
+    font-weight:600;
+    font-size:14px;
+    margin-bottom:8px;
+    display:block;
+  }
+  form{
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(199,125,255,0.25);
+    border-radius:18px;
+    padding:26px 22px;
+  }
+  .field{margin-bottom:20px}
+  label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink);
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    margin-bottom:8px;
+  }
+  label .req{color:var(--magenta)}
+  label .opt{color:var(--ink-dim);font-weight:400;text-transform:none;letter-spacing:0}
+  input[type="text"], input[type="tel"], input[type="date"]{
+    width:100%;
+    padding:13px 14px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(199,125,255,0.35);
+    border-radius:10px;
+    color:var(--ink);
+    font-size:15px;
+    font-family:inherit;
+  }
+  input::placeholder{color:#8a7aa8}
+  input:focus{outline:2px solid var(--neon);outline-offset:0;border-color:var(--neon)}
+  input[type="date"]{color-scheme:dark}
+  .file-drop{
+    border:1.5px dashed rgba(199,125,255,0.45);
+    border-radius:12px;
+    padding:18px;
+    text-align:center;
+    cursor:pointer;
+    background:rgba(255,255,255,0.03);
+  }
+  .file-drop input{display:none}
+  .file-drop .fd-label{font-size:13px;color:var(--ink-dim)}
+  .file-preview{
+    margin-top:12px;
+    display:none;
+    align-items:center;
+    gap:12px;
+  }
+  .file-preview img{
+    width:56px;height:56px;object-fit:cover;border-radius:10px;
+    border:1px solid rgba(199,125,255,0.5);
+  }
+  .file-preview .fp-name{font-size:12.5px;color:var(--ink-dim);word-break:break-all}
+  .file-preview .fp-remove{
+    margin-left:auto;background:none;border:none;color:var(--magenta);
+    font-size:12px;cursor:pointer;text-decoration:underline;
+  }
+  .submit-btn{
+    width:100%;
+    padding:16px;
+    background:linear-gradient(135deg,var(--magenta),#7b2ff7);
+    color:#fff;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+    box-shadow:0 0 20px rgba(224,64,251,0.45);
+    margin-top:6px;
+  }
+  .submit-btn:disabled{opacity:0.55;cursor:not-allowed}
+  .form-msg{
+    margin-top:14px;
+    font-size:13.5px;
+    text-align:center;
+    display:none;
+    padding:12px 14px;
+    border-radius:10px;
+  }
+  .form-msg.error{display:block;background:rgba(255,80,80,0.12);color:#ffb4b4;border:1px solid rgba(255,80,80,0.35)}
+  .form-msg.success{display:block;background:rgba(120,255,180,0.1);color:#b6ffd4;border:1px solid rgba(120,255,180,0.35)}
+  .success-screen{
+    max-width:520px;margin:0 auto;text-align:center;padding:60px 20px;
+  }
+  .success-screen .big-check{font-size:52px;margin-bottom:14px}
+  .success-screen h2{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px;color:var(--neon-bright);margin-bottom:10px}
+  .success-screen p{color:var(--ink-dim);font-size:14px;line-height:1.7}
+  footer{
+    text-align:center;
+    padding:24px;
+    font-size:11px;
+    letter-spacing:2px;
+    color:#6a5a86;
+    text-transform:uppercase;
+    background:#0a0414;
+  }
+  @media (max-width:420px){
+    .agent-name-big{font-size:44px}
+    .arch{padding:30px 16px 24px}
+    .form-title{font-size:28px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PER-PARTY CONFIG lives in the <script> block at the bottom
+     (search for "EDIT PER PARTY") — or override any of it with URL
+     query params, e.g. ?event_id=saachi-9oct&child_name=Saachi
+     ══════════════════════════════════════════════════════════════ -->
+
+<section class="hero" id="hero">
+  <div class="ws-badge">A Wondershop Experiences Event</div>
+
+  <!-- If a real designed invite image is supplied (INVITE_IMAGE_URL),
+       it's shown here instead of the coded arch below. -->
+  <img id="inviteImg" class="invite-photo" style="display:none" alt="Mission invite">
+
+  <div class="arch" id="codedInvite">
+    <div class="hat-icon">🎩</div>
+    <div class="stamp">TOP SECRET</div>
+    <div class="attn">Attention, Secret Agent!</div>
+    <div class="assign">You are hereby assigned a classified mission to assist</div>
+    <div class="agent-name-big" id="childNameOut">—</div>
+    <div class="quest-line" id="questLineOut">on their birthday quest</div>
+
+    <div class="mission-details-label">Mission Details</div>
+    <div class="mission-line" id="dateLineOut">Date: —</div>
+    <div class="mission-line" id="timeLineOut">Drop off: — | Pick up: —</div>
+
+    <div class="venue-block">
+      <div class="mission-line">Please report to Spy Headquarters</div>
+      <div class="mission-line" id="venueLinesOut"></div>
+    </div>
+
+    <div class="confirm-line" id="confirmLineOut">Confirm your involvement from a secret phone line</div>
+  </div>
+
+  <a href="#registerForm" class="cta-btn">🕵️ Register Your Agent</a>
+</section>
+
+<section class="form-section" id="registerForm">
+  <div class="form-wrap">
+    <div class="form-title">Agent Registration</div>
+    <div class="form-subtitle" id="formSubtitleOut">Confidential: Registration Form</div>
+
+    <div class="intro-card">
+      Attention, Operatives! To officially enlist your agent for the mission, we require a
+      classified profile submission. Please ensure all details are accurate and follow the
+      instructions carefully.
+      <br><br>
+      Incomplete or unclear submissions may delay your agent's clearance. Once registered, your
+      agent will be one step closer to entering headquarters and taking on their secret
+      mission&hellip; Submit wisely. The mission awaits.
+    </div>
+
+    <div class="guidelines-card">
+      <span class="card-heading">📸 Agent Photo Guidelines (Highly Confidential)</span>
+      <ul>
+        <li>The agent must be <b>facing the camera directly</b></li>
+        <li>The face should be <b>clearly visible and centered</b></li>
+        <li>Only <b>one photo per agent</b> is permitted</li>
+        <li>Ensure the image is <b>clear and high quality</b> (no blur, no disguises&hellip; yet 😉)</li>
+      </ul>
+    </div>
+
+    <form id="spyForm" novalidate>
+      <div class="field">
+        <label for="agentName">Agent Name <span class="req">*</span></label>
+        <input type="text" id="agentName" name="agent_name" placeholder="Your child's name" required>
+      </div>
+
+      <div class="field">
+        <label for="agentDob">Agent DOB <span class="req">*</span></label>
+        <input type="date" id="agentDob" name="agent_dob" required>
+      </div>
+
+      <div class="field">
+        <label for="agentPhoto">Agent Photo <span class="opt">(optional — for the i-card)</span></label>
+        <label class="file-drop" for="agentPhoto">
+          <span class="fd-label">📷 Tap to add a photo</span>
+          <input type="file" id="agentPhoto" name="agent_photo" accept="image/png,image/jpeg,image/webp">
+        </label>
+        <div class="file-preview" id="filePreview">
+          <img id="filePreviewImg" alt="">
+          <span class="fp-name" id="filePreviewName"></span>
+          <button type="button" class="fp-remove" id="fpRemoveBtn">Remove</button>
+        </div>
+      </div>
+
+      <div class="privacy-card">
+        <b>Note:</b> the photo is solely for the agent i-card and will be deleted after the
+        mission. If you're not comfortable sharing a photo, you can skip it.
+      </div>
+
+      <div class="field">
+        <label for="parentName">Parent Name <span class="req">*</span></label>
+        <input type="text" id="parentName" name="parent_name" placeholder="Your name" required>
+      </div>
+
+      <div class="field">
+        <label for="parentPhone">Parent Phone Number <span class="opt">(optional)</span></label>
+        <input type="tel" id="parentPhone" name="parent_phone" placeholder="10-digit mobile number" inputmode="numeric" maxlength="10">
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">Submit Mission Profile 🕶️</button>
+      <div class="form-msg" id="formMsg"></div>
+    </form>
+  </div>
+</section>
+
+<div class="success-screen" id="successScreen" style="display:none">
+  <div class="big-check">🕶️✅</div>
+  <h2>Agent Cleared for the Mission</h2>
+  <p id="successTextOut">Your agent's profile has been received. Headquarters will be in touch with
+    further instructions before the mission begins.</p>
+</div>
+
+<footer>Wondershop Experiences</footer>
+
+<script>
+(function(){
+
+  // ══════════════════════════════════════════════════════════════
+  // EDIT PER PARTY — change these for a new Spy booking, or leave
+  // them as fallback defaults and pass the same keys as URL query
+  // params instead (e.g. ?event_id=saachi-9oct&child_name=Saachi),
+  // which lets ONE copy of this file be reused for every party.
+  // event_id must be unique per party — it's what keeps each
+  // party's registrations separate in the "Spy Agent Registrations"
+  // sheet tab.
+  // ══════════════════════════════════════════════════════════════
+  var DEFAULTS = {
+    event_id:      'saachi-9oct',
+    child_name:    'Saachi',
+    child_pronoun: 'her',                 // her / his / their
+    age_ordinal:   '10th',
+    event_date:    '9th October',
+    drop_off:      '4:00 PM',
+    pick_up:       '7:00 PM',
+    venue_line1:   'NHP Meghdoot Building, P Floor. N-S Road No. 5,',
+    venue_line2:   'JVPD Scheme, Ville Parle West,',
+    venue_line3:   'Mumbai 400056.',
+    contact_name:  'Swati',
+    contact_phone: '98335 91762',
+    invite_image:  ''                     // e.g. "img/invites/saachi-9oct.jpg" — leave blank to use the coded invite above
+  };
+
+  var params = new URLSearchParams(window.location.search);
+  var CFG = {};
+  Object.keys(DEFAULTS).forEach(function(k){
+    CFG[k] = params.get(k) || DEFAULTS[k];
+  });
+
+  // ── Populate the coded invite / mission header ──
+  document.title = 'Agent Registration — ' + CFG.child_name + "'s Mission";
+  document.getElementById('childNameOut').textContent = CFG.child_name.toUpperCase();
+  document.getElementById('questLineOut').textContent =
+    'On ' + CFG.child_pronoun.charAt(0).toUpperCase() + CFG.child_pronoun.slice(1) + ' ' + CFG.age_ordinal + ' Birthday Quest';
+  document.getElementById('dateLineOut').textContent = 'Date: ' + CFG.event_date;
+  document.getElementById('timeLineOut').textContent = 'Drop off: ' + CFG.drop_off + ' | Pick up: ' + CFG.pick_up;
+  document.getElementById('venueLinesOut').innerHTML =
+    esc(CFG.venue_line1) + '<br>' + esc(CFG.venue_line2) + '<br>' + esc(CFG.venue_line3);
+  document.getElementById('confirmLineOut').innerHTML =
+    'Confirm your involvement from a secret phone line to <b>' + esc(CFG.contact_name) + ' : ' + esc(CFG.contact_phone) + '</b>';
+  document.getElementById('formSubtitleOut').textContent =
+    'Confidential: Registration Form for the ' + CFG.event_date + ' Mission';
+  document.getElementById('successTextOut').textContent =
+    "Your agent's profile has been received for " + CFG.child_name + "'s mission. Headquarters will be in touch with further instructions before the big day.";
+
+  if (CFG.invite_image) {
+    var img = document.getElementById('inviteImg');
+    img.src = CFG.invite_image;
+    img.onload = function(){
+      img.style.display = 'block';
+      document.getElementById('codedInvite').style.display = 'none';
+    };
+    // If the image 404s, the coded invite (already in the DOM) stays visible — no broken-image icon.
+  }
+
+  function esc(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── API base — same Railway backend the rest of the site uses ──
+  var API_BASE = 'https://wondershop-website-production.up.railway.app';
+
+  // ── Photo picker preview + client-side guardrails ──
+  var MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+  var fileInput = document.getElementById('agentPhoto');
+  var filePreview = document.getElementById('filePreview');
+  var filePreviewImg = document.getElementById('filePreviewImg');
+  var filePreviewName = document.getElementById('filePreviewName');
+  var fileDropLabel = document.querySelector('.file-drop .fd-label');
+
+  fileInput.addEventListener('change', function(){
+    var f = fileInput.files && fileInput.files[0];
+    if (!f) { resetFilePreview(); return; }
+    if (!/^image\/(jpeg|png|webp)$/.test(f.type)) {
+      showMsg('Please choose a JPG, PNG, or WEBP photo.', 'error');
+      fileInput.value = '';
+      resetFilePreview();
+      return;
+    }
+    if (f.size > MAX_PHOTO_BYTES) {
+      showMsg('That photo is too large — please keep it under 5MB.', 'error');
+      fileInput.value = '';
+      resetFilePreview();
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(e){
+      filePreviewImg.src = e.target.result;
+      filePreviewName.textContent = f.name;
+      filePreview.style.display = 'flex';
+      fileDropLabel.textContent = '✅ Photo added — tap to change';
+    };
+    reader.readAsDataURL(f);
+  });
+
+  document.getElementById('fpRemoveBtn').addEventListener('click', function(){
+    fileInput.value = '';
+    resetFilePreview();
+  });
+
+  function resetFilePreview(){
+    filePreview.style.display = 'none';
+    filePreviewImg.src = '';
+    filePreviewName.textContent = '';
+    fileDropLabel.textContent = '📷 Tap to add a photo';
+  }
+
+  // ── Submit ──
+  var form = document.getElementById('spyForm');
+  var submitBtn = document.getElementById('submitBtn');
+  var formMsg = document.getElementById('formMsg');
+
+  function showMsg(text, kind){
+    formMsg.textContent = text;
+    formMsg.className = 'form-msg ' + kind;
+  }
+
+  form.addEventListener('submit', function(ev){
+    ev.preventDefault();
+    formMsg.className = 'form-msg';
+
+    var agentName = document.getElementById('agentName').value.trim();
+    var agentDob = document.getElementById('agentDob').value;
+    var parentName = document.getElementById('parentName').value.trim();
+    var parentPhone = document.getElementById('parentPhone').value.trim();
+
+    if (!agentName) { showMsg('Please enter the Agent Name.', 'error'); document.getElementById('agentName').focus(); return; }
+    if (!agentDob) { showMsg('Please enter the Agent DOB.', 'error'); document.getElementById('agentDob').focus(); return; }
+    if (!parentName) { showMsg('Please enter the Parent Name.', 'error'); document.getElementById('parentName').focus(); return; }
+    if (parentPhone && !/^\d{10}$/.test(parentPhone.replace(/\D/g,''))) {
+      showMsg('Parent Phone Number should be 10 digits.', 'error');
+      document.getElementById('parentPhone').focus();
+      return;
+    }
+
+    var fd = new FormData();
+    fd.append('event_id', CFG.event_id);
+    fd.append('mission_label', CFG.child_name + "'s " + CFG.age_ordinal + ' Birthday Quest (' + CFG.event_date + ')');
+    fd.append('agent_name', agentName);
+    fd.append('agent_dob', agentDob);
+    fd.append('parent_name', parentName);
+    fd.append('parent_phone', parentPhone);
+    var photoFile = fileInput.files && fileInput.files[0];
+    if (photoFile) fd.append('agent_photo', photoFile);
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting…';
+
+    fetch(API_BASE + '/api/spy-registration/register', { method: 'POST', body: fd })
+      .then(function(r){
+        return r.json().then(function(data){ return { ok: r.ok, data: data }; });
+      })
+      .then(function(res){
+        if (!res.ok) {
+          throw new Error((res.data && res.data.detail) || 'Something went wrong — please try again.');
+        }
+        form.style.display = 'none';
+        document.querySelector('.intro-card').style.display = 'none';
+        document.querySelector('.guidelines-card').style.display = 'none';
+        document.getElementById('successScreen').style.display = 'block';
+        document.getElementById('successScreen').scrollIntoView({ behavior: 'smooth' });
+      })
+      .catch(function(err){
+        showMsg(err.message || 'Something went wrong — please try again.', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Mission Profile 🕶️';
+      });
+  });
+
+})();
+</script>
+</body>
+</html>

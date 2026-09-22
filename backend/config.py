@@ -39,6 +39,14 @@ class Settings(BaseSettings):
     # Google Sheets — Apps Script webhook URL (no service account needed)
     GOOGLE_SHEET_WEBHOOK_URL: str = ""
 
+    # Spy Agent Registration - a DEDICATED Google Sheet (2026-09-22, per
+    # Shruti: keep this off the main Leads & Bookings sheet). One workbook,
+    # one worksheet tab created per Spy party (see spy_sheet_webhook.js's
+    # setup instructions for creating this sheet + its own Apps Script
+    # deployment). Blank = spy_registration.py returns a friendly 503
+    # instead of silently dropping submissions.
+    SPY_SHEET_WEBHOOK_URL: str = ""
+
     # WhatsApp Business API (Meta Cloud)
     # Messages go to both WS_PHONE_1 and WS_PHONE_2
     WS_PHONE_1: str = "+919004435362"   # Shruti
