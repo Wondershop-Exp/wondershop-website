@@ -4367,7 +4367,7 @@ function makeTC(t){
   const tierPill='<span class="tag" style="'+(TIER_TAG_STYLE[t.tier]||'')+'">'+t.tier+'</span>';
   const specHtml='<ul class="act-card-spec">'+t.spec.map(s=>'<li'+(s.na?' class="na"':'')+'><b>'+s.l+':</b> '+s.v+'</li>').join('')+'</ul>';
   const priceOrigHtml=t.origP!=null?'<div class="card-price-orig">₹'+t.origP.toLocaleString('en-IN')+'</div>':'';
-  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+t.gallery[0].src+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tierPill+launchTag+tagHtml+'<span class="tag pk">'+t.gn+'</span></div>'+specHtml+'<div class="card-pr-row"><div>'+priceOrigHtml+'<div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+  return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+t.gallery[0].src+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tierPill+launchTag+tagHtml+'<span class="tag pk">'+t.gn+'</span></div>'+specHtml+'<div class="card-pr-row"><div>'+priceOrigHtml+'<div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+',\''+t.themeId+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
 }
 function buildDec(){
   const tc=document.getElementById('thCards');tc.innerHTML='';
@@ -4572,7 +4572,18 @@ function resetDecFilterSelects(){
   const g=document.getElementById('decGenderSel');if(g)g.value='';
   const a=document.getElementById('decAgeSel');if(a)a.value='';
 }
-function selDec(btn,id,n,p){
+// 2026-09-22, per Shruti bug report ("cannot see spy" — Mystery & Spy
+// activities never showed up in the Activities step even with a Spy decor
+// card selected). Root cause: S.theme was ONLY ever set from Step 0's
+// "Theme Preference" dropdown (#f-theme, defaults to "Surprise Me" -> ''),
+// never from actually clicking "Add" on a themed decor card here — so
+// themeOnly-gated activities (Laser Tunnel, Dark Room, Spy Treasure Hunt)
+// silently never matched S.theme for anyone who picked their theme the
+// normal way (by browsing decor cards) instead of the Theme Preference
+// dropdown. Fixed by syncing S.theme to the selected card's real theme id
+// (t.themeId from THEME_TIERS, passed in as themeId below) — this is the
+// more specific, more commonly-used signal, so it wins over Step 0's.
+function selDec(btn,id,n,p,themeId){
   const card=btn.closest('.pcard');
   const wasSel=card.classList.contains('sel');
   document.querySelectorAll('#thCards .pcard,#stdCards .pcard').forEach(c=>{
@@ -4581,9 +4592,10 @@ function selDec(btn,id,n,p){
     if(b){b.classList.remove('added');b.textContent='Add';}
   });
   S.decorAddons.nameBunting=false;
-  if(wasSel){S.decor=null;}
-  else{card.classList.add('sel');S.decor={id,n,p};const b=card.querySelector('.card-btn');if(b){b.classList.add('added');b.textContent='✓ Added';}}
+  if(wasSel){S.decor=null;S.theme='';}
+  else{card.classList.add('sel');S.decor={id,n,p};S.theme=themeId||'';const b=card.querySelector('.card-btn');if(b){b.classList.add('added');b.textContent='✓ Added';}}
   syncDecorAddonsUI();
+  buildActs();
   updBB(S.screen);
 }
 

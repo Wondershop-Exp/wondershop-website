@@ -47,6 +47,20 @@ a{color:var(--bl)}
 .topbar h1{font-size:20px}
 .topbar .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gy);flex-wrap:wrap}
 .topbar .who input{padding:6px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13px;width:150px}
+/* Always-on save-status pill (no button) — 2026-09-22, per Shruti: "give
+   an option to save, without any button - I don't know whether data is
+   being saved on not." Every field/requirement/schedule edit on this page
+   already auto-saves on blur (patchSheet()); this just makes that visible
+   live instead of silent. */
+.save-status{display:none;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 11px;border-radius:20px;background:var(--lgy);color:var(--gy);white-space:nowrap}
+.save-status .ss-dot{width:7px;height:7px;border-radius:50%;background:#C9C2D6;flex:0 0 auto}
+.save-status.saving{color:#B5620A;background:#FFF4E8}
+.save-status.saving .ss-dot{background:var(--yl);animation:ssPulse 1s ease-in-out infinite}
+.save-status.saved{color:#2E8A47;background:#EAF8EC}
+.save-status.saved .ss-dot{background:var(--gr)}
+.save-status.error{color:var(--pk);background:#FCEAF1}
+.save-status.error .ss-dot{background:var(--pk)}
+@keyframes ssPulse{0%,100%{opacity:1}50%{opacity:.3}}
 .linkbtn{background:none;border:none;color:var(--bl);font-size:13px;text-decoration:underline;padding:0}
 .back-nav{font-size:13px;margin-bottom:14px;display:inline-block}
 
@@ -220,6 +234,7 @@ th.th-sort:hover{color:var(--pk)}
     <h1>🗒️ Sales Leads &amp; Playbook</h1>
     <div class="who">
       Editing as <input type="text" id="whoName" onchange="saveName()">
+      <span class="save-status" id="saveStatus"><span class="ss-dot"></span><span id="saveStatusText">Saved</span></span>
       <a class="linkbtn" href="admin.html">Bookings admin</a>
       <a class="linkbtn" href="packaging.html">Packing lists</a>
       <button class="linkbtn" onclick="logout()">Log out</button>
@@ -312,6 +327,23 @@ function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2200);
+}
+// Small always-on status pill next to "Editing as" — 2026-09-22, per
+// Shruti: "give an option to save, without any button - I don't know
+// whether data is being saved on not." Every field/requirement/schedule
+// edit on this page auto-saves on blur via patchSheet() with no button
+// and, before this, no success feedback at all (only a toast, and only on
+// failure) -- so there was no way to tell a save actually went through.
+// This mirrors it live: "Saving..." the moment a save starts, "Saved"
+// once the PATCH resolves, "Not saved" if it fails -- and errors stay
+// shown (don't auto-hide) so a failed save is never mistaken for a
+// successful one.
+function setSaveStatus(state, msg){
+  const el = document.getElementById('saveStatus');
+  if(!el) return;
+  el.style.display = 'inline-flex';
+  el.className = 'save-status ' + state;
+  document.getElementById('saveStatusText').textContent = msg;
 }
 const CHECK_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -564,6 +596,7 @@ function backToList(){
   document.getElementById('detailView').style.display='none';
   document.getElementById('listView').style.display='block';
   document.getElementById('gtBar').style.display='none';
+  document.getElementById('saveStatus').style.display='none';
   CURRENT_ID = null; DATA = null;
   doSearch();
 }
@@ -590,6 +623,7 @@ async function openDetail(id, preloaded){
   CURRENT_ID = id;
   document.getElementById('listView').style.display='none';
   document.getElementById('detailView').style.display='block';
+  setSaveStatus('saved', 'Saved');
   document.getElementById('detailBody').innerHTML = '<div class="empty">Loading…</div>';
   try{
     DATA = preloaded || await apiCall('/api/admin/sales-leads/'+id);
@@ -738,6 +772,7 @@ async function saveField(key, value, inputType){
 
 async function patchSheet(body){
   SAVING = true;
+  setSaveStatus('saving', 'Saving…');
   body.updated_by = getName();
   try{
     const res = await fetch(API+'/api/admin/sales-leads/'+CURRENT_ID, {
@@ -756,8 +791,10 @@ async function patchSheet(body){
     // updates the sticky Grand Total bar), so this one call keeps every
     // section current. 2026-09-16, per Shruti (see saveField() above).
     renderDetail();
+    setSaveStatus('saved', 'Saved');
   }catch(e){
     showToast(e.message||"Couldn't save.");
+    setSaveStatus('error', 'Not saved — '+(e.message||'try again'));
   }finally{
     SAVING = false;
   }
