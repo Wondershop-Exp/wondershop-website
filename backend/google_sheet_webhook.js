@@ -53,6 +53,23 @@ var ABANDONED_HEADERS = [
   "Cart Snapshot (JSON)",
 ];
 
+// 2026-09-22, per Shruti — "every image has a google photos link attached
+// to it ... add a new sheet with serial no., event name (child's name,
+// gender, age, location), theme, list of services (comma separated), date,
+// venue and the photos link. One event can have multiple photos link as
+// well." Posted from admin.py (_push_event_photos_to_sheet) whenever the
+// "Event Photos Link(s)" field is saved on a booking. "Lead ID" is kept as
+// a trailing internal column, past the columns Shruti actually asked for,
+// so this tab can be upserted (find-and-update the same event's row
+// instead of appending a new one every time a link is added) — see
+// _updateOrAppendEventPhotos below, same find-by-Lead-ID approach as
+// _updateRewardServiceCell.
+var EVENT_PHOTOS_TAB_NAME = "Event Photos";
+var EVENT_PHOTOS_HEADERS = [
+  "S. No.", "Event Name", "Theme", "Services", "Date", "Venue", "Photos Link",
+  "Lead ID",
+];
+
 // 2026-08-14, per Shruti — added "Child DOBs" + a "Services" group (Decor,
 // Pinata, Return Gifts, Music, Host, Activities, Photography, E-Invite),
 // broken out of the raw Cart Snapshot JSON into their own readable columns.
@@ -90,6 +107,12 @@ function doPost(e) {
     // get their own tab, created on first use.
     if (d0.action === "abandoned_cart") {
       return _appendAbandonedCart(ss, d0);
+    }
+
+    // Event Photos Link(s) saves never touch "Leads & Bookings" either —
+    // they upsert a row on their own "Event Photos" tab.
+    if (d0.action === "update_event_photos") {
+      return _updateOrAppendEventPhotos(ss, d0);
     }
 
     // 2026-08-14, per Shruti — this used to fall back to ss.getActiveSheet()
@@ -271,6 +294,58 @@ function _appendAbandonedCart(ss, d) {
 }
 
 /**
+ * Upserts one row on the "Event Photos" tab, matched by the trailing
+ * "Lead ID" column (creating the tab with its header row on first use).
+ * A booking's row is updated in place on every re-save of Event Photos
+ * Link(s) (e.g. more links added later) instead of appending a duplicate.
+ * "S. No." is a self-maintaining =ROW()-1 formula, not a stored number, so
+ * it stays correct even if rows are later reordered or deleted by hand.
+ */
+function _updateOrAppendEventPhotos(ss, d) {
+  var sheet = ss.getSheetByName(EVENT_PHOTOS_TAB_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(EVENT_PHOTOS_TAB_NAME);
+    sheet.appendRow(EVENT_PHOTOS_HEADERS);
+    sheet.getRange(1, 1, 1, EVENT_PHOTOS_HEADERS.length)
+         .setFontWeight("bold")
+         .setBackground("#F4A932")
+         .setFontColor("#FFFFFF");
+    sheet.setFrozenRows(1);
+  }
+
+  var leadIdColIdx = EVENT_PHOTOS_HEADERS.indexOf("Lead ID"); // 0-based, for getValues()
+  var rowValues = [
+    "",   // S. No. — set via formula below, never stored as a plain value
+    d.event_name  || "",
+    d.theme       || "",
+    d.services    || "",
+    d.event_date  || "",
+    d.venue       || "",
+    d.photos_link || "",
+    d.lead_id     || "",
+  ];
+
+  var data = sheet.getDataRange().getValues();
+  for (var r = 1; r < data.length; r++) {  // skip header row
+    if (String(data[r][leadIdColIdx]) === String(d.lead_id)) {
+      var targetRow = r + 1;
+      // Columns 2..8 (everything but S. No., which keeps its own formula).
+      sheet.getRange(targetRow, 2, 1, rowValues.length - 1).setValues([rowValues.slice(1)]);
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, lead_id: d.lead_id, updated_row: targetRow }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  sheet.appendRow(rowValues);
+  var newRow = sheet.getLastRow();
+  sheet.getRange(newRow, 1).setFormula("=ROW()-1");
+  return ContentService
+    .createTextOutput(JSON.stringify({ success: true, lead_id: d.lead_id, added_row: newRow }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
  * Run this manually, ONCE, from the Apps Script editor (Run → setupSheet)
  * after pasting/updating this script — and again any time you want to
  * re-apply formatting. It never touches existing row data.
@@ -383,6 +458,26 @@ function doPost_test() {
         redeemed_coupon_code: "",
         referral_code: "",
         status:       "Lead"
+      })
+    }
+  };
+  var result = doPost(fakeEvent);
+  Logger.log(result.getContent());
+}
+
+/** Run this manually once to test the Event Photos path without an HTTP request */
+function doPost_test_event_photos() {
+  var fakeEvent = {
+    postData: {
+      contents: JSON.stringify({
+        action:       "update_event_photos",
+        lead_id:      999,
+        event_name:   "Arya, Girl, 7, Bandra",
+        theme:        "Unicorn",
+        services:     "Decor, Host, Activities, Return Gifts",
+        event_date:   "2026-08-15",
+        venue:        "Home",
+        photos_link:  "https://photos.app.goo.gl/example1\nhttps://photos.app.goo.gl/example2",
       })
     }
   };

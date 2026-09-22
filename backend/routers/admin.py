@@ -36,12 +36,16 @@ provides the vendor list). Customer's Choice for Decor/Host/Music/
 Photography/Piñata/E-Invite is a dropdown constrained to the site's actual
 catalogue options.
 
-NOTE for Shruti: edits made here do NOT re-send emails, do NOT update the
-Google Sheet row, and do NOT recalculate real pricing/payment totals — this
-page is a team-facing record-keeping + assignment tool on top of the
-booking, not a re-trigger of the customer-facing flow.
+NOTE for Shruti: edits made here do NOT re-send emails and do NOT
+recalculate real pricing/payment totals — this page is a team-facing
+record-keeping + assignment tool on top of the booking, not a re-trigger of
+the customer-facing flow. 2026-09-22 exception: saving Event Photos
+Link(s) DOES push a row to the "Event Photos" tab of the Google Sheet (see
+_push_event_photos_to_sheet below) — every other field still only writes
+here.
 """
 import hmac
+import httpx
 import json
 import logging
 import re
@@ -59,11 +63,11 @@ from invoice_builder import assemble_invoice_data, build_invoice_pdf, invoice_fi
 from booking_pricing import (
     recompute_grand_total, freebie_activity_names, parse_csv as _parse_csv_names,
     PACKAGING_KEY_TO_LABEL, PACKAGING_UNIT_PRICE, DJ_LIGHTS_PRICE, DJ_SMOKE_PRICE,
-    TAG_NOTE_UNIT_PRICE, TAG_NOTE_MIN_QTY,
+    TAG_NOTE_UNIT_PRICE, TAG_NOTE_MIN_QTY, PINATA_BAG_PRICE,
 )
 from routers.leads import (
     _services_detail_list, _party_title, _fmt_date_long, _gmail_send, _get_gmail_access_token,
-    _get_or_create_invoice_number, _order_addon_rows_raw,
+    _get_or_create_invoice_number, _order_addon_rows_raw, _sheet_service_columns,
 )
 
 router = APIRouter()
@@ -206,9 +210,18 @@ FIELD_CATALOG = [
     # the event date having passed.
     {"key": "event_payment_confirmed_amount", "label": "Event Payment Confirmed (Rs.)", "section": "Billing & Rewards", "admin_only": True},
     {"key": "event_payment_confirmed_mode",   "label": "Event Payment Mode",            "section": "Billing & Rewards", "admin_only": True},
+    # 2026-09-22, per Shruti — "every image has a google photos link
+    # attached to it, add a field in admin to update this." Free text
+    # (rendered as a textarea, see admin.html) since one event can have
+    # several links; saving this ALSO pushes a row to the "Event Photos"
+    # tab of the Google Sheet — see _push_event_photos_to_sheet below.
+    {"key": "event_photos_link",    "label": "Event Photos Link(s)",   "section": "Billing & Rewards", "admin_only": True},
     {"key": "bill_coupon_code",     "label": "Coupon Code",            "section": "Billing & Rewards"},
-    {"key": "bill_reward_won",      "label": "Reward Won",             "section": "Billing & Rewards"},
-    {"key": "bill_reward_redeemed", "label": "Reward Redeemed As",     "section": "Billing & Rewards"},
+    # 2026-09-22, per Shruti — clarified this is specifically the
+    # scratch-card reveal reward (reward_label/reward_type on the lead),
+    # not some other kind of "reward", so the label makes that explicit.
+    {"key": "bill_reward_won",      "label": "Scratch Card Reward Won", "section": "Billing & Rewards"},
+    {"key": "bill_reward_redeemed", "label": "Scratch Card Reward Redeemed As", "section": "Billing & Rewards"},
 ]
 
 SECTIONS = ["Customer & Event Details", "Services", "Add-ons", "Billing & Rewards"]
@@ -361,12 +374,18 @@ ADDON_PACKAGING_OPTIONS = [
     _opt("Gift Wrap + Paper Bag", f"Gift Wrap + Paper Bag - Rs. {PACKAGING_UNIT_PRICE['both']}/gift"),
     _opt("No packaging"),
 ]
+# 2026-09-22, per Shruti — "this also should be a dropdown. don't add an
+# MOQ. just give per bag pricing": same Yes/No + rate-in-the-label pattern
+# as Lights/Smoke above, deliberately with no "(min. X)" clause like the
+# Gift Note dropdown has, since there's no MOQ here.
+ADDON_PINATA_BAGS_OPTIONS = [_opt("Yes", f"Yes - Rs. {PINATA_BAG_PRICE}/bag"), _opt("No")]
 
 DROPDOWN_OPTIONS = {
     "addon_dj_lights": ADDON_LIGHTS_OPTIONS,
     "addon_dj_smoke": ADDON_SMOKE_OPTIONS,
     "addon_gift_packaging": ADDON_PACKAGING_OPTIONS,
     "addon_gift_note": ADDON_NOTE_OPTIONS,
+    "addon_pinata_bags": ADDON_PINATA_BAGS_OPTIONS,
     "svc_decor": DECOR_OPTIONS,
     "svc_host": HOST_OPTIONS,
     "svc_dj": DJ_OPTIONS,
@@ -973,12 +992,13 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
 
     # 2026-09-21, per Shruti (Image 4): until the team has confirmed the
     # advance actually arrived (Payment Status = Advance Paid Verified or
-    # Complete) it must not read "Advance Paid" — it shows as Advance Pending.
+    # Complete), the sub-note below (admin.html) flags it as not yet
+    # confirmed. 2026-09-22: the label itself used to flip to "Advance
+    # Pending" too, but that was dropped as redundant with the sub-note.
     pay_status_field = billing_fields.get("bill_payment_status")
     advance_confirmed = ((pay_status_field or {}).get("customer_choice") in ADVANCE_CONFIRMED_STATUSES)
     adv_field = billing_fields.get("bill_advance")
     if adv_field is not None:
-        adv_field["label"] = "Advance Paid" if advance_confirmed else "Advance Pending"
         adv_field["advance_confirmed"] = advance_confirmed
 
     # Custom (admin-added) fields not in the predefined catalog
@@ -1140,6 +1160,60 @@ async def _update_direct_field(lead_id: int, key: str, body: FieldUpdateRequest,
     }
 
 
+# 2026-09-22, per Shruti — "add a new sheet in the google sheet with serial
+# no., event name (child's name, gender, age, location), theme, list of
+# services (comma separated), date, venue and the photos link. One event
+# can have multiple photos link as well." Pushed to a new "Event Photos" tab
+# via the same Apps Script webhook the rest of the site already posts to
+# (see google_sheet_webhook.js's "update_event_photos" action) — upserts by
+# Lead ID (carried as a trailing internal column on that tab, past the
+# requested columns, so it doesn't disturb the layout Shruti asked for) so
+# re-saving this field updates the same row instead of piling up duplicates.
+async def _push_event_photos_to_sheet(lead_id: int, lead: dict, snap: dict, photos_value: str) -> None:
+    if not settings.GOOGLE_SHEET_WEBHOOK_URL:
+        logger.warning("GOOGLE_SHEET_WEBHOOK_URL not set — skipping Event Photos sheet update")
+        return
+
+    def _first(csv_val) -> str:
+        return str(csv_val or "").split(",")[0].strip()
+
+    # "Event Name (Child's name, Gender, Age, Location)" — location = City,
+    # same field admin.html's own summary card uses for "Address". Only the
+    # first child is used for multi-child bookings (this is a quick-ID
+    # column, not the full record — admin.html itself has the rest).
+    event_name = ", ".join(filter(None, [
+        _first(lead.get("child_names")),
+        _first(lead.get("child_genders")),
+        _first(lead.get("child_ages")),
+        (lead.get("city") or "").strip(),
+    ]))
+
+    cols = _sheet_service_columns(snap)
+    services = ", ".join(label for key, label in [
+        ("decor", "Decor"), ("pinata", "Pinata"), ("return_gifts", "Return Gifts"),
+        ("music", "Music"), ("host", "Host"), ("activities", "Activities"),
+        ("photography", "Photography"), ("einvite", "E-Invite"),
+    ] if cols.get(key))
+
+    event_date = lead.get("event_date")
+    payload = {
+        "action":      "update_event_photos",
+        "lead_id":     lead_id,
+        "event_name":  event_name,
+        "theme":       lead.get("theme") or "",
+        "services":    services,
+        "event_date":  event_date.isoformat() if event_date else "",
+        "venue":       lead.get("venue") or "",
+        "photos_link": photos_value or "",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.post(settings.GOOGLE_SHEET_WEBHOOK_URL, json=payload)
+        logger.info(f"Lead #{lead_id}: Event Photos sheet update → {r.status_code}")
+    except Exception as exc:
+        logger.error(f"Lead #{lead_id}: Event Photos sheet update failed — {exc}")
+
+
 @router.post("/bookings/{lead_id}/field")
 async def update_booking_field(lead_id: int, body: FieldUpdateRequest, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
@@ -1273,6 +1347,13 @@ async def update_booking_field(lead_id: int, body: FieldUpdateRequest, x_admin_p
                 "old_v": old_v, "new_v": new_v, "by": who, "ts": ts,
             },
         )
+
+    # 2026-09-22, per Shruti — the one field on this page that DOES push to
+    # the Google Sheet (see _push_event_photos_to_sheet above). Skipped on
+    # a clear/remove — no point creating an "Event Photos" row for an event
+    # that doesn't have a link yet.
+    if key == "event_photos_link" and not body.removed and new_customer_choice:
+        await _push_event_photos_to_sheet(lead_id, lead, snap, new_customer_choice)
 
     return {
         "success": True, "field_key": key, "field_label": label, "changes_logged": len(log_entries),

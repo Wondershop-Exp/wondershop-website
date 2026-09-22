@@ -39,6 +39,10 @@ TAG_NOTE_UNIT_PRICE = 10
 TAG_NOTE_MIN_QTY = 15
 DJ_LIGHTS_PRICE = 1500
 DJ_SMOKE_PRICE = 2000
+# 2026-09-22, per Shruti — Piñata Bags admin dropdown (Add-ons section):
+# flat per-bag rate, deliberately no MOQ/tiering ("don't add an MOQ, just
+# give per bag pricing").
+PINATA_BAG_PRICE = 15
 
 # Admin dropdown label  <->  builder key for Gift Packaging.
 PACKAGING_LABEL_TO_KEY = {

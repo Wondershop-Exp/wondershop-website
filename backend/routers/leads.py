@@ -42,7 +42,10 @@ logger = logging.getLogger(__name__)
 # Live site — used to build absolute links (T&C) and inline email images.
 # Custom domain live 2026-09-21 (was https://wondershop-exp.github.io/wondershop-website).
 SITE_BASE_URL = "https://www.wondershopexperiences.com"
-MASCOT_URL    = f"{SITE_BASE_URL}/img/icons/icon-mascot.png"
+# 2026-09-22, per Shruti — swapped the single teddy-bear badge for a trio
+# from the real brand book (Brand Book/Kids/KIDS-01, 03, 05.png, composited
+# into one image): "take 2-3 kids having fun and put it in the email".
+MASCOT_URL    = f"{SITE_BASE_URL}/img/icons/icon-mascot-kids.png"
 LOGO_URL      = f"{SITE_BASE_URL}/logo-horizontal.png"
 TERMS_URL     = f"{SITE_BASE_URL}/terms.html"
 
@@ -1263,10 +1266,16 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
                 merge_party_into_heading = True
             else:
                 heading = "Thank You For Your Booking! 🎉"
+            # 2026-09-22, per Shruti — warmer, more assured opening now that this
+            # is a confirmed booking rather than "a query"; exact wording supplied.
             intro = (
-                f"Hi {_html_escape(first_name)}, thank you for your query — we've received your booking. Our team will "
-                f"check the payment details and confirm your booking shortly. Your Party Experience Lead will be in "
-                f"touch soon to walk through every detail."
+                f"Hi {_html_escape(first_name)}, <br><br>"
+                f"Thank you for booking with Wondershop Experiences!<br><br>"
+                f"Your celebration is now in our hands. Our team will verify the payment details and confirm your "
+                f"booking shortly.<br><br>"
+                f"Your dedicated Party Experience Lead will be in touch soon to take you through every detail and "
+                f"make the planning process completely seamless and stress-free.<br><br>"
+                f"Sit back, relax and get ready to celebrate — we\u2019ve got the rest covered!"
             )
         else:
             heading = f"We Got Your Enquiry, {_html_escape(first_name)}! 🎈"
@@ -1305,7 +1314,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
     if req.order_total_savings:
         order_rows.append(("🎉 Total Savings", _fmt_rupees(req.order_total_savings)))
     if req.order_freebies_text:
-        order_rows.append(("🎁 Free Perks Unlocked", req.order_freebies_text))
+        order_rows.append(("Free Perks Unlocked", req.order_freebies_text))
     # 2026-09-12, per Shruti — "show the addon row to help the user
     # understand the values changing": Package Subtotal minus Discount
     # doesn't land on Payable Total whenever Return Gift packaging, the
@@ -1433,7 +1442,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
 <tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(45,33,64,.08)">
 <tr><td style="background:linear-gradient(135deg,{BRAND_PINK} 0%,{BRAND_PURPLE} 100%);padding:28px 26px;text-align:center">
-<img src="{MASCOT_URL}" width="56" height="56" alt="Wondershop mascot" style="display:block;margin:0 auto 10px;border-radius:50%;background:#fff;padding:4px">
+<img src="{MASCOT_URL}" width="170" height="127" alt="Wondershop kids" style="display:block;margin:0 auto 10px;border-radius:20px;background:#fff;padding:10px 14px">
 {f'<div style="font-family:Georgia,serif;font-size:14px;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:4px">{_html_escape(party_title)}</div>' if party_title and not merge_party_into_heading else ''}
 <div style="font-family:Georgia,serif;font-size:21px;font-weight:700;color:#fff">{heading}</div>
 </td></tr>
@@ -1542,7 +1551,16 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Opti
                           f"extra cost. Here's your full, updated booking confirmation:")
         elif is_booking:
             subject = f"🎉 Your Wondershop Booking is Confirmed, {first_name}! (Order #{lead_id})"
-            intro_line = "Welcome to the Wondershop family! Your party is officially booked — we can't wait to celebrate with you."
+            # 2026-09-22, per Shruti — matches the HTML email's new intro (see
+            # _build_html_email's `intro` for the booking-confirmation branch).
+            intro_line = (
+                "Thank you for booking with Wondershop Experiences!\n\n"
+                "Your celebration is now in our hands. Our team will verify the payment details and confirm your "
+                "booking shortly.\n\n"
+                "Your dedicated Party Experience Lead will be in touch soon to take you through every detail and "
+                "make the planning process completely seamless and stress-free.\n\n"
+                "Sit back, relax and get ready to celebrate — we've got the rest covered!"
+            )
         else:
             subject = f"We got your enquiry, {first_name}! 🎈 (Ref #{lead_id})"
             intro_line = "We've received your enquiry and our team will call you within a few hours to discuss your child's birthday party."
@@ -1563,9 +1581,9 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Opti
                 f"Rs.{REFERRAL_REWARD_AMOUNT} credit towards your next booking every time it's used.\n"
             )
         tnc_line = f"\nPlease review our Terms & Conditions: {TERMS_URL}\n" if is_booking else ""
-        body = f"""Hi {first_name}! 🎉
+        body = f"""Hi {first_name}! 🎉 (Ref #{lead_id})
 
-{intro_line} (Ref #{lead_id})
+{intro_line}
 
 Your details:
   Event Date  : {req.event_date.isoformat() if req.event_date else '—'}

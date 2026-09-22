@@ -1095,11 +1095,24 @@ function bdTime(s){
   const h = +m[1];
   return ((h % 12) || 12)+':'+m[2]+' '+(h >= 12 ? 'PM' : 'AM');
 }
+// 2026-09-22, per Shruti — the summary card should read "Idhika, F5" (name,
+// then gender letter + age run together) instead of "Idhika (5)", so each
+// child's age AND gender are visible at a glance. Falls back gracefully
+// when a booking is missing genders/ages (older bookings, or "Prefer not to
+// say", which has no single-letter short form and is just left off).
+function bdChildTag(gender, age){
+  const letter = gender === 'Girl' ? 'F' : gender === 'Boy' ? 'M' : '';
+  return letter + (age || '');
+}
 function bdChildLine(d){
   const names = bdVal(d, 'child_names').split(',').map(x => x.trim()).filter(Boolean);
   const ages = bdVal(d, 'child_ages').split(',').map(x => x.trim()).filter(Boolean);
-  if(names.length && names.length === ages.length) return names.map((n, i) => n+' ('+ages[i]+')').join(', ');
-  return names.join(', ') + (ages.length ? (names.length ? ' · age ' : 'Age ') + ages.join(', ') : '');
+  const genders = bdVal(d, 'child_genders').split(',').map(x => x.trim()).filter(Boolean);
+  if(!names.length) return '';
+  return names.map((n, i) => {
+    const tag = bdChildTag(genders[i], ages[i]);
+    return tag ? (n+', '+tag) : n;
+  }).join('; ');
 }
 function bdMoney(s){
   if(s === null || s === undefined || s === '') return null;
@@ -1111,14 +1124,20 @@ function bdRupees(n){ return n === null ? '—' : '₹'+Math.round(n).toLocaleSt
 function renderBookingHead(d){
   const name = bdVal(d, 'parent_name') || ('Lead #'+d.lead_id);
   const phone = bdVal(d, 'phone');
+  // 2026-09-22, per Shruti — "mention the address and child age and gender
+  // ... move theme at the end and add address in place of theme's
+  // position": Venue keeps just the venue name, Address is the new fact in
+  // Theme's old 3rd slot (city + pincode — the postal detail Venue alone
+  // didn't carry), and Theme moves to the very end.
   const facts = [
     ['Event date', esc(bdLongDate(bdVal(d, 'event_date')))],
     ['Time', esc(bdTime(bdVal(d, 'event_time')))],
-    ['Venue', esc([bdVal(d, 'venue'), bdVal(d, 'city')].filter(Boolean).join(', '))],
-    ['Theme', esc(bdVal(d, 'theme'))],
+    ['Venue', esc(bdVal(d, 'venue'))],
+    ['Address', esc([bdVal(d, 'city'), bdVal(d, 'pincode')].filter(Boolean).join(' - '))],
     ['Kids', esc(bdVal(d, 'kids_count'))],
     ['Child', esc(bdChildLine(d))],
     ['Phone', phone ? '<a href="tel:'+esc(phone.replace(/[^0-9+]/g, ''))+'">'+esc(phone)+'</a>' : ''],
+    ['Theme', esc(bdVal(d, 'theme'))],
   ];
   document.getElementById('bdHead').innerHTML = '<div class="bd-head">'
     + '<div class="bd-eyebrow">'+(d.is_booking ? 'Booking' : 'Lead')+' #'+d.lead_id+' · Created '+esc(d.created_on_ist || '')+'</div>'
@@ -2845,10 +2864,13 @@ function grandTotalNoteHtml(f){
 }
 
 // Discount % and Advance take their value from Current Value only, so they have
-// no Assigned Value box (2026-09-21, per Shruti: "remove assigned value"). The
-// hidden empty input keeps saveField() working and clears any old stray value.
+// no Assigned Value box (2026-09-21, per Shruti: "remove assigned value").
+// 2026-09-22, per Shruti follow-up: the "ASSIGNED VALUE" column label and
+// the "—" placeholder weren't serving any purpose either since there's
+// nothing to show here — the cell is now fully blank. The hidden empty
+// input keeps saveField() working and clears any old stray value.
 function noAssignedCell(rid){
-  return '<input type="hidden" id="'+rid+'_av" value=""><span class="readonly-cell">—</span>';
+  return '<input type="hidden" id="'+rid+'_av" value="">';
 }
 
 function fieldRowHtml(f, isCustEvent, locked){
@@ -2899,8 +2921,8 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(locked){
     return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
-      +'<td data-label="Current value"><span class="readonly-cell">'+esc(f.customer_choice||'—')+'</span></td>'
-      +'<td data-label="'+col3+'"><span class="readonly-cell">'+esc((f.field_key==='bill_discount_pct'||f.field_key==='bill_advance') ? '—' : (f.assigned_value||'—'))+'</span></td>'
+      +'<td data-label="Current value"><span class="readonly-cell" style="'+(f.field_key==='event_photos_link'?'white-space:pre-line':'')+'">'+esc(f.customer_choice||'—')+'</span></td>'
+      +((f.field_key==='bill_discount_pct'||f.field_key==='bill_advance'||f.field_key==='event_photos_link') ? '<td></td>' : '<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>')
       +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
       +'</tr>';
@@ -2931,6 +2953,12 @@ function fieldRowHtml(f, isCustEvent, locked){
     // Trimmed number in the input (still a bare number for saving/
     // validation), "%" as a purely visual suffix layered on top.
     ccCell = '<span class="pct-wrap"><input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice?fmtPct(f.customer_choice):'')+'" placeholder="'+(f.admin_only?'—':'(use original)')+'"><span class="pct-suffix">%</span></span>';
+  }else if(f.field_key==='event_photos_link'){
+    // 2026-09-22, per Shruti — "every image has a google photos link
+    // attached to it ... add a field in admin to update this." A textarea,
+    // not a single-line input, since one event can have several links —
+    // one per line (saveField() reads .value the same way for either).
+    ccCell = '<textarea id="'+rid+'_cc" placeholder="Paste Google Photos link(s) — one per line" style="min-height:64px">'+esc(f.customer_choice||'')+'</textarea>';
   }else if(f.field_key==='event_payment_confirmed_amount'){
     // 2026-09-11, per Shruti — event-completion payment confirmation. Value
     // lands in Customer's Choice like every other admin-only field here
@@ -2981,7 +3009,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     // — readonly (not disabled) so onPincodeInput() can still set .value
     // programmatically and Save still picks it up.
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Auto-fills from pincode')+'" readonly style="background:var(--lgy);cursor:not-allowed">';
-  }else if(f.field_key==='bill_discount_pct' || f.field_key==='bill_advance'){
+  }else if(f.field_key==='bill_discount_pct' || f.field_key==='bill_advance' || f.field_key==='event_photos_link'){
     avCell = noAssignedCell(rid);
   }else{
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'">';
@@ -2996,7 +3024,7 @@ function fieldRowHtml(f, isCustEvent, locked){
   return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
     +'<td data-label="Current value">'+ccCell+'</td>'
-    +'<td data-label="'+col3+'">'+avCell+'</td>'
+    +'<td'+((f.field_key==='bill_discount_pct'||f.field_key==='bill_advance'||f.field_key==='event_photos_link')?'':' data-label="'+col3+'"')+'>'+avCell+'</td>'
     +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
       +'<button class="mini-btn save" onclick="saveField('+attrJson(f.field_key)+', false)">Save</button>'
