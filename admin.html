@@ -2617,7 +2617,7 @@ function mpRowsHtml(rid){
   const lockedNames = MP_LOCKED[rid] || [];
   return rows.map((r,i)=>{
     if(r.locked){
-      return '<div class="mp-row mp-locked"><span>🎁</span><span class="mp-fb-name">'+esc(r.v)+'</span>'
+      return '<div class="mp-row mp-locked"><span><img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"></span><span class="mp-fb-name">'+esc(r.v)+'</span>'
         +'<span class="mp-fb-lock">Unlocked by your discount slab — can\'t be edited</span>'
         +'<span class="mp-fb-tag">Freebie</span></div>';
     }
@@ -2914,18 +2914,38 @@ function advancePaymentRowHtml(f, methodField, locked){
   }
   const removedCls = f.removed ? ' removed' : '';
 
+  // 2026-09-22, per Shruti — Payment Method's bubbles (Cash/UPI Transfer/
+  // Bank Transfer/Internal Settle) are for the ADMIN to record how the
+  // money actually arrived. But methodField.customer_choice defaults to
+  // something else entirely until an admin has picked one: the customer's
+  // OWN checkout choice of how they intend to pay (Online / Cash Deposit
+  // at our Head Office / Cash Collection at Venue — see
+  // _CUSTOMER_PAYMENT_LABELS in admin.py). That text doesn't match any of
+  // the 4 bubble options, so selectHtml()'s don't-lose-data fallback was
+  // injecting it as a bogus 5th "selected" bubble. Decoupled here instead:
+  // the bubbles only ever reflect a real admin pick, and the customer's
+  // stated intent is shown as its own read-only text line — sourced from
+  // original_value specifically, since (unlike customer_choice) it stays
+  // the customer's original checkout answer forever, even after an admin
+  // has since picked a bubble.
+  const validMethodValues = (methodField.options||[]).map(o=> (typeof o==='string') ? o : o.value);
+  const methodPicked = validMethodValues.includes(methodField.customer_choice) ? methodField.customer_choice : '';
+  const intendedNote = methodField.original_value
+    ? '<small>Customer\u2019s stated intent: '+esc(methodField.original_value)+'</small>'
+    : '';
+
   if(locked){
     return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="bill_advance">'
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
       +'<td data-label="Amount Paid"><span class="readonly-cell">'+esc(f.customer_choice||'—')+'</span></td>'
-      +'<td data-label="Payment Method"><span class="readonly-cell">'+esc(methodField.customer_choice||'—')+'</span></td>'
+      +'<td data-label="Payment Method">'+intendedNote+'<span class="readonly-cell">'+esc(methodPicked||'—')+'</span></td>'
       +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
       +'</tr>';
   }
 
   const ccCell = '<input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="(use original)">';
-  const avCell = selectHtml(rid+'_av', methodField.options||[], methodField.customer_choice||'');
+  const avCell = intendedNote + selectHtml(rid+'_av', methodField.options||[], methodPicked);
 
   return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="bill_advance">'
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
@@ -3022,7 +3042,7 @@ function eventPaymentRowHtml(f, modeField, locked){
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
     +'<td data-label="Amount Paid">'+ccCell+'</td>'
     +'<td data-label="Payment Mode">'+avCell+'</td>'
-    +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
+    +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Required if amount is less than Balance Due...">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
       +'<button class="mini-btn save" onclick="saveEventPaymentRow()">Save</button>'
       +'<button class="mini-btn remove" onclick="removeEventPaymentConfirmed()">Remove</button>'
@@ -3030,6 +3050,13 @@ function eventPaymentRowHtml(f, modeField, locked){
     +'</tr>';
 }
 
+// 2026-09-22, per Shruti — if the amount entered here is less than Balance
+// Due (bill_balance = Grand Total − Advance Paid, see admin.py), (1) a
+// remark explaining the shortfall is required before this will save at
+// all, and (2) instead of the plain "mark complete?" confirm below, the
+// admin is made to pick an honest status for it: "Partial Payment
+// Pending" or "Complete" (e.g. the team is writing off the difference) —
+// no silent "leave it unchanged" option, unlike the full-payment case.
 async function saveEventPaymentRow(){
   try{
     const rid = 'fld_event_payment_confirmed_amount';
@@ -3045,7 +3072,24 @@ async function saveEventPaymentRow(){
     const remarks = rmEl ? rmEl.value : '';
     const removed = row ? row.classList.contains('removed') : false;
 
-    const confirmComplete = confirm('Mark this event\'s payment as complete?\n\nThis sets Payment Status to "Complete".\n\nClick Cancel to save the amount/payment mode without changing the status.');
+    const amountNum = bdMoney(amount);
+    const balanceDue = bdMoney(bdVal(CURRENT_DETAIL, 'bill_balance'));
+    const isShortfall = !removed && amountNum != null && balanceDue != null && amountNum < balanceDue;
+
+    if(isShortfall && !remarks.trim()){
+      showToast('⚠ This amount is less than the Balance Due (₹'+balanceDue.toLocaleString('en-IN')+') — add a remark explaining why before saving.');
+      rmEl && rmEl.focus();
+      return;
+    }
+
+    let newStatus = null; // null = leave Payment Status unchanged
+    if(isShortfall){
+      const markComplete = confirm('This amount (₹'+amountNum.toLocaleString('en-IN')+') is less than the Balance Due (₹'+balanceDue.toLocaleString('en-IN')+').\n\nClick OK to mark Payment Status "Complete" anyway (e.g. writing off the difference), or Cancel to mark it "Partial Payment Pending" instead.');
+      newStatus = markComplete ? 'Complete' : 'Partial Payment Pending';
+    }else{
+      const confirmComplete = confirm('Mark this event\'s payment as complete?\n\nThis sets Payment Status to "Complete".\n\nClick Cancel to save the amount/payment mode without changing the status.');
+      if(confirmComplete) newStatus = 'Complete';
+    }
 
     await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {
       method:'POST',
@@ -3056,12 +3100,12 @@ async function saveEventPaymentRow(){
       body: JSON.stringify({ field_key:'event_payment_confirmed_mode', customer_choice_override:mode, assigned_value:'', remarks:'', removed:false, changed_by:who }),
     });
     let statusMsg = '';
-    if(confirmComplete){
+    if(newStatus){
       await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {
         method:'POST',
-        body: JSON.stringify({ field_key:'bill_payment_status', customer_choice_override:'Complete', assigned_value:'', remarks:'', removed:false, changed_by:who }),
+        body: JSON.stringify({ field_key:'bill_payment_status', customer_choice_override:newStatus, assigned_value:'', remarks:'', removed:false, changed_by:who }),
       });
-      statusMsg = ' · Payment Status → Complete';
+      statusMsg = ' · Payment Status → '+newStatus;
     }
     showToast('✓ Saved — Event Payment'+statusMsg+'.');
     await loadDetail();

@@ -1987,7 +1987,7 @@ body.browse-mode .browse-cta{display:flex}
 
   <div class="sec-blk">
     <!-- 2026-08-18, per Shruti — "don't say free, show it like an addon unlocked". -->
-    <div id="freeInvBadge" class="free-badge" style="display:none">🎁 E-Invite unlocked as a free addon — your cart qualifies!</div>
+    <div id="freeInvBadge" class="free-badge" style="display:none"><img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> E-Invite unlocked as a free addon — your cart qualifies!</div>
     <div id="chargeInvNote" class="charge-note" style="display:none">⚡ ₹500 charge applies (orders under ₹25,000). Free on orders ₹25,000+.</div>
     <div id="invFilterNote" style="font-size:12px;color:var(--gy);margin-bottom:10px;display:none">Showing designs matching your selected theme — <span class="showall-link" onclick="showAllInv()">Show All</span></div>
     <div class="cards-grid" id="invCards"></div>
@@ -2570,7 +2570,7 @@ body.browse-mode .browse-cta{display:flex}
      no matter which step triggers it, e.g. booking confirmation or an
      already-qualified free E-Invite on Step 6. -->
 <div class="confetti-container" id="confettiContainer"></div>
-<div class="free-inv-toast" id="freeInvToast">🎁 E-Invite Addon Unlocked!</div>
+<div class="free-inv-toast" id="freeInvToast"><img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> E-Invite Addon Unlocked!</div>
 <!-- 2026-08-18, per Shruti — pops once if adding extras earns a bigger
      sitewide discount than a package's flat guarantee (see
      maybeShowPkgDiscountUpgrade()). -->
@@ -2632,7 +2632,7 @@ body.browse-mode .browse-cta{display:flex}
      for Rs. 5000." See openActivity5kChooser()/selectActivity5k(). -->
 <div class="fb5k-modal" id="fb5kModal" onclick="if(event.target===this)closeActivity5kChooser()">
   <div class="fb5k-box">
-    <div class="fb5k-head"><h3>🎁 Pick your free activity</h3><button class="fb5k-x" onclick="closeActivity5kChooser()">✕</button></div>
+    <div class="fb5k-head"><h3><img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> Pick your free activity</h3><button class="fb5k-x" onclick="closeActivity5kChooser()">✕</button></div>
     <p class="fb5k-sub">Your cart unlocked a ₹5,000 credit — apply it to one of these:</p>
     <div id="fb5kList"></div>
   </div>
@@ -3429,7 +3429,7 @@ function cItems(){
     }
     if(fb.wasP!=null){
       item.wasP=fb.wasP;
-      item.n+= a.id==='a15' ? ' — 🎁 Addon Unlocked!' : (' — 🎁 ₹'+(fb.wasP-fb.price).toLocaleString('en-IN')+' credit applied');
+      item.n+= a.id==='a15' ? ' — <img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> Addon Unlocked!' : (' — <img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> ₹'+(fb.wasP-fb.price).toLocaleString('en-IN')+' credit applied');
     }
     items.push(item);
   });
@@ -3446,7 +3446,7 @@ function cItems(){
   // full price everywhere. Free-E-Invite spend threshold (S.FIT) and the
   // sitewide auto-discount slabs are unaffected and still apply.
   if(S.pinata){items.push({cat:'Pinata',n:S.pinata.n,p:S.pinata.p,id:S.pinata.id});}
-  if(S.einvite){const gt=rawNoInv();const isFree=!S._pkgOrigin&&gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n+(isFree?' — 🎁 Addon Unlocked!':''),p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
+  if(S.einvite){const gt=rawNoInv();const isFree=!S._pkgOrigin&&gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n+(isFree?' — <img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> Addon Unlocked!':''),p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
   if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});}
   S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty,id:g.id}));
   S.spyExtras.forEach(x=>items.push({cat:'Addons',n:x.n,p:x.p,id:x.id}));
@@ -4094,7 +4094,7 @@ function selectActivity5k(id){
   entry.is5kFreebie=true;
   closeActivity5kChooser();
   renderActs(currentActsList());updSelActs();updBB(S.screen);
-  showFreebieToast('🎁 ₹5,000 credit applied to '+entry.n+'!');
+  showFreebieToast('<img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> ₹5,000 credit applied to '+entry.n+'!');
 }
 
 // ── BOTTOM BAR ──
@@ -4650,7 +4650,7 @@ function renderActs(list){
     // just the Review page/mini-list) — same activityFreebiePrice() basis.
     const fb=added?activityFreebiePrice(addedEntry,tot):null;
     const priceHtml=(fb&&fb.wasP!=null)
-      ? ('<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:13px">₹'+fb.wasP.toLocaleString('en-IN')+'</s>'+(fb.price>0?('₹'+fb.price.toLocaleString('en-IN')):'🎁 FREE'))
+      ? ('<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:13px">₹'+fb.wasP.toLocaleString('en-IN')+'</s>'+(fb.price>0?('₹'+fb.price.toLocaleString('en-IN')):'<img src="img/icons/icon-free-gift.png" alt="Free" style="height:1em;vertical-align:-0.15em">'))
       : ((a.wasP&&a.wasP>tot)?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:13px">₹'+a.wasP.toLocaleString('en-IN')+'</s>₹'+tot.toLocaleString('en-IN'):'₹'+tot.toLocaleString('en-IN'));
     const fieldsHtml='👶 Suitable for: Ages '+a.age+'<br>📦 Packaging: '+(a.pers?'Included':'Not applicable')+'<br>🎨 Personalization Possible: '+(a.pers?'Yes':'No');
     // Most activities are still on the emoji/gradient fallback (see
@@ -4671,7 +4671,7 @@ function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.a
 // reflects a claimed Tattoo/₹5k-credit freebie too (struck-through original
 // + the discounted/free price), not just the Review page — same
 // activityFreebiePrice() helper cItems() uses, so the two never drift.
-function updSelActs(){const w=document.getElementById('selActs');const l=document.getElementById('selAList');if(!S.activities.length){w.style.display='none';return;}w.style.display='block';l.innerHTML='';orderedActivities().forEach(a=>{const rawPrice=actPrice(a,S.kidsCount);const fb=activityFreebiePrice(a,rawPrice);const priceHtml=fb.wasP!=null?('<s style="color:var(--gy);font-weight:500;margin-right:4px;font-size:11px">₹'+fb.wasP.toLocaleString('en-IN')+'</s>'+(fb.price>0?('₹'+fb.price.toLocaleString('en-IN')):'🎁 FREE')):('₹'+fb.price.toLocaleString('en-IN'));l.innerHTML+='<div class="sai"><span>'+a.n+'</span><span style="display:flex;align-items:center;gap:5px"><span class="saip">'+priceHtml+'</span><button class="sarm" onclick="togAct(\''+a.id+'\')">✕</button></span></div>';});}
+function updSelActs(){const w=document.getElementById('selActs');const l=document.getElementById('selAList');if(!S.activities.length){w.style.display='none';return;}w.style.display='block';l.innerHTML='';orderedActivities().forEach(a=>{const rawPrice=actPrice(a,S.kidsCount);const fb=activityFreebiePrice(a,rawPrice);const priceHtml=fb.wasP!=null?('<s style="color:var(--gy);font-weight:500;margin-right:4px;font-size:11px">₹'+fb.wasP.toLocaleString('en-IN')+'</s>'+(fb.price>0?('₹'+fb.price.toLocaleString('en-IN')):'<img src="img/icons/icon-free-gift.png" alt="Free" style="height:1em;vertical-align:-0.15em">')):('₹'+fb.price.toLocaleString('en-IN'));l.innerHTML+='<div class="sai"><span>'+a.n+'</span><span style="display:flex;align-items:center;gap:5px"><span class="saip">'+priceHtml+'</span><button class="sarm" onclick="togAct(\''+a.id+'\')">✕</button></span></div>';});}
 function chgK(d){S.kidsCount=Math.max(1,Math.min(100,S.kidsCount+d));document.getElementById('kDisp2').textContent=S.kidsCount;try{document.getElementById('f-kids').value=S.kidsCount;}catch(e){}renderActs(currentActsList());updSelActs();S.gifts.forEach(g=>{if(!g.userQty)g.qty=S.kidsCount;});renderGifts();updBB(S.screen);}
 
 // Combines every captured remarks entry (per-step boxes below, plus the
@@ -4774,7 +4774,7 @@ function openGallery(kind,id){
     : kind==='gift'
     ? ('₹'+obj.unit.toLocaleString('en-IN')+'/child  ·  Ages '+obj.age)
     : kind==='invite'
-    ? ((rawNoInv()>=S.FIT?'🎁 Unlocked!':'₹'+obj.p.toLocaleString('en-IN'))+'  ·  E-Invite design')
+    ? ((rawNoInv()>=S.FIT?'<img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> Unlocked!':'₹'+obj.p.toLocaleString('en-IN'))+'  ·  E-Invite design')
     : ('📍 '+obj.req+'  ·  ⏱ '+obj.dur+'  ·  Ages '+obj.age);
   renderGalThumbs();
   renderGalStage();
@@ -4935,7 +4935,7 @@ function showAllInv(){invShowAll=true;const w=document.getElementById('invCards'
 // closely at a design before committing to it.
 function makeInvCard(inv){
   const isFree=rawNoInv()>=S.FIT;
-  const priceText=isFree?'🎁 Unlocked!':'₹'+inv.p;
+  const priceText=isFree?'<img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> Unlocked!':'₹'+inv.p;
   const added=S.einvite&&S.einvite.id===inv.id;
   return '<div class="pcard psm'+(added?' sel':'')+'" id="inv-'+inv.id+'"><div class="sel-badge">✓</div><div style="position:relative;overflow:hidden;border-radius:var(--r) var(--r) 0 0;background:var(--li2);aspect-ratio:3/4;cursor:pointer" onclick="openGallery(\'invite\',\''+inv.id+'\')"><img src="einvites/'+inv.file+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+inv.n+'"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.58);padding:12px 10px;text-align:center;backdrop-filter:blur(2px)"><div style="font-family:var(--fd);font-size:15px;font-weight:700;color:#fff;line-height:1.2">'+inv.n+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:600;margin-top:3px">'+priceText+'</div></div></div><div style="padding:8px 10px"><button class="card-btn inv-sel-btn'+(added?' added':'')+'" style="width:100%;text-align:center" onclick="event.stopPropagation();selInv(this.closest(\'.pcard\'),\''+inv.id+'\','+inv.p+',\''+inv.n+'\')">'+(added?'✓ Selected':'Select')+'</button></div></div>';
 }
@@ -4962,7 +4962,7 @@ function buildInvs(){
     }else note.style.display='none';
   }
   fl.forEach(inv=>w.innerHTML+=makeInvCard(inv));
-  const cp=document.getElementById('invCustomPrice');if(cp)cp.textContent=isFree?'🎁 Unlocked!':'₹1,000';
+  const cp=document.getElementById('invCustomPrice');if(cp)cp.textContent=isFree?'<img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> Unlocked!':'₹1,000';
   if(S.einvite){
     document.getElementById('inv-'+S.einvite.id)?.classList.add('sel');
     if(S.einvite.id!=='custom'){

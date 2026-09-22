@@ -291,7 +291,13 @@ EINVITE_OPTIONS = [_opt(x) for x in [
     "Movie Night (Classic)", "Nani ka Ghar (Photoreal)", "Nani ka Ghar (Phone Call)",
 ]]
 PAYMENT_METHOD_OPTIONS = [_opt(x) for x in ["Cash", "UPI Transfer", "Bank Transfer", "Internal Settle"]]
-PAYMENT_STATUS_OPTIONS = [_opt(x) for x in ["Pending", "Advance Paid Pending Verification", "Advance Paid Verified", "Complete"]]
+# "Partial Payment Pending" added 2026-09-22, per Shruti — the event-
+# payment combined row (admin.html eventPaymentRowHtml/saveEventPaymentRow)
+# offers this alongside "Complete" whenever the amount entered is less
+# than Balance Due, so an admin recording a shortfall has an honest status
+# to land on instead of being forced to either overstate it as Complete or
+# leave Payment Status stale.
+PAYMENT_STATUS_OPTIONS = [_opt(x) for x in ["Pending", "Advance Paid Pending Verification", "Advance Paid Verified", "Partial Payment Pending", "Complete"]]
 # 2026-09-11, per Shruti — event-completion confirmation (distinct from
 # Payment Status/Method above, which track advance-payment collection
 # before the event). This is the event admin confirming how the event
