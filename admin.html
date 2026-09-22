@@ -1197,18 +1197,24 @@ function renderBookingBar(d){
   updateDirtyCount();
 }
 // ── Spy Agent Registration (2026-09-22, per Shruti follow-up) ──────────
-// Shown on any Spy-theme BOOKING (is_booking + theme contains "spy").
-// Uploading an invite is the trigger: it creates the public registration
-// link (spy-agent-registration.html?t=...) the first time, and just
-// swaps the image (keeping the same link) after that.
+// Shown on any Spy BOOKING. 2026-09-23, per Shruti follow-up: "spy themed
+// should be spy in the activities ... theme can be anything" — the Theme
+// field is free text and no longer a reliable Spy signal now that a
+// customer can add Spy-category activities under any decor theme, so
+// eligibility is now computed server-side (get_booking_detail() in
+// admin.py, is_spy_booking) off the actual Spy activities on the booking —
+// checked across the builder, the sales panel, and a manual admin edit —
+// or a Spy package bought on the homepage. Uploading an invite is the
+// trigger: it creates the public registration link
+// (spy-agent-registration.html?t=...) the first time, and just swaps the
+// image (keeping the same link) after that.
 let SPY_REG_LEAD_ID = null;
 
 function renderSpyRegistrationBlock(d){
   const block = document.getElementById('spyRegBlock');
   if(!block) return;
   SPY_REG_LEAD_ID = d.lead_id;
-  const theme = (bdVal(d, 'theme') || '').toLowerCase();
-  const isSpyBooking = !!d.is_booking && theme.indexOf('spy') !== -1;
+  const isSpyBooking = !!d.is_spy_booking;
   if(!isSpyBooking){
     block.style.display = 'none';
     block.innerHTML = '';

@@ -857,6 +857,66 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
 
 # ─── DETAIL ───────────────────────────────────────────────────────────────
 
+def _snapshot_has_spy_activity(snap: dict) -> bool:
+    """True if builder_snapshot.activities (BAB origin) contains a Spy
+    activity, matched by id — see catalogue_data.SPY_ACTIVITY_IDS."""
+    acts = (snap or {}).get("activities") or []
+    return any((a.get("id") in cat.SPY_ACTIVITY_IDS) for a in acts)
+
+
+async def _sales_playbook_has_spy_activity(lead_id: int) -> bool:
+    """True if the sales panel's own activities list (lead_sales_playbook —
+    entirely separate from builder_snapshot, see sales_leads.py's
+    _full_detail()) contains a Spy activity, matched by id. Only sales-
+    origin leads have a playbook row at all; anything else is a no-op."""
+    pb = await database.fetch_one(
+        "SELECT activities FROM lead_sales_playbook WHERE lead_id = :id", values={"id": lead_id}
+    )
+    if not pb:
+        return False
+    acts = pb["activities"]
+    acts = json.loads(acts) if isinstance(acts, str) else (acts or [])
+    return any((a.get("id") in cat.SPY_ACTIVITY_IDS) for a in acts)
+
+
+def _override_text_has_spy_activity(text: Optional[str]) -> bool:
+    """True if an admin's own free-text edit of the Activities field (which
+    only ever stores names, never ids — see update_booking_field()) names a
+    Spy activity."""
+    if not text:
+        return False
+    low = text.lower()
+    if cat.SPY_MISSION_NAME_HINT in low:
+        return True
+    names = {n.strip() for n in text.split(",")}
+    return bool(names & cat.SPY_ACTIVITY_NAMES)
+
+
+async def _is_spy_booking(lead: dict, snap: dict, svc_activities_field: Optional[dict]) -> bool:
+    """2026-09-23, per Shruti — "spy themed should be spy in the activities
+    ... theme can be anything." Replaces the old theme-substring check
+    (admin.html used to gate the Spy Agent Registration card on
+    leads.theme.toLowerCase().includes('spy')) with the actual signal: a
+    Spy activity actually on the booking, checked across every place one
+    can be entered — the website builder, the sales panel, and a manual
+    admin edit — OR the booking came from the dedicated Spy package sold on
+    the homepage (spy-basic.html), even if that particular booking ended up
+    with no individual Spy activity line item.
+    """
+    if (snap or {}).get("package_origin") == "spy-basic":
+        return True
+    if _snapshot_has_spy_activity(snap):
+        return True
+    # The live Activities field, whichever source is currently in effect
+    # (admin override takes precedence over the derived original — same
+    # precedence _full_detail()'s field-building loop already uses).
+    if svc_activities_field and _override_text_has_spy_activity(svc_activities_field.get("customer_choice")):
+        return True
+    if lead.get("lead_origin") == "sales_module" and await _sales_playbook_has_spy_activity(lead["lead_id"]):
+        return True
+    return False
+
+
 @router.get("/bookings/{lead_id}")
 async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
@@ -1054,9 +1114,11 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
     ]
 
     is_booking = bool(lead.get("is_booking"))
+    is_spy_booking = is_booking and await _is_spy_booking(lead, snap, all_fields.get("svc_activities"))
     return {
         "lead_id": lead_id,
         "is_booking": is_booking,
+        "is_spy_booking": is_spy_booking,
         # Read-only computed status for a booking (New/Upcoming/Complete/
         # Cancelled); the raw editable pipeline status for a lead.
         "status": _booking_display_status(lead) if is_booking else lead.get("status"),

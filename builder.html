@@ -6188,6 +6188,14 @@ async function doLead(){
 function buildSnapshot(){
   try{
     return {
+      // 2026-09-23, per Shruti — lets admin.html's Spy Agent Registration
+      // eligibility check ("a Spy package built from the home page is also
+      // a Spy booking") recognise a homepage-package checkout (spy-basic,
+      // unicorn-basic, turf-basic) even when its final selections happen
+      // not to include one of the standalone Spy activities below. Was
+      // never persisted before — S._pkgOrigin lived only in the in-memory
+      // builder state and never made it into the submitted lead.
+      package_origin: S._pkgOrigin || null,
       decor:       S.decor    ? {id:S.decor.id, n:S.decor.n, p:S.decor.p}    : null,
       host:        S.host     ? {tier:S.host.tier, p:S.host.p}                : null,
       dj:          S.dj       ? {tier:S.dj.tier, p:S.dj.p}                   : null,

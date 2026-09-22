@@ -342,6 +342,31 @@ ACTIVITIES = [
     ("a28", "Spy Treasure Hunt", 1500, False),
 ]
 
+# 2026-09-23, per Shruti — "spy themed should be spy in the activities...
+# theme can be anything." The `leads.theme` field is no longer a reliable
+# "is this a Spy booking" signal (a customer can now pick Spy-category
+# activities regardless of which decor theme they chose — see builder.html's
+# visibleActs()), so Spy Agent Registration eligibility (admin.py's
+# get_booking_detail) is instead keyed off the ACTUAL Spy activities/package
+# on the booking, checked consistently across all three places they can be
+# entered — the website builder (BAB), the sales panel, and a manual admin
+# edit:
+#   - by id, wherever activities are stored as {id, name, ...} objects
+#     (builder_snapshot.activities for BAB, lead_sales_playbook.activities
+#     for the sales panel)
+#   - by name, for the admin's own free-text override of the Activities
+#     field (booking_field_overrides only ever stores names, never ids)
+# 'spy-mission' is the package-only "N Mission Stations (K kids)" line item
+# builder.html adds when a Spy Adventure homepage package (spy-basic.html)
+# is carried into checkout — it's not in the catalogue above (it's not a
+# standalone BAB activity, only ever created by that package hand-off), so
+# it's listed here explicitly rather than by id-in-ACTIVITIES.
+SPY_ACTIVITY_IDS = {"a26", "a27", "a28", "spy-mission"}
+SPY_ACTIVITY_NAMES = {"Laser Tunnel", "Dark Room", "Spy Treasure Hunt"}
+# The "N Mission Stations (K kids)" name is built dynamically (N and K vary
+# per booking), so it's matched by this substring rather than an exact name.
+SPY_MISSION_NAME_HINT = "mission station"
+
 # ─── Return Gifts ────────────────────────────────────────────────────────
 # (id, name, image path, catalogue unit price — the unit price actually
 # billed on the booking is read from the booking snapshot itself; this
