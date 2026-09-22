@@ -3155,9 +3155,22 @@ const ACTS=[
 // Body Zorbing / Gymnastics are addons that only make sense alongside a
 // 90/120 Min Sports Engagement booking — hidden from the general Activities
 // catalogue until the user has already added one of those (2026-08-11).
+// 2026-09-22, per Shruti follow-up — "spy activities should show up if
+// we select spy mystery filter in activities, irrespective of the theme
+// selected by the user in prior pages." The earlier fix (selDec syncing
+// S.theme) made the decor-card's theme available, but themeOnly here was
+// still gating Laser Tunnel/Dark Room/Spy Treasure Hunt on having that
+// exact theme selected in Step 1 -- so someone who picked, say, Jungle
+// Safari decor still couldn't add a Spy activity even by explicitly
+// browsing the Mystery & Spy category in Step 2. Every one of these three
+// already has cat:'mystery', which is exactly what the category pill
+// filters on (see actsBaseFiltered() below) -- themeOnly was a second,
+// redundant restriction on top of that. Dropping it: category browsing
+// (and "All") now shows every activity regardless of decor theme, same as
+// every other category, with no special-casing for Mystery & Spy.
 function visibleActs(){
   const hasEngagement=S.activities.some(a=>a.id==='eng90'||a.id==='eng120');
-  return ACTS.filter(a=>(!a.themeOnly||a.themeOnly.includes(S.theme))&&!a.hidden&&(!(a.id==='zorb'||a.id==='gym')||hasEngagement));
+  return ACTS.filter(a=>!a.hidden&&(!(a.id==='zorb'||a.id==='gym')||hasEngagement));
 }
 // Pinata catalogue rebuilt 2026-08-07 at Shruti's request around the 3
 // shape categories we actually offer (Square/Circle/Number), each with
