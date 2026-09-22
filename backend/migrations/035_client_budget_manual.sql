@@ -1,0 +1,25 @@
+-- 2026-09-22, per Shruti bug report: "i updated the Total Agreed with
+-- Client 3 times, it's not getting updated." Root cause (confirmed by
+-- reading _full_detail() in sales_leads.py): leads.client_budget is
+-- auto-mirrored to the live derived estimate on every read, for as long
+-- as the lead isn't yet a confirmed booking (see the 2026-09-17 comment
+-- above that block, added so warm sales leads show up in dashboard
+-- revenue before being confirmed). That mirror had no way to tell "this
+-- number is stale, refresh it" apart from "a sales rep just deliberately
+-- typed a different Total Agreed with Client" -- so a manually-typed
+-- discount figure was silently overwritten back to the derived total the
+-- very next time anything else on the page saved and the detail view
+-- re-rendered. Separately, the "Total Agreed with Client" input on
+-- sales-leads.html had never actually been wired to save at all (it only
+-- ever fed a live discount-preview calculation) -- see the sales-leads.html
+-- change alongside this migration.
+--
+-- client_budget_manual flips true the moment a sales rep saves a real
+-- Total Agreed with Client value (via the normal per-field autosave, same
+-- as every other field), and the mirror in _full_detail() now skips any
+-- lead where this is true -- so a deliberately-typed figure sticks, even
+-- while the lead is still being negotiated and long before "Confirm
+-- Booking" is ever clicked. Clearing the field back to blank flips it
+-- back to false, which resumes auto-mirroring the live estimate.
+
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS client_budget_manual BOOLEAN NOT NULL DEFAULT FALSE;

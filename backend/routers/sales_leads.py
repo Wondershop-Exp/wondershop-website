@@ -244,6 +244,14 @@ LEAD_FIELD_MAP = {
     # 010_order_form.sql already added this column for exactly this purpose
     # ("Event Sales Lead") — reused rather than duplicated.
     "sales_lead_name": "event_sales_lead",
+    # 2026-09-22, per Shruti bug report — "Total Agreed with Client" (and
+    # its neighbouring balance/payment fields) looked editable like every
+    # other field on the page but was never wired to save at all; see the
+    # client_budget_manual column (migration 035) and the mirror-skip logic
+    # in _full_detail() below for why a plain autosave alone wasn't enough.
+    "client_budget": "client_budget",
+    "order_advance": "order_advance",
+    "payment_method": "payment_method",
 }
 
 # LEAD_FIELD_MAP keys whose target `leads` column is a real numeric type
@@ -251,6 +259,12 @@ LEAD_FIELD_MAP = {
 # is untyped (Dict[str, Any]) and a raw JS input's .value arrives as a
 # string, which Postgres's raw-SQL binding otherwise rejects outright.
 NUMERIC_LEAD_FIELDS = {"kids_count"}
+
+# Same defense-in-depth as NUMERIC_LEAD_FIELDS above, but for the two
+# DECIMAL(10,2) money columns now editable via the generic PATCH (see
+# LEAD_FIELD_MAP) — coerced with float(), not int(), since these carry
+# paise.
+NUMERIC_FLOAT_LEAD_FIELDS = {"client_budget", "order_advance"}
 
 # Scalar fields that live on lead_sales_playbook (not on `leads`).
 PLAYBOOK_SCALAR_FIELDS = [
@@ -487,7 +501,7 @@ async def _full_detail(lead_row) -> dict:
     # overwrites the final Grand Total a sales rep deliberately typed in at
     # confirm-booking time.
     estimated_total = _estimate_total(reqs, acts, lead.get("kids_count"))
-    if not lead.get("is_booking"):
+    if not lead.get("is_booking") and not lead.get("client_budget_manual"):
         stored_budget = float(lead["client_budget"]) if lead.get("client_budget") is not None else None
         if stored_budget != estimated_total:
             await database.execute(
@@ -740,9 +754,20 @@ async def patch_sheet(lead_id: int, body: PatchIn, x_admin_password: Optional[st
                     val = int(val)
                 except (TypeError, ValueError):
                     raise HTTPException(status_code=400, detail=f"{key} must be a number")
+            elif key in NUMERIC_FLOAT_LEAD_FIELDS and val is not None:
+                try:
+                    val = float(val)
+                except (TypeError, ValueError):
+                    raise HTTPException(status_code=400, detail=f"{key} must be a number")
             lead_sets.append(f"{col} = :{col}")
             lead_values[col] = val
             changed.append(key)
+            # A sales rep deliberately saving a Total Agreed with Client
+            # figure (even null, to clear it) takes it out of the
+            # live-estimate mirror in _full_detail() — see migration 035.
+            if key == "client_budget":
+                lead_sets.append("client_budget_manual = :cbm")
+                lead_values["cbm"] = val is not None
         elif key in PLAYBOOK_SCALAR_FIELDS:
             pb_sets.append(f"{key} = :{key}")
             pb_values[key] = val
@@ -903,6 +928,8 @@ async def confirm_booking(lead_id: int, body: ConfirmBookingIn, x_admin_password
     if body.grand_total is not None:
         lead_sets.append("client_budget = :gt")
         lead_values["gt"] = body.grand_total
+        lead_sets.append("client_budget_manual = :cbm2")
+        lead_values["cbm2"] = True
     if body.advance_received is not None:
         lead_sets.append("order_advance = :adv")
         lead_values["adv"] = body.advance_received

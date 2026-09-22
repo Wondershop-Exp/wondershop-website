@@ -1868,9 +1868,9 @@ function sectionBilling(){
     + (d.kids_count?'':'<div class="ref-note">Activities priced per child use ×1 until # Kids is filled in above.</div>')
     + '<div class="grid4">'
       + '<div class="fld"><label>Grand Total (from selections)</label><div class="readonly-amt" id="bill_est_total">'+(money(d.estimated_total)||'₹0')+'</div></div>'
-      + '<div class="fld"><label>Total Agreed with Client (₹)</label><input type="number" id="bill_grand_total" value="'+(d.client_budget==null?'':d.client_budget)+'" oninput="updateDiscountPreview()"></div>'
-      + '<div class="fld"><label>Balance / Advance Received (₹)</label><input type="number" id="bill_advance" value="'+(d.order_advance==null?'':d.order_advance)+'"></div>'
-      + '<div class="fld"><label>Payment Method</label><select id="bill_pm">'+pmOpts+'</select></div>'
+      + '<div class="fld"><label>Total Agreed with Client (₹)</label><input type="number" id="bill_grand_total" value="'+(d.client_budget==null?'':d.client_budget)+'" oninput="updateDiscountPreview()" onblur="saveField(\'client_budget\', this.value, this.type)"></div>'
+      + '<div class="fld"><label>Balance / Advance Received (₹)</label><input type="number" id="bill_advance" value="'+(d.order_advance==null?'':d.order_advance)+'" onblur="saveField(\'order_advance\', this.value, this.type)"></div>'
+      + '<div class="fld"><label>Payment Method</label><select id="bill_pm" onchange="saveField(\'payment_method\', this.value)">'+pmOpts+'</select></div>'
     + '</div>'
     + '<div class="disc-box" id="discBox">'+discountHtml(d.estimated_total, d.client_budget)+'</div>'
     + '<div class="fld" style="margin-top:12px"><label>Terms &amp; Conditions <span class="opt">optional</span></label>'
