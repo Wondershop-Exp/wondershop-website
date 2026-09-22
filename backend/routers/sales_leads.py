@@ -585,7 +585,7 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
         values["q"] = f"%{search}%"
     rows = await database.fetch_all(
         f"""SELECT l.lead_id, l.parent_name, l.phone, l.event_date, l.is_booking, l.status,
-                   l.child_ages, l.child_genders,
+                   l.child_ages, l.child_genders, l.client_budget,
                    p.id AS playbook_id, p.playbook_stage, p.created_by, p.created_at,
                    p.updated_by, p.updated_at, p.new_activity_suggestions
             FROM leads l
@@ -618,6 +618,14 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
             "child_age": d["child_ages"],
             "child_gender": d["child_genders"],
             "event_date": str(d["event_date"]) if d["event_date"] else None,
+            # 2026-09-22, per Shruti — "show Total Agreed with Client in the
+            # table, rename the field to Revenue Potential." Same value as
+            # leads.client_budget on the detail page (auto-estimated until a
+            # rep locks in a real figure — see client_budget_manual), just
+            # surfaced on the list too so a rep doesn't have to open every
+            # row to see it. Renamed here rather than duplicated under both
+            # names, since it's the same number either way.
+            "revenue_potential": float(d["client_budget"]) if d["client_budget"] is not None else None,
             "is_booking": bool(d["is_booking"]),
             "is_blank": d["lead_id"] in blank_ids,
             "status": d["status"],

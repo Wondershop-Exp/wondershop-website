@@ -2198,14 +2198,19 @@ function renderRows(kind){
   if(!rows.length){ body.innerHTML=''; setEmptyHint(empty); empty.style.display='block'; return; }
   empty.style.display='none';
   body.innerHTML = rows.map(r=>{
-    // Sales-origin rows (leads AND their converted bookings, since
-    // lead_origin stays 'sales_module' permanently) open the sales
-    // module's own detail page in a new tab — it has the full playbook
-    // (decor/host/DJ/photographer/gifts/billing/ops) this page's generic
-    // field-table editor was never built to show. Everything else keeps
-    // opening this page's own detail view, unchanged.
+    // Sales-origin LEADS (not yet converted) open the sales module's own
+    // detail page in a new tab — it has the full playbook (decor/host/DJ/
+    // photographer/gifts/billing/ops) this page's generic field-table
+    // editor was never built to show, and that's where a rep manages the
+    // lead day to day. 2026-09-22, per Shruti — once a sales lead becomes
+    // a BOOKING, clicking it should open same as every other booking (this
+    // page's own detail view, matching the calendar's calOpen() behaviour,
+    // which already always calls openBooking() regardless of origin);
+    // renderDetail() already shows an "Open sales playbook ↗" link
+    // (bdTopRight, keyed off CURRENT_ORIGIN==='Sales') for jumping back to
+    // sales-leads.html to check remarks/history when needed.
     const isSalesOrigin = r.origin === 'Sales';
-    const trOnclick = isSalesOrigin
+    const trOnclick = (isSalesOrigin && kind === 'lead')
       ? "event.stopPropagation();window.open('sales-leads.html?lead_id='+"+r.lead_id+",'_blank')"
       : "openBooking("+r.lead_id+")";
     return '<tr onclick="'+trOnclick+'">'
