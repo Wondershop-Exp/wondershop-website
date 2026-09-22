@@ -1757,7 +1757,7 @@ function renderFestivals(confirmedNext14d){
     + '<div class="fest-row">'+cards+'</div>';
 }
 
-function fmtRs(n){ return (n===null||n===undefined) ? '—' : 'Rs.'+Math.round(n).toLocaleString('en-IN'); }
+function fmtRs(n){ return (n===null||n===undefined) ? '—' : '₹'+Math.round(n).toLocaleString('en-IN'); }
 function fmtPct(n){ return (n===null||n===undefined) ? '—' : n.toFixed(1)+'%'; }
 function fmtNum(n){ return (n===null||n===undefined) ? '—' : Math.round(n).toLocaleString('en-IN'); }
 function kpiCard(label, value, sub, delta){
@@ -2907,11 +2907,8 @@ function noAssignedCell(rid){
 // saveAdvancePaymentRow() below offers to set it via a confirm popup instead.
 function advancePaymentRowHtml(f, methodField, locked){
   const rid = 'fld_bill_advance';
-  const origDisplay = f.original_value || 'None selected';
+  const origDisplay = f.original_value ? bdRupees(f.original_value) : 'None selected';
   let originalNote = '<small>Original: '+esc(origDisplay)+'</small>';
-  if(!f.advance_confirmed){
-    originalNote += '<small style="color:var(--or)">Not yet confirmed — saving will offer to mark it \u201cAdvance Paid Verified\u201d.</small>';
-  }
   const removedCls = f.removed ? ' removed' : '';
 
   // 2026-09-22, per Shruti — Payment Method's bubbles (Cash/UPI Transfer/
@@ -2933,25 +2930,31 @@ function advancePaymentRowHtml(f, methodField, locked){
   const intendedNote = methodField.original_value
     ? '<small>Customer\u2019s stated intent: '+esc(methodField.original_value)+'</small>'
     : '';
+  // 2026-09-22, per Shruti follow-up: stated intent shown right after
+  // "Original:", ABOVE the orange "not yet confirmed" warning.
+  originalNote += intendedNote;
+  if(!f.advance_confirmed){
+    originalNote += '<small style="color:var(--or)">Not yet confirmed — saving will offer to mark it \u201cAdvance Paid Verified\u201d.</small>';
+  }
 
   if(locked){
     return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="bill_advance">'
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
-      +'<td data-label="Amount Paid"><span class="readonly-cell">'+esc(f.customer_choice||'—')+'</span></td>'
-      +'<td data-label="Payment Method">'+intendedNote+'<span class="readonly-cell">'+esc(methodPicked||'—')+'</span></td>'
+      +'<td data-label="Amount Paid"><span class="readonly-cell">'+(f.customer_choice ? bdRupees(f.customer_choice) : '—')+'</span></td>'
+      +'<td data-label="Payment Method"><span class="readonly-cell">'+esc(methodPicked||'—')+'</span></td>'
       +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
       +'</tr>';
   }
 
   const ccCell = '<input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="(use original)">';
-  const avCell = intendedNote + selectHtml(rid+'_av', methodField.options||[], methodPicked);
+  const avCell = selectHtml(rid+'_av', methodField.options||[], methodPicked);
 
   return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="bill_advance">'
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
     +'<td data-label="Amount Paid">'+ccCell+'</td>'
     +'<td data-label="Payment Method">'+avCell+'</td>'
-    +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
+    +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks..." style="height:64px;min-height:64px">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
       +'<button class="mini-btn save" onclick="saveAdvancePaymentRow()">Save</button>'
       +'<button class="mini-btn remove" onclick="removeAdvancePaid()">Remove</button>'
@@ -3028,7 +3031,7 @@ function eventPaymentRowHtml(f, modeField, locked){
   if(locked){
     return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="event_payment_confirmed_amount">'
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
-      +'<td data-label="Amount Paid"><span class="readonly-cell">'+esc(f.customer_choice||'—')+'</span></td>'
+      +'<td data-label="Amount Paid"><span class="readonly-cell">'+(f.customer_choice ? bdRupees(f.customer_choice) : '—')+'</span></td>'
       +'<td data-label="Payment Mode"><span class="readonly-cell">'+esc(modeField.customer_choice||'—')+'</span></td>'
       +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
@@ -3042,7 +3045,7 @@ function eventPaymentRowHtml(f, modeField, locked){
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
     +'<td data-label="Amount Paid">'+ccCell+'</td>'
     +'<td data-label="Payment Mode">'+avCell+'</td>'
-    +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Required if amount is less than Balance Due...">'+esc(f.remarks||'')+'</textarea></td>'
+    +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Required if amount is less than Balance Due..." style="height:64px;min-height:64px">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
       +'<button class="mini-btn save" onclick="saveEventPaymentRow()">Save</button>'
       +'<button class="mini-btn remove" onclick="removeEventPaymentConfirmed()">Remove</button>'
@@ -3157,9 +3160,16 @@ function fieldRowHtml(f, isCustEvent, locked){
       : f.field_key==='bill_grand_total'
       ? grandTotalNoteHtml(f)
       : 'Captured at checkout — not re-calculated when services/overrides change here.';
+    // 2026-09-22, per Shruti — Grand Total / Balance Due / Total Savings
+    // are bare rupee amounts and get the same ₹ + Indian-system grouping
+    // as everywhere else (bdRupees()); Freebies Unlocked is a free-text
+    // list of items (order_freebies_text), not a single number, so it's
+    // left as plain text.
+    const isMoneyField = f.field_key==='bill_grand_total' || f.field_key==='bill_balance' || f.field_key==='bill_total_savings';
+    const valueDisplay = (isMoneyField && f.customer_choice) ? bdRupees(f.customer_choice) : esc(f.customer_choice||'—');
     return '<tr id="'+rid+'" class="ro" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+'</td>'
-      +'<td colspan="3"><div class="readonly-cell computed">'+esc(f.customer_choice||'—')+'<div class="computed-note">'+note+'</div></div></td>'
+      +'<td colspan="3"><div class="readonly-cell computed">'+valueDisplay+'<div class="computed-note">'+note+'</div></div></td>'
       +'<td></td>'
       +'</tr>';
   }
