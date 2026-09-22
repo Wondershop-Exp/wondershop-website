@@ -47,27 +47,23 @@ a{color:var(--bl)}
 .topbar h1{font-size:20px}
 .topbar .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gy);flex-wrap:wrap}
 .topbar .who input{padding:6px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13px;width:150px}
-/* Explicit Save button (no longer a passive dot) — 2026-09-22, per
-   Shruti: "instead of save dot, I want a save button which updates when I
-   confirm." Every field still auto-saves on blur (patchSheet()) same as
-   before — this button gives an explicit, clickable way to confirm that:
-   clicking it blurs whatever field is focused (flushing its pending save)
-   and the button's own label/color updates through the save, so clicking
-   it is a deliberate, visible confirmation rather than trusting a passive
+/* Explicit Save button — 2026-09-22, per Shruti: "instead of save dot, I
+   want a save button which updates when I confirm" — then, seeing the
+   first version (a pill with a small status dot next to it), "remove the
+   dot and add a save button": this now looks like every other solid
+   button on the page (same shape/weight as .btn), not a status chip. Every
+   field still auto-saves on blur (patchSheet()) same as before — clicking
+   this blurs whatever field is focused (flushing its pending save) and the
+   button's own label/color updates through the save, so clicking it is a
+   deliberate, visible confirmation rather than trusting a passive
    indicator. */
-.save-status{display:none;align-items:center;gap:7px;font-size:12.5px;font-weight:700;padding:8px 16px;border-radius:20px;background:var(--lgy);color:var(--gy);white-space:nowrap;position:fixed;top:14px;right:16px;z-index:600;box-shadow:0 2px 10px rgba(0,0,0,.12);border:none;cursor:pointer;font-family:var(--fb)}
+.save-status{display:none;align-items:center;justify-content:center;gap:6px;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:var(--rs);background:var(--pk);color:#fff;white-space:nowrap;position:fixed;top:14px;right:16px;z-index:600;box-shadow:0 3px 12px rgba(0,0,0,.16);border:none;cursor:pointer;font-family:var(--fb)}
 .save-status:disabled{cursor:default}
 @media (max-width:660px){.save-status{top:auto;bottom:78px;right:12px}}
-.save-status .ss-dot{width:7px;height:7px;border-radius:50%;background:#C9C2D6;flex:0 0 auto}
-.save-status.dirty{color:#B5620A;background:#FFF4E8}
-.save-status.dirty .ss-dot{background:var(--yl)}
-.save-status.saving{color:#B5620A;background:#FFF4E8}
-.save-status.saving .ss-dot{background:var(--yl);animation:ssPulse 1s ease-in-out infinite}
-.save-status.saved{color:#2E8A47;background:#EAF8EC}
-.save-status.saved .ss-dot{background:var(--gr)}
-.save-status.error{color:var(--pk);background:#FCEAF1}
-.save-status.error .ss-dot{background:var(--pk)}
-@keyframes ssPulse{0%,100%{opacity:1}50%{opacity:.3}}
+.save-status.dirty{background:var(--pk)}
+.save-status.saving{background:var(--gy)}
+.save-status.saved{background:var(--gr)}
+.save-status.error{background:#D6335A}
 .linkbtn{background:none;border:none;color:var(--bl);font-size:13px;text-decoration:underline;padding:0}
 .back-nav{font-size:13px;margin-bottom:14px;display:inline-block}
 
@@ -241,7 +237,7 @@ th.th-sort:hover{color:var(--pk)}
     <h1>🗒️ Sales Leads &amp; Playbook</h1>
     <div class="who">
       Editing as <input type="text" id="whoName" onchange="saveName()">
-      <button type="button" class="save-status" id="saveStatus" onclick="onSaveBtnClick()"><span class="ss-dot"></span><span id="saveStatusText">Save</span></button>
+      <button type="button" class="save-status" id="saveStatus" onclick="onSaveBtnClick()">💾 <span id="saveStatusText">Save</span></button>
       <a class="linkbtn" href="admin.html">Bookings admin</a>
       <a class="linkbtn" href="packaging.html">Packing lists</a>
       <button class="linkbtn" onclick="logout()">Log out</button>
