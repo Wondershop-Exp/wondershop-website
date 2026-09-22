@@ -52,7 +52,8 @@ a{color:var(--bl)}
    being saved on not." Every field/requirement/schedule edit on this page
    already auto-saves on blur (patchSheet()); this just makes that visible
    live instead of silent. */
-.save-status{display:none;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 11px;border-radius:20px;background:var(--lgy);color:var(--gy);white-space:nowrap}
+.save-status{display:none;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:6px 13px;border-radius:20px;background:var(--lgy);color:var(--gy);white-space:nowrap;position:fixed;top:14px;right:16px;z-index:600;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+@media (max-width:660px){.save-status{top:auto;bottom:78px;right:12px}}
 .save-status .ss-dot{width:7px;height:7px;border-radius:50%;background:#C9C2D6;flex:0 0 auto}
 .save-status.saving{color:#B5620A;background:#FFF4E8}
 .save-status.saving .ss-dot{background:var(--yl);animation:ssPulse 1s ease-in-out infinite}
