@@ -706,6 +706,21 @@ body.browse-mode .browse-cta{display:flex}
 .sort-bar label{font-size:12px;font-weight:600;color:var(--gy)}
 .sort-bar select{border:1.5px solid var(--li2);border-radius:10px;padding:6px 10px;font-size:12px;color:var(--bk);background:#fff;cursor:pointer;outline:none}
 .sort-bar select:focus{border-color:var(--li)}
+/* Assisted (type-to-filter) select — 2026-09-22, per Shruti. See
+   makeAssistedSelect() in the script below. Base look matches the old
+   Theme-Preference <select> (bigger, card context); .sort-bar overrides
+   it to match the old decThemeSel look (compact, filter-bar context). */
+.asel-wrap{position:relative}
+.asel-input{width:100%;box-sizing:border-box;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--fb);color:var(--bk);background:#fff;cursor:pointer;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.asel-input:focus{border-color:var(--li)}
+.sort-bar .asel-input{border:1.5px solid var(--li2);border-radius:10px;padding:6px 26px 6px 10px;font-size:12px}
+.sort-bar .asel-input:focus{border-color:var(--li)}
+.asel-panel{display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1.5px solid #E5E7EB;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);max-height:260px;overflow-y:auto;z-index:80}
+.asel-panel.open{display:block}
+.asel-item{padding:9px 12px;font-size:14px;cursor:pointer;color:var(--bk)}
+.asel-item:hover{background:#F3F0FF}
+.asel-item.sel{font-weight:600;background:#F3F0FF}
+.asel-empty{padding:10px 12px;color:#9CA3AF;font-size:13px}
 
 /* Selected activities */
 .sel-acts{background:var(--li3);border:1.5px solid var(--li2);border-radius:var(--r);padding:14px;margin-top:12px}
@@ -1610,60 +1625,26 @@ body.browse-mode .browse-cta{display:flex}
          one of those sets it. -->
     <div class="ig"><label>Event Date</label><input type="date" id="f-date" onchange="checkUrgentDate('f-date','s0-urgent-warn')"><div class="err-msg" id="f-date-past-err">This date has already passed — please choose today or a later date.</div></div>
     <div id="s0-urgent-warn" class="urgent-warn" style="display:none"><span class="uw-ic">⚡</span><span>Your event is less than 3 days away — we won't be able to confirm this booking instantly online. Our team will call you within 24 hours to check feasibility instead.</span></div>
-    <!-- ── TODO — link every option below to an actual decor theme (added
-         2026-08-06 at Shruti's request). Right now buildDec()'s filter
-         (search "if(S.theme){fl=THEMES.filter") does a fuzzy substring
-         match between this dropdown's value and each theme's id/name, so
-         most options here DON'T reliably resolve to a catalogue entry —
-         e.g. "K Pop" vs. catalogue name "K-Pop Party" (punctuation
-         mismatch), "Space / Astronaut" vs. "Space Explorer" (different
-         wording entirely). No match = falls back to showing every theme,
-         so nothing visibly breaks, but the filter is a no-op for most
-         selections today.
-         Also: some options correspond to themes currently removed from
-         THEMES for lack of photos (Cooking/Baking, Frozen, Peppa Pig,
-         Princess/Disney Princess, Fairytale Castle, Barbie, Disco,
-         Spider-Man, Cricket, Ninja Warrior, Carnival/Funfair, Picnic,
-         Construction/Trucks, Diary of a Wimpy Kid — see the TODO above
-         const THEMES). And a few (Bollywood, Robotics, Superheroes Mix,
-         Cars/Racing, "Something Else") don't map to any catalogue theme
-         at all yet, old or new.
-         Fix plan: replace the fuzzy match with an explicit option→theme-id
-         mapping (or add a `themeId` data attribute to each <option> below)
-         so every selection deterministically opens the right decor, once
-         every theme above has real photos to back it up. -->
+    <!-- 2026-09-22, per Shruti — this list used to be a hand-typed set of
+         ~30 options that had drifted out of sync with the real decor
+         catalogue (THEMES) and with the Theme filter on the decor step
+         (decThemeSel): about half the options here didn't match any real
+         theme (Barbie, Disco, Spider-Man, Bollywood, etc.) while several
+         real catalogue themes were missing (Katseye, Paw Patrol, Indian
+         Palace, etc.). "Frozen" in particular was a real theme once but
+         was pulled from THEMES for lack of photos, so it lived on here as
+         a dead option with nothing behind it.
+         Fixed by sourcing the middle of this list from THEMES itself (see
+         populateThemeCatalogSelects()), the same catalogue that drives
+         decThemeSel — so the two dropdowns can never drift apart again.
+         "Surprise Me 🎉" and "Something Else" stay as static options; the
+         real theme options are inserted between them at page load. This
+         also fixes buildDec()'s fuzzy id/name match below (search
+         "if(S.theme){fl=THEME_TIERS.filter") — S.theme now holds a real
+         THEMES id, so it matches deterministically instead of by luck. -->
     <div class="ig"><label>Theme Preference</label>
       <select id="f-theme" style="width:100%;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--fb);color:var(--bk);background:#fff;appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer">
         <option value="">Surprise Me 🎉</option>
-        <option value="Art & Paint Party">Art &amp; Paint Party</option>
-        <option value="Science Party">Science Party</option>
-        <option value="Cooking / Baking Party">Cooking / Baking Party</option>
-        <option value="Spy / Detective / Mystery">Spy / Detective / Mystery (Sherlock-style)</option>
-        <option value="Jungle">Jungle</option>
-        <option value="Diary of a Wimpy Kid">Diary of a Wimpy Kid</option>
-        <option value="Harry Potter">Harry Potter</option>
-        <option value="Frozen">Frozen</option>
-        <option value="Lilo &amp; Stitch">Lilo &amp; Stitch</option>
-        <option value="Peppa Pig">Peppa Pig</option>
-        <option value="Princess / Disney Princess">Princess / Disney Princess</option>
-        <option value="Unicorn & Rainbow">Unicorn &amp; Rainbow</option>
-        <option value="Fairytale Castle">Fairytale Castle</option>
-        <option value="Barbie Theme">Barbie Theme</option>
-        <option value="Football Party">Football Party</option>
-        <option value="Disco">Disco</option>
-        <option value="Picnic">Picnic</option>
-        <option value="Carnival / Funfair">Carnival / Funfair</option>
-        <option value="Space / Astronaut">Space / Astronaut</option>
-        <option value="K Pop">K Pop</option>
-        <option value="Bollywood">Bollywood</option>
-        <option value="Robotics">Robotics</option>
-        <option value="Race Track / Cars (F1 style)">Race Track / Cars (F1 style)</option>
-        <option value="Spider-Man">Spider-Man</option>
-        <option value="Cricket Party">Cricket Party</option>
-        <option value="Ninja Warrior">Ninja Warrior</option>
-        <option value="Cars / Racing">Cars / Racing</option>
-        <option value="Construction / Trucks">Construction / Trucks</option>
-        <option value="Superheroes Mix">Superheroes Mix</option>
         <option value="Something Else">Something Else</option>
       </select>
     </div>
@@ -2873,6 +2854,17 @@ const THEMES=[
   {id:'pawpatrol',n:'Paw Patrol',e:'🐾',bg:'linear-gradient(135deg,#5B8EDD,#F2D147)',age:'2-6',gn:'Both',b:'200 (Blue, Red, Yellow, White)',s:'3 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Premium:'img/Decor/decor-pawpatrol-premium.png'}},
   // Dinos & Unicorns theme removed entirely 2026-09-18 per Shruti — both
   // its Luxury and Signature tiers (the only tiers it had) were removed.
+  // Frozen re-added 2026-09-22, per Shruti — was pulled from THEMES a
+  // while back for lack of photos (see the Theme Preference dropdown
+  // cleanup the same day); now has one real photo from the latest img/
+  // Decor upload. Classic tier, ₹9000 (above the shared Classic default
+  // of ₹6500 — per Shruti, "has a net with lights as back", called out
+  // as an extraSpec row below). Age/gender are a reasonable estimate
+  // (young girls' Disney theme), not yet confirmed by Shruti — same
+  // caveat as the Paw Patrol entry above.
+  {id:'frozen',n:'Frozen',e:'❄️',bg:'linear-gradient(135deg,#BCD8E8,#EDE6FA)',age:'3-6',gn:'Girl',b:'150 (Blue, White, Silver)',s:'3 hrs',ni:'Tables, chairs',tag:'new',
+    tierPhotos:{Classic:'img/Decor/decor-frozen-classic-net.png'},
+    tierOverrides:{Classic:{price:9000,extraSpec:[{l:'Backdrop',v:'Light-up net with fairy lights'}]}}},
 ];
 // Extracts the balloon-colour list out of a theme's `b` field, e.g.
 // "150 (Pink, Purple, White)" -> "Pink, Purple, White".
@@ -4477,16 +4469,91 @@ function decAgeInRange(ageStr,want){
 // Populates the Theme (alphabetical, real theme names) and Age (range
 // buckets, see AGE_BUCKETS) dropdowns once from real catalogue data —
 // called on page load, since THEMES never changes during a session.
-function populateDecorFilterSelects(){
+// 2026-09-22, per Shruti — also populates the Step 0 "Theme Preference"
+// select (f-theme) from the exact same THEMES list, inserted between its
+// static "Surprise Me 🎉" and "Something Else" options, so the two Theme
+// dropdowns on the site (this filter + Theme Preference) can never show
+// different values again.
+function populateThemeCatalogSelects(){
+  const sorted=[...THEMES].sort((a,b)=>a.n.localeCompare(b.n));
   const themeSel=document.getElementById('decThemeSel');
   if(themeSel&&themeSel.options.length===1){
-    const sorted=[...THEMES].sort((a,b)=>a.n.localeCompare(b.n));
     sorted.forEach(t=>{themeSel.innerHTML+='<option value="'+t.id+'">'+t.e+' '+t.n+'</option>';});
+  }
+  const prefSel=document.getElementById('f-theme');
+  if(prefSel&&prefSel.options.length===2){
+    const somethingElseOpt=prefSel.options[1];
+    sorted.forEach(t=>{
+      const opt=document.createElement('option');
+      opt.value=t.id;opt.textContent=t.e+' '+t.n;
+      prefSel.insertBefore(opt,somethingElseOpt);
+    });
   }
   const ageSel=document.getElementById('decAgeSel');
   if(ageSel&&ageSel.options.length===1){
     AGE_BUCKETS.forEach(b=>{ageSel.innerHTML+='<option value="'+b.value+'">'+b.label+'</option>';});
   }
+}
+// ── Assisted (type-to-filter) select — 2026-09-22, per Shruti: "on click,
+// show all options, but the user should be able to write something and
+// the dropdown filters accordingly", for both Theme dropdowns (f-theme,
+// decThemeSel). Wraps a native <select> with a text input + filtered
+// option panel, but leaves the original <select> in the DOM (hidden, same
+// id) so every existing .value read / onchange="..." handler on it keeps
+// working completely unchanged — this only replaces how the select looks
+// and is operated, not any of the logic that reads its value. Re-reads
+// the select's live <option> list on every open/keystroke, so it also
+// works correctly on decThemeSel, whose options are added dynamically by
+// populateThemeCatalogSelects() above rather than present at parse time.
+function makeAssistedSelect(selectId){
+  const sel=document.getElementById(selectId);
+  if(!sel||sel._assisted)return;
+  sel._assisted=true;
+  sel.style.display='none';
+  const wrap=document.createElement('div');
+  wrap.className='asel-wrap';
+  const input=document.createElement('input');
+  input.type='text';input.className='asel-input';input.autocomplete='off';input.spellcheck=false;
+  const panel=document.createElement('div');
+  panel.className='asel-panel';
+  sel.parentNode.insertBefore(wrap,sel);
+  wrap.appendChild(input);wrap.appendChild(panel);wrap.appendChild(sel);
+  function labelFor(val){const o=[...sel.options].find(o=>o.value===val);return o?o.textContent:'';}
+  function syncFromSelect(){input.value=labelFor(sel.value);}
+  sel._aselSync=syncFromSelect;
+  function closePanel(){panel.classList.remove('open');syncFromSelect();}
+  function renderPanel(filterText){
+    const q=(filterText||'').trim().toLowerCase();
+    const opts=[...sel.options];
+    const matches=q?opts.filter(o=>o.textContent.toLowerCase().includes(q)):opts;
+    panel.innerHTML='';
+    if(!matches.length){
+      panel.innerHTML='<div class="asel-empty">No matches</div>';
+      return;
+    }
+    matches.forEach(o=>{
+      const item=document.createElement('div');
+      item.className='asel-item'+(o.value===sel.value?' sel':'');
+      item.textContent=o.textContent;
+      item.addEventListener('mousedown',e=>{
+        e.preventDefault();
+        sel.value=o.value;
+        closePanel();
+        sel.dispatchEvent(new Event('change',{bubbles:true}));
+      });
+      panel.appendChild(item);
+    });
+  }
+  function openPanel(){panel.classList.add('open');renderPanel('');}
+  input.addEventListener('focus',openPanel);
+  input.addEventListener('click',openPanel);
+  input.addEventListener('input',()=>renderPanel(input.value));
+  input.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){closePanel();input.blur();}
+    else if(e.key==='Enter'){e.preventDefault();panel.querySelector('.asel-item')?.dispatchEvent(new MouseEvent('mousedown'));}
+  });
+  document.addEventListener('click',e=>{if(!wrap.contains(e.target))closePanel();});
+  syncFromSelect();
 }
 function fDec(){
   decFilterTheme=document.getElementById('decThemeSel')?.value||'';
@@ -4500,7 +4567,7 @@ function clearDecFilters(){
   buildDec();
 }
 function resetDecFilterSelects(){
-  const t=document.getElementById('decThemeSel');if(t)t.value='';
+  const t=document.getElementById('decThemeSel');if(t){t.value='';t._aselSync&&t._aselSync();}
   const g=document.getElementById('decGenderSel');if(g)g.value='';
   const a=document.getElementById('decAgeSel');if(a)a.value='';
 }
@@ -6775,7 +6842,9 @@ function referWS(){
 // HOMEPAGE JS
 // ══════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',()=>{
-  populateDecorFilterSelects();
+  populateThemeCatalogSelects();
+  makeAssistedSelect('f-theme');
+  makeAssistedSelect('decThemeSel');
   // Nav scroll
   const nav=document.getElementById('main-nav');
   window.addEventListener('scroll',()=>nav?.classList.toggle('scrolled',window.scrollY>30));

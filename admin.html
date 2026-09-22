@@ -2467,7 +2467,32 @@ function renderDetail(d){
   container.innerHTML = d.sections.map(sec=>{
     const isCustEvent = sec.section==='Customer & Event Details';
     const col3Label = isCustEvent ? 'Updated Value' : 'Assigned Value';
-    const rowsHtml = sec.fields.map(f=>fieldRowHtml(f, isCustEvent, d.locked)).join('');
+    // 2026-09-22, per Shruti — "combine advance amount and payment method
+    // ... utilize the space [Assigned Value] to capture payment method" and
+    // the same for Event Payment Confirmed + Event Payment Mode. Both merges
+    // (plus the Payment Status row being retired in favor of the confirm
+    // popups on these two Save buttons — see saveAdvancePaymentRow() /
+    // saveEventPaymentRow() below) only apply within Billing & Rewards, and
+    // only when both halves of a pair are actually present on this booking.
+    let rowsHtml;
+    if(sec.section === 'Billing & Rewards'){
+      const byKey = {};
+      sec.fields.forEach(f => { byKey[f.field_key] = f; });
+      rowsHtml = sec.fields.map(f=>{
+        if(f.field_key === 'bill_payment_status') return '';       // superseded by the confirm popups below
+        if(f.field_key === 'bill_payment_method') return '';       // folded into the Advance Paid row
+        if(f.field_key === 'event_payment_confirmed_mode') return ''; // folded into the Event Payment Confirmed row
+        if(f.field_key === 'bill_advance' && byKey['bill_payment_method']){
+          return advancePaymentRowHtml(f, byKey['bill_payment_method'], d.locked);
+        }
+        if(f.field_key === 'event_payment_confirmed_amount' && byKey['event_payment_confirmed_mode']){
+          return eventPaymentRowHtml(f, byKey['event_payment_confirmed_mode'], d.locked);
+        }
+        return fieldRowHtml(f, isCustEvent, d.locked);
+      }).join('');
+    }else{
+      rowsHtml = sec.fields.map(f=>fieldRowHtml(f, isCustEvent, d.locked)).join('');
+    }
     return '<div class="section-block" id="sect-'+secId(sec.section)+'">'
       +'<h3>'+esc(sec.section)+'</h3>'
       +'<table class="fields"><thead><tr><th>Field</th><th>Current Value</th><th>'+col3Label+'</th><th>Remarks</th><th></th></tr></thead>'
@@ -2871,6 +2896,189 @@ function grandTotalNoteHtml(f){
 // input keeps saveField() working and clears any old stray value.
 function noAssignedCell(rid){
   return '<input type="hidden" id="'+rid+'_av" value="">';
+}
+
+// 2026-09-22, per Shruti — Advance Paid + Payment Method, combined into one
+// row. The Assigned Value slot's DOM id (_av) is deliberately reused to hold
+// the Payment Method chip-select instead of a free-text box — same id
+// pattern as every other row, purely so the existing dirty-row-highlighting
+// and enhanceChips() machinery (both id-pattern based, not field_key aware)
+// picks it up for free. Payment Status is no longer its own editable row —
+// saveAdvancePaymentRow() below offers to set it via a confirm popup instead.
+function advancePaymentRowHtml(f, methodField, locked){
+  const rid = 'fld_bill_advance';
+  const origDisplay = f.original_value || 'None selected';
+  let originalNote = '<small>Original: '+esc(origDisplay)+'</small>';
+  if(!f.advance_confirmed){
+    originalNote += '<small style="color:var(--or)">Not yet confirmed — saving will offer to mark it \u201cAdvance Paid Verified\u201d.</small>';
+  }
+  const removedCls = f.removed ? ' removed' : '';
+
+  if(locked){
+    return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="bill_advance">'
+      +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
+      +'<td data-label="Amount Paid"><span class="readonly-cell">'+esc(f.customer_choice||'—')+'</span></td>'
+      +'<td data-label="Payment Method"><span class="readonly-cell">'+esc(methodField.customer_choice||'—')+'</span></td>'
+      +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
+      +'<td></td>'
+      +'</tr>';
+  }
+
+  const ccCell = '<input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="(use original)">';
+  const avCell = selectHtml(rid+'_av', methodField.options||[], methodField.customer_choice||'');
+
+  return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="bill_advance">'
+    +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
+    +'<td data-label="Amount Paid">'+ccCell+'</td>'
+    +'<td data-label="Payment Method">'+avCell+'</td>'
+    +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
+    +'<td><div class="row-actions">'
+      +'<button class="mini-btn save" onclick="saveAdvancePaymentRow()">Save</button>'
+      +'<button class="mini-btn remove" onclick="removeAdvancePaid()">Remove</button>'
+    +'</div></td>'
+    +'</tr>';
+}
+
+async function saveAdvancePaymentRow(){
+  try{
+    const rid = 'fld_bill_advance';
+    const ccEl = document.getElementById(rid+'_cc');
+    const avEl = document.getElementById(rid+'_av');   // Payment Method select, see advancePaymentRowHtml()
+    const rmEl = document.getElementById(rid+'_rm');
+    const row = document.getElementById(rid);
+    const who = getName();
+    if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
+
+    const amount = ccEl ? ccEl.value : '';
+    const method = avEl ? avEl.value : '';
+    const remarks = rmEl ? rmEl.value : '';
+    const removed = row ? row.classList.contains('removed') : false;
+
+    // 2026-09-22, per Shruti — "if the user clicks on save, then update the
+    // status to advance paid verified. reconfirm this status change from
+    // the user with a popup." Declining still saves the amount/payment
+    // method below — it only skips the status flip.
+    const confirmVerified = confirm('Mark this advance as verified?\n\nThis sets Payment Status to "Advance Paid Verified".\n\nClick Cancel to save the amount/payment method without changing the status.');
+
+    await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {
+      method:'POST',
+      body: JSON.stringify({ field_key:'bill_advance', customer_choice_override:amount, assigned_value:'', remarks:remarks, removed:removed, changed_by:who }),
+    });
+    await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {
+      method:'POST',
+      body: JSON.stringify({ field_key:'bill_payment_method', customer_choice_override:method, assigned_value:'', remarks:'', removed:false, changed_by:who }),
+    });
+    let statusMsg = '';
+    if(confirmVerified){
+      await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {
+        method:'POST',
+        body: JSON.stringify({ field_key:'bill_payment_status', customer_choice_override:'Advance Paid Verified', assigned_value:'', remarks:'', removed:false, changed_by:who }),
+      });
+      statusMsg = ' · Payment Status → Advance Paid Verified';
+    }
+    showToast('✓ Saved — Advance Paid & Payment Method'+statusMsg+'.');
+    await loadDetail();
+  }catch(e){
+    console.error('saveAdvancePaymentRow failed:', e);
+    showToast(e.message==='unauthorized' ? 'Session expired — please log in again.' : ('Save failed: '+e.message));
+  }
+}
+
+function removeAdvancePaid(){
+  const who = getName();
+  if(!who){ showToast('Set "Editing as" name at the top first.'); highlightWhoName(); return; }
+  apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {
+    method:'POST',
+    body: JSON.stringify({ field_key:'bill_advance', customer_choice_override:'', assigned_value:'', remarks:'', removed:true, changed_by:who }),
+  }).then(()=>{ showToast('Advance Paid removed.'); loadDetail(); })
+    .catch(e=>{ if(e.message!=='unauthorized') showToast(e.message); });
+}
+
+// Same pattern as advancePaymentRowHtml() above, for Event Payment
+// Confirmed (Rs.) + Event Payment Mode (2026-09-22, per Shruti: "same thing
+// for event pending amount. remove assigned value field completely...use
+// the space for assigned value for capturing payment mode (keep the
+// bubbles)"). No "Not yet confirmed" note here — there's no equivalent
+// pending state for the event-completion payment, it's just admin-tracked.
+function eventPaymentRowHtml(f, modeField, locked){
+  const rid = 'fld_event_payment_confirmed_amount';
+  const originalNote = '<small>Admin-tracked</small>';
+  const removedCls = f.removed ? ' removed' : '';
+
+  if(locked){
+    return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="event_payment_confirmed_amount">'
+      +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
+      +'<td data-label="Amount Paid"><span class="readonly-cell">'+esc(f.customer_choice||'—')+'</span></td>'
+      +'<td data-label="Payment Mode"><span class="readonly-cell">'+esc(modeField.customer_choice||'—')+'</span></td>'
+      +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
+      +'<td></td>'
+      +'</tr>';
+  }
+
+  const ccCell = '<input type="number" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="—" step="0.01" min="0">';
+  const avCell = selectHtml(rid+'_av', modeField.options||[], modeField.customer_choice||'');
+
+  return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="event_payment_confirmed_amount">'
+    +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
+    +'<td data-label="Amount Paid">'+ccCell+'</td>'
+    +'<td data-label="Payment Mode">'+avCell+'</td>'
+    +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
+    +'<td><div class="row-actions">'
+      +'<button class="mini-btn save" onclick="saveEventPaymentRow()">Save</button>'
+      +'<button class="mini-btn remove" onclick="removeEventPaymentConfirmed()">Remove</button>'
+    +'</div></td>'
+    +'</tr>';
+}
+
+async function saveEventPaymentRow(){
+  try{
+    const rid = 'fld_event_payment_confirmed_amount';
+    const ccEl = document.getElementById(rid+'_cc');
+    const avEl = document.getElementById(rid+'_av');   // Payment Mode select, see eventPaymentRowHtml()
+    const rmEl = document.getElementById(rid+'_rm');
+    const row = document.getElementById(rid);
+    const who = getName();
+    if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
+
+    const amount = ccEl ? ccEl.value : '';
+    const mode = avEl ? avEl.value : '';
+    const remarks = rmEl ? rmEl.value : '';
+    const removed = row ? row.classList.contains('removed') : false;
+
+    const confirmComplete = confirm('Mark this event\'s payment as complete?\n\nThis sets Payment Status to "Complete".\n\nClick Cancel to save the amount/payment mode without changing the status.');
+
+    await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {
+      method:'POST',
+      body: JSON.stringify({ field_key:'event_payment_confirmed_amount', customer_choice_override:amount, assigned_value:'', remarks:remarks, removed:removed, changed_by:who }),
+    });
+    await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {
+      method:'POST',
+      body: JSON.stringify({ field_key:'event_payment_confirmed_mode', customer_choice_override:mode, assigned_value:'', remarks:'', removed:false, changed_by:who }),
+    });
+    let statusMsg = '';
+    if(confirmComplete){
+      await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {
+        method:'POST',
+        body: JSON.stringify({ field_key:'bill_payment_status', customer_choice_override:'Complete', assigned_value:'', remarks:'', removed:false, changed_by:who }),
+      });
+      statusMsg = ' · Payment Status → Complete';
+    }
+    showToast('✓ Saved — Event Payment'+statusMsg+'.');
+    await loadDetail();
+  }catch(e){
+    console.error('saveEventPaymentRow failed:', e);
+    showToast(e.message==='unauthorized' ? 'Session expired — please log in again.' : ('Save failed: '+e.message));
+  }
+}
+
+function removeEventPaymentConfirmed(){
+  const who = getName();
+  if(!who){ showToast('Set "Editing as" name at the top first.'); highlightWhoName(); return; }
+  apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {
+    method:'POST',
+    body: JSON.stringify({ field_key:'event_payment_confirmed_amount', customer_choice_override:'', assigned_value:'', remarks:'', removed:true, changed_by:who }),
+  }).then(()=>{ showToast('Event Payment Confirmed removed.'); loadDetail(); })
+    .catch(e=>{ if(e.message!=='unauthorized') showToast(e.message); });
 }
 
 function fieldRowHtml(f, isCustEvent, locked){

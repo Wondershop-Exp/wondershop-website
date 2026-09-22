@@ -622,6 +622,18 @@ input,textarea,select{font-family:var(--fb)}
 .rating-row{display:flex;align-items:center;gap:4px;margin-top:3px}
 .star{color:var(--yl);font-size:10px}
 .rating-cnt{font-size:9px;color:var(--gy)}
+
+/* Assisted (type-to-filter) select — 2026-09-22, per Shruti. See
+   makeAssistedSelect() in the script below. */
+.asel-wrap{position:relative}
+.asel-input{width:100%;box-sizing:border-box;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--fb);color:var(--bk);background:#fff;cursor:pointer;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.asel-input:focus{border-color:var(--li)}
+.asel-panel{display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1.5px solid #E5E7EB;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);max-height:260px;overflow-y:auto;z-index:80}
+.asel-panel.open{display:block}
+.asel-item{padding:9px 12px;font-size:14px;cursor:pointer;color:var(--bk)}
+.asel-item:hover{background:#F3F0FF}
+.asel-item.sel{font-weight:600;background:#F3F0FF}
+.asel-empty{padding:10px 12px;color:#9CA3AF;font-size:13px}
 </style>
 <script src="https://elfsightcdn.com/platform.js" async></script>
 </head>
@@ -1070,37 +1082,16 @@ input,textarea,select{font-family:var(--fb)}
       <div class="ig"><label>Event Date</label><input type="date" id="f-date"></div>
       <div class="ig"><label>Start Time</label><input type="time" id="f-time" value="11:00"></div>
     </div>
+    <!-- 2026-09-22, per Shruti — was a hand-typed ~30-option list out of
+         sync with this page's own THEMES catalogue (8 themes). Now sourced
+         straight from THEMES (see populateThemeCatalogSelects()), same
+         pattern used on builder.html, so this page can't drift either.
+         Note: this page isn't linked from the live site (index.html only
+         links to builder.html) — updated anyway per Shruti, in case it's
+         used somewhere else. -->
     <div class="ig"><label>Theme Preference</label>
       <select id="f-theme" style="width:100%;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--fb);color:var(--bk);background:#fff;appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer">
         <option value="">Surprise Me 🎉</option>
-        <option value="Art & Paint Party">Art &amp; Paint Party</option>
-        <option value="Science Party">Science Party</option>
-        <option value="Cooking / Baking Party">Cooking / Baking Party</option>
-        <option value="Spy / Detective / Mystery">Spy / Detective / Mystery (Sherlock-style)</option>
-        <option value="Jungle">Jungle</option>
-        <option value="Diary of a Wimpy Kid">Diary of a Wimpy Kid</option>
-        <option value="Harry Potter">Harry Potter</option>
-        <option value="Frozen">Frozen</option>
-        <option value="Peppa Pig">Peppa Pig</option>
-        <option value="Princess / Disney Princess">Princess / Disney Princess</option>
-        <option value="Unicorn & Rainbow">Unicorn &amp; Rainbow</option>
-        <option value="Fairytale Castle">Fairytale Castle</option>
-        <option value="Barbie Theme">Barbie Theme</option>
-        <option value="Football Party">Football Party</option>
-        <option value="Disco">Disco</option>
-        <option value="Picnic">Picnic</option>
-        <option value="Carnival / Funfair">Carnival / Funfair</option>
-        <option value="Space / Astronaut">Space / Astronaut</option>
-        <option value="K Pop">K Pop</option>
-        <option value="Bollywood">Bollywood</option>
-        <option value="Robotics">Robotics</option>
-        <option value="Race Track / Cars (F1 style)">Race Track / Cars (F1 style)</option>
-        <option value="Spider-Man">Spider-Man</option>
-        <option value="Cricket Party">Cricket Party</option>
-        <option value="Ninja Warrior">Ninja Warrior</option>
-        <option value="Cars / Racing">Cars / Racing</option>
-        <option value="Construction / Trucks">Construction / Trucks</option>
-        <option value="Superheroes Mix">Superheroes Mix</option>
         <option value="Something Else">Something Else</option>
       </select>
     </div>
@@ -2312,6 +2303,78 @@ function openCart(){
 }
 function closeCart(){document.getElementById('cartO').classList.remove('show');}
 
+// Populates the Theme Preference select (f-theme) from THEMES, inserted
+// between its static "Surprise Me 🎉" and "Something Else" options — same
+// single-source-of-truth pattern as builder.html's Theme dropdowns.
+// 2026-09-22, per Shruti.
+function populateThemeCatalogSelects(){
+  const prefSel=document.getElementById('f-theme');
+  if(prefSel&&prefSel.options.length===2){
+    const sorted=[...THEMES].sort((a,b)=>a.n.localeCompare(b.n));
+    const somethingElseOpt=prefSel.options[1];
+    sorted.forEach(t=>{
+      const opt=document.createElement('option');
+      opt.value=t.id;opt.textContent=t.e+' '+t.n;
+      prefSel.insertBefore(opt,somethingElseOpt);
+    });
+  }
+}
+// ── Assisted (type-to-filter) select — 2026-09-22, per Shruti. Same
+// component as builder.html's makeAssistedSelect(): wraps a native
+// <select> with a text input + filtered option panel, leaving the
+// original <select> in the DOM (hidden, same id) so any existing .value
+// read on it keeps working unchanged.
+function makeAssistedSelect(selectId){
+  const sel=document.getElementById(selectId);
+  if(!sel||sel._assisted)return;
+  sel._assisted=true;
+  sel.style.display='none';
+  const wrap=document.createElement('div');
+  wrap.className='asel-wrap';
+  const input=document.createElement('input');
+  input.type='text';input.className='asel-input';input.autocomplete='off';input.spellcheck=false;
+  const panel=document.createElement('div');
+  panel.className='asel-panel';
+  sel.parentNode.insertBefore(wrap,sel);
+  wrap.appendChild(input);wrap.appendChild(panel);wrap.appendChild(sel);
+  function labelFor(val){const o=[...sel.options].find(o=>o.value===val);return o?o.textContent:'';}
+  function syncFromSelect(){input.value=labelFor(sel.value);}
+  sel._aselSync=syncFromSelect;
+  function closePanel(){panel.classList.remove('open');syncFromSelect();}
+  function renderPanel(filterText){
+    const q=(filterText||'').trim().toLowerCase();
+    const opts=[...sel.options];
+    const matches=q?opts.filter(o=>o.textContent.toLowerCase().includes(q)):opts;
+    panel.innerHTML='';
+    if(!matches.length){
+      panel.innerHTML='<div class="asel-empty">No matches</div>';
+      return;
+    }
+    matches.forEach(o=>{
+      const item=document.createElement('div');
+      item.className='asel-item'+(o.value===sel.value?' sel':'');
+      item.textContent=o.textContent;
+      item.addEventListener('mousedown',e=>{
+        e.preventDefault();
+        sel.value=o.value;
+        closePanel();
+        sel.dispatchEvent(new Event('change',{bubbles:true}));
+      });
+      panel.appendChild(item);
+    });
+  }
+  function openPanel(){panel.classList.add('open');renderPanel('');}
+  input.addEventListener('focus',openPanel);
+  input.addEventListener('click',openPanel);
+  input.addEventListener('input',()=>renderPanel(input.value));
+  input.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){closePanel();input.blur();}
+    else if(e.key==='Enter'){e.preventDefault();panel.querySelector('.asel-item')?.dispatchEvent(new MouseEvent('mousedown'));}
+  });
+  document.addEventListener('click',e=>{if(!wrap.contains(e.target))closePanel();});
+  syncFromSelect();
+}
+
 // ══════════════════════════════════════════════════════
 // HOMEPAGE JS
 // ══════════════════════════════════════════════════════
@@ -2338,6 +2401,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   renderC(1);
   try{const td=new Date();td.setDate(td.getDate()+1);document.getElementById('f-date').min=td.toISOString().split('T')[0];}catch(e){}
   document.getElementById('f-kids')?.addEventListener('input',function(){S.kidsCount=parseInt(this.value)||15;document.getElementById('kDisp').textContent=S.kidsCount;document.getElementById('kDisp2').textContent=S.kidsCount;});
+  populateThemeCatalogSelects();
+  makeAssistedSelect('f-theme');
 
   // Home banner carousel
   const hbSlides=document.querySelectorAll('#shome-banner .sb-slide');
