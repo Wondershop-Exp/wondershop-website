@@ -1275,7 +1275,7 @@ async def _push_event_photos_to_sheet(lead_id: int, lead: dict, snap: dict, phot
         "photos_link": photos_value or "",
     }
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
             r = await client.post(settings.GOOGLE_SHEET_WEBHOOK_URL, json=payload)
         logger.info(f"Lead #{lead_id}: Event Photos sheet update → {r.status_code}")
     except Exception as exc:

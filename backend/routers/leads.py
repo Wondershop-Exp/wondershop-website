@@ -1925,7 +1925,7 @@ async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Op
             "cart_snapshot":      json.dumps(req.builder_snapshot) if req.builder_snapshot else "",
             "status":       "Confirmed" if req.is_booking else "Lead",
         }
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
             r = await client.post(settings.GOOGLE_SHEET_WEBHOOK_URL, json=payload)
         logger.info(f"Lead #{lead_id}: sheet append → {r.status_code}")
     except Exception as exc:
@@ -1974,7 +1974,7 @@ async def _append_abandoned_cart_to_sheet(req: AbandonedCartRequest) -> None:
             "page_url":          req.page_url or "",
             "cart_snapshot":     json.dumps(req.builder_snapshot) if req.builder_snapshot else "",
         }
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
             r = await client.post(settings.GOOGLE_SHEET_WEBHOOK_URL, json=payload)
         logger.info(f"Abandoned cart ({req.phone}): sheet append → {r.status_code}")
     except Exception as exc:
@@ -2366,7 +2366,7 @@ async def _update_sheet_reward_service(lead_id: int, service_label: str) -> None
             "lead_id": lead_id,
             "service_label": service_label,
         }
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
             r = await client.post(settings.GOOGLE_SHEET_WEBHOOK_URL, json=payload)
         logger.info(f"Lead #{lead_id}: sheet reward-service update → {r.status_code}")
     except Exception as exc:
