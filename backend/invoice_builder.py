@@ -375,6 +375,17 @@ def build_invoice_pdf(data: dict) -> bytes:
         amt_color = _GREEN if (row["free"] or row["amount"] is None) else _INK
         right = _p(amt_text, size=10, bold=True, color=amt_color, align="right")
         item_rows.append([left, right])
+    if not item_rows:
+        # 2026-09-23 -- a booking registered straight from the sales/admin
+        # side (no customer builder cart, so services_detail is empty) has
+        # nothing to itemise. reportlab's Table() hard-requires at least one
+        # row, so without this the PDF build crashes and the invoice email
+        # never goes out at all (found via Swati's booking #3, which has no
+        # services on file). A one-line placeholder keeps the layout intact.
+        item_rows.append([
+            _p("<font color='#6B7280'>No itemised services on file for this booking.</font>", size=10, leading=14),
+            _p("—", size=10, bold=True, color=_INK, align="right"),
+        ])
     items_tbl = Table(item_rows, colWidths=[usable_w * 0.72, usable_w * 0.28])
     items_tbl.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), _LIGHT_GRAY_ROW),
