@@ -231,6 +231,14 @@ async def register_spy_agent(
     agent_dob: str = Form(...),
     parent_name: str = Form(...),
     parent_phone: str = Form(""),
+    # 2026-09-23, per Shruti — "add a checkbox asking parents to receive
+    # information for birthdays, latest theme launches and discounts."
+    # Sent by spy-agent-registration.html as the literal string 'true'/
+    # 'false' (always present — see that page's submit handler), not a
+    # real HTML form checkbox post (which omits the field entirely when
+    # unchecked), so it's read as a string and compared rather than typed
+    # as bool.
+    marketing_opt_in: str = Form("false"),
     agent_photo: Optional[UploadFile] = File(None),
 ):
     token = _clean(token)
@@ -286,6 +294,7 @@ async def register_spy_agent(
         "agent_dob": agent_dob,
         "parent_name": parent_name,
         "parent_phone": parent_phone,
+        "marketing_opt_in": marketing_opt_in.strip().lower() == "true",
         "agent_photo_b64": photo_b64 or "",
         "agent_photo_filename": photo_filename or "",
     }

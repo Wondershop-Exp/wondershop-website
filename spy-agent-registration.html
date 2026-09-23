@@ -204,6 +204,34 @@
     padding:26px 22px;
   }
   .field{margin-bottom:20px}
+  /* 2026-09-23, per Shruti — "for spy, please add a checkbox asking
+     parents to receive information for birthdays, latest theme launches
+     and discounts": opt-in marketing consent, off by default (never
+     pre-checked), matching the form's own dark/violet visual language. */
+  .consent-field{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin-bottom:22px;
+  }
+  .consent-field input[type="checkbox"]{
+    flex-shrink:0;
+    width:19px;
+    height:19px;
+    margin-top:2px;
+    accent-color:var(--magenta);
+    cursor:pointer;
+  }
+  .consent-field label{
+    display:inline;
+    font-size:13px;
+    font-weight:400;
+    text-transform:none;
+    letter-spacing:0;
+    color:var(--ink-dim);
+    margin-bottom:0;
+    cursor:pointer;
+  }
   label{
     display:block;
     font-size:13px;
@@ -403,6 +431,11 @@
         <input type="tel" id="parentPhone" name="parent_phone" placeholder="10-digit mobile number" inputmode="numeric" maxlength="10">
       </div>
 
+      <div class="consent-field">
+        <input type="checkbox" id="marketingOptIn" name="marketing_opt_in">
+        <label for="marketingOptIn">Yes, send me birthday reminders, new theme launches, and offers from Wondershop Experiences.</label>
+      </div>
+
       <button type="submit" class="submit-btn" id="submitBtn">Submit Mission Profile 🕶️</button>
       <div class="form-msg" id="formMsg"></div>
     </form>
@@ -558,6 +591,8 @@
       return;
     }
 
+    var marketingOptIn = document.getElementById('marketingOptIn').checked;
+
     var fd = new FormData();
     fd.append('event_id', CFG.event_id);
     fd.append('mission_label', CFG.child_name + "'s " + CFG.age_ordinal + ' Birthday Quest (' + CFG.event_date + ')');
@@ -565,6 +600,7 @@
     fd.append('agent_dob', agentDob);
     fd.append('parent_name', parentName);
     fd.append('parent_phone', parentPhone);
+    fd.append('marketing_opt_in', marketingOptIn ? 'true' : 'false');
     var photoFile = fileInput.files && fileInput.files[0];
     if (photoFile) fd.append('agent_photo', photoFile);
 

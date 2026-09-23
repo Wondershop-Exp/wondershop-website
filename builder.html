@@ -3443,7 +3443,18 @@ function cItems(){
     }
     if(fb.wasP!=null){
       item.wasP=fb.wasP;
-      item.n+= a.id==='a15' ? ' — <img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> Addon Unlocked!' : (' — <img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> ₹'+(fb.wasP-fb.price).toLocaleString('en-IN')+' credit applied');
+      // 2026-09-23, per Shruti — "the smiley and addon unlocked should be a
+      // 1 line": on the review screen (buildRev() below), a freebie's name
+      // and this badge shared one flex cell narrow enough on phone to wrap
+      // the icon+"Addon Unlocked!" onto its own line, away from the name —
+      // e.g. "Unicorn —" / "🎁 Addon Unlocked!" as two visually disjointed
+      // lines. Dropping the name suffix here doesn't lose the "this is
+      // free" signal: the price column right next to it already shows
+      // "<s>₹wasP</s>₹0" (via item.wasP, set above) for exactly this
+      // reason — the credit-applied case (non-a15 freebies, where the
+      // rupee amount is genuinely new information the price column doesn't
+      // spell out on its own) still gets the suffix.
+      if(a.id!=='a15')item.n+=' — <img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> ₹'+(fb.wasP-fb.price).toLocaleString('en-IN')+' credit applied';
     }
     items.push(item);
   });
@@ -3460,7 +3471,11 @@ function cItems(){
   // full price everywhere. Free-E-Invite spend threshold (S.FIT) and the
   // sitewide auto-discount slabs are unaffected and still apply.
   if(S.pinata){items.push({cat:'Pinata',n:S.pinata.n,p:S.pinata.p,id:S.pinata.id});}
-  if(S.einvite){const gt=rawNoInv();const isFree=!S._pkgOrigin&&gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n+(isFree?' — <img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> Addon Unlocked!':''),p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
+  // 2026-09-23, per Shruti — dropped the "— 🎁 Addon Unlocked!" name suffix
+  // here too (see the matching a15 comment just above): the price column's
+  // "<s>₹wasP</s>₹0" already says it's free, so the name stays just the
+  // design name and never wraps mid-badge on a narrow phone.
+  if(S.einvite){const gt=rawNoInv();const isFree=!S._pkgOrigin&&gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n,p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
   if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});}
   S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty,id:g.id}));
   S.spyExtras.forEach(x=>items.push({cat:'Addons',n:x.n,p:x.p,id:x.id}));
@@ -4988,7 +5003,7 @@ function buildInvs(){
     }else note.style.display='none';
   }
   fl.forEach(inv=>w.innerHTML+=makeInvCard(inv));
-  const cp=document.getElementById('invCustomPrice');if(cp)cp.textContent=isFree?'<img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> Unlocked!':'₹1,000';
+  const cp=document.getElementById('invCustomPrice');if(cp)cp.innerHTML=isFree?'<img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> Unlocked!':'₹1,000';
   if(S.einvite){
     document.getElementById('inv-'+S.einvite.id)?.classList.add('sel');
     if(S.einvite.id!=='custom'){
@@ -6404,7 +6419,17 @@ function pickScratchReward(){
       bubbleEligible=age!=null&&age>=0&&age<7&&tp()>100000;
     }
   }catch(e){bubbleEligible=false;}
-  const pool=SCRATCH_REWARDS.filter(r=>!r.rare||bubbleEligible);
+  // 2026-09-23, per Shruti — "user added tattoo artist in his booking, so
+  // the scratch card should not give him a tattoo artist again": the
+  // 2026-09-12 fix only suppressed the redundant "add to today's booking?"
+  // prompt for a reward already on the cart (paid, or auto-free via the
+  // >=Rs.55k spend threshold — see scratchRewardAlreadyInCart()), but the
+  // reward could still be WON, with a "This has been noted on your
+  // booking" note that reads as a second freebie on the same booking. Take
+  // it out of the pool entirely instead whenever the matching catalogue
+  // item (SCRATCH_DUPLICATE_CHECK_ACT_ID) is already in this cart — the
+  // customer just gets a shot at one of the other rewards instead.
+  const pool=SCRATCH_REWARDS.filter(r=>(!r.rare||bubbleEligible)&&!(SCRATCH_DUPLICATE_CHECK_ACT_ID[r.type]&&scratchRewardAlreadyInCart(r.type)));
   const totalW=pool.reduce((s,r)=>s+r.weight,0);
   let roll=Math.random()*totalW;
   let chosen=pool[pool.length-1];
