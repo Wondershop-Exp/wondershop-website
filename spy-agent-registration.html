@@ -487,7 +487,7 @@
 </section>
 
 <div class="success-screen" id="successScreen" style="display:none">
-  <div class="big-check">🕶️✅</div>
+  <div class="big-check"><img src="img/icons/spy color 2.png" alt="" style="height:56px"></div>
   <h2>Agent Cleared for the Mission</h2>
   <p id="successTextOut">Your agent's profile has been received. Headquarters will be in touch with
     further instructions before the mission begins.</p>
@@ -503,7 +503,16 @@
     shared, or call us at <a href="tel:+919742240477" style="color:var(--gold);text-decoration:none;font-weight:600">97422 40477</a>.</p>
 </div>
 
-<footer>Wondershop Experiences</footer>
+<footer>
+  <a href="https://www.instagram.com/wondershop.experiences/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;color:inherit;text-decoration:none">
+    <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0">
+      <rect x="3" y="3" width="22" height="22" rx="6"/>
+      <circle cx="14" cy="14" r="5"/>
+      <circle cx="20.5" cy="7.5" r="1" fill="currentColor" stroke="none"/>
+    </svg>
+    Wondershop Experiences
+  </a>
+</footer>
 
 <script>
 (function(){
@@ -695,6 +704,8 @@
         form.style.display = 'none';
         document.querySelector('.intro-card').style.display = 'none';
         document.querySelector('.guidelines-card').style.display = 'none';
+        document.querySelector('.form-title').style.display = 'none';
+        document.getElementById('formSubtitleOut').style.display = 'none';
         document.getElementById('successScreen').style.display = 'block';
         document.getElementById('successScreen').scrollIntoView({ behavior: 'smooth' });
         var bar = document.getElementById('stickyCtaBar'); if (bar) bar.style.display = 'none';
