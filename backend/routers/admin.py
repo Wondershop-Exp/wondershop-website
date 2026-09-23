@@ -120,6 +120,26 @@ def _to_ist_str(dt) -> Optional[str]:
     return f"{_ordinal(ist.day)} {ist.strftime('%b %Y, %I:%M %p')} IST"
 
 
+def _to_ist_short_str(dt) -> Optional[str]:
+    """2026-09-23, per Shruti -- the sales-to-admin sync's provenance prefix
+    ("[Copied from Sales by X on ...]") was too long and read like a comment
+    glued onto the value. Short form instead: "DD/MM/YYYY H:MMAM/PM", no
+    leading zero on the hour, no space before AM/PM (e.g. "23/09/2026
+    10:57PM"), used inside "[who, when]"."""
+    if dt is None:
+        return None
+    if isinstance(dt, str):
+        try:
+            dt = datetime.fromisoformat(dt)
+        except ValueError:
+            return dt
+    if dt.tzinfo is not None:
+        dt = (dt - dt.utcoffset()).replace(tzinfo=None)  # normalize to naive UTC
+    ist = dt + IST_OFFSET
+    hour12 = ist.strftime('%I').lstrip('0') or '12'
+    return f"{ist.strftime('%d/%m/%Y')} {hour12}:{ist.strftime('%M%p')}"
+
+
 def _date_str(d) -> Optional[str]:
     if d is None:
         return None
@@ -1670,7 +1690,7 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
     already = {row["field_key"] for row in existing_rows}
 
     now = datetime.utcnow()
-    prefix = f"[Copied from Sales by {who} on {_to_ist_str(now)}]"
+    prefix = f"[{who}, {_to_ist_short_str(now)}]"
 
     def _req(key):
         v = req.get(key)

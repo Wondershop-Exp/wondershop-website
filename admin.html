@@ -207,6 +207,16 @@ table.list.static tr:hover td{background:inherit}
 .status-card .btn.cancel{background:var(--pk);color:#fff}
 .section-block h3{font-size:12px;font-weight:700;color:#fff;background:var(--plum);text-transform:uppercase;letter-spacing:1.1px;margin:0;padding:13px 18px}
 .readonly-cell{color:var(--gy);font-size:13px;padding:6px 2px;display:block}
+/* 2026-09-23, per Shruti -- Event Schedule editor in admin should look
+   like the Sales panel's Time/Item row editor (sales-leads.html
+   .sched-row), not a single free-text textarea. */
+.sched-row-admin{display:grid;grid-template-columns:110px 1fr 34px;gap:8px;margin-bottom:8px;align-items:center}
+.sched-row-admin input{padding:9px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px;font-family:inherit}
+.icon-btn-admin{background:none;border:none;color:var(--gy);font-size:15px;padding:4px;cursor:pointer}
+.icon-btn-admin:hover{color:var(--pk)}
+.add-dash-admin{background:none;border:1px dashed var(--li);border-radius:6px;color:var(--li);font-size:12px;font-weight:600;padding:7px 12px;margin-top:2px;cursor:pointer}
+.sched-ro-row{display:grid;grid-template-columns:110px 1fr;gap:8px;margin-bottom:4px;font-size:13px;color:var(--gy)}
+
 .readonly-cell.computed{font-style:italic}
 .computed-note{font-size:10px;color:var(--gy);display:block;margin-top:2px}
 .field-label{font-weight:600;font-size:13px}
@@ -3384,6 +3394,80 @@ function removeEventPaymentConfirmed(){
     .catch(e=>{ if(e.message!=='unauthorized') showToast(e.message); });
 }
 
+// 2026-09-23, per Shruti -- Event Schedule in admin gets the same row-based
+// Time/Item editor as the Sales panel (sales-leads.html sectionSchedule /
+// renderSchedule), instead of one free-text textarea. Storage stays exactly
+// what the backend already reads/writes (a plain string, one row per line,
+// "time<TAB>item" -- see backend/routers/admin.py's sales-to-booking sync)
+// so nothing else has to change; this only swaps out how it's edited.
+let ADMIN_SCHED = {};
+
+function parseScheduleText(text){
+  const lines = (text||'').split('\n').map(l=>l.replace(/\r$/,'')).filter(l=>l.trim());
+  return lines.map(l=>{
+    if(l.includes('\t')){
+      const idx = l.indexOf('\t');
+      return {time:l.slice(0,idx).trim(), item:l.slice(idx+1).trim()};
+    }
+    // Fallback for older "time — item" / "time-item" rows saved before
+    // this format existed.
+    const m = l.match(/^\s*(.*?)\s*[\u2014-]\s*(.*)$/);
+    if(m && m[1] && m[2]) return {time:m[1].trim(), item:m[2].trim()};
+    return {time:'', item:l.trim()};
+  });
+}
+function scheduleRowsToText(rows){
+  return (rows||[]).filter(r=>(r.time||'').trim()||(r.item||'').trim()).map(r=>{
+    const t=(r.time||'').trim(), i=(r.item||'').trim();
+    return (t && i) ? (t+'\t'+i) : (t||i);
+  }).join('\n');
+}
+function schedRowsHtmlAdmin(rid){
+  return (ADMIN_SCHED[rid]||[]).map((r,i)=>'<div class="sched-row-admin">'
+    +'<input type="text" placeholder="Time" value="'+esc(r.time)+'" oninput="updateSchedRowAdmin(\''+rid+'\','+i+',\'time\',this.value)">'
+    +'<input type="text" placeholder="Item / Activity" value="'+esc(r.item)+'" oninput="updateSchedRowAdmin(\''+rid+'\','+i+',\'item\',this.value)">'
+    +'<button type="button" class="icon-btn-admin" onclick="removeSchedRowAdmin(\''+rid+'\','+i+')" title="Remove">\u2715</button>'
+    +'</div>').join('');
+}
+function syncSchedHiddenAdmin(rid){
+  const el = document.getElementById(rid+'_cc');
+  if(el) el.value = scheduleRowsToText(ADMIN_SCHED[rid]);
+}
+function renderEventScheduleEditor(rid, currentText){
+  ADMIN_SCHED[rid] = parseScheduleText(currentText);
+  if(!ADMIN_SCHED[rid].length) ADMIN_SCHED[rid].push({time:'',item:''});
+  return '<div class="sched-editor">'
+    +'<div class="sched-rows-admin" id="schedRowsAdmin_'+rid+'">'+schedRowsHtmlAdmin(rid)+'</div>'
+    +'<button type="button" class="add-dash-admin" onclick="addSchedRowAdmin(\''+rid+'\')">+ Add row</button>'
+    +'<textarea id="'+rid+'_cc" style="display:none">'+esc(currentText)+'</textarea>'
+    +'</div>';
+}
+function addSchedRowAdmin(rid){
+  ADMIN_SCHED[rid] = ADMIN_SCHED[rid]||[];
+  ADMIN_SCHED[rid].push({time:'',item:''});
+  const wrap = document.getElementById('schedRowsAdmin_'+rid);
+  if(wrap) wrap.innerHTML = schedRowsHtmlAdmin(rid);
+  syncSchedHiddenAdmin(rid);
+}
+function removeSchedRowAdmin(rid, i){
+  ADMIN_SCHED[rid].splice(i,1);
+  if(!ADMIN_SCHED[rid].length) ADMIN_SCHED[rid].push({time:'',item:''});
+  const wrap = document.getElementById('schedRowsAdmin_'+rid);
+  if(wrap) wrap.innerHTML = schedRowsHtmlAdmin(rid);
+  syncSchedHiddenAdmin(rid);
+}
+function updateSchedRowAdmin(rid, i, key, val){
+  ADMIN_SCHED[rid][i][key] = val;
+  syncSchedHiddenAdmin(rid);
+}
+// Read-only rendering (locked/cancelled bookings) -- same 2-column look,
+// just without inputs.
+function scheduleReadOnlyHtml(text){
+  const rows = parseScheduleText(text);
+  if(!rows.length) return '\u2014';
+  return '<div class="sched-ro">'+rows.map(r=>'<div class="sched-ro-row"><span>'+esc(r.time)+'</span><span>'+esc(r.item)+'</span></div>').join('')+'</div>';
+}
+
 function fieldRowHtml(f, isCustEvent, locked){
   const rid = 'fld_'+f.field_key;
   const col3 = isCustEvent ? 'Updated value' : 'Assigned value';
@@ -3439,7 +3523,7 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(locked){
     return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
-      +'<td data-label="Current value"><span class="readonly-cell" style="'+(['event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key)?'white-space:pre-line':'')+'">'+esc(f.customer_choice||'—')+'</span></td>'
+      +'<td data-label="Current value"><span class="readonly-cell" style="'+(['event_photos_link','terms_conditions'].includes(f.field_key)?'white-space:pre-line':'')+'">'+(f.field_key==='event_schedule_text'?scheduleReadOnlyHtml(f.customer_choice||''):esc(f.customer_choice||'—'))+'</span></td>'
       +((['bill_discount_pct','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key)) ? '<td></td>' : '<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>')
       +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
@@ -3482,9 +3566,9 @@ function fieldRowHtml(f, isCustEvent, locked){
     // (promises/exceptions agreed with the client) as an admin field.
     ccCell = '<textarea id="'+rid+'_cc" placeholder="Terms/conditions agreed with the client" style="min-height:64px">'+esc(f.customer_choice||'')+'</textarea>';
   }else if(f.field_key==='event_schedule_text'){
-    // 2026-09-23, per Shruti — event schedule synced from the sales panel
-    // (or entered directly here), one line per item.
-    ccCell = '<textarea id="'+rid+'_cc" placeholder="One line per item, e.g. 4:00 PM – Welcome & Snacks" style="min-height:64px">'+esc(f.customer_choice||'')+'</textarea>';
+    // 2026-09-23, per Shruti -- "i want event schedule in admin like this"
+    // (same Time/Item row editor as the Sales panel, not a free-text box).
+    ccCell = renderEventScheduleEditor(rid, f.customer_choice||'');
   }else if(f.field_key==='event_payment_confirmed_amount'){
     // 2026-09-11, per Shruti — event-completion payment confirmation. Value
     // lands in Customer's Choice like every other admin-only field here
