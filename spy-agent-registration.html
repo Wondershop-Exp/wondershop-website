@@ -579,15 +579,14 @@
         document.getElementById('successTextOut').textContent =
           "Your agent's profile has been received for " + d.child_name + "'s mission. Headquarters will be in touch with further instructions before the big day.";
 
-        if (d.invite_image_url) {
-          var img = document.getElementById('inviteImg');
-          img.src = API_BASE + d.invite_image_url;
-          img.onload = function(){
-            img.style.display = 'block';
-            document.getElementById('codedInvite').style.display = 'none';
-          };
-          // If the image 404s, the coded invite (already in the DOM) stays visible — no broken-image icon.
-        }
+        // 2026-09-23, per Shruti — "I'll prefer let's use the design you
+        // made than the invite, as the invite already will go as an image
+        // on WhatsApp." The uploaded invite photo (when one exists) is
+        // deliberately NOT shown here any more — this page always uses
+        // the live "Top Secret" design above, filled in with this
+        // booking's real data. Uploading an invite in admin still works
+        // and is still what generates this page's link in the first
+        // place, it just no longer swaps the image in here.
       })
       .catch(function(){ showInvalidLink(); });
   }
