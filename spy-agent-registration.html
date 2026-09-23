@@ -248,6 +248,51 @@
   input::placeholder{color:#8a7aa8}
   input:focus{outline:2px solid var(--neon);outline-offset:0;border-color:var(--neon)}
   input[type="date"]{color-scheme:dark}
+  input[type="time"]{
+    width:auto;
+    flex:1;
+    min-width:130px;
+    padding:12px 14px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(199,125,255,0.35);
+    border-radius:10px;
+    color:var(--ink);
+    font-size:15px;
+    font-family:inherit;
+    color-scheme:dark;
+  }
+  .pd-prompt{
+    margin-top:12px;
+    padding:16px;
+    border:1px solid rgba(199,125,255,0.35);
+    border-radius:14px;
+    background:rgba(255,255,255,0.04);
+    text-align:center;
+  }
+  .pd-prompt-label{
+    font-size:12.5px;
+    color:var(--ink-dim);
+    text-transform:none;
+    letter-spacing:0;
+    line-height:1.5;
+    margin-bottom:10px;
+  }
+  .pd-fields{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .pd-confirm-btn{
+    margin-top:12px;
+    padding:11px 26px;
+    background:linear-gradient(135deg,var(--magenta),#7b2ff7);
+    color:#fff;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:0.8px;
+    text-transform:uppercase;
+    border:none;
+    border-radius:24px;
+    cursor:pointer;
+  }
+  .pd-confirm-btn:disabled{opacity:0.6;cursor:default}
+  .pd-msg{margin-top:8px;font-size:12.5px;min-height:1em}
   .file-drop{
     border:1.5px dashed rgba(199,125,255,0.45);
     border-radius:12px;
@@ -391,6 +436,16 @@
     <div class="mission-details-label">Mission Details</div>
     <div class="mission-line" id="dateLineOut">Date: —</div>
     <div class="mission-line" id="timeLineOut">Drop off: — | Pick up: —</div>
+
+    <div class="pd-prompt" id="pickupDropPrompt" style="display:none">
+      <div class="pd-prompt-label">Drop-off / pick-up time isn&rsquo;t confirmed yet &mdash; please enter the times you were told, so we can lock them in:</div>
+      <div class="pd-fields">
+        <input type="time" id="pdDropOff" aria-label="Drop off time">
+        <input type="time" id="pdPickUp" aria-label="Pick up time">
+      </div>
+      <button type="button" class="pd-confirm-btn" id="pdConfirmBtn" onclick="confirmPickupDrop()">Confirm Times</button>
+      <div class="pd-msg" id="pdMsg"></div>
+    </div>
 
     <div class="venue-block">
       <div class="mission-line">Please report to Spy Headquarters</div>
@@ -560,7 +615,24 @@
           ? ('On ' + (d.child_pronoun || 'their').charAt(0).toUpperCase() + (d.child_pronoun || 'their').slice(1) + ' ' + d.age_ordinal + ' Birthday Quest')
           : 'on their birthday quest';
         document.getElementById('dateLineOut').textContent = d.event_date_display ? ('Date: ' + d.event_date_display) : '';
-        document.getElementById('timeLineOut').textContent = d.event_time_display ? ('Party Time: ' + d.event_time_display) : '';
+        // 2026-09-23, per Shruti — "party time - replace with Drop off
+        // time / cannot see pickup time": this line now shows the real
+        // drop-off/pick-up times set in admin (or confirmed by the parent
+        // below) instead of the old single "Party Time". Hidden entirely
+        // when admin has toggled show_pickup_drop off; shows a confirm
+        // prompt when neither is set yet.
+        var timeLineEl = document.getElementById('timeLineOut');
+        var pdPromptEl = document.getElementById('pickupDropPrompt');
+        if (d.show_pickup_drop === false) {
+          timeLineEl.style.display = 'none';
+          pdPromptEl.style.display = 'none';
+        } else if (d.drop_off_time_display && d.pick_up_time_display) {
+          timeLineEl.textContent = 'Drop off: ' + d.drop_off_time_display + '  |  Pick up: ' + d.pick_up_time_display;
+          pdPromptEl.style.display = 'none';
+        } else {
+          timeLineEl.textContent = 'Drop off / Pick up time: to be confirmed';
+          pdPromptEl.style.display = 'block';
+        }
         // Split on commas so a full street address reads as clean stacked
         // lines (like the old hand-typed 3-line address did) instead of
         // one long run-on line — still just the real venue string, no
@@ -582,6 +654,46 @@
         // place, it just no longer swaps the image in here.
       })
       .catch(function(){ showInvalidLink(); });
+  }
+
+  // ── Parent confirms drop-off/pick-up time (shown only when admin
+  // hasn't set one yet — see pickup_drop_needs_confirmation above) ──
+  function confirmPickupDrop(){
+    var dropEl = document.getElementById('pdDropOff');
+    var pickEl = document.getElementById('pdPickUp');
+    var msgEl = document.getElementById('pdMsg');
+    var btn = document.getElementById('pdConfirmBtn');
+    if (!dropEl.value || !pickEl.value) {
+      msgEl.textContent = 'Please enter both times.';
+      msgEl.style.color = '#ff8fa3';
+      return;
+    }
+    btn.disabled = true;
+    msgEl.textContent = '';
+    fetch(API_BASE + '/api/spy-registration/confirm-pickup-drop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: TOKEN, drop_off_time: dropEl.value, pick_up_time: pickEl.value })
+    })
+      .then(function(r){
+        return r.json().then(function(data){ return { ok: r.ok, data: data }; });
+      })
+      .then(function(res){
+        btn.disabled = false;
+        if (!res.ok) {
+          msgEl.textContent = (res.data && res.data.detail) || 'Something went wrong \u2014 please try again.';
+          msgEl.style.color = '#ff8fa3';
+          return;
+        }
+        document.getElementById('timeLineOut').textContent =
+          'Drop off: ' + res.data.drop_off_time_display + '  |  Pick up: ' + res.data.pick_up_time_display;
+        document.getElementById('pickupDropPrompt').style.display = 'none';
+      })
+      .catch(function(){
+        btn.disabled = false;
+        msgEl.textContent = 'Something went wrong \u2014 please try again.';
+        msgEl.style.color = '#ff8fa3';
+      });
   }
 
   // ── Photo picker preview + client-side guardrails ──
