@@ -2421,7 +2421,6 @@ function statusBlockHtml(d){
     return '<div class="status-card">'
       +'<div class="fld"><label>Status</label><span class="status-pill '+cls+'" style="padding:8px 14px;font-size:13px">'+esc(d.status||'')+'</span></div>'
       +'<div class="btns">'
-        +'<button class="btn" onclick="sendInvoiceDetail()">'+(d.invoice_sent_at_ist ? 'Resend Updated Invoice' : 'Send Invoice')+'</button>'
         +summaryEmailControlsHtml(d)
         +(d.status!=='Cancelled' ? '<button class="btn cancel" onclick="cancelEventDetail()">Cancel Event</button>' : '')
       +'</div>'
@@ -2459,10 +2458,10 @@ function statusBlockHtml(d){
 // invoice goes out, both manual and both meant for once the booking is
 // actually complete (post payment).
 function summaryEmailControlsHtml(d){
-  return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gy);margin:0 4px">'
+  return '<button class="btn" onclick="sendSummaryEmailDetail()">Resend Summary Email</button>'
+    +'<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gy);margin:0 4px">'
       +'<input type="checkbox" id="attachInvoiceChk"'+(d.is_booking ? '' : ' disabled title="Only a confirmed booking has an invoice to attach"')+'> Attach invoice'
-    +'</label>'
-    +'<button class="btn" onclick="sendSummaryEmailDetail()">Resend Summary Email</button>';
+    +'</label>';
 }
 // Did the booking emails actually go out? (recorded by the server, migration 033)
 function emailStatusHtml(d){
@@ -2534,21 +2533,6 @@ async function convertLeadDetail(){
     if(e.message!=='unauthorized') showToast(e.message);
   }
 }
-async function sendInvoiceDetail(){
-  const who = getName();
-  if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); highlightWhoName(); return; }
-  if(!confirm('Send the current invoice to this customer by email now?')) return;
-  try{
-    const res = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/invoice/send', {
-      method:'POST',
-      body: JSON.stringify({changed_by: who}),
-    });
-    showToast('✓ Invoice '+res.invoice_number+' sent to '+res.sent_to+'.');
-    await loadDetail();
-  }catch(e){
-    if(e.message!=='unauthorized') showToast(e.message);
-  }
-}
 async function sendSummaryEmailDetail(){
   const who = getName();
   if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); highlightWhoName(); return; }
@@ -2559,7 +2543,7 @@ async function sendSummaryEmailDetail(){
       method:'POST',
       body: JSON.stringify({changed_by: who, attach_invoice: attachInvoice}),
     });
-    showToast('✓ Summary email sent to '+res.sent_to+'.');
+    showToast('✓ Summary email sent to '+res.sent_to+'.'+(res.invoice_number ? ' Invoice '+res.invoice_number+' attached.' : ''));
     await loadDetail();
   }catch(e){
     if(e.message!=='unauthorized') showToast(e.message);

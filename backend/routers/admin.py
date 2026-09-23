@@ -1708,10 +1708,29 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
     # mirror the leads table columns 1:1 (see _append_to_sheet's payload
     # dict for the same mapping), so a resend always reflects whatever the
     # team has since edited on the booking, not the stale original submit.
-    snap = _parse_snapshot(lead.get("builder_snapshot"))
-    req_fields = {k: lead.get(k) for k in LeadSubmitRequest.model_fields if k in lead}
-    req_fields["builder_snapshot"] = snap
-    fake_req = LeadSubmitRequest(**req_fields)
+    #
+    # 2026-09-23, per Shruti's "didn't get the email" report on Swati's
+    # booking #3: this reconstruction is NOT the same safety net
+    # send_booking_invoice() above uses (a loose SimpleNamespace) -- it's a
+    # real pydantic model, so a DB row whose column types/values don't line
+    # up with LeadSubmitRequest's field types (e.g. something stored where
+    # a field expects a clean number) raises ValidationError here, OUTSIDE
+    # of _send_user_ack's own try/except (that only wraps the send itself).
+    # Uncaught, that crashed the request with a bare unhelpful 503 and no
+    # server-side trace of what went wrong -- wrapping it turns that into a
+    # real 502 with the actual pydantic error, so the team sees why instead
+    # of a silent failure, and we can fix the specific field next time.
+    try:
+        snap = _parse_snapshot(lead.get("builder_snapshot"))
+        req_fields = {k: lead.get(k) for k in LeadSubmitRequest.model_fields if k in lead}
+        req_fields["builder_snapshot"] = snap
+        fake_req = LeadSubmitRequest(**req_fields)
+    except Exception as build_exc:
+        logger.error(f"Lead #{lead_id}: couldn't rebuild the submission from the DB row for a summary-email resend — {build_exc}")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Couldn't rebuild this booking's data to resend the email — {build_exc}",
+        )
 
     reward_row = await database.fetch_one(
         "SELECT code FROM reward_codes WHERE issued_lead_id = :id ORDER BY id DESC LIMIT 1", values={"id": lead_id}
@@ -1740,6 +1759,17 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
         )
 
     now = datetime.utcnow()
+    # 2026-09-23, per Shruti: the dedicated "Send Invoice" button is gone
+    # from the admin UI -- this checkbox is now the only way an invoice
+    # goes out, so this has to persist invoice_sent_at itself (the same
+    # column the old dedicated endpoint set) or admin.html's "Invoice last
+    # sent" field would silently stop updating forever.
+    invoice_number = None
+    if body.attach_invoice and lead.get("is_booking"):
+        invoice_number = await _get_or_create_invoice_number(lead_id)
+        await database.execute(
+            "UPDATE leads SET invoice_sent_at = :now WHERE lead_id = :id", values={"now": now, "id": lead_id}
+        )
     await database.execute(
         """
         INSERT INTO booking_change_log
@@ -1749,12 +1779,12 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
         """,
         values={
             "lead_id": lead_id,
-            "new_v": f"resent to {lead['email']}" + (" (with invoice)" if body.attach_invoice else ""),
+            "new_v": f"resent to {lead['email']}" + (f" (with invoice {invoice_number})" if invoice_number else ""),
             "by": who, "ts": now,
         },
     )
     logger.info(f"Lead #{lead_id}: summary email resent to {lead['email']} by {who} (attach_invoice={body.attach_invoice})")
-    return {"success": True, "sent_to": lead["email"]}
+    return {"success": True, "sent_to": lead["email"], "invoice_number": invoice_number}
 
 
 # ─── EMAIL CHECK ────────────────────────────────────────────────────────────
