@@ -112,6 +112,34 @@ def _mission_label(lead) -> str:
     return f"{child} — {date_str}" if date_str else child
 
 
+def _ordinal(n_str: Optional[str]) -> str:
+    """'10' -> '10th'. child_ages/child_genders are comma-joined per-child
+    (builder.html supports multiple kids on one booking) — the public
+    Spy mission page is framed around a single agent, so this and
+    _pronoun() below both just take the first child (2026-09-23, per
+    Shruti — restoring the "On Her 10th Birthday Quest" style line the
+    old hardcoded page had, now driven by the booking's real data instead
+    of a value someone had to type in by hand per party)."""
+    first = (n_str or "").split(",")[0].strip()
+    if not first.isdigit():
+        return ""
+    n = int(first)
+    if 10 <= n % 100 <= 13:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+def _pronoun(genders_str: Optional[str]) -> str:
+    first = (genders_str or "").split(",")[0].strip().lower()
+    if first == "boy":
+        return "his"
+    if first == "girl":
+        return "her"
+    return "their"
+
+
 # ─── ADMIN: upload/replace the invite, check current status ───────────────
 # Mirrors admin.html's existing X-Admin-Password pattern (see
 # routers/admin.py's _require_admin, reused here rather than duplicated).
@@ -190,7 +218,8 @@ async def admin_upload_invite(
 async def get_party_info(token: str):
     row = await database.fetch_one(
         """SELECT (srp.invite_image IS NOT NULL) AS has_invite,
-                  l.child_names, l.event_date, l.event_time, l.venue,
+                  l.child_names, l.child_ages, l.child_genders,
+                  l.event_date, l.event_time, l.venue,
                   l.venue_contact_name, l.venue_contact_phone
            FROM spy_registration_pages srp
            JOIN leads l ON l.lead_id = srp.lead_id
@@ -213,6 +242,13 @@ async def get_party_info(token: str):
     return {
         "child_name": _clean(row.get("child_names")) or "Agent",
         "mission_label": _mission_label(row),
+        # 2026-09-23, per Shruti — "on her 10th birthday quest" style
+        # phrasing, restored from the booking's own real data (age/gender)
+        # rather than a value someone had to hand-type per party. Blank
+        # when the age isn't on file — the frontend falls back to a
+        # generic "on their birthday quest" line in that case.
+        "age_ordinal": _ordinal(row.get("child_ages")),
+        "child_pronoun": _pronoun(row.get("child_genders")),
         "event_date_display": _format_date(row.get("event_date")),
         "event_time_display": _format_time(row.get("event_time")),
         "venue": _clean(row.get("venue")),

@@ -327,9 +327,45 @@
     .arch{padding:30px 16px 24px}
     .form-title{font-size:28px}
   }
+
+  /* 2026-09-23, per Shruti — "Register Your Agent" must be reachable
+     without scrolling, on the very first landing, on both mobile and
+     desktop. The hero/invite card is tall (full mission details), so
+     rather than compressing that content to fit above the fold on every
+     screen size, a slim CTA bar is pinned to the bottom of the viewport
+     from the moment the page loads and stays visible while scrolling —
+     the button is always on-screen, with no scroll needed. body padding
+     below reserves space so this bar never covers the footer/success
+     text underneath it. */
+  body{padding-bottom:72px}
+  .sticky-cta-bar{
+    position:fixed;
+    left:0; right:0; bottom:0;
+    z-index:100;
+    background:rgba(10,4,20,0.92);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    border-top:1px solid rgba(199,125,255,0.25);
+    padding:10px 16px;
+    text-align:center;
+  }
+  .sticky-cta-bar .cta-btn{
+    display:block;
+    width:100%;
+    max-width:420px;
+    margin:0 auto;
+    box-sizing:border-box;
+  }
 </style>
 </head>
 <body>
+
+<!-- Always-visible CTA — see the .sticky-cta-bar comment above. Hidden
+     automatically on the success/invalid-link screens via JS below,
+     since there's nothing left to register at that point. -->
+<div class="sticky-cta-bar" id="stickyCtaBar">
+  <a href="#registerForm" class="cta-btn">🕵️ Register Your Agent</a>
+</div>
 
 <!-- ══════════════════════════════════════════════════════════════
      2026-09-23, per Shruti — this page is now driven entirely by the
@@ -499,6 +535,7 @@
     document.getElementById('hero').style.display = 'none';
     document.getElementById('registerForm').style.display = 'none';
     document.getElementById('invalidLinkScreen').style.display = 'block';
+    var bar = document.getElementById('stickyCtaBar'); if (bar) bar.style.display = 'none';
   }
 
   if (!TOKEN) {
@@ -515,10 +552,22 @@
         // ── Populate the coded invite / mission header from the backend's response ──
         document.title = 'Agent Registration — ' + d.child_name + "'s Mission";
         document.getElementById('childNameOut').textContent = d.child_name.toUpperCase();
-        document.getElementById('questLineOut').textContent = 'on their birthday quest';
+        // 2026-09-23, per Shruti — restore the "On Her 10th Birthday Quest"
+        // style line (real data now, from age_ordinal/child_pronoun —
+        // see spy_registration.py's _ordinal()/_pronoun()); fall back to
+        // the generic phrasing when the child's age isn't on file.
+        document.getElementById('questLineOut').textContent = d.age_ordinal
+          ? ('On ' + (d.child_pronoun || 'their').charAt(0).toUpperCase() + (d.child_pronoun || 'their').slice(1) + ' ' + d.age_ordinal + ' Birthday Quest')
+          : 'on their birthday quest';
         document.getElementById('dateLineOut').textContent = d.event_date_display ? ('Date: ' + d.event_date_display) : '';
         document.getElementById('timeLineOut').textContent = d.event_time_display ? ('Party Time: ' + d.event_time_display) : '';
-        document.getElementById('venueLinesOut').innerHTML = d.venue ? esc(d.venue) : '';
+        // Split on commas so a full street address reads as clean stacked
+        // lines (like the old hand-typed 3-line address did) instead of
+        // one long run-on line — still just the real venue string, no
+        // per-party hand-editing needed.
+        document.getElementById('venueLinesOut').innerHTML = d.venue
+          ? d.venue.split(',').map(function(s){ return s.trim(); }).filter(Boolean).map(esc).join('<br>')
+          : '';
         var confirmLineEl = document.getElementById('confirmLineOut');
         if (d.contact_name || d.contact_phone) {
           confirmLineEl.innerHTML = 'Confirm your involvement from a secret phone line to <b>' +
@@ -649,6 +698,7 @@
         document.querySelector('.guidelines-card').style.display = 'none';
         document.getElementById('successScreen').style.display = 'block';
         document.getElementById('successScreen').scrollIntoView({ behavior: 'smooth' });
+        var bar = document.getElementById('stickyCtaBar'); if (bar) bar.style.display = 'none';
       })
       .catch(function(err){
         showMsg(err.message || 'Something went wrong — please try again.', 'error');
