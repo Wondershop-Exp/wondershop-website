@@ -1753,7 +1753,22 @@ SOURCE
         attachments = []
         if is_booking:
             try:
-                form_data = assemble_order_form_data(req, lead_id, event_sales_lead, reward_code, added_service_label)
+                # 2026-09-23, per Shruti — "this should flow to the order
+                # form as well": the sales panel's own Event Schedule
+                # (lead_sales_playbook.event_schedule), when one was
+                # entered there, pre-fills the order form's Event Schedule
+                # table instead of ops always hand-writing it from blank.
+                playbook_row = await database.fetch_one(
+                    "SELECT event_schedule FROM lead_sales_playbook WHERE lead_id = :id", values={"id": lead_id},
+                )
+                event_schedule = None
+                if playbook_row and playbook_row["event_schedule"]:
+                    raw_sched = playbook_row["event_schedule"]
+                    event_schedule = json.loads(raw_sched) if isinstance(raw_sched, str) else raw_sched
+                form_data = assemble_order_form_data(
+                    req, lead_id, event_sales_lead, reward_code, added_service_label,
+                    event_schedule=event_schedule,
+                )
                 form_data = await fetch_order_form_images(form_data)
                 xlsx_bytes = build_order_form_xlsx(form_data)
                 pdf_bytes = build_order_form_pdf(form_data)

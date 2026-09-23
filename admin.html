@@ -1243,6 +1243,16 @@ function renderSpyRegistrationBody(leadId, status){
   const helpText = !status.exists
     ? '<div style="font-size:12px;color:var(--gy);margin-top:8px">Upload the party&rsquo;s invite image to generate its registration link \u2014 the page will show that invite automatically.</div>'
     : '';
+  const dropOffVal = status.drop_off_time || '';
+  const pickUpVal = status.pick_up_time || '';
+  const showPD = status.show_pickup_drop !== false;
+  const pdSourceNote = (status.drop_off_time || status.pick_up_time)
+    ? '<div id="srPickupDropStatus" style="font-size:11.5px;color:var(--gy);margin-top:8px">'
+      + (status.pickup_drop_source === 'parent' ? 'Confirmed by parent' : 'Set by admin')
+      + (status.pickup_drop_updated_at ? ' \u00b7 '+esc(status.pickup_drop_updated_at) : '')
+      + '</div>'
+    : '<div id="srPickupDropStatus" style="font-size:11.5px;color:var(--gy);margin-top:8px">Not set yet \u2014 the registration page will ask the parent to confirm.</div>';
+
   block.innerHTML =
     '<div class="spy-reg-card">'
     + '<div class="srh">\ud83d\udd75\ufe0f Spy Agent Registration Page</div>'
@@ -1252,7 +1262,46 @@ function renderSpyRegistrationBody(leadId, status){
     +   (status.exists && status.has_invite ? '<span class="sr-status">\u2713 Invite uploaded'+(status.invite_image_name ? ' ('+esc(status.invite_image_name)+')' : '')+'</span>' : '')
     + '</div>'
     + helpText
+    + '<div class="sr-pickup-drop" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">'
+    +   '<div style="font-size:12px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Drop-off / Pick-up Time</div>'
+    +   '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">'
+    +     '<label style="font-size:12.5px;color:var(--gy);display:flex;align-items:center;gap:6px">Drop off<input type="time" id="srDropOff" value="'+esc(dropOffVal)+'" style="padding:7px 9px;border:1px solid var(--li2);border-radius:7px;font-size:13px"></label>'
+    +     '<label style="font-size:12.5px;color:var(--gy);display:flex;align-items:center;gap:6px">Pick up<input type="time" id="srPickUp" value="'+esc(pickUpVal)+'" style="padding:7px 9px;border:1px solid var(--li2);border-radius:7px;font-size:13px"></label>'
+    +     '<label style="font-size:12.5px;color:var(--gy);display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="srShowPickupDrop" '+(showPD?'checked':'')+'> Show on registration page</label>'
+    +     '<button type="button" class="sr-btn primary" onclick="saveSpyPickupDrop('+leadId+')">Save</button>'
+    +   '</div>'
+    +   pdSourceNote
+    + '</div>'
     + '</div>';
+}
+
+async function saveSpyPickupDrop(leadId){
+  const dropOffEl = document.getElementById('srDropOff');
+  const pickUpEl = document.getElementById('srPickUp');
+  const showEl = document.getElementById('srShowPickupDrop');
+  if(!dropOffEl || !pickUpEl || !showEl) return;
+  try{
+    const res = await fetch(API+'/api/spy-registration/admin/'+leadId+'/pickup-drop', {
+      method: 'POST',
+      headers: {'X-Admin-Password': getPw(), 'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        drop_off_time: dropOffEl.value || null,
+        pick_up_time: pickUpEl.value || null,
+        show_pickup_drop: showEl.checked,
+      }),
+    });
+    if(res.status===401){ showToast('Session expired — please log in again.'); return; }
+    if(!res.ok){
+      const body = await res.json().catch(()=>({}));
+      throw new Error(body.detail || ('Save failed ('+res.status+')'));
+    }
+    await res.json();
+    showToast('Drop-off / pick-up time saved');
+    const status = await apiCall('/api/spy-registration/admin/'+leadId);
+    renderSpyRegistrationBody(leadId, status);
+  }catch(e){
+    showToast('Could not save: '+e.message);
+  }
 }
 
 function copySpyRegLink(){

@@ -48,10 +48,11 @@ from typing import Optional
 
 import httpx
 from fastapi import APIRouter, Form, File, Header, UploadFile, HTTPException, Response
+from pydantic import BaseModel
 
 from database import database
 from config import settings
-from routers.admin import _require_admin
+from routers.admin import _require_admin, _to_ist_str
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -102,6 +103,23 @@ def _format_time(t: Optional[str]) -> str:
         return t
 
 
+def _clean_time(v: Optional[str]) -> Optional[str]:
+    """Validates + normalises a 'HH:MM' 24h time string, same convention
+    as leads.event_time. Blank/None -> None (nothing on file). Anything
+    else that doesn't parse raises a 400 rather than silently storing
+    garbage, since these times feed a parent-facing display."""
+    v = (v or "").strip()
+    if not v:
+        return None
+    try:
+        hh, mm = (int(x) for x in v.split(":")[:2])
+        if not (0 <= hh <= 23 and 0 <= mm <= 59):
+            raise ValueError
+        return f"{hh:02d}:{mm:02d}"
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Time must be in HH:MM 24-hour format.")
+
+
 def _mission_label(lead) -> str:
     """Used both as the public page's title and as the worksheet tab name
     in the dedicated Spy sheet. Deliberately just child name + event date
@@ -149,18 +167,25 @@ async def admin_get_status(lead_id: int, x_admin_password: Optional[str] = Heade
     _require_admin(x_admin_password)
     row = await database.fetch_one(
         """SELECT share_token, (invite_image IS NOT NULL) AS has_invite,
-                  invite_image_name, updated_on
+                  invite_image_name, updated_on,
+                  drop_off_time, pick_up_time, show_pickup_drop,
+                  pickup_drop_source, pickup_drop_updated_at
            FROM spy_registration_pages WHERE lead_id = :lead_id""",
         values={"lead_id": lead_id},
     )
     if not row:
-        return {"exists": False}
+        return {"exists": False, "show_pickup_drop": True}
     return {
         "exists": True,
         "share_token": row["share_token"],
         "share_url": f"/spy-agent-registration.html?t={row['share_token']}",
         "has_invite": bool(row["has_invite"]),
         "invite_image_name": row["invite_image_name"],
+        "drop_off_time": row["drop_off_time"],
+        "pick_up_time": row["pick_up_time"],
+        "show_pickup_drop": row["show_pickup_drop"] if row["show_pickup_drop"] is not None else True,
+        "pickup_drop_source": row["pickup_drop_source"],
+        "pickup_drop_updated_at": _to_ist_str(row["pickup_drop_updated_at"]),
     }
 
 
@@ -212,12 +237,77 @@ async def admin_upload_invite(
     }
 
 
+class PickupDropUpdate(BaseModel):
+    drop_off_time: Optional[str] = None   # 'HH:MM' 24h, or '' / None to clear
+    pick_up_time: Optional[str] = None
+    show_pickup_drop: bool = True
+
+
+@router.post("/admin/{lead_id}/pickup-drop")
+async def admin_set_pickup_drop(
+    lead_id: int,
+    body: PickupDropUpdate,
+    x_admin_password: Optional[str] = Header(None),
+):
+    """Admin sets (or clears) the official drop-off/pick-up time for a
+    party, and whether to show that block on the public registration page
+    at all. Creates the spy_registration_pages row if this booking hasn't
+    had an invite uploaded yet -- admin shouldn't have to upload an invite
+    first just to set pickup/drop times."""
+    _require_admin(x_admin_password)
+
+    lead = await database.fetch_one("SELECT lead_id FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    if not lead:
+        raise HTTPException(status_code=404, detail="No booking found with that lead ID.")
+
+    drop_off = _clean_time(body.drop_off_time)
+    pick_up = _clean_time(body.pick_up_time)
+    now = datetime.utcnow()
+
+    existing = await database.fetch_one(
+        "SELECT share_token FROM spy_registration_pages WHERE lead_id = :lead_id",
+        values={"lead_id": lead_id},
+    )
+    if existing:
+        token = existing["share_token"]
+        await database.execute(
+            """UPDATE spy_registration_pages
+               SET drop_off_time = :drop_off, pick_up_time = :pick_up,
+                   show_pickup_drop = :show, pickup_drop_source = 'admin',
+                   pickup_drop_updated_at = :now
+               WHERE lead_id = :lead_id""",
+            values={"drop_off": drop_off, "pick_up": pick_up, "show": body.show_pickup_drop, "now": now, "lead_id": lead_id},
+        )
+    else:
+        token = secrets.token_urlsafe(18)
+        await database.execute(
+            """INSERT INTO spy_registration_pages
+                   (lead_id, share_token, drop_off_time, pick_up_time, show_pickup_drop,
+                    pickup_drop_source, pickup_drop_updated_at)
+               VALUES (:lead_id, :token, :drop_off, :pick_up, :show, 'admin', :now)""",
+            values={
+                "lead_id": lead_id, "token": token, "drop_off": drop_off, "pick_up": pick_up,
+                "show": body.show_pickup_drop, "now": now,
+            },
+        )
+
+    return {
+        "success": True,
+        "share_token": token,
+        "share_url": f"/spy-agent-registration.html?t={token}",
+        "drop_off_time": drop_off,
+        "pick_up_time": pick_up,
+        "show_pickup_drop": body.show_pickup_drop,
+    }
+
+
 # ─── PUBLIC: party info, invite image, and the registration form itself ───
 
 @router.get("/party/{token}")
 async def get_party_info(token: str):
     row = await database.fetch_one(
         """SELECT (srp.invite_image IS NOT NULL) AS has_invite,
+                  srp.drop_off_time, srp.pick_up_time, srp.show_pickup_drop,
                   l.child_names, l.child_ages, l.child_genders,
                   l.event_date, l.event_time, l.venue,
                   l.venue_contact_name, l.venue_contact_phone
@@ -256,6 +346,22 @@ async def get_party_info(token: str):
         "contact_phone": _clean(row.get("venue_contact_phone")),
         "has_invite": bool(row.get("has_invite")),
         "invite_image_url": f"/api/spy-registration/invite-image/{token}" if row.get("has_invite") else None,
+        # 2026-09-23, per Shruti — drop-off/pick-up times, shown only if
+        # admin hasn't hidden the block; when admin hasn't set them yet,
+        # the page itself asks the parent to confirm what they were told
+        # (see /confirm-pickup-drop below), which becomes the official
+        # time -- needs_confirmation covers "neither set" as well as
+        # "only one of the two set" so the prompt always collects both.
+        "show_pickup_drop": row.get("show_pickup_drop") if row.get("show_pickup_drop") is not None else True,
+        # Raw 'HH:MM' alongside the display string so the frontend can
+        # prefill an <input type="time"> in the confirm prompt when only
+        # ONE of the two is set -- _display alone (e.g. "4:00 PM") can't
+        # be fed back into a time input.
+        "drop_off_time": row.get("drop_off_time"),
+        "pick_up_time": row.get("pick_up_time"),
+        "drop_off_time_display": _format_time(row.get("drop_off_time")) or None,
+        "pick_up_time_display": _format_time(row.get("pick_up_time")) or None,
+        "pickup_drop_needs_confirmation": not (row.get("drop_off_time") and row.get("pick_up_time")),
     }
 
 
@@ -365,3 +471,66 @@ async def register_spy_agent(
         raise HTTPException(status_code=502, detail="Something went wrong saving the registration — please try again.")
 
     return {"success": True}
+
+
+class ConfirmPickupDropRequest(BaseModel):
+    token: str
+    drop_off_time: str
+    pick_up_time: str
+
+
+@router.post("/confirm-pickup-drop")
+async def confirm_pickup_drop(body: ConfirmPickupDropRequest):
+    """A parent confirming the drop-off/pick-up time on the public page,
+    shown whenever admin hasn't set one yet (get_party_info's
+    pickup_drop_needs_confirmation). Their answer BECOMES the official
+    time (2026-09-23, per Shruti — "ask the user to confirm the actual
+    drop and pickup time and update admin") and is logged to
+    booking_change_log so admin.html's Modification Trail shows it came
+    from the parent, not the team."""
+    token = _clean(body.token)
+    if not token:
+        raise HTTPException(status_code=400, detail="Missing registration link reference — please use the link exactly as shared.")
+    drop_off = _clean_time(body.drop_off_time)
+    pick_up = _clean_time(body.pick_up_time)
+    if not drop_off or not pick_up:
+        raise HTTPException(status_code=400, detail="Please provide both the drop-off and pick-up time.")
+
+    row = await database.fetch_one(
+        "SELECT lead_id, drop_off_time, pick_up_time FROM spy_registration_pages WHERE share_token = :token",
+        values={"token": token},
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="This registration link isn't valid — please check the link your host shared.")
+
+    now = datetime.utcnow()
+    await database.execute(
+        """UPDATE spy_registration_pages
+           SET drop_off_time = :drop_off, pick_up_time = :pick_up,
+               pickup_drop_source = 'parent', pickup_drop_updated_at = :now
+           WHERE share_token = :token""",
+        values={"drop_off": drop_off, "pick_up": pick_up, "now": now, "token": token},
+    )
+
+    old_display = (
+        f"Drop off {_format_time(row['drop_off_time'])} / Pick up {_format_time(row['pick_up_time'])}"
+        if row["drop_off_time"] or row["pick_up_time"] else None
+    )
+    await database.execute(
+        """INSERT INTO booking_change_log
+               (lead_id, field_key, field_label, change_type, old_value, new_value, changed_by, changed_at)
+           VALUES (:lead_id, 'spy_pickup_drop', 'Drop-off / Pick-up Time', 'confirmed_by_parent', :old_v, :new_v, 'Parent (registration page)', :now)""",
+        values={
+            "lead_id": row["lead_id"],
+            "old_v": old_display,
+            "new_v": f"Drop off {_format_time(drop_off)} / Pick up {_format_time(pick_up)}",
+            "now": now,
+        },
+    )
+
+    logger.info(f"Spy pickup/drop confirmed by parent for lead #{row['lead_id']} ({token}): drop {drop_off}, pickup {pick_up}")
+    return {
+        "success": True,
+        "drop_off_time_display": _format_time(drop_off),
+        "pick_up_time_display": _format_time(pick_up),
+    }

@@ -91,7 +91,8 @@ def _child_age_gender(req) -> str:
 
 def assemble_order_form_data(req, lead_id: int, event_sales_lead: Optional[str],
                               reward_code: Optional[str] = None,
-                              added_service_label: Optional[str] = None) -> dict:
+                              added_service_label: Optional[str] = None,
+                              event_schedule: Optional[list] = None) -> dict:
     """Pulls together everything the order form needs straight from the
     booking payload already captured at checkout — no extra DB lookups.
     added_service_label is set when the customer won and redeemed a
@@ -197,6 +198,13 @@ def assemble_order_form_data(req, lead_id: int, event_sales_lead: Optional[str],
         "gifts_detail": gifts_detail,
         "gift_packaging_label": packaging_label,
         "gift_thank_you_note": thank_you_note,
+        # 2026-09-23, per Shruti — "this should flow to the order form as
+        # well": the sales panel's own Event Schedule (lead_sales_playbook.
+        # event_schedule), fetched by the caller since this function stays
+        # DB-free otherwise. [] / None both mean "nothing entered yet" —
+        # the xlsx/pdf builders fall back to their original blank rows for
+        # ops to hand-fill in that case.
+        "event_schedule": event_schedule or [],
     }
 
 
@@ -414,7 +422,19 @@ def build_order_form_xlsx(data: dict) -> bytes:
     hc2.border = border
     hc2.alignment = Alignment(horizontal="center")
     right_row += 1
-    for _ in range(8):
+    # 2026-09-23, per Shruti — pre-fill from the sales panel's Event
+    # Schedule when one was entered there (lead_sales_playbook), same as
+    # the blank version ops has always hand-filled otherwise; always add
+    # 2 spare blank rows after so ops can still add to it on the printout.
+    sched_rows = data.get("event_schedule") or []
+    blank_count = 8 if not sched_rows else 2
+    for row in sched_rows:
+        ws.merge_cells(start_row=right_row, start_column=5, end_row=right_row, end_column=6)
+        ws.cell(row=right_row, column=5, value=row.get("time") or "").border = border
+        ws.merge_cells(start_row=right_row, start_column=7, end_row=right_row, end_column=9)
+        ws.cell(row=right_row, column=7, value=row.get("item") or "").border = border
+        right_row += 1
+    for _ in range(blank_count):
         ws.merge_cells(start_row=right_row, start_column=5, end_row=right_row, end_column=6)
         ws.cell(row=right_row, column=5, value="").border = border
         ws.merge_cells(start_row=right_row, start_column=7, end_row=right_row, end_column=9)
@@ -670,7 +690,17 @@ def build_order_form_pdf(data: dict) -> bytes:
     right_flow.append(Spacer(1, 4))
     right_flow.append(_section_header("Event Schedule", right_w))
     sched_header = [Paragraph("<b>Time</b>", body), Paragraph("<b>Activity</b>", body)]
-    sched_data = [sched_header] + [["", ""] for _ in range(7)]
+    # 2026-09-23, per Shruti — pre-fill from the sales panel's Event
+    # Schedule when one was entered there; always add 2 spare blank rows
+    # after so ops can still add to it on the printout.
+    sched_rows = data.get("event_schedule") or []
+    if sched_rows:
+        sched_data = [sched_header] + [
+            [Paragraph(r.get("time") or "", body), Paragraph(r.get("item") or "", body)]
+            for r in sched_rows
+        ] + [["", ""] for _ in range(2)]
+    else:
+        sched_data = [sched_header] + [["", ""] for _ in range(7)]
     sched_tbl = Table(sched_data, colWidths=[right_w * 0.25, right_w * 0.75])
     sched_tbl.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#DDDDDD")),

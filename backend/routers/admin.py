@@ -277,6 +277,34 @@ def _build_decor_options():
 # pinata name (unpriced) so it still matches historical booking data and the
 # DROPDOWN_VALUES membership check in _validate_choice_value below.
 DECOR_OPTIONS = _build_decor_options()
+_STD_DECOR_NAMES_REV = {v: k for k, v in _STD_DECOR_NAMES.items()}
+_THEMES_BY_NAME = {t["n"]: t for t in cat.THEMES}
+
+
+def _resolve_decor_override(value: Optional[str]) -> Optional[dict]:
+    """Best-effort reconstruction of a builder_snapshot-shaped decor entry
+    ({"n","id","p"}) from the admin override's plain display string -- see
+    _build_decor_options above for exactly how that string is built.
+    Used to fill the summary email's Decor section for bookings entered
+    through the sales admin panel, which never populate builder_snapshot
+    at all (2026-09-23, per Shruti — "decor is chosen in admin but is not
+    showing up in the email"). id is left None (image/inclusions just get
+    skipped, name + price still show) when the string doesn't match a
+    known theme/tier or standard name -- e.g. a free-typed legacy value."""
+    value = (value or "").strip()
+    if not value:
+        return None
+    if value == "Custom Design":
+        return {"n": value, "id": None, "p": None}
+    if " - " in value:
+        theme_name, tier = value.rsplit(" - ", 1)
+        theme_match = _THEMES_BY_NAME.get(theme_name)
+        if theme_match and tier in cat.DECOR_TIER_META:
+            return {"n": value, "id": f"{theme_match['id']}-{tier.lower()}", "p": cat.DECOR_TIER_META[tier]["price"]}
+    tier = _STD_DECOR_NAMES_REV.get(value)
+    if tier:
+        return {"n": value, "id": f"std-{tier.lower()}", "p": cat.DECOR_TIER_META[tier]["price"]}
+    return {"n": value, "id": None, "p": None}
 HOST_OPTIONS = [_opt(x, f'{x} - Rs. {cat.HOST_TIER_PRICES[x]}') for x in ["Premium", "Signature"]]
 DJ_OPTIONS = [_opt(x, f'{x} - Rs. {cat.DJ_TIER_PRICES[x]}') for x in ["Classic", "Premium"]]
 PHOTO_OPTIONS = [_opt(x, f'{x} - Rs. {cat.PHOTO_TIER_PRICES[x]}') for x in ["Classic", "Premium", "Signature"]]
@@ -598,6 +626,8 @@ def _log_sentence(field_label: str, change_type: str, old_value, new_value, chan
         return f'{field_label}: restored by {changed_by} on {ts}.'
     if change_type == "field_added":
         return f'{field_label}: added by {changed_by} on {ts}.'
+    if change_type == "confirmed_by_parent":
+        return f'{field_label}: confirmed by parent as "{new_d}" via the registration page on {ts}.'
     return f'{field_label}: {change_type} changed from "{old_d}" to "{new_d}" by {changed_by} on {ts}.'
 
 
@@ -1795,6 +1825,18 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
                 match = next((i for i in cat.INVITES if i[1] == einv_value), None)
                 snap["einvite"] = {"n": einv_value, "id": match[0] if match else None}
 
+        # 2026-09-23, per Shruti — "decor is chosen in admin but is not
+        # showing up in the email": same gap as activities/einvite above,
+        # just for Decor. _resolve_decor_override best-effort reconstructs
+        # the {"n","id","p"} shape _services_detail_list expects from the
+        # override's plain display string.
+        decor_ov = overrides_by_key.get("svc_decor")
+        if not (snap.get("decor") or {}).get("n") and decor_ov:
+            decor_value = (decor_ov["customer_choice_override"] or decor_ov["assigned_value"] or "").strip()
+            decor_entry = _resolve_decor_override(decor_value)
+            if decor_entry:
+                snap["decor"] = decor_entry
+
         if snap != (fake_req.builder_snapshot or {}):
             fake_req.builder_snapshot = snap
 
@@ -1802,6 +1844,20 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
             f"{o['field_label']}: {o['remarks'].strip()}"
             for o in overrides if o["remarks"] and o["remarks"].strip()
         ]
+        # 2026-09-23, per Shruti — "there were some T&C/comments put in the
+        # sales panel for this lead like we promised neon lights, a fake
+        # dead body - that should also be mentioned in the email": these
+        # live on lead_sales_playbook (the separate Sales Leads module),
+        # not booking_field_overrides, so they need their own fetch.
+        playbook = await database.fetch_one(
+            "SELECT notes_special_instructions, notes_changes_updates FROM lead_sales_playbook WHERE lead_id = :id",
+            values={"id": lead_id},
+        )
+        if playbook:
+            if playbook["notes_special_instructions"] and playbook["notes_special_instructions"].strip():
+                extra_remarks.append(f"Client Special Instructions (sales): {playbook['notes_special_instructions'].strip()}")
+            if playbook["notes_changes_updates"] and playbook["notes_changes_updates"].strip():
+                extra_remarks.append(f"Changes / Last-Minute Updates (sales): {playbook['notes_changes_updates'].strip()}")
         if extra_remarks:
             combined = "\n".join(extra_remarks)
             fake_req.remarks = f"{fake_req.remarks}\n{combined}" if fake_req.remarks else combined

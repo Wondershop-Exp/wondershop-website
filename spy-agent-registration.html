@@ -121,14 +121,6 @@
     letter-spacing:0.3px;
   }
   .venue-block{margin:14px 0}
-  .confirm-line{
-    font-size:12.5px;
-    color:var(--ink-dim);
-    text-transform:uppercase;
-    letter-spacing:0.5px;
-    margin-top:14px;
-  }
-  .confirm-line b{color:var(--magenta)}
   .cta-btn{
     display:inline-block;
     margin-top:26px;
@@ -405,7 +397,6 @@
       <div class="mission-line" id="venueLinesOut"></div>
     </div>
 
-    <div class="confirm-line" id="confirmLineOut">Confirm your involvement from a secret phone line</div>
   </div>
 
   <a href="#registerForm" class="cta-btn">🕵️ Register Your Agent</a>
@@ -577,13 +568,6 @@
         document.getElementById('venueLinesOut').innerHTML = d.venue
           ? d.venue.split(',').map(function(s){ return s.trim(); }).filter(Boolean).map(esc).join('<br>')
           : '';
-        var confirmLineEl = document.getElementById('confirmLineOut');
-        if (d.contact_name || d.contact_phone) {
-          confirmLineEl.innerHTML = 'Confirm your involvement from a secret phone line to <b>' +
-            esc([d.contact_name, d.contact_phone].filter(Boolean).join(' : ')) + '</b>';
-        } else {
-          confirmLineEl.style.display = 'none';
-        }
         document.getElementById('formSubtitleOut').textContent = 'Confidential: Registration Form for ' + d.mission_label;
         document.getElementById('successTextOut').textContent =
           "Your agent's profile has been received for " + d.child_name + "'s mission. Headquarters will be in touch with further instructions before the big day.";
