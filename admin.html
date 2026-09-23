@@ -2422,6 +2422,7 @@ function statusBlockHtml(d){
       +'<div class="fld"><label>Status</label><span class="status-pill '+cls+'" style="padding:8px 14px;font-size:13px">'+esc(d.status||'')+'</span></div>'
       +'<div class="btns">'
         +'<button class="btn" onclick="sendInvoiceDetail()">'+(d.invoice_sent_at_ist ? 'Resend Updated Invoice' : 'Send Invoice')+'</button>'
+        +summaryEmailControlsHtml(d)
         +(d.status!=='Cancelled' ? '<button class="btn cancel" onclick="cancelEventDetail()">Cancel Event</button>' : '')
       +'</div>'
       +(d.invoice_sent_at_ist ? '<div class="fld"><label>Invoice last sent</label><span>'+esc(d.invoice_sent_at_ist)+(d.invoice_number ? ' · '+esc(d.invoice_number) : '')+'</span></div>' : '')
@@ -2443,9 +2444,25 @@ function statusBlockHtml(d){
     +'<div class="btns">'
       +'<button class="btn convert" onclick="convertLeadDetail()">Convert to Booking</button>'
       +'<button class="btn save" onclick="saveDetailStatus()">Save Status</button>'
+      +summaryEmailControlsHtml(d)
     +'</div>'
     +emailStatusHtml(d)
     +'</div>';
+}
+// 2026-09-23, per Shruti: a manual "resend the summary/confirmation email"
+// option next to Send Invoice, for both leads and bookings, with a
+// checkbox to optionally attach the invoice PDF (only meaningful for an
+// actual booking -- a lead/enquiry has no invoice yet, so the checkbox is
+// disabled there). The invoice is no longer auto-attached when a booking
+// is first made -- see routers/leads.py's _send_user_ack -- so this
+// checkbox and the "Send Invoice" button are now the only two ways an
+// invoice goes out, both manual and both meant for once the booking is
+// actually complete (post payment).
+function summaryEmailControlsHtml(d){
+  return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gy);margin:0 4px">'
+      +'<input type="checkbox" id="attachInvoiceChk"'+(d.is_booking ? '' : ' disabled title="Only a confirmed booking has an invoice to attach"')+'> Attach invoice'
+    +'</label>'
+    +'<button class="btn" onclick="sendSummaryEmailDetail()">Resend Summary Email</button>';
 }
 // Did the booking emails actually go out? (recorded by the server, migration 033)
 function emailStatusHtml(d){
@@ -2527,6 +2544,22 @@ async function sendInvoiceDetail(){
       body: JSON.stringify({changed_by: who}),
     });
     showToast('✓ Invoice '+res.invoice_number+' sent to '+res.sent_to+'.');
+    await loadDetail();
+  }catch(e){
+    if(e.message!=='unauthorized') showToast(e.message);
+  }
+}
+async function sendSummaryEmailDetail(){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); highlightWhoName(); return; }
+  const attachInvoice = document.getElementById('attachInvoiceChk') ? document.getElementById('attachInvoiceChk').checked : false;
+  if(!confirm('Resend the confirmation/summary email to this customer now'+(attachInvoice ? ', with the invoice attached' : '')+'?')) return;
+  try{
+    const res = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/summary/send', {
+      method:'POST',
+      body: JSON.stringify({changed_by: who, attach_invoice: attachInvoice}),
+    });
+    showToast('✓ Summary email sent to '+res.sent_to+'.');
     await loadDetail();
   }catch(e){
     if(e.message!=='unauthorized') showToast(e.message);

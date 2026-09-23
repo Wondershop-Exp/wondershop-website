@@ -1569,7 +1569,8 @@ async def _build_booking_invoice_pdf(lead_id: int, req: LeadSubmitRequest) -> tu
 
 
 async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str] = None,
-                          added_service_label: Optional[str] = None, is_upgrade: bool = False) -> None:
+                          added_service_label: Optional[str] = None, is_upgrade: bool = False,
+                          attach_invoice: bool = False) -> None:
     """Confirmation email to the parent who submitted the form. Content and
     subject vary depending on whether this was a confirmed booking or an
     unconfirmed enquiry (2026-08-11, per Shruti). is_upgrade=True is the
@@ -1655,14 +1656,16 @@ wondershopexperiences.com
             ics_bytes = _build_ics_bytes(req, lead_id)
             if ics_bytes:
                 ics_attachments = [(f"wondershop-booking-{lead_id}.ics", ics_bytes, "text", "calendar")]
-        # 2026-09-11, per Shruti: "This needs to go as an attachment when
-        # the user confirms the order." Only on the original booking
-        # confirmation, not the /redeem-service "order upgrade" resend
-        # (which already covers that reward via its own updated content) —
-        # the admin panel's manual resend covers any invoice needed after
-        # that point.
+        # 2026-09-23, per Shruti: don't attach the invoice at booking time
+        # any more -- the order can still change right up to the last
+        # minute, so an invoice sent the moment someone books can go stale
+        # before the event. The invoice now only goes out once the booking
+        # is actually complete (post payment), either via the admin panel's
+        # "Send Invoice" button or by checking "Attach invoice" on this same
+        # summary-email resend (see routers/admin.py's
+        # POST /bookings/{lead_id}/summary/send).
         invoice_attachments = []
-        if is_booking and not is_upgrade:
+        if attach_invoice and is_booking:
             try:
                 invoice_name, invoice_bytes = await _build_booking_invoice_pdf(lead_id, req)
                 invoice_attachments = [(invoice_name, invoice_bytes, "application", "pdf")]

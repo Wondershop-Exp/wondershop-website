@@ -68,6 +68,7 @@ from booking_pricing import (
 from routers.leads import (
     _services_detail_list, _party_title, _fmt_date_long, _gmail_send, _get_gmail_access_token,
     _get_or_create_invoice_number, _order_addon_rows_raw, _sheet_service_columns,
+    _send_user_ack, LeadSubmitRequest,
 )
 
 router = APIRouter()
@@ -1674,6 +1675,86 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
     )
     logger.info(f"Lead #{lead_id}: updated invoice ({invoice_number}) sent to {lead['email']} by {who}")
     return {"success": True, "invoice_number": invoice_number, "sent_to": lead["email"]}
+
+
+class SendSummaryEmailRequest(ChangedByRequest):
+    attach_invoice: bool = False
+
+
+# ─── SUMMARY / CONFIRMATION EMAIL — RESEND ──────────────────────────────────
+# 2026-09-23, per Shruti: a manual "resend the original confirmation/enquiry
+# email" button from admin, for both leads and confirmed bookings alike,
+# with an optional checkbox to attach the invoice PDF. The invoice is no
+# longer auto-attached at booking time (see _send_user_ack in
+# routers/leads.py -- an order can still change right up to the last
+# minute), so this checkbox and the "Send Invoice" button above are now the
+# only two ways an invoice ever goes out, both manual, once the team
+# decides the booking is actually complete.
+@router.post("/bookings/{lead_id}/summary/send")
+async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    if not body.changed_by or not body.changed_by.strip():
+        raise HTTPException(status_code=400, detail="changed_by is required.")
+
+    lead_row = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    if not lead_row:
+        raise HTTPException(status_code=404, detail="Booking not found.")
+    lead = dict(lead_row)
+    if not lead.get("email"):
+        raise HTTPException(status_code=400, detail="This record has no email on file — nothing to send to.")
+
+    # Rebuild the same LeadSubmitRequest shape /submit originally built,
+    # straight off the current DB row -- LeadSubmitRequest's field names
+    # mirror the leads table columns 1:1 (see _append_to_sheet's payload
+    # dict for the same mapping), so a resend always reflects whatever the
+    # team has since edited on the booking, not the stale original submit.
+    snap = _parse_snapshot(lead.get("builder_snapshot"))
+    req_fields = {k: lead.get(k) for k in LeadSubmitRequest.model_fields if k in lead}
+    req_fields["builder_snapshot"] = snap
+    fake_req = LeadSubmitRequest(**req_fields)
+
+    reward_row = await database.fetch_one(
+        "SELECT code FROM reward_codes WHERE issued_lead_id = :id ORDER BY id DESC LIMIT 1", values={"id": lead_id}
+    )
+    referral_row = await database.fetch_one(
+        "SELECT code FROM referral_codes WHERE owner_lead_id = :id ORDER BY created_at DESC LIMIT 1", values={"id": lead_id}
+    )
+    reward_code = reward_row["code"] if reward_row else None
+    referral_code = referral_row["code"] if referral_row else None
+
+    who = body.changed_by.strip()
+    # _send_user_ack never raises (by design, for the original fire-and-
+    # forget /submit flow) -- it always records the outcome on the lead
+    # row instead, so a manual resend has to check that record afterward
+    # to give the admin panel a clear pass/fail like every other action
+    # here does.
+    await _send_user_ack(lead_id, fake_req, reward_code, referral_code, attach_invoice=body.attach_invoice)
+
+    status_row = await database.fetch_one(
+        "SELECT customer_email_status, customer_email_error FROM leads WHERE lead_id = :id", values={"id": lead_id}
+    )
+    if status_row and status_row["customer_email_status"] == "failed":
+        raise HTTPException(
+            status_code=502,
+            detail=f"Something went wrong sending the email — {status_row['customer_email_error'] or 'unknown error'}",
+        )
+
+    now = datetime.utcnow()
+    await database.execute(
+        """
+        INSERT INTO booking_change_log
+            (lead_id, field_key, field_label, change_type, old_value, new_value, changed_by, changed_at)
+        VALUES
+            (:lead_id, 'summary_email', 'Summary Email', 'email_sent', NULL, :new_v, :by, :ts)
+        """,
+        values={
+            "lead_id": lead_id,
+            "new_v": f"resent to {lead['email']}" + (" (with invoice)" if body.attach_invoice else ""),
+            "by": who, "ts": now,
+        },
+    )
+    logger.info(f"Lead #{lead_id}: summary email resent to {lead['email']} by {who} (attach_invoice={body.attach_invoice})")
+    return {"success": True, "sent_to": lead["email"]}
 
 
 # ─── EMAIL CHECK ────────────────────────────────────────────────────────────
