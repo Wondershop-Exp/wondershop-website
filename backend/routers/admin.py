@@ -64,7 +64,7 @@ from invoice_builder import assemble_invoice_data, build_invoice_pdf, invoice_fi
 from booking_pricing import (
     recompute_grand_total, freebie_activity_names, parse_csv as _parse_csv_names,
     PACKAGING_KEY_TO_LABEL, PACKAGING_UNIT_PRICE, DJ_LIGHTS_PRICE, DJ_SMOKE_PRICE,
-    TAG_NOTE_UNIT_PRICE, TAG_NOTE_MIN_QTY, PINATA_BAG_PRICE,
+    TAG_NOTE_UNIT_PRICE, TAG_NOTE_MIN_QTY, PINATA_BAG_PRICE, DECOR_PRICES,
 )
 from routers.leads import (
     _services_detail_list, _party_title, _fmt_date_long, _gmail_send, _get_gmail_access_token,
@@ -1518,6 +1518,97 @@ def _compose_sales_decor_value(pb_decor: dict) -> Optional[str]:
     return "Custom Design"  # "Others", or a theme/tier combo that doesn't actually exist
 
 
+# Spy Mission Stations/activities package pricing (2026-09-23, per Shruti --
+# "spy is priced at Rs. 1500 per child x 45 kids for Swati. in general, it
+# is 1500 x #kids, with minimum billing of 25k"). Flat per-kid rate with a
+# floor, replacing whatever Sales typed for the individual Spy-flagged
+# activity line items -- see _compute_ideal_subtotal() below.
+SPY_PACKAGE_RATE_PER_KID = 1500
+SPY_PACKAGE_MIN_BILL = 25000
+
+
+def _spy_package_price(kids_count: Optional[int]) -> float:
+    return max(SPY_PACKAGE_MIN_BILL, SPY_PACKAGE_RATE_PER_KID * (kids_count or 0))
+
+
+def _compute_ideal_subtotal(req: dict, activities: list, kids_count: Optional[int],
+                             decor_cc: Optional[str], dj_cc: Optional[str],
+                             pinata_cc: Optional[str], photo_cc: Optional[str],
+                             is_spy: bool) -> Optional[float]:
+    """2026-09-23, per Shruti -- "don't import the earlier value like that
+    ... ideally the total should be [real catalogue prices] ... we have
+    negotiated it to [X], so the pending amount is to be shown as
+    discount." Same shape as sales_leads._estimate_total() (sum of each
+    requirements category's cost + addons, plus activities), but swaps in
+    the real catalogue price for any category this sync already resolved
+    a valid Customer's Choice value for (decor/DJ/piñata/photography tier,
+    e-invite tier) instead of trusting Sales' own typed 'cost' -- that
+    number is sometimes already a negotiated/discounted figure, which
+    otherwise silently becomes the PRE-discount subtotal with no visible
+    discount. Categories with no catalogue signal at all (Host -- see this
+    module's docstring above) keep using Sales' typed cost, same as
+    before. Spy activities price as one flat package (see
+    _spy_package_price() above) instead of summing Sales' own per-item
+    prices for just the Spy-flagged activities. Returns None if nothing
+    here amounts to anything (mirrors _estimate_total()'s all-zero case)."""
+    def _req(key):
+        v = req.get(key)
+        return v if isinstance(v, dict) else {}
+
+    def _addons_total(r: dict) -> float:
+        total = 0.0
+        for addon in (r.get("addons") or []):
+            try:
+                total += float(addon.get("price") or 0)
+            except (TypeError, ValueError):
+                pass
+        return total
+
+    def _cost_plus_addons(key: str, catalogue_price: Optional[float] = None) -> float:
+        r = _req(key)
+        base = catalogue_price
+        if base is None:
+            try:
+                base = float(r.get("cost")) if r.get("cost") is not None else 0.0
+            except (TypeError, ValueError):
+                base = 0.0
+        return float(base) + _addons_total(r)
+
+    total = 0.0
+    total += _cost_plus_addons("decor", DECOR_PRICES.get(decor_cc) if decor_cc else None)
+    total += _cost_plus_addons("host")  # no catalogue tier signal available from Sales
+    total += _cost_plus_addons("music", cat.DJ_TIER_PRICES.get(dj_cc) if dj_cc else None)
+    total += _cost_plus_addons("pinata_type", cat.PINATA_TIER_PRICES.get(pinata_cc) if pinata_cc else None)
+    total += _cost_plus_addons("photographer", cat.PHOTO_TIER_PRICES.get(photo_cc) if photo_cc else None)
+    ei = _req("einvite_type")
+    total += _cost_plus_addons("einvite_type", cat.EINVITE_TIER_PRICES.get(ei.get("selected")))
+    total += _cost_plus_addons("save_the_date")
+
+    # Any other requirements category this function doesn't special-case
+    # yet -- kept generic so nothing Sales enters silently drops out,
+    # exactly the fallback _estimate_total() always used.
+    KNOWN = {"decor", "host", "music", "pinata_type", "photographer", "einvite_type", "save_the_date"}
+    for key, r in req.items():
+        if key in KNOWN or not isinstance(r, dict):
+            continue
+        total += _cost_plus_addons(key)
+
+    # Activities -- Spy-flagged items price as one flat package; anything
+    # else keeps Sales' own per-item price exactly like _estimate_total().
+    for a in (activities or []):
+        if a.get("id") in cat.SPY_ACTIVITY_IDS:
+            continue  # priced below as one flat package, not per item
+        try:
+            price = float(a.get("price") or 0)
+        except (TypeError, ValueError):
+            price = 0.0
+        total += price if a.get("flat") else price * (kids_count or 1)
+    if is_spy:
+        total += _spy_package_price(kids_count)
+
+    return round(total, 2) if total else None
+
+
 # ─── SALES → BOOKING: one-time copy of sales panel data into admin overrides ──
 # 2026-09-23, per Shruti — "sync without a button. when we convert sales to
 # a booking, copy all data to admin. post ythat the user can edit as
@@ -1588,14 +1679,14 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
     to_write = []  # (key, customer_choice_override, remarks)
 
     # ── Decor ──
+    d = _req("decor")
+    decor_cc = _compose_sales_decor_value(d)
+    if decor_cc and decor_cc not in DROPDOWN_VALUES.get("svc_decor", set()):
+        decor_cc = None
     if "svc_decor" not in already:
-        d = _req("decor")
-        cc = _compose_sales_decor_value(d)
-        if cc and cc not in DROPDOWN_VALUES.get("svc_decor", set()):
-            cc = None
         remark = f"{prefix} {d['customization']}" if d.get("customization") else None
-        if cc or remark:
-            to_write.append(("svc_decor", cc, remark))
+        if decor_cc or remark:
+            to_write.append(("svc_decor", decor_cc, remark))
 
     # ── Activities (multi-select — comma-joined names, same as this page's
     # own multi-select Save) ──
@@ -1616,12 +1707,12 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
             to_write.append(("svc_host", None, f"{prefix} {h['customization']}"))
 
     # ── Music (DJ) ──
+    m = _req("music")
+    music_rev = {v: k for k, v in MUSIC_LABELS.items()}
+    dj_cc = music_rev.get(m.get("selected"))
+    if dj_cc and dj_cc not in DROPDOWN_VALUES.get("svc_dj", set()):
+        dj_cc = None
     if "svc_dj" not in already:
-        m = _req("music")
-        music_rev = {v: k for k, v in MUSIC_LABELS.items()}
-        cc = music_rev.get(m.get("selected"))
-        if cc and cc not in DROPDOWN_VALUES.get("svc_dj", set()):
-            cc = None
         bits = []
         if m.get("customization"):
             bits.append(m["customization"])
@@ -1629,28 +1720,28 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
         if addon_names:
             bits.append("Add-ons: " + ", ".join(addon_names))
         remark = f"{prefix} {' · '.join(bits)}" if bits else None
-        if cc or remark:
-            to_write.append(("svc_dj", cc, remark))
+        if dj_cc or remark:
+            to_write.append(("svc_dj", dj_cc, remark))
 
     # ── Pinata ──
+    p = _req("pinata_type")
+    raw = p.get("selected")
+    pinata_cc = "Custom Design" if raw == "Custom" else raw
+    if pinata_cc and pinata_cc not in DROPDOWN_VALUES.get("svc_pinata", set()):
+        pinata_cc = None
     if "svc_pinata" not in already:
-        p = _req("pinata_type")
-        raw = p.get("selected")
-        cc = "Custom Design" if raw == "Custom" else raw
-        if cc and cc not in DROPDOWN_VALUES.get("svc_pinata", set()):
-            cc = None
-        if cc:
-            to_write.append(("svc_pinata", cc, None))
+        if pinata_cc:
+            to_write.append(("svc_pinata", pinata_cc, None))
 
     # ── Photography ──
+    ph = _req("photographer")
+    photo_rev = {v: k for k, v in PHOTO_LABELS.items()}
+    photo_cc = photo_rev.get(ph.get("selected"))
+    if photo_cc and photo_cc not in DROPDOWN_VALUES.get("svc_photo", set()):
+        photo_cc = None
     if "svc_photo" not in already:
-        ph = _req("photographer")
-        photo_rev = {v: k for k, v in PHOTO_LABELS.items()}
-        cc = photo_rev.get(ph.get("selected"))
-        if cc and cc not in DROPDOWN_VALUES.get("svc_photo", set()):
-            cc = None
-        if cc:
-            to_write.append(("svc_photo", cc, None))
+        if photo_cc:
+            to_write.append(("svc_photo", photo_cc, None))
 
     # ── E-Invite (tier + Save the Date + detail fields, as remarks — see
     # the module docstring above for why there's no valid Customer's
@@ -1692,11 +1783,22 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
             to_write.append(("terms_conditions", cc, remark))
 
     # ── Event Schedule (new admin field) ──
+    # 2026-09-23 per Shruti: "we don't need remarks here. also, the schedule
+    # needs to be similar to sales, same 2 column format." -- Sales stores
+    # each row as {time, item} and prints them as two table columns
+    # (sales-lead-print.html). We mirror that as tab-separated lines (two
+    # columns) instead of a "time — item" sentence, and no remark/provenance
+    # note at all.
     if "event_schedule_text" not in already and schedule:
-        lines = [f"{it.get('time', '').strip()} — {it.get('item', '').strip()}".strip(" —")
-                 for it in schedule if (it.get("time") or it.get("item"))]
+        lines = []
+        for it in schedule:
+            t = (it.get("time") or "").strip()
+            i = (it.get("item") or "").strip()
+            if not (t or i):
+                continue
+            lines.append(f"{t}\t{i}" if (t and i) else (t or i))
         if lines:
-            to_write.append(("event_schedule_text", "\n".join(lines), f"{prefix} Copied from the Sales panel."))
+            to_write.append(("event_schedule_text", "\n".join(lines), None))
 
     for key, cc, remark in to_write:
         cat_entry = CATALOG_BY_KEY.get(key, {})
@@ -1729,20 +1831,34 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
 
     # ── Grand Total: only if this booking never had a real checkout total
     # (order_grand_total is NULL for every sales-entered booking) — set it
-    # to the sales panel's own itemised sum so booking_pricing.
-    # recompute_grand_total() (otherwise a no-op without it, see its
-    # docstring) has a real starting point and Grand Total/Balance Due on
-    # this page start reflecting everything selected above. Discount % is
-    # deliberately left untouched: recompute_grand_total() already
-    # reconciles a mismatch between this total and leads.client_budget (the
-    # amount actually agreed with the customer) through its own fallback
-    # logic, so forcing a stored discount value here risks double-counting
-    # rather than adding anything the page doesn't already work out live.
+    # so booking_pricing.recompute_grand_total() (otherwise a no-op
+    # without it, see its docstring) has a real starting point and Grand
+    # Total/Balance Due on this page start reflecting everything selected
+    # above. Discount % is never set directly here: recompute_grand_total()
+    # already derives it live from the gap between this subtotal and
+    # leads.client_budget (the amount actually agreed with the customer),
+    # so forcing a stored discount value here would risk double-counting.
+    #
+    # 2026-09-23, per Shruti — "don't import the earlier value like that
+    # ... ideally the total should be [real catalogue prices] ... we have
+    # negotiated it to [X]. so the pending amount ... to be shown as
+    # discount" — same logic for every lead converting to a booking, not
+    # just this one. See _compute_ideal_subtotal() above: it swaps in the
+    # real catalogue price wherever this sync resolved a valid dropdown
+    # value, and prices Spy activities as one flat package. The plain
+    # Sales-typed sum (_estimate_total(), unchanged) is kept as a floor —
+    # never LOWER the subtotal below what Sales themselves recorded.
     lead_row = await database.fetch_one(
         "SELECT order_grand_total, kids_count FROM leads WHERE lead_id = :id", values={"id": lead_id},
     )
     if lead_row and lead_row["order_grand_total"] is None:
-        grand = _estimate_total(req, activities, lead_row["kids_count"])
+        kids_count = lead_row["kids_count"]
+        sales_total = _estimate_total(req, activities, kids_count)
+        is_spy = any((a.get("id") in cat.SPY_ACTIVITY_IDS) for a in activities)
+        ideal_total = _compute_ideal_subtotal(
+            req, activities, kids_count, decor_cc, dj_cc, pinata_cc, photo_cc, is_spy,
+        )
+        grand = max(sales_total or 0.0, ideal_total or 0.0) or None
         if grand:
             await database.execute(
                 "UPDATE leads SET order_grand_total = :v WHERE lead_id = :id",
