@@ -742,6 +742,30 @@ def _order_addon_rows(req: LeadSubmitRequest) -> list:
     return [(label, _fmt_rupees(amount)) for label, amount in _order_addon_rows_raw(req)]
 
 
+def _order_discount_amt(req: LeadSubmitRequest) -> float:
+    """Rupee discount actually applied at checkout — recovered from fields
+    already persisted on the request, no new column needed (2026-09-23, per
+    Shruti — "don't show discount % to the user... show the amount"; the
+    prior "Discount (1%)" display next to a -Rs.1,000 line item was
+    confusing because order_discount_pct is a back-computed 'equivalent %'
+    (builder.html's dp() = round(discountAmt/gt*100)), which doesn't read
+    as a clean percentage when the underlying discount is a flat/tiered
+    rupee slab rather than a true %-of-total).
+
+    builder.html's client_budget = tp() + addon fees (collection/packaging/
+    thank-you-note/name-on-bunting — see _order_addon_rows_raw), and
+    order_grand_total = gt (pre-discount cart subtotal), so:
+        tp() = client_budget - addons
+        discount = gt - tp() = order_grand_total - client_budget + addons
+    This mirrors booking_pricing.py's recompute_grand_total(), which derives
+    the admin-panel invoice's discount_amt the same way (subtotal + on-top
+    fees − grand total) after any admin edits."""
+    if req.order_grand_total is None or req.client_budget is None:
+        return 0.0
+    addons = sum(amount for _label, amount in _order_addon_rows_raw(req))
+    return max(0.0, req.order_grand_total - req.client_budget + addons)
+
+
 def _format_order_summary_block(req: LeadSubmitRequest) -> str:
     """Itemised order summary — acts as the customer's on-email bill."""
     if req.order_grand_total is None and req.client_budget is None:
@@ -749,8 +773,17 @@ def _format_order_summary_block(req: LeadSubmitRequest) -> str:
     lines = ["\nYOUR ORDER SUMMARY"]
     if req.order_grand_total is not None:
         lines.append(f"  Package Subtotal: {_fmt_rupees(req.order_grand_total)}")
+    # 2026-09-23, per Shruti — don't show the discount as a "%" to the
+    # customer (a flat/tiered rupee discount back-computed to an "equivalent
+    # %" can look wrong next to the actual line-item amount, e.g. "1%" next
+    # to "-Rs.1,000"); show the real rupee amount instead, under a heading
+    # that reads as a reward rather than a raw discount rate. The stored
+    # order_discount_pct value itself is untouched — admin.py's Grand Total
+    # recompute still keys off it.
     if req.order_discount_pct:
-        lines.append(f"  Discount        : {req.order_discount_pct:.0f}%")
+        _disc_amt = _order_discount_amt(req)
+        if _disc_amt > 0:
+            lines.append(f"  Discount Tier Unlocked : -{_fmt_rupees(_disc_amt)}")
     # 2026-08-24, per Shruti (Image 3c) — total savings (₹, incl. freebie
     # item values) + which freebies were unlocked, same figures shown on the
     # website's bottom bar / checkout Order Summary / Review page.
@@ -1306,8 +1339,14 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
     order_rows = []
     if req.order_grand_total is not None:
         order_rows.append(("Package Subtotal", _fmt_rupees(req.order_grand_total)))
+    # 2026-09-23, per Shruti — show the rupee discount, not the back-computed
+    # "equivalent %" (see _order_discount_amt's docstring); order_discount_pct
+    # itself stays untouched in storage since admin.py's Grand Total recompute
+    # keys off it.
     if req.order_discount_pct:
-        order_rows.append(("Discount", f"{req.order_discount_pct:.0f}%"))
+        _disc_amt = _order_discount_amt(req)
+        if _disc_amt > 0:
+            order_rows.append(("Discount Tier Unlocked", f"-{_fmt_rupees(_disc_amt)}"))
     # 2026-08-24, per Shruti (Image 3c) — same total-savings/freebie figures
     # as the website (see order_total_savings/order_freebies_text docstring
     # on LeadSubmitRequest above), shown to both customer and team.
@@ -1514,6 +1553,13 @@ async def _build_booking_invoice_pdf(lead_id: int, req: LeadSubmitRequest) -> tu
         freebies_text=req.order_freebies_text,
         payment_method=req.payment_method,
         extra_fee_rows=_order_addon_rows_raw(req),
+        # 2026-09-23, per Shruti — explicit rupee discount_amt instead of
+        # relying on assemble_invoice_data()'s own fallback
+        # (max(0, subtotal - grand_total)), which undercounts by the addon
+        # fees (Packaging/Thank-You Note/Name on Bunting/Cash Collection)
+        # whenever any are on the order — see _order_discount_amt's
+        # docstring for the full derivation.
+        discount_amt=_order_discount_amt(req),
         gst_enabled=settings.GST_ENABLED,
         gstin=settings.GSTIN,
         gst_rate_pct=settings.GST_RATE_PCT,

@@ -2318,7 +2318,7 @@ body.browse-mode .browse-cta{display:flex}
     <div class="sec-lbl"><span class="dot"></span>Order Summary</div>
     <div class="amt-box">
       <div class="amt-row"><span>Grand Total</span><span id="co-gt">₹0</span></div>
-      <div class="amt-row" id="co-dr" style="display:none"><span>Discount</span><span><span class="coupon-chip">🎟️ Coupon Applied</span> <span id="co-disc" style="color:var(--gr)"></span></span></div>
+      <div class="amt-row" id="co-dr" style="display:none"><span>Discount Tier Unlocked</span><span><span class="coupon-chip">🎟️ Coupon Applied</span> <span id="co-disc" style="color:var(--gr)"></span></span></div>
       <!-- 2026-08-24, per Shruti (Image 3) — "Don't show the discount/
            freebie bar at checkout page. Add the freebies and discounts in
            the order summary." The .bb-freebies badge row is hidden on this
@@ -5431,7 +5431,13 @@ function updCoAmt(){
   const mrp=trueMRP();const totalSavings=mrp-tpv;
   document.getElementById('co-gt').textContent='₹'+mrp.toLocaleString('en-IN');
   document.getElementById('co-gt').classList.toggle('rv-strike',totalSavings>0);
-  if(totalSavings>0){document.getElementById('co-dr').style.display='flex';document.getElementById('co-disc').textContent='-₹'+totalSavings.toLocaleString('en-IN')+(dpv>0?' ('+dpv+'%)':'');}
+  // 2026-09-23, per Shruti — don't show the back-computed 'equivalent %'
+  // (dpv) next to the rupee amount; it can look mismatched against the real
+  // tiered/flat discount (e.g. '1%' beside '-₹1,000'). The rupee figure
+  // alone is the honest number here. dpv/order_discount_pct itself is
+  // untouched — still computed/sent as before, for admin.py's Grand Total
+  // recompute.
+  if(totalSavings>0){document.getElementById('co-dr').style.display='flex';document.getElementById('co-disc').textContent='-₹'+totalSavings.toLocaleString('en-IN');}
   else document.getElementById('co-dr').style.display='none';
   const freebieNames=unlockedFreebieNames(gt);
   const freebiesRow=document.getElementById('coFreebiesRow');

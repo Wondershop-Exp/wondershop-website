@@ -390,8 +390,15 @@ def build_invoice_pdf(data: dict) -> bytes:
     # ── Summary ───────────────────────────────────────────────────────────
     summary_rows = []
     summary_rows.append([_p("Subtotal", size=10, color=_GRAY), _p(_fmt_rupees(data["subtotal"]), size=10, align="right")])
-    if data["discount_pct"]:
-        summary_rows.append([_p(f"Discount ({data['discount_pct']:.0f}%)", size=10, color=_GRAY),
+    # 2026-09-23, per Shruti — the invoice shouldn't show a "%" (the stored
+    # discount_pct is a back-computed "equivalent %" that can look wrong
+    # next to a flat/tiered rupee discount, e.g. "1%" beside "-Rs.1,000");
+    # show only the rupee amount, under a heading that reads as a reward
+    # rather than a raw discount rate. discount_pct itself is left alone —
+    # it still gates whether this row shows at all, matching every other
+    # surface (email/website) that keys off order_discount_pct being set.
+    if data["discount_pct"] and data["discount_amt"]:
+        summary_rows.append([_p("Discount Tier Unlocked", size=10, color=_GRAY),
                               _p(f"−{_fmt_rupees(data['discount_amt'])}", size=10, align="right")])
     summary_rows.append([_p("Grand Total", size=10, bold=True), _p(_fmt_rupees(data["grand_total"]), size=10, bold=True, align="right")])
     if data["gst_block"]:

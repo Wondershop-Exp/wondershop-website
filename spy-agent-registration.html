@@ -332,9 +332,17 @@
 <body>
 
 <!-- ══════════════════════════════════════════════════════════════
-     PER-PARTY CONFIG lives in the <script> block at the bottom
-     (search for "EDIT PER PARTY") — or override any of it with URL
-     query params, e.g. ?event_id=saachi-9oct&child_name=Saachi
+     2026-09-23, per Shruti — this page is now driven entirely by the
+     ?t=<share_token> in the URL (the one admin.html's "Spy Agent
+     Registration Page" card generates after an invite is uploaded for a
+     Spy booking). It fetches this party's details from the backend by
+     that token (GET /api/spy-registration/party/{token}) instead of a
+     hardcoded per-party config block — see "FETCH PARTY INFO BY TOKEN"
+     in the <script> block at the bottom. The old scheme (editing a
+     DEFAULTS object per party, or passing ?event_id=/?child_name=/etc
+     URL params) is retired: it never matched what /register actually
+     requires (a token, not an event_id) and every party needed its own
+     manually-edited copy of this file.
      ══════════════════════════════════════════════════════════════ -->
 
 <section class="hero" id="hero">
@@ -436,7 +444,7 @@
         <label for="marketingOptIn">Yes, send me birthday reminders, new theme launches, and offers from Wondershop Experiences.</label>
       </div>
 
-      <button type="submit" class="submit-btn" id="submitBtn">Submit Mission Profile 🕶️</button>
+      <button type="submit" class="submit-btn" id="submitBtn">Submit Mission Profile</button>
       <div class="form-msg" id="formMsg"></div>
     </form>
   </div>
@@ -449,67 +457,20 @@
     further instructions before the mission begins.</p>
 </div>
 
+<!-- Shown instead of everything else when the ?t= token is missing or the
+     backend doesn't recognise it (expired/mistyped/copy-pasted wrong) —
+     2026-09-23, per Shruti (page migrated to the token-based system). -->
+<div class="success-screen" id="invalidLinkScreen" style="display:none">
+  <div class="big-check">🔒</div>
+  <h2>This Link Isn't Valid</h2>
+  <p>This registration link has expired or isn't recognised — please check the link your host
+    shared, or reach out to Wondershop Experiences directly.</p>
+</div>
+
 <footer>Wondershop Experiences</footer>
 
 <script>
 (function(){
-
-  // ══════════════════════════════════════════════════════════════
-  // EDIT PER PARTY — change these for a new Spy booking, or leave
-  // them as fallback defaults and pass the same keys as URL query
-  // params instead (e.g. ?event_id=saachi-9oct&child_name=Saachi),
-  // which lets ONE copy of this file be reused for every party.
-  // event_id must be unique per party — it's what keeps each
-  // party's registrations separate in the "Spy Agent Registrations"
-  // sheet tab.
-  // ══════════════════════════════════════════════════════════════
-  var DEFAULTS = {
-    event_id:      'saachi-9oct',
-    child_name:    'Saachi',
-    child_pronoun: 'her',                 // her / his / their
-    age_ordinal:   '10th',
-    event_date:    '9th October',
-    drop_off:      '4:00 PM',
-    pick_up:       '7:00 PM',
-    venue_line1:   'NHP Meghdoot Building, P Floor. N-S Road No. 5,',
-    venue_line2:   'JVPD Scheme, Ville Parle West,',
-    venue_line3:   'Mumbai 400056.',
-    contact_name:  'Swati',
-    contact_phone: '98335 91762',
-    invite_image:  ''                     // e.g. "img/invites/saachi-9oct.jpg" — leave blank to use the coded invite above
-  };
-
-  var params = new URLSearchParams(window.location.search);
-  var CFG = {};
-  Object.keys(DEFAULTS).forEach(function(k){
-    CFG[k] = params.get(k) || DEFAULTS[k];
-  });
-
-  // ── Populate the coded invite / mission header ──
-  document.title = 'Agent Registration — ' + CFG.child_name + "'s Mission";
-  document.getElementById('childNameOut').textContent = CFG.child_name.toUpperCase();
-  document.getElementById('questLineOut').textContent =
-    'On ' + CFG.child_pronoun.charAt(0).toUpperCase() + CFG.child_pronoun.slice(1) + ' ' + CFG.age_ordinal + ' Birthday Quest';
-  document.getElementById('dateLineOut').textContent = 'Date: ' + CFG.event_date;
-  document.getElementById('timeLineOut').textContent = 'Drop off: ' + CFG.drop_off + ' | Pick up: ' + CFG.pick_up;
-  document.getElementById('venueLinesOut').innerHTML =
-    esc(CFG.venue_line1) + '<br>' + esc(CFG.venue_line2) + '<br>' + esc(CFG.venue_line3);
-  document.getElementById('confirmLineOut').innerHTML =
-    'Confirm your involvement from a secret phone line to <b>' + esc(CFG.contact_name) + ' : ' + esc(CFG.contact_phone) + '</b>';
-  document.getElementById('formSubtitleOut').textContent =
-    'Confidential: Registration Form for the ' + CFG.event_date + ' Mission';
-  document.getElementById('successTextOut').textContent =
-    "Your agent's profile has been received for " + CFG.child_name + "'s mission. Headquarters will be in touch with further instructions before the big day.";
-
-  if (CFG.invite_image) {
-    var img = document.getElementById('inviteImg');
-    img.src = CFG.invite_image;
-    img.onload = function(){
-      img.style.display = 'block';
-      document.getElementById('codedInvite').style.display = 'none';
-    };
-    // If the image 404s, the coded invite (already in the DOM) stays visible — no broken-image icon.
-  }
 
   function esc(s){
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -517,6 +478,70 @@
 
   // ── API base — same Railway backend the rest of the site uses ──
   var API_BASE = 'https://wondershop-website-production.up.railway.app';
+
+  // ══════════════════════════════════════════════════════════════
+  // FETCH PARTY INFO BY TOKEN (2026-09-23, per Shruti — "deprecate" the
+  // old standalone per-party page: this file used to need its own
+  // hand-edited DEFAULTS object or ?event_id=/?child_name=/etc URL params
+  // per party, and posted that event_id to /register — which the backend
+  // never actually accepted (it requires token, not event_id), so
+  // submissions through the admin-generated links silently never worked.
+  // Now the ONLY per-party input is ?t=<share_token> (exactly what
+  // admin.html's "Spy Agent Registration Page" card already links to),
+  // and everything else — child name, mission date/time, venue, contact,
+  // uploaded invite image — comes from the backend via that token
+  // (GET /api/spy-registration/party/{token}), so it can never drift from
+  // the actual booking and there's nothing to hand-edit per party.
+  // ══════════════════════════════════════════════════════════════
+  var TOKEN = new URLSearchParams(window.location.search).get('t');
+
+  function showInvalidLink(){
+    document.getElementById('hero').style.display = 'none';
+    document.getElementById('registerForm').style.display = 'none';
+    document.getElementById('invalidLinkScreen').style.display = 'block';
+  }
+
+  if (!TOKEN) {
+    showInvalidLink();
+  } else {
+    fetch(API_BASE + '/api/spy-registration/party/' + encodeURIComponent(TOKEN))
+      .then(function(r){
+        return r.json().then(function(data){ return { ok: r.ok, data: data }; });
+      })
+      .then(function(res){
+        if (!res.ok) { showInvalidLink(); return; }
+        var d = res.data;
+
+        // ── Populate the coded invite / mission header from the backend's response ──
+        document.title = 'Agent Registration — ' + d.child_name + "'s Mission";
+        document.getElementById('childNameOut').textContent = d.child_name.toUpperCase();
+        document.getElementById('questLineOut').textContent = 'on their birthday quest';
+        document.getElementById('dateLineOut').textContent = d.event_date_display ? ('Date: ' + d.event_date_display) : '';
+        document.getElementById('timeLineOut').textContent = d.event_time_display ? ('Party Time: ' + d.event_time_display) : '';
+        document.getElementById('venueLinesOut').innerHTML = d.venue ? esc(d.venue) : '';
+        var confirmLineEl = document.getElementById('confirmLineOut');
+        if (d.contact_name || d.contact_phone) {
+          confirmLineEl.innerHTML = 'Confirm your involvement from a secret phone line to <b>' +
+            esc([d.contact_name, d.contact_phone].filter(Boolean).join(' : ')) + '</b>';
+        } else {
+          confirmLineEl.style.display = 'none';
+        }
+        document.getElementById('formSubtitleOut').textContent = 'Confidential: Registration Form for ' + d.mission_label;
+        document.getElementById('successTextOut').textContent =
+          "Your agent's profile has been received for " + d.child_name + "'s mission. Headquarters will be in touch with further instructions before the big day.";
+
+        if (d.invite_image_url) {
+          var img = document.getElementById('inviteImg');
+          img.src = API_BASE + d.invite_image_url;
+          img.onload = function(){
+            img.style.display = 'block';
+            document.getElementById('codedInvite').style.display = 'none';
+          };
+          // If the image 404s, the coded invite (already in the DOM) stays visible — no broken-image icon.
+        }
+      })
+      .catch(function(){ showInvalidLink(); });
+  }
 
   // ── Photo picker preview + client-side guardrails ──
   var MAX_PHOTO_BYTES = 5 * 1024 * 1024;
@@ -594,8 +619,12 @@
     var marketingOptIn = document.getElementById('marketingOptIn').checked;
 
     var fd = new FormData();
-    fd.append('event_id', CFG.event_id);
-    fd.append('mission_label', CFG.child_name + "'s " + CFG.age_ordinal + ' Birthday Quest (' + CFG.event_date + ')');
+    // 2026-09-23, per Shruti — the backend's /register endpoint requires
+    // 'token' (it looks up the booking + mission label itself from
+    // spy_registration_pages by that token); it never accepted 'event_id'
+    // or 'mission_label' as form fields — those were the old page's own
+    // invention and were silently ignored server-side.
+    fd.append('token', TOKEN);
     fd.append('agent_name', agentName);
     fd.append('agent_dob', agentDob);
     fd.append('parent_name', parentName);
@@ -624,7 +653,7 @@
       .catch(function(err){
         showMsg(err.message || 'Something went wrong — please try again.', 'error');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit Mission Profile 🕶️';
+        submitBtn.textContent = 'Submit Mission Profile';
       });
   });
 
