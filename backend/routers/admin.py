@@ -1869,7 +1869,7 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
     # Sales-typed sum (_estimate_total(), unchanged) is kept as a floor —
     # never LOWER the subtotal below what Sales themselves recorded.
     lead_row = await database.fetch_one(
-        "SELECT order_grand_total, kids_count FROM leads WHERE lead_id = :id", values={"id": lead_id},
+        "SELECT order_grand_total, kids_count, builder_snapshot FROM leads WHERE lead_id = :id", values={"id": lead_id},
     )
     if lead_row and lead_row["order_grand_total"] is None:
         kids_count = lead_row["kids_count"]
@@ -1884,6 +1884,74 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
                 "UPDATE leads SET order_grand_total = :v WHERE lead_id = :id",
                 values={"v": grand, "id": lead_id},
             )
+
+            # 2026-09-24, per Shruti -- test booking (decor 18k + Spy 45 kids
+            # @1500/kid = 67.5k + e-invite 500 = 86000) showed Grand Total as
+            # 103500 on the booking page instead. Cause:
+            # booking_pricing.recompute_grand_total() prices every admin-page
+            # value as a DIFFERENCE from leads.builder_snapshot, and sales-
+            # originated bookings never populate builder_snapshot at all (see
+            # this module's docstring above) -- so svc_decor/svc_dj/
+            # svc_pinata/svc_photo/svc_activities, the very overrides this
+            # sync just wrote, permanently look like brand-new admin
+            # additions on top of `grand`, EVERY time the page loads (not a
+            # one-time glitch). Seed builder_snapshot with exactly what's
+            # already priced into `grand` above so the live recompute has a
+            # real baseline and shows zero delta for these until the admin
+            # actually changes something. Never overwrites a real snapshot
+            # (only runs when there wasn't one already).
+            if not lead_row["builder_snapshot"]:
+                snap: dict = {}
+
+                def _tier_entry(cc, price_map, name_field):
+                    if not cc:
+                        return None
+                    p = price_map.get(cc)
+                    return {name_field: cc, "p": p} if p is not None else None
+
+                d_entry = _tier_entry(decor_cc, DECOR_PRICES, "n")
+                if d_entry:
+                    snap["decor"] = d_entry
+                dj_entry = _tier_entry(dj_cc, cat.DJ_TIER_PRICES, "tier")
+                if dj_entry:
+                    snap["dj"] = dj_entry
+                pinata_entry = _tier_entry(pinata_cc, cat.PINATA_TIER_PRICES, "n")
+                if pinata_entry:
+                    snap["pinata"] = pinata_entry
+                photo_entry = _tier_entry(photo_cc, cat.PHOTO_TIER_PRICES, "tier")
+                if photo_entry:
+                    snap["photo"] = photo_entry
+
+                if activities:
+                    spy_items = [a for a in activities if a.get("id") in cat.SPY_ACTIVITY_IDS]
+                    spy_share = (_spy_package_price(kids_count) / len(spy_items)) if spy_items else 0.0
+                    acts_snap = []
+                    for a in activities:
+                        name = a.get("name")
+                        if not name:
+                            continue
+                        if a.get("id") in cat.SPY_ACTIVITY_IDS:
+                            acts_snap.append({"id": a.get("id"), "n": name, "p": round(spy_share, 2)})
+                        else:
+                            try:
+                                price = float(a.get("price") or 0)
+                            except (TypeError, ValueError):
+                                price = 0.0
+                            acts_snap.append({
+                                "id": a.get("id"), "n": name,
+                                "p": price if a.get("flat") else price * (kids_count or 1),
+                            })
+                    if acts_snap:
+                        snap["activities"] = acts_snap
+
+                if kids_count:
+                    snap["kids_count"] = kids_count
+
+                if snap:
+                    await database.execute(
+                        "UPDATE leads SET builder_snapshot = :v WHERE lead_id = :id",
+                        values={"v": json.dumps(snap), "id": lead_id},
+                    )
             await database.execute(
                 """
                 INSERT INTO booking_change_log
