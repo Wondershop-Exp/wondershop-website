@@ -44,6 +44,7 @@ Link(s) DOES push a row to the "Event Photos" tab of the Google Sheet (see
 _push_event_photos_to_sheet below) — every other field still only writes
 here.
 """
+import asyncio
 import hmac
 import httpx
 import json
@@ -1732,57 +1733,89 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
             detail=f"Couldn't rebuild this booking's data to resend the email — {build_exc}",
         )
 
-    reward_row = await database.fetch_one(
-        "SELECT code FROM reward_codes WHERE issued_lead_id = :id ORDER BY id DESC LIMIT 1", values={"id": lead_id}
-    )
-    referral_row = await database.fetch_one(
-        "SELECT code FROM referral_codes WHERE owner_lead_id = :id ORDER BY created_at DESC LIMIT 1", values={"id": lead_id}
-    )
-    reward_code = reward_row["code"] if reward_row else None
-    referral_code = referral_row["code"] if referral_row else None
-
     who = body.changed_by.strip()
-    # _send_user_ack never raises (by design, for the original fire-and-
-    # forget /submit flow) -- it always records the outcome on the lead
-    # row instead, so a manual resend has to check that record afterward
-    # to give the admin panel a clear pass/fail like every other action
-    # here does.
-    await _send_user_ack(lead_id, fake_req, reward_code, referral_code, attach_invoice=body.attach_invoice)
+    # 2026-09-23, per Shruti: "Resend Summary Email" was coming back as a
+    # bare, contentless failure for EVERY booking (not just ones with odd
+    # data -- confirmed on both Swati's #3 and a normal fully-formed
+    # booking, #2), even after the LeadSubmitRequest-rebuild try/except
+    # above. Whatever's actually failing was happening somewhere past that
+    # point, fast enough that nothing ever got logged -- which is exactly
+    # what an unbounded hang (Gmail/DB call that never returns, gateway
+    # eventually giving up with no app-level trace at all) looks like from
+    # the outside. Wrapping the rest of the endpoint two ways: a hard
+    # timeout around the actual send so a hang becomes a clean, visible
+    # error instead of a silent one, and a catch-all around everything
+    # else so ANY exception here comes back as a real message instead of a
+    # bare 503.
+    try:
+        reward_row = await database.fetch_one(
+            "SELECT code FROM reward_codes WHERE issued_lead_id = :id ORDER BY id DESC LIMIT 1", values={"id": lead_id}
+        )
+        referral_row = await database.fetch_one(
+            "SELECT code FROM referral_codes WHERE owner_lead_id = :id ORDER BY created_at DESC LIMIT 1", values={"id": lead_id}
+        )
+        reward_code = reward_row["code"] if reward_row else None
+        referral_code = referral_row["code"] if referral_row else None
 
-    status_row = await database.fetch_one(
-        "SELECT customer_email_status, customer_email_error FROM leads WHERE lead_id = :id", values={"id": lead_id}
-    )
-    if status_row and status_row["customer_email_status"] == "failed":
+        # _send_user_ack never raises on its own (by design, for the
+        # original fire-and-forget /submit flow) -- it always records the
+        # outcome on the lead row instead. asyncio.wait_for is the backstop
+        # for the failure mode that isn't a raised exception at all: the
+        # Gmail token/send calls each carry their own httpx timeout
+        # (10s/15s), but if either one hangs at the connection level below
+        # httpx's own timeout handling, this still bounds it instead of
+        # tying up the request indefinitely.
+        await asyncio.wait_for(
+            _send_user_ack(lead_id, fake_req, reward_code, referral_code, attach_invoice=body.attach_invoice),
+            timeout=45,
+        )
+
+        status_row = await database.fetch_one(
+            "SELECT customer_email_status, customer_email_error FROM leads WHERE lead_id = :id", values={"id": lead_id}
+        )
+        if status_row and status_row["customer_email_status"] == "failed":
+            raise HTTPException(
+                status_code=502,
+                detail=f"Something went wrong sending the email — {status_row['customer_email_error'] or 'unknown error'}",
+            )
+
+        now = datetime.utcnow()
+        # 2026-09-23, per Shruti: the dedicated "Send Invoice" button is
+        # gone from the admin UI -- this checkbox is now the only way an
+        # invoice goes out, so this has to persist invoice_sent_at itself
+        # (the same column the old dedicated endpoint set) or admin.html's
+        # "Invoice last sent" field would silently stop updating forever.
+        invoice_number = None
+        if body.attach_invoice and lead.get("is_booking"):
+            invoice_number = await _get_or_create_invoice_number(lead_id)
+            await database.execute(
+                "UPDATE leads SET invoice_sent_at = :now WHERE lead_id = :id", values={"now": now, "id": lead_id}
+            )
+        await database.execute(
+            """
+            INSERT INTO booking_change_log
+                (lead_id, field_key, field_label, change_type, old_value, new_value, changed_by, changed_at)
+            VALUES
+                (:lead_id, 'summary_email', 'Summary Email', 'email_sent', NULL, :new_v, :by, :ts)
+            """,
+            values={
+                "lead_id": lead_id,
+                "new_v": f"resent to {lead['email']}" + (f" (with invoice {invoice_number})" if invoice_number else ""),
+                "by": who, "ts": now,
+            },
+        )
+    except HTTPException:
+        raise
+    except asyncio.TimeoutError:
+        logger.error(f"Lead #{lead_id}: summary-email resend timed out after 45s (by {who})")
         raise HTTPException(
             status_code=502,
-            detail=f"Something went wrong sending the email — {status_row['customer_email_error'] or 'unknown error'}",
+            detail="Sending the email took too long and timed out. It may or may not have gone out — please check the Gmail sent folder before resending again.",
         )
+    except Exception as exc:
+        logger.error(f"Lead #{lead_id}: summary-email resend crashed unexpectedly — {exc}")
+        raise HTTPException(status_code=502, detail=f"Something unexpected went wrong resending this email — {exc}")
 
-    now = datetime.utcnow()
-    # 2026-09-23, per Shruti: the dedicated "Send Invoice" button is gone
-    # from the admin UI -- this checkbox is now the only way an invoice
-    # goes out, so this has to persist invoice_sent_at itself (the same
-    # column the old dedicated endpoint set) or admin.html's "Invoice last
-    # sent" field would silently stop updating forever.
-    invoice_number = None
-    if body.attach_invoice and lead.get("is_booking"):
-        invoice_number = await _get_or_create_invoice_number(lead_id)
-        await database.execute(
-            "UPDATE leads SET invoice_sent_at = :now WHERE lead_id = :id", values={"now": now, "id": lead_id}
-        )
-    await database.execute(
-        """
-        INSERT INTO booking_change_log
-            (lead_id, field_key, field_label, change_type, old_value, new_value, changed_by, changed_at)
-        VALUES
-            (:lead_id, 'summary_email', 'Summary Email', 'email_sent', NULL, :new_v, :by, :ts)
-        """,
-        values={
-            "lead_id": lead_id,
-            "new_v": f"resent to {lead['email']}" + (f" (with invoice {invoice_number})" if invoice_number else ""),
-            "by": who, "ts": now,
-        },
-    )
     logger.info(f"Lead #{lead_id}: summary email resent to {lead['email']} by {who} (attach_invoice={body.attach_invoice})")
     return {"success": True, "sent_to": lead["email"], "invoice_number": invoice_number}
 
