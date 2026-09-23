@@ -199,6 +199,16 @@ async def get_party_info(token: str):
     )
     if not row:
         raise HTTPException(status_code=404, detail="This registration link isn't valid — please check the link your host shared.")
+    # 2026-09-23, per Shruti ("link is not working") — databases' Record
+    # type (backend/routers/admin.py already works around this the same
+    # way, via dict(lead_row)) is a Sequence, not a Mapping, so it has no
+    # .get() — every .get() call below was raising AttributeError and
+    # turning into a 500/503 on every single request, which is why this
+    # endpoint (never actually exercised until the frontend was wired up
+    # to call it) silently never worked. Bracket access (row["x"]) already
+    # worked fine elsewhere in this file; converting to a plain dict here
+    # makes .get() (with its "or default" fallback pattern) safe too.
+    row = dict(row)
 
     return {
         "child_name": _clean(row.get("child_names")) or "Agent",
@@ -264,7 +274,9 @@ async def register_spy_agent(
     )
     if not row:
         raise HTTPException(status_code=404, detail="This registration link isn't valid — please check the link your host shared.")
-    mission_label = _mission_label(row)
+    # See get_party_info's comment above — _mission_label() calls .get() on
+    # this row, which the raw databases Record doesn't support.
+    mission_label = _mission_label(dict(row))
 
     photo_b64 = None
     photo_filename = None
