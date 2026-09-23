@@ -1749,7 +1749,7 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
     # bare 503.
     try:
         reward_row = await database.fetch_one(
-            "SELECT code FROM reward_codes WHERE issued_lead_id = :id ORDER BY id DESC LIMIT 1", values={"id": lead_id}
+            "SELECT code FROM reward_codes WHERE issued_lead_id = :id ORDER BY issued_at DESC LIMIT 1", values={"id": lead_id}
         )
         referral_row = await database.fetch_one(
             "SELECT code FROM referral_codes WHERE owner_lead_id = :id ORDER BY created_at DESC LIMIT 1", values={"id": lead_id}
