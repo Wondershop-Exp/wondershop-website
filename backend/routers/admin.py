@@ -1696,7 +1696,7 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
         lines = [f"{it.get('time', '').strip()} — {it.get('item', '').strip()}".strip(" —")
                  for it in schedule if (it.get("time") or it.get("item"))]
         if lines:
-            to_write.append(("event_schedule_text", f"{prefix}\n" + "\n".join(lines), None))
+            to_write.append(("event_schedule_text", "\n".join(lines), f"{prefix} Copied from the Sales panel."))
 
     for key, cc, remark in to_write:
         cat_entry = CATALOG_BY_KEY.get(key, {})
