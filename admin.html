@@ -690,6 +690,21 @@ const GENDER_OPTIONS = [
   {value:'Prefer not to say', label:'Prefer not to say'},
 ];
 
+// 2026-09-24, per Shruti -- "make it a dropdown, pick values from the
+// website frontend": mirrors builder.html's Venue Type buttons (#venueGrid)
+// exactly, since that's what actually writes leads.location_type on the
+// public site (S.venue -> location_type).
+const LOCATION_TYPE_OPTIONS = [
+  {value:'', label:'Select'},
+  {value:'Home', label:'Home'},
+  {value:'Society Banquet', label:'Banquet Hall'},
+  {value:'Club', label:'Club / Resort'},
+  {value:'Restaurant', label:'Restaurant'},
+  {value:'Outdoor', label:'Outdoor'},
+  {value:'Other', label:'Other'},
+  {value:'Not Decided', label:'Not Decided Yet'},
+];
+
 // Pincode → City auto-fill. Empty until Shruti sends the real mapping
 // (2026-08-18) — onPincodeInput() below no-ops gracefully when a pincode
 // isn't in here yet, so nothing breaks in the meantime. Once she shares the
@@ -3601,6 +3616,8 @@ function fieldRowHtml(f, isCustEvent, locked){
     avCell = assignPickerHtml(rid, avValue);
   }else if(f.field_key==='child_genders' && !isMultiChild){
     avCell = selectHtml(rid+'_av', GENDER_OPTIONS, avValue);
+  }else if(f.field_key==='location_type'){
+    avCell = selectHtml(rid+'_av', LOCATION_TYPE_OPTIONS, avValue);
   }else if(f.field_key==='email'){
     avCell = '<input type="email" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'name@example.com')+'">';
   }else if(f.field_key==='child_ages' && !isMultiChild){
