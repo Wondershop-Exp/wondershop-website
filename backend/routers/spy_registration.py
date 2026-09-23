@@ -347,7 +347,7 @@ async def register_spy_agent(
         "agent_photo_filename": photo_filename or "",
     }
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
+        async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
             r = await client.post(settings.SPY_SHEET_WEBHOOK_URL, json=payload)
         logger.info(f"Spy agent registration ({token}, {agent_name}): sheet append -> {r.status_code}")
         ok = False
