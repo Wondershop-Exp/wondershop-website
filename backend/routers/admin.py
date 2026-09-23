@@ -1757,6 +1757,55 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
         reward_code = reward_row["code"] if reward_row else None
         referral_code = referral_row["code"] if referral_row else None
 
+        # 2026-09-23, per Shruti: sales can assign services (E-Invite,
+        # Activities, etc.) and add remarks entirely through the admin
+        # override system without ever touching builder_snapshot -- e.g.
+        # Swati's booking #3, entered by sales with no builder journey at
+        # all, so its snapshot has no einvite/activities in it even though
+        # the admin page clearly shows "Spy x K-Pop" / "Spy Treasure Hunt"
+        # as the current value for those fields. The summary email only
+        # ever read builder_snapshot, so it silently dropped all of that.
+        # Pull the sales panel's current values in here and fold them into
+        # what _send_user_ack renders, so the email matches what's
+        # actually on the admin page instead of just what came through the
+        # website builder.
+        overrides = await database.fetch_all(
+            "SELECT field_key, field_label, customer_choice_override, assigned_value, remarks "
+            "FROM booking_field_overrides WHERE lead_id = :id AND removed = FALSE",
+            values={"id": lead_id},
+        )
+        overrides_by_key = {o["field_key"]: o for o in overrides}
+        snap = dict(fake_req.builder_snapshot or {})
+
+        act_ov = overrides_by_key.get("svc_activities")
+        if not any((a or {}).get("n") for a in (snap.get("activities") or [])) and act_ov:
+            act_value = (act_ov["customer_choice_override"] or act_ov["assigned_value"] or "").strip()
+            if act_value:
+                acts = []
+                for name, _qty in _parse_csv_names(act_value):
+                    match = next((a for a in cat.ACTIVITIES if a[1] == name), None)
+                    acts.append({"n": name, "id": match[0] if match else None, "p": match[2] if match else None})
+                if acts:
+                    snap["activities"] = acts
+
+        einv_ov = overrides_by_key.get("svc_einvite")
+        if not (snap.get("einvite") or {}).get("n") and einv_ov:
+            einv_value = (einv_ov["customer_choice_override"] or einv_ov["assigned_value"] or "").strip()
+            if einv_value and einv_value != "No selection":
+                match = next((i for i in cat.INVITES if i[1] == einv_value), None)
+                snap["einvite"] = {"n": einv_value, "id": match[0] if match else None}
+
+        if snap != (fake_req.builder_snapshot or {}):
+            fake_req.builder_snapshot = snap
+
+        extra_remarks = [
+            f"{o['field_label']}: {o['remarks'].strip()}"
+            for o in overrides if o["remarks"] and o["remarks"].strip()
+        ]
+        if extra_remarks:
+            combined = "\n".join(extra_remarks)
+            fake_req.remarks = f"{fake_req.remarks}\n{combined}" if fake_req.remarks else combined
+
         # _send_user_ack never raises on its own (by design, for the
         # original fire-and-forget /submit flow) -- it always records the
         # outcome on the lead row instead. asyncio.wait_for is the backstop
