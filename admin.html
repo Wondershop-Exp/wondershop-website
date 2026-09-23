@@ -1252,6 +1252,16 @@ function renderSpyRegistrationBody(leadId, status){
       + (status.pickup_drop_updated_at ? ' \u00b7 '+esc(status.pickup_drop_updated_at) : '')
       + '</div>'
     : '<div id="srPickupDropStatus" style="font-size:11.5px;color:var(--gy);margin-top:8px">Not set yet \u2014 the registration page will ask the parent to confirm.</div>';
+  // 2026-09-23, per Shruti — optional per-event T-Shirt Size question
+  // ("for some spy registration, we might need to ask additional
+  // questions like tshirt size ... an image to upload (optional) with a
+  // dropdown with options"). Scoped to t-shirt size specifically (see
+  // migration 037) rather than a general custom-question builder.
+  const tshirtEnabled = !!status.tshirt_size_enabled;
+  const tshirtOptionsVal = status.tshirt_size_options || '';
+  const tshirtChartNote = status.has_tshirt_chart
+    ? '<span class="sr-status">\u2713 Size chart uploaded'+(status.tshirt_chart_image_name ? ' ('+esc(status.tshirt_chart_image_name)+')' : '')+'</span>'
+    : '';
 
   block.innerHTML =
     '<div class="spy-reg-card">'
@@ -1271,6 +1281,17 @@ function renderSpyRegistrationBody(leadId, status){
     +     '<button type="button" class="sr-btn primary" onclick="saveSpyPickupDrop('+leadId+')">Save</button>'
     +   '</div>'
     +   pdSourceNote
+    + '</div>'
+    + '<div class="sr-pickup-drop" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">'
+    +   '<div style="font-size:12px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">T-Shirt Size Question</div>'
+    +   '<div style="font-size:12px;color:var(--gy);margin-bottom:10px">Some events need to ask agents for their t-shirt size. Turn this on, list the sizes to offer, and upload this event\u2019s size chart (optional \u2014 shown to parents above the question).</div>'
+    +   '<label style="font-size:12.5px;color:var(--gy);display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:10px"><input type="checkbox" id="srTshirtEnabled" '+(tshirtEnabled?'checked':'')+'> Ask for T-Shirt Size on the registration page</label>'
+    +   '<textarea id="srTshirtOptions" placeholder="Size options, comma-separated \u2014 e.g. 18, 20, 22, 24, 26, 28" style="width:100%;min-height:44px;padding:8px 10px;border:1px solid var(--li2);border-radius:7px;font-size:13px;font-family:inherit">'+esc(tshirtOptionsVal)+'</textarea>'
+    +   '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:10px">'
+    +     '<label class="sr-btn ghost" style="display:inline-block;cursor:pointer">'+(status.has_tshirt_chart?'Replace Size Chart':'Upload Size Chart')+'<input type="file" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="uploadTshirtChart('+leadId+',this)"></label>'
+    +     tshirtChartNote
+    +     '<button type="button" class="sr-btn primary" onclick="saveTshirtSize('+leadId+')">Save</button>'
+    +   '</div>'
     + '</div>'
     + '</div>';
 }
@@ -1331,6 +1352,60 @@ async function uploadSpyInvite(leadId, inputEl){
     }
     await res.json();
     showToast('Invite uploaded \u2014 link is live');
+    const status = await apiCall('/api/spy-registration/admin/'+leadId);
+    renderSpyRegistrationBody(leadId, status);
+  }catch(e){
+    showToast('Could not upload: '+e.message);
+  }finally{
+    inputEl.value = '';
+  }
+}
+
+async function saveTshirtSize(leadId){
+  const enabledEl = document.getElementById('srTshirtEnabled');
+  const optionsEl = document.getElementById('srTshirtOptions');
+  if(!enabledEl || !optionsEl) return;
+  try{
+    const res = await fetch(API+'/api/spy-registration/admin/'+leadId+'/tshirt-size', {
+      method: 'POST',
+      headers: {'X-Admin-Password': getPw(), 'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        enabled: enabledEl.checked,
+        options: optionsEl.value || null,
+      }),
+    });
+    if(res.status===401){ showToast('Session expired \u2014 please log in again.'); return; }
+    if(!res.ok){
+      const body = await res.json().catch(()=>({}));
+      throw new Error(body.detail || ('Save failed ('+res.status+')'));
+    }
+    await res.json();
+    showToast('T-Shirt Size question saved');
+    const status = await apiCall('/api/spy-registration/admin/'+leadId);
+    renderSpyRegistrationBody(leadId, status);
+  }catch(e){
+    showToast('Could not save: '+e.message);
+  }
+}
+
+async function uploadTshirtChart(leadId, inputEl){
+  const file = inputEl.files && inputEl.files[0];
+  if(!file) return;
+  const fd = new FormData();
+  fd.append('chart_image', file);
+  try{
+    const res = await fetch(API+'/api/spy-registration/admin/'+leadId+'/tshirt-chart', {
+      method: 'POST',
+      headers: {'X-Admin-Password': getPw()},
+      body: fd,
+    });
+    if(res.status===401){ showToast('Session expired \u2014 please log in again.'); return; }
+    if(!res.ok){
+      const body = await res.json().catch(()=>({}));
+      throw new Error(body.detail || ('Upload failed ('+res.status+')'));
+    }
+    await res.json();
+    showToast('Size chart uploaded');
     const status = await apiCall('/api/spy-registration/admin/'+leadId);
     renderSpyRegistrationBody(leadId, status);
   }catch(e){
@@ -3364,8 +3439,8 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(locked){
     return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
-      +'<td data-label="Current value"><span class="readonly-cell" style="'+(f.field_key==='event_photos_link'?'white-space:pre-line':'')+'">'+esc(f.customer_choice||'—')+'</span></td>'
-      +((f.field_key==='bill_discount_pct'||f.field_key==='bill_advance'||f.field_key==='event_photos_link') ? '<td></td>' : '<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>')
+      +'<td data-label="Current value"><span class="readonly-cell" style="'+(['event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key)?'white-space:pre-line':'')+'">'+esc(f.customer_choice||'—')+'</span></td>'
+      +((['bill_discount_pct','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key)) ? '<td></td>' : '<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>')
       +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
       +'</tr>';
@@ -3402,6 +3477,14 @@ function fieldRowHtml(f, isCustEvent, locked){
     // not a single-line input, since one event can have several links —
     // one per line (saveField() reads .value the same way for either).
     ccCell = '<textarea id="'+rid+'_cc" placeholder="Paste Google Photos link(s) — one per line" style="min-height:64px">'+esc(f.customer_choice||'')+'</textarea>';
+  }else if(f.field_key==='terms_conditions'){
+    // 2026-09-23, per Shruti — capture the sales lead's own T&C text
+    // (promises/exceptions agreed with the client) as an admin field.
+    ccCell = '<textarea id="'+rid+'_cc" placeholder="Terms/conditions agreed with the client" style="min-height:64px">'+esc(f.customer_choice||'')+'</textarea>';
+  }else if(f.field_key==='event_schedule_text'){
+    // 2026-09-23, per Shruti — event schedule synced from the sales panel
+    // (or entered directly here), one line per item.
+    ccCell = '<textarea id="'+rid+'_cc" placeholder="One line per item, e.g. 4:00 PM – Welcome & Snacks" style="min-height:64px">'+esc(f.customer_choice||'')+'</textarea>';
   }else if(f.field_key==='event_payment_confirmed_amount'){
     // 2026-09-11, per Shruti — event-completion payment confirmation. Value
     // lands in Customer's Choice like every other admin-only field here
@@ -3452,7 +3535,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     // — readonly (not disabled) so onPincodeInput() can still set .value
     // programmatically and Save still picks it up.
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Auto-fills from pincode')+'" readonly style="background:var(--lgy);cursor:not-allowed">';
-  }else if(f.field_key==='bill_discount_pct' || f.field_key==='bill_advance' || f.field_key==='event_photos_link'){
+  }else if(['bill_discount_pct','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key)){
     avCell = noAssignedCell(rid);
   }else{
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'">';
@@ -3467,7 +3550,7 @@ function fieldRowHtml(f, isCustEvent, locked){
   return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
     +'<td data-label="Current value">'+ccCell+'</td>'
-    +'<td'+((f.field_key==='bill_discount_pct'||f.field_key==='bill_advance'||f.field_key==='event_photos_link')?'':' data-label="'+col3+'"')+'>'+avCell+'</td>'
+    +'<td'+((['bill_discount_pct','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key))?'':' data-label="'+col3+'"')+'>'+avCell+'</td>'
     +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
       +'<button class="mini-btn save" onclick="saveField('+attrJson(f.field_key)+', false)">Save</button>'

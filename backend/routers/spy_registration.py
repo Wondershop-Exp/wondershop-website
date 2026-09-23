@@ -169,12 +169,15 @@ async def admin_get_status(lead_id: int, x_admin_password: Optional[str] = Heade
         """SELECT share_token, (invite_image IS NOT NULL) AS has_invite,
                   invite_image_name, updated_on,
                   drop_off_time, pick_up_time, show_pickup_drop,
-                  pickup_drop_source, pickup_drop_updated_at
+                  pickup_drop_source, pickup_drop_updated_at,
+                  tshirt_size_enabled, tshirt_size_options,
+                  (tshirt_chart_image IS NOT NULL) AS has_tshirt_chart,
+                  tshirt_chart_image_name
            FROM spy_registration_pages WHERE lead_id = :lead_id""",
         values={"lead_id": lead_id},
     )
     if not row:
-        return {"exists": False, "show_pickup_drop": True}
+        return {"exists": False, "show_pickup_drop": True, "tshirt_size_enabled": False}
     return {
         "exists": True,
         "share_token": row["share_token"],
@@ -186,6 +189,14 @@ async def admin_get_status(lead_id: int, x_admin_password: Optional[str] = Heade
         "show_pickup_drop": row["show_pickup_drop"] if row["show_pickup_drop"] is not None else True,
         "pickup_drop_source": row["pickup_drop_source"],
         "pickup_drop_updated_at": _to_ist_str(row["pickup_drop_updated_at"]),
+        # 2026-09-23, per Shruti — optional per-event T-Shirt Size question
+        # (see migration 037). tshirt_size_options is stored as the admin's
+        # own comma-separated text verbatim (not split here) since
+        # admin.html just needs to redisplay it in the same textbox.
+        "tshirt_size_enabled": bool(row["tshirt_size_enabled"]),
+        "tshirt_size_options": row["tshirt_size_options"] or "",
+        "has_tshirt_chart": bool(row["has_tshirt_chart"]),
+        "tshirt_chart_image_name": row["tshirt_chart_image_name"],
     }
 
 
@@ -234,6 +245,108 @@ async def admin_upload_invite(
         "success": True,
         "share_token": token,
         "share_url": f"/spy-agent-registration.html?t={token}",
+    }
+
+
+class TshirtSizeUpdate(BaseModel):
+    enabled: bool = False
+    options: Optional[str] = None   # comma-separated, admin-typed verbatim
+
+
+@router.post("/admin/{lead_id}/tshirt-size")
+async def admin_set_tshirt_size(lead_id: int, body: TshirtSizeUpdate, x_admin_password: Optional[str] = Header(None)):
+    """Turns the T-Shirt Size question on/off for this booking's
+    registration page and saves the admin-typed list of size options
+    (2026-09-23, per Shruti — see migration 037's comment). Creates the
+    spy_registration_pages row (same first-call-creates-it pattern as
+    admin_upload_invite/admin_set_pickup_drop above) if this booking
+    doesn't have one yet — so turning this on is itself a valid way to
+    generate the registration link for a booking that has no invite image."""
+    _require_admin(x_admin_password)
+    lead = await database.fetch_one("SELECT lead_id FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    if not lead:
+        raise HTTPException(status_code=404, detail="No booking found with that lead ID.")
+
+    options = (body.options or "").strip() or None
+    existing = await database.fetch_one(
+        "SELECT share_token FROM spy_registration_pages WHERE lead_id = :lead_id",
+        values={"lead_id": lead_id},
+    )
+    if existing:
+        token = existing["share_token"]
+        await database.execute(
+            """UPDATE spy_registration_pages
+               SET tshirt_size_enabled = :enabled, tshirt_size_options = :options
+               WHERE lead_id = :lead_id""",
+            values={"enabled": body.enabled, "options": options, "lead_id": lead_id},
+        )
+    else:
+        token = secrets.token_urlsafe(18)
+        await database.execute(
+            """INSERT INTO spy_registration_pages (lead_id, share_token, tshirt_size_enabled, tshirt_size_options)
+               VALUES (:lead_id, :token, :enabled, :options)""",
+            values={"lead_id": lead_id, "token": token, "enabled": body.enabled, "options": options},
+        )
+    return {
+        "success": True,
+        "share_token": token,
+        "share_url": f"/spy-agent-registration.html?t={token}",
+        "tshirt_size_enabled": body.enabled,
+        "tshirt_size_options": options or "",
+    }
+
+
+@router.post("/admin/{lead_id}/tshirt-chart")
+async def admin_upload_tshirt_chart(
+    lead_id: int,
+    chart_image: UploadFile = File(...),
+    x_admin_password: Optional[str] = Header(None),
+):
+    """Uploads/replaces the size chart image for this booking's T-Shirt
+    Size question — same validation + storage pattern as
+    admin_upload_invite() above (BYTEA in Postgres, sniffed rather than
+    trusting the browser's Content-Type). Re-uploaded fresh per event
+    since the chart itself can change (2026-09-23, per Shruti)."""
+    _require_admin(x_admin_password)
+
+    lead = await database.fetch_one("SELECT lead_id FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    if not lead:
+        raise HTTPException(status_code=404, detail="No booking found with that lead ID.")
+
+    raw = await chart_image.read(MAX_FILE_BYTES + 1)
+    if len(raw) > MAX_FILE_BYTES:
+        raise HTTPException(status_code=400, detail="That image is too large — please keep it under 5MB.")
+    if not raw:
+        raise HTTPException(status_code=400, detail="No image was received — please choose a file and try again.")
+    sniffed = _sniff_file_type(raw)
+    if sniffed is None:
+        raise HTTPException(status_code=400, detail="The size chart must be a JPG, PNG, or WEBP image.")
+
+    existing = await database.fetch_one(
+        "SELECT share_token FROM spy_registration_pages WHERE lead_id = :lead_id",
+        values={"lead_id": lead_id},
+    )
+    if existing:
+        token = existing["share_token"]
+        await database.execute(
+            """UPDATE spy_registration_pages
+               SET tshirt_chart_image = :img, tshirt_chart_image_name = :name, tshirt_chart_image_type = :type
+               WHERE lead_id = :lead_id""",
+            values={"img": raw, "name": chart_image.filename, "type": sniffed, "lead_id": lead_id},
+        )
+    else:
+        token = secrets.token_urlsafe(18)
+        await database.execute(
+            """INSERT INTO spy_registration_pages (lead_id, share_token, tshirt_chart_image, tshirt_chart_image_name, tshirt_chart_image_type)
+               VALUES (:lead_id, :token, :img, :name, :type)""",
+            values={"lead_id": lead_id, "token": token, "img": raw, "name": chart_image.filename, "type": sniffed},
+        )
+
+    return {
+        "success": True,
+        "share_token": token,
+        "share_url": f"/spy-agent-registration.html?t={token}",
+        "tshirt_chart_image_name": chart_image.filename,
     }
 
 
@@ -308,6 +421,8 @@ async def get_party_info(token: str):
     row = await database.fetch_one(
         """SELECT (srp.invite_image IS NOT NULL) AS has_invite,
                   srp.drop_off_time, srp.pick_up_time, srp.show_pickup_drop,
+                  srp.tshirt_size_enabled, srp.tshirt_size_options,
+                  (srp.tshirt_chart_image IS NOT NULL) AS has_tshirt_chart,
                   l.child_names, l.child_ages, l.child_genders,
                   l.event_date, l.event_time, l.venue,
                   l.venue_contact_name, l.venue_contact_phone
@@ -362,6 +477,15 @@ async def get_party_info(token: str):
         "drop_off_time_display": _format_time(row.get("drop_off_time")) or None,
         "pick_up_time_display": _format_time(row.get("pick_up_time")) or None,
         "pickup_drop_needs_confirmation": not (row.get("drop_off_time") and row.get("pick_up_time")),
+        # 2026-09-23, per Shruti — optional per-event T-Shirt Size question
+        # (see migration 037). Options are admin-typed as one comma-
+        # separated string; split/trimmed/filtered here so the frontend
+        # gets a plain list to build the dropdown from.
+        "tshirt_size_enabled": bool(row.get("tshirt_size_enabled")),
+        "tshirt_size_options": [
+            s.strip() for s in (row.get("tshirt_size_options") or "").split(",") if s.strip()
+        ],
+        "tshirt_chart_image_url": f"/api/spy-registration/tshirt-chart-image/{token}" if row.get("has_tshirt_chart") else None,
     }
 
 
@@ -374,6 +498,17 @@ async def get_invite_image(token: str):
     if not row or not row["invite_image"]:
         raise HTTPException(status_code=404, detail="No invite image uploaded yet.")
     return Response(content=bytes(row["invite_image"]), media_type=row["invite_image_type"] or "image/jpeg")
+
+
+@router.get("/tshirt-chart-image/{token}")
+async def get_tshirt_chart_image(token: str):
+    row = await database.fetch_one(
+        "SELECT tshirt_chart_image, tshirt_chart_image_type FROM spy_registration_pages WHERE share_token = :token",
+        values={"token": token},
+    )
+    if not row or not row["tshirt_chart_image"]:
+        raise HTTPException(status_code=404, detail="No size chart uploaded yet.")
+    return Response(content=bytes(row["tshirt_chart_image"]), media_type=row["tshirt_chart_image_type"] or "image/jpeg")
 
 
 @router.post("/register")
@@ -391,6 +526,13 @@ async def register_spy_agent(
     # unchecked), so it's read as a string and compared rather than typed
     # as bool.
     marketing_opt_in: str = Form("false"),
+    # 2026-09-23, per Shruti — optional per-event T-Shirt Size question.
+    # Not declared as a hard-required Form field because it's only
+    # required when THIS booking turned the question on (validated below,
+    # once the booking's own tshirt_size_enabled is known) — a booking
+    # that never turned it on must keep accepting submissions with no
+    # tshirt_size at all.
+    tshirt_size: Optional[str] = Form(None),
     agent_photo: Optional[UploadFile] = File(None),
 ):
     token = _clean(token)
@@ -398,6 +540,7 @@ async def register_spy_agent(
     agent_dob = _clean(agent_dob)
     parent_name = _clean(parent_name)
     parent_phone = _clean(parent_phone)
+    tshirt_size = _clean(tshirt_size)
 
     if not token:
         raise HTTPException(status_code=400, detail="Missing registration link reference — please use the link exactly as shared.")
@@ -409,7 +552,7 @@ async def register_spy_agent(
         raise HTTPException(status_code=400, detail="Parent Name is required.")
 
     row = await database.fetch_one(
-        """SELECT l.child_names, l.event_date FROM spy_registration_pages srp
+        """SELECT l.child_names, l.event_date, srp.tshirt_size_enabled FROM spy_registration_pages srp
            JOIN leads l ON l.lead_id = srp.lead_id
            WHERE srp.share_token = :token""",
         values={"token": token},
@@ -419,6 +562,9 @@ async def register_spy_agent(
     # See get_party_info's comment above — _mission_label() calls .get() on
     # this row, which the raw databases Record doesn't support.
     mission_label = _mission_label(dict(row))
+
+    if row["tshirt_size_enabled"] and not tshirt_size:
+        raise HTTPException(status_code=400, detail="T-Shirt Size is required.")
 
     photo_b64 = None
     photo_filename = None
@@ -449,6 +595,7 @@ async def register_spy_agent(
         "parent_name": parent_name,
         "parent_phone": parent_phone,
         "marketing_opt_in": marketing_opt_in.strip().lower() == "true",
+        "tshirt_size": tshirt_size or "",
         "agent_photo_b64": photo_b64 or "",
         "agent_photo_filename": photo_filename or "",
     }

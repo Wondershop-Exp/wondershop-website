@@ -218,6 +218,14 @@ FIELD_CATALOG = [
     # several links; saving this ALSO pushes a row to the "Event Photos"
     # tab of the Google Sheet — see _push_event_photos_to_sheet below.
     {"key": "event_photos_link",    "label": "Event Photos Link(s)",   "section": "Billing & Rewards", "admin_only": True},
+    # 2026-09-23, per Shruti — "add a new T&C field in admin as well to
+    # capture sales lead T&C" / "add this section in admin" (Event
+    # Schedule). Both textareas (see admin.html's event_photos_link-style
+    # rendering), admin-only, filled in automatically at the moment a sales
+    # lead converts to a booking (see _copy_sales_data_to_admin_overrides
+    # below) and freely editable afterward like any other field here.
+    {"key": "terms_conditions",     "label": "Terms & Conditions (Sales)", "section": "Billing & Rewards", "admin_only": True},
+    {"key": "event_schedule_text",  "label": "Event Schedule",         "section": "Billing & Rewards", "admin_only": True},
     {"key": "bill_coupon_code",     "label": "Coupon Code",            "section": "Billing & Rewards"},
     # 2026-09-22, per Shruti — clarified this is specifically the
     # scratch-card reveal reward (reward_label/reward_type on the lead),
@@ -628,6 +636,8 @@ def _log_sentence(field_label: str, change_type: str, old_value, new_value, chan
         return f'{field_label}: added by {changed_by} on {ts}.'
     if change_type == "confirmed_by_parent":
         return f'{field_label}: confirmed by parent as "{new_d}" via the registration page on {ts}.'
+    if change_type == "synced_from_sales":
+        return f'{field_label}: copied from the Sales panel as "{new_d}" by {changed_by} on {ts}.'
     return f'{field_label}: {change_type} changed from "{old_d}" to "{new_d}" by {changed_by} on {ts}.'
 
 
@@ -1487,6 +1497,268 @@ async def _log_status_change(lead_id: int, old_v, new_v, who: str, now):
 # if a lead is converted, move it to the bookings tab. maintain edit history
 # ... converted marked by whom"). Single source of truth for the actual
 # is_booking flip so both entry points log identically.
+def _compose_sales_decor_value(pb_decor: dict) -> Optional[str]:
+    """Reconstructs this page's Decor Customer's Choice string ("<theme> -
+    <tier>" / a std-tier name / "Custom Design") from the sales panel's
+    decor requirement ({selected: <tier or "Others">, theme_name: <theme
+    or None>}) -- the forward direction of what _resolve_decor_override()
+    above does in reverse for the email. Returns None only when nothing
+    was selected at all."""
+    tier = (pb_decor or {}).get("selected")
+    theme_name = (pb_decor or {}).get("theme_name")
+    if not tier:
+        return None
+    if theme_name:
+        theme_match = _THEMES_BY_NAME.get(theme_name)
+        if theme_match and tier in cat.DECOR_TIER_META and tier in theme_match.get("tierPhotos", {}):
+            return f"{theme_name} - {tier}"
+    std_name = _STD_DECOR_NAMES.get(tier)
+    if std_name:
+        return std_name
+    return "Custom Design"  # "Others", or a theme/tier combo that doesn't actually exist
+
+
+# ─── SALES → BOOKING: one-time copy of sales panel data into admin overrides ──
+# 2026-09-23, per Shruti — "sync without a button. when we convert sales to
+# a booking, copy all data to admin. post ythat the user can edit as
+# required. all fields selected in admin like decor, activitie, invite etc.
+# should be selected in admin booking as well" (follow-up to the T&C/Event
+# Schedule/Grand Total ask a few edits above). Runs ONCE, automatically, at
+# the exact moment _do_convert_lead() flips a lead to a booking — never on
+# a button press, never again afterward (every field it writes is a normal
+# booking_field_overrides row, so admin can freely edit/remove it through
+# the usual Save button on this page afterward).
+#
+# Value-format notes (why some sales selections become a real dropdown
+# value here and some can only become a remark):
+#   - Decor: sales stores {selected: <tier>, theme_name: <theme or ''>} —
+#     composed into this page's "<theme> - <tier>" / std-tier-name format,
+#     the forward direction of what _resolve_decor_override() does above.
+#   - Music/Photography: sales shows friendlier tier labels (MUSIC_LABELS/
+#     PHOTO_LABELS in routers/sales_leads.py, e.g. "Music Essential") for
+#     the same underlying Classic/Premium/Signature tiers this page uses —
+#     reversed back here.
+#   - Pinata: sales' "Custom" == this page's "Custom Design"; every other
+#     name already matches verbatim.
+#   - Host: the sales panel never captures a Premium/Signature tier for
+#     Host at all (just a cost + free-text customization) — there is
+#     nothing valid to put in Customer's Choice, so only the customization
+#     note (if any) is copied, as a remark.
+#   - E-Invite: same story — sales' einvite_type is a Static/Video+Reminder
+#     PRICING tier, not one of this page's ~25 actual invite designs, so it
+#     can't become a valid Customer's Choice value either. The tier, Save
+#     the Date add-on, and the E-Invite Details block (pickup time, venue,
+#     RSVP, instructions) are copied into Remarks instead, since otherwise
+#     that detail isn't visible anywhere on this page at all.
+# Every field is skipped if an override already exists for it (defensive —
+# a lead can only convert once, so this should never actually fire, but it
+# keeps the helper safe to re-run and it never clobbers a real edit).
+async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
+    from routers.sales_leads import _estimate_total, MUSIC_LABELS, PHOTO_LABELS  # lazy: sales_leads imports FROM admin at module level
+
+    pb = await database.fetch_one(
+        "SELECT requirements, activities, event_schedule, notes_special_instructions, "
+        "notes_changes_updates, terms_conditions FROM lead_sales_playbook WHERE lead_id = :id",
+        values={"id": lead_id},
+    )
+    if not pb:
+        return  # not a sales-originated lead — nothing to copy
+
+    def _j(v):
+        if v is None:
+            return None
+        return json.loads(v) if isinstance(v, str) else v
+
+    req = _j(pb["requirements"]) or {}
+    activities = _j(pb["activities"]) or []
+    schedule = _j(pb["event_schedule"]) or []
+
+    existing_rows = await database.fetch_all(
+        "SELECT field_key FROM booking_field_overrides WHERE lead_id = :id", values={"id": lead_id},
+    )
+    already = {row["field_key"] for row in existing_rows}
+
+    now = datetime.utcnow()
+    prefix = f"[Copied from Sales by {who} on {_to_ist_str(now)}]"
+
+    def _req(key):
+        v = req.get(key)
+        return v if isinstance(v, dict) else {}
+
+    to_write = []  # (key, customer_choice_override, remarks)
+
+    # ── Decor ──
+    if "svc_decor" not in already:
+        d = _req("decor")
+        cc = _compose_sales_decor_value(d)
+        if cc and cc not in DROPDOWN_VALUES.get("svc_decor", set()):
+            cc = None
+        remark = f"{prefix} {d['customization']}" if d.get("customization") else None
+        if cc or remark:
+            to_write.append(("svc_decor", cc, remark))
+
+    # ── Activities (multi-select — comma-joined names, same as this page's
+    # own multi-select Save) ──
+    if "svc_activities" not in already and activities:
+        valid_names = {o["value"] for o in ACTIVITY_OPTIONS}
+        names = [a.get("name") for a in activities if a.get("name") in valid_names]
+        if names:
+            to_write.append(("svc_activities", ", ".join(names), f"{prefix} Copied from the Sales panel."))
+        else:
+            raw = ", ".join(a.get("name", "") for a in activities if a.get("name"))
+            if raw:
+                to_write.append(("svc_activities", None, f"{prefix} {raw}"))
+
+    # ── Host (no valid dropdown value available — remarks only, see notes above) ──
+    if "svc_host" not in already:
+        h = _req("host")
+        if h.get("customization"):
+            to_write.append(("svc_host", None, f"{prefix} {h['customization']}"))
+
+    # ── Music (DJ) ──
+    if "svc_dj" not in already:
+        m = _req("music")
+        music_rev = {v: k for k, v in MUSIC_LABELS.items()}
+        cc = music_rev.get(m.get("selected"))
+        if cc and cc not in DROPDOWN_VALUES.get("svc_dj", set()):
+            cc = None
+        bits = []
+        if m.get("customization"):
+            bits.append(m["customization"])
+        addon_names = [a.get("name") for a in (m.get("addons") or []) if a.get("name")]
+        if addon_names:
+            bits.append("Add-ons: " + ", ".join(addon_names))
+        remark = f"{prefix} {' · '.join(bits)}" if bits else None
+        if cc or remark:
+            to_write.append(("svc_dj", cc, remark))
+
+    # ── Pinata ──
+    if "svc_pinata" not in already:
+        p = _req("pinata_type")
+        raw = p.get("selected")
+        cc = "Custom Design" if raw == "Custom" else raw
+        if cc and cc not in DROPDOWN_VALUES.get("svc_pinata", set()):
+            cc = None
+        if cc:
+            to_write.append(("svc_pinata", cc, None))
+
+    # ── Photography ──
+    if "svc_photo" not in already:
+        ph = _req("photographer")
+        photo_rev = {v: k for k, v in PHOTO_LABELS.items()}
+        cc = photo_rev.get(ph.get("selected"))
+        if cc and cc not in DROPDOWN_VALUES.get("svc_photo", set()):
+            cc = None
+        if cc:
+            to_write.append(("svc_photo", cc, None))
+
+    # ── E-Invite (tier + Save the Date + detail fields, as remarks — see
+    # the module docstring above for why there's no valid Customer's
+    # Choice value to set here) ──
+    if "svc_einvite" not in already:
+        ei = _req("einvite_type")
+        std = _req("save_the_date")
+        details = _req("einvite_details")
+        bits = []
+        if ei.get("selected"):
+            bits.append(f"E-Invite tier: {ei['selected']}" + (f" (₹{ei['cost']})" if ei.get("cost") is not None else ""))
+        if std.get("selected") == "Yes":
+            bits.append("Save the Date: Yes" + (f" (₹{std['cost']})" if std.get("cost") is not None else ""))
+        if details:
+            if details.get("pickup_time"):
+                bits.append(f"Pickup time: {details['pickup_time']}" + (" (shown on invite)" if details.get("show_pickup_on_invite") else " (internal only)"))
+            if details.get("venue"):
+                bits.append(f"Venue on invite: {details['venue']}")
+            if details.get("rsvp_name") or details.get("rsvp_mobile"):
+                bits.append("RSVP: " + ", ".join(x for x in [details.get("rsvp_name"), details.get("rsvp_mobile")] if x))
+            if details.get("instructions"):
+                bits.append(details["instructions"])
+        if bits:
+            to_write.append(("svc_einvite", None, f"{prefix} " + " · ".join(bits)))
+
+    # ── Terms & Conditions (new admin field) — T&C text as Customer's
+    # Choice, sales' own notes as Remarks (2026-09-23, per Shruti: "add a
+    # new T&C field ... for all data moved from sales to admin, add a
+    # prefix"; the NOTES/CLIENT SPECIAL INSTRUCTIONS fields from the sales
+    # panel land here too since this is the only free-text admin field
+    # they naturally belong in — they already flow to the confirmation
+    # email separately, see _resolve_decor_override's neighbours above). ──
+    if "terms_conditions" not in already:
+        tc = (pb["terms_conditions"] or "").strip()
+        notes = " ".join(x.strip() for x in [pb["notes_special_instructions"], pb["notes_changes_updates"]] if x and x.strip())
+        cc = f"{prefix} {tc}" if tc else None
+        remark = f"{prefix} {notes}" if notes else None
+        if cc or remark:
+            to_write.append(("terms_conditions", cc, remark))
+
+    # ── Event Schedule (new admin field) ──
+    if "event_schedule_text" not in already and schedule:
+        lines = [f"{it.get('time', '').strip()} — {it.get('item', '').strip()}".strip(" —")
+                 for it in schedule if (it.get("time") or it.get("item"))]
+        if lines:
+            to_write.append(("event_schedule_text", f"{prefix}\n" + "\n".join(lines), None))
+
+    for key, cc, remark in to_write:
+        cat_entry = CATALOG_BY_KEY.get(key, {})
+        await database.execute(
+            """
+            INSERT INTO booking_field_overrides
+                (lead_id, field_key, field_label, section, customer_choice_override,
+                 assigned_value, remarks, removed, is_custom, updated_by, updated_at)
+            VALUES
+                (:lead_id, :key, :label, :section, :cco, NULL, :rm, FALSE, FALSE, :by, :now)
+            """,
+            values={
+                "lead_id": lead_id, "key": key,
+                "label": cat_entry.get("label", key), "section": cat_entry.get("section", "Services"),
+                "cco": cc, "rm": remark, "by": who, "now": now,
+            },
+        )
+        await database.execute(
+            """
+            INSERT INTO booking_change_log
+                (lead_id, field_key, field_label, change_type, old_value, new_value, changed_by, changed_at)
+            VALUES
+                (:lead_id, :key, :label, 'synced_from_sales', NULL, :new_v, :by, :now)
+            """,
+            values={
+                "lead_id": lead_id, "key": key, "label": cat_entry.get("label", key),
+                "new_v": cc or remark, "by": who, "now": now,
+            },
+        )
+
+    # ── Grand Total: only if this booking never had a real checkout total
+    # (order_grand_total is NULL for every sales-entered booking) — set it
+    # to the sales panel's own itemised sum so booking_pricing.
+    # recompute_grand_total() (otherwise a no-op without it, see its
+    # docstring) has a real starting point and Grand Total/Balance Due on
+    # this page start reflecting everything selected above. Discount % is
+    # deliberately left untouched: recompute_grand_total() already
+    # reconciles a mismatch between this total and leads.client_budget (the
+    # amount actually agreed with the customer) through its own fallback
+    # logic, so forcing a stored discount value here risks double-counting
+    # rather than adding anything the page doesn't already work out live.
+    lead_row = await database.fetch_one(
+        "SELECT order_grand_total, kids_count FROM leads WHERE lead_id = :id", values={"id": lead_id},
+    )
+    if lead_row and lead_row["order_grand_total"] is None:
+        grand = _estimate_total(req, activities, lead_row["kids_count"])
+        if grand:
+            await database.execute(
+                "UPDATE leads SET order_grand_total = :v WHERE lead_id = :id",
+                values={"v": grand, "id": lead_id},
+            )
+            await database.execute(
+                """
+                INSERT INTO booking_change_log
+                    (lead_id, field_key, field_label, change_type, old_value, new_value, changed_by, changed_at)
+                VALUES
+                    (:lead_id, 'order_grand_total', 'Grand Total (internal)', 'synced_from_sales', NULL, :new_v, :by, :now)
+                """,
+                values={"lead_id": lead_id, "new_v": str(grand), "by": who, "now": now},
+            )
+
+
 async def _do_convert_lead(lead_id: int, who: str) -> None:
     lead_row = await database.fetch_one("SELECT status, is_booking, converted_on FROM leads WHERE lead_id = :id", values={"id": lead_id})
     if not lead_row:
@@ -1502,6 +1774,15 @@ async def _do_convert_lead(lead_id: int, who: str) -> None:
         values["converted_on"] = now
     await database.execute(f"UPDATE leads SET {', '.join(set_clauses)} WHERE lead_id = :id", values=values)
     await _log_status_change(lead_id, lead_row["status"], "Converted to Booking", who, now)
+
+    # 2026-09-23, per Shruti — "sync without a button. when we convert
+    # sales to a booking, copy all data to admin." A sync failure must
+    # never break the core conversion (the lead is already a booking at
+    # this point) — logged and swallowed, not raised.
+    try:
+        await _copy_sales_data_to_admin_overrides(lead_id, who)
+    except Exception:
+        logger.exception(f"Sales-to-admin copy failed for lead #{lead_id} (booking conversion still succeeded)")
 
 
 @router.post("/bookings/{lead_id}/status")

@@ -248,6 +248,25 @@
   input::placeholder{color:#8a7aa8}
   input:focus{outline:2px solid var(--neon);outline-offset:0;border-color:var(--neon)}
   input[type="date"]{color-scheme:dark}
+  select{
+    width:100%;
+    padding:13px 14px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(199,125,255,0.35);
+    border-radius:10px;
+    color:var(--ink);
+    font-size:15px;
+    font-family:inherit;
+    color-scheme:dark;
+  }
+  select:focus{outline:2px solid var(--neon);outline-offset:0;border-color:var(--neon)}
+  .size-chart-img{
+    width:100%;
+    border-radius:10px;
+    margin-bottom:10px;
+    border:1px solid rgba(199,125,255,0.35);
+    display:block;
+  }
   input[type="time"]{
     width:auto;
     flex:1;
@@ -493,6 +512,14 @@
         <input type="date" id="agentDob" name="agent_dob" required>
       </div>
 
+      <div class="field" id="tshirtField" style="display:none">
+        <label for="tshirtSize">T-Shirt Size <span class="req">*</span></label>
+        <img class="size-chart-img" id="tshirtChartImg" src="" alt="Size chart" style="display:none">
+        <select id="tshirtSize" name="tshirt_size">
+          <option value="">— select size —</option>
+        </select>
+      </div>
+
       <div class="field">
         <label for="agentPhoto">Agent Photo <span class="opt">(optional — for the i-card)</span></label>
         <label class="file-drop" for="agentPhoto">
@@ -640,6 +667,28 @@
         document.getElementById('venueLinesOut').innerHTML = d.venue
           ? d.venue.split(',').map(function(s){ return s.trim(); }).filter(Boolean).map(esc).join('<br>')
           : '';
+
+        // 2026-09-23, per Shruti — optional per-event T-Shirt Size
+        // question ("for some spy registration, we might need to ask
+        // additional questions like tshirt size ... a dropdown with
+        // options"). Size chart image (when uploaded) shows inline above
+        // the dropdown; the question is required whenever admin has
+        // turned it on for this booking.
+        if (d.tshirt_size_enabled) {
+          document.getElementById('tshirtField').style.display = 'block';
+          var tshirtSel = document.getElementById('tshirtSize');
+          (d.tshirt_size_options || []).forEach(function(sz){
+            var opt = document.createElement('option');
+            opt.value = sz;
+            opt.textContent = sz;
+            tshirtSel.appendChild(opt);
+          });
+          if (d.tshirt_chart_image_url) {
+            var chartImg = document.getElementById('tshirtChartImg');
+            chartImg.src = d.tshirt_chart_image_url;
+            chartImg.style.display = 'block';
+          }
+        }
         document.getElementById('formSubtitleOut').textContent = 'Confidential: Registration Form for ' + d.mission_label;
         document.getElementById('successTextOut').textContent =
           "Your agent's profile has been received for " + d.child_name + "'s mission. Headquarters will be in touch with further instructions before the big day.";
@@ -762,6 +811,13 @@
 
     if (!agentName) { showMsg('Please enter the Agent Name.', 'error'); document.getElementById('agentName').focus(); return; }
     if (!agentDob) { showMsg('Please enter the Agent DOB.', 'error'); document.getElementById('agentDob').focus(); return; }
+    var tshirtField = document.getElementById('tshirtField');
+    var tshirtSize = document.getElementById('tshirtSize').value;
+    if (tshirtField.style.display !== 'none' && !tshirtSize) {
+      showMsg('Please select a T-Shirt Size.', 'error');
+      document.getElementById('tshirtSize').focus();
+      return;
+    }
     if (!parentName) { showMsg('Please enter the Parent Name.', 'error'); document.getElementById('parentName').focus(); return; }
     if (parentPhone && !/^\d{10}$/.test(parentPhone.replace(/\D/g,''))) {
       showMsg('Parent Phone Number should be 10 digits.', 'error');
@@ -783,6 +839,7 @@
     fd.append('parent_name', parentName);
     fd.append('parent_phone', parentPhone);
     fd.append('marketing_opt_in', marketingOptIn ? 'true' : 'false');
+    if (tshirtSize) fd.append('tshirt_size', tshirtSize);
     var photoFile = fileInput.files && fileInput.files[0];
     if (photoFile) fd.append('agent_photo', photoFile);
 
