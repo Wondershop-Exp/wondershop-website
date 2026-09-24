@@ -263,6 +263,7 @@ table.list.static tr:hover td{background:inherit}
 .gt-breakdown li b{font-variant-numeric:tabular-nums;white-space:nowrap}
 .gt-breakdown li b.pos{color:#B4232C}
 .gt-breakdown li b.neg{color:#1a6630}
+.mp-line-total{font-size:11px;color:var(--gy);white-space:nowrap;margin-left:4px}
 .gt-warn{display:block;margin-top:5px;color:var(--or);font-style:normal}
 .mail-ok{color:#1a6630}.mail-bad{color:#B4232C}
 .av-row .av-assignee{flex:1;min-width:0}
@@ -2716,6 +2717,7 @@ async function cancelEventDetail(){
 }
 
 function renderDetail(d){
+  MP_KIDS_COUNT = parseInt(bdVal(d, 'kids_count'), 10) || null;
   renderBookingHead(d);
   renderBookingNav(d);
   renderBookingBar(d);
@@ -2859,6 +2861,11 @@ function selectHtml(id, options, current, extraAttrs){
 // `document.getElementById(rid+'_cc').value` read path needs no changes at
 // all to pick this up (2026-08-18, per Shruti — "+ for multi-select").
 const MP_OPTIONS = {}, MP_STATE = {}, MP_WITHQTY = {}, MP_LOCKED = {};
+// 2026-09-24, per Shruti -- "show the activities total here after
+// multiplying with the no. of kids": set once per renderDetail(d) call,
+// read inside mpRowsHtml() below so a per-child activity (Spy Treasure
+// Hunt, etc.) can show its computed line total next to the picker.
+let MP_KIDS_COUNT = null;
 
 function mpParse(str, withQty){
   if(!str) return [];
@@ -2905,7 +2912,13 @@ function mpRowsHtml(rid){
     const opts = [{value:'', label:'— Select —'}].concat((MP_OPTIONS[rid]||[]).filter(o => lockedNames.indexOf(o.value) < 0));
     const sel = selectHtml(rid+'_mps'+i, opts, r.v, ' onchange="mpUpdate('+attrJson(rid)+','+i+',this.value,null)"');
     const qtyHtml = withQty ? '<input type="number" min="1" class="mp-qty" value="'+esc(r.q)+'" oninput="mpUpdate('+attrJson(rid)+','+i+',null,this.value)">' : '';
-    return '<div class="mp-row">'+sel+qtyHtml+'<button type="button" class="mini-btn remove" onclick="mpRemove('+attrJson(rid)+','+i+')">✕</button></div>';
+    // Per-child activity (e.g. "Spy Treasure Hunt - Rs. 1500/child"): show
+    // the actual line total (price x kids) so it doesn't have to be
+    // mentally computed from the dropdown label.
+    const opt = (MP_OPTIONS[rid]||[]).find(o => o.value === r.v);
+    const totalHtml = (opt && opt.price != null && !opt.flat && MP_KIDS_COUNT)
+      ? '<span class="mp-line-total">= '+bdRupees(opt.price * MP_KIDS_COUNT)+' ('+MP_KIDS_COUNT+' kids × '+bdRupees(opt.price)+')</span>' : '';
+    return '<div class="mp-row">'+sel+qtyHtml+totalHtml+'<button type="button" class="mini-btn remove" onclick="mpRemove('+attrJson(rid)+','+i+')">✕</button></div>';
   }).join('');
 }
 
@@ -3152,17 +3165,38 @@ document.addEventListener('click', e=>{
   }
 });
 
-// The Grand Total row's explanation: the checkout total, then each priced change.
+// 2026-09-24, per Shruti (rewrite from scratch) — Grand Total is now
+// Total MRP minus Discount %, plus any non-discounted extra fees (Gift
+// Packaging / Thank-you Note / Cash Collection Fee — charged on top,
+// never discounted, same as at checkout). Total MRP's own note
+// (totalMrpNoteHtml below) carries the itemised "what's this made of" list.
 function grandTotalNoteHtml(f){
-  let h = 'Recalculates automatically from the changes on this page — services, add-ons, activities, gifts and Discount %.';
-  const b = f.breakdown || [];
-  if(b.length){
-    h += '<span class="gt-title">Checkout total '+bdRupees(f.checkout_total)+', then:</span><ul class="gt-breakdown">'
-      + b.map(x => '<li><span>'+esc(x.label)+'</span><b class="'+(x.amount>0?'pos':'neg')+'">'+(x.amount>0?'+':'−')+bdRupees(Math.abs(x.amount))+'</b></li>').join('')
-      + '</ul>';
-  }else{
-    h += ' No changes yet, so it equals the checkout total.';
+  let h = '';
+  const mrp = f.mrp, pct = f.discount_pct, amt = f.discount_amt;
+  if(mrp != null){
+    h += '<span class="gt-title">'+bdRupees(mrp)+' Total MRP';
+    if(amt) h += ' − '+bdRupees(amt)+' Discount ('+fmtPct(pct)+'%)';
+    h += '</span>';
   }
+  const extras = f.extra_items || [];
+  if(extras.length){
+    h += '<ul class="gt-breakdown">'
+      + extras.map(x => '<li><span>'+esc(x.label)+'</span><b class="pos">+'+bdRupees(x.amount)+'</b></li>').join('')
+      + '</ul>';
+  }
+  return h || 'Recalculates automatically from Total MRP and Discount %.';
+}
+
+// The Total MRP row's explanation: every currently selected service, add-on,
+// activity and gift, priced fresh off today's catalogue — no snapshot, no
+// deltas (2026-09-24, per Shruti: "look at the code from scratch").
+function totalMrpNoteHtml(f){
+  const items = f.items || [];
+  let h = items.length
+    ? '<span class="gt-title">Sum of everything currently selected:</span><ul class="gt-breakdown">'
+      + items.map(x => '<li><span>'+esc(x.label)+'</span><b class="pos">'+bdRupees(x.amount)+'</b></li>').join('')
+      + '</ul>'
+    : 'Nothing priced yet — select a service, activity or gift above.';
   if(f.unpriced && f.unpriced.length){
     h += '<span class="gt-warn">⚠ Not priced automatically: '+esc(f.unpriced.join('; '))+' — use Discount % to adjust the total if this should change it.</span>';
   }
@@ -3514,13 +3548,15 @@ function fieldRowHtml(f, isCustEvent, locked){
       ? 'Auto-calculated: Grand Total − Advance (follows Grand Total changes and Advance edits as soon as they are saved).'
       : f.field_key==='bill_grand_total'
       ? grandTotalNoteHtml(f)
+      : f.field_key==='bill_total_mrp'
+      ? totalMrpNoteHtml(f)
       : 'Captured at checkout — not re-calculated when services/overrides change here.';
     // 2026-09-22, per Shruti — Grand Total / Balance Due / Total Savings
     // are bare rupee amounts and get the same ₹ + Indian-system grouping
     // as everywhere else (bdRupees()); Freebies Unlocked is a free-text
     // list of items (order_freebies_text), not a single number, so it's
     // left as plain text.
-    const isMoneyField = f.field_key==='bill_grand_total' || f.field_key==='bill_balance' || f.field_key==='bill_total_savings';
+    const isMoneyField = f.field_key==='bill_total_mrp' || f.field_key==='bill_grand_total' || f.field_key==='bill_balance' || f.field_key==='bill_total_savings';
     const valueDisplay = (isMoneyField && f.customer_choice) ? bdRupees(f.customer_choice) : esc(f.customer_choice||'—');
     return '<tr id="'+rid+'" class="ro" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+'</td>'

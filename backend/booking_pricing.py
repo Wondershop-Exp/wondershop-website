@@ -1,30 +1,63 @@
 """
-Live Grand Total for the admin booking page (2026-09-21, per Shruti: "grand
-total not changing even after making changes at the admin side — changing
-the category of the host, adding music, changing the discount %, adding
-gifts").
+Grand Total for the admin booking page.
 
-What the customer paid at checkout is fixed in `leads` (client_budget =
-payable total, order_grand_total = cart subtotal BEFORE discount, the
-builder_snapshot = the services and the prices actually charged). When an
-admin then changes something on the booking page — a service tier, an
-add-on, the activities or gifts list, the Discount % — this module works out
-how far that moves the total, so Grand Total (and Balance Due, which is
-Grand Total − Advance) follows the changes.
+2026-09-24, per Shruti (rewrite from scratch): "the earlier logic ... was
+good where it was the total of all activities selected minus the discount.
+that's how it should be irrespective of the source of lead creation ...
+look at the code from scratch and fix this."
 
-Rules, kept deliberately simple and explained on the page:
+WHY THIS WAS REWRITTEN — the previous design (2026-09-21 → 2026-09-23)
+priced every admin change as a DIFFERENCE from `leads.builder_snapshot`
+(what was booked at checkout), so Grand Total = client_budget + (sum of
+deltas). That only works when builder_snapshot faithfully records exactly
+what was priced in at checkout — true for website (BAB) orders, but
+sales-originated bookings never reliably populate it the same way:
+  - Missing entirely -> every admin override looked like a brand new
+    addition on top of the checkout total (double-counting, 2026-09-24
+    "why is the total so different" — Rs.1,03,500 instead of Rs.86,000).
+  - Backfilled from a booking's CURRENT overrides (an attempted one-off
+    fix) -> anything added on the admin page after conversion got
+    silently treated as if it had already been priced in at checkout, so
+    it dropped OUT of the total instead (under-counting, "activities
+    should be 67500 ... it's not adding up").
+Both failures trace back to the same root cause: using a DIFF against a
+snapshot that may not describe the truth. The fix is to stop diffing
+against anything and price the booking fresh, every time, from whatever
+is actually selected right now.
 
-  * Every change is priced as the DIFFERENCE from what was booked. Anything
-    the admin has not touched keeps exactly the price the customer was
-    charged — so an untouched booking always shows exactly its checkout total.
-  * The discount stays the same rupee amount as at checkout (the site's
-    discount slabs are flat rupee amounts), unless the admin edits Discount %,
-    in which case the new % is applied to the new subtotal. Freebies unlocked
-    at checkout (e.g. the free Tattoo Station) stay free.
-  * Packaging / thank-you-note fees are not discounted (same as checkout) and
-    follow the number of return gifts.
-  * Prices for things newly added here come from catalogue_data.py — the same
-    list the admin dropdowns show.
+NEW DESIGN — no more snapshot, no more deltas:
+
+  Total MRP   = sum of the catalogue price of every CURRENTLY selected
+                service / add-on / activity / gift (the admin override if
+                there is one, otherwise whatever the customer originally
+                submitted) — using the exact same catalogue prices the
+                public site and this admin page's own dropdowns show.
+  Discount    = Total MRP x Discount % (Discount % is just another
+                overridable field on the page, unchanged — a website
+                order's % comes from the site's own discount slabs at
+                checkout, a sales order's % is whatever was negotiated
+                and typed in; the formula applying it is identical for
+                both, which is the whole point — "that's how it should be
+                irrespective of the source of lead creation").
+  Grand Total = (Total MRP − Discount) + non-discounted extra fees
+                (Gift Packaging / Thank-you Note / Cash Collection Fee —
+                these are charged on top at checkout too, never
+                discounted, so they stay outside the discountable MRP).
+
+There is nothing left to fall out of sync: change a service on the admin
+page and its new catalogue price is simply summed in on the next load, no
+matter what (if anything) `builder_snapshot` says.
+
+A field with no catalogue price match at all (legacy free text, a custom
+name that doesn't match today's catalogue) is listed in "unpriced" so the
+admin page can flag it instead of silently mispricing it, rather than
+being guessed at.
+
+`compute_adjustments()` below (the OLD delta-vs-snapshot calculation) is
+kept, UNCHANGED, purely to annotate the invoice PDF with "what changed
+since checkout" line items — a cosmetic, secondary use that was never the
+source of the Grand Total bug (see send_booking_invoice() in admin.py).
+It is no longer used to derive Grand Total itself.
 
 Pure functions, no database access, so they can be unit-tested directly.
 """
@@ -41,8 +74,23 @@ DJ_LIGHTS_PRICE = 1500
 DJ_SMOKE_PRICE = 2000
 # 2026-09-22, per Shruti — Piñata Bags admin dropdown (Add-ons section):
 # flat per-bag rate, deliberately no MOQ/tiering ("don't add an MOQ, just
-# give per bag pricing").
+# give per bag pricing"). Not yet priced into Total MRP below — the admin
+# field for it is a free-text "Assign..." box with no quantity captured
+# anywhere, same as before this rewrite.
 PINATA_BAG_PRICE = 15
+# Mirrors leads.py's _COLLECTION_FEE (Rs.100 flat surcharge for "Cash
+# Collection at Venue") — kept in sync by hand.
+COLLECTION_FEE = 100
+# 2026-09-24, per Shruti test booking ("so is the invite for Rs. 500") —
+# E-Invite pricing is genuinely DB-driven site-side (einvite_master has no
+# static price; the real charge comes from a per-order pricing_matrix
+# lookup cart.py does live), so there's no catalogue table this pure
+# function can look up by design name. This mirrors platform_config's own
+# 'einvite_charge' seed value (see migrations/001_initial_schema.sql) — a
+# flat charge whenever a design is picked. Good enough to price a normal
+# E-Invite selection correctly; a future pass could look the real price up
+# from einvite_master/pricing_matrix if Shruti needs per-design accuracy.
+EINVITE_FLAT_CHARGE = 500
 
 # Admin dropdown label  <->  builder key for Gift Packaging.
 PACKAGING_LABEL_TO_KEY = {
@@ -123,7 +171,9 @@ def _swap_delta(paid, orig_cat, cur_cat):
     return max(0.0, cur_cat - (orig_cat if orig_cat is not None else paid))
 
 
-# ─── the calculation ───────────────────────────────────────────────────────
+# ─── OLD delta-vs-checkout calculation — kept only for the invoice's ──────
+# "what changed since checkout" annotations (send_booking_invoice() in
+# admin.py). No longer used to derive Grand Total — see module docstring.
 
 def compute_adjustments(lead: dict, snap: dict, cur: dict, removed: set) -> dict:
     """cur: field_key -> current value string (override, else the original);
@@ -249,50 +299,156 @@ def compute_adjustments(lead: dict, snap: dict, cur: dict, removed: set) -> dict
     return {"sub": sub, "extra": extra, "unpriced": unpriced}
 
 
-def recompute_grand_total(lead: dict, snap: dict, cur: dict, removed: set,
-                          orig_discount_pct: Optional[float], new_discount_pct: Optional[float]) -> Optional[dict]:
-    """Returns None when the booking has no checkout figures to build on;
-    otherwise {"grand_total", "subtotal", "checkout_total", "adjustments":
-    [{"label","amount"}], "unpriced": [...]}."""
-    client_budget = money(lead.get("client_budget"))
-    sub_old = money(lead.get("order_grand_total"))
-    if client_budget is None or sub_old is None:
+# ─── NEW: from-scratch calculation (drives Grand Total everywhere) ───────
+
+def _resolved(cur: dict, key: str, removed: set) -> Optional[str]:
+    """The value actually in effect for this field right now — None if the
+    admin removed it or nothing is selected."""
+    if key in removed:
+        return None
+    v = cur.get(key)
+    return v if v not in (None, "") else None
+
+
+def _price_activities(names_csv: Optional[str], kids: int):
+    """Every currently-selected activity, priced off the same catalogue the
+    admin's own picker shows (ACTIVITY_PRICES: price + whether it's flat or
+    per-child) — exactly what Shruti described: "1500 x 45" for a per-child
+    activity, no snapshot involved at all."""
+    items, unpriced = [], []
+    for name, _qty in parse_csv(names_csv):
+        p_flat = ACTIVITY_PRICES.get(name)
+        if p_flat is None:
+            unpriced.append(f"Activity: {name}")
+            continue
+        p, flat = p_flat
+        amount = p if flat else p * max(kids, 1)
+        detail = "" if flat else f" ({kids} kids × ₹{p:g})"
+        items.append((f"Activity: {name}{detail}", amount))
+    return items, unpriced
+
+
+def _price_gifts(gifts_csv: Optional[str], snap: dict):
+    """Prefers the unit price actually billed at checkout (from the
+    snapshot, when that exact gift is still selected) so an untouched
+    gift's price never drifts if the catalogue price changes later;
+    anything else (a gift added here, or no snapshot at all) falls back to
+    today's catalogue price."""
+    orig_units = {g["n"]: money(g.get("unit")) for g in (snap.get("gifts") or []) if g.get("n")}
+    items, unpriced = [], []
+    total_qty = 0
+    for name, qty in parse_csv(gifts_csv, with_qty=True):
+        total_qty += qty
+        unit = orig_units.get(name)
+        if unit is None:
+            unit = GIFT_PRICES.get(name)
+        if unit is None:
+            unpriced.append(f"Gift: {name}")
+            continue
+        items.append((f"Gift: {name} × {qty}", unit * qty))
+    return items, unpriced, total_qty
+
+
+def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
+                     discount_pct: Optional[float]) -> Optional[dict]:
+    """The whole Billing & Rewards picture, computed fresh from whatever is
+    currently selected — no diffing against anything. Returns None only
+    when this lead has never reached checkout (no client_budget at all —
+    same gate the old code used, kept so plain not-yet-booked leads don't
+    show a Grand Total out of nowhere).
+
+    Returns {"total_mrp", "discount_pct", "discount_amt", "extra_total",
+    "grand_total", "items": [{"label","amount"}...] (the services that make
+    up Total MRP), "extra_items": [...] (non-discounted fees), "unpriced":
+    [...], plus "subtotal"/"checkout_total" — legacy-named aliases kept so
+    send_booking_invoice() doesn't need its own copy of these numbers}."""
+    if money(lead.get("client_budget")) is None:
         return None
 
-    adj = compute_adjustments(lead, snap, cur, removed)
-    d_sub = sum(a for _l, a in adj["sub"])
-    d_extra = sum(a for _l, a in adj["extra"])
-    sub_new = max(0.0, sub_old + d_sub)
-
-    adjustments = [{"label": l, "amount": a} for l, a in adj["sub"] + adj["extra"]]
-    d_discount = 0.0   # D_old − D_new, added to the total
-
-    # Fees charged on top of the discounted subtotal at checkout.
     snap = snap or {}
-    extras_old = ((100.0 if lead.get("payment_method") == "collect" else 0.0)
-                  + (money(snap.get("gift_packaging_cost")) or 0.0)
-                  + (money(snap.get("gift_thank_you_fee")) or 0.0))
-    d_old = sub_old - (client_budget - extras_old)      # rupee discount actually given at checkout
-    if not (-0.5 <= d_old <= sub_old + 0.5):             # figures don't reconcile — fall back to the rounded %
-        d_old = sub_old * (orig_discount_pct or 0.0) / 100.0
+    kids = int(lead.get("kids_count") or snap.get("kids_count") or 0)
+    items: list = []
+    unpriced: list = []
 
-    if (orig_discount_pct is not None and new_discount_pct is not None
-            and abs(new_discount_pct - orig_discount_pct) > 1e-9):
-        d_new = sub_new * new_discount_pct / 100.0
-        d_discount = d_old - d_new
-        if abs(d_discount) > 0.001:
-            adjustments.append({
-                "label": f"Discount {orig_discount_pct:g}% → {new_discount_pct:g}%",
-                "amount": round(d_discount, 2),
-            })
+    def add(label, amount):
+        if amount:
+            items.append((label, round(float(amount), 2)))
 
-    grand = max(0.0, client_budget + d_sub + d_extra + d_discount)
+    # ── tiered single-choice services ─────────────────────────────────────
+    def tiered(key, label, cat_price):
+        val = _resolved(cur, key, removed)
+        if not val:
+            return
+        p = cat_price(val)
+        if p is None:
+            unpriced.append(f"{label}: {val}")
+        else:
+            add(f"{label}: {val}", p)
+
+    tiered("svc_decor", "Decor", lambda n: DECOR_PRICES.get(n))
+    tiered("svc_host", "Host", lambda n: cat.HOST_TIER_PRICES.get(n))
+    tiered("svc_dj", "Music", lambda n: cat.DJ_TIER_PRICES.get(n))
+    tiered("svc_photo", "Photography", lambda n: cat.PHOTO_TIER_PRICES.get(n))
+    tiered("svc_pinata", "Piñata", lambda n: cat.PINATA_TIER_PRICES.get(n))
+
+    if _resolved(cur, "addon_dj_lights", removed) == "Yes":
+        add("Music lights", DJ_LIGHTS_PRICE)
+    if _resolved(cur, "addon_dj_smoke", removed) == "Yes":
+        add("Smoke machine", DJ_SMOKE_PRICE)
+
+    einvite = _resolved(cur, "svc_einvite", removed)
+    if einvite and einvite != "No selection":
+        add(f"E-Invite: {einvite}", EINVITE_FLAT_CHARGE)
+
+    act_items, act_unpriced = _price_activities(_resolved(cur, "svc_activities", removed), kids)
+    for label, amt in act_items:
+        add(label, amt)
+    unpriced += act_unpriced
+
+    gift_items, gift_unpriced, gift_qty = _price_gifts(_resolved(cur, "svc_gifts", removed), snap)
+    for label, amt in gift_items:
+        add(label, amt)
+    unpriced += gift_unpriced
+
+    total_mrp = round(sum(a for _l, a in items), 2)
+
+    # ── extra fees: charged on top of the discounted total, never
+    # discounted (same as at checkout) ─────────────────────────────────────
+    extra_items: list = []
+
+    def add_extra(label, amount):
+        if amount:
+            extra_items.append((label, round(float(amount), 2)))
+
+    pack_val = _resolved(cur, "addon_gift_packaging", removed)
+    pack_key = PACKAGING_LABEL_TO_KEY.get(pack_val) if pack_val else None
+    if pack_key:
+        add_extra(f"Packaging ({PACKAGING_KEY_TO_LABEL.get(pack_key, pack_key)})",
+                   PACKAGING_UNIT_PRICE.get(pack_key, 0) * gift_qty)
+
+    if _resolved(cur, "addon_gift_note", removed) == "Yes" and gift_qty > 0:
+        add_extra("Thank-you note", max(TAG_NOTE_MIN_QTY, gift_qty) * TAG_NOTE_UNIT_PRICE)
+
+    if lead.get("payment_method") == "collect":
+        add_extra("Cash Collection Fee", COLLECTION_FEE)
+
+    extra_total = round(sum(a for _l, a in extra_items), 2)
+
+    pct = discount_pct if discount_pct is not None else 0.0
+    discount_amt = round(total_mrp * pct / 100.0, 2)
+    grand_total = max(0.0, round(total_mrp - discount_amt + extra_total, 2))
+
     return {
-        "grand_total": round(grand, 2),
-        "subtotal": round(sub_new, 2),
-        # rupee discount shown on the invoice: subtotal + on-top fees − grand total
-        "discount_amt": round(max(0.0, sub_new + extras_old + d_extra - grand), 2),
-        "checkout_total": client_budget,
-        "adjustments": adjustments,
-        "unpriced": adj["unpriced"],
+        "total_mrp": total_mrp,
+        "discount_pct": pct,
+        "discount_amt": discount_amt,
+        "extra_total": extra_total,
+        "grand_total": grand_total,
+        "items": [{"label": l, "amount": a} for l, a in items],
+        "extra_items": [{"label": l, "amount": a} for l, a in extra_items],
+        "unpriced": unpriced,
+        # legacy-named aliases — send_booking_invoice() in admin.py reads
+        # these exact keys, unchanged since before this rewrite.
+        "subtotal": total_mrp,
+        "checkout_total": money(lead.get("client_budget")),
     }

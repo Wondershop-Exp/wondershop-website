@@ -62,7 +62,7 @@ import catalogue_data as cat
 from types import SimpleNamespace
 from invoice_builder import assemble_invoice_data, build_invoice_pdf, invoice_filename
 from booking_pricing import (
-    recompute_grand_total, freebie_activity_names, parse_csv as _parse_csv_names,
+    compute_billing, compute_adjustments, freebie_activity_names, parse_csv as _parse_csv_names,
     PACKAGING_KEY_TO_LABEL, PACKAGING_UNIT_PRICE, DJ_LIGHTS_PRICE, DJ_SMOKE_PRICE,
     TAG_NOTE_UNIT_PRICE, TAG_NOTE_MIN_QTY, PINATA_BAG_PRICE, DECOR_PRICES,
 )
@@ -211,6 +211,11 @@ FIELD_CATALOG = [
     # is admin-editable. Grand Total = client_budget (the real payable
     # total), live-recalculated only when Discount % changes — see
     # get_booking_detail()'s recalculation block (2026-09-10, per Shruti).
+    # 2026-09-24, per Shruti — sum of every currently selected service/
+    # add-on/activity/gift BEFORE Discount % is applied (system-calculated
+    # display, same as Grand Total — see READ_ONLY_FIELDS below and
+    # booking_pricing.compute_billing()).
+    {"key": "bill_total_mrp",       "label": "Total MRP",              "section": "Billing & Rewards"},
     {"key": "bill_grand_total",     "label": "Grand Total",            "section": "Billing & Rewards"},
     {"key": "bill_discount_pct",    "label": "Discount %",             "section": "Billing & Rewards"},
     # 2026-08-24, per Shruti (Image 3c) — "the same [freebies/discounts]
@@ -260,7 +265,7 @@ CATALOG_BY_KEY = {f["key"]: f for f in FIELD_CATALOG}
 DIRECT_WRITE_FIELDS = {f["key"] for f in FIELD_CATALOG if f["section"] == "Customer & Event Details"}
 # Payment Status values that mean the team HAS seen the advance arrive.
 ADVANCE_CONFIRMED_STATUSES = ("Advance Paid Verified", "Complete")
-READ_ONLY_FIELDS = {"bill_grand_total", "bill_balance", "bill_total_savings", "bill_freebies"}
+READ_ONLY_FIELDS = {"bill_total_mrp", "bill_grand_total", "bill_balance", "bill_total_savings", "bill_freebies"}
 
 # ─── Dropdown option lists ────────────────────────────────────────────────
 # Each option is {"value": ..., "label": ...} — value is what's actually
@@ -469,7 +474,10 @@ DROPDOWN_VALUES = {key: {o["value"] for o in opts} for key, opts in DROPDOWN_OPT
 # single-value DROPDOWN_VALUES membership check above (a joined list will
 # never equal one option value). Kept in a separate dict the frontend uses
 # to build a multi-row picker (2026-08-18, per Shruti — "+ for multi-select").
-ACTIVITY_OPTIONS = [_opt(n, f'{n} - Rs. {p}' + ('' if flat else '/child')) for _id, n, p, flat in cat.ACTIVITIES]
+ACTIVITY_OPTIONS = [
+    {**_opt(n, f'{n} - Rs. {p}' + ('' if flat else '/child')), "price": p, "flat": flat}
+    for _id, n, p, flat in cat.ACTIVITIES
+]
 GIFT_OPTIONS = [_opt(n, f'{n} - Rs. {p}') for _id, n, _img, p in cat.GIFTS]
 MULTI_OPTIONS = {
     "svc_activities": ACTIVITY_OPTIONS,
@@ -1064,14 +1072,20 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
     # the discount %" and "upon adding gifts, the final amount did not
     # change" — so Grand Total now follows EVERY change on this page.
     #
-    # The customer's checkout total (leads.client_budget) is the starting
-    # point; booking_pricing.recompute_grand_total() prices each difference
-    # between what was booked (builder_snapshot) and what the page says now
+    # 2026-09-24, per Shruti — REWRITTEN FROM SCRATCH: "the total of all
+    # activities selected minus the discount ... irrespective of the source
+    # of lead creation." The previous version priced every change as a
+    # DIFFERENCE from leads.builder_snapshot, which broke for sales-
+    # originated bookings whose snapshot doesn't reliably describe what was
+    # actually booked (see booking_pricing.py's module docstring for the
+    # full story — it caused both an over-count and, from an attempted
+    # fix, an under-count). booking_pricing.compute_billing() now prices
+    # the booking FRESH every time from whatever is currently selected
     # (service tiers, music add-ons, activities, gifts + their packaging /
-    # note fees, Discount %) and adds it on. An untouched booking therefore
-    # always equals its checkout total. The rules and known limits are in
-    # that module's docstring, and the itemised changes travel with the
-    # response ("breakdown") so the page can show its working.
+    # note fees) — Total MRP — then applies Discount % to get Grand Total.
+    # No more snapshot, no more deltas, nothing to fall out of sync. The
+    # line items travel with the response so the page can show its working
+    # (Total MRP's "items", Grand Total's "extra_items").
     #
     # Balance Due = Grand Total − Advance Paid, using each field's live
     # value (so it follows all of the above, and any Advance override).
@@ -1089,26 +1103,31 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
     all_fields = {f["field_key"]: f for fl in sections.values() for f in fl}
     billing_fields = {f["field_key"]: f for f in sections.get("Billing & Rewards", [])}
     grand_total_field = billing_fields.get("bill_grand_total")
+    total_mrp_field = billing_fields.get("bill_total_mrp")
     grand_total_val = _money(grand_total_field.get("customer_choice")) if grand_total_field else None
 
     discount_field = billing_fields.get("bill_discount_pct")
-    orig_discount_val = _money(discount_field.get("original_value")) if discount_field else None
-    new_discount_val = _money(discount_field.get("customer_choice")) if discount_field else None
+    discount_pct_val = _money(discount_field.get("customer_choice")) if discount_field else None
 
     pricing = None
     if grand_total_field is not None:
-        pricing = recompute_grand_total(
+        pricing = compute_billing(
             lead, snap,
             {k: f.get("customer_choice") for k, f in all_fields.items()},
             {k for k, f in all_fields.items() if f.get("removed")},
-            orig_discount_val, new_discount_val,
+            discount_pct_val,
         )
     if pricing:
         grand_total_val = pricing["grand_total"]
         grand_total_field["customer_choice"] = _num_str(grand_total_val)
-        grand_total_field["checkout_total"] = pricing["checkout_total"]
-        grand_total_field["breakdown"] = pricing["adjustments"]
-        grand_total_field["unpriced"] = pricing["unpriced"]
+        grand_total_field["mrp"] = pricing["total_mrp"]
+        grand_total_field["discount_pct"] = pricing["discount_pct"]
+        grand_total_field["discount_amt"] = pricing["discount_amt"]
+        grand_total_field["extra_items"] = pricing["extra_items"]
+        if total_mrp_field is not None:
+            total_mrp_field["customer_choice"] = _num_str(pricing["total_mrp"])
+            total_mrp_field["items"] = pricing["items"]
+            total_mrp_field["unpriced"] = pricing["unpriced"]
 
     advance_val = _money(billing_fields.get("bill_advance", {}).get("customer_choice"))
     balance_field = billing_fields.get("bill_balance")
@@ -1206,8 +1225,10 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             } for kind in ("customer", "team")
         },
         "advance_confirmed": advance_confirmed,
-        "pricing": ({"subtotal": pricing["subtotal"], "checkout_total": pricing["checkout_total"], "discount_amt": pricing["discount_amt"],
-                     "adjustments": pricing["adjustments"], "unpriced": pricing["unpriced"]} if pricing else None),
+        "pricing": ({"subtotal": pricing["subtotal"], "checkout_total": pricing["checkout_total"],
+                     "total_mrp": pricing["total_mrp"], "discount_pct": pricing["discount_pct"],
+                     "discount_amt": pricing["discount_amt"], "extra_items": pricing["extra_items"],
+                     "items": pricing["items"], "unpriced": pricing["unpriced"]} if pricing else None),
         "sections": [{"section": s, "fields": sections[s]} for s in sections],
         "change_log": change_log,
     }
@@ -2126,6 +2147,18 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
     snap = _parse_snapshot(lead.get("builder_snapshot"))
     fake_req = SimpleNamespace(builder_snapshot=snap, child_names=lead.get("child_names"), child_ages=lead.get("child_ages"), payment_method=lead.get("payment_method"))
 
+    # "What changed since checkout" rows for the invoice PDF -- kept on the
+    # OLD delta-vs-snapshot logic (compute_adjustments, unchanged by the
+    # 2026-09-24 Total-MRP rewrite) purely so this annotation list isn't
+    # duplicated against _services_detail_list's checkout-time line items
+    # below. Grand Total itself (via `pricing` above) is NOT derived from this.
+    all_fields2 = {f["field_key"]: f for s in detail["sections"] for f in s["fields"]}
+    legacy_adj = compute_adjustments(
+        lead, snap,
+        {k: f.get("customer_choice") for k, f in all_fields2.items()},
+        {k for k, f in all_fields2.items() if f.get("removed")},
+    )
+
     invoice_number = await _get_or_create_invoice_number(lead_id)
     data = assemble_invoice_data(
         lead_id=lead_id,
@@ -2152,8 +2185,8 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
         # % change isn't a row — the summary's Discount line already shows it),
         # so the itemised list explains why the total moved.
         extra_fee_rows=_order_addon_rows_raw(fake_req) + [
-            (f"Updated — {a['label']}", a["amount"])
-            for a in ((pricing or {}).get("adjustments") or []) if not a["label"].startswith("Discount")
+            (f"Updated — {label}", amount)
+            for label, amount in legacy_adj["sub"] + legacy_adj["extra"]
         ],
         advance_confirmed=bool(detail.get("advance_confirmed")),
         discount_amt=(pricing.get("discount_amt") if pricing else None),
