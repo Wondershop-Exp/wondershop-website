@@ -3690,7 +3690,15 @@ function fieldRowHtml(f, isCustEvent, locked){
     +'<td'+((['bill_discount_pct','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key))?'':' data-label="'+col3+'"')+'>'+avCell+'</td>'
     +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
-      +'<button class="mini-btn save" onclick="saveField('+attrJson(f.field_key)+', false)">Save</button>'
+      // 2026-09-24, per Shruti — "i clicked on remove - then it was striked
+      // out. I then clicked on save. it didn't save and reflect on the
+      // grand total": this Save button used to hardcode removed:false,
+      // silently un-removing a just-removed row (Remove itself auto-saves
+      // via toggleRemoved -- Save here is only for Customer's Choice /
+      // Assigned Value / Remarks) -- so it must preserve whatever the row's
+      // current removed state actually is, same as saveField() already
+      // does when no override is passed.
+      +'<button class="mini-btn save" onclick="saveField('+attrJson(f.field_key)+')">Save</button>'
       +actions
     +'</div></td>'
     +'</tr>';
