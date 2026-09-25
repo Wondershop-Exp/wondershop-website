@@ -308,6 +308,16 @@ class PatchIn(BaseModel):
     fields: Dict[str, Any] = {}                     # any subset of LEAD_FIELD_MAP / PLAYBOOK_SCALAR_FIELDS keys
     requirements: Optional[Dict[str, Any]] = None    # shallow-merged in, category by category
     event_schedule: Optional[list] = None            # full replace — [{"time","item"}]
+    # 2026-09-25, per Shruti — "the save button in sales page is a live
+    # save. I don't want that. I want the user to update all the values
+    # and then click on save like a standard form." sales-leads.html no
+    # longer calls /activities, /activities/remove or /activities/field
+    # as each one is clicked — it stages every edit (including the
+    # Activities list) client-side and sends it all through this one PATCH
+    # when the sales rep clicks Save. Full replace, same pattern as
+    # event_schedule above — the frontend always sends the complete
+    # desired activities array, never a delta.
+    activities: Optional[list] = None
 
 
 class ActivityIn(BaseModel):
@@ -801,6 +811,11 @@ async def patch_sheet(lead_id: int, body: PatchIn, x_admin_password: Optional[st
         pb_sets.append("event_schedule = CAST(:sched AS JSONB)")
         pb_values["sched"] = json.dumps(body.event_schedule)
         changed.append("event_schedule")
+
+    if body.activities is not None:
+        pb_sets.append("activities = CAST(:acts AS JSONB)")
+        pb_values["acts"] = json.dumps(body.activities)
+        changed.append("activities")
 
     if lead_sets:
         await database.execute(f"UPDATE leads SET {', '.join(lead_sets)} WHERE lead_id = :id", values=lead_values)

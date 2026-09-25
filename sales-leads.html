@@ -51,11 +51,14 @@ a{color:var(--bl)}
    want a save button which updates when I confirm" — then, seeing the
    first version (a pill with a small status dot next to it), "remove the
    dot and add a save button": this now looks like every other solid
-   button on the page (same shape/weight as .btn), not a status chip. Every
-   field still auto-saves on blur (patchSheet()) same as before — clicking
-   this blurs whatever field is focused (flushing its pending save) and the
-   button's own label/color updates through the save, so clicking it is a
-   deliberate, visible confirmation rather than trusting a passive
+   button on the page (same shape/weight as .btn), not a status chip.
+   2026-09-25 update, per Shruti: "I don't want live save. I want the user
+   to update all the values and then click on save like a standard form."
+   No field auto-saves on blur anymore — every edit stages into
+   PENDING_PATCH (see that comment further down) and this button is now
+   the ONLY thing that writes to the server; clicking it blurs whatever
+   field is focused (flushing its pending stage) and sends everything at
+   once, so this is a deliberate, visible confirmation rather than trusting
    indicator. */
 .save-status{display:none;align-items:center;justify-content:center;gap:6px;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:var(--rs);background:var(--pk);color:#fff;white-space:nowrap;position:fixed;top:14px;right:16px;z-index:600;box-shadow:0 3px 12px rgba(0,0,0,.16);border:none;cursor:pointer;font-family:var(--fb)}
 .save-status:disabled{cursor:default}
@@ -316,6 +319,23 @@ let CATALOGUE = null;
 let DATA = null;
 let CURRENT_ID = null;
 let SAVING = false;
+// 2026-09-25, per Shruti — "the save button in sales page is a live save.
+// I don't want that. I want the user to update all the values and then
+// click on save like a standard form." Every field/requirement/schedule/
+// activity edit below used to hit the server the moment you blurred or
+// clicked (see patchSheetNow() and the old auto-save comments throughout
+// this file) — now edits are staged in PENDING_PATCH and only sent to the
+// server in one shot when the Save button is clicked (onSaveBtnClick() ->
+// flushPendingSave() -> patchSheetNow()). "Save Status"/"Convert to
+// Booking" (their own explicit buttons already) and the free-text "Add"
+// under Activities (a suggestion sent to Shruti, not part of the booking
+// itself) are unchanged — those were never silent auto-saves to begin
+// with.
+let PENDING_PATCH = {};
+function hasPendingChanges(){
+  return !!(PENDING_PATCH.fields || PENDING_PATCH.requirements
+    || PENDING_PATCH.event_schedule !== undefined || PENDING_PATCH.activities !== undefined);
+}
 let LIST_ROWS = [];
 let SORT_KEY = 'modified';
 let SORT_DIR = 'desc';
@@ -332,13 +352,16 @@ function showToast(msg){
   t.textContent=msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2200);
 }
-// Small always-on status pill next to "Editing as" — 2026-09-22, per
-// Shruti: "give an option to save, without any button - I don't know
-// whether data is being saved on not." Every field/requirement/schedule
-// edit on this page auto-saves on blur via patchSheet() with no button
-// and, before this, no success feedback at all (only a toast, and only on
-// failure) -- so there was no way to tell a save actually went through.
-// This mirrors it live: "Saving..." the moment a save starts, "Saved"
+// Status pill next to "Editing as" — 2026-09-22, per Shruti: "give an
+// option to save, without any button - I don't know whether data is being
+// saved on not." Originally reflected an on-blur auto-save; since
+// 2026-09-25 it instead reflects PENDING_PATCH — "dirty"/"Save" the
+// moment any field/requirement/schedule/activity edit is staged, then
+// "Saving..." / "Saved" / "Not saved" around the one PATCH the Save
+// button sends. Before this there was no success feedback at all (only a
+// toast, and only on failure) -- so there was no way to tell a save
+// actually went through. This mirrors it live: "Saving..." the moment a
+// save starts, "Saved"
 // once the PATCH resolves, "Not saved" if it fails -- and errors stay
 // shown (don't auto-hide) so a failed save is never mistaken for a
 // successful one.
@@ -362,26 +385,33 @@ document.addEventListener('input', function(e){
     setSaveStatus('dirty', 'Save');
   }
 });
-// Clicking the Save button — 2026-09-22, per Shruti: "instead of save dot,
-// I want a save button which updates when I confirm." Blurs whichever
-// field is currently focused, which flushes that field's existing onblur
-// autosave (saveField()/saveRequirement()/etc. -> patchSheet()) right away
-// instead of waiting for the salesperson to click elsewhere -- so this is
-// a deliberate "confirm it saved" action layered on top of the autosave,
-// not a replacement for it. A failed save retries from here too.
+// Clicking the Save button — 2026-09-25, per Shruti: this is now the only
+// thing that writes to the server (see PENDING_PATCH above). Blurs
+// whichever field is currently focused first, so a value you're still
+// mid-typing gets staged into PENDING_PATCH before it's read (blur() runs
+// its onblur handler synchronously, and every save function that handler
+// can reach is itself synchronous now — see patchSheet()'s comment), then
+// sends everything staged. A failed save retries the same body, merging
+// in anything staged since the failure so a fix made after a failed save
+// isn't silently dropped.
 function onSaveBtnClick(){
   const el = document.getElementById('saveStatus');
-  if(el.classList.contains('error') && LAST_FAILED_BODY){
-    patchSheet(LAST_FAILED_BODY);
-    return;
-  }
   const db = document.getElementById('detailBody');
   const active = document.activeElement;
   if(active && db && db.contains(active) && typeof active.blur === 'function'){
     active.blur();
-  } else {
-    setSaveStatus('saved', 'Saved');
   }
+  if(el.classList.contains('error') && LAST_FAILED_BODY){
+    const body = Object.assign({}, LAST_FAILED_BODY);
+    if(PENDING_PATCH.fields) body.fields = Object.assign({}, body.fields, PENDING_PATCH.fields);
+    if(PENDING_PATCH.requirements) body.requirements = Object.assign({}, body.requirements, PENDING_PATCH.requirements);
+    if(PENDING_PATCH.event_schedule !== undefined) body.event_schedule = PENDING_PATCH.event_schedule;
+    if(PENDING_PATCH.activities !== undefined) body.activities = PENDING_PATCH.activities;
+    PENDING_PATCH = {};
+    patchSheetNow(body);
+    return;
+  }
+  flushPendingSave();
 }
 const CHECK_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -632,6 +662,8 @@ async function confirmDeleteLead(){
 }
 
 function backToList(){
+  if(hasPendingChanges() && !confirm('You have unsaved changes on this lead. Discard them and go back to the list?')) return;
+  PENDING_PATCH = {}; LAST_FAILED_BODY = null;
   document.getElementById('detailView').style.display='none';
   document.getElementById('listView').style.display='block';
   document.getElementById('gtBar').style.display='none';
@@ -639,6 +671,11 @@ function backToList(){
   CURRENT_ID = null; DATA = null;
   doSearch();
 }
+// 2026-09-25, per Shruti — since edits now sit unsent in PENDING_PATCH
+// until Save is clicked, warn before a refresh/tab-close throws them away.
+window.addEventListener('beforeunload', function(e){
+  if(hasPendingChanges()){ e.preventDefault(); e.returnValue = ''; }
+});
 
 // Sticky Grand Total bar — reads the server-computed DATA.estimated_total
 // (see _estimate_total() in sales_leads.py: every requirement's cost +
@@ -659,6 +696,10 @@ function updateGrandTotalBar(){
 
 // ── detail / composer ───────────────────────────────────────────────────
 async function openDetail(id, preloaded){
+  if(CURRENT_ID !== null && CURRENT_ID !== id && hasPendingChanges()){
+    if(!confirm('You have unsaved changes on this lead. Discard them and open a different lead?')) return;
+  }
+  PENDING_PATCH = {}; LAST_FAILED_BODY = null;
   CURRENT_ID = id;
   document.getElementById('listView').style.display='none';
   document.getElementById('detailView').style.display='block';
@@ -793,7 +834,7 @@ function renderDetail(){
 // re-rendered, so Activities/Requirements/Grand Total stayed stale.
 // Fixed by coercing to a real number (or null) here, using the input's
 // own `type` attribute passed through from the onblur handler.
-async function saveField(key, value, inputType){
+function saveField(key, value, inputType){
   if(inputType === 'number'){
     value = (value === '' ? null : Number(value));
   } else {
@@ -801,15 +842,41 @@ async function saveField(key, value, inputType){
   }
   if(DATA[key] === value) return;
   DATA[key] = value;
-  await patchSheet({fields:{[key]: value}});
+  patchSheet({fields:{[key]: value}});
   // # Kids drives Activities' per-child totals, Pinata Bags' cost, and
   // therefore the Grand Total — resave any already-selected kids-count-
   // dependent add-on so its stored cost (and the total that's summed from
   // it) doesn't go stale.
-  if(key === 'kids_count') await recalcDerivedCosts();
+  if(key === 'kids_count') recalcDerivedCosts();
 }
 
-async function patchSheet(body){
+// Stages an edit locally (no network) and re-renders so totals/derived
+// values stay live as you work — only PENDING_PATCH accumulates; nothing
+// reaches the server until Save is clicked. Deliberately synchronous
+// (no await anywhere in this function or in anything it calls —
+// saveField/saveRequirement/saveSched/recalcDerivedCosts/toggleActivity —
+// so that onSaveBtnClick() can blur() the focused field and read
+// PENDING_PATCH back in the very same tick, guaranteed complete.
+function patchSheet(body){
+  if(body.fields){
+    PENDING_PATCH.fields = Object.assign(PENDING_PATCH.fields || {}, body.fields);
+  }
+  if(body.requirements){
+    PENDING_PATCH.requirements = Object.assign(PENDING_PATCH.requirements || {}, body.requirements);
+  }
+  if(body.event_schedule !== undefined){
+    PENDING_PATCH.event_schedule = body.event_schedule;
+  }
+  if(body.activities !== undefined){
+    PENDING_PATCH.activities = body.activities;
+  }
+  setSaveStatus('dirty', 'Save');
+  renderDetail();
+}
+
+// The real network call — only ever invoked now from flushPendingSave()
+// (the Save button) or as a straight retry of a previously-failed save.
+async function patchSheetNow(body){
   SAVING = true;
   setSaveStatus('saving', 'Saving…');
   body.updated_by = getName();
@@ -821,24 +888,49 @@ async function patchSheet(body){
     if(!res.ok){ const b=await res.json().catch(()=>({})); throw new Error(b.detail||'Save failed'); }
     DATA = await res.json();
     // Re-render the whole detail view, not just history/the sticky bar —
-    // a save can be as small as one scalar field (e.g. # Kids), but
     // Activities' per-child totals, Requirements' quantity-derived totals,
     // and the Billing section's read-only Grand Total all depend on
-    // fields that a single-field save doesn't touch directly, and were
-    // going stale until the next full reopen. renderDetail() itself calls
-    // renderActivities()/renderSchedule()/renderHistory() (which in turn
-    // updates the sticky Grand Total bar), so this one call keeps every
-    // section current. 2026-09-16, per Shruti (see saveField() above).
+    // fields the save touches indirectly, and were going stale until the
+    // next full reopen. renderDetail() itself calls renderActivities()/
+    // renderSchedule()/renderHistory() (which in turn updates the sticky
+    // Grand Total bar), so this one call keeps every section current.
     renderDetail();
     LAST_FAILED_BODY = null;
     setSaveStatus('saved', 'Saved');
+    return true;
   }catch(e){
     LAST_FAILED_BODY = body;
     showToast(e.message||"Couldn't save.");
     setSaveStatus('error', 'Retry save');
+    return false;
   }finally{
     SAVING = false;
   }
+}
+
+// 2026-09-25, per Shruti — "Event date not saving and migrating to
+// Bookings." Root cause: Save Status / Convert to Booking read straight
+// off the server (whatever was last actually PATCHed), but since the
+// standard-form Save change above, edits sit unsent in PENDING_PATCH
+// until the Save button is clicked — so anything typed and then
+// converted/status-changed WITHOUT clicking Save first (event date,
+// venue, host, any field) never made it to the booking. Both of those
+// actions now flush PENDING_PATCH first and stop if that flush fails,
+// so what you see on screen is always what gets converted.
+async function ensureSavedBeforeAction(){
+  if(!hasPendingChanges()) return true;
+  return await flushPendingSave();
+}
+
+// Sends everything staged in PENDING_PATCH in one PATCH call.
+async function flushPendingSave(){
+  if(!hasPendingChanges()){
+    setSaveStatus('saved', 'Saved');
+    return true;
+  }
+  const body = Object.assign({}, PENDING_PATCH);
+  PENDING_PATCH = {};
+  return await patchSheetNow(body);
 }
 
 // ── Status (lead pipeline / convert) — same pattern as admin.html's
@@ -884,6 +976,7 @@ function onStatusReasonChange(){
 async function saveDetailStatus(){
   const who = getName();
   if(!who){ showToast('Set "Editing as" name at the top first.'); return; }
+  if(!(await ensureSavedBeforeAction())){ showToast("Couldn't save your changes first — fix that before changing status."); return; }
   const status = document.getElementById('statusSel').value;
   const reasonSel = document.getElementById('statusReasonSel');
   const reasonOther = document.getElementById('statusReasonOther');
@@ -907,6 +1000,7 @@ async function convertLeadDetail(){
   const who = getName();
   if(!who){ showToast('Set "Editing as" name at the top first.'); return; }
   if(!confirm('Convert this lead into a confirmed booking?')) return;
+  if(!(await ensureSavedBeforeAction())){ showToast("Couldn't save your changes first — fix that before converting."); return; }
   try{
     await apiCall('/api/admin/bookings/'+CURRENT_ID+'/convert', {method:'POST', body: JSON.stringify({changed_by: who})});
     showToast('✓ Converted to booking.');
@@ -933,10 +1027,10 @@ function sectionClientDetails(){
     + '<div class="grid2" style="margin-top:10px">' + f('child_name',"Child's Name",'text') + f('child_age','Celebrating Age','text') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + genderSel + f('kids_count','# Kids','number') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('event_date','Date','date') + themeField() + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('sales_lead_name','Sales Lead','text') + f('event_start_time','Event Start Time','time') + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('event_end_time','Event End Time','time') + venueTypeField() + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + f('sales_lead_name','Sales Lead','text') + f('event_start_time','Event Start Time','time','step="900"') + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + f('event_end_time','Event End Time','time','step="900"') + venueTypeField() + '</div>'
     + '<div class="fld" style="margin-top:10px">' + f('venue','Venue','text').replace(/<div class="fld">|<\/div>$/g,'') + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('venue_handover_time','Venue Handover Time','time') + f('packup_time','Packup Time','time') + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + f('venue_handover_time','Venue Handover Time','time','step="900"') + f('packup_time','Packup Time','time','step="900"') + '</div>'
     + '</div>';
 }
 // Theme: an "assisted" input — types and filters against Build-a-Birthday's
@@ -1055,10 +1149,10 @@ async function setYesNo(key, val){
   await saveRequirement(key, r);
   renderDetail();
 }
-async function saveRequirement(key, value){
+function saveRequirement(key, value){
   DATA.requirements = DATA.requirements || {};
   DATA.requirements[key] = value;
-  await patchSheet({requirements:{[key]: value}});
+  patchSheet({requirements:{[key]: value}});
 }
 function custBox(key, placeholder){
   const r = req(key);
@@ -1332,7 +1426,7 @@ async function onReturnGiftQty(name, value){
 // quantities/selection change, and after # Kids changes (see
 // saveField()). 2026-09-16, per Shruti: "on updating #kids, the return
 // gifts / activities / grand total does not get updated".
-async function recalcDerivedCosts(){
+function recalcDerivedCosts(){
   const qty = _returnGiftsTotalQty();
   const pkg = req('packaging');
   if(pkg.selected){
@@ -1340,7 +1434,7 @@ async function recalcDerivedCosts(){
     if(opt && opt.price!=null){
       const r = Object.assign({}, pkg);
       r.cost = opt.price * qty;
-      await saveRequirement('packaging', r);
+      saveRequirement('packaging', r);
     }
   }
   const tags = req('return_gift_tags');
@@ -1349,14 +1443,14 @@ async function recalcDerivedCosts(){
     const billedQty = Math.max(gt.min_qty||15, qty);
     const r = Object.assign({}, tags);
     r.cost = billedQty * (gt.unit_price||10);
-    await saveRequirement('return_gift_tags', r);
+    saveRequirement('return_gift_tags', r);
   }
   const pb = req('pinata_bags');
   if(pb.selected==='Yes'){
     const pbCat = CATALOGUE.pinata_bags || {};
     const r = Object.assign({}, pb);
     r.cost = (pbCat.unit_price||12) * (DATA.kids_count || 1);
-    await saveRequirement('pinata_bags', r);
+    saveRequirement('pinata_bags', r);
   }
 }
 
@@ -1426,10 +1520,10 @@ function reqEinviteDetailsBlock(){
     + '</div>'
     + '<div class="req-grid" style="margin-top:8px">'
       + '<input type="date" value="'+v('date', DATA.event_date)+'" onblur="saveEinviteDetail(\'date\', this.value)">'
-      + '<input type="time" value="'+v('start_time', DATA.event_start_time)+'" onblur="saveEinviteDetail(\'start_time\', this.value)">'
+      + '<input type="time" step="900" value="'+v('start_time', DATA.event_start_time)+'" onblur="saveEinviteDetail(\'start_time\', this.value)">'
     + '</div>'
     + '<div class="req-grid" style="margin-top:8px">'
-      + '<input type="time" placeholder="Pickup Time (optional)" value="'+esc(pickup)+'" onblur="saveEinviteDetail(\'pickup_time\', this.value)">'
+      + '<input type="time" step="900" placeholder="Pickup Time (optional)" value="'+esc(pickup)+'" onblur="saveEinviteDetail(\'pickup_time\', this.value)">'
       + '<label class="addon-row" style="margin-top:0"><input type="checkbox" '+(d.show_pickup_on_invite?'checked':'')+' onchange="saveEinviteDetail(\'show_pickup_on_invite\', this.checked)"> Show pickup time on invite</label>'
     + '</div>'
     + '<input type="text" placeholder="Venue / Address" style="width:100%;margin-top:8px;padding:10px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+v('venue', DATA.venue)+'" onblur="saveEinviteDetail(\'venue\', this.value)">'
@@ -1639,9 +1733,9 @@ function renderSchedule(){
 function addSchedRow(){ SCHEDULE.push({time:'',item:''}); renderSchedule(); }
 function removeSchedRow(i){ SCHEDULE.splice(i,1); renderSchedule(); saveSched(); }
 function updateSchedRow(i,key,val){ SCHEDULE[i][key]=val; saveSched(); }
-async function saveSched(){
+function saveSched(){
   const clean = SCHEDULE.filter(r=>r.time||r.item);
-  await patchSheet({event_schedule: clean});
+  patchSheet({event_schedule: clean});
 }
 
 // ── 4. Activities — one assisted (type-to-search) add field, not a big
@@ -1789,27 +1883,23 @@ function renderActivities(){
   suggEl.innerHTML = sugg.length ? ('<div style="font-size:11px;color:#9A93A8;margin-top:4px">Sent to Shruti for review:</div>' +
     sugg.map(s=>'<div class="sugg-item"><b>'+esc(s.text)+'</b> — added by '+esc(s.added_by)+'</div>').join('')) : '';
 }
-async function toggleActivity(id, name, price, flat){
+// 2026-09-25, per Shruti — no more live save: picking/removing an
+// activity used to hit /activities or /activities/remove immediately.
+// Now it just edits DATA.activities locally and stages the WHOLE array
+// into PENDING_PATCH (patch_sheet's `activities` field replaces the
+// array wholesale, same as event_schedule) — nothing reaches the server
+// until Save is clicked. Synchronous on purpose, same reasoning as
+// patchSheet() above.
+function toggleActivity(id, name, price, flat){
   const chosen = DATA.activities || [];
   const isSel = chosen.some(a=>a.id===id);
-  SAVING = true;
-  try{
-    let d;
-    if(isSel){
-      d = await apiCall('/api/admin/sales-leads/'+CURRENT_ID+'/activities/remove', {
-        method:'POST', body: JSON.stringify({updated_by:getName(), id}) });
-    } else {
-      d = await apiCall('/api/admin/sales-leads/'+CURRENT_ID+'/activities', {
-        method:'POST', body: JSON.stringify({updated_by:getName(), id, name, price, flat}) });
-    }
-    DATA = d;
-    renderActivities();
-    renderHistory();
-  }catch(e){
-    showToast(e.message||"Couldn't save that.");
-  }finally{
-    SAVING = false;
-  }
+  const next = isSel
+    ? chosen.filter(a=>a.id!==id)
+    : chosen.concat([{id, name, price, flat: !!flat, volunteer:null, materials:null}]);
+  DATA.activities = next;
+  patchSheet({activities: next});
+  renderActivities();
+  renderHistory();
 }
 async function onActivityAssign(id, field, value){
   try{

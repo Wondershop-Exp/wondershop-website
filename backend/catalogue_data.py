@@ -340,6 +340,15 @@ ACTIVITIES = [
     ("a26", "Laser Tunnel", 4000, True),
     ("a27", "Dark Room", 15000, True),
     ("a28", "Spy Treasure Hunt", 1500, False),
+    # 2026-09-25, per Shruti — "Experiences like Magic show, bubble show,
+    # science show should come in the dropdown for activities in sales."
+    # These already exist on the website (builder.html's ACTS array,
+    # ids science-show/bubble-show/magic-show) but were missing from this
+    # mirrored list, so the sales panel's Activities dropdown never
+    # offered them. Prices match builder.html's r1/r2/r3 (flat) exactly.
+    ("science-show", "Science Show", 20000, True),
+    ("bubble-show", "Bubble Show", 8500, True),
+    ("magic-show", "Magic Show", 8500, True),
 ]
 
 # 2026-09-23, per Shruti — "spy themed should be spy in the activities...
