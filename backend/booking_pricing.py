@@ -350,7 +350,8 @@ def _price_gifts(gifts_csv: Optional[str], snap: dict):
 
 
 def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
-                     discount_pct: Optional[float]) -> Optional[dict]:
+                     discount_pct: Optional[float], discount_type: Optional[str] = None,
+                     discount_value: Optional[float] = None) -> Optional[dict]:
     """The whole Billing & Rewards picture, computed fresh from whatever is
     currently selected — no diffing against anything. Returns None only
     when this lead has never reached checkout (no client_budget at all —
@@ -434,8 +435,23 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
 
     extra_total = round(sum(a for _l, a in extra_items), 2)
 
-    pct = discount_pct if discount_pct is not None else 0.0
-    discount_amt = round(total_mrp * pct / 100.0, 2)
+    # 2026-09-25, per Shruti — "give an option for a value discount or %
+    # discount ... give user option to choose from either." bill_discount_type
+    # (admin.py FIELD_CATALOG) picks which of these two the admin is
+    # editing; discount_value is a flat rupee amount, discount_pct a
+    # percentage of Total MRP — same as before when discount_type is
+    # unset (every booking before this feature existed) or still "%".
+    # A flat discount is capped at Total MRP so it can never push the
+    # Grand Total negative, then back-computed to an equivalent % purely
+    # for display/consumers that still read discount_pct (the invoice
+    # PDF's "Discount X%" line) — the % shown there is descriptive, not
+    # the source of truth, when discount_type is "value".
+    if discount_type == "value" and discount_value is not None:
+        discount_amt = round(min(max(0.0, discount_value), total_mrp), 2)
+        pct = round((discount_amt / total_mrp * 100.0), 2) if total_mrp else 0.0
+    else:
+        pct = discount_pct if discount_pct is not None else 0.0
+        discount_amt = round(total_mrp * pct / 100.0, 2)
     grand_total = max(0.0, round(total_mrp - discount_amt + extra_total, 2))
 
     return {

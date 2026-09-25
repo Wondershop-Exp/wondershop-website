@@ -222,7 +222,15 @@ FIELD_CATALOG = [
     # booking_pricing.compute_billing()).
     {"key": "bill_total_mrp",       "label": "Total MRP",              "section": "Billing & Rewards"},
     {"key": "bill_grand_total",     "label": "Grand Total",            "section": "Billing & Rewards"},
+    # 2026-09-25, per Shruti — "give an option for a value discount or %
+    # discount ... give user option to choose from either." bill_discount_type
+    # picks which of bill_discount_pct / bill_discount_value the Grand
+    # Total actually uses (see booking_pricing.compute_billing()); the one
+    # not selected is just ignored, not cleared, so switching back and
+    # forth doesn't lose either number.
+    {"key": "bill_discount_type",   "label": "Discount Type",          "section": "Billing & Rewards"},
     {"key": "bill_discount_pct",    "label": "Discount %",             "section": "Billing & Rewards"},
+    {"key": "bill_discount_value",  "label": "Discount Amount (₹)",    "section": "Billing & Rewards", "admin_only": True},
     # 2026-08-24, per Shruti (Image 3c) — "the same [freebies/discounts]
     # should be visible on the admin page." System-calculated, same as
     # Grand Total (read-only, see READ_ONLY_FIELDS below) — bill_discount_pct
@@ -371,6 +379,9 @@ PAYMENT_STATUS_OPTIONS = [_opt(x) for x in ["Pending", "Advance Paid Pending Ver
 # before the event). This is the event admin confirming how the event
 # itself was settled.
 EVENT_PAYMENT_MODE_OPTIONS = [_opt(x) for x in ["Cash", "GPay", "Internal Settle"]]
+# 2026-09-25, per Shruti — "give an option for a value discount or %
+# discount ... give user option to choose from either."
+DISCOUNT_TYPE_OPTIONS = [_opt("%", "% (Percentage)"), _opt("value", "₹ (Flat Amount)")]
 
 # ─── Lead → Booking status workflow (2026-08-19, per Shruti; reworked same
 # day after her follow-up round — see migrations/017_lead_status_workflow.sql
@@ -468,6 +479,7 @@ DROPDOWN_OPTIONS = {
     "svc_einvite": EINVITE_OPTIONS,
     "bill_payment_method": PAYMENT_METHOD_OPTIONS,
     "bill_payment_status": PAYMENT_STATUS_OPTIONS,
+    "bill_discount_type": DISCOUNT_TYPE_OPTIONS,
     "event_payment_confirmed_mode": EVENT_PAYMENT_MODE_OPTIONS,
 }
 # Plain value sets, for validation (label text is never compared).
@@ -505,8 +517,17 @@ ASSIGNED_PLACEHOLDERS = {
     # "vendor" for a percentage or a payment amount either, so this
     # placeholder just makes the dead end explicit instead of inviting it.
     "bill_discount_pct": "Not used — edit Current Value",
+    "bill_discount_type": "Not used — edit Current Value",
+    "bill_discount_value": "Not used — edit Current Value",
     "bill_advance": "Not used — edit Current Value",
 }
+
+
+def _num_str(v) -> str:
+    """Trims a whole-number float to look like an int ("8000" not
+    "8000.0") in remarks/labels — same convention as the identical
+    locally-scoped helper inside get_booking_detail()'s Grand Total block."""
+    return str(int(v)) if v == int(v) else str(round(v, 2))
 
 
 def _parse_snapshot(raw) -> dict:
@@ -601,6 +622,11 @@ def _derive_original_value(key: str, lead: dict, snap: dict):
         # changed Discount % should move this number.
         v = lead.get("client_budget")
         return str(v) if v is not None else None
+    if key == "bill_discount_type":
+        # No DB column backs this (it's a purely admin-introduced toggle,
+        # 2026-09-25) -- default every booking that has never touched it
+        # to "%" so old bookings keep behaving exactly as before.
+        return "%"
     if key == "bill_discount_pct":
         v = lead.get("order_discount_pct")
         return str(v) if v is not None else None
@@ -697,6 +723,14 @@ async def _validate_choice_value(key: str, value: str, derived_original: Optiona
             raise HTTPException(status_code=400, detail="Discount % must be a number.")
         if pct < 0 or pct > 100:
             raise HTTPException(status_code=400, detail="Discount % cannot exceed 100%.")
+
+    if key == "bill_discount_value":
+        try:
+            dv = float(value)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Discount Amount must be a number.")
+        if dv < 0:
+            raise HTTPException(status_code=400, detail="Discount Amount cannot be negative.")
 
     if key == "bill_advance":
         try:
@@ -1113,6 +1147,10 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
 
     discount_field = billing_fields.get("bill_discount_pct")
     discount_pct_val = _money(discount_field.get("customer_choice")) if discount_field else None
+    discount_type_field = billing_fields.get("bill_discount_type")
+    discount_type_val = discount_type_field.get("customer_choice") if discount_type_field else None
+    discount_value_field = billing_fields.get("bill_discount_value")
+    discount_value_val = _money(discount_value_field.get("customer_choice")) if discount_value_field else None
 
     pricing = None
     if grand_total_field is not None:
@@ -1121,6 +1159,8 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             {k: f.get("customer_choice") for k, f in all_fields.items()},
             {k for k, f in all_fields.items() if f.get("removed")},
             discount_pct_val,
+            discount_type=discount_type_val,
+            discount_value=discount_value_val,
         )
     if pricing:
         grand_total_val = pricing["grand_total"]
@@ -1129,6 +1169,11 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
         grand_total_field["discount_pct"] = pricing["discount_pct"]
         grand_total_field["discount_amt"] = pricing["discount_amt"]
         grand_total_field["extra_items"] = pricing["extra_items"]
+        # bill_discount_pct's own Current Value stays whatever the admin
+        # typed there — it's only the SOURCE OF TRUTH when Discount Type
+        # is "%"; when it's "value" the % shown next to Grand Total above
+        # (discount_pct, from pricing) is the back-computed equivalent
+        # instead, so the two don't have to be kept in sync by hand.
         if total_mrp_field is not None:
             total_mrp_field["customer_choice"] = _num_str(pricing["total_mrp"])
             total_mrp_field["items"] = pricing["items"]
@@ -1771,10 +1816,46 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
             if raw:
                 to_write.append(("svc_activities", None, remark or f"{prefix} {raw}"))
 
-    # ── Host (no valid dropdown value available — remarks only, see notes above) ──
+    # ── Host ──
+    # 2026-09-25, per Shruti (booking #9) — "the host selected in the sales
+    # panel was not migrated. Ideally, for values less than 10k, select the
+    # classic tier and add Rs. 8000 in the remark and 2000 rs. should come
+    # in the discount field. similarly, for amounts above 10k, the premium
+    # option should be selected." The sales panel only ever captures a
+    # manually-quoted Host COST (reqHostRow() in sales-leads.html — no tier
+    # picker there), never a tier name, so there was no dropdown value to
+    # migrate at all before this — it silently fell back to remarks-only,
+    # which is the bug she's reporting. cat.HOST_TIER_PRICES only has two
+    # tiers today (Premium ₹10,000 / Signature ₹15,000 — the old Classic/
+    # Premium/Signature three-tier list was simplified to these two on
+    # 2026-08-19), so "classic" here means the cheaper of the two, i.e.
+    # Premium — her ₹8,000/₹10,000/₹2,000 example only makes sense against
+    # Premium's ₹10,000 catalogue price (10,000 − 8,000 = 2,000).
     if "svc_host" not in already:
         h = _req("host")
-        if h.get("customization"):
+        cost = h.get("cost")
+        cost_f = None
+        if cost is not None:
+            try:
+                cost_f = float(cost)
+            except (TypeError, ValueError):
+                cost_f = None
+        if cost_f is not None:
+            host_tier = "Premium" if cost_f < 10000 else "Signature"
+            tier_price = cat.HOST_TIER_PRICES.get(host_tier)
+            remark_bits = [f"₹{_num_str(cost_f)}"]
+            if h.get("customization"):
+                remark_bits.append(h["customization"])
+            to_write.append(("svc_host", host_tier, f"{prefix} " + " · ".join(remark_bits)))
+            # The gap between what was actually quoted and the assigned
+            # tier's catalogue price becomes a flat (₹) booking discount —
+            # never overwrites a discount the admin may already have set.
+            if tier_price is not None and cost_f < tier_price                     and "bill_discount_type" not in already and "bill_discount_value" not in already:
+                gap = round(tier_price - cost_f, 2)
+                to_write.append(("bill_discount_type", "value", None))
+                to_write.append(("bill_discount_value", _num_str(gap),
+                                  f"{prefix} Host negotiated ₹{_num_str(cost_f)} vs. {host_tier} catalogue ₹{_num_str(tier_price)}"))
+        elif h.get("customization"):
             to_write.append(("svc_host", None, f"{prefix} {h['customization']}"))
 
     # ── Music (DJ) ──
@@ -2423,6 +2504,46 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
         tc_value = (tc_ov["customer_choice_override"] or "").strip() if tc_ov else ""
         if tc_value:
             fake_req.remarks = tc_value
+
+        # 2026-09-25, per Shruti — "the total in the mail and invoice is
+        # not matching the Grand Total in the admin page." fake_req was
+        # rebuilt straight off the leads table (see the try/except above),
+        # so its billing fields (client_budget, order_grand_total, ...)
+        # were whatever was last written at checkout/conversion — frozen,
+        # never updated by anything done on the admin page since (Total
+        # MRP is computed fresh on every admin-page load by
+        # booking_pricing.compute_billing(), purely for display, with no
+        # write-back to these columns). send_booking_invoice()'s PDF
+        # already sidesteps this by pulling get_booking_detail()'s live
+        # numbers instead of the raw DB row — do the same here so the
+        # summary email (and the invoice PDF it attaches, when
+        # attach_invoice is set) shows the SAME Grand Total the admin page
+        # does, not a stale one.
+        live_detail = await get_booking_detail(lead_id, x_admin_password)
+        live_billing = {f["field_key"]: f for s in live_detail["sections"] if s["section"] == "Billing & Rewards" for f in s["fields"]}
+
+        def _live(key):
+            f = live_billing.get(key)
+            return f.get("customer_choice") if f else None
+
+        def _live_money(key):
+            v = _live(key)
+            if v in (None, ""):
+                return None
+            try:
+                return float(str(v).replace(",", "").replace("₹", "").strip())
+            except ValueError:
+                return None
+
+        live_pricing = live_detail.get("pricing")
+        if live_pricing:
+            fake_req.order_grand_total = live_pricing["total_mrp"]
+        fake_req.client_budget = _live_money("bill_grand_total")
+        fake_req.order_discount_pct = _live_money("bill_discount_pct")
+        fake_req.order_advance = _live_money("bill_advance")
+        fake_req.order_balance = _live_money("bill_balance")
+        fake_req.order_total_savings = _live_money("bill_total_savings")
+        fake_req.order_freebies_text = _live("bill_freebies")
 
         # _send_user_ack never raises on its own (by design, for the
         # original fire-and-forget /submit flow) -- it always records the

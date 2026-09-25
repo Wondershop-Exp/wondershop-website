@@ -3599,7 +3599,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
       +'<td data-label="Current value"><span class="readonly-cell" style="'+(['event_photos_link','terms_conditions'].includes(f.field_key)?'white-space:pre-line':'')+'">'+(f.field_key==='event_schedule_text'?scheduleReadOnlyHtml(f.customer_choice||''):esc(f.customer_choice||'—'))+'</span></td>'
-      +((['bill_discount_pct','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key)) ? '<td></td>' : '<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>')
+      +((['bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key)) ? '<td></td>' : '<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>')
       +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
       +'</tr>';
@@ -3630,6 +3630,14 @@ function fieldRowHtml(f, isCustEvent, locked){
     // Trimmed number in the input (still a bare number for saving/
     // validation), "%" as a purely visual suffix layered on top.
     ccCell = '<span class="pct-wrap"><input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice?fmtPct(f.customer_choice):'')+'" placeholder="'+(f.admin_only?'—':'(use original)')+'"><span class="pct-suffix">%</span></span>';
+  }else if(f.field_key==='bill_discount_value'){
+    // 2026-09-25, per Shruti — "give an option for a value discount or %
+    // discount ... give user option to choose from either." Same shape as
+    // Discount % above, just a ₹ prefix instead of a % suffix -- only
+    // actually used when Discount Type (above) is set to "₹ (Flat
+    // Amount)"; otherwise it just sits here unused, nothing is lost if
+    // the admin flips back to "%" later.
+    ccCell = '<span class="pct-wrap"><span class="pct-suffix" style="left:9px;right:auto">₹</span><input type="number" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="'+(f.admin_only?'—':'(use original)')+'" step="0.01" min="0" style="padding-left:22px;padding-right:11px"></span>';
   }else if(f.field_key==='event_photos_link'){
     // 2026-09-22, per Shruti — "every image has a google photos link
     // attached to it ... add a field in admin to update this." A textarea,
@@ -3698,7 +3706,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     // — readonly (not disabled) so onPincodeInput() can still set .value
     // programmatically and Save still picks it up.
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Auto-fills from pincode')+'" readonly style="background:var(--lgy);cursor:not-allowed">';
-  }else if(['bill_discount_pct','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key)){
+  }else if(['bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key)){
     avCell = noAssignedCell(rid);
   }else{
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'">';
@@ -3713,7 +3721,7 @@ function fieldRowHtml(f, isCustEvent, locked){
   return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
     +'<td data-label="Current value">'+ccCell+'</td>'
-    +'<td'+((['bill_discount_pct','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key))?'':' data-label="'+col3+'"')+'>'+avCell+'</td>'
+    +'<td'+((['bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key))?'':' data-label="'+col3+'"')+'>'+avCell+'</td>'
     +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
       // 2026-09-24, per Shruti — "i clicked on remove - then it was striked
