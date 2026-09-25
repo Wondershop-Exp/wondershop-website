@@ -402,6 +402,7 @@ table.list.static tr:hover td{background:inherit}
 .bd-title-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;margin:6px 0 18px}
 .bd-title{font-family:var(--fd);font-size:28px;font-weight:700;letter-spacing:-.2px}
 .bd-tags{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bd-pending-banner{background:#FDECEC;border:1px solid #F3B4B4;color:#B4232C;font-weight:700;font-size:13px;border-radius:10px;padding:10px 14px;margin-top:14px}
 .bd-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px 24px;padding-top:18px;border-top:1px solid var(--li2)}
 .bd-fact .k{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--gy);margin-bottom:4px}
 .bd-fact .v{font-size:14.5px;font-weight:600;color:var(--bk);overflow-wrap:anywhere}
@@ -655,6 +656,11 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
 <div class="toast" id="toast"></div>
 <div class="cal-modal" id="calModal" onclick="if(event.target===this)calCloseDay()"></div>
 <datalist id="vendorNamesList"></datalist>
+<!-- 2026-09-25, per Shruti -- "theme on admin - assisted dropdown with
+     same values as the website. give option to add a new value if the
+     user wants something else": a datalist gives both -- these suggestions
+     show up as the admin types, but any other text is still accepted. -->
+<datalist id="themeOptionsList"><option value="Unicorn Magic"><option value="Jungle Safari"><option value="Superhero"><option value="Space Explorer"><option value="Mystery & Spy"><option value="K-Pop Party"><option value="Harry Potter"><option value="Art & Paint Party"><option value="Science Party"><option value="Race Track & Cars"><option value="Football Party"><option value="Indian Craft Bazaar"><option value="Indian Palace"><option value="Indian Railways"><option value="Katseye"><option value="Lilo & Stitch"><option value="Malgudi Days"><option value="Mithai Theme"><option value="Nani ka Ghar"><option value="The Great Ancient Indian Treasure"></datalist>
 
 <script>
 const API = 'https://wondershop-website-production.up.railway.app';
@@ -1178,10 +1184,18 @@ function renderBookingHead(d){
     ['Phone', phone ? '<a href="tel:'+esc(phone.replace(/[^0-9+]/g, ''))+'">'+esc(phone)+'</a>' : ''],
     ['Theme', esc(bdVal(d, 'theme'))],
   ];
+  // 2026-09-25, per Shruti -- "if I choose the Custom Pinata design option,
+  // it should be flagged in red ... as a task to be completed in the admin
+  // panel": Custom Design has no fixed price/production, so it always
+  // needs a manual follow-up until someone actions it.
+  const pendingBannerHtml = d.pending_custom_pinata
+    ? '<div class="bd-pending-banner">⚠️ Custom Piñata design selected — needs pricing &amp; production follow-up.</div>'
+    : '';
   document.getElementById('bdHead').innerHTML = '<div class="bd-head">'
     + '<div class="bd-eyebrow">'+(d.is_booking ? 'Booking' : 'Lead')+' #'+d.lead_id+' · Created '+esc(d.created_on_ist || '')+'</div>'
     + '<div class="bd-title-row"><h2 class="bd-title">'+esc(name)+'</h2>'
     +   '<div class="bd-tags"><span class="status-pill status-'+(d.status || '').replace(/[^A-Za-z]/g, '')+'" style="padding:6px 14px;font-size:12.5px">'+esc(d.status || '')+'</span>'+originBadgeHtml(CURRENT_ORIGIN)+'</div></div>'
+    + pendingBannerHtml
     + '<div class="bd-facts">'+facts.map(f =>
         '<div class="bd-fact"><div class="k">'+f[0]+'</div><div class="v'+(f[1] ? '' : ' none')+'">'+(f[1] || '—')+'</div></div>').join('')+'</div>'
     + '</div>';
@@ -1270,9 +1284,19 @@ function renderSpyRegistrationBody(leadId, status){
     ? '<div style="font-size:12px;color:var(--gy);margin-top:8px">Upload the party&rsquo;s invite image to generate its registration link \u2014 the page will show that invite automatically.</div>'
     : '';
   const dropOffVal = status.drop_off_time || '';
-  const pickUpVal = status.pick_up_time || '';
+  // 2026-09-25, per Shruti — "prefill if the data is present in the sales
+  // panel. same goes for website bookings. if the data was input earlier
+  // by the client - prefill it for website bookings also." Only a
+  // SUGGESTION until the admin hits Save: pre-fills the box from whatever
+  // the client/sales team already gave us (see
+  // spy_registration.py's _suggested_pickup_time), but nothing is written
+  // to the booking until this Save button is clicked.
+  const usingSuggestedPickup = !status.pick_up_time && !!status.pick_up_time_suggested;
+  const pickUpVal = status.pick_up_time || status.pick_up_time_suggested || '';
   const showPD = status.show_pickup_drop !== false;
-  const pdSourceNote = (status.drop_off_time || status.pick_up_time)
+  const pdSourceNote = usingSuggestedPickup
+    ? '<div id="srPickupDropStatus" style="font-size:11.5px;color:var(--pk);margin-top:8px">Suggested from '+esc(status.pick_up_time_suggested_source||'earlier data')+' \u2014 click Save to confirm, or edit first.</div>'
+    : (status.drop_off_time || status.pick_up_time)
     ? '<div id="srPickupDropStatus" style="font-size:11.5px;color:var(--gy);margin-top:8px">'
       + (status.pickup_drop_source === 'parent' ? 'Confirmed by parent' : 'Set by admin')
       + (status.pickup_drop_updated_at ? ' \u00b7 '+esc(status.pickup_drop_updated_at) : '')
@@ -3654,6 +3678,8 @@ function fieldRowHtml(f, isCustEvent, locked){
     avCell = selectHtml(rid+'_av', GENDER_OPTIONS, avValue);
   }else if(f.field_key==='location_type'){
     avCell = selectHtml(rid+'_av', LOCATION_TYPE_OPTIONS, avValue);
+  }else if(f.field_key==='theme'){
+    avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Theme')+'" list="themeOptionsList" autocomplete="off">';
   }else if(f.field_key==='email'){
     avCell = '<input type="email" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'name@example.com')+'">';
   }else if(f.field_key==='child_ages' && !isMultiChild){

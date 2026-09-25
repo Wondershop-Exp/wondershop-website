@@ -5086,6 +5086,18 @@ function selInv(card,id,p,n){
     prefillEiFields();
     document.getElementById('eiDetail').style.display='block';
     document.getElementById('invCustomThemeWrap').style.display='none';
+    // 2026-09-25, per Shruti -- "move directly to entering child details
+    // (along with other details) as soon as they select the design. The
+    // same functionality as in the return gifts' step": same scroll +
+    // highlight nudge addGift() already does for giftDeliverySec.
+    setTimeout(()=>{
+      const sec=document.getElementById('eiDetail');
+      if(sec){
+        sec.scrollIntoView({behavior:'smooth',block:'center'});
+        sec.classList.add('nudge-highlight');
+        setTimeout(()=>sec.classList.remove('nudge-highlight'),2200);
+      }
+    },300);
   }
   chkFreeInv();
   updBB(S.screen);

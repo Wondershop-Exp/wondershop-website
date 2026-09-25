@@ -1278,9 +1278,14 @@ def _html_referral_card(req: LeadSubmitRequest, referral_code: Optional[str]) ->
 def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
                        reward_code: Optional[str], referral_code: Optional[str] = None,
                        recipient_kind: str, event_sales_lead: Optional[str] = None,
-                       added_service_label: Optional[str] = None) -> str:
+                       added_service_label: Optional[str] = None,
+                       pending_tasks: Optional[list] = None) -> str:
     """recipient_kind: 'customer' or 'team' — team version skips the welcome
-    fluff and T&C footer link but keeps the same details table + styling."""
+    fluff and T&C footer link but keeps the same details table + styling.
+    pending_tasks (team only, 2026-09-25 per Shruti): short list of things
+    ops must action manually (e.g. a Custom Piñata design with no fixed
+    price/production) — rendered as a red banner right under the heading
+    so it can't be missed."""
     first_name = _cap_first(req.parent_name.split()[0] if req.parent_name else None)
     party_title = _party_title(req)
     # 2026-08-14, per Shruti: merge the party title directly into the main
@@ -1455,7 +1460,19 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
             f'<a href="{TERMS_URL}" style="color:{BRAND_PURPLE};font-weight:700">Terms &amp; Conditions</a>.</div>'
         )
 
+    pending_tasks_html = ""
+    if recipient_kind == "team" and pending_tasks:
+        items_html = "".join(f'<li style="margin-bottom:2px">{_html_escape(t)}</li>' for t in pending_tasks)
+        pending_tasks_html = (
+            '<div style="background:#FDECEC;border:1px solid #F3B4B4;border-radius:10px;'
+            'padding:12px 14px;margin-bottom:16px">'
+            '<div style="font-size:13.5px;font-weight:700;color:#B4232C;margin-bottom:4px">⚠️ Pending tasks</div>'
+            f'<ul style="margin:0;padding-left:18px;font-size:13px;color:#8A1F27">{items_html}</ul>'
+            '</div>'
+        )
+
     sections = "".join(filter(None, [
+        pending_tasks_html,
         _html_section_title("Booking Details" if is_booking else "Enquiry Details") + details_html,
         (_html_section_title("Order Summary") + order_html) if order_rows else "",
         services_html,
@@ -1700,6 +1717,17 @@ async def _send_team_email(lead_id: int, req: LeadSubmitRequest, reward_code: Op
     try:
         is_booking = bool(req.is_booking)
         budget_str = f"Rs.{req.client_budget:,.0f}" if req.client_budget else "—"
+        # 2026-09-25, per Shruti — "if I choose the Custom Pinata design
+        # option, it should be ... highlighted as a pending task in the Ops
+        # email": Custom Design has no fixed price/production, so ops
+        # always has to action it manually.
+        pinata_name = ((req.builder_snapshot or {}).get("pinata") or {}).get("n")
+        pending_tasks = []
+        if pinata_name == "Custom Design":
+            pending_tasks.append("Custom Piñata design selected — needs pricing & production follow-up.")
+        pending_block = (
+            "\n⚠️ PENDING TASKS\n" + "".join(f"  - {t}\n" for t in pending_tasks)
+        ) if pending_tasks else ""
         remarks_block = f"\nSPECIAL REQUESTS / REMARKS\n  {req.remarks}\n" if req.remarks else ""
         order_block = _format_order_summary_block(req)
         services_block = _format_services_block(req, added_service_label)
@@ -1736,7 +1764,7 @@ EVENT
   Venue      : {req.venue or '—'} ({req.location_type or '—'})
   City       : {req.city or '—'}   Pincode: {req.pincode or '—'}
   Budget     : {budget_str}
-{remarks_block}{order_block}{services_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{redeemed_line}{referral_line}{sales_lead_line}{tnc_line}
+{pending_block}{remarks_block}{order_block}{services_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{redeemed_line}{referral_line}{sales_lead_line}{tnc_line}
 SOURCE
   {req.lead_source or '—'} / {req.lead_source_detail or '—'}
   Referred by: {req.referred_by or '—'}
@@ -1747,6 +1775,7 @@ SOURCE
             is_booking=is_booking, lead_id=lead_id, req=req,
             reward_code=reward_code, referral_code=referral_code, recipient_kind="team",
             event_sales_lead=event_sales_lead, added_service_label=added_service_label,
+            pending_tasks=pending_tasks,
         )
         team_subject = _booking_subject_line(lead_id, req) if is_booking else _lead_subject_line(lead_id, req)
 

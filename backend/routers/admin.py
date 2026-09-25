@@ -64,7 +64,7 @@ from invoice_builder import assemble_invoice_data, build_invoice_pdf, invoice_fi
 from booking_pricing import (
     compute_billing, compute_adjustments, freebie_activity_names, parse_csv as _parse_csv_names,
     PACKAGING_KEY_TO_LABEL, PACKAGING_UNIT_PRICE, DJ_LIGHTS_PRICE, DJ_SMOKE_PRICE,
-    TAG_NOTE_UNIT_PRICE, TAG_NOTE_MIN_QTY, PINATA_BAG_PRICE, DECOR_PRICES,
+    TAG_NOTE_UNIT_PRICE, TAG_NOTE_MIN_QTY, PINATA_BAG_PRICE, DECOR_PRICES, ACTIVITY_PRICES,
 )
 from routers.leads import (
     _services_detail_list, _party_title, _fmt_date_long, _gmail_send, _get_gmail_access_token,
@@ -195,6 +195,11 @@ FIELD_CATALOG = [
     {"key": "svc_dj",          "label": "Music (DJ)",        "section": "Services"},
     {"key": "svc_pinata",      "label": "Piñata",            "section": "Services"},
     {"key": "svc_einvite",     "label": "E-Invite",          "section": "Services"},
+    {"key": "einvite_save_the_date", "label": "E-Invite: Save the Date", "section": "Services", "admin_only": True},
+    {"key": "einvite_pickup_time",   "label": "E-Invite: Pickup Time",   "section": "Services", "admin_only": True},
+    {"key": "einvite_venue",         "label": "E-Invite: Venue on Invite", "section": "Services", "admin_only": True},
+    {"key": "einvite_rsvp",          "label": "E-Invite: RSVP Contact",  "section": "Services", "admin_only": True},
+    {"key": "einvite_instructions",  "label": "E-Invite: Instructions",  "section": "Services", "admin_only": True},
     {"key": "svc_photo",       "label": "Photography",       "section": "Services"},
     {"key": "svc_gifts",       "label": "Gifts",              "section": "Services"},
 
@@ -1196,10 +1201,17 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
 
     is_booking = bool(lead.get("is_booking"))
     is_spy_booking = is_booking and await _is_spy_booking(lead, snap, all_fields.get("svc_activities"))
+    # 2026-09-25, per Shruti — "if I choose the Custom Pinata design
+    # option, it should be flagged in red ... as a task to be completed in
+    # the admin panel": Custom Design has no fixed price/production, so it
+    # always needs manual follow-up. "Current value" here covers both the
+    # customer's own original pick and anything the admin has since set.
+    pending_custom_pinata = (all_fields.get("svc_pinata", {}).get("customer_choice") == "Custom Design")
     return {
         "lead_id": lead_id,
         "is_booking": is_booking,
         "is_spy_booking": is_spy_booking,
+        "pending_custom_pinata": pending_custom_pinata,
         # Read-only computed status for a booking (New/Upcoming/Complete/
         # Cancelled); the raw editable pipeline status for a lead.
         "status": _booking_display_status(lead) if is_booking else lead.get("status"),
@@ -1730,16 +1742,34 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
             to_write.append(("svc_decor", decor_cc, remark))
 
     # ── Activities (multi-select — comma-joined names, same as this page's
-    # own multi-select Save) ──
+    # own multi-select Save). 2026-09-25, per Shruti — no more generic
+    # "Copied from the Sales panel" boilerplate; remarks only flag an
+    # activity whose sales-typed price doesn't match today's catalogue
+    # price (a real negotiation), same rule as E-Invite below. ──
     if "svc_activities" not in already and activities:
         valid_names = {o["value"] for o in ACTIVITY_OPTIONS}
         names = [a.get("name") for a in activities if a.get("name") in valid_names]
+        negotiated_bits = []
+        for a in activities:
+            name = a.get("name")
+            if name not in valid_names:
+                continue
+            cat_price = ACTIVITY_PRICES.get(name)
+            standard = cat_price[0] if isinstance(cat_price, tuple) else cat_price
+            sales_price = a.get("price")
+            if standard is not None and sales_price is not None:
+                try:
+                    if round(float(sales_price), 2) != round(float(standard), 2):
+                        negotiated_bits.append(f"{name}: negotiated ₹{sales_price} (standard ₹{standard})")
+                except (TypeError, ValueError):
+                    pass
+        remark = f"{prefix} " + "; ".join(negotiated_bits) if negotiated_bits else None
         if names:
-            to_write.append(("svc_activities", ", ".join(names), f"{prefix} Copied from the Sales panel."))
+            to_write.append(("svc_activities", ", ".join(names), remark))
         else:
             raw = ", ".join(a.get("name", "") for a in activities if a.get("name"))
             if raw:
-                to_write.append(("svc_activities", None, f"{prefix} {raw}"))
+                to_write.append(("svc_activities", None, remark or f"{prefix} {raw}"))
 
     # ── Host (no valid dropdown value available — remarks only, see notes above) ──
     if "svc_host" not in already:
@@ -1784,29 +1814,47 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
         if photo_cc:
             to_write.append(("svc_photo", photo_cc, None))
 
-    # ── E-Invite (tier + Save the Date + detail fields, as remarks — see
-    # the module docstring above for why there's no valid Customer's
-    # Choice value to set here) ──
+    # ── E-Invite: tier -> svc_einvite's Current Value (it's a pricing tier,
+    # not one of the website's design names, but showing it beats "No
+    # selection"); Save the Date / pickup time / venue / RSVP / instructions
+    # each get their own admin field (einvite_*), copied straight across
+    # instead of bundled into one remarks note. svc_einvite's remarks are
+    # reserved for an actual negotiated price. ──
+    ei = _req("einvite_type")
     if "svc_einvite" not in already:
-        ei = _req("einvite_type")
-        std = _req("save_the_date")
-        details = _req("einvite_details")
-        bits = []
-        if ei.get("selected"):
-            bits.append(f"E-Invite tier: {ei['selected']}" + (f" (₹{ei['cost']})" if ei.get("cost") is not None else ""))
-        if std.get("selected") == "Yes":
-            bits.append("Save the Date: Yes" + (f" (₹{std['cost']})" if std.get("cost") is not None else ""))
-        if details:
-            if details.get("pickup_time"):
-                bits.append(f"Pickup time: {details['pickup_time']}" + (" (shown on invite)" if details.get("show_pickup_on_invite") else " (internal only)"))
-            if details.get("venue"):
-                bits.append(f"Venue on invite: {details['venue']}")
-            if details.get("rsvp_name") or details.get("rsvp_mobile"):
-                bits.append("RSVP: " + ", ".join(x for x in [details.get("rsvp_name"), details.get("rsvp_mobile")] if x))
-            if details.get("instructions"):
-                bits.append(details["instructions"])
-        if bits:
-            to_write.append(("svc_einvite", None, f"{prefix} " + " · ".join(bits)))
+        tier = ei.get("selected")
+        if tier:
+            standard = cat.EINVITE_TIER_PRICES.get(tier)
+            cost = ei.get("cost")
+            remark = None
+            if standard is not None and cost is not None:
+                try:
+                    if round(float(cost), 2) != round(float(standard), 2):
+                        remark = f"{prefix} Negotiated price: ₹{cost} (standard ₹{standard})"
+                except (TypeError, ValueError):
+                    pass
+            to_write.append(("svc_einvite", tier, remark))
+
+    std = _req("save_the_date")
+    if "einvite_save_the_date" not in already and std.get("selected"):
+        val = std["selected"]
+        if std.get("cost") is not None:
+            val = f"{val} (₹{std['cost']})"
+        to_write.append(("einvite_save_the_date", val, None))
+
+    details = _req("einvite_details")
+    if details:
+        if "einvite_pickup_time" not in already and details.get("pickup_time"):
+            val = details["pickup_time"] + (" (shown on invite)" if details.get("show_pickup_on_invite") else " (internal only)")
+            to_write.append(("einvite_pickup_time", val, None))
+        if "einvite_venue" not in already and details.get("venue"):
+            to_write.append(("einvite_venue", details["venue"], None))
+        if "einvite_rsvp" not in already:
+            rsvp = ", ".join(x for x in [details.get("rsvp_name"), details.get("rsvp_mobile")] if x)
+            if rsvp:
+                to_write.append(("einvite_rsvp", rsvp, None))
+        if "einvite_instructions" not in already and details.get("instructions"):
+            to_write.append(("einvite_instructions", details["instructions"], None))
 
     # ── Terms & Conditions (new admin field) — T&C text as Customer's
     # Choice, sales' own notes as Remarks (2026-09-23, per Shruti: "add a
@@ -1818,7 +1866,7 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
     if "terms_conditions" not in already:
         tc = (pb["terms_conditions"] or "").strip()
         notes = " ".join(x.strip() for x in [pb["notes_special_instructions"], pb["notes_changes_updates"]] if x and x.strip())
-        cc = f"{prefix} {tc}" if tc else None
+        cc = tc or None  # shown to the customer as-is -- see comment above
         remark = f"{prefix} {notes}" if notes else None
         if cc or remark:
             to_write.append(("terms_conditions", cc, remark))
@@ -2358,27 +2406,23 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
         if snap != (fake_req.builder_snapshot or {}):
             fake_req.builder_snapshot = snap
 
-        extra_remarks = [
-            f"{o['field_label']}: {o['remarks'].strip()}"
-            for o in overrides if o["remarks"] and o["remarks"].strip()
-        ]
-        # 2026-09-23, per Shruti — "there were some T&C/comments put in the
-        # sales panel for this lead like we promised neon lights, a fake
-        # dead body - that should also be mentioned in the email": these
-        # live on lead_sales_playbook (the separate Sales Leads module),
-        # not booking_field_overrides, so they need their own fetch.
-        playbook = await database.fetch_one(
-            "SELECT notes_special_instructions, notes_changes_updates FROM lead_sales_playbook WHERE lead_id = :id",
-            values={"id": lead_id},
-        )
-        if playbook:
-            if playbook["notes_special_instructions"] and playbook["notes_special_instructions"].strip():
-                extra_remarks.append(f"Client Special Instructions (sales): {playbook['notes_special_instructions'].strip()}")
-            if playbook["notes_changes_updates"] and playbook["notes_changes_updates"].strip():
-                extra_remarks.append(f"Changes / Last-Minute Updates (sales): {playbook['notes_changes_updates'].strip()}")
-        if extra_remarks:
-            combined = "\n".join(extra_remarks)
-            fake_req.remarks = f"{fake_req.remarks}\n{combined}" if fake_req.remarks else combined
+        # 2026-09-25, per Shruti (Image 5) — "put only T&C here. this field
+        # is visible to the end user, so no need of the prefix ... just get
+        # T&C to be put up here as is": this "Special Requests / Remarks"
+        # block goes straight into the CUSTOMER-facing email, so it must
+        # never carry internal admin notes (per-field remarks, "[who,
+        # date] Copied from the Sales panel", Sales' own internal
+        # instructions) -- only the Terms & Conditions text itself, exactly
+        # as stored (terms_conditions' customer_choice_override, which is
+        # the raw T&C with no prefix -- see _copy_sales_data_to_admin_
+        # overrides above). This replaces the previous behaviour (2026-09-23)
+        # of dumping every override's remarks plus Sales' internal notes in
+        # here, which is what produced the "[Shruti, ...] Copied from the
+        # Sales panel" text customers were seeing.
+        tc_ov = overrides_by_key.get("terms_conditions")
+        tc_value = (tc_ov["customer_choice_override"] or "").strip() if tc_ov else ""
+        if tc_value:
+            fake_req.remarks = tc_value
 
         # _send_user_ack never raises on its own (by design, for the
         # original fire-and-forget /submit flow) -- it always records the

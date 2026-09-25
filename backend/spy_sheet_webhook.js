@@ -29,7 +29,13 @@
 
 var SPY_PHOTOS_FOLDER_NAME = "Spy Agent Photos";
 var SPY_HEADERS = [
-  "Timestamp", "Agent Name", "Agent DOB", "Parent Name", "Parent Phone", "Agent Photo",
+  // 2026-09-24, per Shruti — "tshirt size is not coming up... a lot of
+  // people have already filled in the form": the T-Shirt Size question
+  // was added to the registration form on 2026-09-23 and the backend has
+  // been sending tshirt_size in every payload since, but this script was
+  // never updated to receive it, so it was silently dropped on every
+  // submission (not recoverable — it was never written anywhere).
+  "Timestamp", "Agent Name", "Agent DOB", "Parent Name", "Parent Phone", "Agent Photo", "T-Shirt Size",
 ];
 
 function doPost(e) {
@@ -84,6 +90,20 @@ function _appendSpyRegistration(d) {
          .setFontColor("#FFFFFF");
     sheet.setFrozenRows(1);
     sheet.autoResizeColumns(1, SPY_HEADERS.length);
+  } else {
+    // 2026-09-24, per Shruti — a party tab created before T-Shirt Size
+    // existed only has 6 header columns; add the 7th header here so this
+    // tab's rows line up with SPY_HEADERS from now on, instead of needing
+    // every existing tab fixed by hand.
+    var lastCol = sheet.getLastColumn();
+    var headerRow = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+    if (headerRow.indexOf("T-Shirt Size") === -1) {
+      sheet.getRange(1, SPY_HEADERS.length)
+           .setValue("T-Shirt Size")
+           .setFontWeight("bold")
+           .setBackground("#6B21A8")
+           .setFontColor("#FFFFFF");
+    }
   }
 
   var photoLink = "";
@@ -115,6 +135,7 @@ function _appendSpyRegistration(d) {
     d.parent_name  || "",
     d.parent_phone || "",
     photoLink,
+    d.tshirt_size  || "",
   ]);
 
   // The blank starter "Sheet1" tab Google adds to every new spreadsheet

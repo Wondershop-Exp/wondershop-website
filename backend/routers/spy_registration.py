@@ -41,6 +41,7 @@ to a Drive folder and puts a link to it in the row, since a Sheet cell
 can't hold an image directly.
 """
 import base64
+import json
 import logging
 import secrets
 from datetime import datetime
@@ -162,6 +163,50 @@ def _pronoun(genders_str: Optional[str]) -> str:
 # Mirrors admin.html's existing X-Admin-Password pattern (see
 # routers/admin.py's _require_admin, reused here rather than duplicated).
 
+
+async def _suggested_pickup_time(lead_id: int):
+    """2026-09-25, per Shruti — "prefill if the data is present in the
+    sales panel. same goes for website bookings. if the data was input
+    earlier by the client - prefill it for website bookings also."
+
+    Looks for a pick-up time the admin hasn't typed into
+    spy_registration_pages yet, in two possible places (mutually
+    exclusive per booking — a lead is either sales- or website-origin):
+      - Sales panel: lead_sales_playbook.requirements.einvite_details.pickup_time
+      - Website/builder: leads.builder_snapshot.einvite.pickup_time
+    Returns (value, source_label) or (None, None) if neither has one.
+    This is only ever a SUGGESTION shown in the admin UI — it is never
+    auto-saved into spy_registration_pages; the admin still has to hit
+    Save for it to stick.
+    """
+    def _j(v):
+        if not v:
+            return None
+        return json.loads(v) if isinstance(v, str) else v
+
+    pb = await database.fetch_one(
+        "SELECT requirements FROM lead_sales_playbook WHERE lead_id = :id",
+        values={"id": lead_id},
+    )
+    if pb:
+        req = _j(pb["requirements"]) or {}
+        details = req.get("einvite_details")
+        if isinstance(details, dict) and details.get("pickup_time"):
+            return details["pickup_time"], "Sales panel"
+
+    lead = await database.fetch_one(
+        "SELECT builder_snapshot FROM leads WHERE lead_id = :id",
+        values={"id": lead_id},
+    )
+    if lead:
+        snap = _j(lead["builder_snapshot"]) or {}
+        einvite = snap.get("einvite")
+        if isinstance(einvite, dict) and einvite.get("pickup_time"):
+            return einvite["pickup_time"], "Website booking"
+
+    return None, None
+
+
 @router.get("/admin/{lead_id}")
 async def admin_get_status(lead_id: int, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
@@ -177,7 +222,15 @@ async def admin_get_status(lead_id: int, x_admin_password: Optional[str] = Heade
         values={"lead_id": lead_id},
     )
     if not row:
-        return {"exists": False, "show_pickup_drop": True, "tshirt_size_enabled": False}
+        suggested_val, suggested_src = await _suggested_pickup_time(lead_id)
+        return {
+            "exists": False, "show_pickup_drop": True, "tshirt_size_enabled": False,
+            "pick_up_time_suggested": suggested_val,
+            "pick_up_time_suggested_source": suggested_src,
+        }
+    suggested_val, suggested_src = (None, None)
+    if not row["pick_up_time"]:
+        suggested_val, suggested_src = await _suggested_pickup_time(lead_id)
     return {
         "exists": True,
         "share_token": row["share_token"],
@@ -186,6 +239,8 @@ async def admin_get_status(lead_id: int, x_admin_password: Optional[str] = Heade
         "invite_image_name": row["invite_image_name"],
         "drop_off_time": row["drop_off_time"],
         "pick_up_time": row["pick_up_time"],
+        "pick_up_time_suggested": suggested_val,
+        "pick_up_time_suggested_source": suggested_src,
         "show_pickup_drop": row["show_pickup_drop"] if row["show_pickup_drop"] is not None else True,
         "pickup_drop_source": row["pickup_drop_source"],
         "pickup_drop_updated_at": _to_ist_str(row["pickup_drop_updated_at"]),
