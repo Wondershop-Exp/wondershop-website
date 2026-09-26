@@ -110,8 +110,17 @@ _STD_DECOR_NAMES = {
 def _decor_prices() -> dict:
     out = {}
     for theme in cat.THEMES:
+        overrides = theme.get("tierOverrides") or {}
         for tier in theme["tierPhotos"].keys():
-            out[f'{theme["n"]} - {tier}'] = cat.DECOR_TIER_META[tier]["price"]
+            # A theme+tier can override the shared DECOR_TIER_META price
+            # (e.g. Frozen's Classic at ₹9000, Paw Patrol's Classic at
+            # ₹4500) — added 2026-09-26, mirrors builder.html's THEME_TIERS
+            # price = ov.price ?? tier default logic. Without this, any
+            # overridden theme+tier priced here at the plain tier default
+            # would silently disagree with what the customer actually paid.
+            tier_override = overrides.get(tier) or {}
+            price = tier_override.get("price", cat.DECOR_TIER_META[tier]["price"])
+            out[f'{theme["n"]} - {tier}'] = price
     for tier, name in _STD_DECOR_NAMES.items():
         out[name] = cat.DECOR_TIER_META[tier]["price"]
     return out

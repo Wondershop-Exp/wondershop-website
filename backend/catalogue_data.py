@@ -128,6 +128,22 @@ THEMES = [
      "tierPhotos": {"Signature": "Decor/decor-nanighar-3panel.jpg"}},
     {"id": "treasure", "n": "The Great Ancient Indian Treasure", "b": "200 (mixed colours)",
      "tierPhotos": {"Signature": "Decor/decor-treasure-3panel.jpg"}},
+    # The following three were missing from this backend mirror even though
+    # they're live on builder.html — each theme+tier's real price is
+    # DECOR_TIER_META's shared default UNLESS a tierOverrides entry below
+    # says otherwise (mirrors builder.html's THEME_TIERS tierOverrides).
+    # Added 2026-09-26 while wiring in Shruti's new Cricket/Paw-Patrol-Classic
+    # photos — without an entry here, DECOR_PRICES (booking_pricing.py)
+    # has no price for these themes' tiers, so admin's Grand Total shows
+    # them under "Not priced automatically" instead of pricing them.
+    {"id": "frozen", "n": "Frozen", "b": "150 (Blue, White, Silver)",
+     "tierPhotos": {"Classic": "Decor/decor-frozen-classic-net.png"},
+     "tierOverrides": {"Classic": {"price": 9000}}},
+    {"id": "pawpatrol", "n": "Paw Patrol", "b": "200 (Blue, Red, Yellow, White)",
+     "tierPhotos": {"Classic": "Decor/decor-pawpatrol-classic.png", "Premium": "Decor/decor-pawpatrol-premium.png"},
+     "tierOverrides": {"Classic": {"price": 4500}}},
+    {"id": "cricket", "n": "Cricket Party", "b": "200 (Green, White, Maroon, Gold)",
+     "tierPhotos": {"Classic": "Decor/decor-cricket-classic.png"}},
 ]
 _THEMES_BY_ID = {t["id"]: t for t in THEMES}
 
