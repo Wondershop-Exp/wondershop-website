@@ -850,6 +850,43 @@ function saveField(key, value, inputType){
   if(key === 'kids_count') recalcDerivedCosts();
 }
 
+// Mirrors the backend's _estimate_total() (sales_leads.py) so the Grand
+// Total can update the instant a value is typed, without a network round
+// trip — 2026-09-26, per Shruti: "if we input values, grand total is not
+// getting updated." Root cause: the 2026-09-25 standard-form-Save change
+// made patchSheet() purely local (see its comment below) but never
+// recomputed DATA.estimated_total to match — that field is what the
+// sticky Grand Total bar and the Billing section's read-only total both
+// display, and before this fix it only ever changed on the next full
+// server round trip (i.e. after clicking Save), so every edit in between
+// looked like it wasn't updating anything. DATA.requirements/.activities/
+// .kids_count are already kept live by saveRequirement/toggleActivity/
+// saveField as you type (see their own comments) — this just re-sums
+// them the same way the server does, on every one of those same edits.
+function estimateTotalLocal(){
+  let total = 0;
+  const reqs = DATA.requirements || {};
+  Object.keys(reqs).forEach(function(k){
+    const r = reqs[k];
+    if(r && typeof r === 'object'){
+      if(r.cost !== null && r.cost !== undefined && r.cost !== ''){
+        const c = Number(r.cost);
+        if(!isNaN(c)) total += c;
+      }
+      (r.addons || []).forEach(function(a){
+        const p = Number((a && a.price) || 0);
+        if(!isNaN(p)) total += p;
+      });
+    }
+  });
+  const kids = DATA.kids_count || 1;
+  (DATA.activities || []).forEach(function(a){
+    let price = Number((a && a.price) || 0);
+    if(isNaN(price)) price = 0;
+    total += a.flat ? price : price * kids;
+  });
+  return Math.round(total * 100) / 100;
+}
 // Stages an edit locally (no network) and re-renders so totals/derived
 // values stay live as you work — only PENDING_PATCH accumulates; nothing
 // reaches the server until Save is clicked. Deliberately synchronous
@@ -870,6 +907,10 @@ function patchSheet(body){
   if(body.activities !== undefined){
     PENDING_PATCH.activities = body.activities;
   }
+  // Recompute the live estimate from the DATA we already have (see
+  // estimateTotalLocal() above) so Grand Total reflects this edit
+  // immediately, even though nothing has actually reached the server yet.
+  DATA.estimated_total = estimateTotalLocal();
   setSaveStatus('dirty', 'Save');
   renderDetail();
 }
@@ -1011,12 +1052,36 @@ async function convertLeadDetail(){
   }
 }
 
+// Native <input type="time"> steppers don't reliably restrict the picker
+// itself to the step increment -- step="900" (15 min) makes Chrome/
+// Firefox's spinner arrows move in 15-minute jumps, but Safari's wheel
+// picker (macOS/iOS -- the "scroll through 00, 01, 02..." UI) ignores
+// step entirely and still offers every minute. 2026-09-26, per Shruti,
+// still seeing every minute after step="900" was added for exactly this
+// reason. Fixed at the data layer instead of relying on any one
+// browser's picker: whatever minute actually gets picked is snapped to
+// the nearest 00/15/30/45 in JS before it's saved, so the stored value
+// is always a multiple of 15 no matter which browser/picker UI was used.
+function snapTime15(el){
+  const v = el.value;
+  if(!v) return;
+  const m = v.match(/^(\d{2}):(\d{2})$/);
+  if(!m) return;
+  let h = parseInt(m[1],10), min = parseInt(m[2],10);
+  let snapped = Math.round(min/15)*15;
+  if(snapped===60){ min=0; h=(h+1)%24; } else { min=snapped; }
+  const newVal = String(h).padStart(2,'0')+':'+String(min).padStart(2,'0');
+  if(newVal !== v) el.value = newVal;
+}
 // ── 1. Client & Event Details ───────────────────────────────────────────
 function sectionClientDetails(){
   const d = DATA;
   const f = (key,label,type,extra) => '<div class="fld"><label>'+label+'</label>'
     +'<input type="'+type+'" id="f_'+key+'" value="'+esc(d[key]==null?'':d[key])+'" '+(extra||'')
-    +' onblur="saveField(\''+key+'\', this.value, this.type)"></div>';
+    +(type==='time'
+       ? ' onblur="snapTime15(this);saveField(\''+key+'\', this.value, this.type)"'
+       : ' onblur="saveField(\''+key+'\', this.value, this.type)"')
+    +'></div>';
   const genderSel = '<div class="fld"><label>Gender</label><select id="f_child_gender" onchange="saveField(\'child_gender\', this.value)">'
     + '<option value="">— select —</option>'
     + '<option value="Male" '+(d.child_gender==='Male'?'selected':'')+'>Male</option>'
@@ -1520,10 +1585,10 @@ function reqEinviteDetailsBlock(){
     + '</div>'
     + '<div class="req-grid" style="margin-top:8px">'
       + '<input type="date" value="'+v('date', DATA.event_date)+'" onblur="saveEinviteDetail(\'date\', this.value)">'
-      + '<input type="time" step="900" value="'+v('start_time', DATA.event_start_time)+'" onblur="saveEinviteDetail(\'start_time\', this.value)">'
+      + '<input type="time" step="900" value="'+v('start_time', DATA.event_start_time)+'" onblur="snapTime15(this);saveEinviteDetail(\'start_time\', this.value)">'
     + '</div>'
     + '<div class="req-grid" style="margin-top:8px">'
-      + '<input type="time" step="900" placeholder="Pickup Time (optional)" value="'+esc(pickup)+'" onblur="saveEinviteDetail(\'pickup_time\', this.value)">'
+      + '<input type="time" step="900" placeholder="Pickup Time (optional)" value="'+esc(pickup)+'" onblur="snapTime15(this);saveEinviteDetail(\'pickup_time\', this.value)">'
       + '<label class="addon-row" style="margin-top:0"><input type="checkbox" '+(d.show_pickup_on_invite?'checked':'')+' onchange="saveEinviteDetail(\'show_pickup_on_invite\', this.checked)"> Show pickup time on invite</label>'
     + '</div>'
     + '<input type="text" placeholder="Venue / Address" style="width:100%;margin-top:8px;padding:10px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+v('venue', DATA.venue)+'" onblur="saveEinviteDetail(\'venue\', this.value)">'
