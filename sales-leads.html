@@ -1052,36 +1052,82 @@ async function convertLeadDetail(){
   }
 }
 
-// Native <input type="time"> steppers don't reliably restrict the picker
-// itself to the step increment -- step="900" (15 min) makes Chrome/
-// Firefox's spinner arrows move in 15-minute jumps, but Safari's wheel
-// picker (macOS/iOS -- the "scroll through 00, 01, 02..." UI) ignores
-// step entirely and still offers every minute. 2026-09-26, per Shruti,
-// still seeing every minute after step="900" was added for exactly this
-// reason. Fixed at the data layer instead of relying on any one
-// browser's picker: whatever minute actually gets picked is snapped to
-// the nearest 00/15/30/45 in JS before it's saved, so the stored value
-// is always a multiple of 15 no matter which browser/picker UI was used.
-function snapTime15(el){
-  const v = el.value;
-  if(!v) return;
-  const m = v.match(/^(\d{2}):(\d{2})$/);
-  if(!m) return;
-  let h = parseInt(m[1],10), min = parseInt(m[2],10);
-  let snapped = Math.round(min/15)*15;
-  if(snapped===60){ min=0; h=(h+1)%24; } else { min=snapped; }
-  const newVal = String(h).padStart(2,'0')+':'+String(min).padStart(2,'0');
-  if(newVal !== v) el.value = newVal;
+// 2026-09-26, per Shruti: the previous fix (step="900" on a native
+// <input type="time">, then silently rounding whatever minute got typed)
+// was wrong on two counts -- Safari's wheel picker ignores step and always
+// lists every minute anyway, AND Shruti doesn't want the value someone
+// actually picked getting silently changed to something else behind their
+// back ("don't round off the time... keep the selection of user, as it
+// will become misleading"). Replaced entirely with three plain <select>
+// dropdowns (hour / minute / AM-PM) whose minute list only ever HAS
+// 00/15/30/45 in it -- there's no native picker involved at all, so
+// nothing to silently correct: whatever the user picks is exactly what
+// gets saved, and it's structurally impossible to land on any other
+// minute. Combines back into the same 24-hour "HH:MM" string the field
+// already stores, so nothing downstream (backend, print view, etc.)
+// needs to change.
+const QUARTER_MINUTES = [0, 15, 30, 45];
+function timeHms(value){
+  // Splits a stored "HH:MM" (or null) into {hour12, minute, ampm} for
+  // pre-selecting the three dropdowns. An old value saved before this
+  // change might not land on a quarter-hour -- shown as its own extra
+  // option (never silently moved to the nearest quarter) until the user
+  // deliberately picks something else.
+  const m = value ? String(value).match(/^(\d{2}):(\d{2})/) : null;
+  if(!m) return {hour12:'', minute:'', ampm:''};
+  const h = parseInt(m[1],10), min = parseInt(m[2],10);
+  let hour12 = h % 12; if(hour12 === 0) hour12 = 12;
+  return {hour12: hour12, minute: min, ampm: h < 12 ? 'AM' : 'PM'};
+}
+// Builds the raw 3-dropdown row (no label/wrapper — callers add their
+// own) so both the Client & Event Details fields (below) and the
+// E-Invite Details block further down can share it. `idPrefix` namespaces
+// the 3 <select> ids, `onChangeAttr` is the literal onchange="..." call
+// each one fires (different callers save differently: saveField() vs.
+// saveEinviteDetail()).
+function timeSelectPartsHtml(idPrefix, value, onChangeAttr){
+  const hms = timeHms(value);
+  const hourOpts = '<option value="">--</option>' + Array.from({length:12}, (_, i) => i+1)
+    .map(h => '<option value="'+h+'" '+(h===hms.hour12?'selected':'')+'>'+String(h).padStart(2,'0')+'</option>').join('');
+  const minuteVals = QUARTER_MINUTES.slice();
+  if(hms.minute !== '' && minuteVals.indexOf(hms.minute) === -1) minuteVals.push(hms.minute);
+  minuteVals.sort(function(a,b){ return a-b; });
+  const minuteOpts = '<option value="">--</option>' + minuteVals
+    .map(m => '<option value="'+m+'" '+(m===hms.minute?'selected':'')+'>'+String(m).padStart(2,'0')+'</option>').join('');
+  const ampmOpts = '<option value="">--</option>'
+    + ['AM','PM'].map(a => '<option value="'+a+'" '+(a===hms.ampm?'selected':'')+'>'+a+'</option>').join('');
+  return '<div style="display:flex;gap:6px">'
+    + '<select id="'+idPrefix+'_h" onchange="'+onChangeAttr+'" style="flex:1">'+hourOpts+'</select>'
+    + '<select id="'+idPrefix+'_m" onchange="'+onChangeAttr+'" style="flex:1">'+minuteOpts+'</select>'
+    + '<select id="'+idPrefix+'_ap" onchange="'+onChangeAttr+'" style="flex:1">'+ampmOpts+'</select>'
+    + '</div>';
+}
+// Reads the 3 dropdowns back into a "HH:MM" 24-hour string, or null while
+// any of the 3 hasn't been picked yet.
+function readTimeParts(idPrefix){
+  const h = document.getElementById(idPrefix+'_h').value;
+  const m = document.getElementById(idPrefix+'_m').value;
+  const ap = document.getElementById(idPrefix+'_ap').value;
+  if(h===''||m===''||ap==='') return null;
+  let h24 = parseInt(h,10) % 12;
+  if(ap==='PM') h24 += 12;
+  return String(h24).padStart(2,'0')+':'+String(parseInt(m,10)).padStart(2,'0');
+}
+function timeSelectHtml(key, label){
+  return '<div class="fld"><label>'+label+'</label>'
+    + timeSelectPartsHtml('f_'+key, DATA[key], "onTimePartChange('"+key+"')") + '</div>';
+}
+function onTimePartChange(key){
+  const value = readTimeParts('f_'+key);
+  if(value === null) return; // wait until all three parts are picked
+  saveField(key, value, 'time');
 }
 // ── 1. Client & Event Details ───────────────────────────────────────────
 function sectionClientDetails(){
   const d = DATA;
   const f = (key,label,type,extra) => '<div class="fld"><label>'+label+'</label>'
     +'<input type="'+type+'" id="f_'+key+'" value="'+esc(d[key]==null?'':d[key])+'" '+(extra||'')
-    +(type==='time'
-       ? ' onblur="snapTime15(this);saveField(\''+key+'\', this.value, this.type)"'
-       : ' onblur="saveField(\''+key+'\', this.value, this.type)"')
-    +'></div>';
+    +' onblur="saveField(\''+key+'\', this.value, this.type)"></div>';
   const genderSel = '<div class="fld"><label>Gender</label><select id="f_child_gender" onchange="saveField(\'child_gender\', this.value)">'
     + '<option value="">— select —</option>'
     + '<option value="Male" '+(d.child_gender==='Male'?'selected':'')+'>Male</option>'
@@ -1092,10 +1138,10 @@ function sectionClientDetails(){
     + '<div class="grid2" style="margin-top:10px">' + f('child_name',"Child's Name",'text') + f('child_age','Celebrating Age','text') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + genderSel + f('kids_count','# Kids','number') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('event_date','Date','date') + themeField() + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('sales_lead_name','Sales Lead','text') + f('event_start_time','Event Start Time','time','step="900"') + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('event_end_time','Event End Time','time','step="900"') + venueTypeField() + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + f('sales_lead_name','Sales Lead','text') + timeSelectHtml('event_start_time','Event Start Time') + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + timeSelectHtml('event_end_time','Event End Time') + venueTypeField() + '</div>'
     + '<div class="fld" style="margin-top:10px">' + f('venue','Venue','text').replace(/<div class="fld">|<\/div>$/g,'') + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('venue_handover_time','Venue Handover Time','time','step="900"') + f('packup_time','Packup Time','time','step="900"') + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + timeSelectHtml('venue_handover_time','Venue Handover Time') + timeSelectHtml('packup_time','Packup Time') + '</div>'
     + '</div>';
 }
 // Theme: an "assisted" input — types and filters against Build-a-Birthday's
@@ -1585,10 +1631,10 @@ function reqEinviteDetailsBlock(){
     + '</div>'
     + '<div class="req-grid" style="margin-top:8px">'
       + '<input type="date" value="'+v('date', DATA.event_date)+'" onblur="saveEinviteDetail(\'date\', this.value)">'
-      + '<input type="time" step="900" value="'+v('start_time', DATA.event_start_time)+'" onblur="snapTime15(this);saveEinviteDetail(\'start_time\', this.value)">'
+      + timeSelectPartsHtml('ei_start_time', d.start_time!=null?d.start_time:DATA.event_start_time, "onEinviteTimePartChange('start_time')")
     + '</div>'
     + '<div class="req-grid" style="margin-top:8px">'
-      + '<input type="time" step="900" placeholder="Pickup Time (optional)" value="'+esc(pickup)+'" onblur="snapTime15(this);saveEinviteDetail(\'pickup_time\', this.value)">'
+      + '<div><div style="font-size:11px;color:var(--gy);margin-bottom:4px">Pickup Time (optional)</div>' + timeSelectPartsHtml('ei_pickup_time', pickup||null, "onEinviteTimePartChange('pickup_time')") + '</div>'
       + '<label class="addon-row" style="margin-top:0"><input type="checkbox" '+(d.show_pickup_on_invite?'checked':'')+' onchange="saveEinviteDetail(\'show_pickup_on_invite\', this.checked)"> Show pickup time on invite</label>'
     + '</div>'
     + '<input type="text" placeholder="Venue / Address" style="width:100%;margin-top:8px;padding:10px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+v('venue', DATA.venue)+'" onblur="saveEinviteDetail(\'venue\', this.value)">'
@@ -1606,6 +1652,11 @@ async function saveEinviteDetail(field, value){
   // every other requirements.* field in this module.
   r[field] = (typeof value === 'boolean') ? value : (value === '' ? null : value);
   await saveRequirement('einvite_details', r);
+}
+function onEinviteTimePartChange(field){
+  const value = readTimeParts('ei_'+field);
+  if(value === null) return;
+  saveEinviteDetail(field, value);
 }
 
 // ── Packaging: capsule options (same visual pattern as Return Gift Tags),
