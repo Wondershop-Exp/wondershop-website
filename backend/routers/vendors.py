@@ -212,6 +212,9 @@ async def create_vendor(body: VendorRequest, x_admin_password: Optional[str] = H
     if not body.name.strip():
         raise HTTPException(status_code=400, detail="Vendor name is required.")
     values = _values_for_write(body)
+    # 2026-09-30, per Shruti: WhatsApp defaults to the mobile number when left blank.
+    if not (values.get("whatsapp_number") or "").strip() and values.get("primary_mobile"):
+        values["whatsapp_number"] = values["primary_mobile"]
     cols = ", ".join(VENDOR_FIELDS)
     placeholders = ", ".join(f":{k}" for k in VENDOR_FIELDS)
     read_cols = ", ".join(VENDOR_READ_COLUMNS)

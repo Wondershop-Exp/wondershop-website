@@ -85,7 +85,8 @@ def _same(field: str, a: Optional[str], b: Optional[str]) -> bool:
     return norm(a) == norm(b)
 
 
-async def _update_existing_vendor(mobile: str, values: dict, file_bytes, file_name, file_type) -> bool:
+async def _update_existing_vendor(mobile: str, values: dict, file_bytes, file_name, file_type,
+                                  defaulted: frozenset = frozenset()) -> bool:
     """If a vendor with this mobile (primary or alternate) already exists,
     merge the submission into it and return True; otherwise return False and
     let the caller create a new vendor."""
@@ -109,6 +110,11 @@ async def _update_existing_vendor(mobile: str, values: dict, file_bytes, file_na
             cur = existing[f]
             if not (cur or "").strip():
                 fill[f] = new
+            elif f in defaulted:
+                # Value was defaulted (e.g. WhatsApp = mobile because the box
+                # was left blank), not typed by the vendor — only use it to
+                # fill an empty field, never to propose replacing a real one.
+                continue
             elif not _same(f, cur, new):
                 pending[f] = new
         for f in _BANK_FIELDS:
@@ -251,12 +257,16 @@ async def submit_vendor_onboarding(
             detail="Please either upload a cancelled cheque/passbook photo, or fill in all four bank account fields.",
         )
 
+    # 2026-09-30, per Shruti: "by default, save the mobile no. as the whatsapp
+    # no. in the database. if the user inputs something on whatsapp no - then
+    # update accordingly".
+    whatsapp_given = _normalize_mobile(whatsapp_number) or None
     values = {
         "name": name,
         "primary_contact_name": _clean(primary_contact_name),
         "primary_mobile": mobile,
         "alternate_mobile": _normalize_mobile(alternate_mobile) or None,
-        "whatsapp_number": _normalize_mobile(whatsapp_number) or None,
+        "whatsapp_number": whatsapp_given or mobile,
         "email": _clean(email),
         "deals_in": _clean(deals_in),
         "address": _clean(address),
@@ -273,7 +283,8 @@ async def submit_vendor_onboarding(
         "cancelled_cheque_content_type": file_content_type if file_bytes else None,
     }
     # Already one of our vendors? Merge into that record instead of duplicating.
-    if await _update_existing_vendor(mobile, values, file_bytes, file_name, file_content_type):
+    defaulted = frozenset() if whatsapp_given else frozenset({"whatsapp_number"})
+    if await _update_existing_vendor(mobile, values, file_bytes, file_name, file_content_type, defaulted):
         return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}
 
     cols = ", ".join(values.keys())
