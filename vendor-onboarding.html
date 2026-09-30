@@ -70,6 +70,9 @@ a{color:var(--pk)}
 
 .err-box{display:none;background:var(--srd);color:var(--rd);border-radius:10px;padding:12px 14px;font-size:13.5px;margin-top:18px}
 .err-box.show{display:block}
+.fld .f-err{display:none;color:var(--rd);font-size:12.5px;margin-top:5px}
+.fld.has-err .f-err{display:block}
+.fld.has-err input{border-color:var(--rd)}
 
 .submit-btn{width:100%;margin-top:26px;padding:15px;border:none;border-radius:12px;background:var(--pk);color:#fff;font-family:var(--fb);font-weight:700;font-size:15.5px;cursor:pointer;transition:opacity .15s}
 .submit-btn:disabled{opacity:.6;cursor:default}
@@ -94,7 +97,7 @@ a{color:var(--pk)}
     <div class="title">Partner Onboarding</div>
     <div class="sub">Tell us a bit about your business and how we should pay you — this takes about 3 minutes.</div>
 
-    <form id="vendorForm">
+    <form id="vendorForm" novalidate>
       <div class="sec-h">Business Details</div>
       <div class="fld">
         <label>Business / Partner Name *</label>
@@ -112,6 +115,7 @@ a{color:var(--pk)}
             <option value="Event Volunteer">Event Volunteer</option>
             <option value="Photographer">Photographer</option>
             <option value="Decorator">Decorator</option>
+            <option value="Baker">Baker</option>
             <option value="Stationery Store">Stationery Store</option>
             <option value="Personalization Store">Personalization Store</option>
             <option value="Gift Shop">Gift Shop</option>
@@ -119,6 +123,11 @@ a{color:var(--pk)}
             <option value="Art & Craft Store">Art & Craft Store</option>
             <option value="Host">Host</option>
             <option value="DJ">DJ</option>
+            <option value="Magician">Magician</option>
+            <option value="Bubble Show Artist">Bubble Show Artist</option>
+            <option value="Science Show Artist">Science Show Artist</option>
+            <option value="Puppet Show Artist">Puppet Show Artist</option>
+            <option value="Other Entertainer">Other Entertainer / Performer</option>
             <option value="Others">Others</option>
           </select>
         </div>
@@ -131,16 +140,19 @@ a{color:var(--pk)}
         <div class="fld">
           <label>Mobile Number *</label>
           <input type="tel" id="f_mobile" inputmode="numeric" placeholder="10-digit mobile number" required>
+          <div class="f-err" id="f_mobile_err"></div>
         </div>
         <div class="fld">
           <label>WhatsApp Number <span class="opt">(if different)</span></label>
           <input type="tel" id="f_whatsapp" inputmode="numeric">
+          <div class="f-err" id="f_whatsapp_err"></div>
         </div>
       </div>
       <div class="row2">
         <div class="fld">
           <label>Alternate Mobile Number <span class="opt">(optional)</span></label>
           <input type="tel" id="f_alt_mobile" inputmode="numeric">
+          <div class="f-err" id="f_alt_mobile_err"></div>
         </div>
         <div class="fld">
           <label>GST Number <span class="opt">(optional)</span></label>
@@ -150,6 +162,7 @@ a{color:var(--pk)}
       <div class="fld">
         <label>Email <span class="opt">(optional)</span></label>
         <input type="email" id="f_email">
+          <div class="f-err" id="f_email_err"></div>
       </div>
       <div class="fld">
         <label>Address</label>
@@ -252,6 +265,48 @@ dealsSelect.addEventListener('change', () => {
   dealsOtherFld.style.display = dealsSelect.value === 'Others' ? 'block' : 'none';
 });
 
+// ── Field validation (2026-09-30, per Shruti: "add validations on mobile
+// no. (10 digits), email (should be valid) and show errors accordingly") ──
+// Accepts +91 / 0 prefixes and spaces/dashes, same as the backend does.
+function normMobile(v){
+  let d = (v || '').replace(/\D/g, '');
+  if(d.length === 12 && d.startsWith('91')) d = d.slice(2);
+  else if(d.length === 11 && d.startsWith('0')) d = d.slice(1);
+  return d;
+}
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
+const FIELD_RULES = {
+  f_mobile:     {required:true, kind:'mobile', label:'mobile number'},
+  f_whatsapp:   {kind:'mobile', label:'WhatsApp number'},
+  f_alt_mobile: {kind:'mobile', label:'alternate mobile number'},
+  f_email:      {kind:'email'},
+};
+function fieldError(id){
+  const rule = FIELD_RULES[id];
+  const raw = document.getElementById(id).value.trim();
+  if(!raw) return rule.required ? 'Please enter your ' + rule.label + '.' : '';
+  if(rule.kind === 'mobile'){
+    const d = normMobile(raw);
+    if(d.length !== 10) return 'Please enter a valid 10-digit ' + rule.label + '.';
+    if(!/^[6-9]/.test(d)) return 'Mobile numbers in India start with 6, 7, 8 or 9.';
+  }
+  if(rule.kind === 'email' && !EMAIL_RE.test(raw)) return 'Please enter a valid email address (e.g. name@example.com).';
+  return '';
+}
+function setFieldErr(id, msg){
+  const input = document.getElementById(id);
+  input.closest('.fld').classList.toggle('has-err', !!msg);
+  document.getElementById(id + '_err').textContent = msg;
+  input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+}
+Object.keys(FIELD_RULES).forEach(id => {
+  const input = document.getElementById(id);
+  input.setAttribute('aria-describedby', id + '_err');
+  input.addEventListener('blur', () => setFieldErr(id, fieldError(id)));
+  // Clear the message as soon as the value becomes valid while typing.
+  input.addEventListener('input', () => { if(!fieldError(id)) setFieldErr(id, ''); });
+});
+
 function showErr(msg){
   const box = document.getElementById('errBox');
   box.textContent = msg;
@@ -267,9 +322,19 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   hideErr();
 
   const name = document.getElementById('f_name').value.trim();
-  const mobile = document.getElementById('f_mobile').value.trim().replace(/\D/g, '');
+  const mobile = normMobile(document.getElementById('f_mobile').value);
   if(!name){ showErr('Please enter your business or partner name.'); return; }
-  if(mobile.length !== 10){ showErr('Please enter a valid 10-digit mobile number.'); return; }
+  let firstBad = null;
+  Object.keys(FIELD_RULES).forEach(id => {
+    const msg = fieldError(id);
+    setFieldErr(id, msg);
+    if(msg && !firstBad) firstBad = id;
+  });
+  if(firstBad){
+    showErr('Please fix the highlighted fields.');
+    document.getElementById(firstBad).focus();
+    return;
+  }
 
   const bankHolder = document.getElementById('f_bank_holder').value.trim();
   const bankName = document.getElementById('f_bank_name').value.trim();
@@ -302,8 +367,8 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   fd.append('name', name);
   fd.append('primary_contact_name', document.getElementById('f_contact').value.trim());
   fd.append('primary_mobile', mobile);
-  fd.append('alternate_mobile', document.getElementById('f_alt_mobile').value.trim());
-  fd.append('whatsapp_number', document.getElementById('f_whatsapp').value.trim());
+  fd.append('alternate_mobile', normMobile(document.getElementById('f_alt_mobile').value));
+  fd.append('whatsapp_number', normMobile(document.getElementById('f_whatsapp').value));
   fd.append('email', document.getElementById('f_email').value.trim());
   fd.append('deals_in', deals);
   fd.append('gst_number', document.getElementById('f_gst').value.trim());

@@ -38,6 +38,9 @@ ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "application/p
 
 _IFSC_RE = re.compile(r"^[A-Z]{4}0[A-Z0-9]{6}$")
 _ACCOUNT_RE = re.compile(r"^[A-Za-z0-9]{6,34}$")
+# 2026-09-30: mobile numbers must be 10 digits starting 6-9; emails must look valid.
+_MOBILE_RE = re.compile(r"^[6-9][0-9]{9}$")
+_EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$")
 
 
 def _sniff_file_type(raw: bytes) -> Optional[str]:
@@ -155,11 +158,28 @@ def _normalize_mobile(raw: Optional[str]) -> Optional[str]:
     digits = "".join(ch for ch in (raw or "") if ch.isdigit())
     if len(digits) == 12 and digits.startswith("91"):
         digits = digits[2:]
+    elif len(digits) == 11 and digits.startswith("0"):
+        digits = digits[1:]
     # Defensive cap, not validation — alternate_mobile/whatsapp_number are
     # optional and only lightly cleaned (unlike primary_mobile, which is
     # hard-validated to exactly 10 digits below); this just stops a stray
     # long paste from overflowing the column's VARCHAR(10) and 500-ing.
     return digits[:10]
+
+
+def _checked_mobile(raw: Optional[str], label: str) -> Optional[str]:
+    """Blank -> None. Otherwise must normalize to a 10-digit Indian mobile
+    (starting 6-9), or the submission is rejected with a clear message."""
+    if not (raw or "").strip():
+        return None
+    digits = "".join(ch for ch in raw if ch.isdigit())
+    if len(digits) == 12 and digits.startswith("91"):
+        digits = digits[2:]
+    elif len(digits) == 11 and digits.startswith("0"):
+        digits = digits[1:]
+    if not _MOBILE_RE.match(digits):
+        raise HTTPException(status_code=400, detail=f"Please enter a valid 10-digit {label}.")
+    return digits
 
 
 @router.post("/submit")
@@ -186,9 +206,16 @@ async def submit_vendor_onboarding(
     if not name:
         raise HTTPException(status_code=400, detail="Business/vendor name is required.")
 
-    mobile = _normalize_mobile(primary_mobile)
-    if len(mobile) != 10:
+    mobile = _checked_mobile(primary_mobile, "mobile number")
+    if not mobile:
         raise HTTPException(status_code=400, detail="Please enter a valid 10-digit mobile number.")
+    alternate_mobile = _checked_mobile(alternate_mobile, "alternate mobile number")
+    whatsapp_number = _checked_mobile(whatsapp_number, "WhatsApp number")
+    email = _clean(email)
+    if email:
+        if len(email) > 254 or not _EMAIL_RE.match(email):
+            raise HTTPException(status_code=400, detail="Please enter a valid email address.")
+        email = email.lower()
 
     bank_account_holder_name = _clean(bank_account_holder_name)
     bank_name = _clean(bank_name)
@@ -260,14 +287,14 @@ async def submit_vendor_onboarding(
     # 2026-09-30, per Shruti: "by default, save the mobile no. as the whatsapp
     # no. in the database. if the user inputs something on whatsapp no - then
     # update accordingly".
-    whatsapp_given = _normalize_mobile(whatsapp_number) or None
+    whatsapp_given = whatsapp_number or None
     values = {
         "name": name,
         "primary_contact_name": _clean(primary_contact_name),
         "primary_mobile": mobile,
-        "alternate_mobile": _normalize_mobile(alternate_mobile) or None,
+        "alternate_mobile": alternate_mobile,
         "whatsapp_number": whatsapp_given or mobile,
-        "email": _clean(email),
+        "email": email,
         "deals_in": _clean(deals_in),
         "address": _clean(address),
         "city": _clean(city),
