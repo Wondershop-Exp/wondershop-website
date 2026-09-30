@@ -172,10 +172,12 @@ a{color:var(--pk)}
         <div class="fld">
           <label>City</label>
           <input type="text" id="f_city">
+          <div class="f-err" id="f_city_err"></div>
         </div>
         <div class="fld">
           <label>Pincode</label>
           <input type="text" id="f_pincode" inputmode="numeric" maxlength="6">
+          <div class="f-err" id="f_pincode_err"></div>
         </div>
       </div>
 
@@ -255,6 +257,11 @@ fileInput.addEventListener('change', () => {
 document.getElementById('f_bank_ifsc').addEventListener('input', function(){
   this.value = this.value.toUpperCase();
 });
+// Pincode box only takes digits.
+document.getElementById('f_pincode').addEventListener('input', function(){
+  const d = this.value.replace(/\D/g, '').slice(0, 6);
+  if(d !== this.value) this.value = d;
+});
 document.getElementById('f_gst').addEventListener('input', function(){
   this.value = this.value.toUpperCase();
 });
@@ -274,12 +281,16 @@ function normMobile(v){
   else if(d.length === 11 && d.startsWith('0')) d = d.slice(1);
   return d;
 }
+// City: 2-50 chars, letters with spaces . - ' ( ) allowed (e.g. "Navi Mumbai", "Thane (W)").
+const CITY_RE = /^(?=.*[A-Za-z]{2})[A-Za-z .'()-]{2,50}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
 const FIELD_RULES = {
   f_mobile:     {required:true, kind:'mobile', label:'mobile number'},
   f_whatsapp:   {kind:'mobile', label:'WhatsApp number'},
   f_alt_mobile: {kind:'mobile', label:'alternate mobile number'},
   f_email:      {kind:'email'},
+  f_city:       {kind:'city'},
+  f_pincode:    {kind:'pincode'},
 };
 function fieldError(id){
   const rule = FIELD_RULES[id];
@@ -290,6 +301,8 @@ function fieldError(id){
     if(d.length !== 10) return 'Please enter a valid 10-digit ' + rule.label + '.';
     if(!/^[6-9]/.test(d)) return 'Mobile numbers in India start with 6, 7, 8 or 9.';
   }
+  if(rule.kind === 'city' && !CITY_RE.test(raw)) return 'Please enter a valid city name (letters only, e.g. Mumbai).';
+  if(rule.kind === 'pincode' && !/^[1-9][0-9]{5}$/.test(raw)) return 'Please enter a valid 6-digit pincode (e.g. 400053).';
   if(rule.kind === 'email' && !EMAIL_RE.test(raw)) return 'Please enter a valid email address (e.g. name@example.com).';
   return '';
 }

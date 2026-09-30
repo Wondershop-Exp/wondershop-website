@@ -40,6 +40,8 @@ _IFSC_RE = re.compile(r"^[A-Z]{4}0[A-Z0-9]{6}$")
 _ACCOUNT_RE = re.compile(r"^[A-Za-z0-9]{6,34}$")
 # 2026-09-30: mobile numbers must be 10 digits starting 6-9; emails must look valid.
 _MOBILE_RE = re.compile(r"^[6-9][0-9]{9}$")
+_PINCODE_RE = re.compile(r"^[1-9][0-9]{5}$")
+_CITY_RE = re.compile(r"^(?=.*[A-Za-z]{2})[A-Za-z .'()-]{2,50}$")
 _EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$")
 
 
@@ -216,6 +218,15 @@ async def submit_vendor_onboarding(
         if len(email) > 254 or not _EMAIL_RE.match(email):
             raise HTTPException(status_code=400, detail="Please enter a valid email address.")
         email = email.lower()
+    # 2026-09-30, per Shruti: "add city pincode validation as well" (both optional).
+    city = _clean(city)
+    if city:
+        city = re.sub(r"\s+", " ", city)
+        if not _CITY_RE.match(city):
+            raise HTTPException(status_code=400, detail="Please enter a valid city name.")
+    pincode = re.sub(r"\s", "", pincode or "") or None
+    if pincode and not _PINCODE_RE.match(pincode):
+        raise HTTPException(status_code=400, detail="Please enter a valid 6-digit pincode.")
 
     bank_account_holder_name = _clean(bank_account_holder_name)
     bank_name = _clean(bank_name)
@@ -297,8 +308,8 @@ async def submit_vendor_onboarding(
         "email": email,
         "deals_in": _clean(deals_in),
         "address": _clean(address),
-        "city": _clean(city),
-        "pincode": _clean(pincode),
+        "city": city,
+        "pincode": pincode,
         "bank_account_holder_name": bank_account_holder_name,
         "bank_name": bank_name,
         "bank_account_number": bank_account_number,
