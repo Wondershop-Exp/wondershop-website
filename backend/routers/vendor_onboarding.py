@@ -200,15 +200,17 @@ async def submit_vendor_onboarding(
         bank_account_holder_name and bank_name and bank_account_number and bank_ifsc_code
     )
 
-    # Optional — "cash" or "gpay" per Shruti (2026-09-17, "add preferred
-    # payment mode - cash / gpay"). Blank/omitted is fine; anything else
+    # Optional — "bank_transfer" or "cash". Originally cash / gpay
+    # (2026-09-17); 2026-09-30, per Shruti: "make it bank transfer and then
+    # cash. remove gpay". Existing rows saved as "gpay" are left as-is.
+    # Blank/omitted is fine; anything else
     # is rejected rather than silently dropped, so a typo in a future
     # frontend build fails loudly instead of writing garbage.
     preferred_payment_mode = _clean(preferred_payment_mode)
     if preferred_payment_mode:
         preferred_payment_mode = preferred_payment_mode.lower()
-        if preferred_payment_mode not in ("cash", "gpay"):
-            raise HTTPException(status_code=400, detail="Preferred payment mode must be Cash or GPay.")
+        if preferred_payment_mode not in ("bank_transfer", "cash"):
+            raise HTTPException(status_code=400, detail="Preferred payment mode must be Bank Transfer or Cash.")
 
     # Optional GSTIN (2026-09-17, "ask for gst info as well - optional").
     # Only length-checked when given, same as IFSC — GSTIN format/checksum
