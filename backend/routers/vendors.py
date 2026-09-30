@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 VENDOR_FIELDS = [
     "name", "primary_contact_name", "primary_mobile", "alternate_mobile",
-    "whatsapp_number", "email", "deals_in", "address", "city", "pincode",
+    "whatsapp_number", "email", "deals_in", "address", "locality", "city", "pincode",
     "timings", "website", "remarks", "is_active",
     "bank_account_holder_name", "bank_name", "bank_account_number", "bank_ifsc_code",
     "preferred_payment_mode", "gst_number",
@@ -67,7 +67,7 @@ VENDOR_READ_COLUMNS = VENDOR_FIELDS + [
 # never the raw mobile number the vendor was matched on).
 PENDING_APPLY_FIELDS = [
     "name", "primary_contact_name", "alternate_mobile", "whatsapp_number", "email",
-    "deals_in", "address", "city", "pincode", "preferred_payment_mode", "gst_number",
+    "deals_in", "address", "locality", "city", "pincode", "preferred_payment_mode", "gst_number",
     "bank_account_holder_name", "bank_name", "bank_account_number", "bank_ifsc_code",
 ]
 
@@ -86,6 +86,7 @@ class VendorRequest(BaseModel):
     email: Optional[str] = None
     deals_in: Optional[str] = None
     address: Optional[str] = None
+    locality: Optional[str] = None
     city: Optional[str] = None
     pincode: Optional[str] = None
     timings: Optional[str] = None

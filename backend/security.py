@@ -35,6 +35,7 @@ MAX_BODY_BYTES = 8 * 1024 * 1024   # vendor upload cap is 5MB; JSON bodies are t
 # (method, path, path_is_prefix, max_requests, window_seconds)
 PUBLIC_LIMITS = [
     ("POST", "/api/vendor-onboarding/submit", False, 20, 3600),
+    ("GET", "/api/vendor-onboarding/pincode/", True, 60, 600),
     ("POST", "/api/leads/submit", False, 40, 3600),
     ("POST", "/api/leads/finalize-notify", False, 40, 3600),
     ("POST", "/api/leads/abandoned-cart", False, 40, 3600),

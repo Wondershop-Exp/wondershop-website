@@ -73,6 +73,12 @@ a{color:var(--pk)}
 .fld .f-err{display:none;color:var(--rd);font-size:12.5px;margin-top:5px}
 .fld.has-err .f-err{display:block}
 .fld.has-err input{border-color:var(--rd)}
+.f-hint{font-size:12px;color:var(--gy);margin-top:5px;min-height:0}
+.loc-chips{display:none;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
+.loc-chips.show{display:flex}
+.loc-chips .lbl{font-size:12px;color:var(--gy);margin-right:2px}
+.loc-chips button{border:1.5px solid var(--li2);background:var(--wh);color:var(--bk);border-radius:999px;padding:5px 11px;font-family:var(--fb);font-size:12.5px;cursor:pointer}
+.loc-chips button:hover,.loc-chips button.on{border-color:var(--pk);color:var(--pk)}
 
 .submit-btn{width:100%;margin-top:26px;padding:15px;border:none;border-radius:12px;background:var(--pk);color:#fff;font-family:var(--fb);font-weight:700;font-size:15.5px;cursor:pointer;transition:opacity .15s}
 .submit-btn:disabled{opacity:.6;cursor:default}
@@ -170,15 +176,23 @@ a{color:var(--pk)}
       </div>
       <div class="row2">
         <div class="fld">
-          <label>City</label>
-          <input type="text" id="f_city">
-          <div class="f-err" id="f_city_err"></div>
+          <label>Pincode</label>
+          <input type="text" id="f_pincode" inputmode="numeric" maxlength="6" autocomplete="postal-code">
+          <div class="f-err" id="f_pincode_err"></div>
+          <div class="f-hint" id="pinHint"></div>
         </div>
         <div class="fld">
-          <label>Pincode</label>
-          <input type="text" id="f_pincode" inputmode="numeric" maxlength="6">
-          <div class="f-err" id="f_pincode_err"></div>
+          <label>City</label>
+          <input type="text" id="f_city" autocomplete="address-level2">
+          <div class="f-err" id="f_city_err"></div>
         </div>
+      </div>
+      <div class="fld">
+        <label>Locality / Area</label>
+        <input type="text" id="f_locality" list="localityList" autocomplete="off" placeholder="e.g. Andheri West">
+        <datalist id="localityList"></datalist>
+        <div class="f-err" id="f_locality_err"></div>
+        <div class="loc-chips" id="locChips"></div>
       </div>
 
       <div class="sec-h">Payment Details</div>
@@ -257,10 +271,77 @@ fileInput.addEventListener('change', () => {
 document.getElementById('f_bank_ifsc').addEventListener('input', function(){
   this.value = this.value.toUpperCase();
 });
-// Pincode box only takes digits.
-document.getElementById('f_pincode').addEventListener('input', function(){
+// Pincode box only takes digits; a complete pincode looks up city + locality.
+// (2026-09-30, per Shruti: "city autofill on pincode ... locality (based on
+// pincode). autofill that as well".) Autofilled values are only ever
+// replaced by a later lookup — anything the vendor typed themselves is kept.
+const pinInput = document.getElementById('f_pincode');
+const cityInput = document.getElementById('f_city');
+const locInput = document.getElementById('f_locality');
+const pinHint = document.getElementById('pinHint');
+const locChips = document.getElementById('locChips');
+let lastPinLookup = '';
+
+function autoFill(input, value){
+  const cur = input.value.trim();
+  if(cur && input.dataset.auto !== cur) return;          // vendor typed it — leave it
+  input.value = value || '';
+  input.dataset.auto = input.value;
+  if(input.value) setFieldErr(input.id, '');
+}
+function renderLocChips(list){
+  locChips.innerHTML = '';
+  locChips.classList.toggle('show', list.length > 1);
+  if(list.length < 2) return;
+  const lbl = document.createElement('span');
+  lbl.className = 'lbl'; lbl.textContent = 'Pick your area:';
+  locChips.appendChild(lbl);
+  list.forEach(name => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = name;
+    b.addEventListener('click', () => {
+      locInput.value = name; locInput.dataset.auto = name; setFieldErr('f_locality', '');
+      locChips.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    });
+    locChips.appendChild(b);
+  });
+}
+async function lookupPincode(pin){
+  lastPinLookup = pin;
+  pinHint.textContent = 'Looking up pincode…';
+  try{
+    const res = await fetch(WS_API_BASE + '/api/vendor-onboarding/pincode/' + pin);
+    if(pin !== lastPinLookup) return;                     // a newer pincode was typed
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok) throw new Error(data.detail || 'lookup failed');
+    if(!data.found){
+      pinHint.textContent = 'We couldn’t find this pincode — please check it, or fill in city and area yourself.';
+      autoFill(cityInput, ''); autoFill(locInput, '');      // drop values autofilled from an earlier pincode
+      document.getElementById('localityList').innerHTML = '';
+      renderLocChips([]);
+      return;
+    }
+    pinHint.textContent = data.state ? (data.city + ', ' + data.state) : '';
+    autoFill(cityInput, data.city);
+    const locs = data.localities || [];
+    document.getElementById('localityList').innerHTML =
+      locs.map(n => '<option value="' + n.replace(/"/g, '&quot;') + '"></option>').join('');
+    autoFill(locInput, locs.length === 1 ? locs[0] : '');
+    renderLocChips(locs);
+  }catch(err){
+    if(pin === lastPinLookup) pinHint.textContent = 'Couldn’t look up this pincode — please fill in city and area yourself.';
+  }
+}
+pinInput.addEventListener('input', function(){
   const d = this.value.replace(/\D/g, '').slice(0, 6);
   if(d !== this.value) this.value = d;
+  if(/^[1-9][0-9]{5}$/.test(d)){
+    if(d !== lastPinLookup) lookupPincode(d);
+  }else{
+    lastPinLookup = '';
+    pinHint.textContent = '';
+    renderLocChips([]);
+  }
 });
 document.getElementById('f_gst').addEventListener('input', function(){
   this.value = this.value.toUpperCase();
@@ -283,6 +364,7 @@ function normMobile(v){
 }
 // City: 2-50 chars, letters with spaces . - ' ( ) allowed (e.g. "Navi Mumbai", "Thane (W)").
 const CITY_RE = /^(?=.*[A-Za-z]{2})[A-Za-z .'()-]{2,50}$/;
+const LOCALITY_RE = /^(?=.*[A-Za-z]{2})[A-Za-z0-9 .,'()\/&-]{2,100}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
 const FIELD_RULES = {
   f_mobile:     {required:true, kind:'mobile', label:'mobile number'},
@@ -290,6 +372,7 @@ const FIELD_RULES = {
   f_alt_mobile: {kind:'mobile', label:'alternate mobile number'},
   f_email:      {kind:'email'},
   f_city:       {kind:'city'},
+  f_locality:   {kind:'locality'},
   f_pincode:    {kind:'pincode'},
 };
 function fieldError(id){
@@ -302,6 +385,7 @@ function fieldError(id){
     if(!/^[6-9]/.test(d)) return 'Mobile numbers in India start with 6, 7, 8 or 9.';
   }
   if(rule.kind === 'city' && !CITY_RE.test(raw)) return 'Please enter a valid city name (letters only, e.g. Mumbai).';
+  if(rule.kind === 'locality' && !LOCALITY_RE.test(raw)) return 'Please enter a valid locality (e.g. Andheri West).';
   if(rule.kind === 'pincode' && !/^[1-9][0-9]{5}$/.test(raw)) return 'Please enter a valid 6-digit pincode (e.g. 400053).';
   if(rule.kind === 'email' && !EMAIL_RE.test(raw)) return 'Please enter a valid email address (e.g. name@example.com).';
   return '';
@@ -386,6 +470,7 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   fd.append('deals_in', deals);
   fd.append('gst_number', document.getElementById('f_gst').value.trim());
   fd.append('address', document.getElementById('f_address').value.trim());
+  fd.append('locality', document.getElementById('f_locality').value.trim());
   fd.append('city', document.getElementById('f_city').value.trim());
   fd.append('pincode', document.getElementById('f_pincode').value.trim());
   fd.append('preferred_payment_mode', document.getElementById('f_payment_mode').value);

@@ -23,8 +23,10 @@ routers/vendors.py for the admin-side read/review endpoints.
 import json
 import logging
 import re
+import time
 from typing import Optional
 
+import httpx
 from fastapi import APIRouter, Form, File, UploadFile, HTTPException
 
 from database import database
@@ -42,6 +44,7 @@ _ACCOUNT_RE = re.compile(r"^[A-Za-z0-9]{6,34}$")
 _MOBILE_RE = re.compile(r"^[6-9][0-9]{9}$")
 _PINCODE_RE = re.compile(r"^[1-9][0-9]{5}$")
 _CITY_RE = re.compile(r"^(?=.*[A-Za-z]{2})[A-Za-z .'()-]{2,50}$")
+_LOCALITY_RE = re.compile(r"^(?=.*[A-Za-z]{2})[A-Za-z0-9 .,'()/&-]{2,100}$")
 _EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$")
 
 
@@ -77,7 +80,7 @@ def _safe_filename(name: Optional[str]) -> str:
 # form can't be used to find out which phone numbers are in our vendor list.
 _PLAIN_FIELDS = [
     "name", "primary_contact_name", "alternate_mobile", "whatsapp_number", "email",
-    "deals_in", "address", "city", "pincode", "preferred_payment_mode", "gst_number",
+    "deals_in", "address", "locality", "city", "pincode", "preferred_payment_mode", "gst_number",
 ]
 _BANK_FIELDS = ["bank_account_holder_name", "bank_name", "bank_account_number", "bank_ifsc_code"]
 _DIGITS = "right(regexp_replace(COALESCE({c}, ''), '[^0-9]', '', 'g'), 10)"
@@ -184,6 +187,54 @@ def _checked_mobile(raw: Optional[str], label: str) -> Optional[str]:
     return digits
 
 
+# ─── Pincode lookup (2026-09-30, per Shruti: "city autofill on pincode, and
+# also add a textbox for locality (based on pincode). autofill that as well") ─
+# Proxies India Post's public pincode data so the form gets one small, cached,
+# rate-limited endpoint (see security.py) instead of calling a third party
+# from the browser. A failed lookup never blocks the form — the vendor just
+# types city/locality themselves.
+_PIN_API = "https://api.postalpincode.in/pincode/{pin}"
+_PIN_CACHE: dict = {}                 # pin -> (fetched_at, result)
+_PIN_CACHE_TTL = 7 * 24 * 3600
+_PO_SUFFIX = re.compile(r"\s+(S\.?O|B\.?O|H\.?O|GPO)\.?$", re.I)
+
+
+@router.get("/pincode/{pin}")
+async def lookup_pincode(pin: str):
+    if not _PINCODE_RE.match(pin or ""):
+        raise HTTPException(status_code=400, detail="Please enter a valid 6-digit pincode.")
+    hit = _PIN_CACHE.get(pin)
+    if hit and time.time() - hit[0] < _PIN_CACHE_TTL:
+        return hit[1]
+    try:
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            r = await client.get(_PIN_API.format(pin=pin))
+            r.raise_for_status()
+            data = r.json()
+    except Exception as e:
+        logger.warning(f"Pincode lookup failed for {pin}: {e}")
+        raise HTTPException(status_code=503, detail="Pincode lookup is unavailable right now.")
+    entry = data[0] if isinstance(data, list) and data else {}
+    offices = entry.get("PostOffice") or []
+    if entry.get("Status") != "Success" or not offices:
+        result = {"found": False, "city": None, "state": None, "localities": []}
+    else:
+        districts = [o.get("District") for o in offices if o.get("District")]
+        city = max(set(districts), key=districts.count) if districts else None
+        seen, localities = set(), []
+        for o in offices:
+            name = _PO_SUFFIX.sub("", (o.get("Name") or "").strip())
+            if name and name.lower() not in seen:
+                seen.add(name.lower())
+                localities.append(name)
+        result = {"found": True, "city": city, "state": offices[0].get("State"),
+                  "localities": sorted(localities)}
+    if len(_PIN_CACHE) > 5000:
+        _PIN_CACHE.clear()
+    _PIN_CACHE[pin] = (time.time(), result)
+    return result
+
+
 @router.post("/submit")
 async def submit_vendor_onboarding(
     name: str = Form(...),
@@ -194,6 +245,7 @@ async def submit_vendor_onboarding(
     email: Optional[str] = Form(None),
     deals_in: Optional[str] = Form(None),
     address: Optional[str] = Form(None),
+    locality: Optional[str] = Form(None),
     city: Optional[str] = Form(None),
     pincode: Optional[str] = Form(None),
     bank_account_holder_name: Optional[str] = Form(None),
@@ -224,6 +276,11 @@ async def submit_vendor_onboarding(
         city = re.sub(r"\s+", " ", city)
         if not _CITY_RE.match(city):
             raise HTTPException(status_code=400, detail="Please enter a valid city name.")
+    locality = _clean(locality)
+    if locality:
+        locality = re.sub(r"\s+", " ", locality)
+        if not _LOCALITY_RE.match(locality):
+            raise HTTPException(status_code=400, detail="Please enter a valid locality.")
     pincode = re.sub(r"\s", "", pincode or "") or None
     if pincode and not _PINCODE_RE.match(pincode):
         raise HTTPException(status_code=400, detail="Please enter a valid 6-digit pincode.")
@@ -308,6 +365,7 @@ async def submit_vendor_onboarding(
         "email": email,
         "deals_in": _clean(deals_in),
         "address": _clean(address),
+        "locality": locality,
         "city": city,
         "pincode": pincode,
         "bank_account_holder_name": bank_account_holder_name,

@@ -2103,8 +2103,9 @@ const VENDOR_FORM_FIELDS = [
   {key:'whatsapp_number', label:'WhatsApp Number'},
   {key:'email', label:'Email'},
   {key:'deals_in', label:'Deals In'},
-  {key:'city', label:'City'},
   {key:'pincode', label:'Pincode'},
+  {key:'locality', label:'Locality'},
+  {key:'city', label:'City'},
   {key:'timings', label:'Timings'},
   {key:'website', label:'Website'},
   {key:'gst_number', label:'GST Number'},
@@ -2201,7 +2202,7 @@ async function loadVendorDetail(id){
 
 const VENDOR_PENDING_LABELS = {
   name:'Partner name', primary_contact_name:'Contact name', alternate_mobile:'Alternate mobile',
-  whatsapp_number:'WhatsApp number', email:'Email', deals_in:'Deals in', address:'Address', city:'City',
+  whatsapp_number:'WhatsApp number', email:'Email', deals_in:'Deals in', address:'Address', locality:'Locality', city:'City',
   pincode:'Pincode', preferred_payment_mode:'Preferred payment mode', gst_number:'GST number',
   bank_account_holder_name:'Account holder name', bank_name:'Bank name',
   bank_account_number:'Account number', bank_ifsc_code:'IFSC code'
