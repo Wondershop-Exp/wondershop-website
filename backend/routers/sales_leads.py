@@ -851,6 +851,17 @@ async def patch_sheet(lead_id: int, body: PatchIn, x_admin_password: Optional[st
         )
         await _log(pb_row["id"], by, "updated", detail=", ".join(changed) if changed else None)
 
+    # 2026-10-01, per Shruti — "remove confirm booking and send to ops
+    # button ... let there be only 1 option to convert to booking." That
+    # button was also how a CONFIRMED booking's billing got re-synced after
+    # the agreed total changed; with it gone, saving Revenue Potential on a
+    # booking re-syncs the booking's discount by itself.
+    if "client_budget" in changed and lead_row["is_booking"]:
+        try:
+            await _sync_discount_to_agreed_total(lead_id, by, x_admin_password)
+        except Exception:
+            logger.exception(f"Lead #{lead_id}: couldn't sync booking discount to the agreed total")
+
     updated_lead = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
     return await _full_detail(updated_lead)
 
