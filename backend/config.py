@@ -59,6 +59,13 @@ class Settings(BaseSettings):
     # (admin.html). Set this in Railway's env vars — never commit a real
     # value here. Leave blank locally and admin.py will reject all requests.
     ADMIN_PASSWORD: str = ""
+    # 2026-10-01, per Shruti — "separate out logins for the sales team".
+    # A second shared password for the sales team. It opens only Sales
+    # Leads, Leads, Bookings and Calendar — security.py's SALES_ALLOWED is
+    # the single list of API calls it may make; everything else (Partners
+    # with bank details, Dashboard, Packing lists, email check) answers 403.
+    # Leave blank to disable sales logins entirely.
+    SALES_PASSWORD: str = ""
 
     # Instagram feed (2026-08-18, per Shruti — "let's fix instagram with
     # meta's free api now"). IG_ACCESS_TOKEN is only the SEED long-lived

@@ -508,6 +508,7 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
 .log-section h3{display:flex;align-items:center;gap:8px}
 .log-section.sec-collapsed h3{margin-bottom:0}
 .bd-nav .sec-all{flex:0 0 auto;margin-left:auto;padding:8px 14px;white-space:nowrap}
+body.role-sales .admin-only{display:none!important}
 </style>
 </head>
 <body>
@@ -516,7 +517,7 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
   <div class="gate-card">
     <h1>Wondershop Admin</h1>
     <p>Internal booking-management page. Not for customer access.</p>
-    <input type="password" id="gatePw" placeholder="Admin password">
+    <input type="password" id="gatePw" placeholder="Admin or sales password">
     <input type="text" id="gateName" placeholder="Your name (shown on edits you make)">
     <button onclick="tryLogin()">Enter</button>
     <div class="gate-err" id="gateErr"></div>
@@ -533,9 +534,9 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
     </div>
     <div class="who">
       Editing as <input type="text" id="whoName" onchange="saveName()">
-      <a class="linkbtn" href="packaging.html" target="_blank">📦 Packing lists</a>
+      <a class="linkbtn admin-only" href="packaging.html" target="_blank">📦 Packing lists</a>
       <a class="linkbtn" href="sales-leads.html" target="_blank">🗒️ Sales leads</a>
-      <button class="linkbtn" onclick="checkEmail()" title="Sends a test email to the team inbox and reports why if it can't">✉ Check email</button>
+      <button class="linkbtn admin-only" onclick="checkEmail()" title="Sends a test email to the team inbox and reports why if it can't">✉ Check email</button>
       <button class="linkbtn" onclick="logout()">Log out</button>
     </div>
   </div>
@@ -548,8 +549,8 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
     <div class="tabs">
       <button class="tab-btn active" id="tabLeadBtn" onclick="switchTab('lead')">Leads<span class="tab-bubble" id="leadBubble"></span></button>
       <button class="tab-btn" id="tabBookingBtn" onclick="switchTab('booking')">Bookings<span class="tab-bubble" id="bookingBubble"></span></button>
-      <button class="tab-btn" id="tabVendorBtn" onclick="switchTab('vendor')">Partners<span class="tab-bubble" id="vendorBubble"></span></button>
-      <button class="tab-btn" id="tabDashBtn" onclick="switchTab('dash')">📊 Dashboard</button>
+      <button class="tab-btn admin-only" id="tabVendorBtn" onclick="switchTab('vendor')">Partners<span class="tab-bubble" id="vendorBubble"></span></button>
+      <button class="tab-btn admin-only" id="tabDashBtn" onclick="switchTab('dash')">📊 Dashboard</button>
       <button class="tab-btn" id="tabCalBtn" onclick="switchTab('cal')">📅 Calendar</button>
     </div>
     <div id="leadTableWrap">
@@ -779,7 +780,7 @@ async function tryLogin(){
   const name = document.getElementById('gateName').value.trim();
   const err = document.getElementById('gateErr');
   err.textContent='';
-  if(!pw){ err.textContent='Enter the admin password.'; return; }
+  if(!pw){ err.textContent='Enter your password.'; return; }
   if(!name){ err.textContent='Enter your name — it will be logged against any edits you make.'; return; }
   localStorage.setItem('ws_admin_pw', pw);
   localStorage.setItem('ws_admin_name', name);
@@ -792,7 +793,26 @@ async function tryLogin(){
   enterApp();
 }
 
-function enterApp(){
+// 2026-10-01, per Shruti — "separate out logins for the sales team. sales
+// team should be able to see: sales lead module, leads module, bookings
+// module, calendar". The server says which login this is (/whoami); the
+// sales login gets body.role-sales, which hides everything marked
+// .admin-only (Partners, Dashboard, Packing lists, Check email, per-row
+// Pack list). Hiding is only for tidiness — the backend itself refuses
+// the sales password on anything outside those four modules
+// (security.py's SALES_ALLOWED).
+let ROLE = 'admin';
+async function loadRole(){
+  try{ ROLE = (await apiCall('/api/admin/whoami')).role || 'admin'; }
+  catch(e){ ROLE = 'admin'; }   // older backend without /whoami = admin-only world
+  document.body.classList.toggle('role-sales', ROLE === 'sales');
+  const sub = document.querySelector('.topbar-sub');
+  if(sub) sub.textContent = ROLE === 'sales' ? 'Sales team' : 'Bookings';
+  if(ROLE === 'sales' && (ACTIVE_TAB === 'vendor' || ACTIVE_TAB === 'dash')) switchTab('lead');
+}
+
+async function enterApp(){
+  await loadRole();
   document.getElementById('gate').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('whoName').value = getName();
@@ -810,8 +830,10 @@ function enterApp(){
 let VENDOR_NAMES = [];
 async function loadVendorNames(){
   try{
-    const d = await apiCall('/api/admin/vendors?active_only=true');
-    VENDOR_NAMES = (d.vendors||[]).map(v=>v.name).filter(Boolean);
+    // Names only (2026-10-01) — this list is also loaded for the sales
+    // login, which must never receive partner contact/bank details.
+    const d = await apiCall('/api/admin/vendors/names');
+    VENDOR_NAMES = (d.names||[]).filter(Boolean);
     document.getElementById('vendorNamesList').innerHTML =
       VENDOR_NAMES.map(n=>'<option value="'+esc(n)+'">').join('');
   }catch(e){ /* Assigned Value fields still work as plain text if this fails */ }
@@ -819,6 +841,7 @@ async function loadVendorNames(){
 
 function logout(){
   localStorage.removeItem('ws_admin_pw');
+  ROLE = 'admin'; document.body.classList.remove('role-sales');
   document.getElementById('app').style.display='none';
   document.getElementById('gate').style.display='flex';
   document.getElementById('gatePw').value='';
@@ -2084,7 +2107,7 @@ function updateSortHeaders(kind){
 
 async function doSearch(){
   const q = document.getElementById('searchQ').value.trim();
-  await Promise.all([loadTable('lead', q), loadTable('booking', q), loadVendors(q)]);
+  await Promise.all([loadTable('lead', q), loadTable('booking', q), ROLE === 'sales' ? null : loadVendors(q)]);
   if(ACTIVE_TAB==='cal') loadCalendar();
 }
 
@@ -2475,7 +2498,7 @@ function listActionsCellHtml(r, kind){
   }
   // 2026-09-08, per Shruti — packaging assist module: quick jump from a
   // confirmed booking row straight into a pre-filled packing-list composer.
-  const packLink = '<a class="mini-btn" href="packaging.html?lead_id='+r.lead_id+'&title='+encodeURIComponent((r.parent_name||('Booking #'+r.lead_id))+"'s Party")+'&event_lead=" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">📦 Pack list</a>';
+  const packLink = '<a class="mini-btn admin-only" href="packaging.html?lead_id='+r.lead_id+'&title='+encodeURIComponent((r.parent_name||('Booking #'+r.lead_id))+"'s Party")+'&event_lead=" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">📦 Pack list</a>';
   if(r.status==='Cancelled') return '<div style="display:flex">'+packLink+'</div>';
   return '<div style="display:flex;flex-wrap:wrap;gap:8px">'+packLink+'<button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button></div>';
 }

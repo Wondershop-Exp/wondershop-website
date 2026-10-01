@@ -58,6 +58,7 @@ from pydantic import BaseModel
 
 from database import database
 from config import settings
+from security import password_role
 import catalogue_data as cat
 from types import SimpleNamespace
 from invoice_builder import assemble_invoice_data, build_invoice_pdf, invoice_filename
@@ -83,12 +84,23 @@ IST_OFFSET = timedelta(hours=5, minutes=30)
 # the frontend on every request as the X-Admin-Password header.
 
 def _require_admin(x_admin_password: Optional[str] = Header(None)):
+    """Accepts the admin OR the sales password (constant-time compares, in
+    security.password_role). Which endpoints the sales password may reach is
+    decided once, centrally, by security.py's middleware (SALES_ALLOWED) —
+    by the time a sales request gets here it has already been allowed."""
     if not settings.ADMIN_PASSWORD:
         raise HTTPException(status_code=503, detail="Admin page is not configured (ADMIN_PASSWORD not set).")
-    # Constant-time compare (a plain != leaks how many leading characters matched).
-    if not x_admin_password or not hmac.compare_digest(
-            x_admin_password.encode("utf-8"), settings.ADMIN_PASSWORD.encode("utf-8")):
-        raise HTTPException(status_code=401, detail="Incorrect admin password.")
+    role = password_role(x_admin_password)
+    if role is None:
+        raise HTTPException(status_code=401, detail="Incorrect password.")
+    return role
+
+
+@router.get("/whoami")
+async def whoami(x_admin_password: Optional[str] = Header(None)):
+    """Tells admin.html which login this is, so it can show only the tabs
+    that login may use (2026-10-01, sales-team logins)."""
+    return {"role": _require_admin(x_admin_password)}
 
 
 # ─── IST FORMATTING ───────────────────────────────────────────────────────

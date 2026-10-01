@@ -228,7 +228,7 @@ th.th-sort:hover{color:var(--pk)}
   <div class="gate-card">
     <h1>Wondershop — Sales Leads</h1>
     <p>Internal staff tool. Not for customer access.</p>
-    <input type="password" id="gatePw" placeholder="Admin password" onkeydown="if(event.key==='Enter')tryLogin()">
+    <input type="password" id="gatePw" placeholder="Admin or sales password" onkeydown="if(event.key==='Enter')tryLogin()">
     <input type="text" id="gateName" placeholder="Your name (shown on edits you make)" onkeydown="if(event.key==='Enter')tryLogin()">
     <button onclick="tryLogin()">Enter</button>
     <div class="gate-err" id="gateErr"></div>
@@ -459,7 +459,7 @@ async function tryLogin(){
   const name = document.getElementById('gateName').value.trim();
   const err = document.getElementById('gateErr');
   err.textContent='';
-  if(!pw){ err.textContent='Enter the admin password.'; return; }
+  if(!pw){ err.textContent='Enter your password.'; return; }
   if(!name){ err.textContent='Enter your name — it will be logged against any edits you make.'; return; }
   localStorage.setItem('ws_admin_pw', pw);
   localStorage.setItem('ws_admin_name', name);
@@ -1767,25 +1767,63 @@ let SCHEDULE = [];
 function sectionSchedule(){
   SCHEDULE = (DATA.event_schedule || []).map(r=>Object.assign({time:'',item:''},r));
   return '<div class="card"><h3>3 · Event Schedule</h3><div id="schedRows"></div>'
-    + '<button type="button" class="add-dash" onclick="addSchedRow()">+ Add row</button></div>';
+    + '<button type="button" class="add-dash" onpointerdown="event.preventDefault()" onclick="addSchedRow()">+ Add row</button></div>';
 }
+let SCHED_REBUILDING = false;
 function renderSchedule(){
   const el = document.getElementById('schedRows');
   if(!el) return;
   if(!SCHEDULE.length) SCHEDULE.push({time:'',item:''});
-  el.innerHTML = SCHEDULE.map((r,i)=>'<div class="sched-row">'
-    + '<input type="text" placeholder="Time" value="'+esc(r.time)+'" onblur="updateSchedRow('+i+',\'time\',this.value)">'
-    + '<input type="text" placeholder="Item / Activity" value="'+esc(r.item)+'" onblur="updateSchedRow('+i+',\'item\',this.value)">'
-    + '<button type="button" class="icon-btn" onclick="removeSchedRow('+i+')" title="Remove">✕</button>'
-    + '</div>').join('');
+  SCHED_REBUILDING = true;   // never let a box being torn down write back (see updateSchedRow)
+  try{
+    el.innerHTML = SCHEDULE.map((r,i)=>'<div class="sched-row">'
+      + '<input type="text" placeholder="Time" value="'+esc(r.time)+'" oninput="updateSchedRow('+i+',\'time\',this.value)">'
+      + '<input type="text" placeholder="Item / Activity" value="'+esc(r.item)+'" oninput="updateSchedRow('+i+',\'item\',this.value)">'
+      + '<button type="button" class="icon-btn" onpointerdown="event.preventDefault()" onclick="removeSchedRow('+i+')" title="Remove">✕</button>'
+      + '</div>').join('');
+  }finally{ SCHED_REBUILDING = false; }
 }
-function addSchedRow(){ SCHEDULE.push({time:'',item:''}); renderSchedule(); }
-function removeSchedRow(i){ SCHEDULE.splice(i,1); renderSchedule(); saveSched(); }
-function updateSchedRow(i,key,val){ SCHEDULE[i][key]=val; saveSched(); }
-function saveSched(){
-  const clean = SCHEDULE.filter(r=>r.time||r.item);
-  patchSheet({event_schedule: clean});
+// 2026-10-01, per Shruti — "if a user is inputting data in schedule
+// section, it's not getting saved". Two causes, both fixed here:
+//  1. Every blur staged the edit but then re-rendered the page from
+//     DATA.event_schedule, which still held the last SERVER copy — so the
+//     typed value vanished on screen and the next edit was staged on top of
+//     the stale rows (overwriting the first). DATA is now kept in step
+//     (stageSched), like saveField()/saveRequirement() already do.
+//  2. That re-render ran on every blur, so moving from Time to Item (or
+//     clicking "+ Add row" / "✕") re-drew the page between mouse-down and
+//     mouse-up — the click was swallowed and whatever was typed next went
+//     nowhere. Schedule rows don't feed any total, so they no longer
+//     re-render the page at all: each keystroke is staged as you type
+//     (oninput -> stageSched), and the buttons redraw only the rows.
+function syncSchedFromDom(){
+  document.querySelectorAll('#schedRows .sched-row').forEach((row,i)=>{
+    const ins = row.querySelectorAll('input');
+    if(SCHEDULE[i] && ins.length >= 2){ SCHEDULE[i].time = ins[0].value; SCHEDULE[i].item = ins[1].value; }
+  });
 }
+function stageSched(){
+  const clean = SCHEDULE.filter(r=>(r.time||'').trim()||(r.item||'').trim()).map(r=>({time:r.time, item:r.item}));
+  DATA.event_schedule = clean;
+  PENDING_PATCH.event_schedule = clean;
+  setSaveStatus('dirty', 'Save');
+}
+function addSchedRow(){
+  syncSchedFromDom(); stageSched();
+  SCHEDULE.push({time:'',item:''}); renderSchedule();
+  const ins = document.querySelectorAll('#schedRows .sched-row:last-child input');
+  if(ins[0]) ins[0].focus();
+}
+function removeSchedRow(i){
+  syncSchedFromDom();
+  SCHEDULE.splice(i,1); stageSched(); renderSchedule();
+}
+function updateSchedRow(i,key,val){
+  if(SCHED_REBUILDING || !SCHEDULE[i] || SCHEDULE[i][key] === val) return;
+  SCHEDULE[i][key] = val;
+  stageSched();
+}
+function saveSched(){ stageSched(); }
 
 // ── 4. Activities — one assisted (type-to-search) add field, not a big
 // checklist of every catalogue activity (2026-09-16, per Shruti: "don't

@@ -162,6 +162,20 @@ async def list_vendors(q: Optional[str] = None, active_only: bool = False, pendi
     return {"vendors": [_row_out(r) for r in rows], "total": len(rows), "pending_review_count": pending_row["cnt"] or 0}
 
 
+@router.get("/vendors/names")
+async def list_vendor_names(x_admin_password: Optional[str] = Header(None)):
+    """Active partner names only — for the "assigned partner" suggestions on
+    a booking. Open to the sales login (security.SALES_ALLOWED), unlike
+    /vendors, which carries contact and bank details. Declared before
+    /vendors/{vendor_id} so "names" isn't read as an id."""
+    _require_admin(x_admin_password)
+    rows = await database.fetch_all(
+        "SELECT name FROM vendor_master WHERE is_active = TRUE AND duplicate_of_id IS NULL "
+        "AND COALESCE(TRIM(name), '') <> '' ORDER BY name ASC"
+    )
+    return {"names": [r["name"] for r in rows]}
+
+
 @router.get("/vendors/{vendor_id}")
 async def get_vendor(vendor_id: int, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)

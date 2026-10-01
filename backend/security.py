@@ -17,12 +17,16 @@ is ever scaled to several instances, move this to Redis.
 The client IP is the LAST X-Forwarded-For entry (the one Railway's own proxy
 appends), so a caller cannot dodge a limit by sending a fake header.
 """
+import hmac
 import logging
+import re
 import time
 from collections import defaultdict, deque
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
+
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +48,49 @@ PUBLIC_LIMITS = [
     ("GET", "/api/config/coupons/validate/", True, 30, 600),
     ("POST", "/api/order/start", False, 30, 3600),
 ]
+
+# ─── Roles (2026-10-01, per Shruti: "separate out logins for the sales team.
+# sales team should be able to see: sales lead module, leads module,
+# bookings module, calendar") ────────────────────────────────────────────
+# The X-Admin-Password header now carries one of two passwords:
+#   ADMIN_PASSWORD -> "admin": everything, as before.
+#   SALES_PASSWORD -> "sales": ONLY the calls listed in SALES_ALLOWED below.
+# Enforced here, in the one middleware every request passes through, so no
+# individual endpoint can forget to check — a new admin endpoint is closed to
+# the sales login until it is deliberately added to this list.
+def password_role(pw):
+    """'admin', 'sales' or None for the given X-Admin-Password value."""
+    if not pw:
+        return None
+    b = pw.encode("utf-8")
+    if settings.ADMIN_PASSWORD and hmac.compare_digest(b, settings.ADMIN_PASSWORD.encode("utf-8")):
+        return "admin"
+    if settings.SALES_PASSWORD and hmac.compare_digest(b, settings.SALES_PASSWORD.encode("utf-8")):
+        return "sales"
+    return None
+
+
+_ID = r"[0-9]+"
+SALES_ALLOWED = [(m, re.compile(p)) for m, p in [
+    ("GET",  r"/api/admin/whoami"),
+    ("GET",  r"/api/admin/status-options"),
+    # Leads, Bookings and Calendar tabs all read this one list endpoint.
+    ("GET",  r"/api/admin/bookings"),
+    ("GET",  rf"/api/admin/bookings/{_ID}"),
+    ("POST", rf"/api/admin/bookings/{_ID}/(field|status|convert|cancel|invoice/send|summary/send)"),
+    # Partner NAMES only, for the "assigned partner" suggestions on a booking
+    # (never /vendors itself, which carries bank details).
+    ("GET",  r"/api/admin/vendors/names"),
+    # Sales Leads module (sales-leads.html + its print page).
+    ("*",    r"/api/admin/sales-leads(/.*)?"),
+    # Spy-party registration panel inside a booking.
+    ("*",    rf"/api/spy-registration/admin/{_ID}(/.*)?"),
+]]
+
+
+def sales_may(method: str, path: str) -> bool:
+    return any((m == "*" or m == method) and rx.fullmatch(path) for m, rx in SALES_ALLOWED)
+
 
 _fails = defaultdict(deque)   # ip -> times of wrong admin passwords
 _locked_until = {}            # ip -> epoch seconds
@@ -112,6 +159,11 @@ async def security_middleware(request: Request, call_next):
                 {"detail": f"Too many incorrect password attempts. Try again in {int((until - now) // 60) + 1} minute(s)."},
                 status_code=429, headers={"Retry-After": str(int(until - now) + 1)},
             )
+
+    if has_pw and password_role(request.headers.get("x-admin-password")) == "sales" \
+            and not sales_may(request.method, path):
+        logger.warning("Sales login blocked: %s %s from %s", request.method, path, ip)
+        return JSONResponse({"detail": "The sales login doesn't have access to this."}, status_code=403)
 
     response = await call_next(request)
 
