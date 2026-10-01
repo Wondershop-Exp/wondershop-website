@@ -2151,6 +2151,61 @@ async def _do_convert_lead(lead_id: int, who: str) -> None:
         logger.exception(f"Sales-to-admin copy failed for lead #{lead_id} (booking conversion still succeeded)")
 
 
+async def _sync_discount_to_agreed_total(lead_id: int, who: str, x_admin_password: Optional[str]) -> Optional[float]:
+    """2026-10-01, per Shruti (Prachi's booking) — "total discussed with the
+    client (Rs. 60k) should reflect in the bottom sticky bar and the grand
+    total, with Rs. 17500 updated in the discount value."
+
+    The Bookings page prices a booking from CATALOGUE prices (Total MRP),
+    while the sales panel quotes its own per-line costs (e.g. E-Invite ₹0 vs
+    the ₹500 catalogue charge) and the rep then agrees a final figure with
+    the client (leads.client_budget — "Revenue Potential" / "Total Agreed
+    with Client"). Nothing tied the two together, so a converted sales
+    booking showed the catalogue total instead of what the client agreed to
+    pay. This sets the booking's discount to a flat ₹ amount equal to the
+    gap, so Grand Total = the agreed figure exactly:
+        discount = Total MRP + non-discounted fees − agreed total
+    It supersedes the per-Host-tier gap discount written at conversion
+    (_copy_sales_data_to_admin_overrides), since the agreed total already
+    accounts for every negotiated line. Never negative: an agreed total
+    above Total MRP leaves no discount (and the remark says so).
+    Returns the discount written, or None if there was nothing to do."""
+    lead = await database.fetch_one(
+        "SELECT client_budget, is_booking FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    if not lead or not lead["is_booking"] or lead["client_budget"] is None:
+        return None
+    agreed = float(lead["client_budget"])
+    detail = await get_booking_detail(lead_id, x_admin_password)
+    pricing = detail.get("pricing")
+    if not pricing:
+        return None
+    mrp = float(pricing["total_mrp"] or 0)
+    extras = round(sum(float(x.get("amount") or 0) for x in (pricing.get("extra_items") or [])), 2)
+    gap = round(mrp + extras - agreed, 2)
+    discount = round(min(max(0.0, gap), mrp), 2)
+    def _inr(v):  # Indian digit grouping: 1,77,500
+        n = int(round(v)); sgn = "-" if n < 0 else ""; t = str(abs(n))
+        if len(t) > 3:
+            head, tail = t[:-3], t[-3:]
+            head = ",".join([head[max(0, i - 2):i] for i in range(len(head), 0, -2)][::-1])
+            t = head + "," + tail
+        return sgn + t
+    fees_txt = f" + ₹{_inr(extras)} fees" if extras else ""
+    if gap < 0:
+        note = (f"Agreed with client ₹{_inr(agreed)} is above Total MRP ₹{_inr(mrp)}{fees_txt} "
+                f"— no discount; Grand Total shows the catalogue total, so check the services.")
+    else:
+        note = f"Agreed with client ₹{_inr(agreed)} vs Total MRP ₹{_inr(mrp)}{fees_txt}"
+    note = f"[{who}, {_to_ist_short_str(datetime.utcnow())}] {note}"
+    await update_booking_field(lead_id, FieldUpdateRequest(
+        field_key="bill_discount_type", customer_choice_override="value", changed_by=who), x_admin_password)
+    await update_booking_field(lead_id, FieldUpdateRequest(
+        field_key="bill_discount_value", customer_choice_override=_num_str(discount),
+        remarks=note, changed_by=who), x_admin_password)
+    logger.info(f"Lead #{lead_id}: discount set to ₹{discount} so Grand Total matches agreed ₹{agreed}")
+    return discount
+
+
 @router.post("/bookings/{lead_id}/status")
 async def update_lead_status(lead_id: int, body: StatusUpdateRequest, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)

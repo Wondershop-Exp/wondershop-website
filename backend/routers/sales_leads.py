@@ -40,7 +40,7 @@ module, unlike packaging's staff share-links) — this is an internal sales
 """
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Header, HTTPException
@@ -48,7 +48,7 @@ from pydantic import BaseModel
 
 from database import database
 from routers.admin import (
-    _require_admin, _do_convert_lead,
+    _require_admin, _do_convert_lead, _sync_discount_to_agreed_total,
     LEAD_STATUS_OPTIONS, NON_CONVERT_REASON_OPTIONS, NON_CONVERT_STATUSES,
 )
 from catalogue_data import (
@@ -265,6 +265,21 @@ NUMERIC_LEAD_FIELDS = {"kids_count"}
 # LEAD_FIELD_MAP) — coerced with float(), not int(), since these carry
 # paise.
 NUMERIC_FLOAT_LEAD_FIELDS = {"client_budget", "order_advance"}
+
+
+def _to_date(val):
+    """leads.event_date is a DATE column and asyncpg will only bind a real
+    date object to it — the "2026-10-20" string the page sends was rejected
+    with a 500 (found 2026-10-01 while replaying a sales booking end to
+    end). Blank -> None; anything that isn't YYYY-MM-DD -> a clear 400."""
+    if val is None or (isinstance(val, str) and not val.strip()):
+        return None
+    if isinstance(val, date):
+        return val
+    try:
+        return date.fromisoformat(str(val).strip()[:10])
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Event date must be a date (YYYY-MM-DD).")
 
 # Scalar fields that live on lead_sales_playbook (not on `leads`).
 PLAYBOOK_SCALAR_FIELDS = [
@@ -664,7 +679,7 @@ async def create_sheet(body: SheetIn, x_admin_password: Optional[str] = Header(N
         "child_names": body.child_name,
         "child_ages": body.child_age,
         "child_genders": body.child_gender,
-        "event_date": body.event_date,
+        "event_date": _to_date(body.event_date),
         "event_time": body.event_start_time,
         "venue": body.venue,
         "kids_count": body.kids_count,
@@ -772,6 +787,8 @@ async def patch_sheet(lead_id: int, body: PatchIn, x_admin_password: Optional[st
                     val = int(val)
                 except (TypeError, ValueError):
                     raise HTTPException(status_code=400, detail=f"{key} must be a number")
+            elif col == "event_date":
+                val = _to_date(val)
             elif key in NUMERIC_FLOAT_LEAD_FIELDS and val is not None:
                 try:
                     val = float(val)
@@ -961,6 +978,17 @@ async def confirm_booking(lead_id: int, body: ConfirmBookingIn, x_admin_password
         lead_values["pm"] = body.payment_method
     if lead_sets:
         await database.execute(f"UPDATE leads SET {', '.join(lead_sets)} WHERE lead_id = :id", values=lead_values)
+
+    # 2026-10-01, per Shruti — the booking's Grand Total must be the total
+    # agreed with the client, with the difference from catalogue prices
+    # shown as the discount (see _sync_discount_to_agreed_total). Re-run on
+    # every confirm, so correcting the agreed figure here re-syncs it.
+    # A failure here must not undo the confirmation itself.
+    if body.grand_total is not None:
+        try:
+            await _sync_discount_to_agreed_total(lead_id, by, x_admin_password)
+        except Exception:
+            logger.exception(f"Lead #{lead_id}: couldn't sync booking discount to the agreed total")
 
     # only move the stage forward — calling this again to fix a number
     # shouldn't undo ops having already started.
