@@ -117,6 +117,12 @@ th.th-sort:hover{color:var(--pk)}
 @media(max-width:640px){.grid2,.grid3,.grid4{grid-template-columns:1fr}}
 .readonly-amt{padding:10px 12px;border:1px solid var(--li2);border-radius:8px;font-size:14px;background:var(--li3);color:var(--bk);font-weight:700}
 .disc-box{margin:12px 0 4px}
+.gt-breakup{margin:12px 0 0;border:1px solid var(--li2);border-radius:8px;padding:8px 12px;font-size:12.5px;color:var(--bk);background:#fff}
+.gt-breakup.empty{color:var(--gy)}
+.gtb-row{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
+.gtb-row em{font-style:normal;color:var(--gy);font-size:11.5px}
+.gtb-row span:last-child{white-space:nowrap;font-variant-numeric:tabular-nums}
+.gtb-total{border-top:1px solid var(--li2);margin-top:4px;padding-top:6px;font-weight:700}
 .disc-row{font-size:13px;padding:10px 12px;border-radius:8px;background:var(--li3);color:var(--bk)}
 .disc-row b{font-weight:700}
 .disc-row.disc-pos{background:var(--sgr);color:#1a6630}
@@ -689,7 +695,7 @@ function updateGrandTotalBar(){
   if(!bar) return;
   if(!DATA || !CURRENT_ID){ bar.style.display='none'; return; }
   bar.style.display='block';
-  document.getElementById('gtAmt').textContent = money(DATA.estimated_total||0) || '₹0';
+  document.getElementById('gtAmt').textContent = money(listBreakdown().total) || '₹0';
   const noteEl = document.getElementById('gtNote');
   if(noteEl) noteEl.style.display = DATA.kids_count ? 'none' : 'inline';
 }
@@ -887,6 +893,107 @@ function estimateTotalLocal(){
   });
   return Math.round(total * 100) / 100;
 }
+// ── Grand Total at full (list) price, with its breakup ─────────────────
+// 2026-10-01, per Shruti — "grand total should be 77500, include 500 for
+// invite as well, even if the sales person negotiated to 60k all
+// inclusive. the total should reflect total of all services selected ...
+// add a short summary of items selected here in the grand total."
+// Each selected service counts at its catalogue price (same catalogue the
+// Bookings page prices from, so the two totals agree), or at the quoted
+// cost when that's HIGHER (a customised/upsold line) or when the service
+// has no catalogue price at all (Host, Save the Date, custom decor/pinata).
+// A quote BELOW catalogue isn't a lower price — it's part of the discount,
+// which the Discount line works out against Revenue Potential.
+// DATA.estimated_total (sum of quoted costs) is untouched: it still seeds
+// Revenue Potential for leads where no agreed total has been typed yet.
+function _catPrice(list, key, val){
+  const o = (list||[]).find(x=>x && x[key]===val);
+  return (o && o.price!=null) ? Number(o.price) : null;
+}
+function listBreakdown(){
+  const C = CATALOGUE || {};
+  const reqs = (DATA && DATA.requirements) || {};
+  const kids = (DATA && DATA.kids_count) || 1;
+  const giftQty = _returnGiftsTotalQty();
+  const items = [];
+  const num = v => (v===null||v===undefined||v==='') ? null : (isNaN(Number(v)) ? null : Number(v));
+  function line(label, quoted, cat){
+    const q = num(quoted), c = (cat==null ? null : Number(cat));
+    const amount = Math.max(q||0, c||0);
+    items.push({label, amount, quoted: q, below: (q!==null && c!==null && q < c)});
+  }
+  const sel = k => (reqs[k] && typeof reqs[k]==='object') ? reqs[k] : {};
+  const on = r => r.selected && r.selected !== 'No';
+  const d = sel('decor');
+  if(on(d) || num(d.cost)) line('Decor'+(d.selected?': '+(d.theme_name?d.theme_name+' – ':'')+d.selected:''), d.cost, _catPrice(C.decor_tiers,'name',d.selected));
+  const h = sel('host');
+  if(num(h.cost)) line('Host', h.cost, null);
+  const m = sel('music');
+  if(on(m) || num(m.cost)) line('Music'+(m.selected?': '+m.selected:''), m.cost, _catPrice(C.music,'name',m.selected));
+  (m.addons||[]).forEach(a=>{ if(a && a.name) line('Music add-on: '+a.name, a.price, _catPrice(C.music_addons,'name',a.name)); });
+  const ph = sel('photographer');
+  if(on(ph) || num(ph.cost)) line('Photographer'+(ph.selected?': '+ph.selected:''), ph.cost, _catPrice(C.photographer,'name',ph.selected));
+  const ei = sel('einvite_type');
+  if(on(ei) || num(ei.cost)) line('E-Invite'+(ei.selected?': '+ei.selected:''), ei.cost, _catPrice(C.einvite_type,'name',ei.selected));
+  const sd = sel('save_the_date');
+  if(sd.selected==='Yes' || num(sd.cost)) line('Save the Date', sd.cost, null);
+  const pt = sel('pinata_type');
+  if(on(pt) || num(pt.cost)) line('Piñata'+(pt.selected?': '+pt.selected:''), pt.cost, _catPrice(C.pinata_type,'name',pt.selected));
+  const pb = sel('pinata_bags');
+  if(pb.selected==='Yes' || num(pb.cost)) line('Piñata bags ('+kids+')', pb.cost, pb.selected==='Yes' && C.pinata_bags ? (C.pinata_bags.unit_price||0)*kids : null);
+  const rg = sel('return_gifts');
+  if((rg.selected_gifts||[]).length || num(rg.cost)){
+    let cat = null;
+    if((rg.selected_gifts||[]).length){
+      cat = rg.selected_gifts.reduce((s,g)=>{
+        const p = _catPrice(C.return_gifts_catalogue,'name',g.name);
+        return s + (p!=null ? p : (Number(g.price)||0)) * (Number(g.quantity)||0);
+      }, 0);
+    }
+    line('Return gifts'+(giftQty?' ('+giftQty+')':''), rg.cost, cat);
+  }
+  const pk = sel('packaging');
+  if((pk.selected && pk.selected!=='None') || num(pk.cost)){
+    const unit = _catPrice((C.packaging||[]).map(o=>({name:o.label, price:o.price})),'name',pk.selected);
+    line('Packaging'+(pk.selected?': '+pk.selected:''), pk.cost, unit!=null ? unit*giftQty : null);
+  }
+  const tg = sel('return_gift_tags');
+  if(tg.selected==='Yes' || num(tg.cost)){
+    const gt = C.return_gift_tags || {};
+    line('Return gift tags', tg.cost, tg.selected==='Yes' ? Math.max(gt.min_qty||15, giftQty)*(gt.unit_price||10) : null);
+  }
+  // Anything else that carries a cost (future rows) still counts, at its quoted cost.
+  const known = ['decor','host','music','photographer','einvite_type','save_the_date','pinata_type','pinata_bags','return_gifts','packaging','return_gift_tags'];
+  Object.keys(reqs).forEach(k=>{
+    if(known.includes(k)) return;
+    const r = reqs[k];
+    if(r && typeof r==='object' && num(r.cost)) line(k.replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()), r.cost, null);
+  });
+  (DATA.activities||[]).forEach(a=>{
+    if(!a || !a.name) return;
+    const catA = (C.activities||[]).find(x=>(a.id && x.id===a.id) || x.name===a.name);
+    const flat = catA ? !!catA.flat : !!a.flat;
+    const qUnit = num(a.price), cUnit = catA && catA.price!=null ? Number(catA.price) : null;
+    const unit = Math.max(qUnit||0, cUnit||0);
+    const it = {label:'Activity: '+a.name+(flat?'':' ('+kids+' × '+money(unit)+')'),
+                amount: flat ? unit : unit*kids,
+                quoted: qUnit===null ? null : (flat ? qUnit : qUnit*kids),
+                below: qUnit!==null && cUnit!==null && qUnit < cUnit};
+    items.push(it);
+  });
+  const total = Math.round(items.reduce((s,i)=>s+i.amount,0)*100)/100;
+  return {total, items};
+}
+function breakupHtml(b){
+  if(!b.items.length) return '<div class="gt-breakup empty">Nothing selected yet.</div>';
+  return '<div class="gt-breakup">'
+    + b.items.map(i=>'<div class="gtb-row"><span>'+esc(i.label)
+        + (i.below ? ' <em>(quoted '+money(i.quoted||0)+')</em>' : '')
+        + '</span><span>'+money(i.amount)+'</span></div>').join('')
+    + '<div class="gtb-row gtb-total"><span>Grand Total</span><span>'+money(b.total)+'</span></div>'
+    + '</div>';
+}
+
 // Stages an edit locally (no network) and re-renders so totals/derived
 // values stay live as you work — only PENDING_PATCH accumulates; nothing
 // reaches the server until Save is clicked. Deliberately synchronous
@@ -2037,17 +2144,19 @@ function sectionNotes(){
 const PAYMENT_METHODS = ['Cash','UPI Transfer','Bank Transfer','Internal Settle'];
 function sectionBilling(){
   const d = DATA;
+  const LB = listBreakdown();
   const pmOpts = '<option value="">— select —</option>' + PAYMENT_METHODS.map(m=>'<option '+(m===d.payment_method?'selected':'')+'>'+m+'</option>').join('');
   const label = d.playbook_stage==='sales_intake' ? 'Confirm Booking &amp; Send to Ops' : 'Update Billing Details';
   return '<div class="card"><h3>6 · Confirm Booking &amp; Balance</h3>'
     + (d.kids_count?'':'<div class="ref-note">Activities priced per child use ×1 until # Kids is filled in above.</div>')
     + '<div class="grid4">'
-      + '<div class="fld"><label>Grand Total (from selections)</label><div class="readonly-amt" id="bill_est_total">'+(money(d.estimated_total)||'₹0')+'</div></div>'
+      + '<div class="fld"><label>Grand Total (from selections)</label><div class="readonly-amt" id="bill_est_total">'+(money(LB.total)||'₹0')+'</div></div>'
       + '<div class="fld"><label>Revenue Potential (₹)</label><input type="number" id="bill_grand_total" value="'+(d.client_budget==null?'':d.client_budget)+'" oninput="updateDiscountPreview()" onblur="saveField(\'client_budget\', this.value, this.type)"></div>'
       + '<div class="fld"><label>Balance / Advance Received (₹)</label><input type="number" id="bill_advance" value="'+(d.order_advance==null?'':d.order_advance)+'" onblur="saveField(\'order_advance\', this.value, this.type)"></div>'
       + '<div class="fld"><label>Payment Method</label><select id="bill_pm" onchange="saveField(\'payment_method\', this.value)">'+pmOpts+'</select></div>'
     + '</div>'
-    + '<div class="disc-box" id="discBox">'+discountHtml(d.estimated_total, d.client_budget)+'</div>'
+    + breakupHtml(LB)
+    + '<div class="disc-box" id="discBox">'+discountHtml(LB.total, d.client_budget)+'</div>'
     + '<div class="fld" style="margin-top:12px"><label>Terms &amp; Conditions <span class="opt">optional</span></label>'
       + '<textarea placeholder="Any terms/conditions agreed with the client..." onblur="saveField(\'terms_conditions\', this.value)">'+esc(d.terms_conditions||'')+'</textarea></div>'
     + '<button type="button" class="btn gr" style="margin-top:14px" onclick="confirmBooking()">'+label+'</button>'
@@ -2078,7 +2187,7 @@ function updateDiscountPreview(){
   const box = document.getElementById('discBox');
   if(!box) return;
   const val = document.getElementById('bill_grand_total').value;
-  box.innerHTML = discountHtml(DATA.estimated_total, val===''?null:val);
+  box.innerHTML = discountHtml(listBreakdown().total, val===''?null:val);
 }
 async function confirmBooking(){
   const gt = document.getElementById('bill_grand_total').value;
