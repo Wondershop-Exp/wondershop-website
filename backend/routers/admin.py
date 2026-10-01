@@ -725,7 +725,11 @@ async def _validate_choice_value(key: str, value: str, derived_original: Optiona
     if not value:
         return
 
-    if key in DROPDOWN_VALUES and value not in DROPDOWN_VALUES[key] and value != derived_original:
+    # A host quoted above every tier is stored as "Custom (₹N)" (see
+    # _copy_sales_data_to_admin_overrides) — a valid value for Host too.
+    if key == "svc_host" and re.fullmatch(r"Custom \(₹[\d,]+(\.\d+)?\)", value or ""):
+        pass
+    elif key in DROPDOWN_VALUES and value not in DROPDOWN_VALUES[key] and value != derived_original:
         raise HTTPException(status_code=400, detail=f'"{value}" is not a valid option for {CATALOG_BY_KEY[key]["label"]}.')
 
     if key == "bill_discount_pct":
@@ -1853,9 +1857,10 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
             except (TypeError, ValueError):
                 cost_f = None
         if cost_f is not None:
-            # 2026-10-01: nearest tier by price (cat.closest_host_tier) — same
-            # rule the sales panel's breakup uses for Host's MRP.
-            host_tier = cat.closest_host_tier(cost_f) or "Premium"
+            # 2026-10-01, per Shruti: the next tier UP from the quote
+            # (cat.host_tier_for_quote) — same rule as the sales panel's
+            # breakup. Above every tier: a "Custom (₹N)" value priced at N.
+            host_tier = cat.host_tier_for_quote(cost_f) or cat.custom_host_label(cost_f)
             tier_price = cat.HOST_TIER_PRICES.get(host_tier)
             remark_bits = [f"₹{_num_str(cost_f)}"]
             if h.get("customization"):

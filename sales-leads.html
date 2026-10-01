@@ -944,14 +944,13 @@ function _catPrice(list, key, val){
 //   quote = what sales typed; blank = not negotiated = the MRP.
 // Grand Total = sum of MRPs — the same Total MRP the Bookings page shows —
 // and Discount = Grand Total − Revenue Potential (what the client agreed).
-function _closestTier(list, cost){
-  let best = null;
-  (list||[]).forEach(t=>{
-    if(t.price==null) return;
-    const d = Math.abs(Number(t.price) - Number(cost));
-    if(!best || d < best.d || (d === best.d && Number(t.price) < Number(best.t.price))) best = {t, d};
-  });
-  return best ? best.t : null;
+// Host: the next tier UP from the quote (2026-10-01, per Shruti — "12k to
+// be matched to signature 15k"); null above every tier. Same rule as
+// catalogue_data.host_tier_for_quote() on the server.
+function _upperTier(list, cost){
+  const c = Number(cost);
+  const fits = (list||[]).filter(t=>t.price!=null && Number(t.price) >= c).sort((x,y)=>x.price-y.price);
+  return fits.length ? fits[0] : null;
 }
 function listBreakdown(){
   const C = CATALOGUE || {};
@@ -960,10 +959,12 @@ function listBreakdown(){
   const giftQty = _returnGiftsTotalQty();
   const items = [];
   const num = v => (v===null||v===undefined||v==='') ? null : (isNaN(Number(v)) ? null : Number(v));
+  // mrp == null -> no list price: the MRP column shows "—" and the quote
+  // counts towards the MRP total instead (per Shruti, for hosts above ₹15k).
   function line(label, quoted, mrp){
     const q = num(quoted);
     const m = (mrp==null) ? (q||0) : Number(mrp);
-    items.push({label, mrp: m, quote: (q===null ? m : q)});
+    items.push({label, mrp: m, noMrp: mrp==null, quote: (q===null ? m : q)});
   }
   const sel = k => (reqs[k] && typeof reqs[k]==='object') ? reqs[k] : {};
   const on = r => r.selected && r.selected !== 'No';
@@ -971,8 +972,8 @@ function listBreakdown(){
   if(on(d) || num(d.cost)!==null) line('Decor'+(d.selected?': '+(d.theme_name?d.theme_name+' – ':'')+d.selected:''), d.cost, _catPrice(C.decor_tiers,'name',d.selected));
   const h = sel('host');
   if(num(h.cost)!==null){
-    const t = _closestTier(C.host_reference, h.cost);
-    line('Host'+(t?': '+t.name+' tier':''), h.cost, t ? t.price : null);
+    const t = _upperTier(C.host_reference, h.cost);
+    line('Host'+(t?': '+t.name+' tier':' (above all tiers)'), h.cost, t ? t.price : null);
   }
   const m = sel('music');
   if(on(m) || num(m.cost)!==null) line('Music'+(m.selected?': '+m.selected:''), m.cost, _catPrice(C.music,'name',m.selected));
@@ -1030,7 +1031,7 @@ function breakupHtml(b){
   if(!b.items.length) return '<div class="gt-breakup empty">Nothing selected yet.</div>';
   return '<div class="gt-breakup"><table>'
     + '<thead><tr><th>Item</th><th>MRP</th><th>Sales quote</th></tr></thead><tbody>'
-    + b.items.map(i=>'<tr><td>'+esc(i.label)+'</td><td>'+money(i.mrp)+'</td>'
+    + b.items.map(i=>'<tr><td>'+esc(i.label)+'</td><td>'+(i.noMrp ? '<span title="No list price — the sales quote counts in the MRP total">—</span>' : money(i.mrp))+'</td>'
         + '<td'+(i.quote < i.mrp ? ' class="neg"' : '')+'>'+money(i.quote)+'</td></tr>').join('')
     + '</tbody><tfoot><tr><td>Total</td><td>'+money(b.total)+'</td><td>'+money(b.quoteTotal)+'</td></tr></tfoot>'
     + '</table></div>';

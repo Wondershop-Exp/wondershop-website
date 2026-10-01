@@ -263,17 +263,27 @@ EINVITE_TIER_PRICES = {"Static": 500, "Video + Reminder": 2000}
 SAVE_THE_DATE_PRICE = 500
 
 
-def closest_host_tier(cost):
-    """2026-10-01, per Shruti — "for host, match them to the closest tier".
-    The sales panel only captures a quoted Host cost; this is the tier whose
-    list price is nearest to it (ties go to the cheaper tier). Used by the
-    sales panel's breakup AND when the booking is created, so both price the
-    host the same way."""
+def host_tier_for_quote(cost):
+    """2026-10-01, per Shruti — "host - match to the upper tier. example -
+    12k to be matched to signature quote 15k ... for quotes above 15, keep
+    the mrp as blank and add the sales quote figure in the mrp total."
+    The cheapest tier whose list price is >= the quoted cost (<=10k ->
+    Premium 10k, up to 15k -> Signature 15k). None when the quote is above
+    every tier — the quote itself is then the MRP. Used by the sales panel's
+    breakup AND when the booking is created, so both price the host alike."""
     try:
         c = float(cost)
     except (TypeError, ValueError):
         return None
-    return min(HOST_TIER_PRICES.items(), key=lambda kv: (abs(kv[1] - c), kv[1]))[0]
+    fits = [(p, t) for t, p in HOST_TIER_PRICES.items() if p >= c]
+    return min(fits)[1] if fits else None
+
+
+def custom_host_label(cost) -> str:
+    """Booking value for a host quoted above every tier, e.g. 'Custom (₹18,000)'.
+    booking_pricing reads the rupee figure back out of it as the MRP."""
+    c = float(cost)
+    return f"Custom (₹{int(c):,})" if c == int(c) else f"Custom (₹{c:,.2f})"
 
 INVITES = [
     ("i1", "Art Party", "art-party.jpg"), ("i2", "Frozen (Elsa)", "frozen-elsa.jpg"),

@@ -63,6 +63,7 @@ Pure functions, no database access, so they can be unit-tested directly.
 """
 from typing import Optional
 
+import re
 import catalogue_data as cat
 
 # Mirrors builder.html (PACKAGING_UNIT_PRICE / TAG_NOTE_* / add-on prices) —
@@ -396,7 +397,16 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
             add(f"{label}: {val}", p)
 
     tiered("svc_decor", "Decor", lambda n: DECOR_PRICES.get(n))
-    tiered("svc_host", "Host", lambda n: cat.HOST_TIER_PRICES.get(n))
+    # A host quoted above every tier is stored as "Custom (₹18,000)" (see
+    # catalogue_data.custom_host_label) — its MRP is that quoted figure.
+    def _host_price(n):
+        p = cat.HOST_TIER_PRICES.get(n)
+        if p is None:
+            m = re.search(r"₹\s*([\d,]+(?:\.\d+)?)", n or "")
+            if m:
+                p = float(m.group(1).replace(",", ""))
+        return p
+    tiered("svc_host", "Host", _host_price)
     tiered("svc_dj", "Music", lambda n: cat.DJ_TIER_PRICES.get(n))
     tiered("svc_photo", "Photography", lambda n: cat.PHOTO_TIER_PRICES.get(n))
     tiered("svc_pinata", "Piñata", lambda n: cat.PINATA_TIER_PRICES.get(n))
