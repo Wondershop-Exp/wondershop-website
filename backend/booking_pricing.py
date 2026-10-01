@@ -409,6 +409,12 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
     einvite = _resolved(cur, "svc_einvite", removed)
     if einvite and einvite != "No selection":
         add(f"E-Invite: {einvite}", EINVITE_FLAT_CHARGE)
+    # 2026-10-01, per Shruti — Save the Date picked in the sales panel was
+    # missing from the booking's Total MRP. Copied across as e.g. "Yes (₹0)"
+    # (the sales quote, informational); priced at its list price here.
+    std = (_resolved(cur, "einvite_save_the_date", removed) or "").strip().lower()
+    if std.startswith("yes"):
+        add("E-Invite: Save the Date", cat.SAVE_THE_DATE_PRICE)
 
     act_items, act_unpriced = _price_activities(_resolved(cur, "svc_activities", removed), kids)
     for label, amt in act_items:

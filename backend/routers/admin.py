@@ -1853,7 +1853,9 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
             except (TypeError, ValueError):
                 cost_f = None
         if cost_f is not None:
-            host_tier = "Premium" if cost_f < 10000 else "Signature"
+            # 2026-10-01: nearest tier by price (cat.closest_host_tier) — same
+            # rule the sales panel's breakup uses for Host's MRP.
+            host_tier = cat.closest_host_tier(cost_f) or "Premium"
             tier_price = cat.HOST_TIER_PRICES.get(host_tier)
             remark_bits = [f"₹{_num_str(cost_f)}"]
             if h.get("customization"):

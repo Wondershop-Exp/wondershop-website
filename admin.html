@@ -509,7 +509,8 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
 .log-section.sec-collapsed h3{margin-bottom:0}
 .bd-nav .sec-all{flex:0 0 auto;margin-left:auto;padding:8px 14px;white-space:nowrap}
 body.role-sales .admin-only{display:none!important}
-tr.row-unused > td{opacity:.5}
+.disc-edit{display:flex;flex-direction:column;align-items:flex-start}
+.disc-edit .pct-wrap{max-width:220px}
 </style>
 </head>
 <body>
@@ -3566,15 +3567,78 @@ function scheduleReadOnlyHtml(text){
   return '<div class="sched-ro">'+rows.map(r=>'<div class="sched-ro-row"><span>'+esc(r.time)+'</span><span>'+esc(r.item)+'</span></div>').join('')+'</div>';
 }
 
-// Saved Discount Type of the booking on screen: 'value' (₹) or '%'.
-function activeDiscountType(){
+// ── Discount: ONE row (2026-10-01, per Shruti) ───────────────────────────
+// "if I updated the discount to 18k, the grand total is not getting
+// updated" — the old layout spread a discount over three rows (Discount
+// Type / Discount % / Discount Amount), and amounts kept landing in the
+// wrong box. Now the Discount Type row carries the ₹/% choice AND the
+// amount, saved together by one Save (saveDiscountRow), and the other two
+// rows are not drawn (their values are still the source of truth on the
+// server — this row reads and writes them).
+function _inr(v){ const n=Number(v); return isNaN(n) ? String(v) : '₹'+n.toLocaleString('en-IN', {maximumFractionDigits:2}); }
+function _billField(key){
   const secs = (CURRENT_DETAIL && CURRENT_DETAIL.sections) || [];
-  for(const sec of secs){ for(const fl of (sec.fields||[])){
-    if(fl.field_key==='bill_discount_type') return fl.customer_choice==='value' ? 'value' : '%';
-  }}
-  return '%';
+  for(const sec of secs){ for(const fl of (sec.fields||[])){ if(fl.field_key===key) return fl; } }
+  return {};
 }
+function discountRowHtml(f, locked){
+  const rid = 'fld_bill_discount_type';
+  const type = f.customer_choice==='value' ? 'value' : '%';
+  const vF = _billField('bill_discount_value'), pF = _billField('bill_discount_pct');
+  const cur = type==='value' ? (vF.customer_choice||'') : (pF.customer_choice ? fmtPct(pF.customer_choice) : '');
+  const remarks = (type==='value' ? vF.remarks : pF.remarks) || '';
+  const shown = cur==='' ? '—' : (type==='value' ? _inr(cur) : cur+'%');
+  const note = '<small>₹ = rupees off Total MRP · % = percentage of Total MRP</small>';
+  if(locked){
+    return '<tr id="'+rid+'" data-key="bill_discount_type"><td class="field-label">Discount'+note+'</td>'
+      +'<td data-label="Current value"><span class="readonly-cell">'+esc(shown)+'</span></td><td></td>'
+      +'<td data-label="Remarks"><span class="readonly-cell">'+esc(remarks||'—')+'</span></td><td></td></tr>';
+  }
+  window.__DISC_VALS = {value: vF.customer_choice||'', '%': pF.customer_choice ? fmtPct(pF.customer_choice) : ''};
+  return '<tr id="'+rid+'" data-key="bill_discount_type">'
+    +'<td class="field-label">Discount'+note+'</td>'
+    +'<td data-label="Current value">'
+      + selectHtml(rid+'_cc', f.options||[{value:'%',label:'% (Percentage)'},{value:'value',label:'₹ (Flat Amount)'}], type, ' onchange="onDiscTypeChange()"')
+      + '<div class="disc-edit"><span class="pct-wrap" style="margin-top:8px">'
+        + '<span class="pct-suffix" id="discPre" style="left:9px;right:auto;'+(type==='value'?'':'display:none')+'">₹</span>'
+        + '<input type="number" id="'+rid+'_amt" value="'+esc(cur)+'" placeholder="'+(type==='value'?'Amount in ₹':'Percent')+'" step="0.01" min="0" style="padding-left:'+(type==='value'?'22px':'11px')+'">'
+        + '<span class="pct-suffix" id="discSuf" style="'+(type==='value'?'display:none':'')+'">%</span>'
+      + '</span></div></td>'
+    +'<td><input type="hidden" id="'+rid+'_av" value=""></td>'
+    +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(remarks)+'</textarea></td>'
+    +'<td><div class="row-actions"><button class="mini-btn save" onclick="saveDiscountRow()">Save</button></div></td>'
+    +'</tr>';
+}
+function onDiscTypeChange(){
+  const type = document.getElementById('fld_bill_discount_type_cc').value==='value' ? 'value' : '%';
+  const amt = document.getElementById('fld_bill_discount_type_amt');
+  amt.value = (window.__DISC_VALS||{})[type] || '';
+  amt.placeholder = type==='value' ? 'Amount in ₹' : 'Percent';
+  amt.style.paddingLeft = type==='value' ? '22px' : '11px';
+  document.getElementById('discPre').style.display = type==='value' ? '' : 'none';
+  document.getElementById('discSuf').style.display = type==='value' ? 'none' : '';
+}
+async function saveDiscountRow(){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
+  const type = document.getElementById('fld_bill_discount_type_cc').value==='value' ? 'value' : '%';
+  const amt = document.getElementById('fld_bill_discount_type_amt').value.trim();
+  const rm = document.getElementById('fld_bill_discount_type_rm').value;
+  const post = body => apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {method:'POST',
+    body: JSON.stringify(Object.assign({assigned_value:'', removed:false, changed_by:who}, body))});
+  try{
+    await post({field_key:'bill_discount_type', customer_choice_override:type, remarks:''});
+    await post({field_key: type==='value' ? 'bill_discount_value' : 'bill_discount_pct', customer_choice_override:amt, remarks:rm});
+    showToast('✓ Discount saved — '+(amt==='' ? 'cleared' : (type==='value' ? _inr(amt) : amt+'%')));
+    await loadDetail();
+  }catch(e){
+    if(e.message!=='unauthorized') showToast('Save failed: '+e.message);
+  }
+}
+
 function fieldRowHtml(f, isCustEvent, locked){
+  if(f.field_key==='bill_discount_pct' || f.field_key==='bill_discount_value') return '';
+  if(f.field_key==='bill_discount_type') return discountRowHtml(f, locked);
   const rid = 'fld_'+f.field_key;
   const col3 = isCustEvent ? 'Updated value' : 'Assigned value';
   const removedCls = f.removed ? ' removed' : '';
@@ -3586,24 +3650,6 @@ function fieldRowHtml(f, isCustEvent, locked){
   const origDisplay = f.field_key==='bill_discount_pct' && f.original_value
     ? fmtPct(f.original_value)+'%' : (f.original_value || 'None selected');
   let originalNote = f.admin_only ? '<small>Admin-tracked</small>' : ('<small>Original: '+esc(origDisplay)+'</small>');
-  // 2026-10-01, per Shruti — "when I update the discount value to 17500 in
-  // bookings panel, the grand total is not getting updated." The amount had
-  // gone into Discount Type's Assigned Value box, which the Grand Total
-  // never reads (that box is gone now — see the no-Assigned-Value list
-  // below). Spell out which row is live, and grey out the one that isn't.
-  const discType = activeDiscountType();
-  let unusedRow = false;
-  if(f.field_key==='bill_discount_type'){
-    originalNote += '<small style="color:var(--gy)">'+(discType==='value'
-      ? 'Using a ₹ amount — type it in <b>Discount Amount (₹)</b> below, then Save that row.'
-      : 'Using a % — type it in <b>Discount %</b> below. Pick ₹ (Flat Amount) and Save to use a rupee amount instead.')+'</small>';
-  }else if(f.field_key==='bill_discount_pct' && discType==='value'){
-    unusedRow = true;
-    originalNote += '<small style="color:var(--gy)">Not used — Discount Type is ₹ (Flat Amount)</small>';
-  }else if(f.field_key==='bill_discount_value' && discType!=='value'){
-    unusedRow = true;
-    originalNote += '<small style="color:var(--gy)">Not used — Discount Type is %</small>';
-  }
   if(f.field_key==='bill_advance' && !f.advance_confirmed){
     originalNote += '<small style="color:var(--or)">Not yet confirmed — set Payment Status to “Advance Paid Verified” once it has arrived</small>';
   }
@@ -3769,7 +3815,7 @@ function fieldRowHtml(f, isCustEvent, locked){
         ? '<button class="mini-btn restore" onclick="toggleRemoved('+attrJson(f.field_key)+', false)">Restore</button>'
         : '<button class="mini-btn remove" onclick="toggleRemoved('+attrJson(f.field_key)+', true)">Remove</button>');
 
-  return '<tr id="'+rid+'" class="'+(removedCls+(unusedRow?' row-unused':'')).trim()+'" data-key="'+esc(f.field_key)+'">'
+  return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
     +'<td data-label="Current value">'+ccCell+'</td>'
     +'<td'+((['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key))?'':' data-label="'+col3+'"')+'>'+avCell+'</td>'

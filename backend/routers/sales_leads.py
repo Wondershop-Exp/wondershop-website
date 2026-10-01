@@ -54,7 +54,7 @@ from routers.admin import (
 from catalogue_data import (
     DECOR_TIER_META, THEMES, HOST_TIER_PRICES, DJ_TIER_PRICES,
     PHOTO_TIER_PRICES, PHOTO_TIER_FEATURES, PINATA_TIER_PRICES,
-    PACKAGING_LABELS, ACTIVITIES, GIFTS, EINVITE_TIER_PRICES,
+    PACKAGING_LABELS, ACTIVITIES, GIFTS, EINVITE_TIER_PRICES, SAVE_THE_DATE_PRICE,
 )
 
 router = APIRouter()
@@ -195,6 +195,7 @@ async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
         "music_addons": MUSIC_ADDONS,
         "photographer": photographer,
         "einvite_type": einvite_type,
+        "save_the_date_price": SAVE_THE_DATE_PRICE,
         "pinata_type": pinata_type,
         "packaging": packaging,
         "activities": activities,

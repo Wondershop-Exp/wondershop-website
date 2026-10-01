@@ -258,6 +258,22 @@ PINATA_TIER_PRICES = {
 # spy-basic.html / turf-basic.html's EINVITE_TIERS), since that is what
 # actually offers a video option. Keep in sync by hand if those change.
 EINVITE_TIER_PRICES = {"Static": 500, "Video + Reminder": 2000}
+# 2026-10-01, per Shruti — "einvite and save the date, by default show 500
+# rs." Save the Date's list price (was quoted per lead with no list price).
+SAVE_THE_DATE_PRICE = 500
+
+
+def closest_host_tier(cost):
+    """2026-10-01, per Shruti — "for host, match them to the closest tier".
+    The sales panel only captures a quoted Host cost; this is the tier whose
+    list price is nearest to it (ties go to the cheaper tier). Used by the
+    sales panel's breakup AND when the booking is created, so both price the
+    host the same way."""
+    try:
+        c = float(cost)
+    except (TypeError, ValueError):
+        return None
+    return min(HOST_TIER_PRICES.items(), key=lambda kv: (abs(kv[1] - c), kv[1]))[0]
 
 INVITES = [
     ("i1", "Art Party", "art-party.jpg"), ("i2", "Frozen (Elsa)", "frozen-elsa.jpg"),

@@ -43,6 +43,10 @@ a{color:var(--bl)}
 .gt-bar .gt-label{font-size:12px;color:var(--gy);font-weight:700;text-transform:uppercase;letter-spacing:.3px}
 .gt-bar .gt-note{font-size:10.5px;color:#9A93A8;font-weight:500;text-transform:none;letter-spacing:0}
 .gt-bar .gt-amt{font-family:var(--fd);font-size:21px;font-weight:700;color:var(--bk)}
+.gt-bar .gt-cell{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:0 14px}
+.gt-bar .gt-sub{font-size:15px;font-weight:700;color:var(--bk);font-variant-numeric:tabular-nums}
+.gt-bar .gt-disc{color:#1F7A3A}
+.gt-bar .gt-note{flex-basis:100%;text-align:center}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:10px 0 18px;border-bottom:1px solid var(--li2);margin-bottom:20px}
 .topbar h1{font-size:20px}
 .topbar .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gy);flex-wrap:wrap}
@@ -117,12 +121,15 @@ th.th-sort:hover{color:var(--pk)}
 @media(max-width:640px){.grid2,.grid3,.grid4{grid-template-columns:1fr}}
 .readonly-amt{padding:10px 12px;border:1px solid var(--li2);border-radius:8px;font-size:14px;background:var(--li3);color:var(--bk);font-weight:700}
 .disc-box{margin:12px 0 4px}
-.gt-breakup{margin:12px 0 0;border:1px solid var(--li2);border-radius:8px;padding:8px 12px;font-size:12.5px;color:var(--bk);background:#fff}
-.gt-breakup.empty{color:var(--gy)}
-.gtb-row{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
-.gtb-row em{font-style:normal;color:var(--gy);font-size:11.5px}
-.gtb-row span:last-child{white-space:nowrap;font-variant-numeric:tabular-nums}
-.gtb-total{border-top:1px solid var(--li2);margin-top:4px;padding-top:6px;font-weight:700}
+.gt-breakup{margin:12px 0 0;border:1px solid var(--li2);border-radius:8px;padding:6px 12px 8px;background:#fff;overflow-x:auto}
+.gt-breakup.empty{color:var(--gy);font-size:12.5px;padding:10px 12px}
+.gt-breakup table{width:100%;border-collapse:collapse;font-size:12.5px;color:var(--bk)}
+.gt-breakup th{font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;text-align:right;padding:6px 0 6px 12px;border-bottom:1px solid var(--li2)}
+.gt-breakup th:first-child,.gt-breakup td:first-child{text-align:left;padding-left:0}
+.gt-breakup td{padding:4px 0 4px 12px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.gt-breakup td:first-child{white-space:normal}
+.gt-breakup td.neg{color:#B42318}
+.gt-breakup tfoot td{border-top:1px solid var(--li2);padding-top:7px;font-weight:700}
 .disc-row{font-size:13px;padding:10px 12px;border-radius:8px;background:var(--li3);color:var(--bk)}
 .disc-row b{font-weight:700}
 .disc-row.disc-pos{background:var(--sgr);color:#1a6630}
@@ -292,8 +299,10 @@ th.th-sort:hover{color:var(--pk)}
      backToList(). -->
 <div class="gt-bar" id="gtBar" style="display:none">
   <div class="gt-bar-inner">
-    <span class="gt-label">Estimated Total<span class="gt-note" id="gtNote"> &middot; activities priced per child use &times;1 until # Kids is filled in</span></span>
-    <span class="gt-amt" id="gtAmt">₹0</span>
+    <span class="gt-cell"><span class="gt-label">Total MRP</span><span class="gt-sub" id="gtMrp">₹0</span></span>
+    <span class="gt-cell" id="gtDiscCell"><span class="gt-label">Discount</span><span class="gt-sub gt-disc" id="gtDisc">—</span></span>
+    <span class="gt-cell"><span class="gt-label" id="gtAmtLabel">Grand Total</span><span class="gt-amt" id="gtAmt">₹0</span></span>
+    <span class="gt-note" id="gtNote">Activities priced per child use &times;1 until # Kids is filled in</span>
   </div>
 </div>
 
@@ -690,12 +699,26 @@ window.addEventListener('beforeunload', function(e){
 // status) already calls after refreshing DATA, so the total stays live as
 // the salesman works through the page without a separate update call at
 // each site.
-function updateGrandTotalBar(){
+// 2026-10-01, per Shruti — "I still don't see updated 60k in the sticky
+// bar when I update the revenue potential as 60k." The bar now shows Total
+// MRP, the discount, and — as the big number — the Grand Total the client
+// actually pays (Revenue Potential), live while it's being typed (pass the
+// box's current value; otherwise DATA.client_budget). With no Revenue
+// Potential yet, the big number is just Total MRP.
+function updateGrandTotalBar(agreedLive){
   const bar = document.getElementById('gtBar');
   if(!bar) return;
   if(!DATA || !CURRENT_ID){ bar.style.display='none'; return; }
   bar.style.display='block';
-  document.getElementById('gtAmt').textContent = money(listBreakdown().total) || '₹0';
+  const mrp = listBreakdown().total;
+  const raw = (agreedLive !== undefined) ? agreedLive : DATA.client_budget;
+  const agreed = (raw === null || raw === undefined || raw === '' || isNaN(Number(raw))) ? null : Number(raw);
+  document.getElementById('gtMrp').textContent = money(mrp) || '₹0';
+  const disc = agreed === null ? null : mrp - agreed;
+  document.getElementById('gtDiscCell').style.display = disc === null ? 'none' : '';
+  document.getElementById('gtDisc').textContent = disc === null ? '—' : (disc >= 0 ? '− '+money(disc) : '+ '+money(-disc));
+  document.getElementById('gtAmtLabel').textContent = agreed === null ? 'Grand Total' : 'Grand Total (agreed)';
+  document.getElementById('gtAmt').textContent = money(agreed === null ? mrp : agreed) || '₹0';
   const noteEl = document.getElementById('gtNote');
   if(noteEl) noteEl.style.display = DATA.kids_count ? 'none' : 'inline';
 }
@@ -910,6 +933,26 @@ function _catPrice(list, key, val){
   const o = (list||[]).find(x=>x && x[key]===val);
   return (o && o.price!=null) ? Number(o.price) : null;
 }
+// 2026-10-01 (v2), per Shruti — "make it 3 column, add mrp of each item and
+// the negotiated price ... einvite and save the date, by default show 500
+// rs., but if the sales person has negotiated to rs. 0, then show 0 in
+// sales quote column. For host, match them to the closest tier. Then show
+// total as [the sum of MRPs]." So every line has:
+//   mrp   = list price (catalogue; Host = closest tier to the quote; Save
+//           the Date = its list price). A line with no list price at all
+//           (custom decor/pinata, unknown rows) uses its quote as its MRP.
+//   quote = what sales typed; blank = not negotiated = the MRP.
+// Grand Total = sum of MRPs — the same Total MRP the Bookings page shows —
+// and Discount = Grand Total − Revenue Potential (what the client agreed).
+function _closestTier(list, cost){
+  let best = null;
+  (list||[]).forEach(t=>{
+    if(t.price==null) return;
+    const d = Math.abs(Number(t.price) - Number(cost));
+    if(!best || d < best.d || (d === best.d && Number(t.price) < Number(best.t.price))) best = {t, d};
+  });
+  return best ? best.t : null;
+}
 function listBreakdown(){
   const C = CATALOGUE || {};
   const reqs = (DATA && DATA.requirements) || {};
@@ -917,52 +960,54 @@ function listBreakdown(){
   const giftQty = _returnGiftsTotalQty();
   const items = [];
   const num = v => (v===null||v===undefined||v==='') ? null : (isNaN(Number(v)) ? null : Number(v));
-  function line(label, quoted, cat){
-    const q = num(quoted), c = (cat==null ? null : Number(cat));
-    const amount = Math.max(q||0, c||0);
-    items.push({label, amount, quoted: q, below: (q!==null && c!==null && q < c)});
+  function line(label, quoted, mrp){
+    const q = num(quoted);
+    const m = (mrp==null) ? (q||0) : Number(mrp);
+    items.push({label, mrp: m, quote: (q===null ? m : q)});
   }
   const sel = k => (reqs[k] && typeof reqs[k]==='object') ? reqs[k] : {};
   const on = r => r.selected && r.selected !== 'No';
   const d = sel('decor');
-  if(on(d) || num(d.cost)) line('Decor'+(d.selected?': '+(d.theme_name?d.theme_name+' – ':'')+d.selected:''), d.cost, _catPrice(C.decor_tiers,'name',d.selected));
+  if(on(d) || num(d.cost)!==null) line('Decor'+(d.selected?': '+(d.theme_name?d.theme_name+' – ':'')+d.selected:''), d.cost, _catPrice(C.decor_tiers,'name',d.selected));
   const h = sel('host');
-  if(num(h.cost)) line('Host', h.cost, null);
+  if(num(h.cost)!==null){
+    const t = _closestTier(C.host_reference, h.cost);
+    line('Host'+(t?': '+t.name+' tier':''), h.cost, t ? t.price : null);
+  }
   const m = sel('music');
-  if(on(m) || num(m.cost)) line('Music'+(m.selected?': '+m.selected:''), m.cost, _catPrice(C.music,'name',m.selected));
+  if(on(m) || num(m.cost)!==null) line('Music'+(m.selected?': '+m.selected:''), m.cost, _catPrice(C.music,'name',m.selected));
   (m.addons||[]).forEach(a=>{ if(a && a.name) line('Music add-on: '+a.name, a.price, _catPrice(C.music_addons,'name',a.name)); });
   const ph = sel('photographer');
-  if(on(ph) || num(ph.cost)) line('Photographer'+(ph.selected?': '+ph.selected:''), ph.cost, _catPrice(C.photographer,'name',ph.selected));
+  if(on(ph) || num(ph.cost)!==null) line('Photographer'+(ph.selected?': '+ph.selected:''), ph.cost, _catPrice(C.photographer,'name',ph.selected));
   const ei = sel('einvite_type');
-  if(on(ei) || num(ei.cost)) line('E-Invite'+(ei.selected?': '+ei.selected:''), ei.cost, _catPrice(C.einvite_type,'name',ei.selected));
+  if(on(ei) || num(ei.cost)!==null) line('E-Invite'+(ei.selected?': '+ei.selected:''), ei.cost, _catPrice(C.einvite_type,'name',ei.selected));
   const sd = sel('save_the_date');
-  if(sd.selected==='Yes' || num(sd.cost)) line('Save the Date', sd.cost, null);
+  if(sd.selected==='Yes') line('Save the Date', sd.cost, C.save_the_date_price!=null ? C.save_the_date_price : null);
   const pt = sel('pinata_type');
-  if(on(pt) || num(pt.cost)) line('Piñata'+(pt.selected?': '+pt.selected:''), pt.cost, _catPrice(C.pinata_type,'name',pt.selected));
+  if(on(pt) || num(pt.cost)!==null) line('Piñata'+(pt.selected?': '+pt.selected:''), pt.cost, _catPrice(C.pinata_type,'name',pt.selected));
   const pb = sel('pinata_bags');
-  if(pb.selected==='Yes' || num(pb.cost)) line('Piñata bags ('+kids+')', pb.cost, pb.selected==='Yes' && C.pinata_bags ? (C.pinata_bags.unit_price||0)*kids : null);
+  if(pb.selected==='Yes') line('Piñata bags ('+kids+')', pb.cost, C.pinata_bags ? (C.pinata_bags.unit_price||0)*kids : null);
   const rg = sel('return_gifts');
-  if((rg.selected_gifts||[]).length || num(rg.cost)){
-    let cat = null;
+  if((rg.selected_gifts||[]).length || num(rg.cost)!==null){
+    let mrp = null;
     if((rg.selected_gifts||[]).length){
-      cat = rg.selected_gifts.reduce((s,g)=>{
+      mrp = rg.selected_gifts.reduce((s,g)=>{
         const p = _catPrice(C.return_gifts_catalogue,'name',g.name);
         return s + (p!=null ? p : (Number(g.price)||0)) * (Number(g.quantity)||0);
       }, 0);
     }
-    line('Return gifts'+(giftQty?' ('+giftQty+')':''), rg.cost, cat);
+    line('Return gifts'+(giftQty?' ('+giftQty+')':''), rg.cost, mrp);
   }
   const pk = sel('packaging');
-  if((pk.selected && pk.selected!=='None') || num(pk.cost)){
+  if(pk.selected && pk.selected!=='None'){
     const unit = _catPrice((C.packaging||[]).map(o=>({name:o.label, price:o.price})),'name',pk.selected);
-    line('Packaging'+(pk.selected?': '+pk.selected:''), pk.cost, unit!=null ? unit*giftQty : null);
+    line('Packaging: '+pk.selected, pk.cost, unit!=null ? unit*giftQty : null);
   }
   const tg = sel('return_gift_tags');
-  if(tg.selected==='Yes' || num(tg.cost)){
+  if(tg.selected==='Yes'){
     const gt = C.return_gift_tags || {};
-    line('Return gift tags', tg.cost, tg.selected==='Yes' ? Math.max(gt.min_qty||15, giftQty)*(gt.unit_price||10) : null);
+    line('Return gift tags', tg.cost, Math.max(gt.min_qty||15, giftQty)*(gt.unit_price||10));
   }
-  // Anything else that carries a cost (future rows) still counts, at its quoted cost.
   const known = ['decor','host','music','photographer','einvite_type','save_the_date','pinata_type','pinata_bags','return_gifts','packaging','return_gift_tags'];
   Object.keys(reqs).forEach(k=>{
     if(known.includes(k)) return;
@@ -973,25 +1018,22 @@ function listBreakdown(){
     if(!a || !a.name) return;
     const catA = (C.activities||[]).find(x=>(a.id && x.id===a.id) || x.name===a.name);
     const flat = catA ? !!catA.flat : !!a.flat;
-    const qUnit = num(a.price), cUnit = catA && catA.price!=null ? Number(catA.price) : null;
-    const unit = Math.max(qUnit||0, cUnit||0);
-    const it = {label:'Activity: '+a.name+(flat?'':' ('+kids+' × '+money(unit)+')'),
-                amount: flat ? unit : unit*kids,
-                quoted: qUnit===null ? null : (flat ? qUnit : qUnit*kids),
-                below: qUnit!==null && cUnit!==null && qUnit < cUnit};
-    items.push(it);
+    const qUnit = num(a.price), cUnit = (catA && catA.price!=null) ? Number(catA.price) : qUnit;
+    const mult = flat ? 1 : kids;
+    items.push({label:'Activity: '+a.name+(flat?'':' ('+kids+' × '+money(cUnit||0)+')'),
+                mrp: (cUnit||0)*mult, quote: (qUnit===null ? cUnit||0 : qUnit)*mult});
   });
-  const total = Math.round(items.reduce((s,i)=>s+i.amount,0)*100)/100;
-  return {total, items};
+  const r2 = v => Math.round(v*100)/100;
+  return {total: r2(items.reduce((s,i)=>s+i.mrp,0)), quoteTotal: r2(items.reduce((s,i)=>s+i.quote,0)), items};
 }
 function breakupHtml(b){
   if(!b.items.length) return '<div class="gt-breakup empty">Nothing selected yet.</div>';
-  return '<div class="gt-breakup">'
-    + b.items.map(i=>'<div class="gtb-row"><span>'+esc(i.label)
-        + (i.below ? ' <em>(quoted '+money(i.quoted||0)+')</em>' : '')
-        + '</span><span>'+money(i.amount)+'</span></div>').join('')
-    + '<div class="gtb-row gtb-total"><span>Grand Total</span><span>'+money(b.total)+'</span></div>'
-    + '</div>';
+  return '<div class="gt-breakup"><table>'
+    + '<thead><tr><th>Item</th><th>MRP</th><th>Sales quote</th></tr></thead><tbody>'
+    + b.items.map(i=>'<tr><td>'+esc(i.label)+'</td><td>'+money(i.mrp)+'</td>'
+        + '<td'+(i.quote < i.mrp ? ' class="neg"' : '')+'>'+money(i.quote)+'</td></tr>').join('')
+    + '</tbody><tfoot><tr><td>Total</td><td>'+money(b.total)+'</td><td>'+money(b.quoteTotal)+'</td></tr></tfoot>'
+    + '</table></div>';
 }
 
 // Stages an edit locally (no network) and re-renders so totals/derived
@@ -2201,6 +2243,7 @@ function updateDiscountPreview(){
   if(!box) return;
   const val = document.getElementById('bill_grand_total').value;
   box.innerHTML = discountHtml(listBreakdown().total, val===''?null:val);
+  updateGrandTotalBar(val);
 }
 
 // ── 7. Post-event notes ─────────────────────────────────────────────────
