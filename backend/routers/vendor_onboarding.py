@@ -24,6 +24,7 @@ import json
 import logging
 import re
 import time
+from difflib import SequenceMatcher
 from typing import Optional
 
 import httpx
@@ -93,22 +94,55 @@ def _same(field: str, a: Optional[str], b: Optional[str]) -> bool:
     return norm(a) == norm(b)
 
 
+def _name_key(s: Optional[str]) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", (s or "").lower()).strip()
+
+
+def _pick_by_name(rows, submitted_name: str):
+    """2026-10-01, per Shruti: some different businesses share one contact's
+    number (e.g. SM Enterprises / Ace Telecom — same POC). When a number
+    matches several partners, only update one if the submitted business name
+    clearly points to it; otherwise update none and let the team decide.
+
+    Compares the submitted name against the words that make each partner's
+    name DIFFERENT from the others on that number ("Sejal" vs "Sakshi", not
+    the shared "Tattoo"). Exact word hits first, then near-misses for typos.
+    A partner is chosen only if it alone gets a hit."""
+    want = set(_name_key(submitted_name).split())
+    if not want:
+        return None
+    toks = [set(_name_key(r["name"]).split()) for r in rows]
+    distinct = [t - set().union(*(o for j, o in enumerate(toks) if j != i)) for i, t in enumerate(toks)]
+
+    def only_one(hit):
+        winners = [r for r, d in zip(rows, distinct) if any(hit(w, x) for w in want for x in d)]
+        return winners[0] if len(winners) == 1 else None
+
+    return (only_one(lambda w, x: w == x)
+            or only_one(lambda w, x: len(w) >= 4 and SequenceMatcher(None, w, x).ratio() >= 0.85))
+
+
 async def _update_existing_vendor(mobile: str, values: dict, file_bytes, file_name, file_type,
-                                  defaulted: frozenset = frozenset()) -> bool:
+                                  defaulted: frozenset = frozenset()):
     """If a vendor with this mobile (primary or alternate) already exists,
-    merge the submission into it and return True; otherwise return False and
-    let the caller create a new vendor."""
+    merge the submission into it and return True. Return False when there is
+    no match, or a list of the matching partners when the number belongs to
+    several and the submitted name doesn't clearly pick one — either way the
+    caller then creates a new (inactive, pending-review) entry."""
     prim, alt = _DIGITS.format(c="primary_mobile"), _DIGITS.format(c="alternate_mobile")
     cols = ", ".join(_PLAIN_FIELDS + _BANK_FIELDS)
     async with database.transaction():
-        existing = await database.fetch_one(
+        matches = await database.fetch_all(
             f"SELECT vendor_id, {cols} FROM vendor_master "
             f"WHERE duplicate_of_id IS NULL AND ({prim} = :m OR {alt} = :m) "
-            f"ORDER BY ({prim} = :m) DESC, vendor_id ASC LIMIT 1",
+            f"ORDER BY ({prim} = :m) DESC, vendor_id ASC",
             {"m": mobile},
         )
-        if not existing:
+        if not matches:
             return False
+        existing = matches[0] if len(matches) == 1 else _pick_by_name(matches, values.get("name"))
+        if existing is None:
+            return [(m["vendor_id"], m["name"]) for m in matches]
 
         fill, pending = {}, {}
         for f in _PLAIN_FIELDS:
@@ -380,8 +414,15 @@ async def submit_vendor_onboarding(
     }
     # Already one of our vendors? Merge into that record instead of duplicating.
     defaulted = frozenset() if whatsapp_given else frozenset({"whatsapp_number"})
-    if await _update_existing_vendor(mobile, values, file_bytes, file_name, file_content_type, defaulted):
+    matched = await _update_existing_vendor(mobile, values, file_bytes, file_name, file_content_type, defaulted)
+    if matched is True:
         return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}
+    if matched:   # number shared by several partners and the name didn't pick one
+        values["remarks"] = (
+            "Mobile number is also on: "
+            + "; ".join(f"{n} (#{i})" for i, n in matched)
+            + " — check whether this is one of them before activating."
+        )
 
     cols = ", ".join(values.keys())
     placeholders = ", ".join(f":{k}" for k in values.keys())
