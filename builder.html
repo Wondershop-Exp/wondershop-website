@@ -2098,6 +2098,7 @@ body.browse-mode .browse-cta{display:flex}
 
   <div class="sec-blk">
     <div style="background:var(--li3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#7B5EA7">ℹ️ Once we receive your details, your return-gift order will be confirmed only after we've checked inventory availability — we'll confirm over a call or WhatsApp shortly after your requirement is received.</div>
+    <div style="background:var(--li3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#7B5EA7">🚚 <b>Delivery charges are extra, at actuals.</b> We book a Porter delivery on cash on delivery, so the person receiving the parcel pays the Porter driver directly. Return gifts need 100% advance payment and can't be returned once sold.</div>
     <!-- Filters -->
     <div style="margin-bottom:12px">
       <div style="font-size:11px;font-weight:700;color:var(--gy);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Filter by Type</div>
@@ -2177,6 +2178,7 @@ body.browse-mode .browse-cta{display:flex}
       </div>
       <div class="ig"><label>Contact Person Number <span class="opt">opt.</span></label><div class="pfx-wrap"><span class="pfx">+91</span><input type="tel" id="f-gcontact-phone" class="pi" placeholder="Mobile"></div></div>
       <div class="ig" style="margin-bottom:0"><label>Required By Date</label><input type="date" id="f-gdate"><div class="hint">Must be on or before your event date</div></div>
+      <div style="font-size:11px;color:var(--gy);margin-top:8px">🚚 Delivery charges are extra, at actuals. Please make sure the person receiving the parcel is ready to pay the Porter driver on delivery.</div>
       <div style="font-size:11px;color:var(--gy);margin-top:8px">📦 Delivery dates may shift by a few days either way due to weather or other logistical factors — we'll keep you posted if that happens.</div>
     </div>
   </div>
@@ -2354,7 +2356,7 @@ body.browse-mode .browse-cta{display:flex}
       <div class="tnc-hdr" onclick="this.nextElementSibling.classList.toggle('show')">Read Terms &amp; Conditions ▾</div>
       <div class="tnc-body">
         <div class="tnc-item"><strong>1. Booking Confirmation</strong><br>Your event date will be confirmed and blocked only upon receipt of 50% advance payment. Until the advance is received, Wondershop Experiences reserves the right to accept another booking for the same date.</div>
-        <div class="tnc-item"><strong>2. Payment Terms</strong><br>50% advance to confirm the booking · 40% balance payable 2 days prior to the event · Final 10% payable before the event begins. Please arrange for a family member or authorised representative to handle this payment, as the host may be occupied with guests.</div>
+        <div class="tnc-item"><strong>2. Payment Terms</strong><br>50% advance to confirm the booking · 40% balance payable 2 days prior to the event · Final 10% payable before the event begins. Please arrange for a family member or authorised representative to handle this payment, as the host may be occupied with guests. Return gifts are payable 100% in advance.</div>
         <div class="tnc-item"><strong>3. Venue Facilities</strong><br>Please ensure our team has access to clean washroom facilities, drinking water, and basic ventilation (fan and/or AC) from the start of setup until pack-up is complete.</div>
         <div class="tnc-item"><strong>4. Venue &amp; Society Restrictions</strong><br>Please inform us in advance of any vendor entry permissions, vehicle restrictions, service lift limits, electricity restrictions, tape/adhesive/hanging-decor rules, or noise limitations at your venue. Any extra costs or delays from non-disclosure of these restrictions are the client's responsibility.</div>
         <div class="tnc-item"><strong>5. Cancellation Policy</strong><br>If we're unable to execute the event for reasons attributable to us, the full advance is refunded. If the client cancels for any reason, the advance paid is non-refundable.</div>
@@ -2365,7 +2367,8 @@ body.browse-mode .browse-cta{display:flex}
         <div class="tnc-item"><strong>10. Movement of Furniture</strong><br>Our team is not responsible for moving furniture, heavy fixtures or venue equipment. If shifting is needed, the client should arrange manpower — we can assist at an extra cost if requested in advance, subject to availability.</div>
         <div class="tnc-item"><strong>11. Damages</strong><br>Any damage to venue property, decor or equipment caused by guests, children or third parties during the event is the client's responsibility, and repair/replacement costs may be recovered accordingly.</div>
         <div class="tnc-item"><strong>12. Delays Beyond Our Control</strong><br>We're not responsible for delays caused by venue/society restrictions, delayed vendor entry, lift unavailability, power outages, extreme weather, or government restrictions/force majeure events.</div>
-        <div class="tnc-item"><strong>13. Acceptance</strong><br>By confirming the booking and making the advance payment, you acknowledge that you have read, understood and accepted these Terms &amp; Conditions.</div>
+        <div class="tnc-item"><strong>13. Return Gifts</strong><br>We act as an aggregator for return gifts from third-party suppliers and don't guarantee their quality, especially for imported products, so please check items and use your own caution. Return gifts need 100% advance payment and can't be returned once sold. Delivery charges are extra, at actuals: we book a third-party transport service (such as Porter) on cash on delivery, and the person receiving the parcel pays the delivery partner. Transport issues should be taken up with the transport vendor; we'll share their contact details and help as much as we can, but our liability for transport issues is limited.</div>
+        <div class="tnc-item"><strong>14. Acceptance</strong><br>By confirming the booking and making the advance payment, you acknowledge that you have read, understood and accepted these Terms &amp; Conditions.</div>
       </div>
     </div>
     <div class="tnc-agree" onclick="togTNC()">
@@ -5370,6 +5373,7 @@ function buildRev(){
     if(gMaps)rows.push('Maps Link: '+esc(gMaps));
     if(gContact)rows.push('Contact Person: '+esc(gContact));
     if(gDate)rows.push('Required By: '+gDate);
+    rows.push('Delivery Charges: Extra, at actuals (paid to the Porter driver on delivery)');
     html+='<div class="rv-sec"><div class="rv-hdr"><div class="rv-cat">Return Gift Delivery</div><span class="edit-link" onclick="editFR(8)">Edit</span></div>'+
       '<div class="rv-items" style="padding:14px 16px"><div style="font-size:13px;color:var(--bk);line-height:1.8">'+
       rows.join('<br>')+'</div></div></div>';
