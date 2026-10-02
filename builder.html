@@ -3079,6 +3079,8 @@ function actPriceRaw(a,kids){
   if(a.id==='bhajan-jamming')return 25000;
   const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;
 }
+// Live T-shirt Printing Q&A (2026-10-02, per Shruti) — activity + return gift.
+const TSHIRT_INFO="<h4>👕 What is the t-shirt quality?</h4><ul><li>100% cotton t-shirts.</li></ul><h4>🎨 Can it be customised to the theme?</h4><ul><li>Yes — we print both <b>names</b> and <b>designs</b>.</li><li>Designs are chosen from our pre-decided theme designs; your child's (or each guest's) name can be printed along with it.</li></ul><div class=\"gal-info-note\">Our Party Experience Lead will share the design options for your theme before the party.</div>";
 const ACTS=[
   // ── Art (per child) ──
   {id:'a1',n:'Canvas Painting',e:'🖼️',img:'act-canvas-painting',realImg:true,cat:'art',age:'4-12',dur:'45 min',req:'Tables & chairs (arranged by client)',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'pop',pers:true,rating:4.8,cnt:95},
@@ -3104,7 +3106,9 @@ const ACTS=[
   // Duration/requirements are reasonable estimates, not yet confirmed by
   // Shruti. Reuses the return-gift product photo (real event photo of the
   // live heat-press station), re-cropped to the activity card's 4:3 frame.
-  {id:'tshirt-printing',n:'Live T-shirt Printing',e:'👕',img:'activity/act-tshirt-printing',realImg:true,cat:'craft',age:'5-14',dur:'15-20 min',req:'Tables, chairs & power point (arranged by client)',r1:550,r2:500,r3:450,flat:false,bgs:['linear-gradient(135deg,#5B8EDD,#374151)','linear-gradient(135deg,#374151,#6B7280)'],tag:'new',pers:true,rating:4.7,cnt:1},
+  // 2026-10-02, per Shruti — quality / customisation Q&A, shown as the
+  // gallery's info panel (TSHIRT_INFO, shared with return gift g26).
+  {id:'tshirt-printing',n:'Live T-shirt Printing',e:'👕',img:'activity/act-tshirt-printing',realImg:true,info:TSHIRT_INFO,cat:'craft',age:'5-14',dur:'15-20 min',req:'Tables, chairs & power point (arranged by client)',r1:550,r2:500,r3:450,flat:false,bgs:['linear-gradient(135deg,#5B8EDD,#374151)','linear-gradient(135deg,#374151,#6B7280)'],tag:'new',pers:true,rating:4.7,cnt:1},
   // ── Experiences (flat rate) ──
   {id:'a15',n:'Tattoo Station',e:'🖊️',img:'activity/act-tattoo-station',realImg:true,cat:'experience',age:'5-12',dur:'Up to 3 hrs',req:'Any space',r1:2500,r2:2500,r3:2500,flat:true,bgs:['linear-gradient(135deg,#374151,#6B7280)'],tag:'pop',pers:false,rating:4.8,cnt:75},
   {id:'a16',n:'Mini Art Station',e:'🖌️',img:'activity/act-mini-art-station',realImg:true,cat:'experience',age:'4-12',dur:'Session',req:'Tables & chairs (arranged by client)',r1:5000,r2:5000,r3:5000,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'',pers:false,rating:4.7,cnt:50},
@@ -3288,7 +3292,7 @@ const GIFTS=[
   {id:'g23',n:'Train Night Lamp',img:'return-gifts/train-night-lamp.jpg',e:'🚂',type:'home',gtheme:'generic',age:'3-8',unit:300,bg:'#F0FDF4',tag:''},
   {id:'g24',n:'5 Pcs Steel Straw Set',img:'return-gifts/steel-straw-set.jpg',e:'🥤',type:'home',gtheme:'generic',age:'3-12',unit:190,bg:'#F0FDF4',tag:''},
   {id:'g25',n:'Personalized Cap',img:'return-gifts/personalized-cap.png',e:'🧢',type:'personalized',gtheme:'generic',age:'3-12',unit:500,bg:'#F0F7FF',tag:''},
-  {id:'g26',n:'Live T-shirt Printing',img:'return-gifts/live-tshirt-printing.png',e:'👕',type:'personalized',gtheme:'generic',age:'5-14',unit:550,bg:'#F0F7FF',tag:''}
+  {id:'g26',n:'Live T-shirt Printing',img:'return-gifts/live-tshirt-printing.png',info:TSHIRT_INFO,e:'👕',type:'personalized',gtheme:'generic',age:'5-14',unit:550,bg:'#F0F7FF',tag:''}
 ];
 let gF={type:'all',budget:'all',gtheme:'all'};
 let actFilter='all';
@@ -4795,7 +4799,9 @@ function galMediaFor(kind,obj){
     const src=kind==='theme'?('img/theme-'+obj.id+'.jpg'):kind==='gift'?('img/'+obj.img):kind==='invite'?('einvites/'+obj.file):('img/'+obj.img+'.jpg');
     items=[{type:'img',src}];
   }
-  if(kind==='theme'||kind==='std'||kind==='pinata')items=items.concat([{type:'info'}]);
+  // Any item with its own `info` HTML (e.g. Live T-shirt Printing) gets the
+  // same details panel as decor/piñatas.
+  if(kind==='theme'||kind==='std'||kind==='pinata'||obj.info)items=items.concat([{type:'info'}]);
   return items;
 }
 // Splits a "·"-separated summary string (e.g. STD's `d` field) into bullets.
