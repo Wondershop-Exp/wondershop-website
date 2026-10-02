@@ -441,7 +441,7 @@ GIFTS = [
     ("g15", "Personalized Drawstring Pouch", "return-gifts/personalized-drawstring-pouch.jpg", 500),
     ("g16", "Personalized Drawstring Bag & Pouch Combo", "return-gifts/personalized-drawstring-combo.jpg", 750),
     ("g17", "Personalized Duffle Bag", "return-gifts/personalized-duffle-bag.jpg", 650),
-    ("g18", "Personalized Football", "return-gifts/personalized-football.jpg", 600),
+    ("g18", "Personalized Football", "return-gifts/personalized-football-1.jpg", 600),
     ("g19", "Personalized Pouch", "return-gifts/personalized-pouch.jpg", 325),
     ("g20", "Space Rocket Piggy Bank with Password", "return-gifts/space-rocket-piggy-bank.jpg", 410),
     ("g21", "Theme Based Penstand", "return-gifts/theme-penstand.jpg", 450),
@@ -450,8 +450,15 @@ GIFTS = [
     ("g24", "5 Pcs Steel Straw Set", "return-gifts/steel-straw-set.jpg", 190),
     ("g25", "Personalized Cap", "return-gifts/personalized-cap.png", 500),
     ("g26", "Live T-shirt Printing", "return-gifts/live-tshirt-printing.png", 550),
+    ("g27", "Squishy Dumpling", "return-gifts/squishy-dumpling-plain-1.jpg", 199),
+    ("g28", "Bath Bomb", "return-gifts/bath-bombs-small.jpg", 85),
 ]
 _GIFTS_BY_ID = {g[0]: g for g in GIFTS}
+
+# Gifts no longer offered (2026-10-02, per Shruti). They stay in GIFTS so
+# existing bookings keep their price/image; pickers use ACTIVE_GIFTS.
+RETIRED_GIFT_IDS = {"g1", "g9", "g10", "g12", "g13", "g15", "g16", "g17", "g19", "g21", "g23"}
+ACTIVE_GIFTS = [g for g in GIFTS if g[0] not in RETIRED_GIFT_IDS]
 
 
 def resolve_gift(gift_id: Optional[str]) -> Optional[dict]:

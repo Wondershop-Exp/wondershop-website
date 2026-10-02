@@ -507,7 +507,7 @@ ACTIVITY_OPTIONS = [
     {**_opt(n, f'{n} - Rs. {p}' + ('' if flat else '/child')), "price": p, "flat": flat}
     for _id, n, p, flat in cat.ACTIVITIES
 ]
-GIFT_OPTIONS = [_opt(n, f'{n} - Rs. {p}') for _id, n, _img, p in cat.GIFTS]
+GIFT_OPTIONS = [_opt(n, f'{n} - Rs. {p}') for _id, n, _img, p in cat.ACTIVE_GIFTS]
 MULTI_OPTIONS = {
     "svc_activities": ACTIVITY_OPTIONS,
     "svc_gifts": GIFT_OPTIONS,

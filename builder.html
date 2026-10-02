@@ -3267,7 +3267,7 @@ const INVITES=[
 // range) — see id="gBChips" and the budget check in renderGifts(). g24 (Steel
 // Straw Set) had no price in its filename — priced at ₹190 per Shruti.
 const GIFTS=[
-  {id:'g1',n:'3D Printed Personalized FIFA World Cup',img:'return-gifts/fifa-world-cup-3d.jpg',e:'⚽',type:'personalized',gtheme:'generic',age:'5-12',unit:850,bg:'#F0F7FF',tag:''},
+  {id:'g1',hidden:true,n:'3D Printed Personalized FIFA World Cup',img:'return-gifts/fifa-world-cup-3d.jpg',e:'⚽',type:'personalized',gtheme:'generic',age:'5-12',unit:850,bg:'#F0F7FF',tag:''},
   {id:'g2',n:'900ml Tumbler',img:'return-gifts/tumbler-900ml.jpg',e:'🥤',type:'home',gtheme:'generic',age:'3-12',unit:750,bg:'#F0FDF4',tag:''},
   {id:'g3',n:'Baby Frost Pouch',img:'return-gifts/baby-frost-pouch.jpg',e:'👝',type:'bags',gtheme:'generic',age:'3-12',unit:245,bg:'#FFF0F7',tag:''},
   {id:'g4',n:'Codenames (Board Game)',img:'return-gifts/board-game-codenames.jpg',e:'🎲',type:'games',gtheme:'generic',age:'10-14',unit:475,bg:'#FFFBDC',tag:''},
@@ -3275,24 +3275,27 @@ const GIFTS=[
   {id:'g6',n:'Foam Duffle Bag',img:'return-gifts/foam-duffle-bag.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:300,bg:'#FFF0F7',tag:''},
   {id:'g7',n:'Jelly Tote Bag',img:'return-gifts/jelly-tote-bag.jpg',e:'👜',type:'bags',gtheme:'generic',age:'3-12',unit:500,bg:'#FFF0F7',tag:''},
   {id:'g8',n:'Jewellery Organizer with Initial',img:'return-gifts/jewellery-organizer-initial.jpg',e:'💍',type:'personalized',gtheme:'generic',age:'5-12',unit:500,bg:'#F0F7FF',tag:''},
-  {id:'g9',n:'Kids Travel Trolley',img:'return-gifts/kids-travel-trolley.jpg',e:'🧳',type:'home',gtheme:'generic',age:'3-10',unit:1200,bg:'#F0FDF4',tag:''},
-  {id:'g10',n:'LCD Compass Box with Calculator',img:'return-gifts/lcd-compass-calculator.jpg',e:'📐',type:'stationery',gtheme:'generic',age:'6-14',unit:210,bg:'#FFFBDC',tag:''},
+  {id:'g9',hidden:true,n:'Kids Travel Trolley',img:'return-gifts/kids-travel-trolley.jpg',e:'🧳',type:'home',gtheme:'generic',age:'3-10',unit:1200,bg:'#F0FDF4',tag:''},
+  {id:'g10',hidden:true,n:'LCD Compass Box with Calculator',img:'return-gifts/lcd-compass-calculator.jpg',e:'📐',type:'stationery',gtheme:'generic',age:'6-14',unit:210,bg:'#FFFBDC',tag:''},
   {id:'g11',n:'Mafia (Board Game)',img:'return-gifts/board-game-mafia.jpg',e:'🎲',type:'games',gtheme:'generic',age:'10-14',unit:300,bg:'#FFFBDC',tag:''},
-  {id:'g12',n:'Magic Water Painting Book',img:'return-gifts/magic-water-painting-book.jpg',e:'🎨',type:'stationery',gtheme:'generic',age:'3-8',unit:375,bg:'#FFFBDC',tag:''},
-  {id:'g13',n:'Neon Bag with Double Packet',img:'return-gifts/neon-bag-double-packet.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:400,bg:'#FFF0F7',tag:''},
+  {id:'g12',hidden:true,n:'Magic Water Painting Book',img:'return-gifts/magic-water-painting-book.jpg',e:'🎨',type:'stationery',gtheme:'generic',age:'3-8',unit:375,bg:'#FFFBDC',tag:''},
+  {id:'g13',hidden:true,n:'Neon Bag with Double Packet',img:'return-gifts/neon-bag-double-packet.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:400,bg:'#FFF0F7',tag:''},
   {id:'g14',n:'Neon Duffle Bag',img:'return-gifts/neon-duffle-bag.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:350,bg:'#FFF0F7',tag:''},
-  {id:'g15',n:'Personalized Drawstring Pouch',img:'return-gifts/personalized-drawstring-pouch.jpg',e:'👝',type:'bags',gtheme:'generic',age:'3-12',unit:500,bg:'#FFF0F7',tag:''},
-  {id:'g16',n:'Personalized Drawstring Bag & Pouch Combo',img:'return-gifts/personalized-drawstring-combo.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:750,bg:'#FFF0F7',tag:''},
-  {id:'g17',n:'Personalized Duffle Bag',img:'return-gifts/personalized-duffle-bag.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:650,bg:'#FFF0F7',tag:''},
-  {id:'g18',n:'Personalized Football',img:'return-gifts/personalized-football.jpg',e:'⚽',type:'personalized',gtheme:'generic',age:'5-12',unit:600,bg:'#F0F7FF',tag:''},
-  {id:'g19',n:'Personalized Pouch',img:'return-gifts/personalized-pouch.jpg',e:'👝',type:'bags',gtheme:'generic',age:'3-12',unit:325,bg:'#FFF0F7',tag:''},
+  {id:'g15',hidden:true,n:'Personalized Drawstring Pouch',img:'return-gifts/personalized-drawstring-pouch.jpg',e:'👝',type:'bags',gtheme:'generic',age:'3-12',unit:500,bg:'#FFF0F7',tag:''},
+  {id:'g16',hidden:true,n:'Personalized Drawstring Bag & Pouch Combo',img:'return-gifts/personalized-drawstring-combo.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:750,bg:'#FFF0F7',tag:''},
+  {id:'g17',hidden:true,n:'Personalized Duffle Bag',img:'return-gifts/personalized-duffle-bag.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:650,bg:'#FFF0F7',tag:''},
+  {id:'g18',n:'Personalized Football',img:'return-gifts/personalized-football-1.jpg',gallery:[{type:'img',src:'img/return-gifts/personalized-football-1.jpg'},{type:'img',src:'img/return-gifts/personalized-football-2.jpg'}],e:'⚽',type:'personalized',gtheme:'generic',age:'5-12',unit:600,bg:'#F0F7FF',tag:''},
+  {id:'g19',hidden:true,n:'Personalized Pouch',img:'return-gifts/personalized-pouch.jpg',e:'👝',type:'bags',gtheme:'generic',age:'3-12',unit:325,bg:'#FFF0F7',tag:''},
   {id:'g20',n:'Space Rocket Piggy Bank with Password',img:'return-gifts/space-rocket-piggy-bank.jpg',e:'🚀',type:'personalized',gtheme:'space',age:'3-10',unit:410,bg:'#F0F7FF',tag:''},
-  {id:'g21',n:'Theme Based Penstand',img:'return-gifts/theme-penstand.jpg',e:'✏️',type:'stationery',gtheme:'generic',age:'5-12',unit:450,bg:'#FFFBDC',tag:''},
+  {id:'g21',hidden:true,n:'Theme Based Penstand',img:'return-gifts/theme-penstand.jpg',e:'✏️',type:'stationery',gtheme:'generic',age:'5-12',unit:450,bg:'#FFFBDC',tag:''},
   {id:'g22',n:'Toy Storage Box',img:'return-gifts/toy-storage-box.jpg',e:'📦',type:'home',gtheme:'generic',age:'3-10',unit:375,bg:'#F0FDF4',tag:''},
-  {id:'g23',n:'Train Night Lamp',img:'return-gifts/train-night-lamp.jpg',e:'🚂',type:'home',gtheme:'generic',age:'3-8',unit:300,bg:'#F0FDF4',tag:''},
+  {id:'g23',hidden:true,n:'Train Night Lamp',img:'return-gifts/train-night-lamp.jpg',e:'🚂',type:'home',gtheme:'generic',age:'3-8',unit:300,bg:'#F0FDF4',tag:''},
   {id:'g24',n:'5 Pcs Steel Straw Set',img:'return-gifts/steel-straw-set.jpg',e:'🥤',type:'home',gtheme:'generic',age:'3-12',unit:190,bg:'#F0FDF4',tag:''},
   {id:'g25',n:'Personalized Cap',img:'return-gifts/personalized-cap.png',e:'🧢',type:'personalized',gtheme:'generic',age:'3-12',unit:500,bg:'#F0F7FF',tag:''},
-  {id:'g26',n:'Live T-shirt Printing',img:'return-gifts/live-tshirt-printing.png',info:TSHIRT_INFO,gallery:[{type:'img',src:'img/return-gifts/live-tshirt-printing.png'},{type:'video',src:'img/return-gifts/live-tshirt-video.mp4'}],e:'👕',type:'personalized',gtheme:'generic',age:'5-14',unit:550,bg:'#F0F7FF',tag:''}
+  {id:'g26',n:'Live T-shirt Printing',img:'return-gifts/live-tshirt-printing.png',info:TSHIRT_INFO,gallery:[{type:'img',src:'img/return-gifts/live-tshirt-printing.png'},{type:'video',src:'img/return-gifts/live-tshirt-video.mp4'}],e:'👕',type:'personalized',gtheme:'generic',age:'5-14',unit:550,bg:'#F0F7FF',tag:''},
+  // Added 2026-10-02, per Shruti. Priced per piece.
+  {id:'g27',n:'Squishy Dumpling',img:'return-gifts/squishy-dumpling-plain-1.jpg',gallery:[{type:'img',src:'img/return-gifts/squishy-dumpling-plain-1.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-2.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-3.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-4.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-5.jpg'}],e:'🥟',type:'games',gtheme:'generic',age:'3-12',unit:199,bg:'#FFF0F7',tag:''},
+  {id:'g28',n:'Bath Bomb',img:'return-gifts/bath-bombs-small.jpg',gallery:[{type:'img',src:'img/return-gifts/bath-bombs-small.jpg'},{type:'img',src:'img/return-gifts/bath-bombs-small-1.jpg'},{type:'img',src:'img/return-gifts/bath-bombs-small-2.jpg'}],e:'🛁',type:'home',gtheme:'generic',age:'3-12',unit:85,bg:'#F0FDF4',tag:''},
 ];
 let gF={type:'all',budget:'all',gtheme:'all'};
 let actFilter='all';
@@ -5168,6 +5171,9 @@ function buildGifts(){
 }
 function renderGifts(){
   let list=GIFTS.filter(g=>{
+    // Retired gifts (2026-10-02) stay in GIFTS so package hand-offs and
+    // old bookings still resolve, but aren't offered in Build-a-Birthday.
+    if(g.hidden)return false;
     if(gF.type!=='all'&&g.type!==gF.type)return false;
     if(gF.budget!=='all'){if(gF.budget==='low'&&g.unit>=350)return false;if(gF.budget==='mid'&&(g.unit<350||g.unit>600))return false;if(gF.budget==='high'&&g.unit<=600)return false;}
     if(gF.gtheme!=='all'&&g.gtheme!==gF.gtheme)return false;

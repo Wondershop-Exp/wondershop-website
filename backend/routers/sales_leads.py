@@ -55,7 +55,7 @@ from routers.admin import (
 from catalogue_data import (
     DECOR_TIER_META, THEMES, HOST_TIER_PRICES, DJ_TIER_PRICES,
     PHOTO_TIER_PRICES, PHOTO_TIER_FEATURES, PINATA_TIER_PRICES,
-    PACKAGING_LABELS, ACTIVITIES, GIFTS, EINVITE_TIER_PRICES, SAVE_THE_DATE_PRICE,
+    PACKAGING_LABELS, ACTIVITIES, GIFTS, ACTIVE_GIFTS, EINVITE_TIER_PRICES, SAVE_THE_DATE_PRICE,
     host_tier_for_quote,
 )
 
@@ -193,7 +193,7 @@ def _build_catalogue() -> dict:
         {"id": aid, "name": name, "price": price, "flat": flat}
         for aid, name, price, flat in ACTIVITIES
     ]
-    return_gifts_catalogue = [{"id": gid, "name": name, "price": price} for gid, name, _img, price in GIFTS]
+    return_gifts_catalogue = [{"id": gid, "name": name, "price": price} for gid, name, _img, price in ACTIVE_GIFTS]
 
     return {
         "decor_tiers": decor_tiers,
