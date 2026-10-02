@@ -7270,7 +7270,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       // Return Gifts — maps to real GIFTS catalogue ids so thumbFor() shows
       // the correct real photo on the review page (2026-08-11).
       if(pkgData.gifts&&pkgData.gifts.length){
-        const GIFT_MAP={'g10':{n:'LCD Drawing Pen Case',perChild:210},'g25':{n:'Personalized Cap',perChild:500},'g26':{n:'Live T-shirt Printing',perChild:550}};
+        const GIFT_MAP={'g25':{n:'Personalized Cap',perChild:500},'g26':{n:'Live T-shirt Printing',perChild:550}};
         pkgData.gifts.forEach(gid=>{const item=GIFT_MAP[gid];if(item)S.gifts.push({id:gid,n:item.n,unit:item.perChild,qty:kids});});
       }
       // Entry Options — shown under the new Addons section
