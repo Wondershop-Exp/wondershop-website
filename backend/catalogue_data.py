@@ -382,6 +382,7 @@ ACTIVITIES = [
     ("a26", "Laser Tunnel", 4000, True),
     ("a27", "Dark Room", 15000, True),
     ("a28", "Spy Treasure Hunt", 1500, False),
+    ("hit-the-cans", "Hit the Cans", 5000, True),   # 2026-10-02, BAB + Unicorn
     # 2026-09-25, per Shruti — "Experiences like Magic show, bubble show,
     # science show should come in the dropdown for activities in sales."
     # These already exist on the website (builder.html's ACTS array,
