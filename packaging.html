@@ -233,21 +233,7 @@ let CURRENT_LIST_ID = null;
 let CURRENT_SHARE_URL = null;
 let TEMPLATES = [];
 
-// 2026-10-02, per Shruti — "I was able to login ... without entering
-// password. i think the browser took the earlier password". A saved login
-// is now remembered for 12 hours at most (shared across the staff pages),
-// then the page asks for the password again. Logins saved before this
-// change carry no timestamp, so they're asked for once.
-const LOGIN_TTL_MS = 12*60*60*1000;
-function getPw(){
-  const pw = localStorage.getItem('ws_admin_pw') || '';
-  const at = Number(localStorage.getItem('ws_admin_pw_at') || 0);
-  if(pw && (!at || Date.now() - at > LOGIN_TTL_MS)){
-    localStorage.removeItem('ws_admin_pw'); localStorage.removeItem('ws_admin_pw_at');
-    return '';
-  }
-  return pw;
-}
+function getPw(){ return localStorage.getItem('ws_admin_pw') || ''; }
 function getName(){ return localStorage.getItem('ws_admin_name') || ''; }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 function showToast(msg){
@@ -282,7 +268,6 @@ async function tryLogin(){
   if(!pw){ err.textContent='Enter the admin password.'; return; }
   if(!name){ err.textContent='Enter your name — it will be logged against any edits you make.'; return; }
   localStorage.setItem('ws_admin_pw', pw);
-  localStorage.setItem('ws_admin_pw_at', String(Date.now()));
   localStorage.setItem('ws_admin_name', name);
   try{
     await apiCall('/api/admin/packaging/lists');
