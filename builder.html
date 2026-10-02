@@ -2120,6 +2120,8 @@ body.browse-mode .browse-cta{display:flex}
       <div class="chips" id="gThChips">
         <button class="chip on" onclick="fGifts('gtheme','all',this)">All</button>
         <button class="chip" onclick="fGifts('gtheme','space',this)">Space</button>
+        <button class="chip" onclick="fGifts('gtheme','hp',this)">Harry Potter</button>
+        <button class="chip" onclick="fGifts('gtheme','kpop',this)">K-Pop</button>
       </div>
     </div>
     <div id="giftINote" style="background:var(--li3);border-radius:10px;padding:10px 14px;font-size:12px;color:#7B5EA7;margin-bottom:12px;display:none;align-items:center;justify-content:space-between">
@@ -3296,6 +3298,22 @@ const GIFTS=[
   // Added 2026-10-02, per Shruti. Priced per piece.
   {id:'g27',n:'Squishy Dumpling',img:'return-gifts/squishy-dumpling-plain-1.jpg',gallery:[{type:'img',src:'img/return-gifts/squishy-dumpling-plain-1.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-2.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-3.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-4.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-5.jpg'}],e:'🥟',type:'games',gtheme:'generic',age:'3-12',unit:199,bg:'#FFF0F7',tag:''},
   {id:'g28',n:'Bath Bomb',img:'return-gifts/bath-bombs-small.jpg',gallery:[{type:'img',src:'img/return-gifts/bath-bombs-small.jpg'},{type:'img',src:'img/return-gifts/bath-bombs-small-1.jpg'},{type:'img',src:'img/return-gifts/bath-bombs-small-2.jpg'}],e:'🛁',type:'home',gtheme:'generic',age:'3-12',unit:85,bg:'#F0FDF4',tag:''},
+  // Harry Potter & K-pop range, added 2026-10-02 per Shruti. gtheme may be an
+  // array for items sold in both designs (see renderGifts theme check).
+  {id:'g29',n:'Insulated Steel Lunch Box',img:'return-gifts/hp-kpop-steel-lunch-box.jpg',e:'🍱',type:'home',gtheme:['hp','kpop'],age:'5-14',unit:780,bg:'#F0FDF4',tag:''},
+  {id:'g30',n:'Steel Mug',img:'return-gifts/hp-kpop-steel-mug.jpg',e:'☕',type:'home',gtheme:['hp','kpop'],age:'5-14',unit:440,bg:'#F0FDF4',tag:''},
+  {id:'g31',n:'Insulated Steel Flask (approx. 260 ml)',img:'return-gifts/hp-kpop-steel-flask-260ml.jpg',e:'🧴',type:'home',gtheme:['hp','kpop'],age:'5-14',unit:580,bg:'#F0FDF4',tag:''},
+  {id:'g32',n:'Harry Potter Bluetooth Headphones',img:'return-gifts/hp-bluetooth-headphones.jpg',e:'🎧',type:'home',gtheme:'hp',age:'7-14',unit:700,bg:'#F0FDF4',tag:''},
+  {id:'g33',n:'K-pop Bluetooth Headphones',img:'return-gifts/kpop-bluetooth-headphones.jpg',e:'🎧',type:'home',gtheme:'kpop',age:'8-14',unit:700,bg:'#F0FDF4',tag:''},
+  {id:'g34',n:'LED Alarm Clock',img:'return-gifts/hp-kpop-led-alarm-clock.jpg',e:'⏰',type:'home',gtheme:['hp','kpop'],age:'5-14',unit:420,bg:'#F0FDF4',tag:''},
+  {id:'g35',n:'Harry Potter Karaoke Speaker Set',img:'return-gifts/hp-karaoke-speaker-set.jpg',e:'🎤',type:'games',gtheme:'hp',age:'7-14',unit:600,bg:'#FFF0F7',tag:''},
+  {id:'g36',n:'K-pop Chest Bag (Leather Finish)',img:'return-gifts/kpop-chest-bag.jpg',e:'👜',type:'bags',gtheme:'kpop',age:'8-14',unit:380,bg:'#FFF0F7',tag:''},
+  {id:'g37',n:'Harry Potter Chest Bag (Leather Finish)',img:'return-gifts/hp-chest-bag.jpg',e:'👜',type:'bags',gtheme:'hp',age:'7-14',unit:380,bg:'#FFF0F7',tag:''},
+  {id:'g38',n:'Harry Potter Backpack (Leather Finish)',img:'return-gifts/hp-backpack.jpg',e:'🎒',type:'bags',gtheme:'hp',age:'7-14',unit:570,bg:'#FFF0F7',tag:''},
+  {id:'g39',n:'K-pop Backpack (Leather Finish)',img:'return-gifts/kpop-backpack.jpg',e:'🎒',type:'bags',gtheme:'kpop',age:'8-14',unit:570,bg:'#FFF0F7',tag:''},
+  {id:'g40',n:'Harry Potter A4 Folder (4 designs)',img:'return-gifts/hp-a4-folder.jpg',e:'📁',type:'stationery',gtheme:'hp',age:'7-14',unit:270,bg:'#FFFBDC',tag:''},
+  {id:'g41',n:'K-pop A4 Folder (4 designs)',img:'return-gifts/kpop-a4-folder.jpg',e:'📁',type:'stationery',gtheme:'kpop',age:'8-14',unit:270,bg:'#FFFBDC',tag:''},
+  {id:'g42',n:'Harry Potter Pencil Pouch',img:'return-gifts/hp-pencil-pouch.jpg',e:'✏️',type:'stationery',gtheme:'hp',age:'7-14',unit:200,bg:'#FFFBDC',tag:''},
 ];
 let gF={type:'all',budget:'all',gtheme:'all'};
 let actFilter='all';
@@ -5158,9 +5176,9 @@ function validateInvite(){
 
 // ── GIFTS ──
 // Map a decor theme id (Step 0/1) to the closest matching gift theme, if any.
-// Only Space has a real matching product (Space Rocket Piggy Bank) since the
-// 2026-08-07 catalogue refresh — dino/unicorn dropped, no matching product.
-const GIFT_THEME_MAP={space:'space'};
+// Space (Space Rocket Piggy Bank), plus Harry Potter and K-Pop (incl. Katseye)
+// since the 2026-10-02 Harry Potter & K-pop range was added.
+const GIFT_THEME_MAP={space:'space',hp:'hp',kpop:'kpop',katseye:'kpop'};
 function buildGifts(){
   gF={type:'all',budget:'all',gtheme:'all'};
   const gTh=S.theme&&GIFT_THEME_MAP[S.theme];
@@ -5176,7 +5194,7 @@ function renderGifts(){
     if(g.hidden)return false;
     if(gF.type!=='all'&&g.type!==gF.type)return false;
     if(gF.budget!=='all'){if(gF.budget==='low'&&g.unit>=350)return false;if(gF.budget==='mid'&&(g.unit<350||g.unit>600))return false;if(gF.budget==='high'&&g.unit<=600)return false;}
-    if(gF.gtheme!=='all'&&g.gtheme!==gF.gtheme)return false;
+    if(gF.gtheme!=='all'&&![].concat(g.gtheme).includes(gF.gtheme))return false;
     return true;
   });
   // Further narrow to gifts matching the child's interests (Step 0), unless

@@ -452,6 +452,21 @@ GIFTS = [
     ("g26", "Live T-shirt Printing", "return-gifts/live-tshirt-printing.png", 550),
     ("g27", "Squishy Dumpling", "return-gifts/squishy-dumpling-plain-1.jpg", 199),
     ("g28", "Bath Bomb", "return-gifts/bath-bombs-small.jpg", 85),
+    # Harry Potter & K-pop range, added 2026-10-02 per Shruti.
+    ("g29", "Insulated Steel Lunch Box", "return-gifts/hp-kpop-steel-lunch-box.jpg", 780),
+    ("g30", "Steel Mug", "return-gifts/hp-kpop-steel-mug.jpg", 440),
+    ("g31", "Insulated Steel Flask (approx. 260 ml)", "return-gifts/hp-kpop-steel-flask-260ml.jpg", 580),
+    ("g32", "Harry Potter Bluetooth Headphones", "return-gifts/hp-bluetooth-headphones.jpg", 700),
+    ("g33", "K-pop Bluetooth Headphones", "return-gifts/kpop-bluetooth-headphones.jpg", 700),
+    ("g34", "LED Alarm Clock", "return-gifts/hp-kpop-led-alarm-clock.jpg", 420),
+    ("g35", "Harry Potter Karaoke Speaker Set", "return-gifts/hp-karaoke-speaker-set.jpg", 600),
+    ("g36", "K-pop Chest Bag (Leather Finish)", "return-gifts/kpop-chest-bag.jpg", 380),
+    ("g37", "Harry Potter Chest Bag (Leather Finish)", "return-gifts/hp-chest-bag.jpg", 380),
+    ("g38", "Harry Potter Backpack (Leather Finish)", "return-gifts/hp-backpack.jpg", 570),
+    ("g39", "K-pop Backpack (Leather Finish)", "return-gifts/kpop-backpack.jpg", 570),
+    ("g40", "Harry Potter A4 Folder (4 designs)", "return-gifts/hp-a4-folder.jpg", 270),
+    ("g41", "K-pop A4 Folder (4 designs)", "return-gifts/kpop-a4-folder.jpg", 270),
+    ("g42", "Harry Potter Pencil Pouch", "return-gifts/hp-pencil-pouch.jpg", 200),
 ]
 _GIFTS_BY_ID = {g[0]: g for g in GIFTS}
 
