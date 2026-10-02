@@ -1268,6 +1268,26 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
     # always needs manual follow-up. "Current value" here covers both the
     # customer's own original pick and anything the admin has since set.
     pending_custom_pinata = (all_fields.get("svc_pinata", {}).get("customer_choice") == "Custom Design")
+    # 2026-10-02, per Shruti — "the user had input custom activities in sales
+    # module. these are not reflected on the bookings page. they should show
+    # up in the same manner as on sales page - the yellow strip with a
+    # message that action needs to be taken on these." Free-text activities
+    # the sales panel couldn't pick from the catalogue
+    # (lead_sales_playbook.new_activity_suggestions).
+    sales_activity_requests = []
+    try:
+        _pb = await database.fetch_one(
+            "SELECT new_activity_suggestions FROM lead_sales_playbook WHERE lead_id = :id", values={"id": lead_id})
+        if _pb and _pb["new_activity_suggestions"]:
+            _raw = _pb["new_activity_suggestions"]
+            _raw = json.loads(_raw) if isinstance(_raw, str) else _raw
+            sales_activity_requests = [
+                {"text": x.get("text"), "added_by": x.get("added_by")}
+                for x in (_raw or []) if isinstance(x, dict) and (x.get("text") or "").strip()
+            ]
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: couldn't read sales custom-activity requests")
+
     return {
         "lead_id": lead_id,
         "is_booking": is_booking,
@@ -1298,6 +1318,7 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             } for kind in ("customer", "team")
         },
         "advance_confirmed": advance_confirmed,
+        "sales_activity_requests": sales_activity_requests,
         "pricing": ({"subtotal": pricing["subtotal"], "checkout_total": pricing["checkout_total"],
                      "total_mrp": pricing["total_mrp"], "discount_pct": pricing["discount_pct"],
                      "discount_amt": pricing["discount_amt"], "extra_items": pricing["extra_items"],

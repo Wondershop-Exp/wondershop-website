@@ -510,6 +510,11 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
 .bd-nav .sec-all{flex:0 0 auto;margin-left:auto;padding:8px 14px;white-space:nowrap}
 body.role-sales .admin-only{display:none!important}
 .disc-edit{display:flex;flex-direction:column;align-items:flex-start}
+.sugg-tr > td{padding-top:0!important}
+.sugg-box{display:flex;flex-direction:column;gap:6px}
+.sugg-head{font-size:12px;font-weight:700;color:#8A6A1E}
+.sugg-item{font-size:12.5px;background:#FFF7EC;border:1px solid #F3DFB0;color:#8A6A1E;border-radius:9px;padding:8px 11px}
+.sugg-item b{color:#5C4610}
 .disc-edit .pct-wrap{max-width:220px}
 </style>
 </head>
@@ -727,7 +732,21 @@ function onPincodeInput(pincode){
   if(cityEl) cityEl.value = city;
 }
 
-function getPw(){ return localStorage.getItem('ws_admin_pw') || ''; }
+// 2026-10-02, per Shruti — "I was able to login ... without entering
+// password. i think the browser took the earlier password". A saved login
+// is now remembered for 12 hours at most (shared across the staff pages),
+// then the page asks for the password again. Logins saved before this
+// change carry no timestamp, so they're asked for once.
+const LOGIN_TTL_MS = 12*60*60*1000;
+function getPw(){
+  const pw = localStorage.getItem('ws_admin_pw') || '';
+  const at = Number(localStorage.getItem('ws_admin_pw_at') || 0);
+  if(pw && (!at || Date.now() - at > LOGIN_TTL_MS)){
+    localStorage.removeItem('ws_admin_pw'); localStorage.removeItem('ws_admin_pw_at');
+    return '';
+  }
+  return pw;
+}
 function getName(){ return localStorage.getItem('ws_admin_name') || ''; }
 
 function showToast(msg){
@@ -785,6 +804,7 @@ async function tryLogin(){
   if(!pw){ err.textContent='Enter your password.'; return; }
   if(!name){ err.textContent='Enter your name — it will be logged against any edits you make.'; return; }
   localStorage.setItem('ws_admin_pw', pw);
+  localStorage.setItem('ws_admin_pw_at', String(Date.now()));
   localStorage.setItem('ws_admin_name', name);
   try{
     await apiCall('/api/admin/bookings');
@@ -827,6 +847,8 @@ async function enterApp(){
   updateSortHeaders('lead');
   updateSortHeaders('booking');
   doSearch();
+  // Sales Leads page's "📅 Calendar" link lands here (admin.html#cal).
+  if(location.hash === '#cal') switchTab('cal');
 }
 
 let VENDOR_NAMES = [];
@@ -3636,9 +3658,23 @@ async function saveDiscountRow(){
   }
 }
 
+// Custom activities typed in the sales panel (not in the catalogue) — shown
+// right under Activities as the same yellow strip the sales page uses, so
+// whoever handles the booking knows they still need pricing/adding.
+function salesActivityRequestsRow(){
+  const reqs = (CURRENT_DETAIL && CURRENT_DETAIL.sales_activity_requests) || [];
+  if(!reqs.length) return '';
+  return '<tr class="sugg-tr"><td colspan="5"><div class="sugg-box">'
+    + '<div class="sugg-head">⚠ Custom activities requested by sales — action needed: these aren\'t in the activity list, so they are not priced or included in the totals yet.</div>'
+    + reqs.map(r=>'<div class="sugg-item"><b>'+esc(r.text)+'</b>'+(r.added_by?' — added by '+esc(r.added_by):'')+'</div>').join('')
+    + '</div></td></tr>';
+}
 function fieldRowHtml(f, isCustEvent, locked){
   if(f.field_key==='bill_discount_pct' || f.field_key==='bill_discount_value') return '';
   if(f.field_key==='bill_discount_type') return discountRowHtml(f, locked);
+  if(f.field_key==='svc_activities' && !f._withReq){
+    return fieldRowHtml(Object.assign({}, f, {_withReq:true}), isCustEvent, locked) + salesActivityRequestsRow();
+  }
   const rid = 'fld_'+f.field_key;
   const col3 = isCustEvent ? 'Updated value' : 'Assigned value';
   const removedCls = f.removed ? ' removed' : '';

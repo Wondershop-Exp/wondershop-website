@@ -233,6 +233,9 @@ th.th-sort:hover{color:var(--pk)}
 .sec-all:focus-visible{outline:2px solid var(--plum);outline-offset:2px;border-radius:4px}
 @media (prefers-reduced-motion:reduce){.sec-chev{transition:none}}
 .card.sec-collapsed h3{margin-bottom:0}
+.role-badge{font-size:11px;font-weight:700;border-radius:20px;padding:3px 10px;background:var(--li3);color:var(--gy);white-space:nowrap}
+.role-badge:empty{display:none}
+body.role-sales .admin-only{display:none!important}
 </style>
 </head>
 <body>
@@ -254,8 +257,10 @@ th.th-sort:hover{color:var(--pk)}
     <div class="who">
       Editing as <input type="text" id="whoName" onchange="saveName()">
       <button type="button" class="save-status" id="saveStatus" onclick="onSaveBtnClick()">💾 <span id="saveStatusText">Save</span></button>
-      <a class="linkbtn" href="admin.html">Bookings admin</a>
-      <a class="linkbtn" href="packaging.html">Packing lists</a>
+      <span class="role-badge" id="roleBadge"></span>
+      <a class="linkbtn" href="admin.html">Leads &amp; Bookings</a>
+      <a class="linkbtn" href="admin.html#cal">📅 Calendar</a>
+      <a class="linkbtn admin-only" href="packaging.html">Packing lists</a>
       <button class="linkbtn" onclick="logout()">Log out</button>
     </div>
   </div>
@@ -274,7 +279,7 @@ th.th-sort:hover{color:var(--pk)}
         <th class="th-sort" id="th_created" onclick="setSort('created')">Created</th>
         <th class="th-sort" id="th_birthday" onclick="setSort('birthday')">Birthday</th>
         <th class="th-sort" id="th_modified" onclick="setSort('modified')">Last Modified</th>
-        <th>Revenue Potential</th>
+        <th>Sales Quote</th>
         <th>Stage</th>
         <th class="th-sort" id="th_status" onclick="setSort('status')">Status</th>
         <th></th>
@@ -358,7 +363,21 @@ let LEAD_STATUS_OPTIONS = [];
 let NON_CONVERT_REASON_OPTIONS = [];
 let NON_CONVERT_STATUSES = ['Not Interested', 'DND'];
 
-function getPw(){ return localStorage.getItem('ws_admin_pw') || ''; }
+// 2026-10-02, per Shruti — "I was able to login ... without entering
+// password. i think the browser took the earlier password". A saved login
+// is now remembered for 12 hours at most (shared across the staff pages),
+// then the page asks for the password again. Logins saved before this
+// change carry no timestamp, so they're asked for once.
+const LOGIN_TTL_MS = 12*60*60*1000;
+function getPw(){
+  const pw = localStorage.getItem('ws_admin_pw') || '';
+  const at = Number(localStorage.getItem('ws_admin_pw_at') || 0);
+  if(pw && (!at || Date.now() - at > LOGIN_TTL_MS)){
+    localStorage.removeItem('ws_admin_pw'); localStorage.removeItem('ws_admin_pw_at');
+    return '';
+  }
+  return pw;
+}
 function getName(){ return localStorage.getItem('ws_admin_name') || ''; }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 function money(n){ return (n===null||n===undefined||n==='') ? '' : ('₹'+Number(n).toLocaleString('en-IN')); }
@@ -477,6 +496,7 @@ async function tryLogin(){
   if(!pw){ err.textContent='Enter your password.'; return; }
   if(!name){ err.textContent='Enter your name — it will be logged against any edits you make.'; return; }
   localStorage.setItem('ws_admin_pw', pw);
+  localStorage.setItem('ws_admin_pw_at', String(Date.now()));
   localStorage.setItem('ws_admin_name', name);
   try{
     await apiCall('/api/admin/sales-leads');
@@ -487,6 +507,13 @@ async function tryLogin(){
   enterApp();
 }
 async function enterApp(){
+  // Show which login is in use (2026-10-02) — a remembered ADMIN login and
+  // the sales login look identical otherwise.
+  try{
+    const role = (await apiCall('/api/admin/whoami')).role || 'admin';
+    document.body.classList.toggle('role-sales', role === 'sales');
+    document.getElementById('roleBadge').textContent = role === 'sales' ? 'Sales login' : 'Admin login';
+  }catch(e){ if(e.message === 'unauthorized') return; }
   document.getElementById('gate').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('whoName').value = getName();
@@ -511,7 +538,7 @@ async function enterApp(){
   }
 }
 function logout(){
-  localStorage.removeItem('ws_admin_pw');
+  localStorage.removeItem('ws_admin_pw'); localStorage.removeItem('ws_admin_pw_at');
   document.getElementById('app').style.display='none';
   document.getElementById('gate').style.display='flex';
   document.getElementById('gatePw').value='';
@@ -711,13 +738,13 @@ function updateGrandTotalBar(agreedLive){
   if(!DATA || !CURRENT_ID){ bar.style.display='none'; return; }
   bar.style.display='block';
   const mrp = listBreakdown().total;
-  const raw = (agreedLive !== undefined) ? agreedLive : DATA.client_budget;
+  const raw = (agreedLive !== undefined) ? agreedLive : salesQuoteValue();
   const agreed = (raw === null || raw === undefined || raw === '' || isNaN(Number(raw))) ? null : Number(raw);
   document.getElementById('gtMrp').textContent = money(mrp) || '₹0';
   const disc = agreed === null ? null : mrp - agreed;
   document.getElementById('gtDiscCell').style.display = disc === null ? 'none' : '';
   document.getElementById('gtDisc').textContent = disc === null ? '—' : (disc >= 0 ? '− '+money(disc) : '+ '+money(-disc));
-  document.getElementById('gtAmtLabel').textContent = agreed === null ? 'Grand Total' : 'Grand Total (agreed)';
+  document.getElementById('gtAmtLabel').textContent = agreed === null ? 'Grand Total' : 'Sales Quote';
   document.getElementById('gtAmt').textContent = money(agreed === null ? mrp : agreed) || '₹0';
   const noteEl = document.getElementById('gtNote');
   if(noteEl) noteEl.style.display = DATA.kids_count ? 'none' : 'inline';
@@ -871,6 +898,9 @@ function saveField(key, value, inputType){
   }
   if(DATA[key] === value) return;
   DATA[key] = value;
+  // A Sales Quote the rep typed is theirs from now on (cleared = back to
+  // following the Grand Total) — same rule the server applies on save.
+  if(key === 'client_budget') DATA.client_budget_manual = (value !== null);
   patchSheet({fields:{[key]: value}});
   // # Kids drives Activities' per-child totals, Pinata Bags' cost, and
   // therefore the Grand Total — resave any already-selected kids-count-
@@ -1045,6 +1075,11 @@ function breakupHtml(b){
 // so that onSaveBtnClick() can blur() the focused field and read
 // PENDING_PATCH back in the very same tick, guaranteed complete.
 function patchSheet(body){
+  // Fill an empty Sales Lead with the logged-in name alongside any edit.
+  if(DATA && !DATA.sales_lead_name && getName() && !(body.fields && 'sales_lead_name' in body.fields)){
+    DATA.sales_lead_name = getName();
+    PENDING_PATCH.fields = Object.assign(PENDING_PATCH.fields || {}, {sales_lead_name: getName()});
+  }
   if(body.fields){
     PENDING_PATCH.fields = Object.assign(PENDING_PATCH.fields || {}, body.fields);
   }
@@ -1223,6 +1258,14 @@ async function convertLeadDetail(){
 // hint to browsers that do respect it (Chrome/Firefox's spin arrows) --
 // it does nothing in Safari's picker, but nothing here corrects that
 // anymore, so there's nothing misleading about it either.
+// Sales Lead — 2026-10-02, per Shruti: "by default add the name of the
+// person who has logged in, this can be edited". New leads get it from the
+// server at creation; an older lead with none shows the "Editing as" name
+// here and it's saved with the next Save (see patchSheet()).
+function salesLeadField(){
+  const v = (DATA && DATA.sales_lead_name) || getName() || '';
+  return '<div class="fld"><label>Sales Lead</label><input type="text" id="f_sales_lead_name" value="'+esc(v)+'" onblur="saveField(\'sales_lead_name\', this.value, this.type)"></div>';
+}
 // ── 1. Client & Event Details ───────────────────────────────────────────
 function sectionClientDetails(){
   const d = DATA;
@@ -1236,11 +1279,12 @@ function sectionClientDetails(){
     + '</select></div>';
   return '<div class="card"><h3>1 · Client &amp; Event Details</h3>'
     + '<div class="grid2">' + f('client_name','Client Name','text') + f('mobile','Mobile No.','tel') + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + f('email','Email','email','placeholder="name@example.com"') + salesLeadField() + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('child_name',"Child's Name",'text') + f('child_age','Celebrating Age','text') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + genderSel + f('kids_count','# Kids','number') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('event_date','Date','date') + themeField() + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('sales_lead_name','Sales Lead','text') + f('event_start_time','Event Start Time','time','step="900"') + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('event_end_time','Event End Time','time','step="900"') + venueTypeField() + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + f('event_start_time','Event Start Time','time','step="900"') + f('event_end_time','Event End Time','time','step="900"') + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + venueTypeField() + '<div></div></div>'
     + '<div class="fld" style="margin-top:10px">' + f('venue','Venue','text').replace(/<div class="fld">|<\/div>$/g,'') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('venue_handover_time','Venue Handover Time','time','step="900"') + f('packup_time','Packup Time','time','step="900"') + '</div>'
     + '</div>';
@@ -2198,6 +2242,15 @@ function sectionNotes(){
 // (the derived, itemised total from requirements + activities). Discount
 // is computed client-side, live, as the agreed total is typed.
 const PAYMENT_METHODS = ['Cash','UPI Transfer','Bank Transfer','Internal Settle'];
+// Sales Quote (was "Revenue Potential") — 2026-10-02, per Shruti: "by
+// default, make ... sales quote equal to the grand total". Until a rep types
+// their own figure (client_budget_manual), it simply follows the Grand
+// Total live; the server stores the same default (_mrp_total). Only an
+// actual edit in the box saves it as the rep's own quote (data-touched).
+function salesQuoteValue(LB){
+  if(DATA && DATA.client_budget_manual) return DATA.client_budget;
+  return (LB || listBreakdown()).total;
+}
 function sectionBilling(){
   const d = DATA;
   const LB = listBreakdown();
@@ -2206,16 +2259,16 @@ function sectionBilling(){
     + (d.kids_count?'':'<div class="ref-note">Activities priced per child use ×1 until # Kids is filled in above.</div>')
     + '<div class="grid4">'
       + '<div class="fld"><label>Grand Total (from selections)</label><div class="readonly-amt" id="bill_est_total">'+(money(LB.total)||'₹0')+'</div></div>'
-      + '<div class="fld"><label>Revenue Potential (₹)</label><input type="number" id="bill_grand_total" value="'+(d.client_budget==null?'':d.client_budget)+'" oninput="updateDiscountPreview()" onblur="saveField(\'client_budget\', this.value, this.type)"></div>'
+      + '<div class="fld"><label>Sales Quote (₹)</label><input type="number" id="bill_grand_total" value="'+(salesQuoteValue(LB)==null?'':salesQuoteValue(LB))+'" oninput="this.dataset.touched=1;updateDiscountPreview()" onblur="if(this.dataset.touched)saveField(\'client_budget\', this.value, this.type)"></div>'
       + '<div class="fld"><label>Balance / Advance Received (₹)</label><input type="number" id="bill_advance" value="'+(d.order_advance==null?'':d.order_advance)+'" onblur="saveField(\'order_advance\', this.value, this.type)"></div>'
       + '<div class="fld"><label>Payment Method</label><select id="bill_pm" onchange="saveField(\'payment_method\', this.value)">'+pmOpts+'</select></div>'
     + '</div>'
     + breakupHtml(LB)
-    + '<div class="disc-box" id="discBox">'+discountHtml(LB.total, d.client_budget)+'</div>'
+    + '<div class="disc-box" id="discBox">'+discountHtml(LB.total, salesQuoteValue(LB))+'</div>'
     + '<div class="fld" style="margin-top:12px"><label>Terms &amp; Conditions <span class="opt">optional</span></label>'
       + '<textarea placeholder="Any terms/conditions agreed with the client..." onblur="saveField(\'terms_conditions\', this.value)">'+esc(d.terms_conditions||'')+'</textarea></div>'
     + '<div style="font-size:12px;color:var(--gy);margin-top:12px">'+(d.is_booking
-        ? ('Booking confirmed'+(d.sent_to_ops_at?(' · sent to ops '+esc(d.sent_to_ops_at)):'')+' · changes to Revenue Potential update the booking\'s discount when you Save.')
+        ? ('Booking confirmed'+(d.sent_to_ops_at?(' · sent to ops '+esc(d.sent_to_ops_at)):'')+' · changes to Sales Quote update the booking\'s discount when you Save.')
         : 'Still a lead. Use <b>Convert to Booking</b> in the Status section at the top once the client confirms.')+'</div>'
     + '</div>';
 }

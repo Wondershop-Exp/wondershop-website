@@ -58,7 +58,21 @@ th{background:var(--headbg);color:#fff;font-family:var(--fd);font-weight:700;fon
 
 <script>
 const API = 'https://wondershop-website-production.up.railway.app';
-function getPw(){ return localStorage.getItem('ws_admin_pw') || ''; }
+// 2026-10-02, per Shruti — "I was able to login ... without entering
+// password. i think the browser took the earlier password". A saved login
+// is now remembered for 12 hours at most (shared across the staff pages),
+// then the page asks for the password again. Logins saved before this
+// change carry no timestamp, so they're asked for once.
+const LOGIN_TTL_MS = 12*60*60*1000;
+function getPw(){
+  const pw = localStorage.getItem('ws_admin_pw') || '';
+  const at = Number(localStorage.getItem('ws_admin_pw_at') || 0);
+  if(pw && (!at || Date.now() - at > LOGIN_TTL_MS)){
+    localStorage.removeItem('ws_admin_pw'); localStorage.removeItem('ws_admin_pw_at');
+    return '';
+  }
+  return pw;
+}
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 function money(n){ return (n===null||n===undefined||n==='') ? '—' : ('₹'+Number(n).toLocaleString('en-IN')); }
 function val(v){ return (v===null||v===undefined||v==='') ? '' : esc(v); }
@@ -151,6 +165,7 @@ function render(d){
 
       + '<h2 class="sec">Client &amp; Event Details</h2>'
       + '<table><tr><td class="lbl">Client Name</td><td>'+val(d.client_name)+'&nbsp;</td><td class="lbl">Mobile No.</td><td>'+val(d.mobile)+'&nbsp;</td></tr>'
+        + '<tr><td class="lbl">Email</td><td colspan="3">'+val(d.email)+'&nbsp;</td></tr>'
         + '<tr><td class="lbl">Child\'s Name</td><td>'+val(d.child_name)+'&nbsp;</td><td class="lbl">Celebrating Age</td><td>'+val(d.child_age)+'&nbsp;</td></tr>'
         + '<tr><td class="lbl">Gender</td><td>'+val(d.child_gender)+'&nbsp;</td><td class="lbl"># Kids</td><td>'+val(d.kids_count)+'&nbsp;</td></tr>'
         + '<tr><td class="lbl">Date</td><td>'+val(d.event_date)+'&nbsp;</td><td class="lbl">Theme</td><td>'+val(d.theme)+'&nbsp;</td></tr>'
@@ -183,7 +198,7 @@ function render(d){
         + '<td class="lbl">Music Assigned To</td><td>'+val(d.music_assigned_to)+'&nbsp;</td></tr></table>'
 
       + '<h2 class="sec">Billing</h2>'
-      + '<table><tr><td class="lbl">Grand Total</td><td>'+money(d.client_budget)+'&nbsp;</td>'
+      + '<table><tr><td class="lbl">Sales Quote</td><td>'+money(d.client_budget)+'&nbsp;</td>'
         + '<td class="lbl">Advance / Balance Received</td><td>'+money(d.order_advance)+'&nbsp;</td></tr>'
         + '<tr><td class="lbl">Payment Method</td><td colspan="3">'+val(d.payment_method)+'&nbsp;</td></tr></table>'
 

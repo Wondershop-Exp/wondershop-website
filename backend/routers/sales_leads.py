@@ -39,6 +39,7 @@ module, unlike packaging's staff share-links) — this is an internal sales
 + ops tool, per Shruti's description of how it's actually used.
 """
 import json
+import re
 import logging
 from datetime import datetime, timedelta, date
 from typing import Optional, Dict, Any
@@ -55,6 +56,7 @@ from catalogue_data import (
     DECOR_TIER_META, THEMES, HOST_TIER_PRICES, DJ_TIER_PRICES,
     PHOTO_TIER_PRICES, PHOTO_TIER_FEATURES, PINATA_TIER_PRICES,
     PACKAGING_LABELS, ACTIVITIES, GIFTS, EINVITE_TIER_PRICES, SAVE_THE_DATE_PRICE,
+    host_tier_for_quote,
 )
 
 router = APIRouter()
@@ -141,6 +143,12 @@ PINATA_BAG_UNIT_PRICE = 12
 @router.get("/admin/sales-leads/catalogue")
 async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
+    return _build_catalogue()
+
+
+def _build_catalogue() -> dict:
+    """The sales panel's price lists (also used server-side by _mrp_total,
+    so the server's default Sales Quote matches the page's Grand Total)."""
     # Decor: tier is a plain pick list now (+ "Others") — cost is typed in
     # by the sales person, not auto-filled, since a real quote is often
     # negotiated off-tier. Reference prices are still sent along so the
@@ -234,6 +242,10 @@ async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
 LEAD_FIELD_MAP = {
     "client_name": "parent_name",
     "mobile": "phone",
+    # 2026-10-02, per Shruti — "add email id as well in the sales module".
+    # leads.email is the same column the website checkout and the booking
+    # emails (confirmation/invoice) already use.
+    "email": "email",
     "child_name": "child_names",
     "child_age": "child_ages",
     "child_gender": "child_genders",
@@ -399,6 +411,106 @@ async def _get_playbook_row(lead_id: int):
     return row
 
 
+def _mrp_total(requirements: dict, activities: list, kids_count: Optional[int]) -> float:
+    """Python twin of listBreakdown() in sales-leads.html — the Grand Total
+    at MRP (list price of every selected service; Host = next tier up from
+    the quote, quote itself above all tiers; a line with no list price
+    counts at its quote). 2026-10-02, per Shruti: "by default, make ...
+    sales quote equal to the grand total" — this is that default. Keep the
+    two in step if either changes."""
+    C = _build_catalogue()
+    reqs = requirements or {}
+    kids = kids_count or 1
+
+    def num(v):
+        try:
+            return None if v in (None, "") else float(v)
+        except (TypeError, ValueError):
+            return None
+
+    def cat_price(lst, key, val):
+        for o in lst or []:
+            if o and o.get(key) == val and o.get("price") is not None:
+                return float(o["price"])
+        return None
+
+    def sel(k):
+        r = reqs.get(k)
+        return r if isinstance(r, dict) else {}
+
+    def on(r):
+        return bool(r.get("selected")) and r.get("selected") != "No"
+
+    total = 0.0
+
+    def line(quoted, mrp):
+        nonlocal total
+        q = num(quoted)
+        total += (q or 0.0) if mrp is None else float(mrp)
+
+    gifts = sel("return_gifts").get("selected_gifts") or []
+    gift_qty = sum(int(num(g.get("quantity")) or 0) for g in gifts) if gifts else int(num(sel("return_gifts").get("quantity")) or 0)
+
+    d = sel("decor")
+    if on(d) or num(d.get("cost")) is not None:
+        line(d.get("cost"), cat_price(C["decor_tiers"], "name", d.get("selected")))
+    h = sel("host")
+    if num(h.get("cost")) is not None:
+        tier = host_tier_for_quote(h.get("cost"))
+        line(h.get("cost"), HOST_TIER_PRICES.get(tier) if tier else None)
+    m = sel("music")
+    if on(m) or num(m.get("cost")) is not None:
+        line(m.get("cost"), cat_price(C["music"], "name", m.get("selected")))
+    for a in m.get("addons") or []:
+        if a and a.get("name"):
+            line(a.get("price"), cat_price(C["music_addons"], "name", a.get("name")))
+    ph = sel("photographer")
+    if on(ph) or num(ph.get("cost")) is not None:
+        line(ph.get("cost"), cat_price(C["photographer"], "name", ph.get("selected")))
+    ei = sel("einvite_type")
+    if on(ei) or num(ei.get("cost")) is not None:
+        line(ei.get("cost"), cat_price(C["einvite_type"], "name", ei.get("selected")))
+    sd = sel("save_the_date")
+    if sd.get("selected") == "Yes":
+        line(sd.get("cost"), C.get("save_the_date_price"))
+    pt = sel("pinata_type")
+    if on(pt) or num(pt.get("cost")) is not None:
+        line(pt.get("cost"), cat_price(C["pinata_type"], "name", pt.get("selected")))
+    pb = sel("pinata_bags")
+    if pb.get("selected") == "Yes":
+        line(pb.get("cost"), (C["pinata_bags"].get("unit_price") or 0) * kids)
+    rg = sel("return_gifts")
+    if gifts or num(rg.get("cost")) is not None:
+        mrp = None
+        if gifts:
+            mrp = 0.0
+            for g in gifts:
+                p = cat_price(C["return_gifts_catalogue"], "name", g.get("name"))
+                mrp += (p if p is not None else (num(g.get("price")) or 0)) * (num(g.get("quantity")) or 0)
+        line(rg.get("cost"), mrp)
+    pk = sel("packaging")
+    if pk.get("selected") and pk.get("selected") != "None":
+        unit = cat_price([{"name": o["label"], "price": o["price"]} for o in C["packaging"]], "name", pk.get("selected"))
+        line(pk.get("cost"), unit * gift_qty if unit is not None else None)
+    tg = sel("return_gift_tags")
+    if tg.get("selected") == "Yes":
+        gt = C["return_gift_tags"]
+        line(tg.get("cost"), max(gt.get("min_qty") or 15, gift_qty) * (gt.get("unit_price") or 10))
+    known = {"decor", "host", "music", "photographer", "einvite_type", "save_the_date", "pinata_type",
+             "pinata_bags", "return_gifts", "packaging", "return_gift_tags"}
+    for k, r in reqs.items():
+        if k not in known and isinstance(r, dict) and num(r.get("cost")):
+            line(r.get("cost"), None)
+    for a in activities or []:
+        if not a or not a.get("name"):
+            continue
+        cat_a = next((x for x in C["activities"] if (a.get("id") and x["id"] == a.get("id")) or x["name"] == a.get("name")), None)
+        flat = bool(cat_a["flat"]) if cat_a else bool(a.get("flat"))
+        unit = float(cat_a["price"]) if cat_a and cat_a.get("price") is not None else (num(a.get("price")) or 0)
+        total += unit * (1 if flat else kids)
+    return round(total, 2)
+
+
 def _estimate_total(requirements: dict, activities: list, kids_count: Optional[int]) -> float:
     total = 0.0
     for r in (requirements or {}).values():
@@ -467,7 +579,7 @@ def _is_blank_sheet(lead, pb) -> bool:
         return False
     # every field a salesperson can type into on the leads side
     for col in ("phone", "child_names", "child_ages", "child_genders", "event_date", "event_time",
-                "venue", "theme", "kids_count", "event_sales_lead", "payment_method",
+                "venue", "theme", "kids_count", "email", "payment_method",
                 "non_convert_reason", "non_convert_reason_other", "order_id", "converted_on"):
         if _has_content(lead.get(col)):
             return False
@@ -527,14 +639,20 @@ async def _full_detail(lead_row) -> dict:
     # overwrites the final Grand Total a sales rep deliberately typed in at
     # confirm-booking time.
     estimated_total = _estimate_total(reqs, acts, lead.get("kids_count"))
+    # 2026-10-02, per Shruti — "by default, make revenue potential/sales
+    # quote equal to the grand total": the auto-filled figure is now the
+    # Grand Total at MRP (_mrp_total — what the page shows as Grand Total),
+    # no longer the sum of typed quotes. Still stops the moment a rep types
+    # their own Sales Quote (client_budget_manual).
+    default_quote = _mrp_total(reqs, acts, lead.get("kids_count"))
     if not lead.get("is_booking") and not lead.get("client_budget_manual"):
         stored_budget = float(lead["client_budget"]) if lead.get("client_budget") is not None else None
-        if stored_budget != estimated_total:
+        if stored_budget != default_quote:
             await database.execute(
                 "UPDATE leads SET client_budget = :v WHERE lead_id = :id",
-                values={"v": estimated_total, "id": lead["lead_id"]},
+                values={"v": default_quote, "id": lead["lead_id"]},
             )
-            lead["client_budget"] = estimated_total
+            lead["client_budget"] = default_quote
 
     out = {
         "lead_id": lead["lead_id"],
@@ -555,6 +673,8 @@ async def _full_detail(lead_row) -> dict:
         "non_convert_reason": lead.get("non_convert_reason"),
         "non_convert_reason_other": lead.get("non_convert_reason_other"),
         "client_budget": float(lead["client_budget"]) if lead.get("client_budget") is not None else None,
+        "client_budget_manual": bool(lead.get("client_budget_manual")),
+        "email": lead.get("email"),
         "order_advance": float(lead["order_advance"]) if lead.get("order_advance") is not None else None,
         "payment_method": lead.get("payment_method"),
 
@@ -684,7 +804,10 @@ async def create_sheet(body: SheetIn, x_admin_password: Optional[str] = Header(N
         "event_time": body.event_start_time,
         "venue": body.venue,
         "kids_count": body.kids_count,
-        "event_sales_lead": body.sales_lead_name,
+        # 2026-10-02, per Shruti — "sales lead - by default add the name of
+        # the person who has logged in, this can be edited". (Not counted as
+        # content by _is_blank_sheet, so a stray "+ Register" stays deletable.)
+        "event_sales_lead": (body.sales_lead_name or "").strip() or (body.created_by or "").strip() or None,
     }
     lead_id = await database.execute(
         """INSERT INTO leads
@@ -790,6 +913,10 @@ async def patch_sheet(lead_id: int, body: PatchIn, x_admin_password: Optional[st
                     raise HTTPException(status_code=400, detail=f"{key} must be a number")
             elif col == "event_date":
                 val = _to_date(val)
+            elif col == "email":
+                val = (str(val).strip().lower() or None) if val is not None else None
+                if val and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[A-Za-z]{2,}", val):
+                    raise HTTPException(status_code=400, detail="Please enter a valid email address.")
             elif key in NUMERIC_FLOAT_LEAD_FIELDS and val is not None:
                 try:
                     val = float(val)
