@@ -511,6 +511,14 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
 body.role-sales .admin-only{display:none!important}
 .disc-edit{display:flex;flex-direction:column;align-items:flex-start}
 .sugg-tr > td{padding-top:0!important}
+.ei-card{border:1.5px solid var(--li);border-radius:14px;background:var(--li3);padding:14px 16px}
+.ei-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;font-weight:700;font-size:14px;color:var(--bk)}
+.ei-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.ei-fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ei-fld.wide{grid-column:1 / -1}
+.ei-fld label{font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px}
+.ei-fld input{width:100%;background:#fff}
+@media(max-width:640px){.ei-grid{grid-template-columns:1fr}}
 .sugg-box{display:flex;flex-direction:column;gap:6px}
 .sugg-head{font-size:12px;font-weight:700;color:#8A6A1E}
 .sugg-item{font-size:12.5px;background:#FFF7EC;border:1px solid #F3DFB0;color:#8A6A1E;border-radius:9px;padding:8px 11px}
@@ -3654,7 +3662,53 @@ function salesActivityRequestsRow(){
     + reqs.map(r=>'<div class="sugg-item"><b>'+esc(r.text)+'</b>'+(r.added_by?' — added by '+esc(r.added_by):'')+'</div>').join('')
     + '</div></td></tr>';
 }
+// ── E-Invite Details: ONE small card (2026-10-02, per Shruti) ─────────────
+// "don't add each item like this, make it a small submodule like in the
+// sales module ... let the outline be purple. user can edit the existing
+// value, no need to show the current, original and new values". The five
+// e-invite fields render as one purple-outlined card of plain inputs with a
+// single Save (only changed fields are sent, each through the normal
+// /field endpoint, so the change log still records them).
+const EI_FIELDS = [
+  {key:'einvite_save_the_date', label:'Save the Date', ph:'e.g. Yes'},
+  {key:'einvite_pickup_time',   label:'Pickup Time',   ph:'e.g. 6:30 PM (shown on invite)'},
+  {key:'einvite_venue',         label:'Venue on Invite', ph:'Venue as it should appear', wide:true},
+  {key:'einvite_rsvp',          label:'RSVP Contact',  ph:'Name, mobile'},
+  {key:'einvite_instructions',  label:'Instructions',  ph:'Any special instruction', wide:true},
+];
+function einviteCardHtml(locked){
+  const cells = EI_FIELDS.map(x=>{
+    const v = _billField(x.key).customer_choice || '';
+    return '<div class="ei-fld'+(x.wide?' wide':'')+'"><label>'+esc(x.label)+'</label>'
+      + (locked ? '<span class="readonly-cell">'+esc(v||'—')+'</span>'
+                : '<input type="text" id="ei_'+x.key+'" value="'+esc(v)+'" placeholder="'+esc(x.ph)+'" data-orig="'+esc(v)+'">')
+      + '</div>';
+  }).join('');
+  return '<tr id="fld_einvite_card" data-key="einvite_card"><td colspan="5"><div class="ei-card">'
+    + '<div class="ei-head"><span>E-Invite Details</span>'
+    + (locked ? '' : '<button class="mini-btn save" onclick="saveEinviteCard()">Save</button>')
+    + '</div><div class="ei-grid">'+cells+'</div></div></td></tr>';
+}
+async function saveEinviteCard(){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
+  const changed = EI_FIELDS.filter(x=>{ const el = document.getElementById('ei_'+x.key); return el && el.value.trim() !== (el.dataset.orig||''); });
+  if(!changed.length){ showToast('No changes to save.'); return; }
+  try{
+    for(const x of changed){
+      const f = _billField(x.key);
+      await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {method:'POST', body: JSON.stringify({
+        field_key:x.key, customer_choice_override: document.getElementById('ei_'+x.key).value.trim(),
+        assigned_value: f.assigned_value||'', remarks: f.remarks||'', removed:false, changed_by:who})});
+    }
+    showToast('✓ E-Invite details saved ('+changed.map(x=>x.label).join(', ')+')');
+    await loadDetail();
+  }catch(e){ if(e.message!=='unauthorized') showToast('Save failed: '+e.message); }
+}
+
 function fieldRowHtml(f, isCustEvent, locked){
+  if(f.field_key==='einvite_save_the_date') return einviteCardHtml(locked);
+  if(EI_FIELDS.some(x=>x.key===f.field_key)) return '';
   if(f.field_key==='bill_discount_pct' || f.field_key==='bill_discount_value') return '';
   if(f.field_key==='bill_discount_type') return discountRowHtml(f, locked);
   if(f.field_key==='svc_activities' && !f._withReq){

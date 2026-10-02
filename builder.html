@@ -3242,7 +3242,7 @@ const INVITES=[
   {id:'i12',n:'Superhero (Pop Art)',p:500,file:'superhero-popart.jpg',t:'hero'},
   {id:'i13',n:'Football × Spy Mission',p:500,file:'football-spy.jpg',t:'football'},
   {id:'i15',n:'Harry Potter',p:500,file:'harry-potter.jpg',t:'hp'},
-  {id:'i17',n:'Imposter Mission',p:500,file:'imposter-mission-alt.jpg',t:''},
+  {id:'i17',n:'Imposter Mission',p:500,file:'imposter-mission-alt.jpg',t:'imposter'},
   {id:'i18',n:'K-Pop Idol Collage',p:500,file:'kpop-idol-collage.jpg',t:'kpop'},
   {id:'i19',n:'K-Pop Bestie',p:500,file:'kpop-bestie.jpg',t:'kpop'},
   {id:'i20',n:'K-Pop Girl Group (Red)',p:500,file:'kpop-girlgroup-red.jpg',t:'kpop'},
@@ -4528,7 +4528,13 @@ function populateThemeCatalogSelects(){
   const prefSel=document.getElementById('f-theme');
   if(prefSel&&prefSel.options.length===2){
     const somethingElseOpt=prefSel.options[1];
-    sorted.forEach(t=>{
+    // 2026-10-02, per Shruti — "add among us and imposter in themes on page
+    // 0 of BAB". Theme Preference only (no decor designs for these yet, so
+    // they aren't decor-catalogue THEMES): picking one shows every decor
+    // design on the decor step (same as any theme with no designs) and
+    // surfaces the matching e-invites first (INVITES t:'imposter').
+    const PREF_ONLY_THEMES=[{id:'among-us',n:'Among Us',e:'🚀'},{id:'imposter',n:'Imposter',e:'🕵️'}];
+    [...sorted, ...PREF_ONLY_THEMES].sort((a,b)=>a.n.localeCompare(b.n)).forEach(t=>{
       const opt=document.createElement('option');
       opt.value=t.id;opt.textContent=t.e+' '+t.n;
       prefSel.insertBefore(opt,somethingElseOpt);
