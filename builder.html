@@ -1139,6 +1139,7 @@ body.browse-mode .browse-cta{display:flex}
 @keyframes nudgePulse{0%,100%{box-shadow:0 0 0 0 rgba(181,157,222,.55)}50%{box-shadow:0 0 0 8px rgba(181,157,222,0)}}
 .nudge-highlight{border-radius:12px;animation:nudgePulse 1.1s ease-out 2}
 </style>
+<script src="js/return-gifts.js"></script>
 </head>
 <body>
 
@@ -3290,107 +3291,9 @@ const INVITES=[
 // around the real price range (₹210–₹1,200 vs the old ₹200–₹380 placeholder
 // range) — see id="gBChips" and the budget check in renderGifts(). g24 (Steel
 // Straw Set) had no price in its filename — priced at ₹190 per Shruti.
-const GIFTS=[
-  {id:'g1',hidden:true,n:'3D Printed Personalized FIFA World Cup',img:'return-gifts/fifa-world-cup-3d.jpg',e:'⚽',type:'personalized',gtheme:'generic',age:'5-12',unit:850,bg:'#F0F7FF',tag:''},
-  {id:'g2',n:'900ml Tumbler',img:'return-gifts/tumbler-900ml.jpg',e:'🥤',type:'home',gtheme:'generic',age:'3-12',unit:750,bg:'#F0FDF4',tag:''},
-  {id:'g3',n:'Baby Frost Pouch',img:'return-gifts/baby-frost-pouch.jpg',e:'👝',type:'bags',gtheme:'generic',age:'3-12',unit:245,bg:'#FFF0F7',tag:''},
-  {id:'g4',n:'Codenames (Board Game)',img:'return-gifts/board-game-codenames.jpg',e:'🎲',type:'games',gtheme:'generic',age:'10-14',unit:475,bg:'#FFFBDC',tag:''},
-  {id:'g5',n:'Neon Chest Bag',img:'return-gifts/chest-bag-neon.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'5-12',unit:275,bg:'#FFF0F7',tag:''},
-  {id:'g6',n:'Foam Duffle Bag',img:'return-gifts/foam-duffle-bag.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:300,bg:'#FFF0F7',tag:''},
-  {id:'g7',n:'Jelly Tote Bag',img:'return-gifts/jelly-tote-bag.jpg',e:'👜',type:'bags',gtheme:'generic',age:'3-12',unit:500,bg:'#FFF0F7',tag:''},
-  {id:'g8',n:'Jewellery Organizer with Initial',img:'return-gifts/jewellery-organizer-initial.jpg',e:'💍',type:'personalized',gtheme:'generic',age:'5-12',unit:500,bg:'#F0F7FF',tag:''},
-  {id:'g9',hidden:true,n:'Kids Travel Trolley',img:'return-gifts/kids-travel-trolley.jpg',e:'🧳',type:'home',gtheme:'generic',age:'3-10',unit:1200,bg:'#F0FDF4',tag:''},
-  {id:'g10',hidden:true,n:'LCD Compass Box with Calculator',img:'return-gifts/lcd-compass-calculator.jpg',e:'📐',type:'stationery',gtheme:'generic',age:'6-14',unit:210,bg:'#FFFBDC',tag:''},
-  {id:'g11',n:'Mafia (Board Game)',img:'return-gifts/board-game-mafia.jpg',e:'🎲',type:'games',gtheme:'generic',age:'10-14',unit:300,bg:'#FFFBDC',tag:''},
-  {id:'g12',hidden:true,n:'Magic Water Painting Book',img:'return-gifts/magic-water-painting-book.jpg',e:'🎨',type:'stationery',gtheme:'generic',age:'3-8',unit:375,bg:'#FFFBDC',tag:''},
-  {id:'g13',hidden:true,n:'Neon Bag with Double Packet',img:'return-gifts/neon-bag-double-packet.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:400,bg:'#FFF0F7',tag:''},
-  {id:'g14',n:'Neon Duffle Bag',img:'return-gifts/neon-duffle-bag.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:350,bg:'#FFF0F7',tag:''},
-  {id:'g15',hidden:true,n:'Personalized Drawstring Pouch',img:'return-gifts/personalized-drawstring-pouch.jpg',e:'👝',type:'bags',gtheme:'generic',age:'3-12',unit:500,bg:'#FFF0F7',tag:''},
-  {id:'g16',hidden:true,n:'Personalized Drawstring Bag & Pouch Combo',img:'return-gifts/personalized-drawstring-combo.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:750,bg:'#FFF0F7',tag:''},
-  {id:'g17',hidden:true,n:'Personalized Duffle Bag',img:'return-gifts/personalized-duffle-bag.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:650,bg:'#FFF0F7',tag:''},
-  {id:'g18',n:'Personalized Football',img:'return-gifts/personalized-football-1.jpg',gallery:[{type:'img',src:'img/return-gifts/personalized-football-1.jpg'},{type:'img',src:'img/return-gifts/personalized-football-2.jpg'}],e:'⚽',type:'personalized',gtheme:'generic',age:'5-12',unit:600,bg:'#F0F7FF',tag:''},
-  {id:'g19',hidden:true,n:'Personalized Pouch',img:'return-gifts/personalized-pouch.jpg',e:'👝',type:'bags',gtheme:'generic',age:'3-12',unit:325,bg:'#FFF0F7',tag:''},
-  {id:'g20',n:'Space Rocket Piggy Bank with Password',img:'return-gifts/space-rocket-piggy-bank.jpg',e:'🚀',type:'personalized',gtheme:'space',age:'3-10',unit:410,bg:'#F0F7FF',tag:''},
-  {id:'g21',hidden:true,n:'Theme Based Penstand',img:'return-gifts/theme-penstand.jpg',e:'✏️',type:'stationery',gtheme:'generic',age:'5-12',unit:450,bg:'#FFFBDC',tag:''},
-  {id:'g22',n:'Toy Storage Box',img:'return-gifts/toy-storage-box.jpg',e:'📦',type:'home',gtheme:'generic',age:'3-10',unit:375,bg:'#F0FDF4',tag:''},
-  {id:'g23',hidden:true,n:'Train Night Lamp',img:'return-gifts/train-night-lamp.jpg',e:'🚂',type:'home',gtheme:'generic',age:'3-8',unit:300,bg:'#F0FDF4',tag:''},
-  {id:'g24',n:'5 Pcs Steel Straw Set',img:'return-gifts/steel-straw-set.jpg',e:'🥤',type:'home',gtheme:'generic',age:'3-12',unit:190,bg:'#F0FDF4',tag:''},
-  {id:'g25',n:'Personalized Cap',img:'return-gifts/personalized-cap.png',e:'🧢',type:'personalized',gtheme:'generic',age:'3-12',unit:500,bg:'#F0F7FF',tag:''},
-  {id:'g26',n:'Live T-shirt Printing',img:'return-gifts/live-tshirt-printing.png',info:TSHIRT_INFO,gallery:[{type:'img',src:'img/return-gifts/live-tshirt-printing.png'},{type:'video',src:'img/return-gifts/live-tshirt-video.mp4'}],e:'👕',type:'personalized',gtheme:'generic',age:'5-14',unit:550,bg:'#F0F7FF',tag:''},
-  // Added 2026-10-02, per Shruti. Priced per piece.
-  {id:'g27',n:'Squishy Dumpling',img:'return-gifts/squishy-dumpling-plain-1.jpg',gallery:[{type:'img',src:'img/return-gifts/squishy-dumpling-plain-1.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-2.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-3.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-4.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-5.jpg'}],e:'🥟',type:'games',gtheme:'generic',age:'3-12',unit:199,bg:'#FFF0F7',tag:''},
-  {id:'g28',n:'Bath Bomb',img:'return-gifts/bath-bombs-small.jpg',gallery:[{type:'img',src:'img/return-gifts/bath-bombs-small.jpg'},{type:'img',src:'img/return-gifts/bath-bombs-small-1.jpg'},{type:'img',src:'img/return-gifts/bath-bombs-small-2.jpg'}],e:'🛁',type:'home',gtheme:'generic',age:'3-12',unit:85,bg:'#F0FDF4',tag:''},
-  // Harry Potter & K-pop range, added 2026-10-02 per Shruti. gtheme may be an
-  // array for items sold in both designs (see renderGifts theme check).
-  {id:'g29',n:'Insulated Steel Lunch Box',img:'return-gifts/hp-kpop-steel-lunch-box.jpg',e:'🍱',type:'home',gtheme:['hp','kpop'],age:'5-14',unit:546,bg:'#F0FDF4',tag:''},
-  {id:'g30',n:'Steel Mug',img:'return-gifts/hp-kpop-steel-mug.jpg',e:'☕',type:'home',gtheme:['hp','kpop'],age:'5-14',unit:440,bg:'#F0FDF4',tag:''},
-  {id:'g31',n:'Insulated Steel Flask (approx. 260 ml)',img:'return-gifts/hp-kpop-steel-flask-260ml.jpg',e:'🧴',type:'home',gtheme:['hp','kpop'],age:'5-14',unit:580,bg:'#F0FDF4',tag:''},
-  {id:'g32',n:'Harry Potter Bluetooth Headphones',img:'return-gifts/hp-bluetooth-headphones.jpg',e:'🎧',type:'home',gtheme:'hp',age:'7-14',unit:700,bg:'#F0FDF4',tag:''},
-  {id:'g33',n:'K-pop Bluetooth Headphones',img:'return-gifts/kpop-bluetooth-headphones.jpg',e:'🎧',type:'home',gtheme:'kpop',age:'8-14',unit:700,bg:'#F0FDF4',tag:''},
-  {id:'g34',n:'LED Alarm Clock',img:'return-gifts/hp-kpop-led-alarm-clock.jpg',e:'⏰',type:'home',gtheme:['hp','kpop'],age:'5-14',unit:420,bg:'#F0FDF4',tag:''},
-  {id:'g35',n:'Harry Potter Karaoke Speaker Set',img:'return-gifts/hp-karaoke-speaker-set.jpg',e:'🎤',type:'games',gtheme:'hp',age:'7-14',unit:600,bg:'#FFF0F7',tag:''},
-  {id:'g36',n:'K-pop Chest Bag (Leather Finish)',img:'return-gifts/kpop-chest-bag.jpg',e:'👜',type:'bags',gtheme:'kpop',age:'8-14',unit:380,bg:'#FFF0F7',tag:''},
-  {id:'g37',n:'Harry Potter Chest Bag (Leather Finish)',img:'return-gifts/hp-chest-bag.jpg',e:'👜',type:'bags',gtheme:'hp',age:'7-14',unit:380,bg:'#FFF0F7',tag:''},
-  {id:'g38',n:'Harry Potter Backpack (Leather Finish)',img:'return-gifts/hp-backpack.jpg',e:'🎒',type:'bags',gtheme:'hp',age:'7-14',unit:570,bg:'#FFF0F7',tag:''},
-  {id:'g39',n:'K-pop Backpack (Leather Finish)',img:'return-gifts/kpop-backpack.jpg',e:'🎒',type:'bags',gtheme:'kpop',age:'8-14',unit:570,bg:'#FFF0F7',tag:''},
-  {id:'g40',n:'Harry Potter A4 Folder (4 designs)',img:'return-gifts/hp-a4-folder.jpg',e:'📁',type:'stationery',gtheme:'hp',age:'7-14',unit:270,bg:'#FFFBDC',tag:''},
-  {id:'g41',n:'K-pop A4 Folder (4 designs)',img:'return-gifts/kpop-a4-folder.jpg',e:'📁',type:'stationery',gtheme:'kpop',age:'8-14',unit:270,bg:'#FFFBDC',tag:''},
-  {id:'g42',n:'Harry Potter Pencil Pouch',img:'return-gifts/hp-pencil-pouch.jpg',e:'✏️',type:'stationery',gtheme:'hp',age:'7-14',unit:200,bg:'#FFFBDC',tag:''},
-  // Budget range (under Rs 250), added 2026-10-02 per Shruti.
-  {id:'g43',n:'UNO Cards',img:'return-gifts/uno-cards.jpg',e:'🃏',type:'games',gtheme:'generic',age:'7-14',unit:90,bg:'#FFFBDC',tag:''},
-  {id:'g44',n:'Wooden Car Pen Stand',img:'return-gifts/wooden-car-pen-stand.jpg',e:'🚗',type:'stationery',gtheme:'generic',age:'3-10',unit:110,bg:'#FFFBDC',tag:''},
-  {id:'g45',n:'Minion Sketch Pen Set',img:'return-gifts/minion-sketch-pen-set.jpg',e:'🖍️',type:'stationery',gtheme:'generic',age:'3-10',unit:100,bg:'#FFFBDC',tag:''},
-  {id:'g46',n:'Silicone Coin Pouch',img:'return-gifts/silicone-coin-pouch.jpg',e:'👛',type:'bags',gtheme:'generic',age:'3-12',unit:100,bg:'#FFF0F7',tag:''},
-  {id:'g47',n:'Fruit Pencil Pouch',img:'return-gifts/fruit-pencil-pouch.jpg',e:'🍉',type:'bags',gtheme:'generic',age:'3-12',unit:100,bg:'#FFF0F7',tag:''},
-  {id:'g48',n:'Labubu Bag Charm / Keychain',img:'return-gifts/labubu-bag-charm.jpg',e:'🔑',type:'home',gtheme:'generic',age:'5-14',unit:80,bg:'#F0FDF4',tag:''},
-  {id:'g49',n:'Cube Scale (20 cm)',img:'return-gifts/cube-scale-20cm.jpg',e:'📏',type:'stationery',gtheme:'generic',age:'5-14',unit:100,bg:'#FFFBDC',tag:''},
-  {id:'g50',n:'Kaleidoscope',img:'return-gifts/kaleidoscope.jpg',e:'🔭',type:'games',gtheme:'generic',age:'3-10',unit:110,bg:'#FFFBDC',tag:''},
-  {id:'g51',n:'Kids Folder',img:'return-gifts/kids-folder.jpg',e:'📁',type:'stationery',gtheme:'generic',age:'5-14',unit:160,bg:'#FFFBDC',tag:''},
-  {id:'g52',n:'Lego Band',img:'return-gifts/lego-band.jpg',e:'⌚',type:'home',gtheme:'generic',age:'4-12',unit:140,bg:'#F0FDF4',tag:''},
-  {id:'g53',n:'Lego Pencil Set',img:'return-gifts/lego-pencil-set.jpg',e:'✏️',type:'stationery',gtheme:'generic',age:'4-12',unit:130,bg:'#FFFBDC',tag:''},
-  {id:'g54',n:'Kids Lunch Bag (assorted prints)',img:'return-gifts/kids-lunch-bag.jpg',e:'🍱',type:'bags',gtheme:'generic',age:'3-12',unit:120,bg:'#FFF0F7',tag:''},
-  {id:'g55',n:'Magnetic Planner with Whiteboard Marker',img:'return-gifts/magnetic-planner.jpg',e:'🗓️',type:'stationery',gtheme:'generic',age:'6-14',unit:130,bg:'#FFFBDC',tag:''},
-  {id:'g56',n:'Binoculars',img:'return-gifts/binoculars.jpg',e:'🔭',type:'games',gtheme:'generic',age:'3-10',unit:120,bg:'#FFFBDC',tag:''},
-  {id:'g57',n:'Pinball Game',img:'return-gifts/pinball-game.jpg',e:'🎯',type:'games',gtheme:'generic',age:'4-12',unit:210,bg:'#FFFBDC',tag:''},
-  {id:'g58',n:'Swimming Goggles (assorted designs)',img:'return-gifts/swimming-goggles.jpg',e:'🥽',type:'home',gtheme:'generic',age:'4-12',unit:200,bg:'#F0FDF4',tag:''},
-  {id:'g59',n:'Rechargeable Mini Fan',img:'return-gifts/rechargeable-mini-fan.jpg',e:'🌀',type:'home',gtheme:'generic',age:'5-14',unit:200,bg:'#F0FDF4',tag:''},
-  // Rs 200-1200 range, added 2026-10-02 per Shruti.
-  {id:'g60',n:'Habit Tracker',img:'return-gifts/habit-tracker.jpg',e:'✅',type:'stationery',gtheme:'generic',age:'5-12',unit:320,bg:'#FFFBDC',tag:''},
-  {id:'g61',n:'Digital Alarm Clock',img:'return-gifts/digital-alarm-clock.jpg',e:'⏰',type:'home',gtheme:'generic',age:'5-14',unit:300,bg:'#F0FDF4',tag:''},
-  {id:'g62',n:'DIY Decorate-your-own Mug',img:'return-gifts/diy-decorate-your-own-mug.jpg',e:'☕',type:'personalized',gtheme:'generic',age:'4-12',unit:320,bg:'#F0F7FF',tag:''},
-  {id:'g63',n:'Mini Pocket Wireless Speaker',img:'return-gifts/mini-pocket-wireless-speaker.jpg',e:'🔊',type:'home',gtheme:'generic',age:'6-14',unit:270,bg:'#F0FDF4',tag:''},
-  {id:'g64',n:'Gobble Game',img:'return-gifts/gobble-game.jpg',e:'🎲',type:'games',gtheme:'generic',age:'5-12',unit:280,bg:'#FFFBDC',tag:''},
-  {id:'g65',n:'Solo Practice Ball Game',img:'return-gifts/solo-practice-ball-game.jpg',e:'🎾',type:'games',gtheme:'generic',age:'4-12',unit:300,bg:'#FFFBDC',tag:''},
-  {id:'g66',n:'Metal Book Reading Stand',img:'return-gifts/metal-book-reading-stand.jpg',e:'📖',type:'stationery',gtheme:'generic',age:'5-14',unit:380,bg:'#FFFBDC',tag:''},
-  {id:'g67',n:'12-compartment Folder',img:'return-gifts/12-compartment-folder.jpg',e:'📁',type:'stationery',gtheme:'generic',age:'5-14',unit:300,bg:'#FFFBDC',tag:''},
-  {id:'g68',n:'Dobble Game',img:'return-gifts/dobble-game.jpg',e:'🎲',type:'games',gtheme:'generic',age:'5-14',unit:300,bg:'#FFFBDC',tag:''},
-  {id:'g69',n:'K-pop Multipurpose Pouch',img:'return-gifts/k-pop-pouch.jpg',e:'👝',type:'bags',gtheme:'kpop',age:'8-14',unit:220,bg:'#FFF0F7',tag:''},
-  {id:'g70',n:'Harry Potter Multipurpose Pouch',img:'return-gifts/harry-potter-pouch.jpg',e:'👝',type:'bags',gtheme:'hp',age:'7-14',unit:220,bg:'#FFF0F7',tag:''},
-  {id:'g71',n:'Harry Potter Diary',img:'return-gifts/harry-potter-diary.jpg',e:'📓',type:'stationery',gtheme:'hp',age:'7-14',unit:500,bg:'#FFFBDC',tag:''},
-  {id:'g72',n:'LED Neon Drawing Board',img:'return-gifts/led-neon-drawing-board.jpg',e:'💡',type:'stationery',gtheme:'generic',age:'4-12',unit:400,bg:'#FFFBDC',tag:''},
-  {id:'g73',n:'Soup Cup Lunch Box',img:'return-gifts/soup-cup-lunch-box.jpg',e:'🥣',type:'home',gtheme:'generic',age:'3-12',unit:530,bg:'#F0FDF4',tag:''},
-  {id:'g74',n:'Password Compass Box',img:'return-gifts/password-compass-box.jpg',e:'🔐',type:'stationery',gtheme:'space',age:'5-12',unit:600,bg:'#FFFBDC',tag:''},
-  {id:'g75',n:'Science 61 Experiment Kit',img:'return-gifts/science-61-experiment-kit.jpg',e:'🧪',type:'games',gtheme:'generic',age:'8-14',unit:600,bg:'#FFFBDC',tag:''},
-  {id:'g76',n:'Lunch Bag (assorted prints)',img:'return-gifts/lunch-bag-many-prints.jpg',e:'🎒',type:'bags',gtheme:'generic',age:'3-12',unit:630,bg:'#FFF0F7',tag:''},
-  {id:'g77',n:'Pickleball Set',img:'return-gifts/pickleball-set.jpg',e:'🏓',type:'games',gtheme:'generic',age:'8-14',unit:770,bg:'#FFFBDC',tag:''},
-  {id:'g78',n:'Retro Handheld Game (400 games)',img:'return-gifts/retro-handheld-game-400-games.jpg',e:'🎮',type:'games',gtheme:'generic',age:'6-14',unit:525,bg:'#FFFBDC',tag:''},
-  {id:'g79',n:'Glow-in-the-dark Blanket (assorted designs)',img:'return-gifts/glow-in-the-dark-blanket-many-designs.jpg',e:'🌙',type:'home',gtheme:'generic',age:'3-12',unit:672,bg:'#F0FDF4',tag:''},
-  {id:'g80',n:'Calligraphy Pen Set with Wax Seal',img:'return-gifts/calligraphy-pen-set-with-wax-seal.jpg',e:'🖋️',type:'stationery',gtheme:'generic',age:'10-14',unit:840,bg:'#FFFBDC',tag:''},
-  {id:'g81',n:'Lego Photo Frame',img:'return-gifts/lego-photo-frame.jpg',e:'🖼️',type:'home',gtheme:'generic',age:'4-12',unit:532,bg:'#F0FDF4',tag:''},
-  {id:'g82',n:'3D Pen',img:'return-gifts/3d-pen.jpg',e:'✏️',type:'stationery',gtheme:'generic',age:'8-14',unit:630,bg:'#FFFBDC',tag:''},
-  {id:'g83',n:'Insulated Food Jar Lunch Box',img:'return-gifts/insulated-food-jar-lunch-box.jpg',e:'🥣',type:'home',gtheme:'generic',age:'5-14',unit:672,bg:'#F0FDF4',tag:''},
-  {id:'g84',n:'Steel Sipper Tumbler',img:'return-gifts/fancy-steel-sipper-tumbler.jpg',e:'🥤',type:'home',gtheme:'generic',age:'5-14',unit:700,bg:'#F0FDF4',tag:''},
-  {id:'g85',n:'Pastel Calculator',img:'return-gifts/pastel-calculator.jpg',e:'🧮',type:'stationery',gtheme:'generic',age:'6-14',unit:700,bg:'#FFFBDC',tag:''},
-  {id:'g86',n:'Insulated Ice Flask (500 ml)',img:'return-gifts/insulated-ice-flask-500ml.jpg',e:'🧊',type:'home',gtheme:'generic',age:'6-14',unit:840,bg:'#F0FDF4',tag:''},
-  {id:'g87',n:'Charm Tote Bag (assorted colours)',img:'return-gifts/charm-tote-bag.jpg',e:'👜',type:'bags',gtheme:'generic',age:'6-14',unit:700,bg:'#FFF0F7',tag:''},
-  {id:'g88',n:'Cluedo Board Game',img:'return-gifts/cluedo-board-game.jpg',e:'🔍',type:'games',gtheme:'generic',age:'8-14',unit:770,bg:'#FFFBDC',tag:''},
-  {id:'g89',n:'Controller Video Game (520 games)',img:'return-gifts/controller-video-game-520-games.jpg',e:'🎮',type:'games',gtheme:'generic',age:'6-14',unit:770,bg:'#FFFBDC',tag:''},
-  {id:'g90',n:'Kids Bluetooth Headphones (assorted themes)',img:'return-gifts/kids-bluetooth-headphones-many-themes.jpg',e:'🎧',type:'home',gtheme:'generic',age:'4-12',unit:672,bg:'#F0FDF4',tag:''},
-  {id:'g91',n:'Taboo Game',img:'return-gifts/taboo-game.jpg',e:'🗣️',type:'games',gtheme:'generic',age:'12-14',unit:630,bg:'#FFFBDC',tag:''},
-  {id:'g92',n:'Astronaut Galaxy Projector',img:'return-gifts/astronaut-galaxy-projector.jpg',e:'🧑‍🚀',type:'home',gtheme:'space',age:'4-14',unit:770,bg:'#F0FDF4',tag:''},
-  {id:'g93',n:'Kids Lunch Box (assorted prints)',img:'return-gifts/kids-lunch-box-many-prints.jpg',e:'🍱',type:'home',gtheme:'generic',age:'3-12',unit:595,bg:'#F0FDF4',tag:''},
-  {id:'g94',n:'Kids Bento Box',img:'return-gifts/kids-bento-box.jpg',e:'🍱',type:'home',gtheme:'generic',age:'3-12',unit:511,bg:'#F0FDF4',tag:''},
-];
+// 2026-10-02 — the catalogue itself now lives in js/return-gifts.js, shared
+// with the package pages (unicorn/turf/spy-basic) so one edit updates all.
+const GIFTS=window.WS_GIFTS||[];
 let gF={type:'all',budget:'all',gtheme:'all'};
 let actFilter='all';
 // "Show all" overrides for each step's interest-based recommendation filter
@@ -3672,10 +3575,10 @@ function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e
 // discount slabs, free-addon thresholds and the 50% advance, and shown as
 // their own "Return Gifts — billed separately" bill instead. The ops team
 // confirms stock, then sends a payment link (see the Return Gift Order box
-// on the admin Bookings page). Package-origin carts (Unicorn / Turf / Spy)
-// keep their gifts inside the package price, exactly as their package pages
-// quote it, so nothing changes there.
-function giftsSep(){return !S._pkgOrigin;}
+// on the admin Bookings page). 2026-10-02 follow-up, per Shruti — the same
+// applies to gifts and props (caps, sunglasses, medals) picked on the
+// package pages: all are vendor items, so package carts separate them too.
+function giftsSep(){return true;}
 function giftItemsTotal(){return S.gifts.reduce((s,g)=>s+g.unit*g.qty,0);}
 function giftBillTotal(){return giftsSep()?(giftItemsTotal()+packagingCost()+tagFee()):0;}
 function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)t+=NAME_BUNTING_PRICE;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.djAddons.lights)t+=1500;if(S.djAddons.smoke)t+=2000;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p;if(!giftsSep())S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
@@ -3791,7 +3694,7 @@ function dp(){const gt=rawT();return gt?Math.round(discountAmt(gt)/gt*100):0;}
 // is unaffected since the flag is left unset there.
 function tp(){
   const gt=rawT();
-  if(S._noGiftDiscount){
+  if(S._noGiftDiscount&&!giftsSep()){
     const gifts=cItems().filter(i=>i.cat==='Return Gifts').reduce((s,i)=>s+i.p,0);
     const nonGift=gt-gifts;
     return nonGift-discountAmt(nonGift)+gifts;
@@ -7352,7 +7255,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       // name/price/thumbnail here always match the real catalogue
       // automatically, with no separate map to keep in sync.
       if(pkgData.gifts&&pkgData.gifts.length){
-        pkgData.gifts.forEach(gid=>{const item=GIFTS.find(g=>g.id===gid);if(item)S.gifts.push({id:item.id,n:item.n,unit:item.unit,qty:kids});});
+        pkgData.gifts.forEach(gid=>{const item=(window.wsGiftById?wsGiftById(gid):GIFTS.find(g=>g.id===gid));if(item&&!S.gifts.find(x=>x.id===item.id))S.gifts.push({id:item.id,n:item.n,unit:item.unit,qty:kids});});
       }
       // Photographer — same tier names as the site's standard photographer step.
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
@@ -7408,8 +7311,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       // Return Gifts — maps to real GIFTS catalogue ids so thumbFor() shows
       // the correct real photo on the review page (2026-08-11).
       if(pkgData.gifts&&pkgData.gifts.length){
-        const GIFT_MAP={'g25':{n:'Personalized Cap',perChild:500},'g26':{n:'Live T-shirt Printing',perChild:550}};
-        pkgData.gifts.forEach(gid=>{const item=GIFT_MAP[gid];if(item)S.gifts.push({id:gid,n:item.n,unit:item.perChild,qty:kids});});
+        // 2026-10-02 — any catalogue gift (recommended or picked from "View
+        // all return gifts" on the package page), at its catalogue price.
+        pkgData.gifts.forEach(gid=>{const item=(window.wsGiftById?wsGiftById(gid):GIFTS.find(g=>g.id===gid));if(item&&!S.gifts.find(x=>x.id===item.id))S.gifts.push({id:item.id,n:item.n,unit:item.unit,qty:kids});});
       }
       // Entry Options — shown under the new Addons section
       if(pkgData.entry)S.spyExtras.push({id:'entry-'+pkgData.entry.id,n:pkgData.entry.name+' Entry',p:pkgData.entry.price});
@@ -7507,8 +7411,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       // that doesn't match any current GIFT_ITEMS id, so every real gift
       // pick (Football/Cap/T-shirt) was silently dropped from the cart.
       if(pkgData.gifts&&pkgData.gifts.length){
-        const GIFT_MAP={'g18':{n:'Personalized Football',perChild:450},'cap1':{id:'g25',n:'Personalized Cap',perChild:350},'tshirt1':{id:'g26',n:'Live T-shirt Printing',perChild:450}};
-        pkgData.gifts.forEach(gid=>{const item=GIFT_MAP[gid];if(item)S.gifts.push({id:item.id||gid,n:item.n,unit:item.perChild,qty:kids});});
+        // 2026-10-02 — any catalogue gift at its catalogue price (legacy
+        // cap1/tshirt1 ids map to g25/g26 inside wsGiftById()).
+        pkgData.gifts.forEach(gid=>{const item=(window.wsGiftById?wsGiftById(gid):GIFTS.find(g=>g.id===gid));if(item&&!S.gifts.find(x=>x.id===item.id))S.gifts.push({id:item.id,n:item.n,unit:item.unit,qty:kids});});
       }
       if(pkgData.photographer)S.photo={tier:pkgData.photographer.name,p:pkgData.photographer.price};
       // Pinata — real Square/Circle/Number ids (see note above the first
