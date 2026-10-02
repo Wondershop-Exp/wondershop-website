@@ -49,7 +49,7 @@ from pydantic import BaseModel
 
 from database import database
 from routers.admin import (
-    _require_admin, _do_convert_lead, _sync_discount_to_agreed_total,
+    _require_admin, _do_convert_lead, _sync_discount_to_agreed_total, _gift_order_payload,
     LEAD_STATUS_OPTIONS, NON_CONVERT_REASON_OPTIONS, NON_CONVERT_STATUSES,
 )
 from catalogue_data import (
@@ -411,7 +411,19 @@ async def _get_playbook_row(lead_id: int):
     return row
 
 
-def _mrp_total(requirements: dict, activities: list, kids_count: Optional[int]) -> float:
+GIFT_REQ_KEYS = ("return_gifts", "packaging", "return_gift_tags")
+
+
+def _gift_bill_total(requirements: dict) -> float:
+    """2026-10-02, per Shruti — Return Gifts (+ packaging / thank-you tags)
+    are billed SEPARATELY from the event: stock check first, then a
+    separate payment link. This is that separate bill, at the sales quote
+    (MRP when nothing was negotiated) — the same Return Gifts block
+    listBreakdown() shows under the event table in sales-leads.html."""
+    return _mrp_total(requirements, [], None, part="gifts")
+
+
+def _mrp_total(requirements: dict, activities: list, kids_count: Optional[int], part: str = "event") -> float:
     """Python twin of listBreakdown() in sales-leads.html — the Grand Total
     at MRP (list price of every selected service; Host = next tier up from
     the quote, quote itself above all tiers; a line with no list price
@@ -442,11 +454,18 @@ def _mrp_total(requirements: dict, activities: list, kids_count: Optional[int]) 
         return bool(r.get("selected")) and r.get("selected") != "No"
 
     total = 0.0
+    gift_total = 0.0
+    in_gifts = False
 
     def line(quoted, mrp):
-        nonlocal total
+        # Event lines count at MRP (Grand Total). Return-gift lines are a
+        # separate bill and count at the quote (MRP when not negotiated).
+        nonlocal total, gift_total
         q = num(quoted)
-        total += (q or 0.0) if mrp is None else float(mrp)
+        if in_gifts:
+            gift_total += q if q is not None else (float(mrp) if mrp is not None else 0.0)
+        else:
+            total += (q or 0.0) if mrp is None else float(mrp)
 
     gifts = sel("return_gifts").get("selected_gifts") or []
     gift_qty = sum(int(num(g.get("quantity")) or 0) for g in gifts) if gifts else int(num(sel("return_gifts").get("quantity")) or 0)
@@ -479,6 +498,7 @@ def _mrp_total(requirements: dict, activities: list, kids_count: Optional[int]) 
     pb = sel("pinata_bags")
     if pb.get("selected") == "Yes":
         line(pb.get("cost"), (C["pinata_bags"].get("unit_price") or 0) * kids)
+    in_gifts = True
     rg = sel("return_gifts")
     if gifts or num(rg.get("cost")) is not None:
         mrp = None
@@ -496,6 +516,9 @@ def _mrp_total(requirements: dict, activities: list, kids_count: Optional[int]) 
     if tg.get("selected") == "Yes":
         gt = C["return_gift_tags"]
         line(tg.get("cost"), max(gt.get("min_qty") or 15, gift_qty) * (gt.get("unit_price") or 10))
+    in_gifts = False
+    if part == "gifts":
+        return round(gift_total, 2)
     known = {"decor", "host", "music", "photographer", "einvite_type", "save_the_date", "pinata_type",
              "pinata_bags", "return_gifts", "packaging", "return_gift_tags"}
     for k, r in reqs.items():
@@ -513,7 +536,9 @@ def _mrp_total(requirements: dict, activities: list, kids_count: Optional[int]) 
 
 def _estimate_total(requirements: dict, activities: list, kids_count: Optional[int]) -> float:
     total = 0.0
-    for r in (requirements or {}).values():
+    for k, r in (requirements or {}).items():
+        if k in GIFT_REQ_KEYS:
+            continue   # Return gifts are billed separately (2026-10-02)
         if isinstance(r, dict) and r.get("cost") is not None:
             try:
                 total += float(r["cost"])
@@ -710,6 +735,11 @@ async def _full_detail(lead_row) -> dict:
         "updated_at": _to_ist_str(pb.get("updated_at")),
 
         "estimated_total": estimated_total,
+        # Return gifts — billed separately from the event (2026-10-02).
+        "gift_bill_total": _gift_bill_total(reqs),
+        "gift_order": _gift_order_payload(
+            lead, {}, {"gift_total": _gift_bill_total(reqs) or None, "gift_items": []}
+        ) if lead.get("gift_order_status") else None,
 
         "activity_log": [
             {"actor": r["actor"], "action": r["action"], "detail": r["detail"], "at": _to_ist_str(r["created_at"])}
@@ -1117,6 +1147,25 @@ async def confirm_booking(lead_id: int, body: ConfirmBookingIn, x_admin_password
         lead_values["pm"] = body.payment_method
     if lead_sets:
         await database.execute(f"UPDATE leads SET {', '.join(lead_sets)} WHERE lead_id = :id", values=lead_values)
+
+    # Return gifts are billed separately (2026-10-02): open the Return Gift
+    # Order for ops (pending stock check) BEFORE the discount sync below, so
+    # the booking's Grand Total is computed without the gifts. Best-effort —
+    # a missing migration 039 must not block confirming the booking.
+    try:
+        reqs_now = pb_row["requirements"]
+        reqs_now = json.loads(reqs_now) if isinstance(reqs_now, str) else (reqs_now or {})
+        gift_total = _gift_bill_total(reqs_now)
+        if gift_total > 0:
+            await database.execute(
+                "UPDATE leads SET gift_order_total = COALESCE(gift_order_total, :t), "
+                "gift_order_status = COALESCE(gift_order_status, 'pending_stock'), "
+                "gift_order_updated_by = COALESCE(gift_order_updated_by, :by), "
+                "gift_order_updated_at = COALESCE(gift_order_updated_at, NOW()) WHERE lead_id = :id",
+                values={"t": gift_total, "by": by, "id": lead_id},
+            )
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: couldn't open the return gift order (run migration 039?)")
 
     # 2026-10-01, per Shruti — the booking's Grand Total must be the total
     # agreed with the client, with the difference from catalogue prices

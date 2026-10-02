@@ -359,6 +359,16 @@ def _price_gifts(gifts_csv: Optional[str], snap: dict):
     return items, unpriced, total_qty
 
 
+def gifts_billed_separately(lead: dict, snap: Optional[dict]) -> bool:
+    """2026-10-02, per Shruti — Return Gifts are billed separately from the
+    event (stock check first, then a separate payment link). True for every
+    website booking made under that flow (the checkout flags it in the
+    snapshot) and for any booking whose Return Gift order the team is
+    tracking (leads.gift_order_status set, e.g. sales-module bookings).
+    Older bookings keep gifts inside Grand Total exactly as they were billed."""
+    return bool((snap or {}).get("gifts_billed_separately")) or bool(lead.get("gift_order_status"))
+
+
 def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
                      discount_pct: Optional[float], discount_type: Optional[str] = None,
                      discount_value: Optional[float] = None) -> Optional[dict]:
@@ -432,8 +442,16 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
     unpriced += act_unpriced
 
     gift_items, gift_unpriced, gift_qty = _price_gifts(_resolved(cur, "svc_gifts", removed), snap)
+    gifts_sep = gifts_billed_separately(lead, snap)
+    # Separately-billed gifts (and the packaging / note fees that follow
+    # their quantity) go on their own Return Gifts bill, not Total MRP.
+    sep_gift_items: list = []
     for label, amt in gift_items:
-        add(label, amt)
+        if gifts_sep:
+            if amt:
+                sep_gift_items.append((label, round(float(amt), 2)))
+        else:
+            add(label, amt)
     unpriced += gift_unpriced
 
     total_mrp = round(sum(a for _l, a in items), 2)
@@ -448,12 +466,18 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
 
     pack_val = _resolved(cur, "addon_gift_packaging", removed)
     pack_key = PACKAGING_LABEL_TO_KEY.get(pack_val) if pack_val else None
+    gift_fee_rows = []
     if pack_key:
-        add_extra(f"Packaging ({PACKAGING_KEY_TO_LABEL.get(pack_key, pack_key)})",
-                   PACKAGING_UNIT_PRICE.get(pack_key, 0) * gift_qty)
-
+        gift_fee_rows.append((f"Packaging ({PACKAGING_KEY_TO_LABEL.get(pack_key, pack_key)})",
+                              PACKAGING_UNIT_PRICE.get(pack_key, 0) * gift_qty))
     if _resolved(cur, "addon_gift_note", removed) == "Yes" and gift_qty > 0:
-        add_extra("Thank-you note", max(TAG_NOTE_MIN_QTY, gift_qty) * TAG_NOTE_UNIT_PRICE)
+        gift_fee_rows.append(("Thank-you note", max(TAG_NOTE_MIN_QTY, gift_qty) * TAG_NOTE_UNIT_PRICE))
+    for label, amt in gift_fee_rows:
+        if gifts_sep:
+            if amt:
+                sep_gift_items.append((label, round(float(amt), 2)))
+        else:
+            add_extra(label, amt)
 
     if lead.get("payment_method") == "collect":
         add_extra("Cash Collection Fee", COLLECTION_FEE)
@@ -488,6 +512,10 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
         "items": [{"label": l, "amount": a} for l, a in items],
         "extra_items": [{"label": l, "amount": a} for l, a in extra_items],
         "unpriced": unpriced,
+        # Return Gifts billed separately (2026-10-02) — NOT in grand_total.
+        "gifts_separate": gifts_sep,
+        "gift_items": [{"label": l, "amount": a} for l, a in sep_gift_items],
+        "gift_total": round(sum(a for _l, a in sep_gift_items), 2),
         # legacy-named aliases — send_booking_invoice() in admin.py reads
         # these exact keys, unchanged since before this rewrite.
         "subtotal": total_mrp,

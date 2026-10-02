@@ -88,6 +88,30 @@ table.list th.sortable:hover{color:var(--bk)}
    any Spy-theme BOOKING; uploading an invite creates its public
    registration link. */
 .spy-reg-card{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:0 2px 10px rgba(25,25,25,.06);margin-bottom:22px}
+/* Return Gift Order box (2026-10-02) — shared with sales-leads.html */
+.go-card{background:#fff;border:1.5px dashed #D9CBF2;border-radius:14px;padding:16px 18px;margin:0 0 22px}
+.go-hd{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-weight:700;font-size:15px;color:#3B2A55;margin-bottom:10px}
+.go-chip{font-size:11px;font-weight:700;background:#F3EEFC;color:#6B4FA0;border-radius:999px;padding:3px 10px}
+.go-track{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:14px;font-size:12px}
+.go-st{padding:4px 10px;border-radius:999px;background:#F4F2F7;color:#7A7287;font-weight:600}
+.go-st.done{background:#E7F6EC;color:#166534}
+.go-st.now{background:#FFF4D6;color:#8A5A00;box-shadow:inset 0 0 0 1.5px #F2C14E}
+.go-st.bad{background:#FDECEC;color:#8A1F27}
+.go-arrow{color:#B3A7C4}
+.go-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.go-total{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;border-bottom:1px solid #EEE8F6;padding-bottom:6px}
+.go-total b{font-size:18px;font-variant-numeric:tabular-nums}
+.go-items{list-style:none;margin:8px 0 0;padding:0;font-size:12.5px;color:#5B4B78}
+.go-items li{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+.go-items b{font-weight:600;font-variant-numeric:tabular-nums}
+.go-hint{font-size:11.5px;color:#8B7FA0;margin-top:8px;line-height:1.5}
+.go-form{display:flex;flex-direction:column;gap:9px;min-width:0}
+.go-form label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;font-weight:700;color:#7A7287;text-transform:uppercase;letter-spacing:.3px}
+.go-form select,.go-form input{font:inherit;font-size:13.5px;text-transform:none;letter-spacing:0;font-weight:400;color:#2D2140;padding:8px 10px;border:1px solid #E3DCEE;border-radius:8px;background:#fff;min-width:0}
+.go-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+.go-btn{padding:9px 16px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:#E65A96;color:#fff}
+.go-btn.ghost{background:#fff;border:1px solid #E3DCEE;color:#3B2A55}
+.go-meta{font-size:11.5px;color:#8B7FA0;line-height:1.5}
 #spySection .spy-reg-card{box-shadow:none;padding:0;margin:0;background:none}
 #spySection .spy-reg-card .srh{display:none}
 .spy-reg-card .srh{display:flex;align-items:center;gap:8px;font-family:var(--fd);font-size:15px;color:var(--plum);margin-bottom:10px;font-weight:700}
@@ -662,6 +686,7 @@ body.role-sales .admin-only{display:none!important}
     <div id="lockBanner"></div>
     <div id="bdNav"></div>
     <div id="sectionsContainer"></div>
+    <div id="giftOrderBlock"></div>
     <!-- 2026-10-02, per Shruti — "move spy registration page section at the
          end before modification trail, as a collapsible module". -->
     <div class="log-section" id="spySection" style="display:none">
@@ -1266,6 +1291,76 @@ function renderBookingNav(d){
     + '<button type="button" class="sec-all" id="secAllBtn" onclick="secToggleAll()">Collapse all</button>';
 }
 
+// ── Return Gift Order (2026-10-02, per Shruti) ─────────────────────────
+// "return gifts are subject to stock availability ... ops team needs to
+// confirm the order, post which, we'll share a payment link with the
+// customer on email and whatsapp." Gifts (+ packaging / thank-you note)
+// are billed separately from the event's Grand Total; this box walks the
+// order through Pending stock check -> Stock confirmed -> Payment link
+// sent -> Paid (or Not available). Server: POST
+// /api/admin/bookings/{id}/gift-order (routers/admin.py). Shared verbatim
+// by admin.html (Bookings page) and sales-leads.html (sales panel).
+let GO_LEAD_ID = null, GO_RELOAD = null;
+function giftOrderHtml(go, leadId, reload){
+  GO_LEAD_ID = leadId; GO_RELOAD = reload;
+  if(!go) return '';
+  const rs = n => (n==null||n==='') ? '—' : '₹'+Math.round(Number(n)).toLocaleString('en-IN');
+  const items = (go.items||[]).map(x=>'<li><span>'+esc(x.label)+'</span><b>'+rs(x.amount)+'</b></li>').join('');
+  const opts = (go.status_options||[]).map(o=>'<option value="'+esc(o.value)+'"'+(o.value===go.status?' selected':'')+'>'+esc(o.label)+'</option>').join('');
+  const step = ['pending_stock','stock_confirmed','link_sent','paid'];
+  const at = step.indexOf(go.status);
+  const track = go.status==='unavailable'
+    ? '<div class="go-track"><span class="go-st bad">Not available / cancelled</span></div>'
+    : '<div class="go-track">'+['Stock check','Stock confirmed','Link sent','Paid'].map((l,i)=>'<span class="go-st'+(i<at?' done':'')+(i===at?' now':'')+'">'+(i<at?'✓ ':'')+l+'</span>').join('<span class="go-arrow">›</span>')+'</div>';
+  const meta = [go.updated_by ? 'Last updated by '+esc(go.updated_by)+(go.updated_at_ist?' · '+esc(go.updated_at_ist):'') : '',
+                go.link_sent_at_ist ? 'Link sent · '+esc(go.link_sent_at_ist) : ''].filter(Boolean).join('<br>');
+  return '<div class="go-card">'
+    + '<div class="go-hd"><span>🎁 Return Gift Order</span><span class="go-chip">Billed separately · not in Grand Total</span></div>'
+    + track
+    + '<div class="go-grid">'
+    +   '<div><div class="go-total"><span>Return gifts total</span><b>'+rs(go.total)+'</b></div>'
+    +     (items ? '<ul class="go-items">'+items+'</ul>' : '')
+    +     (go.catalogue_total!=null && go.total!=null && Math.round(go.catalogue_total)!==Math.round(go.total) ? '<div class="go-hint">At today\'s catalogue prices these come to '+rs(go.catalogue_total)+'.</div>' : '')
+    +     '<div class="go-hint">Customer pays this 100% in advance via the payment link. Delivery is extra, at actuals (Porter, cash on delivery).</div></div>'
+    +   '<div class="go-form">'
+    +     '<label>Status<select id="goStatus">'+opts+'</select></label>'
+    +     '<label>Amount to charge (₹)<input id="goAmount" type="number" min="0" step="1" value="'+(go.total==null?'':Math.round(Number(go.total)))+'"></label>'
+    +     '<label>Payment link<input id="goLink" type="url" placeholder="https://…" value="'+esc(go.payment_link||'')+'"></label>'
+    +     '<label>Note for the team<input id="goNote" type="text" placeholder="e.g. 2 designs out of stock, swapped" value="'+esc(go.note||'')+'"></label>'
+    +     '<div class="go-btns"><button class="go-btn ghost" onclick="goSave(false)">Save</button>'
+    +     '<button class="go-btn" onclick="goSave(true)" title="Emails the link to '+esc(go.customer_email||'the customer')+' and opens WhatsApp with a ready message">Send link to customer</button></div>'
+    +     (meta ? '<div class="go-meta">'+meta+'</div>' : '')
+    +   '</div>'
+    + '</div></div>';
+}
+async function goSave(send){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); return; }
+  const body = {changed_by: who, status: document.getElementById('goStatus').value,
+                payment_link: document.getElementById('goLink').value.trim(),
+                note: document.getElementById('goNote').value.trim(), send_link: !!send};
+  const amt = document.getElementById('goAmount').value;
+  if(amt !== '') body.total = Number(amt);
+  if(send && body.status === 'pending_stock') body.status = 'stock_confirmed';
+  // Opened synchronously (inside the click) so pop-up blockers allow it;
+  // pointed at the WhatsApp message once the server has built it.
+  const waWin = send ? window.open('', '_blank') : null;
+  try{
+    const r = await apiCall('/api/admin/bookings/'+GO_LEAD_ID+'/gift-order', {method:'POST', body: JSON.stringify(body)});
+    if(send){
+      if(r.whatsapp_link && waWin){ waWin.location.href = r.whatsapp_link; }
+      else if(waWin){ waWin.close(); }
+      showToast('✓ Payment link '+(r.sent_to ? 'emailed to '+r.sent_to : 'saved (no email on file)')+(r.whatsapp_link ? ' — send the WhatsApp message that just opened.' : ''));
+    }else{
+      showToast('✓ Return gift order: '+r.status_label);
+    }
+    if(GO_RELOAD) await GO_RELOAD();
+  }catch(e){
+    if(waWin) waWin.close();
+    if(e.message!=='unauthorized') showToast('⚠ '+e.message);
+  }
+}
+
 function renderBookingBar(d){
   const bar = document.getElementById('bdBar');
   const gt = bdMoney(bdVal(d, 'bill_grand_total'));
@@ -1279,6 +1374,7 @@ function renderBookingBar(d){
     + '<div class="m"><div class="k">Grand total</div><div class="v">'+bdRupees(gt)+'</div></div>'
     + '<div class="m'+(advPending ? ' pend' : '')+'"><div class="k">'+(advPending ? 'Advance pending' : 'Advance paid')+'</div><div class="v">'+bdRupees(adv)+'</div></div>'
     + '<div class="m due'+(bal !== null && bal <= 0 ? ' clear' : '')+'"><div class="k">Balance due</div><div class="v">'+bdRupees(bal)+'</div></div>'
+    + (d.gift_order ? '<div class="m"><div class="k">Return gifts · '+esc(d.gift_order.status_label||'')+'</div><div class="v">'+bdRupees(d.gift_order.total==null?null:Number(d.gift_order.total))+'</div></div>' : '')
     + '<span class="bd-unsaved" id="bdUnsaved" style="display:none"></span>'
     + '</div>';
   updateDirtyCount();
@@ -2819,6 +2915,7 @@ function renderDetail(d){
   }
 
   renderSpyRegistrationBlock(d);
+  document.getElementById('giftOrderBlock').innerHTML = giftOrderHtml(d.gift_order, d.lead_id, loadDetail);
 
   const container = document.getElementById('sectionsContainer');
   container.innerHTML = d.sections.map(sec=>{

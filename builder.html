@@ -748,6 +748,11 @@ body.browse-mode .browse-cta{display:flex}
 .gc-tag-row{margin-top:5px}
 .gc-price-row{display:flex;align-items:baseline;justify-content:space-between;gap:6px;margin-top:8px;flex-wrap:wrap}
 .gc-unit-txt{font-size:10.5px;color:var(--gy);min-width:0}
+.gift-bill{background:#fff;border:1.5px dashed var(--li2)}
+.bb-gift{font-size:11px;color:var(--gy);line-height:1.3}
+.gift-bill-hd{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--bk);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gift-bill-chip{font-family:inherit;font-size:10.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;background:var(--li3);color:#7B5EA7;border-radius:999px;padding:3px 9px}
+.gift-bill-note{font-size:11.5px;line-height:1.55;color:var(--gy);margin-top:8px}
 .gift-total{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--bk);flex-shrink:0}
 .gift-actions{margin-top:auto;padding-top:10px}
 /* Full-width "Add" pill button, matching the reference's outlined ADD TO BAG
@@ -2097,7 +2102,7 @@ body.browse-mode .browse-cta{display:flex}
   </div>
 
   <div class="sec-blk">
-    <div style="background:var(--li3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#7B5EA7">ℹ️ Once we receive your details, your return-gift order will be confirmed only after we've checked inventory availability — we'll confirm over a call or WhatsApp shortly after your requirement is received.</div>
+    <div style="background:var(--li3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#7B5EA7">ℹ️ <b>Return gifts are subject to stock availability.</b> Return gifts are billed separately from your event: once we receive your order, our team checks stock and confirms over a call or WhatsApp, then sends you a separate payment link on email and WhatsApp (100% advance).</div>
     <div style="background:var(--li3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#7B5EA7">🚚 <b>Delivery charges are extra, at actuals.</b> We book a Porter delivery on cash on delivery, so the person receiving the parcel pays the Porter driver directly. Return gifts need 100% advance payment and can't be returned once sold.</div>
     <!-- Filters -->
     <div style="margin-bottom:12px">
@@ -2195,6 +2200,12 @@ body.browse-mode .browse-cta{display:flex}
     <div class="total-row"><span>Total</span><span><span id="rvTotalOrig" class="rv-strike" style="display:none;margin-right:8px;font-size:14px"></span><span id="rvTotal2">₹0</span></span></div>
     <div class="disc-row" id="rvDiscRow" style="display:none"><span>🎉 You saved <span id="rvDiscAmt"></span></span><span class="coupon-chip">🎟️ Coupon Applied</span></div>
     <div class="adv-row" id="rvAdvRow"><span>Advance to be paid</span><span id="rvAdv">₹0</span></div>
+  </div>
+  <div class="amt-box gift-bill" id="rvGiftBox" style="display:none;margin-top:12px">
+    <div class="gift-bill-hd">🎁 Return Gifts <span class="gift-bill-chip">Billed separately</span></div>
+    <div id="rvGiftRows"></div>
+    <div class="amt-row tot"><span>Return Gifts Total</span><span id="rv-gift-total">₹0</span></div>
+    <div class="gift-bill-note">Subject to stock availability. Once our team confirms stock, we'll send a separate payment link on email and WhatsApp (100% advance). Delivery charges extra, at actuals.</div>
   </div>
   <div style="background:var(--spk);border-radius:14px;padding:16px 18px;margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <span style="font-size:20px;flex-shrink:0">🎉</span>
@@ -2336,6 +2347,13 @@ body.browse-mode .browse-cta{display:flex}
       <div class="amt-row adv" id="coAdvRow"><span>⚡ 50% Advance</span><span id="co-adv">₹0</span></div>
       <div class="amt-row" id="coBalRow"><span style="font-size:11px;color:var(--gy)">Balance due before event</span><span id="co-bal" style="font-size:12px;color:var(--gy)">₹0</span></div>
       <div class="amt-row" id="coNoAdvNote" style="display:none"><span style="font-size:11px;color:#92400E">⚡ No advance required now — payable once our team confirms feasibility</span></div>
+    </div>
+    <!-- 2026-10-02, per Shruti — Return Gifts billed separately (see giftsSep()). -->
+    <div class="amt-box gift-bill" id="coGiftBox" style="display:none;margin-top:12px">
+      <div class="gift-bill-hd">🎁 Return Gifts <span class="gift-bill-chip">Billed separately</span></div>
+      <div id="coGiftRows"></div>
+      <div class="amt-row tot"><span>Return Gifts Total</span><span id="co-gift-total">₹0</span></div>
+      <div class="gift-bill-note">Return gifts are subject to stock availability. Our team will confirm stock and then send you a separate payment link on email and WhatsApp. Return gifts are payable 100% in advance. Delivery charges are extra, at actuals.</div>
     </div>
   </div>
 
@@ -2560,6 +2578,7 @@ body.browse-mode .browse-cta{display:flex}
       <span class="bb-mrp" id="bbMrp" style="display:none"></span>
       <div class="bb-total" id="bbTotal">₹0</div>
       <div class="bb-adv" id="bbAdv">50% advance: <span id="bbAdvAmt">₹0</span></div>
+      <div class="bb-gift" id="bbGift" style="display:none"></div>
       <div class="bb-disc" id="bbDisc"></div>
     </div>
   </div>
@@ -3645,8 +3664,23 @@ function thumbFor(cat,id){
   return e('✨');
 }
 function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e');box.style.background='var(--li2)';box.textContent='✨';}
-function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)t+=NAME_BUNTING_PRICE;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.djAddons.lights)t+=1500;if(S.djAddons.smoke)t+=2000;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p;S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
-function rawT(){return cItems().reduce((s,i)=>s+i.p,0)}
+// 2026-10-02, per Shruti — "return gifts are subject to stock availability
+// ... we'll send a separate payment link after our team confirms the stock
+// availability." On the plain Build-a-Birthday flow, Return Gifts (plus the
+// packaging and thank-you-note fees that follow their quantity) are billed
+// SEPARATELY from the event: they're left out of the event Grand Total,
+// discount slabs, free-addon thresholds and the 50% advance, and shown as
+// their own "Return Gifts — billed separately" bill instead. The ops team
+// confirms stock, then sends a payment link (see the Return Gift Order box
+// on the admin Bookings page). Package-origin carts (Unicorn / Turf / Spy)
+// keep their gifts inside the package price, exactly as their package pages
+// quote it, so nothing changes there.
+function giftsSep(){return !S._pkgOrigin;}
+function giftItemsTotal(){return S.gifts.reduce((s,g)=>s+g.unit*g.qty,0);}
+function giftBillTotal(){return giftsSep()?(giftItemsTotal()+packagingCost()+tagFee()):0;}
+function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)t+=NAME_BUNTING_PRICE;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.djAddons.lights)t+=1500;if(S.djAddons.smoke)t+=2000;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p;if(!giftsSep())S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
+function eventItems(){const its=cItems();return giftsSep()?its.filter(i=>i.cat!=='Return Gifts'):its;}
+function rawT(){return eventItems().reduce((s,i)=>s+i.p,0)}
 // 2026-08-18, per Shruti — "discounts should be very clearly called out,
 // even the einvite one". rawT() already reflects any free-pinata/free-
 // einvite savings (cItems() zeroes their price when unlocked), which meant
@@ -3655,7 +3689,7 @@ function rawT(){return cItems().reduce((s,i)=>s+i.p,0)}
 // value (wasP when a threshold zeroed it, otherwise its normal price) so
 // (trueMRP() - tp()) always captures the FULL savings story — the auto/flat
 // discount AND any unlocked free addons — in one number.
-function trueMRP(){return cItems().reduce((s,i)=>s+(i.wasP!=null?i.wasP:i.p),0)}
+function trueMRP(){return eventItems().reduce((s,i)=>s+(i.wasP!=null?i.wasP:i.p),0)}
 // 2026-08-14, per Shruti — replaced the old category-count discount ladder
 // with the current value-based slabs: 25k-35k -> 5% off (cap 1500),
 // 35k-45k -> 7% off (cap 2500), 45k+ -> 9% off (cap 4500).
@@ -3799,7 +3833,7 @@ function tagFee(){
   if(S.tagType!=='note')return 0;
   return Math.max(TAG_NOTE_MIN_QTY,packagingQty())*TAG_NOTE_UNIT_PRICE;
 }
-function payTotal(){return tp()+collectFee()+packagingCost()+tagFee()}
+function payTotal(){return tp()+collectFee()+(giftsSep()?0:packagingCost()+tagFee())}
 // Mirrors backend leads.py's _PAYMENT_METHOD_LABELS / _payment_status_text
 // exactly — keep these two in sync if either side changes (2026-08-12, per
 // Shruti — "save and display payment method").
@@ -4250,6 +4284,10 @@ function updBB(id){
   if(id!=='s0'&&id!=='sco'){updFreebieWidget(gt);}
   else if(id==='sco'){document.getElementById('bbFreebies')?.classList.add('hidden');syncFbH();}
   document.getElementById('bbTotal').textContent='₹'+payv.toLocaleString('en-IN');
+  // Return Gifts are billed separately (giftsSep()) — keep them visible
+  // next to the event total so adding a gift still visibly does something.
+  const bbGift=document.getElementById('bbGift');
+  if(bbGift){const gb=giftBillTotal();bbGift.style.display=gb>0?'block':'none';bbGift.textContent='+ ₹'+gb.toLocaleString('en-IN')+' return gifts, billed separately';}
   // 2026-08-18, per Shruti — "discounts should be very clearly called out,
   // even the einvite one": totalSavings folds in BOTH the auto/flat
   // discount AND any unlocked free-pinata/free-einvite addon (trueMRP()
@@ -5326,9 +5364,10 @@ function buildRev(){
     // category name (left-aligned, bigger/more visible) instead of pushed
     // to the far right by .rv-hdr's space-between — populated categories
     // keep "Edit" on the right as before.
+    const sepChip=(cat==='Return Gifts'&&its&&giftsSep())?' <span class="gift-bill-chip">Billed separately</span>':'';
     const catHtml=(!its&&sm[cat])
       ?'<div class="rv-cat">'+cat+'<span class="add-link" onclick="editFR('+sm[cat]+')">+ Add</span></div>'
-      :'<div class="rv-cat">'+cat+'</div>';
+      :'<div class="rv-cat">'+cat+sepChip+'</div>';
     const actionHtml=(!sm[cat]||!its)?''
       :'<span class="edit-link" onclick="editFR('+sm[cat]+')">Edit</span>';
     html+='<div class="rv-sec"><div class="rv-hdr">'+catHtml+actionHtml+'</div><div class="rv-items">';
@@ -5419,6 +5458,7 @@ function buildRev(){
   }
   document.getElementById('rvTotal2').textContent='₹'+payv.toLocaleString('en-IN');
   document.getElementById('rvAdv').textContent='₹'+advv.toLocaleString('en-IN');
+  updGiftBill('rvGiftBox','rvGiftRows','rv-gift-total');
 }
 // Remove a single selection directly from the Review page without having to
 // jump back into that step.
@@ -5542,8 +5582,9 @@ function updCoUrgent(){
   updBB(S.screen);
 }
 function updCoAmt(){
-  const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();const fee=collectFee();const pkg=packagingCost();const tag=tagFee();const payv=tpv+fee+pkg+tag;
+  const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();const fee=collectFee();const sep=giftsSep();const pkg=sep?0:packagingCost();const tag=sep?0:tagFee();const payv=payTotal();
   maybeShowPkgDiscountUpgrade(gt);
+  updGiftBill('coGiftBox','coGiftRows','co-gift-total');
   // 2026-08-18, per Shruti — "discounts should be very clearly called out,
   // even the einvite one": Grand Total now shows the true pre-savings value
   // (trueMRP()) instead of gt (which already had any unlocked free-pinata/
@@ -5579,6 +5620,21 @@ function updCoAmt(){
   document.getElementById('co-adv').textContent='₹'+advv.toLocaleString('en-IN');
   document.getElementById('co-bal').textContent='₹'+(payv-advv).toLocaleString('en-IN');
   updHdr(S.screen);
+}
+// Renders the separate "Return Gifts — billed separately" bill (checkout
+// Order Summary + Review page share it). Hidden when nothing's separated.
+function updGiftBill(boxId,rowsId,totalId){
+  const box=document.getElementById(boxId);if(!box)return;
+  const show=giftsSep()&&S.gifts.length>0;
+  box.style.display=show?'block':'none';
+  if(!show)return;
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const row=(l,v)=>'<div class="amt-row"><span>'+l+'</span><span>₹'+v.toLocaleString('en-IN')+'</span></div>';
+  let h=S.gifts.map(g=>row(esc(g.n)+' × '+g.qty,g.unit*g.qty)).join('');
+  if(packagingCost()>0)h+=row('Packaging ('+(PACKAGING_LABELS[S.packaging]||'')+')',packagingCost());
+  if(tagFee()>0)h+=row('Thank You Note',tagFee());
+  document.getElementById(rowsId).innerHTML=h;
+  document.getElementById(totalId).textContent='₹'+giftBillTotal().toLocaleString('en-IN');
 }
 function coKidsChanged(val){
   const newK=parseInt(val);if(!newK||newK===S.kidsCount)return;
@@ -5893,7 +5949,7 @@ async function doCo(){
   // there's nothing to reward yet.
   const __reward=__urgent?{type:'none'}:pickScratchReward();
   const __gt=rawT(),__dpv=dp(),__tpv=tp();
-  const __fee=collectFee();const __pkg=packagingCost();const __tag=tagFee();const __payTotal=__tpv+__fee+__pkg+__tag;
+  const __fee=collectFee();const __payTotal=payTotal();const __giftBill=giftBillTotal();
   const __advv=__urgent?0:adv();
   const __bal=__payTotal-__advv;
   // 2026-08-24, per Shruti (Image 3c) — "The same [freebies/discounts]
@@ -5973,6 +6029,9 @@ async function doCo(){
     order_advance:      __advv || null,
     order_balance:      __bal || null,
     order_total_savings: __totalSavings>0 ? __totalSavings : null,
+    // Return Gifts billed separately (giftsSep()) — NOT part of
+    // client_budget / order_grand_total / advance above.
+    gift_order_total:   __giftBill>0 ? __giftBill : null,
     order_freebies_text: __freebieNames.length ? __freebieNames.join(', ') : null,
     reward_type:        __rewardWon ? __reward.type : null,
     reward_label:       __rewardWon ? __reward.label : null,
@@ -6366,6 +6425,9 @@ function buildSnapshot(){
       // into the snapshot; fixed 2026-08-12.
       gifts:       S.gifts.map(g=>({id:g.id,n:g.n,qty:g.qty,unit:g.unit})),
       gift_packaging:    S.packaging || null,
+      // 2026-10-02 — true when gifts (+ packaging / thank-you note) are
+      // billed separately from the event and NOT in estimated_total.
+      gifts_billed_separately: giftsSep(),
       // 2026-09-12, per Shruti — "return gift packing, thank you notes...
       // charges also not showing up": packagingCost()/tagFee() were always
       // folded straight into payTotal() (so the customer WAS charged
@@ -6404,7 +6466,7 @@ function renderConfServices(){
   if(S.dj&&S.dj.tier)djParts.push(musicLabel(S.dj.tier));
   if(S.djAddons.lights)djParts.push('Music Lights');
   if(S.djAddons.smoke)djParts.push('Smoke Machine');
-  const giftsVal=S.gifts.length?S.gifts.map(g=>g.n+' x'+g.qty).join(', '):'';
+  const giftsVal=S.gifts.length?(S.gifts.map(g=>g.n+' x'+g.qty).join(', ')+(giftsSep()?' · subject to stock — payment link to follow':'')):'';
   const items=[
     {icon:'decor',        lbl:'Decor',        val:S.decor?.n||''},
     {icon:'activities',   lbl:'Activities',   val:S.activities.length?S.activities.map(a=>a.n).join(', '):''},

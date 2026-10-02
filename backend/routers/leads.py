@@ -134,6 +134,14 @@ class LeadSubmitRequest(BaseModel):
     gift_delivery_contact:      Optional[str]  = None   # contact person's name
     gift_delivery_contact_phone:Optional[str]  = None   # contact person's phone (2026-08-11)
     gift_required_by_date:      Optional[date] = None
+    # 2026-10-02, per Shruti — Return Gifts are billed SEPARATELY from the
+    # event on the plain Build-a-Birthday flow (builder_snapshot
+    # .gifts_billed_separately = true): gifts + their packaging / thank-you
+    # note fees are NOT in client_budget / order_grand_total / advance, and
+    # the ops team confirms stock before sending a separate payment link.
+    # gift_order_total is that separate bill. See _gifts_separate() below and
+    # migrations/039_return_gift_orders.sql.
+    gift_order_total:           Optional[float] = None
     # Music add-ons (internal field names still say "dj" — see builder.html
     # for the same convention) — Music Lights (Rs.1,500) / Smoke Machine
     # (Rs.2,000). Replaces the old "Signature DJ" tier, which bundled both
@@ -709,6 +717,39 @@ async def _redeem_any_code(code: str, phone: str, lead_id: int) -> None:
 _COLLECTION_FEE = 100  # mirrors builder.html's collectFee() flat Rs.100 surcharge
 
 
+def _gifts_separate(req: LeadSubmitRequest) -> bool:
+    """True when this order's Return Gifts are billed separately from the
+    event (2026-10-02 flow) — i.e. the frontend flagged it AND at least one
+    gift was actually picked."""
+    snap = req.builder_snapshot or {}
+    return bool(snap.get("gifts_billed_separately")) and any(g.get("n") for g in (snap.get("gifts") or []))
+
+
+def _gift_bill_total(req: LeadSubmitRequest) -> Optional[float]:
+    """The separate Return Gifts bill: gifts + packaging + thank-you note.
+    Prefers what the frontend sent (gift_order_total); otherwise rebuilt
+    from the snapshot's own rupee figures."""
+    if not _gifts_separate(req):
+        return None
+    sent_total = getattr(req, "gift_order_total", None)
+    if sent_total is not None:
+        return float(sent_total)
+    snap = req.builder_snapshot or {}
+    total = 0.0
+    for g in snap.get("gifts") or []:
+        if g.get("n") and g.get("unit") is not None:
+            total += float(g["unit"]) * float(g.get("qty") or 0)
+    total += float(snap.get("gift_packaging_cost") or 0) + float(snap.get("gift_thank_you_fee") or 0)
+    return total
+
+
+GIFT_ORDER_CUSTOMER_NOTE = (
+    "Return gifts are subject to stock availability and are billed separately from your event. "
+    "Our team will confirm stock and then send you a separate payment link on email and WhatsApp "
+    "(100% advance). Delivery charges are extra, at actuals."
+)
+
+
 def _order_addon_rows_raw(req: LeadSubmitRequest) -> list:
     """Rows for whatever pushed Payable Total above (Package Subtotal minus
     Discount) — Return Gift packaging, the personalised thank-you note, the
@@ -721,11 +762,14 @@ def _order_addon_rows_raw(req: LeadSubmitRequest) -> list:
     the invoice breakup)."""
     snap = req.builder_snapshot or {}
     rows = []
-    packaging_cost = snap.get("gift_packaging_cost")
+    # Separately-billed gifts: their packaging / thank-you note fees belong
+    # to the Return Gifts bill, not the event's Payable Total.
+    gifts_sep = _gifts_separate(req)
+    packaging_cost = None if gifts_sep else snap.get("gift_packaging_cost")
     if packaging_cost:
         label = cat.PACKAGING_LABELS.get(snap.get("gift_packaging"))
         rows.append((f"Packaging ({label})" if label else "Packaging", float(packaging_cost)))
-    thank_you_fee = snap.get("gift_thank_you_fee")
+    thank_you_fee = None if gifts_sep else snap.get("gift_thank_you_fee")
     if thank_you_fee:
         rows.append(("Personalised Thank You Note", float(thank_you_fee)))
     name_bunting_fee = snap.get("decor_name_bunting_fee")
@@ -815,6 +859,13 @@ def _format_order_summary_block(req: LeadSubmitRequest) -> str:
         lines.append(f"  Pending Amount  : {_fmt_rupees(pending)}")
     lines.append(f"  Payment Status  : {_payment_status_text(req)}")
     lines.append("")
+    gift_total = _gift_bill_total(req)
+    if gift_total is not None:
+        lines.append("RETURN GIFTS (BILLED SEPARATELY)")
+        lines.append(f"  Return Gifts Total : {_fmt_rupees(gift_total)}")
+        lines.append("  Status             : Pending stock confirmation")
+        lines.append(f"  {GIFT_ORDER_CUSTOMER_NOTE}")
+        lines.append("")
     return "\n".join(lines) + "\n"
 
 def _format_dj_addons_block(req: LeadSubmitRequest) -> str:
@@ -1060,10 +1111,16 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
             gift_items.append({"name": f"Packaging ({packaging})" if packaging else "Packaging", "price": packaging_cost})
         if thank_you_fee:
             gift_items.append({"name": "Personalised Thank You Note", "price": thank_you_fee})
-        out.append({
+        gift_entry = {
             "label": "Return Gifts", "items": gift_items,
             "note": " · ".join(note_parts) if note_parts else None,
-        })
+        }
+        if _gifts_separate(req):
+            # Billed separately — kept in "Services Booked" so nothing is
+            # hidden, but flagged so the event invoice leaves it out.
+            gift_entry["label"] = "Return Gifts (billed separately)"
+            gift_entry["separate"] = True
+        out.append(gift_entry)
     else:
         out.append({"label": "Return Gifts", "not_selected": True})
 
@@ -1404,6 +1461,24 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
             order_rows.append(("Event Sales Lead", event_sales_lead))
     order_html = _html_details_table(order_rows)
 
+    gift_bill_html = ""
+    _gift_total = _gift_bill_total(req)
+    if _gift_total is not None:
+        _gift_note = (
+            GIFT_ORDER_CUSTOMER_NOTE if recipient_kind == "customer"
+            else "Ops: confirm stock with the vendor, then send the customer a payment link from the "
+                 "Return Gift Order box on the admin Bookings page (status: Pending stock check)."
+        )
+        gift_bill_html = (
+            _html_section_title("Return Gifts — Billed Separately")
+            + _html_details_table([
+                ("Return Gifts Total", _fmt_rupees(_gift_total)),
+                ("Status", "Pending stock confirmation"),
+            ])
+            + f'<div style="background:#F7F3FD;border:1px dashed #D9CBF2;border-radius:10px;padding:10px 14px;'
+              f'margin-top:8px;font-size:12.5px;line-height:1.55;color:#5B4B78">{_html_escape(_gift_note)}</div>'
+        )
+
     dj_rows = []
     if req.dj_lights_addon:
         dj_rows.append(("Music Lights", "Yes (Rs.1,500)"))
@@ -1475,6 +1550,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
         pending_tasks_html,
         _html_section_title("Booking Details" if is_booking else "Enquiry Details") + details_html,
         (_html_section_title("Order Summary") + order_html) if order_rows else "",
+        gift_bill_html,
         services_html,
         (_html_section_title("Music Add-ons") + dj_html) if dj_rows else "",
         (_html_section_title("Venue Details") + venue_html) if any(r[1] for r in venue_rows) else "",
@@ -1555,7 +1631,8 @@ async def _build_booking_invoice_pdf(lead_id: int, req: LeadSubmitRequest) -> tu
         event_time=req.event_time,
         venue=req.venue,
         city=req.city,
-        services_detail=_services_detail_list(req),
+        # Separately-billed Return Gifts aren't part of the event invoice.
+        services_detail=[s for s in _services_detail_list(req) if not s.get("separate")],
         # order_grand_total is the pre-discount cart subtotal captured at
         # checkout (see routers/admin.py's Grand Total recalculation
         # comment) — client_budget is the actual payable total after
@@ -2298,6 +2375,20 @@ async def submit_lead(req: LeadSubmitRequest):
             "is_booking":                 is_booking_flag,
         },
     )
+
+    # Return Gift order (2026-10-02) — separate bill, starts at "pending stock
+    # check" for the ops team. Best-effort in its own statement so a missing
+    # migration 039 can never block the booking itself.
+    _gift_total = _gift_bill_total(req)
+    if _gift_total is not None and is_booking_flag:
+        try:
+            await database.execute(
+                "UPDATE leads SET gift_order_total = :t, gift_order_status = 'pending_stock', "
+                "gift_order_updated_at = NOW() WHERE lead_id = :id",
+                values={"t": _gift_total, "id": lead_id},
+            )
+        except Exception as exc:
+            logger.error(f"Lead #{lead_id}: could not save return gift order (run migration 039?) — {exc}")
 
     # Reward code issue/redeem — best-effort, never blocks the booking itself.
     reward_code = None

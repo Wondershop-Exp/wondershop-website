@@ -122,6 +122,33 @@ th.th-sort:hover{color:var(--pk)}
 .readonly-amt{padding:10px 12px;border:1px solid var(--li2);border-radius:8px;font-size:14px;background:var(--li3);color:var(--bk);font-weight:700}
 .disc-box{margin:12px 0 4px}
 .gt-breakup{margin:12px 0 0;border:1px solid var(--li2);border-radius:8px;padding:6px 12px 8px;background:#fff;overflow-x:auto}
+/* Return Gift Order box (2026-10-02) — shared with sales-leads.html */
+.go-card{background:#fff;border:1.5px dashed #D9CBF2;border-radius:14px;padding:16px 18px;margin:0 0 22px}
+.go-hd{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-weight:700;font-size:15px;color:#3B2A55;margin-bottom:10px}
+.go-chip{font-size:11px;font-weight:700;background:#F3EEFC;color:#6B4FA0;border-radius:999px;padding:3px 10px}
+.go-track{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:14px;font-size:12px}
+.go-st{padding:4px 10px;border-radius:999px;background:#F4F2F7;color:#7A7287;font-weight:600}
+.go-st.done{background:#E7F6EC;color:#166534}
+.go-st.now{background:#FFF4D6;color:#8A5A00;box-shadow:inset 0 0 0 1.5px #F2C14E}
+.go-st.bad{background:#FDECEC;color:#8A1F27}
+.go-arrow{color:#B3A7C4}
+.go-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.go-total{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;border-bottom:1px solid #EEE8F6;padding-bottom:6px}
+.go-total b{font-size:18px;font-variant-numeric:tabular-nums}
+.go-items{list-style:none;margin:8px 0 0;padding:0;font-size:12.5px;color:#5B4B78}
+.go-items li{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+.go-items b{font-weight:600;font-variant-numeric:tabular-nums}
+.go-hint{font-size:11.5px;color:#8B7FA0;margin-top:8px;line-height:1.5}
+.go-form{display:flex;flex-direction:column;gap:9px;min-width:0}
+.go-form label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;font-weight:700;color:#7A7287;text-transform:uppercase;letter-spacing:.3px}
+.go-form select,.go-form input{font:inherit;font-size:13.5px;text-transform:none;letter-spacing:0;font-weight:400;color:#2D2140;padding:8px 10px;border:1px solid #E3DCEE;border-radius:8px;background:#fff;min-width:0}
+.go-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+.go-btn{padding:9px 16px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:#E65A96;color:#fff}
+.go-btn.ghost{background:#fff;border:1px solid #E3DCEE;color:#3B2A55}
+.go-meta{font-size:11.5px;color:#8B7FA0;line-height:1.5}
+.gt-breakup.gifts{border-style:dashed;background:#FBF9FE}
+.gt-breakup .gb-hd{font-size:12px;font-weight:700;color:#6B4FA0;padding:6px 0 2px}
+.gift-sep-note{margin-top:10px;font-size:12.5px;color:#6B4FA0;background:#F7F3FD;border:1px dashed #D9CBF2;border-radius:8px;padding:9px 12px;line-height:1.5}
 .gt-breakup.empty{color:var(--gy);font-size:12.5px;padding:10px 12px}
 .gt-breakup table{width:100%;border-collapse:collapse;font-size:12.5px;color:var(--bk)}
 .gt-breakup th{font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;text-align:right;padding:6px 0 6px 12px;border-bottom:1px solid var(--li2)}
@@ -307,6 +334,7 @@ body.role-sales .admin-only{display:none!important}
     <span class="gt-cell"><span class="gt-label">Total MRP</span><span class="gt-sub" id="gtMrp">₹0</span></span>
     <span class="gt-cell" id="gtDiscCell"><span class="gt-label">Discount</span><span class="gt-sub gt-disc" id="gtDisc">—</span></span>
     <span class="gt-cell"><span class="gt-label" id="gtAmtLabel">Grand Total</span><span class="gt-amt" id="gtAmt">₹0</span></span>
+    <span class="gt-cell" id="gtGiftCell" style="display:none"><span class="gt-label">Return gifts · separate</span><span class="gt-sub" id="gtGift">₹0</span></span>
     <span class="gt-note" id="gtNote">Activities priced per child use &times;1 until # Kids is filled in</span>
   </div>
 </div>
@@ -722,7 +750,10 @@ function updateGrandTotalBar(agreedLive){
   if(!bar) return;
   if(!DATA || !CURRENT_ID){ bar.style.display='none'; return; }
   bar.style.display='block';
-  const mrp = listBreakdown().total;
+  const LBb = listBreakdown();
+  const mrp = LBb.total;
+  const gc = document.getElementById('gtGiftCell');
+  if(gc){ gc.style.display = LBb.giftItems.length ? '' : 'none'; document.getElementById('gtGift').textContent = money(LBb.giftTotal) || '₹0'; }
   const raw = (agreedLive !== undefined) ? agreedLive : salesQuoteValue();
   const agreed = (raw === null || raw === undefined || raw === '' || isNaN(Number(raw))) ? null : Number(raw);
   document.getElementById('gtMrp').textContent = money(mrp) || '₹0';
@@ -911,6 +942,7 @@ function estimateTotalLocal(){
   let total = 0;
   const reqs = DATA.requirements || {};
   Object.keys(reqs).forEach(function(k){
+    if(k==='return_gifts' || k==='packaging' || k==='return_gift_tags') return;   // billed separately (2026-10-02)
     const r = reqs[k];
     if(r && typeof r === 'object'){
       if(r.cost !== null && r.cost !== undefined && r.cost !== ''){
@@ -973,13 +1005,19 @@ function listBreakdown(){
   const kids = (DATA && DATA.kids_count) || 1;
   const giftQty = _returnGiftsTotalQty();
   const items = [];
+  // 2026-10-02, per Shruti — Return gifts (+ packaging / thank-you tags) are
+  // billed separately from the event (stock check first, then a separate
+  // payment link): their lines go in giftItems, NOT the Grand Total.
+  // Mirrors _mrp_total(part="gifts") / _gift_bill_total() in sales_leads.py.
+  const giftItems = [];
+  let inGifts = false;
   const num = v => (v===null||v===undefined||v==='') ? null : (isNaN(Number(v)) ? null : Number(v));
   // mrp == null -> no list price: the MRP column shows "—" and the quote
   // counts towards the MRP total instead (per Shruti, for hosts above ₹15k).
   function line(label, quoted, mrp){
     const q = num(quoted);
     const m = (mrp==null) ? (q||0) : Number(mrp);
-    items.push({label, mrp: m, noMrp: mrp==null, quote: (q===null ? m : q)});
+    (inGifts ? giftItems : items).push({label, mrp: m, noMrp: mrp==null, quote: (q===null ? m : q)});
   }
   const sel = k => (reqs[k] && typeof reqs[k]==='object') ? reqs[k] : {};
   const on = r => r.selected && r.selected !== 'No';
@@ -1003,6 +1041,7 @@ function listBreakdown(){
   if(on(pt) || num(pt.cost)!==null) line('Piñata'+(pt.selected?': '+pt.selected:''), pt.cost, _catPrice(C.pinata_type,'name',pt.selected));
   const pb = sel('pinata_bags');
   if(pb.selected==='Yes') line('Piñata bags ('+kids+')', pb.cost, C.pinata_bags ? (C.pinata_bags.unit_price||0)*kids : null);
+  inGifts = true;
   const rg = sel('return_gifts');
   if((rg.selected_gifts||[]).length || num(rg.cost)!==null){
     let mrp = null;
@@ -1024,6 +1063,7 @@ function listBreakdown(){
     const gt = C.return_gift_tags || {};
     line('Return gift tags', tg.cost, Math.max(gt.min_qty||15, giftQty)*(gt.unit_price||10));
   }
+  inGifts = false;
   const known = ['decor','host','music','photographer','einvite_type','save_the_date','pinata_type','pinata_bags','return_gifts','packaging','return_gift_tags'];
   Object.keys(reqs).forEach(k=>{
     if(known.includes(k)) return;
@@ -1040,7 +1080,8 @@ function listBreakdown(){
                 mrp: (cUnit||0)*mult, quote: (qUnit===null ? cUnit||0 : qUnit)*mult});
   });
   const r2 = v => Math.round(v*100)/100;
-  return {total: r2(items.reduce((s,i)=>s+i.mrp,0)), quoteTotal: r2(items.reduce((s,i)=>s+i.quote,0)), items};
+  return {total: r2(items.reduce((s,i)=>s+i.mrp,0)), quoteTotal: r2(items.reduce((s,i)=>s+i.quote,0)), items,
+          giftItems, giftTotal: r2(giftItems.reduce((s,i)=>s+i.quote,0)), giftMrp: r2(giftItems.reduce((s,i)=>s+i.mrp,0))};
 }
 function breakupHtml(b){
   if(!b.items.length) return '<div class="gt-breakup empty">Nothing selected yet.</div>';
@@ -1049,6 +1090,16 @@ function breakupHtml(b){
     + b.items.map(i=>'<tr><td>'+esc(i.label)+'</td><td>'+(i.noMrp ? '<span title="No list price — the sales quote counts in the MRP total">—</span>' : money(i.mrp))+'</td>'
         + '<td'+(i.quote < i.mrp ? ' class="neg"' : '')+'>'+money(i.quote)+'</td></tr>').join('')
     + '</tbody><tfoot><tr><td>Total</td><td>'+money(b.total)+'</td><td>'+money(b.quoteTotal)+'</td></tr></tfoot>'
+    + '</table></div>'
+    + giftBreakupHtml(b);
+}
+function giftBreakupHtml(b){
+  if(!b.giftItems || !b.giftItems.length) return '';
+  return '<div class="gt-breakup gifts"><div class="gb-hd">🎁 Return gifts — billed separately (not in Grand Total)</div><table>'
+    + '<thead><tr><th>Item</th><th>MRP</th><th>Sales quote</th></tr></thead><tbody>'
+    + b.giftItems.map(i=>'<tr><td>'+esc(i.label)+'</td><td>'+(i.noMrp ? '—' : money(i.mrp))+'</td>'
+        + '<td'+(i.quote < i.mrp ? ' class="neg"' : '')+'>'+money(i.quote)+'</td></tr>').join('')
+    + '</tbody><tfoot><tr><td>Return gifts total</td><td>'+money(b.giftMrp)+'</td><td>'+money(b.giftTotal)+'</td></tr></tfoot>'
     + '</table></div>';
 }
 
@@ -2215,6 +2266,81 @@ function sectionNotes(){
     + '</div>';
 }
 
+// ── Return Gift Order (2026-10-02, per Shruti) ─────────────────────────
+// "return gifts are subject to stock availability ... ops team needs to
+// confirm the order, post which, we'll share a payment link with the
+// customer on email and whatsapp." Gifts (+ packaging / thank-you note)
+// are billed separately from the event's Grand Total; this box walks the
+// order through Pending stock check -> Stock confirmed -> Payment link
+// sent -> Paid (or Not available). Server: POST
+// /api/admin/bookings/{id}/gift-order (routers/admin.py). Shared verbatim
+// by admin.html (Bookings page) and sales-leads.html (sales panel).
+let GO_LEAD_ID = null, GO_RELOAD = null;
+function giftOrderHtml(go, leadId, reload){
+  GO_LEAD_ID = leadId; GO_RELOAD = reload;
+  if(!go) return '';
+  const rs = n => (n==null||n==='') ? '—' : '₹'+Math.round(Number(n)).toLocaleString('en-IN');
+  const items = (go.items||[]).map(x=>'<li><span>'+esc(x.label)+'</span><b>'+rs(x.amount)+'</b></li>').join('');
+  const opts = (go.status_options||[]).map(o=>'<option value="'+esc(o.value)+'"'+(o.value===go.status?' selected':'')+'>'+esc(o.label)+'</option>').join('');
+  const step = ['pending_stock','stock_confirmed','link_sent','paid'];
+  const at = step.indexOf(go.status);
+  const track = go.status==='unavailable'
+    ? '<div class="go-track"><span class="go-st bad">Not available / cancelled</span></div>'
+    : '<div class="go-track">'+['Stock check','Stock confirmed','Link sent','Paid'].map((l,i)=>'<span class="go-st'+(i<at?' done':'')+(i===at?' now':'')+'">'+(i<at?'✓ ':'')+l+'</span>').join('<span class="go-arrow">›</span>')+'</div>';
+  const meta = [go.updated_by ? 'Last updated by '+esc(go.updated_by)+(go.updated_at_ist?' · '+esc(go.updated_at_ist):'') : '',
+                go.link_sent_at_ist ? 'Link sent · '+esc(go.link_sent_at_ist) : ''].filter(Boolean).join('<br>');
+  return '<div class="go-card">'
+    + '<div class="go-hd"><span>🎁 Return Gift Order</span><span class="go-chip">Billed separately · not in Grand Total</span></div>'
+    + track
+    + '<div class="go-grid">'
+    +   '<div><div class="go-total"><span>Return gifts total</span><b>'+rs(go.total)+'</b></div>'
+    +     (items ? '<ul class="go-items">'+items+'</ul>' : '')
+    +     (go.catalogue_total!=null && go.total!=null && Math.round(go.catalogue_total)!==Math.round(go.total) ? '<div class="go-hint">At today\'s catalogue prices these come to '+rs(go.catalogue_total)+'.</div>' : '')
+    +     '<div class="go-hint">Customer pays this 100% in advance via the payment link. Delivery is extra, at actuals (Porter, cash on delivery).</div></div>'
+    +   '<div class="go-form">'
+    +     '<label>Status<select id="goStatus">'+opts+'</select></label>'
+    +     '<label>Amount to charge (₹)<input id="goAmount" type="number" min="0" step="1" value="'+(go.total==null?'':Math.round(Number(go.total)))+'"></label>'
+    +     '<label>Payment link<input id="goLink" type="url" placeholder="https://…" value="'+esc(go.payment_link||'')+'"></label>'
+    +     '<label>Note for the team<input id="goNote" type="text" placeholder="e.g. 2 designs out of stock, swapped" value="'+esc(go.note||'')+'"></label>'
+    +     '<div class="go-btns"><button class="go-btn ghost" onclick="goSave(false)">Save</button>'
+    +     '<button class="go-btn" onclick="goSave(true)" title="Emails the link to '+esc(go.customer_email||'the customer')+' and opens WhatsApp with a ready message">Send link to customer</button></div>'
+    +     (meta ? '<div class="go-meta">'+meta+'</div>' : '')
+    +   '</div>'
+    + '</div></div>';
+}
+async function goSave(send){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); return; }
+  const body = {changed_by: who, status: document.getElementById('goStatus').value,
+                payment_link: document.getElementById('goLink').value.trim(),
+                note: document.getElementById('goNote').value.trim(), send_link: !!send};
+  const amt = document.getElementById('goAmount').value;
+  if(amt !== '') body.total = Number(amt);
+  if(send && body.status === 'pending_stock') body.status = 'stock_confirmed';
+  // Opened synchronously (inside the click) so pop-up blockers allow it;
+  // pointed at the WhatsApp message once the server has built it.
+  const waWin = send ? window.open('', '_blank') : null;
+  try{
+    const r = await apiCall('/api/admin/bookings/'+GO_LEAD_ID+'/gift-order', {method:'POST', body: JSON.stringify(body)});
+    if(send){
+      if(r.whatsapp_link && waWin){ waWin.location.href = r.whatsapp_link; }
+      else if(waWin){ waWin.close(); }
+      showToast('✓ Payment link '+(r.sent_to ? 'emailed to '+r.sent_to : 'saved (no email on file)')+(r.whatsapp_link ? ' — send the WhatsApp message that just opened.' : ''));
+    }else{
+      showToast('✓ Return gift order: '+r.status_label);
+    }
+    if(GO_RELOAD) await GO_RELOAD();
+  }catch(e){
+    if(waWin) waWin.close();
+    if(e.message!=='unauthorized') showToast('⚠ '+e.message);
+  }
+}
+async function reloadSalesDetail(){
+  if(!CURRENT_ID) return;
+  DATA = await apiCall('/api/admin/sales-leads/'+CURRENT_ID);
+  renderDetail();
+}
+
 // ── 6. Confirm booking & billing ────────────────────────────────────────
 // 2026-09-16, per Shruti: "one grand total should be read only, where it
 // gets derived from the selection done by the sales team. add a total
@@ -2250,6 +2376,9 @@ function sectionBilling(){
     + '</div>'
     + breakupHtml(LB)
     + '<div class="disc-box" id="discBox">'+discountHtml(LB.total, salesQuoteValue(LB))+'</div>'
+    + (d.gift_order
+        ? '<div style="margin-top:14px">'+giftOrderHtml(d.gift_order, CURRENT_ID, reloadSalesDetail)+'</div>'
+        : (LB.giftItems.length ? '<div class="gift-sep-note">🎁 Return gifts ('+money(LB.giftTotal)+') are billed separately and are not part of the Sales Quote. Once the booking is confirmed, a Return Gift Order opens for ops: they confirm stock, then send the customer a payment link (100% advance) on email and WhatsApp.</div>' : ''))
     + '<div class="fld" style="margin-top:12px"><label>Terms &amp; Conditions <span class="opt">optional</span></label>'
       + '<textarea placeholder="Any terms/conditions agreed with the client..." onblur="saveField(\'terms_conditions\', this.value)">'+esc(d.terms_conditions||'')+'</textarea></div>'
     + '<div style="font-size:12px;color:var(--gy);margin-top:12px">'+(d.is_booking

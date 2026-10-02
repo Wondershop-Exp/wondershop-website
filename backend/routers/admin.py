@@ -63,6 +63,7 @@ import catalogue_data as cat
 from types import SimpleNamespace
 from invoice_builder import assemble_invoice_data, build_invoice_pdf, invoice_filename
 from booking_pricing import (
+    gifts_billed_separately,
     compute_billing, compute_adjustments, freebie_activity_names, parse_csv as _parse_csv_names,
     PACKAGING_KEY_TO_LABEL, PACKAGING_UNIT_PRICE, DJ_LIGHTS_PRICE, DJ_SMOKE_PRICE,
     TAG_NOTE_UNIT_PRICE, TAG_NOTE_MIN_QTY, PINATA_BAG_PRICE, DECOR_PRICES, ACTIVITY_PRICES,
@@ -1322,7 +1323,10 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
         "pricing": ({"subtotal": pricing["subtotal"], "checkout_total": pricing["checkout_total"],
                      "total_mrp": pricing["total_mrp"], "discount_pct": pricing["discount_pct"],
                      "discount_amt": pricing["discount_amt"], "extra_items": pricing["extra_items"],
-                     "items": pricing["items"], "unpriced": pricing["unpriced"]} if pricing else None),
+                     "items": pricing["items"], "unpriced": pricing["unpriced"],
+                     "gifts_separate": pricing.get("gifts_separate"),
+                     "gift_items": pricing.get("gift_items"), "gift_total": pricing.get("gift_total")} if pricing else None),
+        "gift_order": _gift_order_payload(lead, snap, pricing),
         "sections": [{"section": s, "fields": sections[s]} for s in sections],
         "change_log": change_log,
     }
@@ -1723,8 +1727,11 @@ def _compute_ideal_subtotal(req: dict, activities: list, kids_count: Optional[in
     # yet -- kept generic so nothing Sales enters silently drops out,
     # exactly the fallback _estimate_total() always used.
     KNOWN = {"decor", "host", "music", "pinata_type", "photographer", "einvite_type", "save_the_date"}
+    # Return gifts (+ packaging / tags) are billed separately from the event
+    # since 2026-10-02 — see the Return Gift Order box / migration 039.
+    GIFT_KEYS = {"return_gifts", "packaging", "return_gift_tags"}
     for key, r in req.items():
-        if key in KNOWN or not isinstance(r, dict):
+        if key in KNOWN or key in GIFT_KEYS or not isinstance(r, dict):
             continue
         total += _cost_plus_addons(key)
 
@@ -2396,7 +2403,8 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
         event_time=lead.get("event_time"),
         venue=lead.get("venue"),
         city=lead.get("city"),
-        services_detail=_services_detail_list(fake_req),
+        # Separately-billed Return Gifts (2026-10-02) aren't on the event invoice.
+        services_detail=[s for s in _services_detail_list(fake_req) if not s.get("separate")],
         subtotal=(pricing["subtotal"] if pricing else _money(lead.get("order_grand_total"))),
         discount_pct=_money(_choice("bill_discount_pct")),
         grand_total=_money(_choice("bill_grand_total")),
@@ -2448,6 +2456,161 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
     )
     logger.info(f"Lead #{lead_id}: updated invoice ({invoice_number}) sent to {lead['email']} by {who}")
     return {"success": True, "invoice_number": invoice_number, "sent_to": lead["email"]}
+
+
+# ─── RETURN GIFT ORDER (2026-10-02) ─────────────────────────────────────────
+# Per Shruti: "return gifts are subject to stock availability ... we'll send a
+# separate payment link after our team confirms the stock availability. ...
+# show a separate section in billing ... where ops team needs to confirm the
+# order, post which, we'll share a payment link with the customer on email
+# and whatsapp." Gifts (+ packaging / thank-you note) are billed outside the
+# event Grand Total (booking_pricing.gifts_billed_separately) and tracked
+# here through a small status workflow. Columns: migrations/039.
+GIFT_ORDER_STATUSES = {
+    "pending_stock":   "Pending stock check",
+    "stock_confirmed": "Stock confirmed",
+    "link_sent":       "Payment link sent",
+    "paid":            "Paid",
+    "unavailable":     "Not available / cancelled",
+}
+
+
+def _gift_order_payload(lead: dict, snap: dict, pricing: Optional[dict]) -> Optional[dict]:
+    """The Return Gift Order box on the booking page / sales panel. None when
+    this booking's gifts aren't billed separately (older bookings)."""
+    if not gifts_billed_separately(lead, snap):
+        return None
+    live_total = (pricing or {}).get("gift_total") if pricing else None
+    # The amount to charge: what was billed at checkout / agreed in the sales
+    # panel (or later adjusted by ops, e.g. after a partial stock shortfall)
+    # — falling back to today's catalogue prices for the gifts selected.
+    stored = _money_or_none(lead.get("gift_order_total"))
+    total = stored if stored is not None else (live_total or None)
+    if not total and not (pricing or {}).get("gift_items") and not lead.get("gift_order_status"):
+        return None
+    status = lead.get("gift_order_status") or "pending_stock"
+    return {
+        "status": status,
+        "status_label": GIFT_ORDER_STATUSES.get(status, status),
+        "status_options": [{"value": k, "label": v} for k, v in GIFT_ORDER_STATUSES.items()],
+        "total": total,
+        "catalogue_total": live_total,
+        "items": (pricing or {}).get("gift_items") or [],
+        "payment_link": lead.get("gift_payment_link"),
+        "note": lead.get("gift_order_note"),
+        "updated_by": lead.get("gift_order_updated_by"),
+        "updated_at_ist": _to_ist_str(lead.get("gift_order_updated_at")) if lead.get("gift_order_updated_at") else None,
+        "link_sent_at_ist": _to_ist_str(lead.get("gift_link_sent_at")) if lead.get("gift_link_sent_at") else None,
+        "customer_email": lead.get("email"),
+        "customer_phone": lead.get("phone"),
+    }
+
+
+def _money_or_none(v) -> Optional[float]:
+    try:
+        return float(v) if v not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _gift_link_message(lead: dict, total: Optional[float], link: str) -> str:
+    first = (lead.get("parent_name") or "there").split()[0]
+    amt = f"Rs.{total:,.0f}" if total else "the amount shown"
+    return (
+        f"Hi {first}, good news! The return gifts for your Wondershop booking #{lead['lead_id']} are in stock. "
+        f"Please complete the payment of {amt} (100% advance) using this link: {link}\n\n"
+        f"Delivery charges are extra, at actuals (paid to the delivery partner on delivery). "
+        f"Reply here if you have any questions. – Team Wondershop"
+    )
+
+
+class GiftOrderUpdateRequest(ChangedByRequest):
+    status: Optional[str] = None
+    payment_link: Optional[str] = None
+    note: Optional[str] = None
+    # Amount to charge for the gifts (ops can adjust it, e.g. if some items
+    # turn out to be unavailable). Omit to keep the current amount.
+    total: Optional[float] = None
+    # True = also email the payment link to the customer now (and return a
+    # ready-to-send WhatsApp link for the team), moving status to link_sent.
+    send_link: bool = False
+
+
+@router.post("/bookings/{lead_id}/gift-order")
+async def update_gift_order(lead_id: int, body: GiftOrderUpdateRequest, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    who = (body.changed_by or "").strip()
+    if not who:
+        raise HTTPException(status_code=400, detail="changed_by is required.")
+    lead_row = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    if not lead_row:
+        raise HTTPException(status_code=404, detail="Booking not found.")
+    lead = dict(lead_row)
+    if body.status is not None and body.status not in GIFT_ORDER_STATUSES:
+        raise HTTPException(status_code=400, detail="Unknown return gift order status.")
+
+    status = body.status or lead.get("gift_order_status") or "pending_stock"
+    link = (body.payment_link if body.payment_link is not None else lead.get("gift_payment_link")) or None
+    link = link.strip() if link else None
+    note = body.note if body.note is not None else lead.get("gift_order_note")
+
+    if body.total is not None:
+        if body.total < 0:
+            raise HTTPException(status_code=400, detail="The return gifts amount can't be negative.")
+        total = float(body.total)
+    else:
+        detail = await get_booking_detail(lead_id, x_admin_password)
+        total = (detail.get("gift_order") or {}).get("total") or _money_or_none(lead.get("gift_order_total"))
+
+    wa_link = None
+    sent_to = None
+    now = datetime.utcnow()
+    if body.send_link:
+        if not link or not re.match(r"^https?://", link):
+            raise HTTPException(status_code=400, detail="Add the payment link (starting with https://) before sending it.")
+        if lead.get("gift_order_status") in (None, "pending_stock") and body.status in (None, "pending_stock"):
+            raise HTTPException(status_code=400, detail="Confirm stock first — set the status to Stock confirmed, then send the link.")
+        msg = _gift_link_message(lead, total, link)
+        if lead.get("email"):
+            await _gmail_send(
+                to_email=lead["email"],
+                subject=f"🎁 Payment link for your return gifts (Order #{lead_id})",
+                body=msg + "\n\nWarmly,\nTeam Wondershop 🎈\nwondershopexperiences.com\n",
+            )
+            sent_to = lead["email"]
+        digits = re.sub(r"\D", "", lead.get("phone") or "")
+        if digits:
+            from urllib.parse import quote
+            wa_link = f"https://wa.me/{digits}?text={quote(msg)}"
+        status = "link_sent"
+
+    old_status = lead.get("gift_order_status")
+    await database.execute(
+        """
+        UPDATE leads SET gift_order_status = :status, gift_payment_link = :link, gift_order_note = :note,
+               gift_order_total = COALESCE(:total, gift_order_total),
+               gift_order_updated_by = :who, gift_order_updated_at = :now,
+               gift_link_sent_at = CASE WHEN :sent THEN :now ELSE gift_link_sent_at END
+         WHERE lead_id = :id
+        """,
+        values={"status": status, "link": link, "note": note, "total": total, "who": who,
+                "now": now, "sent": bool(body.send_link), "id": lead_id},
+    )
+    change = GIFT_ORDER_STATUSES.get(status, status)
+    if body.send_link:
+        change += " — link emailed to " + (sent_to or "(no email on file)")
+    await database.execute(
+        """
+        INSERT INTO booking_change_log
+            (lead_id, field_key, field_label, change_type, old_value, new_value, changed_by, changed_at)
+        VALUES (:lead_id, 'gift_order', 'Return Gift Order', 'field_value', :old_v, :new_v, :by, :ts)
+        """,
+        values={"lead_id": lead_id, "old_v": GIFT_ORDER_STATUSES.get(old_status or "", old_status),
+                "new_v": change, "by": who, "ts": now},
+    )
+    logger.info(f"Lead #{lead_id}: return gift order -> {status} by {who}")
+    return {"success": True, "status": status, "status_label": GIFT_ORDER_STATUSES.get(status, status),
+            "sent_to": sent_to, "whatsapp_link": wa_link}
 
 
 class SendSummaryEmailRequest(ChangedByRequest):
