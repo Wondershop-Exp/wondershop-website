@@ -467,6 +467,24 @@ GIFTS = [
     ("g40", "Harry Potter A4 Folder (4 designs)", "return-gifts/hp-a4-folder.jpg", 270),
     ("g41", "K-pop A4 Folder (4 designs)", "return-gifts/kpop-a4-folder.jpg", 270),
     ("g42", "Harry Potter Pencil Pouch", "return-gifts/hp-pencil-pouch.jpg", 200),
+    # Budget range (under Rs 250), added 2026-10-02 per Shruti.
+    ("g43", "UNO Cards", "return-gifts/uno-cards.jpg", 90),
+    ("g44", "Wooden Car Pen Stand", "return-gifts/wooden-car-pen-stand.jpg", 110),
+    ("g45", "Minion Sketch Pen Set", "return-gifts/minion-sketch-pen-set.jpg", 100),
+    ("g46", "Silicone Coin Pouch", "return-gifts/silicone-coin-pouch.jpg", 100),
+    ("g47", "Fruit Pencil Pouch", "return-gifts/fruit-pencil-pouch.jpg", 100),
+    ("g48", "Labubu Bag Charm / Keychain", "return-gifts/labubu-bag-charm.jpg", 80),
+    ("g49", "Cube Scale (20 cm)", "return-gifts/cube-scale-20cm.jpg", 100),
+    ("g50", "Kaleidoscope", "return-gifts/kaleidoscope.jpg", 110),
+    ("g51", "Kids Folder", "return-gifts/kids-folder.jpg", 160),
+    ("g52", "Lego Band", "return-gifts/lego-band.jpg", 140),
+    ("g53", "Lego Pencil Set", "return-gifts/lego-pencil-set.jpg", 130),
+    ("g54", "Kids Lunch Bag (assorted prints)", "return-gifts/kids-lunch-bag.jpg", 120),
+    ("g55", "Magnetic Planner with Whiteboard Marker", "return-gifts/magnetic-planner.jpg", 130),
+    ("g56", "Binoculars", "return-gifts/binoculars.jpg", 120),
+    ("g57", "Pinball Game", "return-gifts/pinball-game.jpg", 210),
+    ("g58", "Swimming Goggles (assorted designs)", "return-gifts/swimming-goggles.jpg", 200),
+    ("g59", "Rechargeable Mini Fan", "return-gifts/rechargeable-mini-fan.jpg", 200),
 ]
 _GIFTS_BY_ID = {g[0]: g for g in GIFTS}
 
