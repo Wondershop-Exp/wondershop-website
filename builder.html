@@ -974,6 +974,8 @@ body.browse-mode .browse-cta{display:flex}
 
 /* Confirmation screen */
 .conf-hero{text-align:center;padding:32px 0 20px}
+#sconf{caret-color:transparent}
+#sconf input,#sconf textarea{caret-color:auto}
 .conf-icon{font-size:72px;margin-bottom:12px}
 .conf-hero h2{font-family:var(--fd);font-size:28px;font-weight:700;color:var(--bk);margin-bottom:10px}
 .conf-hero p{color:var(--gy);font-size:15px;max-width:400px;margin:0 auto}
@@ -6102,6 +6104,9 @@ async function doCo(){
 
   // Swap the confirmation screen between the normal "Booking Confirmed!"
   // flourish and the urgent "we'll call to check feasibility" version.
+  // 2026-10-03, per Shruti — a text cursor was left blinking next to the
+  // hero icon after booking: drop focus/selection carried over from checkout.
+  try{if(document.activeElement&&document.activeElement!==document.body)document.activeElement.blur();const sel=window.getSelection&&window.getSelection();if(sel)sel.removeAllRanges();}catch(e){}
   const heroIcon=document.getElementById('confHeroIcon');
   const heroTitle=document.getElementById('confHeroTitle');
   const heroDesc=document.getElementById('confHeroDesc');
