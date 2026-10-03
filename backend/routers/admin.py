@@ -1883,7 +1883,9 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
             cat_price = ACTIVITY_PRICES.get(name)
             standard = cat_price[0] if isinstance(cat_price, tuple) else cat_price
             sales_price = a.get("price")
-            if standard is not None and sales_price is not None:
+            # Price-on-request activities have no standard price (0) — their
+            # quoted price goes to the To be confirmed card instead (below).
+            if standard and sales_price is not None:
                 try:
                     if round(float(sales_price), 2) != round(float(standard), 2):
                         negotiated_bits.append(f"{name}: negotiated ₹{sales_price} (standard ₹{standard})")
@@ -2082,6 +2084,42 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
                 "new_v": cc or remark, "by": who, "now": now,
             },
         )
+
+    # ── Price-on-request activities priced by sales (2026-10-03, per
+    # Shruti — "give option to the sales person to add the pricing"): the
+    # price typed on the sales panel pre-fills that activity's line in the
+    # booking's To be confirmed card (still Pending — ops confirms
+    # availability with the vendor), so it's already in the Total MRP and
+    # ops sees what was quoted. Never overwrites a price already saved there.
+    try:
+        from booking_pricing import POR_ACTIVITY_NAMES
+        por_prices = {}
+        for a in activities:
+            name = a.get("name")
+            try:
+                price = float(a.get("price")) if a.get("price") not in (None, "") else None
+            except (TypeError, ValueError):
+                price = None
+            if name in POR_ACTIVITY_NAMES and price:
+                por_prices[name] = price
+        if por_prices:
+            lead_now = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
+            state = tbc_state(dict(lead_now)) if lead_now else {}
+            changed = False
+            for name, price in por_prices.items():
+                key = f"act:{name}"
+                if (state.get(key) or {}).get("price") is not None:
+                    continue
+                state[key] = {"status": "pending", "price": price,
+                              "note": f"Price quoted by sales: ₹{price:,.0f}", "by": who, "at": _to_ist_str(now)}
+                changed = True
+            if changed:
+                await database.execute(
+                    "UPDATE leads SET tbc_items = CAST(:v AS JSONB) WHERE lead_id = :id",
+                    values={"v": json.dumps(state), "id": lead_id},
+                )
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: couldn't carry price-on-request prices into To be confirmed")
 
     # ── Grand Total: only if this booking never had a real checkout total
     # (order_grand_total is NULL for every sales-entered booking) — set it

@@ -527,7 +527,7 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
             drop = (lambda l, n=t["name"]: l == f"E-Invite: {n}")
         unpriced[:] = [u for u in unpriced if not drop(u)]
         items[:] = [(l, a) for l, a in items if not drop(l)]
-        add(f"{t['label']} (confirmed)", price)
+        add(f"{t['label']} ({'confirmed' if t.get('status') == 'confirmed' else 'quoted, to be confirmed'})", price)
 
     total_mrp = round(sum(a for _l, a in items), 2)
 

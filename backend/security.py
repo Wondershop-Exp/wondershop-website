@@ -77,7 +77,7 @@ SALES_ALLOWED = [(m, re.compile(p)) for m, p in [
     # Leads, Bookings and Calendar tabs all read this one list endpoint.
     ("GET",  r"/api/admin/bookings"),
     ("GET",  rf"/api/admin/bookings/{_ID}"),
-    ("POST", rf"/api/admin/bookings/{_ID}/(field|status|convert|cancel|invoice/send|summary/send)"),
+    ("POST", rf"/api/admin/bookings/{_ID}/(field|status|convert|cancel|invoice/send|summary/send|tbc)"),
     # Partner NAMES only, for the "assigned partner" suggestions on a booking
     # (never /vendors itself, which carries bank details).
     ("GET",  r"/api/admin/vendors/names"),

@@ -1404,13 +1404,13 @@ function tbcHtml(d){
       + '<input id="tbcN'+i+'" type="text" placeholder="Note (vendor, design, etc.)" value="'+esc(t.note||'')+'"'+(ro?' disabled':'')+'>'
       + (ro ? '<span></span>' : '<div class="tbc-btns">'
           + (done ? '<button class="tbc-btn ghost" onclick="tbcSave('+i+',\'confirmed\')">Save</button><button class="tbc-btn ghost" onclick="tbcSave('+i+',\'pending\')">Reopen</button>'
-                  : '<button class="tbc-btn" onclick="tbcSave('+i+',\'confirmed\')">Mark confirmed</button>')
+                  : '<button class="tbc-btn ghost" onclick="tbcSave('+i+',\'pending\')" title="Save the price / note and keep it pending">Save price</button><button class="tbc-btn" onclick="tbcSave('+i+',\'confirmed\')">Mark confirmed</button>')
           + '</div>')
       + '</div>';
   }).join('');
   return '<div class="tbc-card'+(pending?'':' all-done')+'" id="tbcSection">'
     + '<div class="tbc-hd">'+(pending?'⚠️ To be confirmed — '+pending+' pending':'✓ To be confirmed — all done')+'</div>'
-    + '<div class="tbc-sub">Price-on-request activities and custom designs. Confirm with the vendor / customer; a confirmed price is added to the Total MRP.</div>'
+    + '<div class="tbc-sub">Price-on-request activities and custom designs. Enter the price quoted to the client (Save price) — it is added to the Total MRP — then Mark confirmed once the vendor confirms.</div>'
     + rows + '</div>';
 }
 async function tbcSave(i, status){
@@ -1423,7 +1423,7 @@ async function tbcSave(i, status){
                 note: document.getElementById('tbcN'+i).value.trim()};
   try{
     await apiCall('/api/admin/bookings/'+CURRENT_DETAIL.lead_id+'/tbc', {method:'POST', body: JSON.stringify(body)});
-    showToast(status==='confirmed' ? '✓ '+t.label+' confirmed' : '↺ '+t.label+' reopened');
+    showToast(status==='confirmed' ? '✓ '+t.label+' confirmed' : (t.status==='confirmed' ? '↺ '+t.label+' reopened' : '✓ '+t.label+' saved'));
     await loadDetail();
   }catch(e){ if(e.message!=='unauthorized') showToast('⚠ '+e.message); }
 }

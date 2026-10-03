@@ -465,7 +465,8 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
         "<b>Tentative pricing.</b> This quotation is an estimate. Prices and inclusions are tentative and may "
         "change due to availability of artists, materials or slots, venue requirements, or changes to the "
         "party details.",
-        f"<b>Valid for 24 hours.</b> The prices in this quotation are valid for 24 hours from the time of issue "
+        f"<b>Valid for {int(data.get('valid_hours') or 72)} hours.</b> The prices in this quotation are valid for "
+        f"{int(data.get('valid_hours') or 72)} hours from the time of issue "
         f"(till {_x(data.get('valid_until_text'))}). After that, the quotation will need to be re-reviewed "
         f"by our team.",
         "<b>Confidential.</b> This quotation has been prepared exclusively for you. It is not to be shared, "

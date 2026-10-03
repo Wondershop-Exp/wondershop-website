@@ -903,7 +903,7 @@ async function getQuotation(share){
       a.href = url; a.download = fname;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=>URL.revokeObjectURL(url), 60000);
-      showToast('Quotation downloaded — valid for 24 hours.');
+      showToast('Quotation downloaded — valid for 72 hours.');
     }
     // Pull the fresh edit history ("quotation generated" entry).
     try{
@@ -1132,7 +1132,9 @@ function listBreakdown(){
     if(!a || !a.name) return;
     const catA = (C.activities||[]).find(x=>(a.id && x.id===a.id) || x.name===a.name);
     const flat = catA ? !!catA.flat : !!a.flat;
-    const qUnit = num(a.price), cUnit = (catA && catA.price!=null) ? Number(catA.price) : qUnit;
+    // Price-on-request activities (catalogue price 0) count at the price the
+    // sales person typed in (2026-10-03) — twin of _list_breakdown().
+    const qUnit = num(a.price), cUnit = (catA && Number(catA.price)) ? Number(catA.price) : qUnit;
     const mult = flat ? 1 : kids;
     items.push({label:'Activity: '+a.name+(flat?'':' ('+kids+' × '+money(cUnit||0)+')'),
                 mrp: (cUnit||0)*mult, quote: (qUnit===null ? cUnit||0 : qUnit)*mult});
@@ -2252,6 +2254,21 @@ function renderActivities(){
     listEl.innerHTML = '<div style="font-size:12.5px;color:var(--gy);padding:4px 0 8px">No activities added yet — search above.</div>';
   }else{
     listEl.innerHTML = chosen.map(a=>{
+      const idJs = String(a.id).replace(/\'/g,"\\'");
+      if(isPriceOnRequest(a)){
+        // 2026-10-03, per Shruti — "for the activities with pricing on
+        // request - give option to the sales person to add the pricing".
+        // Blank = still on request (not in the total; shows "Price on
+        // request" on the quotation). Carried into the booking's To be
+        // confirmed card on Convert to Booking.
+        return '<div class="act-item sel">'
+          + '<div class="act-main" style="cursor:default">'
+            + '<div class="an">'+esc(a.name)+'<div style="font-size:11px;color:#B7791F;font-weight:600;margin-top:2px">Price on request — enter the price quoted to the client</div></div>'
+            + '<input type="number" min="0" step="1" placeholder="Price ₹ (flat)" title="Flat price for this activity" style="width:120px;padding:7px 9px;border:1px solid var(--li2);border-radius:8px;font-size:13px" value="'+(Number(a.price)>0?Number(a.price):'')+'" onblur="onPorPrice(\''+idJs+'\',this.value)">'
+            + '<button type="button" class="icon-btn" onclick="toggleActivity(\''+a.id+'\',\''+esc(a.name).replace(/\'/g,"\\'")+'\',null,null)" title="Remove">✕</button>'
+          + '</div>'
+          + '</div>';
+      }
       let priceLbl = money(a.price) + (a.flat ? ' flat' : '/child');
       if(!a.flat){
         const lineTotal = (a.price||0) * (kids || 1);
@@ -2281,6 +2298,20 @@ function renderActivities(){
 // array wholesale, same as event_schedule) — nothing reaches the server
 // until Save is clicked. Synchronous on purpose, same reasoning as
 // patchSheet() above.
+// Price-on-request = catalogue price 0 (inflatables, play area, food stalls…).
+function isPriceOnRequest(a){
+  const catA = (CATALOGUE.activities||[]).find(x=>(a.id && x.id===a.id) || x.name===a.name);
+  return !!catA && !Number(catA.price);
+}
+function onPorPrice(id, value){
+  const v = (value===''||value===null) ? null : Math.max(0, Number(value));
+  const chosen = DATA.activities || [];
+  const cur = chosen.find(a=>a.id===id);
+  if(!cur || (Number(cur.price)||null) === (v||null)) return;
+  const next = chosen.map(a=> a.id===id ? Object.assign({}, a, {price: v}) : a);
+  DATA.activities = next;
+  patchSheet({activities: next});
+}
 function toggleActivity(id, name, price, flat){
   const chosen = DATA.activities || [];
   const isSel = chosen.some(a=>a.id===id);

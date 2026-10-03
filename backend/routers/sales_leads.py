@@ -549,7 +549,9 @@ def _list_breakdown(requirements: dict, activities: list, kids_count: Optional[i
         cat_a = next((x for x in C["activities"] if (a.get("id") and x["id"] == a.get("id")) or x["name"] == a.get("name")), None)
         flat = bool(cat_a["flat"]) if cat_a else bool(a.get("flat"))
         q_unit = num(a.get("price"))
-        c_unit = float(cat_a["price"]) if cat_a and cat_a.get("price") is not None else q_unit
+        # Price-on-request activities (catalogue price 0) count at the price
+        # the sales person typed in; unpriced they stay at 0 (2026-10-03).
+        c_unit = float(cat_a["price"]) if cat_a and cat_a.get("price") else q_unit
         mult = 1 if flat else kids
         items.append({
             "key": "activity", "label": a.get("name"), "no_mrp": False,
@@ -1254,7 +1256,7 @@ async def mark_ops_ready(lead_id: int, body: OpsReadyIn, x_admin_password: Optio
 # select options like decor, activities, music, host, gifts etc. — these
 # with pictures and pricing with a grand total estimate ... downloaded and
 # then sent to the customer over whatsapp", with branding, logo and basic
-# T&C (tentative pricing, valid 24 hours then re-review, not to be shared
+# T&C (tentative pricing, valid 72 hours then re-review, not to be shared
 # without permission). Sections follow the confirmation email's "Services
 # Booked" order; a category with nothing picked prints "Not selected".
 # Prices are the same lines and totals the page's Grand Total breakup shows
@@ -1262,7 +1264,7 @@ async def mark_ops_ready(lead_id: int, body: OpsReadyIn, x_admin_password: Optio
 # to the Sales Quote, which is the Estimated Total. Return gifts are billed
 # separately, exactly as on the page.
 
-QUOTE_VALID_HOURS = 24
+QUOTE_VALID_HOURS = 72   # 2026-10-03, per Shruti — was 24
 
 
 def _fmt_time_12h(t: Optional[str]) -> Optional[str]:
@@ -1357,6 +1359,11 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
 
     # 2. Activities
     lines = []
+    # Price-on-request activities (catalogue price 0) — True by id and name.
+    cat_por = {}
+    for x in _build_catalogue()["activities"]:
+        if not x.get("price"):
+            cat_por[x["id"]] = cat_por[x["name"]] = True
     for it in by_key.get("activity") or []:
         a = it.get("activity") or {}
         img = resolve_activity_image(a.get("id"), a.get("name"))
@@ -1365,8 +1372,10 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
                           "price": None, "price_text": "Price on request"})
             unpriced["any"] = True
             continue
-        if it["flat"]:
+        if it["flat"] and not (cat_por.get(a.get("id")) or cat_por.get(a.get("name"))):
             det = ["Flat price for the group"]
+        elif it["flat"]:
+            det = ["Price quoted for your party"]
         elif kids:
             det = [f"{kids} kids × {inr(it['unit'])} per child"]
         else:
@@ -1533,6 +1542,7 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
         "quote_no": f"WSQ-{d['lead_id']}-{ist.strftime('%d%m%y-%H%M')}",
         "issued_at_text": fmt(ist),
         "valid_until_text": fmt(valid),
+        "valid_hours": QUOTE_VALID_HOURS,
         "prepared_by": d.get("sales_lead_name"),
         "party_title": party_title,
         "client_name": d.get("client_name"),
