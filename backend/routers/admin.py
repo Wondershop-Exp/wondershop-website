@@ -505,7 +505,7 @@ DROPDOWN_VALUES = {key: {o["value"] for o in opts} for key, opts in DROPDOWN_OPT
 # never equal one option value). Kept in a separate dict the frontend uses
 # to build a multi-row picker (2026-08-18, per Shruti — "+ for multi-select").
 ACTIVITY_OPTIONS = [
-    {**_opt(n, f'{n} - Rs. {p}' + ('' if flat else '/child')), "price": p, "flat": flat}
+    {**_opt(n, (f'{n} - price on request' if not p else f'{n} - Rs. {p}' + ('' if flat else '/child'))), "price": p, "flat": flat}
     for _id, n, p, flat in cat.ACTIVITIES
 ]
 GIFT_OPTIONS = [_opt(n, f'{n} - Rs. {p}') for _id, n, _img, p in cat.ACTIVE_GIFTS]

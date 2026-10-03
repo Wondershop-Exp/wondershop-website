@@ -1013,7 +1013,13 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
     if acts_named:
         out.append({
             "label": "Activities",
-            "items": [{"name": a["n"], "price": a.get("p")} for a in acts_named],
+            # Price-on-request activities (inflatables etc.) show as such, with
+            # no amount, instead of "₹0"/"Free" (2026-10-03).
+            "items": [
+                {"name": f'{a["n"]} (price on request)', "price": None} if a.get("price_on_request")
+                else {"name": a["n"], "price": a.get("p")}
+                for a in acts_named
+            ],
         })
     else:
         out.append({"label": "Activities", "not_selected": True})

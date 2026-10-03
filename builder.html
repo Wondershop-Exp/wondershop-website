@@ -3050,6 +3050,8 @@ function engagementBandPrice(duration,kids){
 // included activity now pushes a flat pre-computed r1/r2/r3 value directly
 // instead — see the unicorn-basic ?pkg= branch below), kept as a generic
 // mechanism for future use.
+const POR_NOTE='Pricing will be confirmed by the party lead post order confirmation';
+function isPOR(a){if(!a)return false;if(a.por)return true;const c=ACTS.find(x=>x.id===a.id);return !!(c&&c.por);}
 function actPrice(a,kids){
   const p=actPriceRaw(a,kids);
   return a.minPrice!=null?Math.max(a.minPrice,p):p;
@@ -3058,6 +3060,10 @@ function actPriceRaw(a,kids){
   // Generic escape hatch: an activity explicitly flagged free (no current
   // caller sets this) always prices at ₹0 regardless of catalogue pricing.
   if(a.free)return 0;
+  // 2026-10-03, per Shruti — inflatables / play area / trampoline have no
+  // fixed price yet: ₹0 in all totals, shown as "Price on request" and
+  // confirmed by the party lead after the order.
+  if(isPOR(a))return 0;
   if(a.id==='spy-mission')return spyStationsPrice(kids);
   if(a.id&&a.id.indexOf('station-')===0)return spyStationAddonPrice(a.id.slice(8),kids);
   // Glitter Station / Slime Making / Jelly Swimbags / Hairbrush Decoration /
@@ -3218,6 +3224,20 @@ const ACTS=[
   {id:'mirror-decor',n:'Mirror Decoration',e:'🪞',img:'activity/act-mirror-decoration',realImg:true,cat:'craft',age:'4-12',dur:'20-30 min',req:'Tables & chairs (arranged by client)',r1:750,r2:750,r3:750,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#E65A96)'],tag:'new',pers:true,rating:4.8,cnt:1},
   {id:'bracelet',n:'Bracelet Making',e:'📿',img:'activity/act-bracelet-making',realImg:true,cat:'craft',age:'4-14',dur:'20-30 min',req:'Tables & chairs (arranged by client)',r1:350,r2:350,r3:350,flat:false,minNote:'Minimum ₹5,000',bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)'],tag:'new',pers:true,rating:4.8,cnt:1},
   {id:'spy-badge',n:'MDF Spy Badge',e:'🕵️',img:'packages/spy/spy-badge-mdf-sq',realImg:true,cat:'mystery',age:'5-14',dur:'15-20 min',req:'Tables & chairs (arranged by client)',r1:9000,r2:9000,r3:9000,flat:true,banded:true,bgs:['linear-gradient(135deg,#374151,#5B8EDD)'],tag:'new',pers:true,rating:4.7,cnt:1},
+  {id:'snatch-game',n:'Snatch Game',e:'🎯',img:'activity/act-snatch-game',realImg:true,cat:'carnival',age:'5-14',dur:'Throughout the party',req:'A table-top stall with power point nearby',r1:13000,r2:13000,r3:13000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
+  {id:'street-fighter',n:'Street Fighter',e:'🕹️',img:'activity/act-street-fighter',realImg:true,cat:'carnival',age:'5-14',dur:'Throughout the party',req:'A table-top stall with power point nearby',r1:13000,r2:13000,r3:13000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
+  {id:'catch-the-stick',n:'Catch the Stick',e:'🥢',img:'activity/act-catch-the-stick',realImg:true,cat:'carnival',age:'5-14',dur:'Throughout the party',req:'Floor space for a standing stall (power point nearby)',r1:13000,r2:13000,r3:13000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
+  {id:'air-hockey',n:'Air Hockey',e:'🏒',img:'activity/act-air-hockey',realImg:true,cat:'carnival',age:'5-14',dur:'Throughout the party',req:'Floor space approx. 8×5 ft with power point nearby',r1:13000,r2:13000,r3:13000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
+  {id:'buzz-wire',n:'Buzz Wire',e:'⚡',img:'activity/act-buzz-wire',realImg:true,cat:'carnival',age:'5-14',dur:'Throughout the party',req:'A table-top stall',r1:13000,r2:13000,r3:13000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
+  {id:'spin-art',n:'Spin Art',e:'🌀',img:'activity/act-spin-art',realImg:true,cat:'carnival',age:'4-12',dur:'Throughout the party',req:'A table-top stall with power point nearby',r1:13000,r2:13000,r3:13000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
+  {id:'inflatable-3-row',n:'Inflatable 3-Row Jumping',e:'🏰',img:'activity/act-inflatable-3-row',realImg:true,cat:'carnival',age:'3-12',dur:'Throughout the party',req:'Size: 24 × 16 ft (L × W) · open lawn/ground',r1:0,r2:0,r3:0,flat:true,por:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
+  {id:'inflatable-rock-climb',n:'Inflatable Rock Climb',e:'🧗',img:'activity/act-inflatable-rock-climb',realImg:true,cat:'carnival',age:'5-14',dur:'Throughout the party',req:'Size: 20 × 20 ft · open lawn/ground',r1:0,r2:0,r3:0,flat:true,por:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
+  {id:'inflatable-lion',n:'Inflatable Lion (2-Row)',e:'🦁',img:'activity/act-inflatable-lion',realImg:true,cat:'carnival',age:'3-10',dur:'Throughout the party',req:'Size: 16 × 12 ft (L × W)',r1:0,r2:0,r3:0,flat:true,por:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
+  {id:'inflatable-castle',n:'Inflatable Castle (2-Row)',e:'🏰',img:'activity/act-inflatable-castle',realImg:true,cat:'carnival',age:'3-10',dur:'Throughout the party',req:'Size: 14 × 12 ft (L × W)',r1:0,r2:0,r3:0,flat:true,por:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
+  {id:'jumping-2in1',n:'2-in-1 Jumping',e:'🛝',img:'activity/act-2in1-jumping',realImg:true,cat:'carnival',age:'3-10',dur:'Throughout the party',req:'Size: 15 × 10 ft (L × W) · suitable for banquet halls too',r1:0,r2:0,r3:0,flat:true,por:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
+  {id:'balloon-house',n:'Balloon House',e:'🎈',img:'activity/act-balloon-house',realImg:true,cat:'carnival',age:'2-8',dur:'Throughout the party',req:'Size: 14 × 10 ft (L × W) · suitable for banquet halls too',r1:0,r2:0,r3:0,flat:true,por:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
+  {id:'play-area',n:'Play Area',e:'🧸',img:'activity/act-play-area',realImg:true,cat:'carnival',age:'1-6',dur:'Throughout the party',req:'Size: 20 × 10 ft (L × W) · customisable to your space',r1:0,r2:0,r3:0,flat:true,por:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
+  {id:'trampoline',n:'Trampoline',e:'🤸',img:'activity/act-trampoline',realImg:true,cat:'carnival',age:'4-12',dur:'Throughout the party',req:'Size: 14 × 14 ft or 8 × 8 ft',r1:0,r2:0,r3:0,flat:true,por:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
 ];
 // Filters out theme-restricted activities (Laser Tunnel, Dark Room) unless
 // the current build's theme is one of the ids listed in that activity's
@@ -3475,6 +3495,7 @@ function cItems(){
     const rawPrice=actPrice(a,S.kidsCount);
     const fb=activityFreebiePrice(a,rawPrice);
     const item={cat:'Activities',n:nm,p:fb.price,id:a.id};
+    if(isPOR(a))item.por=true;
     // 'uni-extra-kids' (see actPriceRaw) is a synthetic Rs.399/child surcharge
     // that only applies above 25 kids — skip it from the visible list (and
     // the total, since it's a no-op) whenever it computes to Rs.0, rather
@@ -4756,7 +4777,7 @@ function renderActs(list){
     const tagHtml=a.tag?TAG_MAP[a.tag]:'';
     const persHtml=a.pers?'<span class="tag" style="background:#F0FDF4;color:#1a6630">✦ Take-home</span>':'';
     const flatTag=a.flat?'<span class="tag" style="background:#FEF9C3;color:#92400E">Flat rate</span>':'';
-    const priceNote=(a.id==='eng90'||a.id==='eng120'||a.id==='a21'||a.id==='glitter'||a.banded)?('for '+k+' kids · scales with headcount'):a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child'+(a.minNote?' · '+a.minNote:'');
+    const priceNote=isPOR(a)?POR_NOTE:(a.id==='eng90'||a.id==='eng120'||a.id==='a21'||a.id==='glitter'||a.banded)?('for '+k+' kids · scales with headcount'):a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child'+(a.minNote?' · '+a.minNote:'');
     // 2026-08-24, per Shruti — once this card is the actual claimed Tattoo/
     // ₹5k-credit freebie, its price here shows the live discount too (not
     // just the Review page/mini-list) — same activityFreebiePrice() basis.
@@ -4764,6 +4785,7 @@ function renderActs(list){
     const priceHtml=(fb&&fb.wasP!=null)
       ? ('<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:13px">₹'+fb.wasP.toLocaleString('en-IN')+'</s>'+(fb.price>0?('₹'+fb.price.toLocaleString('en-IN')):'<img src="img/icons/icon-free-gift.png" alt="Free" style="height:1em;vertical-align:-0.15em">'))
       : ((a.wasP&&a.wasP>tot)?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:13px">₹'+a.wasP.toLocaleString('en-IN')+'</s>₹'+tot.toLocaleString('en-IN'):'₹'+tot.toLocaleString('en-IN'));
+    const priceHtmlF=isPOR(a)?'<span style="font-size:15px">Price on request</span>':priceHtml;
     const fieldsHtml='👶 Suitable for: Ages '+a.age+'<br>📦 Packaging: '+(a.pers?'Included':'Not applicable')+'<br>🎨 Personalization Possible: '+(a.pers?'Yes':'No');
     // Most activities are still on the emoji/gradient fallback (see
     // .caro-fallback) until fresh photography comes in — only entries
@@ -4773,17 +4795,17 @@ function renderActs(list){
       ? '<div class="caro" style="overflow:hidden"><img src="img/'+a.img+'.jpg" style="width:100%;height:100%;object-fit:contain;object-position:center" alt="'+a.n+'"></div>'
       : '<div class="caro caro-fallback" style="background:'+bg+'">'+a.e+'</div>';
     const cardClick=(ACT_DETAIL_PAGES[a.id]||a.realImg)?' onclick="actCardClick(\''+a.id+'\')"':'';
-    w.innerHTML+='<div class="pcard'+(added?' sel':'')+'"'+cardClick+' id="ac-'+a.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">'+priceHtml+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="event.stopPropagation();togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
+    w.innerHTML+='<div class="pcard'+(added?' sel':'')+'"'+cardClick+' id="ac-'+a.id+'"><div class="sel-badge">Selected ✓</div>'+mediaHtml+'<div class="card-body"><div class="card-name">'+a.n+'</div><div class="ctags">'+tagHtml+flatTag+'<span class="tag bl">'+a.dur+'</span>'+persHtml+'</div><div class="card-detail">📍 '+a.req+'<br>'+fieldsHtml+'</div><div class="card-pr-row"><div><div class="card-price">'+priceHtmlF+'</div><div class="card-ppc">'+priceNote+'</div></div><button class="card-btn'+(added?' added':'')+'" id="ab-'+a.id+'" onclick="event.stopPropagation();togAct(\''+a.id+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
   });
 }
 function sortActs(){renderActs(currentActsList());}
 function fActs(cat,btn){document.querySelectorAll('#aChips .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');actFilter=cat;renderActs(currentActsList());}
-function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.activities.splice(idx,1);else{const a=ACTS.find(x=>x.id===id);if(a)S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat,wasP:a.wasP});}renderActs(currentActsList());updSelActs();updBB(S.screen);}
+function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.activities.splice(idx,1);else{const a=ACTS.find(x=>x.id===id);if(a)S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat,wasP:a.wasP,por:a.por});}renderActs(currentActsList());updSelActs();updBB(S.screen);}
 // 2026-08-24, per Shruti — the Step-2 "selected activities" mini-list now
 // reflects a claimed Tattoo/₹5k-credit freebie too (struck-through original
 // + the discounted/free price), not just the Review page — same
 // activityFreebiePrice() helper cItems() uses, so the two never drift.
-function updSelActs(){const w=document.getElementById('selActs');const l=document.getElementById('selAList');if(!S.activities.length){w.style.display='none';return;}w.style.display='block';l.innerHTML='';orderedActivities().forEach(a=>{const rawPrice=actPrice(a,S.kidsCount);const fb=activityFreebiePrice(a,rawPrice);const priceHtml=fb.wasP!=null?('<s style="color:var(--gy);font-weight:500;margin-right:4px;font-size:11px">₹'+fb.wasP.toLocaleString('en-IN')+'</s>'+(fb.price>0?('₹'+fb.price.toLocaleString('en-IN')):'<img src="img/icons/icon-free-gift.png" alt="Free" style="height:1em;vertical-align:-0.15em">')):('₹'+fb.price.toLocaleString('en-IN'));l.innerHTML+='<div class="sai"><span>'+a.n+'</span><span style="display:flex;align-items:center;gap:5px"><span class="saip">'+priceHtml+'</span><button class="sarm" onclick="togAct(\''+a.id+'\')">✕</button></span></div>';});}
+function updSelActs(){const w=document.getElementById('selActs');const l=document.getElementById('selAList');if(!S.activities.length){w.style.display='none';return;}w.style.display='block';l.innerHTML='';orderedActivities().forEach(a=>{const rawPrice=actPrice(a,S.kidsCount);const fb=activityFreebiePrice(a,rawPrice);const priceHtml=fb.wasP!=null?('<s style="color:var(--gy);font-weight:500;margin-right:4px;font-size:11px">₹'+fb.wasP.toLocaleString('en-IN')+'</s>'+(fb.price>0?('₹'+fb.price.toLocaleString('en-IN')):'<img src="img/icons/icon-free-gift.png" alt="Free" style="height:1em;vertical-align:-0.15em">')):(isPOR(a)?'On request':'₹'+fb.price.toLocaleString('en-IN'));l.innerHTML+='<div class="sai"><span>'+a.n+'</span><span style="display:flex;align-items:center;gap:5px"><span class="saip">'+priceHtml+'</span><button class="sarm" onclick="togAct(\''+a.id+'\')">✕</button></span></div>';});}
 function chgK(d){S.kidsCount=Math.max(1,Math.min(100,S.kidsCount+d));document.getElementById('kDisp2').textContent=S.kidsCount;try{document.getElementById('f-kids').value=S.kidsCount;}catch(e){}renderActs(currentActsList());updSelActs();S.gifts.forEach(g=>{if(!g.userQty)g.qty=S.kidsCount;});renderGifts();updBB(S.screen);}
 
 // Combines every captured remarks entry (per-step boxes below, plus the
@@ -5307,7 +5329,9 @@ function buildRev(){
         ? '<div class="rv-thumb"><img src="'+th.src+'" alt="" onerror="rvImgErr(this)"></div>'
         : '<div class="rv-thumb rv-thumb-e" style="background:'+th.bg+'">'+th.e+'</div>';
       const priceHtml=i.wasP?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:12px">₹'+i.wasP.toLocaleString('en-IN')+'</s>₹'+i.p.toLocaleString('en-IN'):'₹'+i.p.toLocaleString('en-IN');
-      html+='<div class="rv-item">'+thumbHtml+'<span class="rv-item-name">'+i.n+'</span><span class="rv-item-price">'+priceHtml+'</span><button class="rv-item-rm" title="Remove" onclick="rmRevItem(\''+cat+'\',\''+i.id+'\')">✕</button></div>';
+      const priceHtmlR=i.por?'<span style="font-size:12px">Price on request</span>':priceHtml;
+      const nameR=i.por?(i.n+'<div style="font-size:11px;color:var(--gy);font-weight:500;margin-top:2px">'+POR_NOTE+'</div>'):i.n;
+      html+='<div class="rv-item">'+thumbHtml+'<span class="rv-item-name">'+nameR+'</span><span class="rv-item-price">'+priceHtmlR+'</span><button class="rv-item-rm" title="Remove" onclick="rmRevItem(\''+cat+'\',\''+i.id+'\')">✕</button></div>';
     });
     // 2026-08-24, per Shruti — "these addons should come in the return
     // gifts section in the order review page": packaging/thank-you-note now
@@ -6193,7 +6217,7 @@ function buildSummaryText(){
   lines.push('--- Builder Selections ---');
   if(S.decor)lines.push('Decor: '+S.decor.n+' (₹'+S.decor.p.toLocaleString('en-IN')+')');
   if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)lines.push('Decor Add-on: Name on Bunting (₹'+NAME_BUNTING_PRICE.toLocaleString('en-IN')+')');
-  if(S.activities.length)lines.push('Activities: '+S.activities.map(a=>a.n).join(', '));
+  if(S.activities.length)lines.push('Activities: '+S.activities.map(a=>a.n+(isPOR(a)?' (price on request)':'')).join(', '));
   if(S.host)lines.push('Host: '+S.host.tier+' (₹'+S.host.p.toLocaleString('en-IN')+')');
   if(S.dj)lines.push('Music: '+musicLabel(S.dj.tier)+' (₹'+S.dj.p.toLocaleString('en-IN')+')');
   if(S.djAddons.lights||S.djAddons.smoke)lines.push('Music Add-ons: '+djAddonsText());
@@ -6347,6 +6371,7 @@ function buildSnapshot(){
       activities:  S.activities.map(a=>{
         const raw=actPrice(a,S.kidsCount);
         const fb=activityFreebiePrice(a,raw);
+        if(isPOR(a))return {id:a.id,n:a.n,p:0,price_on_request:true};
         return {id:a.id,n:a.n,p:fb.price};
       }),
       // gift objects carry `.unit` (per-item price), not `.p` — this used to

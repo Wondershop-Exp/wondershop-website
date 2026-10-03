@@ -249,7 +249,7 @@ def compute_adjustments(lead: dict, snap: dict, cur: dict, removed: set) -> dict
         for name in cur_names:
             if name not in orig_acts:
                 p_flat = ACTIVITY_PRICES.get(name)
-                if p_flat is None:
+                if p_flat is None or not p_flat[0]:  # 0 = price on request
                     unpriced.append(f"Activity: {name}")
                     continue
                 p, flat = p_flat
@@ -328,7 +328,7 @@ def _price_activities(names_csv: Optional[str], kids: int):
     items, unpriced = [], []
     for name, _qty in parse_csv(names_csv):
         p_flat = ACTIVITY_PRICES.get(name)
-        if p_flat is None:
+        if p_flat is None or not p_flat[0]:  # 0 = price on request
             unpriced.append(f"Activity: {name}")
             continue
         p, flat = p_flat
