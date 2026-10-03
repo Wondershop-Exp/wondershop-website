@@ -1420,17 +1420,16 @@ function addonActPrice(id, kids) {
   // "above 50" for the top band but only gave 4 bands total (20/30/40/top)
   // with no rate for 41-50 — read as a typo for "above 40", matching the
   // clean 4-band pattern every other banded activity on this site uses.
-  if (id === 'hair-styling-girls' || id === 'face-painting') {
+  if (id === 'face-painting') return 3500; // flat, 2026-10-03 per Shruti
+  if (id === 'hair-styling-girls') {
     return kids <= 20 ? 3500 : kids <= 30 ? 4500 : kids <= 40 ? 5500 : 7000;
   }
   if (id === 'hit-the-cans') return 5000; // flat, regardless of kids
-  if (id === 'slime') {
-    if (kids <= 15) return 6300;
-    if (kids <= 30) return 11000;
-    return 11000 + (kids - 30) * 350;
-  }
-  // Personalized Jelly Tote Bags is Rs430/child — a jelly tote bag + 6 patches.
-  if (id === 'jelly-swimbags') return kids * 430;
+  // Slime — Rs400/child, minimum bill Rs6,000 (2026-10-03, per Shruti).
+  if (id === 'slime') return Math.max(6000, kids * 400);
+  // Personalized Jelly Tote Bags — Rs280/bag + Rs40/alphabet, billed as
+  // Rs450/child (2026-10-03, per Shruti).
+  if (id === 'jelly-swimbags') return kids * 450;
   if (id === 'hairbrush-decor') return kids * 400;
   if (id === 'photoframe-decor') return kids * 400;
   if (id === 'mirror-decor') return kids * 750;

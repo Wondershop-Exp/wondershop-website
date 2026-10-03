@@ -387,8 +387,9 @@ ACTIVITIES = [
     # Banded ones are listed at their base (smallest-group) price.
     ("face-painting", "Face Painting", 3500, True),
     ("a25", "Colouring Station", 4500, True),
-    ("slime", "Slime Making", 6300, True),
-    ("jelly-swimbags", "Personalized Jelly Tote Bags", 430, False),
+    ("slime", "Slime Making", 400, False),   # min bill Rs 6,000
+    ("jelly-swimbags", "Personalized Jelly Tote Bags", 450, False),
+    ("bracelet", "Bracelet Making", 350, False),   # min bill Rs 5,000
     ("hairbrush-decor", "Hairbrush Decoration", 400, False),
     ("photoframe-decor", "Photo Frame Decoration", 400, False),
     ("mirror-decor", "Mirror Decoration", 750, False),

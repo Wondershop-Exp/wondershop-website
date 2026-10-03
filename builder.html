@@ -3022,7 +3022,7 @@ const SPY_ADDON_STATIONS_DATA={
   s1:{n:'Science Show',flat:20000},
   s2:{n:'Cap Decor',base:12000,cap:30,per:400,linkAct:'a9',discountFromLink:true},
   s3:{n:'MDF Spy Badge',base:9000,cap:30,per:300},
-  s4:{n:'Slime',base:11000,cap:30,per:450},
+  s4:{n:'Slime',base:6000,cap:15,per:400}, // = max(₹6,000, ₹400/child), 2026-10-03
   s7:{n:'Sunglasses Decor',linkAct:'a22',useGenericPrice:true},
   s8:{n:'Mini Art Station',flat:5000,linkAct:'a16'},
   s9:{n:'Laser Tunnel',linkAct:'a26',useGenericPrice:true},
@@ -3070,8 +3070,10 @@ function actPriceRaw(a,kids){
   // 2026-08-11 — it was previously pushed into the cart via the package-page
   // handoff with no matching case here, so it silently priced as NaN.
   if(a.id==='glitter')return kids<=30?4000:kids<=50?5000:6000;
-  if(a.id==='slime')return kids<=15?6300:kids<=30?11000:11000+(kids-30)*350;
-  if(a.id==='jelly-swimbags')return kids*430; // matches unicorn-basic.html (was 280, 2026-10-03)
+  // Slime — ₹400/child, minimum bill ₹6,000 (2026-10-03, per Shruti).
+  if(a.id==='slime')return Math.max(6000,kids*400);
+  // Jelly tote — ₹280/bag + ₹40/alphabet; billed as ₹450/child (2026-10-03, per Shruti).
+  if(a.id==='jelly-swimbags')return kids*450;
   if(a.id==='hairbrush-decor')return kids*400;
   if(a.id==='photoframe-decor')return kids*400;
   if(a.id==='mirror-decor')return kids*750;
@@ -3082,7 +3084,11 @@ function actPriceRaw(a,kids){
   // Hair Styling for Girls / Face Painting — same real banded pricing
   // (given directly by Shruti, 2026-08-11), added as Unicorn Basic
   // included-activity options. Hit the Cans is flat regardless of kids.
-  if(a.id==='hair-styling-girls'||a.id==='face-painting')return kids<=20?3500:kids<=30?4500:kids<=40?5500:7000;
+  if(a.id==='hair-styling-girls')return kids<=20?3500:kids<=30?4500:kids<=40?5500:7000;
+  // Face Painting — flat ₹3,500 (2026-10-03, per Shruti).
+  if(a.id==='face-painting')return 3500;
+  // Bracelet Making — ₹350/child, minimum bill ₹5,000 (2026-10-03).
+  if(a.id==='bracelet')return Math.max(5000,kids*350);
   if(a.id==='hit-the-cans')return 5000;
   // MDF Spy Badge — same as the Spy package's station s3: ₹9,000 up to 30
   // kids, then ₹300 per extra child.
@@ -3203,13 +3209,14 @@ const ACTS=[
   // 2026-10-03, per Shruti — "add all activities recommended in packages on
   // the BAB as well". Prices are the package pages' own (see actPriceRaw()
   // special cases); banded ones flag banded:true for the card's price note.
-  {id:'face-painting',n:'Face Painting',e:'🎭',img:'',realImg:false,cat:'experience',age:'3-12',dur:'Up to 3 hours',req:'A table and 2 chairs',r1:3500,r2:4500,r3:7000,flat:true,banded:true,bgs:['linear-gradient(135deg,#F5C3D7,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:1},
+  {id:'face-painting',n:'Face Painting',e:'🎭',img:'',realImg:false,cat:'experience',age:'3-12',dur:'Up to 3 hours',req:'A table and 2 chairs',r1:3500,r2:3500,r3:3500,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:1},
   {id:'a25',n:'Colouring Station',e:'🖍️',img:'activity/act-colouring-station',realImg:true,cat:'art',age:'3-10',dur:'Throughout the party',req:'Tables & chairs (arranged by client)',r1:4500,r2:5500,r3:6500,flat:true,banded:true,bgs:['linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'new',pers:false,rating:4.7,cnt:1},
-  {id:'slime',n:'Slime Making',e:'🧪',img:'activity/act-slime',realImg:true,cat:'science',age:'5-12',dur:'15-20 min',req:'Tables & chairs (arranged by client)',r1:6300,r2:11000,r3:11000,flat:true,banded:true,bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:true,rating:4.8,cnt:1},
-  {id:'jelly-swimbags',n:'Personalized Jelly Tote Bags',e:'👜',img:'activity/act-jelly-tote-bag',realImg:true,cat:'craft',age:'4-12',dur:'20-30 min',req:'Tables & chairs (arranged by client)',r1:430,r2:430,r3:430,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)'],tag:'new',pers:true,rating:4.7,cnt:1},
+  {id:'slime',n:'Slime Making',e:'🧪',img:'activity/act-slime',realImg:true,cat:'science',age:'5-12',dur:'15-20 min',req:'Tables & chairs (arranged by client)',r1:400,r2:400,r3:400,flat:false,minNote:'Minimum ₹6,000',bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:true,rating:4.8,cnt:1},
+  {id:'jelly-swimbags',n:'Personalized Jelly Tote Bags',e:'👜',img:'activity/act-jelly-tote-bag',realImg:true,cat:'craft',age:'4-12',dur:'20-30 min',req:'Tables & chairs (arranged by client)',r1:450,r2:450,r3:450,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)'],tag:'new',pers:true,rating:4.7,cnt:1},
   {id:'hairbrush-decor',n:'Hairbrush Decoration',e:'🪮',img:'act-hairbrush-decor',realImg:true,cat:'craft',age:'4-12',dur:'20-30 min',req:'Tables & chairs (arranged by client)',r1:400,r2:400,r3:400,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#B59DDE)'],tag:'new',pers:true,rating:4.7,cnt:1},
   {id:'photoframe-decor',n:'Photo Frame Decoration',e:'🖼️',img:'activity/act-photo-frame',realImg:true,cat:'craft',age:'4-12',dur:'20-30 min',req:'Tables & chairs (arranged by client)',r1:400,r2:400,r3:400,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#B59DDE)'],tag:'new',pers:true,rating:4.7,cnt:1},
   {id:'mirror-decor',n:'Mirror Decoration',e:'🪞',img:'activity/act-mirror-decoration',realImg:true,cat:'craft',age:'4-12',dur:'20-30 min',req:'Tables & chairs (arranged by client)',r1:750,r2:750,r3:750,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#E65A96)'],tag:'new',pers:true,rating:4.8,cnt:1},
+  {id:'bracelet',n:'Bracelet Making',e:'📿',img:'activity/act-bracelet-making',realImg:true,cat:'craft',age:'4-14',dur:'20-30 min',req:'Tables & chairs (arranged by client)',r1:350,r2:350,r3:350,flat:false,minNote:'Minimum ₹5,000',bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)'],tag:'new',pers:true,rating:4.8,cnt:1},
   {id:'spy-badge',n:'MDF Spy Badge',e:'🕵️',img:'packages/spy/spy-badge-mdf-sq',realImg:true,cat:'mystery',age:'5-14',dur:'15-20 min',req:'Tables & chairs (arranged by client)',r1:9000,r2:9000,r3:9000,flat:true,banded:true,bgs:['linear-gradient(135deg,#374151,#5B8EDD)'],tag:'new',pers:true,rating:4.7,cnt:1},
 ];
 // Filters out theme-restricted activities (Laser Tunnel, Dark Room) unless
@@ -4749,7 +4756,7 @@ function renderActs(list){
     const tagHtml=a.tag?TAG_MAP[a.tag]:'';
     const persHtml=a.pers?'<span class="tag" style="background:#F0FDF4;color:#1a6630">✦ Take-home</span>':'';
     const flatTag=a.flat?'<span class="tag" style="background:#FEF9C3;color:#92400E">Flat rate</span>':'';
-    const priceNote=(a.id==='eng90'||a.id==='eng120'||a.id==='a21'||a.id==='glitter'||a.banded)?('for '+k+' kids · scales with headcount'):a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child';
+    const priceNote=(a.id==='eng90'||a.id==='eng120'||a.id==='a21'||a.id==='glitter'||a.banded)?('for '+k+' kids · scales with headcount'):a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child'+(a.minNote?' · '+a.minNote:'');
     // 2026-08-24, per Shruti — once this card is the actual claimed Tattoo/
     // ₹5k-credit freebie, its price here shows the live discount too (not
     // just the Review page/mini-list) — same activityFreebiePrice() basis.
