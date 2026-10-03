@@ -256,7 +256,7 @@ def _phone_local(phone: Optional[str]) -> str:
 # catalogue's "Unicorn Magic" (which stays as-is for decor-theme
 # references elsewhere) — 2026-09-18, per Shruti's exact wording for how
 # this field should read in the confirmation email/team alerts.
-_THEME_LABELS = {t["id"]: t["n"] for t in cat.THEMES}
+_THEME_LABELS = {t["id"]: t["n"] for t in cat.THEMES + cat.PREF_ONLY_THEMES}
 _THEME_LABELS["uni"] = "Unicorn Package"
 
 def _theme_label(theme_id: Optional[str]) -> str:

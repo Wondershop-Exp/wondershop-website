@@ -1390,7 +1390,10 @@ function sectionClientDetails(){
 // can input an option outside the list as well").
 function themeField(){
   const d = DATA;
-  const opts = (CATALOGUE.decor_themes||[]).map(t=>'<option value="'+esc(t.name)+'">').join('');
+  // All website party themes incl. Among Us / Imposter (theme_options); falls
+  // back to the decor designs list if the backend hasn't been updated yet.
+  const names = (CATALOGUE.theme_options && CATALOGUE.theme_options.length) ? CATALOGUE.theme_options : (CATALOGUE.decor_themes||[]).map(t=>t.name);
+  const opts = names.map(n=>'<option value="'+esc(n)+'">').join('');
   return '<div class="fld"><label>Theme</label>'
     + '<input type="text" id="f_theme" list="themeDatalist" autocomplete="off" value="'+esc(d.theme==null?'':d.theme)+'" onblur="saveField(\'theme\', this.value)">'
     + '<datalist id="themeDatalist">'+opts+'</datalist>'

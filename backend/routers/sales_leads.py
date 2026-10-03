@@ -56,6 +56,7 @@ from catalogue_data import (
     DECOR_TIER_META, THEMES, HOST_TIER_PRICES, DJ_TIER_PRICES,
     PHOTO_TIER_PRICES, PHOTO_TIER_FEATURES, PINATA_TIER_PRICES,
     PACKAGING_LABELS, ACTIVITIES, GIFTS, ACTIVE_GIFTS, EINVITE_TIER_PRICES, SAVE_THE_DATE_PRICE,
+    THEME_PREFERENCE_NAMES,
     host_tier_for_quote,
 )
 
@@ -198,6 +199,10 @@ def _build_catalogue() -> dict:
     return {
         "decor_tiers": decor_tiers,
         "decor_themes": decor_themes,
+        # Party theme picker (Client & Event Details) — every theme a customer
+        # can choose on the website, incl. Among Us / Imposter, which have no
+        # decor designs and so are not in decor_themes (2026-10-03).
+        "theme_options": THEME_PREFERENCE_NAMES,
         "host_reference": host_reference,
         "music": music,
         "music_addons": MUSIC_ADDONS,

@@ -147,6 +147,15 @@ THEMES = [
 ]
 _THEMES_BY_ID = {t["id"]: t for t in THEMES}
 
+# Theme-preference-only themes (2026-10-02, per Shruti — "add among us and
+# imposter in themes on page 0 of BAB"): offered in builder.html's Theme
+# Preference dropdown (PREF_ONLY_THEMES there) but they have no decor
+# designs yet, so they are NOT decor THEMES above. Used for theme labels in
+# emails and the theme pickers in admin / the sales module.
+PREF_ONLY_THEMES = [{"id": "among-us", "n": "Among Us"}, {"id": "imposter", "n": "Imposter"}]
+# Every theme a customer can pick as their party theme, by display name.
+THEME_PREFERENCE_NAMES = sorted([t["n"] for t in THEMES] + [t["n"] for t in PREF_ONLY_THEMES], key=str.lower)
+
 STD_META = {
     "Classic": "Decor/Standard Classic Balloon Arch.jpg",
     "Premium": "Decor/Standard - Premium 1 panel decor.jpg",
