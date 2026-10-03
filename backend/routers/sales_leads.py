@@ -44,7 +44,7 @@ import logging
 from datetime import datetime, timedelta, date
 from typing import Optional, Dict, Any
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Response
 from pydantic import BaseModel
 
 from database import database
@@ -424,12 +424,29 @@ def _gift_bill_total(requirements: dict) -> float:
 
 
 def _mrp_total(requirements: dict, activities: list, kids_count: Optional[int], part: str = "event") -> float:
-    """Python twin of listBreakdown() in sales-leads.html — the Grand Total
-    at MRP (list price of every selected service; Host = next tier up from
-    the quote, quote itself above all tiers; a line with no list price
-    counts at its quote). 2026-10-02, per Shruti: "by default, make ...
-    sales quote equal to the grand total" — this is that default. Keep the
-    two in step if either changes."""
+    """The Grand Total at MRP (part="event") or the separately-billed Return
+    Gifts total (part="gifts") — see _list_breakdown() below, which is the
+    line-by-line version this sums. 2026-10-02, per Shruti: "by default,
+    make ... sales quote equal to the grand total" — this is that default."""
+    b = _list_breakdown(requirements, activities, kids_count)
+    return b["gift_total"] if part == "gifts" else b["total"]
+
+
+def _list_breakdown(requirements: dict, activities: list, kids_count: Optional[int]) -> dict:
+    """Python twin of listBreakdown() in sales-leads.html — every selected
+    service as a line with its list price (MRP) and the sales quote. Each
+    selected service counts at its catalogue price; Host = next tier up from
+    the quote (quote itself above all tiers); a line with no list price
+    counts at its quote. Keep the two in step if either changes.
+
+    Returns {"items", "gift_items", "total", "quote_total", "gift_total",
+    "gift_mrp"}. Each line is {"key", "label", "mrp", "quote", "no_mrp"}
+    (activities also carry "activity", "flat", "unit", "qty"). Event lines
+    sum at MRP into "total" (the Grand Total); Return Gifts (+ packaging /
+    thank-you tags) are billed SEPARATELY (2026-10-02) — they go in
+    gift_items and sum at the quote into "gift_total".
+    Refactored out of _mrp_total() on 2026-10-03 so the quotation PDF can
+    itemise exactly what the page's breakup shows; totals are unchanged."""
     C = _build_catalogue()
     reqs = requirements or {}
     kids = kids_count or 1
@@ -453,51 +470,50 @@ def _mrp_total(requirements: dict, activities: list, kids_count: Optional[int], 
     def on(r):
         return bool(r.get("selected")) and r.get("selected") != "No"
 
-    total = 0.0
-    gift_total = 0.0
+    items: list = []
+    gift_items: list = []
     in_gifts = False
 
-    def line(quoted, mrp):
-        # Event lines count at MRP (Grand Total). Return-gift lines are a
-        # separate bill and count at the quote (MRP when not negotiated).
-        nonlocal total, gift_total
+    def line(key, label, quoted, mrp, **extra):
+        # mrp None -> no list price: the quote counts as the MRP.
         q = num(quoted)
-        if in_gifts:
-            gift_total += q if q is not None else (float(mrp) if mrp is not None else 0.0)
-        else:
-            total += (q or 0.0) if mrp is None else float(mrp)
+        m = (q or 0.0) if mrp is None else float(mrp)
+        entry = {"key": key, "label": label, "mrp": m, "no_mrp": mrp is None,
+                 "quote": m if q is None else q}
+        entry.update(extra)
+        (gift_items if in_gifts else items).append(entry)
 
     gifts = sel("return_gifts").get("selected_gifts") or []
     gift_qty = sum(int(num(g.get("quantity")) or 0) for g in gifts) if gifts else int(num(sel("return_gifts").get("quantity")) or 0)
 
     d = sel("decor")
     if on(d) or num(d.get("cost")) is not None:
-        line(d.get("cost"), cat_price(C["decor_tiers"], "name", d.get("selected")))
+        line("decor", "Decor", d.get("cost"), cat_price(C["decor_tiers"], "name", d.get("selected")))
     h = sel("host")
     if num(h.get("cost")) is not None:
         tier = host_tier_for_quote(h.get("cost"))
-        line(h.get("cost"), HOST_TIER_PRICES.get(tier) if tier else None)
+        line("host", "Host", h.get("cost"), HOST_TIER_PRICES.get(tier) if tier else None, tier=tier)
     m = sel("music")
     if on(m) or num(m.get("cost")) is not None:
-        line(m.get("cost"), cat_price(C["music"], "name", m.get("selected")))
+        line("music", "Music", m.get("cost"), cat_price(C["music"], "name", m.get("selected")))
     for a in m.get("addons") or []:
         if a and a.get("name"):
-            line(a.get("price"), cat_price(C["music_addons"], "name", a.get("name")))
+            line("music_addon", a.get("name"), a.get("price"), cat_price(C["music_addons"], "name", a.get("name")))
     ph = sel("photographer")
     if on(ph) or num(ph.get("cost")) is not None:
-        line(ph.get("cost"), cat_price(C["photographer"], "name", ph.get("selected")))
+        line("photographer", "Photographer", ph.get("cost"), cat_price(C["photographer"], "name", ph.get("selected")))
     ei = sel("einvite_type")
     if on(ei) or num(ei.get("cost")) is not None:
-        line(ei.get("cost"), cat_price(C["einvite_type"], "name", ei.get("selected")))
+        line("einvite_type", "E-Invite", ei.get("cost"), cat_price(C["einvite_type"], "name", ei.get("selected")))
     sd = sel("save_the_date")
     if sd.get("selected") == "Yes":
-        line(sd.get("cost"), C.get("save_the_date_price"))
+        line("save_the_date", "Save the Date", sd.get("cost"), C.get("save_the_date_price"))
     pt = sel("pinata_type")
     if on(pt) or num(pt.get("cost")) is not None:
-        line(pt.get("cost"), cat_price(C["pinata_type"], "name", pt.get("selected")))
+        line("pinata_type", "Pinata", pt.get("cost"), cat_price(C["pinata_type"], "name", pt.get("selected")))
     pb = sel("pinata_bags")
     if pb.get("selected") == "Yes":
-        line(pb.get("cost"), (C["pinata_bags"].get("unit_price") or 0) * kids)
+        line("pinata_bags", f"Pinata bags ({kids})", pb.get("cost"), (C["pinata_bags"].get("unit_price") or 0) * kids)
     in_gifts = True
     rg = sel("return_gifts")
     if gifts or num(rg.get("cost")) is not None:
@@ -507,31 +523,43 @@ def _mrp_total(requirements: dict, activities: list, kids_count: Optional[int], 
             for g in gifts:
                 p = cat_price(C["return_gifts_catalogue"], "name", g.get("name"))
                 mrp += (p if p is not None else (num(g.get("price")) or 0)) * (num(g.get("quantity")) or 0)
-        line(rg.get("cost"), mrp)
+        line("return_gifts", f"Return gifts ({gift_qty})" if gift_qty else "Return gifts", rg.get("cost"), mrp)
     pk = sel("packaging")
     if pk.get("selected") and pk.get("selected") != "None":
         unit = cat_price([{"name": o["label"], "price": o["price"]} for o in C["packaging"]], "name", pk.get("selected"))
-        line(pk.get("cost"), unit * gift_qty if unit is not None else None)
+        line("packaging", f"Packaging: {pk.get('selected')}", pk.get("cost"), unit * gift_qty if unit is not None else None)
     tg = sel("return_gift_tags")
     if tg.get("selected") == "Yes":
         gt = C["return_gift_tags"]
-        line(tg.get("cost"), max(gt.get("min_qty") or 15, gift_qty) * (gt.get("unit_price") or 10))
+        line("return_gift_tags", "Return gift tags", tg.get("cost"), max(gt.get("min_qty") or 15, gift_qty) * (gt.get("unit_price") or 10))
     in_gifts = False
-    if part == "gifts":
-        return round(gift_total, 2)
     known = {"decor", "host", "music", "photographer", "einvite_type", "save_the_date", "pinata_type",
              "pinata_bags", "return_gifts", "packaging", "return_gift_tags"}
     for k, r in reqs.items():
         if k not in known and isinstance(r, dict) and num(r.get("cost")):
-            line(r.get("cost"), None)
+            line(k, k.replace("_", " ").capitalize(), r.get("cost"), None)
     for a in activities or []:
         if not a or not a.get("name"):
             continue
         cat_a = next((x for x in C["activities"] if (a.get("id") and x["id"] == a.get("id")) or x["name"] == a.get("name")), None)
         flat = bool(cat_a["flat"]) if cat_a else bool(a.get("flat"))
-        unit = float(cat_a["price"]) if cat_a and cat_a.get("price") is not None else (num(a.get("price")) or 0)
-        total += unit * (1 if flat else kids)
-    return round(total, 2)
+        q_unit = num(a.get("price"))
+        c_unit = float(cat_a["price"]) if cat_a and cat_a.get("price") is not None else q_unit
+        mult = 1 if flat else kids
+        items.append({
+            "key": "activity", "label": a.get("name"), "no_mrp": False,
+            "mrp": (c_unit or 0) * mult, "quote": ((c_unit or 0) if q_unit is None else q_unit) * mult,
+            "activity": a, "flat": flat, "unit": c_unit or 0, "qty": mult,
+        })
+
+    r2 = lambda v: round(v, 2)
+    return {
+        "items": items, "gift_items": gift_items,
+        "total": r2(sum(i["mrp"] for i in items)),
+        "quote_total": r2(sum(i["quote"] for i in items)),
+        "gift_total": r2(sum(i["quote"] for i in gift_items)),
+        "gift_mrp": r2(sum(i["mrp"] for i in gift_items)),
+    }
 
 
 def _estimate_total(requirements: dict, activities: list, kids_count: Optional[int]) -> float:
@@ -1214,3 +1242,334 @@ async def mark_ops_ready(lead_id: int, body: OpsReadyIn, x_admin_password: Optio
     await _log(pb_row["id"], by, "ops_ready")
     lead_row = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
     return await _full_detail(lead_row)
+
+
+# ─── customer quotation PDF (2026-10-03) ────────────────────────────────────
+# Per Shruti: "generate a pdf quotation where the sales team person will
+# select options like decor, activities, music, host, gifts etc. — these
+# with pictures and pricing with a grand total estimate ... downloaded and
+# then sent to the customer over whatsapp", with branding, logo and basic
+# T&C (tentative pricing, valid 24 hours then re-review, not to be shared
+# without permission). Sections follow the confirmation email's "Services
+# Booked" order; a category with nothing picked prints "Not selected".
+# Prices are the same lines and totals the page's Grand Total breakup shows
+# (_list_breakdown): each service at its list price, then the discount down
+# to the Sales Quote, which is the Estimated Total. Return gifts are billed
+# separately, exactly as on the page.
+
+QUOTE_VALID_HOURS = 24
+
+
+def _fmt_time_12h(t: Optional[str]) -> Optional[str]:
+    if not t:
+        return None
+    try:
+        hh, mm_ = str(t).strip()[:5].split(":")
+        h = int(hh)
+        return f"{(h % 12) or 12}:{int(mm_):02d} {'AM' if h < 12 else 'PM'}"
+    except (ValueError, TypeError):
+        return str(t)
+
+
+def _ordinal_age(age: Optional[str]) -> Optional[str]:
+    try:
+        n = int(str(age).split(",")[0].strip())
+    except (ValueError, TypeError):
+        return None
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
+    """d = _full_detail() output. Returns (data for build_quotation_pdf,
+    list of image paths to fetch)."""
+    from catalogue_data import (
+        DECOR_TIER_META, PHOTO_TIER_FEATURES, HOST_TIER_IMAGES, MUSIC_IMAGES, PHOTO_IMAGES,
+        PINATA_NAME_TO_ID, resolve_pinata_image, resolve_activity_image,
+        resolve_decor_image_by_name, resolve_gift_image_by_name,
+    )
+    from quotation_builder import inr, SECTION_ICONS, MASCOT_PATH
+
+    reqs = d.get("requirements") or {}
+    acts = d.get("activities") or []
+    kids = d.get("kids_count")
+    B = _list_breakdown(reqs, acts, kids)
+    by_key: Dict[str, list] = {}
+    for it in B["items"] + B["gift_items"]:
+        by_key.setdefault(it["key"], []).append(it)
+
+    def first(key):
+        lst = by_key.get(key) or []
+        return lst[0] if lst else None
+
+    def r(key):
+        v = reqs.get(key)
+        return v if isinstance(v, dict) else {}
+
+    def cust(key):
+        c = (r(key).get("customization") or "").strip()
+        return f"Notes: {c}" if c else None
+
+    unpriced = {"any": False}
+
+    def priced(it, name, details=None, image=None):
+        """A line from a breakdown item. A service with no list price and
+        no quote yet (e.g. Custom Piñata) prints "To be confirmed"."""
+        ln = {"name": name, "details": [x for x in (details or []) if x], "image": image}
+        if it is None or (it.get("no_mrp") and not it.get("quote")):
+            ln["price"] = None
+            ln["price_text"] = "To be confirmed"
+            unpriced["any"] = True
+        else:
+            ln["price"] = it["mrp"]
+        return ln
+
+    sections = []
+
+    def add(label, lines, **kw):
+        sections.append({"label": label, "lines": lines, "not_selected": not lines, **kw})
+
+    # 1. Decor
+    lines = []
+    it = first("decor")
+    if it:
+        tier = r("decor").get("selected")
+        theme = (r("decor").get("theme_name") or "").strip()
+        if tier in DECOR_TIER_META:
+            name = f"{theme} — {tier} Decor" if theme else f"{tier} Decor"
+            incl = [f"{l}: {v}" for l, v, na in DECOR_TIER_META[tier]["spec"] if not na and v != "__THEME__"]
+        else:
+            name = f"{theme} — Custom Decor" if theme else "Custom Decor"
+            incl = []
+        det = []
+        if incl:
+            det.append(" · ".join(incl[:3]))
+            if len(incl) > 3:
+                det.append(" · ".join(incl[3:]))
+        det.append(cust("decor"))
+        lines.append(priced(it, name, det, resolve_decor_image_by_name(theme or None, tier)))
+    add("Decor", lines)
+
+    # 2. Activities
+    lines = []
+    for it in by_key.get("activity") or []:
+        a = it.get("activity") or {}
+        img = resolve_activity_image(a.get("id"), a.get("name"))
+        if it["flat"] and not it["unit"]:
+            lines.append({"name": a.get("name"), "details": [], "image": img,
+                          "price": None, "price_text": "Price on request"})
+            unpriced["any"] = True
+            continue
+        if it["flat"]:
+            det = ["Flat price for the group"]
+        elif kids:
+            det = [f"{kids} kids × {inr(it['unit'])} per child"]
+        else:
+            det = [f"{inr(it['unit'])} per child — total shown for 1 child until the number of kids is confirmed"]
+        lines.append({"name": a.get("name"), "details": det, "image": img, "price": it["mrp"]})
+    add("Activities", lines)
+
+    # 3. Host (+ host gifts add-on)
+    lines = []
+    it = first("host")
+    if it:
+        tier = it.get("tier")
+        lines.append(priced(it, f"{tier} Host" if tier else "Host (customised)", [cust("host")],
+                            HOST_TIER_IMAGES.get(tier) or HOST_TIER_IMAGES.get("Signature")))
+    hg = r("host_gifts")
+    it = first("host_gifts")
+    if it or (hg.get("selected") or "").strip():
+        lines.append(priced(it, "Add-on: Host gifts", [hg.get("selected")]))
+    add("Host", lines)
+
+    # 4. Music (+ add-ons)
+    lines = []
+    it = first("music")
+    if it:
+        sel_name = r("music").get("selected") or "Music"
+        lines.append(priced(it, sel_name, [cust("music")], MUSIC_IMAGES.get(sel_name)))
+    for it in by_key.get("music_addon") or []:
+        lines.append(priced(it, f"Add-on: {it['label']}"))
+    add("Music", lines)
+
+    # 5. Pinata (+ bags / fillings)
+    lines = []
+    it = first("pinata_type")
+    if it:
+        sel_name = r("pinata_type").get("selected") or "Pinata"
+        if sel_name == "Custom":
+            sel_name = "Custom Pinata"
+        lines.append(priced(it, sel_name, [cust("pinata_type")],
+                            resolve_pinata_image(PINATA_NAME_TO_ID.get(r("pinata_type").get("selected")))))
+    it = first("pinata_bags")
+    if it:
+        lines.append(priced(it, "Add-on: Pinata bags", ["One bag per child"]))
+    if r("pinata_fillings").get("selected") == "Yes":
+        lines.append({"name": "Add-on: Pinata fillings", "details": ["Price confirmed once the pinata is built"],
+                      "image": None, "price": None, "price_text": "To be confirmed"})
+        unpriced["any"] = True
+    add("Pinata", lines)
+
+    # 6. Cake (sales-module only — not a website category)
+    lines = []
+    ck = r("cake")
+    it = first("cake")
+    if it or (ck.get("selected") or "").strip():
+        lines.append(priced(it, "Cake", [ck.get("selected"), cust("cake")], "img/checklist-cake.jpg"))
+    add("Cake", lines)
+
+    # 7. Photographer
+    lines = []
+    it = first("photographer")
+    if it:
+        sel_name = r("photographer").get("selected") or "Photographer"
+        tier_word = sel_name.replace(" Package", "")
+        feats = PHOTO_TIER_FEATURES.get(tier_word) or []
+        lines.append(priced(it, sel_name, [" · ".join(feats), cust("photographer")], PHOTO_IMAGES.get(sel_name)))
+    add("Photographer", lines)
+
+    # 8. E-Invite (+ Save the Date)
+    lines = []
+    it = first("einvite_type")
+    if it:
+        sel_name = r("einvite_type").get("selected")
+        lines.append(priced(it, f"{sel_name} E-Invite" if sel_name else "E-Invite",
+                            ["Personalised design, shared by our team once your party details are confirmed"]))
+    it = first("save_the_date")
+    if it:
+        lines.append(priced(it, "Add-on: Save the Date"))
+    add("E-Invite", lines)
+
+    # 9. Return Gifts (+ packaging / thank-you tags) — billed separately
+    lines = []
+    rg = r("return_gifts")
+    gifts = [g for g in (rg.get("selected_gifts") or []) if g and g.get("name")]
+    cat_gifts = {g["name"]: g["price"] for g in _build_catalogue()["return_gifts_catalogue"]}
+    if gifts:
+        for g in gifts:
+            try:
+                qty = int(float(g.get("quantity") or 0))
+            except (TypeError, ValueError):
+                qty = 0
+            unit = cat_gifts.get(g["name"])
+            if unit is None:
+                try:
+                    unit = float(g.get("price") or 0)
+                except (TypeError, ValueError):
+                    unit = 0
+            lines.append({"name": g["name"], "details": [f"{qty} × {inr(unit)}"] if qty else ["Quantity to be confirmed"],
+                          "image": resolve_gift_image_by_name(g["name"]), "price": unit * qty})
+        if cust("return_gifts"):
+            lines[-1]["details"].append(cust("return_gifts"))
+    else:
+        it = first("return_gifts")
+        if it:
+            det = []
+            if rg.get("type"):
+                det.append(rg["type"])
+            if rg.get("budget"):
+                det.append(f"Budget {inr(rg['budget'])} per child")
+            det.append(cust("return_gifts"))
+            lines.append(priced(it, "Return gifts", det))
+    it = first("packaging")
+    if it:
+        lines.append(priced(it, f"Add-on: {r('packaging').get('selected')}"))
+    it = first("return_gift_tags")
+    if it:
+        lines.append(priced(it, "Add-on: Personalised thank-you tags"))
+    add("Return Gifts", lines, billed_separately=True)
+
+    # Anything else priced on the sheet (keys the page lists generically).
+    shown = {"decor", "activity", "host", "host_gifts", "music", "music_addon", "pinata_type", "pinata_bags",
+             "cake", "photographer", "einvite_type", "save_the_date", "return_gifts", "packaging", "return_gift_tags"}
+    others = [priced(it, it["label"]) for it in B["items"] if it["key"] not in shown]
+    if others:
+        add("Other", others)
+
+    # ── totals: same figures as the page's Grand Total bar ───────────────
+    subtotal = B["total"]
+    estimate = d.get("client_budget") if (d.get("client_budget_manual") and d.get("client_budget") is not None) else subtotal
+    discount = round(subtotal - float(estimate), 2)
+
+    # ── header / details ─────────────────────────────────────────────────
+    ist = issued_at_utc + IST_OFFSET
+    valid = ist + timedelta(hours=QUOTE_VALID_HOURS)
+    fmt = lambda t: t.strftime("%d %b %Y, %I:%M %p").lstrip("0").replace(", 0", ", ") + " IST"
+    child = (d.get("child_name") or "").split(",")[0].strip()
+    age_ord = _ordinal_age(d.get("child_age"))
+    if child:
+        party_title = f"{child}'s {age_ord} Birthday Party" if age_ord else f"{child}'s Birthday Party"
+    else:
+        party_title = "Your Birthday Party"
+    event_date = None
+    if d.get("event_date"):
+        try:
+            ed = date.fromisoformat(d["event_date"][:10])
+            event_date = ed.strftime("%a, %d %b %Y").replace(" 0", " ")
+        except ValueError:
+            event_date = d["event_date"]
+    times = " – ".join(filter(None, [_fmt_time_12h(d.get("event_start_time")), _fmt_time_12h(d.get("event_end_time"))]))
+    vt = next((v["label"] for v in VENUE_TYPES if v["value"] == d.get("venue_type")), d.get("venue_type"))
+    if vt in ("Not Decided Yet",):
+        vt = None
+    venue = d.get("venue") or None
+    venue_text = f"{venue} ({vt})" if venue and vt else (venue or vt)
+    details = [
+        ("Prepared for", d.get("client_name") if d.get("client_name") != "New Sales Lead" else None),
+        ("Mobile", d.get("mobile")),
+        ("Birthday child", ", ".join(filter(None, [d.get("child_name"), f"turning {d['child_age']}" if d.get("child_age") else None]))),
+        ("Event date", event_date),
+        ("Time", times or None),
+        ("No. of kids", str(kids) if kids else None),
+        ("Venue", venue_text),
+        ("Theme", d.get("theme")),
+    ]
+    data = {
+        "quote_no": f"WSQ-{d['lead_id']}-{ist.strftime('%d%m%y-%H%M')}",
+        "issued_at_text": fmt(ist),
+        "valid_until_text": fmt(valid),
+        "prepared_by": d.get("sales_lead_name"),
+        "party_title": party_title,
+        "client_name": d.get("client_name"),
+        "client_first_name": ((d.get("client_name") or "").split() or [""])[0] if d.get("client_name") != "New Sales Lead" else "",
+        "child_first_name": child,
+        "details": details,
+        "sections": sections,
+        "totals": {
+            "subtotal": subtotal, "discount": discount, "estimate": float(estimate),
+            "gift_total": B["gift_total"], "gift_mrp": B["gift_mrp"], "has_unpriced": unpriced["any"],
+        },
+        "extra_terms": d.get("terms_conditions"),
+    }
+    paths = [MASCOT_PATH] + list(SECTION_ICONS.values())
+    for s in sections:
+        paths += [ln.get("image") for ln in s["lines"] if ln.get("image")]
+    return data, paths
+
+
+@router.get("/admin/sales-leads/{lead_id}/quotation.pdf")
+async def quotation_pdf(lead_id: int, by: Optional[str] = None, x_admin_password: Optional[str] = Header(None)):
+    """The customer quotation as a PDF download (see the section comment
+    above). Uses what's SAVED on the lead — sales-leads.html saves any
+    pending edits before calling this. Logged to the lead's edit history."""
+    from quotation_builder import build_quotation_pdf, fetch_images, quotation_filename, inr
+    _require_admin(x_admin_password)
+    lead_row = await _get_lead_row(lead_id)
+    pb_row = await _get_playbook_row(lead_id)
+    d = await _full_detail(lead_row)
+    data, paths = _quotation_data(d, datetime.utcnow())
+    images = await fetch_images(paths)
+    pdf = build_quotation_pdf(data, images)
+    actor = (by or "").strip() or "Someone"
+    try:
+        await _log(pb_row["id"], actor, "quotation_generated",
+                   detail=f"{data['quote_no']} · estimated total {inr(data['totals']['estimate'])}")
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: couldn't log quotation_generated")
+    fname = quotation_filename(data)
+    return Response(
+        content=pdf, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"',
+                 "X-Quote-Filename": fname, "Access-Control-Expose-Headers": "X-Quote-Filename",
+                 "Cache-Control": "no-store"},
+    )

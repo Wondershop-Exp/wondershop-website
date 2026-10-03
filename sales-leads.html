@@ -862,14 +862,71 @@ function secWire(cards){
 
 function req(key){ return (DATA.requirements && DATA.requirements[key]) || {}; }
 
+// ── Customer quotation PDF (2026-10-03, per Shruti) ─────────────────────
+// "generate a pdf quotation ... with pictures and pricing with a grand
+// total estimate ... downloaded and then sent to the customer over
+// whatsapp." Built server-side (GET /api/admin/sales-leads/{id}/quotation
+// .pdf -> quotation_builder.py) from what's SAVED on the lead, so any
+// unsaved edits are saved first — same rule as Convert to Booking. On a
+// phone that can share files, "Share" opens the share sheet (WhatsApp)
+// with the PDF attached; everywhere else the PDF downloads, ready to
+// attach in WhatsApp / WhatsApp Web.
+function canShareFiles(){
+  try{
+    return !!(navigator.canShare && navigator.canShare({files:[new File([''], 'q.pdf', {type:'application/pdf'})]}));
+  }catch(e){ return false; }
+}
+async function getQuotation(share){
+  const btn = document.getElementById(share ? 'quoteShareBtn' : 'quoteBtn');
+  const label = btn ? btn.textContent : '';
+  if(!(await ensureSavedBeforeAction())){ showToast('Save failed — fix that first, then try the quotation again.'); return; }
+  if(btn){ btn.disabled = true; btn.textContent = 'Preparing…'; }
+  try{
+    const res = await fetch(API+'/api/admin/sales-leads/'+CURRENT_ID+'/quotation.pdf?by='+encodeURIComponent(getName()),
+      {headers:{'X-Admin-Password':getPw()}});
+    if(!res.ok){ const b = await res.json().catch(()=>({})); throw new Error(b.detail || ('Could not create the quotation ('+res.status+')')); }
+    const blob = await res.blob();
+    const fname = res.headers.get('X-Quote-Filename') || ('Wondershop-Quotation-'+CURRENT_ID+'.pdf');
+    const file = new File([blob], fname, {type:'application/pdf'});
+    let shared = false;
+    if(share && canShareFiles()){
+      try{
+        await navigator.share({files:[file], title:'Wondershop Experiences — Party Quotation'});
+        shared = true;
+      }catch(e){
+        if(e && e.name === 'AbortError'){ shared = true; } // closed the share sheet — nothing to do
+      }
+    }
+    if(!shared){
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 60000);
+      showToast('Quotation downloaded — valid for 24 hours.');
+    }
+    // Pull the fresh edit history ("quotation generated" entry).
+    try{
+      const fresh = await apiCall('/api/admin/sales-leads/'+CURRENT_ID);
+      if(DATA && fresh && fresh.lead_id === DATA.lead_id){ DATA.activity_log = fresh.activity_log; renderHistory(); }
+    }catch(e){ /* history refresh is best-effort */ }
+  }catch(e){
+    showToast(e.message || "Couldn't create the quotation.");
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = label; }
+  }
+}
+
 function renderDetail(){
   const stagePill = '<span class="pill stagepill '+(STAGE_PILL[DATA.playbook_stage]||'pill-intake')+'">'+(STAGE_LABEL[DATA.playbook_stage]||DATA.playbook_stage)+'</span>';
   document.getElementById('detailBody').innerHTML =
     '<div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
       +'<div><h1 style="font-size:19px">'+esc(DATA.client_name||'New Lead')+' <span style="font-size:13px;font-weight:400;color:var(--gy)">#'+DATA.lead_id+'</span></h1>'
         +'<div style="font-size:12px;color:var(--gy);margin-top:4px">Created by '+esc(DATA.created_by||'—')+' · '+esc(DATA.created_at||'')+'</div></div>'
-      +'<div style="display:flex;gap:8px;align-items:center">'+stagePill
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+stagePill
         +(DATA.is_blank ? '<button type="button" class="btn sm gh" id="discardLeadBtn" style="color:#B42318" onclick="askDeleteLead('+DATA.lead_id+')">🗑 Delete blank lead</button>' : '')
+        +'<button type="button" class="btn sm pk" id="quoteBtn" onclick="getQuotation(false)" title="Customer quotation PDF — pictures, prices and estimated total, ready to send on WhatsApp">📄 Quotation PDF</button>'
+        +(canShareFiles() ? '<button type="button" class="btn sm gh" id="quoteShareBtn" onclick="getQuotation(true)" title="Share the quotation PDF straight to WhatsApp">📤 Share</button>' : '')
         +'<a class="btn sm gh" href="sales-lead-print.html?lead_id='+DATA.lead_id+'" target="_blank" style="text-decoration:none;display:inline-block">🖨 Print playbook</a></div>'
     +'</div>'
     + sectionStatus()

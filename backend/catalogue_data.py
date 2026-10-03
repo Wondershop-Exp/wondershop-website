@@ -579,3 +579,132 @@ PACKAGING_LABELS = {
     "wrap": "Gift Wrap",
     "both": "Gift Wrap + Paper Bag",
 }
+
+
+# ─── Reference photos for the sales quotation PDF (2026-10-03) ───────────
+# Used only by quotation_builder.py (via routers/sales_leads.py) to put a
+# picture next to each quoted item. Paths are relative to SITE_BASE_URL,
+# same convention as the resolvers above. Activity photos mirror the
+# img/... path builder.html's ACTS array shows for each id ('img/' + img +
+# '.jpg'); ids with no real photo on the site (Mallakhamb, Ball Pool) are
+# left out, so the PDF shows no picture rather than a wrong one. Keep in
+# sync by hand with builder.html, like everything else in this file.
+ACTIVITY_IMAGES = {
+    "a1": "img/act-canvas-painting.jpg",
+    "a2": "img/activity/act-tote-bag-painting.jpg",
+    "a4": "img/activity/act-texture-art.jpg",
+    "a5": "img/activity/act-mosaic-art.jpg",
+    "a6": "img/activity/act-tie-dye.jpg",
+    "a7": "img/activity/act-mandala-art.jpg",
+    "a8": "img/activity/act-cupcake-decor.jpg",
+    "a9": "img/activity/act-cap-decoration.jpg",
+    "a10": "img/activity/act-soft-toy-making-v2.jpg",
+    "a11": "img/activity/act-jacket-decoration.jpg",
+    "a12": "img/activity/act-dreamcatcher.jpg",
+    "a13": "img/activity/act-diy-clock.jpg",
+    "tshirt-printing": "img/activity/act-tshirt-printing.jpg",
+    "a15": "img/activity/act-tattoo-station.jpg",
+    "a16": "img/activity/act-mini-art-station.jpg",
+    "a18": "img/activity/act-pottery.jpg",
+    "a21": "img/activity/act-nail-art.jpg",
+    "hair-styling": "img/activity/act-boys-hair-styling.jpg",
+    "hair-styling-girls": "img/activity/act-hair-styling-girls.jpg",
+    "glitter": "img/activity/act-glitter.jpg",
+    "science-show": "img/activity/act-science-show-card.jpg",
+    "bubble-show": "img/activity/act-bubble-show-card.jpg",
+    "magic-show": "img/activity/act-magic-show-card.jpg",
+    "chitrakathi-show": "img/activity/act-chitrakathi-puppets-card.jpg",
+    "bhajan-jamming": "img/activity/act-bhajan-jamming-card.jpg",
+    "a22": "img/activity/act-sunglasses-decor.jpg",
+    "a23": "img/activity/act-fridge-magnet.jpg",
+    "a24": "img/activity/act-coaster-making.jpg",
+    "eng90": "img/activity/act-90-min-engagement.jpg",
+    "eng120": "img/activity/act-120-min-engagement.jpg",
+    "zorb": "img/activity/act-body-zorbing.jpg",
+    "gym": "img/activity/act-gymnastics.jpg",
+    "a26": "img/packages/spy/spy-laser-tunnel.jpg",
+    "a27": "img/packages/spy/act-dark-room.jpg",
+    "a28": "img/packages/spy/maze.jpg",
+    "hit-the-cans": "img/activity/act-hit-the-cans-v2.jpg",
+    "face-painting": "img/activity/act-face-painting-v2.jpg",
+    "a25": "img/activity/act-colouring-station.jpg",
+    "slime": "img/activity/act-slime.jpg",
+    "jelly-swimbags": "img/activity/act-jelly-tote-bag.jpg",
+    "hairbrush-decor": "img/act-hairbrush-decor.jpg",
+    "photoframe-decor": "img/activity/act-photo-frame.jpg",
+    "mirror-decor": "img/activity/act-mirror-decoration.jpg",
+    "bracelet": "img/activity/act-bracelet-making.jpg",
+    "spy-badge": "img/packages/spy/spy-badge-mdf-sq.jpg",
+    "snatch-game": "img/activity/act-snatch-game.jpg",
+    "street-fighter": "img/activity/act-street-fighter.jpg",
+    "catch-the-stick": "img/activity/act-catch-the-stick.jpg",
+    "air-hockey": "img/activity/act-air-hockey.jpg",
+    "buzz-wire": "img/activity/act-buzz-wire.jpg",
+    "spin-art": "img/activity/act-spin-art.jpg",
+    "inflatable-3-row": "img/activity/act-inflatable-3-row.jpg",
+    "inflatable-rock-climb": "img/activity/act-inflatable-rock-climb.jpg",
+    "inflatable-lion": "img/activity/act-inflatable-lion.jpg",
+    "inflatable-castle": "img/activity/act-inflatable-castle.jpg",
+    "jumping-2in1": "img/activity/act-2in1-jumping.jpg",
+    "balloon-house": "img/activity/act-balloon-house.jpg",
+    "play-area": "img/activity/act-play-area.jpg",
+    "trampoline": "img/activity/act-trampoline.jpg",
+    "toy-train": "img/activity/act-toy-train.jpg",
+    "cotton-candy": "img/activity/act-cotton-candy.jpg",
+    "chocolate-fondue": "img/activity/act-chocolate-fondue.jpg",
+    "popcorn": "img/activity/act-popcorn.jpg",
+}
+
+# Tier photos for Host / Music / Photographer — the same tier-card images
+# builder.html shows on those steps. Keys are the names the sales module
+# stores (catalogue labels), plus the bare tier word.
+HOST_TIER_IMAGES = {"Premium": "img/host-premium.jpg", "Signature": "img/host-signature.jpg"}
+MUSIC_IMAGES = {
+    "Music Essential": "img/dj-classic.jpg", "Classic": "img/dj-classic.jpg",
+    "Music Plus": "img/dj-premium.jpg", "Premium": "img/dj-premium.jpg",
+}
+PHOTO_IMAGES = {
+    "Classic Package": "img/photo-classic.jpg", "Classic": "img/photo-classic.jpg",
+    "Premium Package": "img/photo-premium.jpg", "Premium": "img/photo-premium.jpg",
+    "Signature Package": "img/photo-signature.jpg", "Signature": "img/photo-signature.jpg",
+}
+PINATA_NAME_TO_ID = {
+    "Square Pinata": "square", "Circle Pinata": "circle", "Number Pinata": "number",
+    "Readymade Pinata": "readymade",
+}
+_THEMES_BY_NAME = {t["n"]: t for t in THEMES}
+_GIFTS_BY_NAME = {g[1]: g for g in GIFTS}
+
+
+def resolve_activity_image(activity_id: Optional[str], name: Optional[str] = None) -> Optional[str]:
+    if activity_id and str(activity_id) in ACTIVITY_IMAGES:
+        return ACTIVITY_IMAGES[str(activity_id)]
+    if name:
+        for aid, n, _p, _f in ACTIVITIES:
+            if n == name:
+                return ACTIVITY_IMAGES.get(aid)
+    return None
+
+
+def resolve_decor_image_by_name(theme_name: Optional[str], tier: Optional[str]) -> Optional[str]:
+    """Sales module decor: a tier name ('Classic'...) plus, optionally, a
+    named Build-a-Birthday design (THEMES 'n'). Theme photo for that tier
+    first, then the theme's only photo, then the standard-decor photo for
+    the tier; None when nothing fits (e.g. tier 'Others' with no theme)."""
+    theme = _THEMES_BY_NAME.get(theme_name or "")
+    if theme:
+        photos = theme.get("tierPhotos") or {}
+        if tier in photos:
+            return f"img/{photos[tier]}"
+        if len(photos) == 1:
+            return f"img/{next(iter(photos.values()))}"
+    if tier in STD_META:
+        return f"img/{STD_META[tier]}"
+    if theme and theme.get("tierPhotos"):
+        return f"img/{next(iter(theme['tierPhotos'].values()))}"
+    return None
+
+
+def resolve_gift_image_by_name(name: Optional[str]) -> Optional[str]:
+    g = _GIFTS_BY_NAME.get(name or "")
+    return f"img/{g[2]}" if g else None
