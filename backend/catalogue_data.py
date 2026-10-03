@@ -409,6 +409,11 @@ ACTIVITIES = [
     ("balloon-house", "Balloon House", 0, True),
     ("play-area", "Play Area", 0, True),
     ("trampoline", "Trampoline", 0, True),
+    ("toy-train", "Toy Train (Mini Train)", 0, True),
+    ("ball-pool", "Ball Pool", 0, True),
+    ("cotton-candy", "Cotton Candy Stall", 0, True),
+    ("chocolate-fondue", "Chocolate Fondue", 0, True),
+    ("popcorn", "Live Popcorn Station", 0, True),
     # 2026-09-25, per Shruti — "Experiences like Magic show, bubble show,
     # science show should come in the dropdown for activities in sales."
     # These already exist on the website (builder.html's ACTS array,
