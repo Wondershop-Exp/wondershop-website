@@ -383,6 +383,16 @@ ACTIVITIES = [
     ("a27", "Dark Room", 15000, True),
     ("a28", "Spy Treasure Hunt", 1500, False),
     ("hit-the-cans", "Hit the Cans", 5000, True),   # 2026-10-02, BAB + Unicorn
+    # 2026-10-03 — package-page activities now also in Build-a-Birthday.
+    # Banded ones are listed at their base (smallest-group) price.
+    ("face-painting", "Face Painting", 3500, True),
+    ("a25", "Colouring Station", 4500, True),
+    ("slime", "Slime Making", 6300, True),
+    ("jelly-swimbags", "Personalized Jelly Tote Bags", 430, False),
+    ("hairbrush-decor", "Hairbrush Decoration", 400, False),
+    ("photoframe-decor", "Photo Frame Decoration", 400, False),
+    ("mirror-decor", "Mirror Decoration", 750, False),
+    ("spy-badge", "MDF Spy Badge", 9000, True),
     # 2026-09-25, per Shruti — "Experiences like Magic show, bubble show,
     # science show should come in the dropdown for activities in sales."
     # These already exist on the website (builder.html's ACTS array,
