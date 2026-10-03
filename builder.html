@@ -3092,8 +3092,8 @@ function actPriceRaw(a,kids){
   // (given directly by Shruti, 2026-08-11), added as Unicorn Basic
   // included-activity options. Hit the Cans is flat regardless of kids.
   if(a.id==='hair-styling-girls')return kids<=20?3500:kids<=30?4500:kids<=40?5500:7000;
-  // Face Painting — flat ₹3,500 (2026-10-03, per Shruti).
-  if(a.id==='face-painting')return 3500;
+  // Face Painting — flat ₹4,500 (2026-10-03, per Shruti; was ₹3,500).
+  if(a.id==='face-painting')return 4500;
   // Bracelet Making — ₹350/child, minimum bill ₹5,000 (2026-10-03).
   if(a.id==='bracelet')return Math.max(5000,kids*350);
   if(a.id==='hit-the-cans')return 5000;
@@ -3216,7 +3216,7 @@ const ACTS=[
   // 2026-10-03, per Shruti — "add all activities recommended in packages on
   // the BAB as well". Prices are the package pages' own (see actPriceRaw()
   // special cases); banded ones flag banded:true for the card's price note.
-  {id:'face-painting',n:'Face Painting',e:'🎭',img:'',realImg:false,cat:'experience',age:'3-12',dur:'Up to 3 hours',req:'A table and 2 chairs',r1:3500,r2:3500,r3:3500,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:1},
+  {id:'face-painting',n:'Face Painting',e:'🎭',img:'activity/act-face-painting-v2',realImg:true,cat:'experience',age:'3-12',dur:'Up to 3 hours',req:'A table and 2 chairs',r1:4500,r2:4500,r3:4500,flat:true,bgs:['linear-gradient(135deg,#F5C3D7,#B59DDE)'],tag:'new',pers:false,rating:4.8,cnt:1},
   {id:'a25',n:'Colouring Station',e:'🖍️',img:'activity/act-colouring-station',realImg:true,cat:'art',age:'3-10',dur:'Throughout the party',req:'Tables & chairs (arranged by client)',r1:4500,r2:5500,r3:6500,flat:true,banded:true,bgs:['linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'new',pers:false,rating:4.7,cnt:1},
   {id:'slime',n:'Slime Making',e:'🧪',img:'activity/act-slime',realImg:true,cat:'science',age:'5-12',dur:'15-20 min',req:'Tables & chairs (arranged by client)',r1:400,r2:400,r3:400,flat:false,minNote:'Minimum ₹6,000',bgs:['linear-gradient(135deg,#BCD8E8,#5B8EDD)'],tag:'new',pers:true,rating:4.8,cnt:1},
   {id:'jelly-swimbags',n:'Personalized Jelly Tote Bags',e:'👜',img:'activity/act-jelly-tote-bag',realImg:true,cat:'craft',age:'4-12',dur:'20-30 min',req:'Tables & chairs (arranged by client)',r1:450,r2:450,r3:450,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)'],tag:'new',pers:true,rating:4.7,cnt:1},

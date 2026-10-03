@@ -708,7 +708,7 @@ button{cursor:pointer;font-family:var(--fb)}
         </div>
 
         <div class="act-card" data-act="face-painting" data-name="Face Painting" onclick="selectAct(this)">
-          <img class="act-card-ic-img" src="img/activity/act-face-painting.jpg" alt="Face Painting" onerror="this.src='img/theme-uni.jpg'">
+          <img class="act-card-ic-img" src="img/activity/act-face-painting-v2.jpg" alt="Face Painting" onerror="this.src='img/theme-uni.jpg'">
           <div class="act-card-n">Face Painting</div>
           <div class="act-card-d">A face-painting artist on-site, turning kids into their favourite characters and creatures.</div>
           <div class="act-card-extra" id="actExtraFacePaint" style="display:none"></div>
@@ -1421,7 +1421,7 @@ function addonActPrice(id, kids) {
   // "above 50" for the top band but only gave 4 bands total (20/30/40/top)
   // with no rate for 41-50 — read as a typo for "above 40", matching the
   // clean 4-band pattern every other banded activity on this site uses.
-  if (id === 'face-painting') return 3500; // flat, 2026-10-03 per Shruti
+  if (id === 'face-painting') return 4500; // flat, 2026-10-03 per Shruti
   if (id === 'hair-styling-girls') {
     return kids <= 20 ? 3500 : kids <= 30 ? 4500 : kids <= 40 ? 5500 : 7000;
   }

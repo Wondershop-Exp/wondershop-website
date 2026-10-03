@@ -385,7 +385,7 @@ ACTIVITIES = [
     ("hit-the-cans", "Hit the Cans", 5000, True),   # 2026-10-02, BAB + Unicorn
     # 2026-10-03 — package-page activities now also in Build-a-Birthday.
     # Banded ones are listed at their base (smallest-group) price.
-    ("face-painting", "Face Painting", 3500, True),
+    ("face-painting", "Face Painting", 4500, True),
     ("a25", "Colouring Station", 4500, True),
     ("slime", "Slime Making", 400, False),   # min bill Rs 6,000
     ("jelly-swimbags", "Personalized Jelly Tote Bags", 450, False),
