@@ -89,6 +89,24 @@ table.list th.sortable:hover{color:var(--bk)}
    registration link. */
 .spy-reg-card{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:0 2px 10px rgba(25,25,25,.06);margin-bottom:22px}
 /* Return Gift Order box (2026-10-02) — shared with sales-leads.html */
+.tbc-card{background:#FFFBEB;border:1.5px solid #F2C14E;border-radius:14px;padding:16px 18px;margin:0 0 22px}
+.tbc-card.all-done{background:#F3FBF5;border-color:#9AD6AE}
+.tbc-hd{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-weight:700;font-size:15px;color:#7A4B00;margin-bottom:4px}
+.tbc-card.all-done .tbc-hd{color:#166534}
+.tbc-sub{font-size:12px;color:#8A6A2A;margin-bottom:12px}
+.tbc-row{display:grid;grid-template-columns:minmax(200px,1.4fr) 120px minmax(160px,1.2fr) auto;gap:10px;align-items:center;background:#fff;border:1px solid #F3E2B3;border-radius:10px;padding:10px 12px;margin-top:8px}
+.tbc-row.done{border-color:#CDEBD6}
+.tbc-name{font-weight:700;font-size:13.5px;color:#2D2140}
+.tbc-why{font-size:11.5px;color:#8B7FA0;margin-top:2px}
+.tbc-meta{font-size:11px;color:#8B7FA0;margin-top:3px}
+.tbc-row input{font:inherit;font-size:13px;padding:7px 9px;border:1px solid #E3DCEE;border-radius:8px;min-width:0;width:100%;box-sizing:border-box}
+.tbc-pill{font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px;margin-left:6px;vertical-align:1px}
+.tbc-pill.p{background:#FDECEC;color:#B4232C}.tbc-pill.c{background:#E7F6EC;color:#166534}
+.tbc-btns{display:flex;gap:6px;flex-wrap:wrap}
+.tbc-btn{border:none;border-radius:8px;padding:8px 12px;font-weight:700;font-size:12.5px;cursor:pointer;background:#16A34A;color:#fff;white-space:nowrap}
+.tbc-btn.ghost{background:#fff;color:#6B4FA0;border:1px solid #D9CBF2}
+.tbc-badge{display:inline-block;margin-left:6px;font-size:10.5px;font-weight:700;background:#FDECEC;color:#B4232C;border-radius:999px;padding:2px 8px;white-space:nowrap}
+@media(max-width:760px){.tbc-row{grid-template-columns:1fr}}
 .go-card{background:#fff;border:1.5px dashed #D9CBF2;border-radius:14px;padding:16px 18px;margin:0 0 22px}
 .go-hd{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-weight:700;font-size:15px;color:#3B2A55;margin-bottom:10px}
 .go-chip{font-size:11px;font-weight:700;background:#F3EEFC;color:#6B4FA0;border-radius:999px;padding:3px 10px}
@@ -686,6 +704,7 @@ body.role-sales .admin-only{display:none!important}
     <div id="statusBlock"></div>
     <div id="lockBanner"></div>
     <div id="bdNav"></div>
+    <div id="tbcBlock"></div>
     <div id="sectionsContainer"></div>
     <div id="giftOrderBlock"></div>
     <!-- 2026-10-02, per Shruti — "move spy registration page section at the
@@ -1261,9 +1280,10 @@ function renderBookingHead(d){
   // it should be flagged in red ... as a task to be completed in the admin
   // panel": Custom Design has no fixed price/production, so it always
   // needs a manual follow-up until someone actions it.
-  const pendingBannerHtml = d.pending_custom_pinata
-    ? '<div class="bd-pending-banner">⚠️ Custom Piñata design selected — needs pricing &amp; production follow-up.</div>'
-    : '';
+  const tbcPending = (d.to_be_confirmed || []).filter(t=>t.status!=='confirmed');
+  const pendingBannerHtml = tbcPending.length
+    ? '<div class="bd-pending-banner" style="cursor:pointer" onclick="document.getElementById(\'tbcSection\')?.scrollIntoView({behavior:\'smooth\',block:\'start\'})">⚠️ '+tbcPending.length+' item'+(tbcPending.length>1?'s':'')+' to be confirmed: '+tbcPending.map(t=>esc(t.label)).join(', ')+' — see below.</div>'
+    : (d.pending_custom_pinata ? '<div class="bd-pending-banner">⚠️ Custom Piñata design selected — needs pricing &amp; production follow-up.</div>' : '');
   document.getElementById('bdHead').innerHTML = '<div class="bd-head">'
     + '<div class="bd-eyebrow">'+(d.is_booking ? 'Booking' : 'Lead')+' #'+d.lead_id+' · Created '+esc(d.created_on_ist || '')+'</div>'
     + '<div class="bd-title-row"><h2 class="bd-title">'+esc(name)+'</h2>'
@@ -1360,6 +1380,52 @@ async function goSave(send){
     if(waWin) waWin.close();
     if(e.message!=='unauthorized') showToast('⚠ '+e.message);
   }
+}
+
+// ── To be confirmed (2026-10-03, per Shruti) ───────────────────────────
+// "for activities with price on request, highlight it to the ops team. Add
+// a to be confirmed section on admin bookings page with these items. even
+// custom pinnata and custom einvite should come here." Items come from the
+// server (to_be_confirmed in the detail payload); a confirmed price is added
+// to Total MRP. Server: POST /api/admin/bookings/{id}/tbc.
+let TBC_ITEMS = [];
+function tbcHtml(d){
+  TBC_ITEMS = d.to_be_confirmed || [];
+  if(!TBC_ITEMS.length) return '';
+  const pending = TBC_ITEMS.filter(t=>t.status!=='confirmed').length;
+  const ro = !!d.locked;
+  const rows = TBC_ITEMS.map((t,i)=>{
+    const done = t.status==='confirmed';
+    const meta = t.updated_by ? (done?'Confirmed':'Updated')+' by '+esc(t.updated_by)+(t.updated_at?' · '+esc(t.updated_at):'') : '';
+    return '<div class="tbc-row'+(done?' done':'')+'">'
+      + '<div><div class="tbc-name">'+esc(t.label)+'<span class="tbc-pill '+(done?'c':'p')+'">'+(done?'✓ Confirmed':'To be confirmed')+'</span></div>'
+      +   '<div class="tbc-why">'+esc(t.why||'')+'</div>'+(meta?'<div class="tbc-meta">'+meta+'</div>':'')+'</div>'
+      + '<input id="tbcP'+i+'" type="number" min="0" step="1" placeholder="Price ₹" title="Confirmed price — added to Total MRP. Leave blank if no change." value="'+(t.price==null?'':Math.round(Number(t.price)))+'"'+(ro?' disabled':'')+'>'
+      + '<input id="tbcN'+i+'" type="text" placeholder="Note (vendor, design, etc.)" value="'+esc(t.note||'')+'"'+(ro?' disabled':'')+'>'
+      + (ro ? '<span></span>' : '<div class="tbc-btns">'
+          + (done ? '<button class="tbc-btn ghost" onclick="tbcSave('+i+',\'confirmed\')">Save</button><button class="tbc-btn ghost" onclick="tbcSave('+i+',\'pending\')">Reopen</button>'
+                  : '<button class="tbc-btn" onclick="tbcSave('+i+',\'confirmed\')">Mark confirmed</button>')
+          + '</div>')
+      + '</div>';
+  }).join('');
+  return '<div class="tbc-card'+(pending?'':' all-done')+'" id="tbcSection">'
+    + '<div class="tbc-hd">'+(pending?'⚠️ To be confirmed — '+pending+' pending':'✓ To be confirmed — all done')+'</div>'
+    + '<div class="tbc-sub">Price-on-request activities and custom designs. Confirm with the vendor / customer; a confirmed price is added to the Total MRP.</div>'
+    + rows + '</div>';
+}
+async function tbcSave(i, status){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); return; }
+  const t = TBC_ITEMS[i]; if(!t) return;
+  const p = document.getElementById('tbcP'+i).value;
+  const body = {changed_by: who, key: t.key, status: status,
+                price: p === '' ? null : Number(p),
+                note: document.getElementById('tbcN'+i).value.trim()};
+  try{
+    await apiCall('/api/admin/bookings/'+CURRENT_DETAIL.lead_id+'/tbc', {method:'POST', body: JSON.stringify(body)});
+    showToast(status==='confirmed' ? '✓ '+t.label+' confirmed' : '↺ '+t.label+' reopened');
+    await loadDetail();
+  }catch(e){ if(e.message!=='unauthorized') showToast('⚠ '+e.message); }
 }
 
 function renderBookingBar(d){
@@ -2547,7 +2613,7 @@ function renderRows(kind){
       +'<td style="white-space:nowrap">'+fmtEventDate(r.event_date)+'</td>'
       +'<td>'+esc(r.city||'—')+'</td>'
       +'<td>'+originBadgeHtml(r.origin)+'</td>'
-      +'<td>'+listStatusCellHtml(r, kind)+'</td>'
+      +'<td>'+listStatusCellHtml(r, kind)+(r.tbc_pending?'<span class="tbc-badge" title="Items to be confirmed by ops">⚠ '+r.tbc_pending+' to confirm</span>':'')+'</td>'
       +'<td>'+esc(r.created_on_ist||'')+'</td>'
       +'<td>'+esc(r.modified_on_ist||'')+'</td>'
       +'<td>'+listActionsCellHtml(r, kind)+'</td>'
@@ -2917,6 +2983,7 @@ function renderDetail(d){
 
   renderSpyRegistrationBlock(d);
   document.getElementById('giftOrderBlock').innerHTML = giftOrderHtml(d.gift_order, d.lead_id, loadDetail);
+  document.getElementById('tbcBlock').innerHTML = tbcHtml(d);
 
   const container = document.getElementById('sectionsContainer');
   container.innerHTML = d.sections.map(sec=>{

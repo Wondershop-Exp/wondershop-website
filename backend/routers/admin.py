@@ -63,7 +63,7 @@ import catalogue_data as cat
 from types import SimpleNamespace
 from invoice_builder import assemble_invoice_data, build_invoice_pdf, invoice_filename
 from booking_pricing import (
-    gifts_billed_separately,
+    gifts_billed_separately, to_be_confirmed, tbc_state,
     compute_billing, compute_adjustments, freebie_activity_names, parse_csv as _parse_csv_names,
     PACKAGING_KEY_TO_LABEL, PACKAGING_UNIT_PRICE, DJ_LIGHTS_PRICE, DJ_SMOKE_PRICE,
     TAG_NOTE_UNIT_PRICE, TAG_NOTE_MIN_QTY, PINATA_BAG_PRICE, DECOR_PRICES, ACTIVITY_PRICES,
@@ -898,7 +898,7 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
     # this should move to a SQL-side sort instead.
     rows = await database.fetch_all(
         f"""
-        SELECT lead_id, parent_name, phone, email, event_date, city, status, created_on, updated_on, lead_origin
+        SELECT *
         FROM leads
         WHERE {' AND '.join(where)}
         """,
@@ -939,6 +939,35 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
         candidates = [v for v in (row.get("updated_on"), latest_change.get(row["lead_id"])) if v is not None]
         row["modified_on"] = max(candidates) if candidates else None
 
+    # 2026-10-03 — how many "To be confirmed" items each row still has
+    # pending (badge in the list). Current value = admin override if any,
+    # else what the customer picked (same rule as the detail page).
+    tbc_keys = ("svc_activities", "svc_pinata", "svc_einvite")
+    tbc_ov = {}
+    if lead_ids:
+        ov_rows = await database.fetch_all(
+            f"SELECT lead_id, field_key, customer_choice_override, removed FROM booking_field_overrides "
+            f"WHERE lead_id IN ({placeholders}) AND field_key IN ('svc_activities','svc_pinata','svc_einvite')",
+            values=id_params,
+        )
+        for r in ov_rows:
+            tbc_ov.setdefault(r["lead_id"], {})[r["field_key"]] = dict(r)
+    for row in enriched:
+        try:
+            snap_r = _parse_snapshot(row.get("builder_snapshot"))
+            ovs = tbc_ov.get(row["lead_id"], {})
+            cur_r, removed_r = {}, set()
+            for k in tbc_keys:
+                ov = ovs.get(k)
+                cur_r[k] = (ov["customer_choice_override"] if ov and ov["customer_choice_override"]
+                            else _derive_original_value(k, row, snap_r))
+                if ov and ov["removed"]:
+                    removed_r.add(k)
+            row["_tbc_pending"] = sum(1 for t in to_be_confirmed(cur_r, removed_r, snap_r, row) if t["status"] != "confirmed")
+        except Exception:
+            logger.exception(f"Lead #{row['lead_id']}: couldn't compute to-be-confirmed items")
+            row["_tbc_pending"] = 0
+
     sort_key = sort if sort in SORTABLE_COLUMNS else "created"
     sort_desc = dir != "asc"
 
@@ -977,6 +1006,7 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
         # bespoke playbook UI for lead_origin='sales_module', this page's
         # generic field-table editor for everything else).
         "origin": "Sales" if row.get("lead_origin") == "sales_module" else "Website",
+        "tbc_pending": row.get("_tbc_pending", 0),
     } for row in ordered]
     return {"rows": out, "new_count": new_count}
 
@@ -1327,6 +1357,13 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
                      "gifts_separate": pricing.get("gifts_separate"),
                      "gift_items": pricing.get("gift_items"), "gift_total": pricing.get("gift_total")} if pricing else None),
         "gift_order": _gift_order_payload(lead, snap, pricing),
+        # 2026-10-03, per Shruti — "To be confirmed" items for ops (price-on-
+        # request activities, Custom Design piñata / e-invite).
+        "to_be_confirmed": to_be_confirmed(
+            {k: f.get("customer_choice") for k, f in all_fields.items()},
+            {k for k, f in all_fields.items() if f.get("removed")},
+            snap, lead,
+        ),
         "sections": [{"section": s, "fields": sections[s]} for s in sections],
         "change_log": change_log,
     }
@@ -2611,6 +2648,61 @@ async def update_gift_order(lead_id: int, body: GiftOrderUpdateRequest, x_admin_
     logger.info(f"Lead #{lead_id}: return gift order -> {status} by {who}")
     return {"success": True, "status": status, "status_label": GIFT_ORDER_STATUSES.get(status, status),
             "sent_to": sent_to, "whatsapp_link": wa_link}
+
+
+# ─── TO BE CONFIRMED (2026-10-03, per Shruti) ───────────────────────────────
+class TbcUpdateRequest(ChangedByRequest):
+    key: str
+    status: str = "confirmed"           # "confirmed" | "pending"
+    price: Optional[float] = None       # confirmed price (added to Total MRP); None = no price
+    note: Optional[str] = None
+
+
+@router.post("/bookings/{lead_id}/tbc")
+async def update_tbc_item(lead_id: int, body: TbcUpdateRequest, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    who = (body.changed_by or "").strip()
+    if not who:
+        raise HTTPException(status_code=400, detail="changed_by is required.")
+    if body.status not in ("confirmed", "pending"):
+        raise HTTPException(status_code=400, detail="Unknown status.")
+    if body.price is not None and body.price < 0:
+        raise HTTPException(status_code=400, detail="The price can't be negative.")
+    detail = await get_booking_detail(lead_id, x_admin_password)
+    if detail.get("locked"):
+        raise HTTPException(status_code=400, detail="This booking is locked.")
+    item = next((t for t in detail.get("to_be_confirmed") or [] if t["key"] == body.key), None)
+    if not item:
+        raise HTTPException(status_code=400, detail="That item is no longer on this booking.")
+    lead_row = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    state = tbc_state(dict(lead_row))
+    now = datetime.utcnow()
+    state[body.key] = {"status": body.status, "price": body.price,
+                       "note": (body.note or "").strip() or None,
+                       "by": who, "at": _to_ist_str(now)}
+    try:
+        await database.execute(
+            "UPDATE leads SET tbc_items = CAST(:v AS JSONB) WHERE lead_id = :id",
+            values={"v": json.dumps(state), "id": lead_id},
+        )
+    except Exception as e:
+        logger.exception(f"Lead #{lead_id}: couldn't save to-be-confirmed item")
+        raise HTTPException(status_code=500, detail="Couldn't save — has migration 040 (tbc_items) been run?") from e
+    new_v = ("Confirmed" if body.status == "confirmed" else "Pending") \
+        + (f" — ₹{body.price:,.0f}" if body.price is not None else "") \
+        + (f" — {state[body.key]['note']}" if state[body.key]["note"] else "")
+    await database.execute(
+        """
+        INSERT INTO booking_change_log
+            (lead_id, field_key, field_label, change_type, old_value, new_value, changed_by, changed_at)
+        VALUES (:lead_id, 'tbc', :label, 'field_value', :old_v, :new_v, :by, :ts)
+        """,
+        values={"lead_id": lead_id, "label": "To be confirmed · " + item["label"],
+                "old_v": "Confirmed" if item["status"] == "confirmed" else "Pending",
+                "new_v": new_v, "by": who, "ts": now},
+    )
+    logger.info(f"Lead #{lead_id}: TBC {body.key} -> {body.status} by {who}")
+    return {"success": True}
 
 
 class SendSummaryEmailRequest(ChangedByRequest):

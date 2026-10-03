@@ -1808,6 +1808,16 @@ async def _send_team_email(lead_id: int, req: LeadSubmitRequest, reward_code: Op
         pending_tasks = []
         if pinata_name == "Custom Design":
             pending_tasks.append("Custom Piñata design selected — needs pricing & production follow-up.")
+        # 2026-10-03, per Shruti — price-on-request activities and a custom
+        # e-invite are "to be confirmed" by ops too (admin Bookings page has
+        # the matching To be confirmed section).
+        _snap = req.builder_snapshot or {}
+        for _a in _snap.get("activities") or []:
+            if _a.get("price_on_request") and _a.get("n"):
+                pending_tasks.append(f"{_a['n']} — price on request: confirm price & availability with the vendor, then mark it confirmed on the Bookings page.")
+        _ei = _snap.get("einvite") or {}
+        if (_ei.get("id") == "custom") or (str(_ei.get("n") or "").lower().startswith("custom")):
+            pending_tasks.append("Custom E-Invite design selected" + (f" (theme: {_ei['custom_theme']})" if _ei.get("custom_theme") else "") + " — confirm the design brief with the customer.")
         pending_block = (
             "\n⚠️ PENDING TASKS\n" + "".join(f"  - {t}\n" for t in pending_tasks)
         ) if pending_tasks else ""

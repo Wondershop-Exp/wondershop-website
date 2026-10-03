@@ -6366,7 +6366,7 @@ function buildSnapshot(){
       dj:          S.dj       ? {tier:S.dj.tier, p:S.dj.p}                   : null,
       dj_addons:   {lights:!!S.djAddons.lights, smoke:!!S.djAddons.smoke},
       pinata:      S.pinata   ? {id:S.pinata.id, n:S.pinata.n, p:S.pinata.p} : null,
-      einvite:     S.einvite  ? {id:S.einvite.id, n:S.einvite.n, pickup_time:S.pickupTime||null, show_pickup_on_invite:!!S.showPickupOnInvite} : null,
+      einvite:     S.einvite  ? {id:S.einvite.id, n:S.einvite.n, pickup_time:S.pickupTime||null, show_pickup_on_invite:!!S.showPickupOnInvite, custom_theme:(S.einvite.id==='custom'?(document.getElementById('ei-ctheme')?.value.trim()||null):null)} : null,
       photo:       S.photo    ? {tier:S.photo.tier, p:S.photo.p}             : null,
       // 2026-09-12, per Shruti — "activities coming up as free": S.activities
       // entries only ever carry r1/r2/r3/flat (per-kid-count rate tiers),

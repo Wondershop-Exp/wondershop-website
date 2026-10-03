@@ -63,6 +63,7 @@ Pure functions, no database access, so they can be unit-tested directly.
 """
 from typing import Optional
 
+import json
 import re
 import catalogue_data as cat
 
@@ -320,6 +321,61 @@ def _resolved(cur: dict, key: str, removed: set) -> Optional[str]:
     return v if v not in (None, "") else None
 
 
+# ─── TO BE CONFIRMED (2026-10-03, per Shruti) ─────────────────────────────
+# Items with no fixed price/design that ops must confirm after the order:
+# price-on-request activities (catalogue price 0 — inflatables, play area,
+# food stalls...), a Custom Design piñata and a Custom Design e-invite.
+POR_ACTIVITY_NAMES = {n for _id, n, p, _f in cat.ACTIVITIES if not p}
+
+
+def tbc_state(lead: Optional[dict]) -> dict:
+    """leads.tbc_items (migration 040) as a dict — {} when unset/missing."""
+    raw = (lead or {}).get("tbc_items")
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except ValueError:
+            raw = None
+    return raw if isinstance(raw, dict) else {}
+
+
+def _is_custom(v: Optional[str]) -> bool:
+    return bool(v) and v.strip().lower().startswith("custom")
+
+
+def to_be_confirmed(cur: dict, removed: set, snap: Optional[dict] = None, lead: Optional[dict] = None) -> list:
+    """Every item on this booking that still needs ops confirmation, merged
+    with whatever ops has saved against it (status/price/note)."""
+    state = tbc_state(lead)
+    out = []
+    for name, _q in parse_csv(_resolved(cur, "svc_activities", removed)):
+        if name in POR_ACTIVITY_NAMES:
+            out.append({"key": f"act:{name}", "kind": "activity", "name": name,
+                        "label": f"Activity: {name}",
+                        "why": "Price on request — confirm price & availability with the vendor",
+                        "price_editable": True})
+    pin = _resolved(cur, "svc_pinata", removed)
+    if _is_custom(pin):
+        out.append({"key": "pinata", "kind": "pinata", "name": pin, "label": f"Piñata: {pin}",
+                    "why": "Custom design — confirm the design, price & production",
+                    "price_editable": True})
+    ei = _resolved(cur, "svc_einvite", removed)
+    if _is_custom(ei):
+        theme = ((snap or {}).get("einvite") or {}).get("custom_theme")
+        out.append({"key": "einvite", "kind": "einvite", "name": ei, "label": f"E-Invite: {ei}",
+                    "why": "Custom design — confirm the design brief with the customer"
+                           + (f" (theme: {theme})" if theme else ""),
+                    "price_editable": True})
+    for it in out:
+        st = state.get(it["key"]) or {}
+        it["status"] = "confirmed" if st.get("status") == "confirmed" else "pending"
+        it["price"] = st.get("price")
+        it["note"] = st.get("note")
+        it["updated_by"] = st.get("by")
+        it["updated_at"] = st.get("at")
+    return out
+
+
 def _price_activities(names_csv: Optional[str], kids: int):
     """Every currently-selected activity, priced off the same catalogue the
     admin's own picker shows (ACTIVITY_PRICES: price + whether it's flat or
@@ -453,6 +509,25 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
         else:
             add(label, amt)
     unpriced += gift_unpriced
+
+    # To-be-confirmed items with a price ops has confirmed (see
+    # to_be_confirmed()) replace their unpriced / list-price line.
+    for t in to_be_confirmed(cur, removed, snap, lead):
+        if t.get("price") in (None, ""):
+            continue
+        try:
+            price = float(t["price"])
+        except (TypeError, ValueError):
+            continue
+        if t["kind"] == "activity":
+            drop = (lambda l, n=t["name"]: l == f"Activity: {n}")
+        elif t["kind"] == "pinata":
+            drop = (lambda l: l.startswith("Piñata:"))
+        else:
+            drop = (lambda l, n=t["name"]: l == f"E-Invite: {n}")
+        unpriced[:] = [u for u in unpriced if not drop(u)]
+        items[:] = [(l, a) for l, a in items if not drop(l)]
+        add(f"{t['label']} (confirmed)", price)
 
     total_mrp = round(sum(a for _l, a in items), 2)
 
