@@ -94,6 +94,14 @@ COLLECTION_FEE = 100
 # from einvite_master/pricing_matrix if Shruti needs per-design accuracy.
 EINVITE_FLAT_CHARGE = 500
 
+
+def einvite_price(name: Optional[str]) -> float:
+    """Static designs ₹500; any Video + Reminder invite (sales panel tier,
+    or a homepage package's "<Theme> Video + Reminder") ₹2,000."""
+    if name and "video" in name.lower():
+        return float(cat.EINVITE_TIER_PRICES["Video + Reminder"])
+    return float(cat.EINVITE_TIER_PRICES.get(name or "", EINVITE_FLAT_CHARGE))
+
 # Admin dropdown label  <->  builder key for Gift Packaging.
 PACKAGING_LABEL_TO_KEY = {
     "Paper Gift Bag": "paper-bag",
@@ -493,7 +501,9 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
 
     einvite = _resolved(cur, "svc_einvite", removed)
     if einvite and einvite != "No selection":
-        add(f"E-Invite: {einvite}", EINVITE_FLAT_CHARGE)
+        # 2026-10-05, per Shruti — Video + Reminder is ₹2,000 (the sales
+        # panel's and the homepage packages' price), not the flat ₹500.
+        add(f"E-Invite: {einvite}", einvite_price(einvite))
     # 2026-10-01, per Shruti — Save the Date picked in the sales panel was
     # missing from the booking's Total MRP. Copied across as e.g. "Yes (₹0)"
     # (the sales quote, informational); priced at its list price here.

@@ -372,7 +372,7 @@ PINATA_OPTIONS = [
     for x in ["Square Pinata", "Circle Pinata", "Number Pinata", "Readymade Pinata", "Custom Design"]
 ]
 EINVITE_OPTIONS = [_opt(x) for x in [
-    "No selection", "Art Party", "Frozen (Elsa)", "Frozen (Anna)", "Ramayana", "Little Singham",
+    "No selection", "Video + Reminder", "Art Party", "Frozen (Elsa)", "Frozen (Anna)", "Ramayana", "Little Singham",
     "Spy × K-Pop", "Spy Detective", "Spy Party (Classic)", "Spy Squad", "Unicorn",
     "Superhero (3D)", "Superhero (Pop Art)", "Football × Spy Mission", "Football × Spy Mission (Alt)",
     "Harry Potter", "Imposter Mission", "Imposter Mission (Alt)", "K-Pop Idol Collage", "K-Pop Bestie",
