@@ -991,10 +991,20 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
     decor = snap.get("decor") or {}
     if decor.get("n"):
         decor_ref = cat.resolve_decor(decor.get("id"), decor.get("p"))
+        # No photo of the chosen design (e.g. a theme with no photo at this
+        # tier): a standard-decor photo for the tier, marked as reference.
+        if not decor_ref and decor.get("id") != "custom":
+            tier = cat._PRICE_TO_TIER.get(int(decor["p"])) if decor.get("p") else None
+            sfx = str(decor.get("id") or "").rsplit("-", 1)[-1].capitalize()
+            tier = sfx if sfx in cat.STD_META else tier
+            if tier in cat.STD_META:
+                decor_ref = {"image_path": f"img/{cat.STD_META[tier]}", "spec": [], "reference": True}
         decor_entry = {
             "label": "Decor", "name": decor.get("n"), "price": decor.get("p"),
             "image_path": decor_ref["image_path"] if decor_ref else None,
             "inclusions": [(l, v) for l, v, na in (decor_ref["spec"] if decor_ref else []) if not na],
+            # 2026-10-05, per Shruti — say so when the photo is only a reference.
+            "note": cat.DECOR_REFERENCE_NOTE if (decor_ref and decor_ref.get("reference")) else None,
         }
         # 2026-09-13, per Shruti — Classic tier's "Happy Birthday" bunting is
         # generic by default; printing the child's name on it is a separate
@@ -1184,6 +1194,8 @@ def _format_services_block(req: LeadSubmitRequest, added_service_label: Optional
             lines.append(f"      - {label}{': ' + val if val else ''}")
         for addon in svc.get("addons", []):
             lines.append(f"      + {addon['name']} — {_fmt_rupees(addon['price'])}")
+        if svc.get("note"):
+            lines.append(f"      ({svc['note']})")
     lines.append("")
     return "\n".join(lines) + "\n"
 
@@ -1259,6 +1271,8 @@ def _html_services_section(req: LeadSubmitRequest, added_service_label: Optional
             f'<div style="font-size:14px;font-weight:700;color:{BRAND_PURPLE}">{_html_escape(svc["label"])}</div>'
             f'<div style="font-size:13.5px;color:#2D2140">{_html_escape(svc["name"])}{price_bit}</div>'
             f'{incl_html}{addons_html}'
+            + (f'<div style="font-size:11.5px;color:#8B7FA0;font-style:italic;margin-top:5px">{_html_escape(svc["note"])}</div>'
+               if svc.get("note") else '')
         )
         cards.append(
             f'<div style="display:flex;align-items:flex-start;padding:12px 0;border-bottom:1px solid #F0E9FA">'

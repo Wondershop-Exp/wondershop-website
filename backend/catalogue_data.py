@@ -191,6 +191,7 @@ def resolve_decor(decor_id: Optional[str], decor_price: Optional[float]) -> Opti
             return {
                 "image_path": f"img/{STD_META[tier]}",
                 "spec": _spec_for("Standard Decor", tier, colors="As per theme"),
+                "reference": True,   # a standard-decor photo, not this design
             }
         return None
 
@@ -219,6 +220,7 @@ def resolve_decor(decor_id: Optional[str], decor_price: Optional[float]) -> Opti
     return {
         "image_path": f"img/{photo}",
         "spec": _spec_for(theme["n"], tier, colors=_extract_colors(theme["b"])),
+        "reference": False,   # the chosen design's own photo
     }
 
 
@@ -748,6 +750,25 @@ def resolve_activity_image(activity_id: Optional[str], name: Optional[str] = Non
             if n == name:
                 return ACTIVITY_IMAGES.get(aid)
     return None
+
+
+# 2026-10-05, per Shruti — shown with a standard-decor (reference) photo on
+# the quotation PDF and booking emails, when it isn't the chosen design's own.
+DECOR_REFERENCE_NOTE = ("Reference picture. Details of the decor like balloon colours and flex/sunboard "
+                        "designs (as applicable) will be discussed with you by your party manager before finalising.")
+
+
+def decor_image_is_reference(theme_name: Optional[str], tier: Optional[str]) -> bool:
+    """True when resolve_decor_image_by_name() falls back to a standard-decor
+    photo (no matching photo of the chosen design)."""
+    theme = _THEMES_BY_NAME.get(theme_name or "")
+    if theme:
+        photos = theme.get("tierPhotos") or {}
+        if tier in photos or len(photos) == 1:
+            return False
+        if tier not in STD_META and photos:
+            return False
+    return True
 
 
 def resolve_decor_image_by_name(theme_name: Optional[str], tier: Optional[str]) -> Optional[str]:

@@ -1338,6 +1338,7 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
         DECOR_TIER_META, PHOTO_TIER_FEATURES, HOST_TIER_IMAGES, MUSIC_IMAGES, PHOTO_IMAGES,
         PINATA_NAME_TO_ID, resolve_pinata_image, resolve_activity_image,
         resolve_decor_image_by_name, resolve_gift_image_by_name,
+        decor_image_is_reference, DECOR_REFERENCE_NOTE,
     )
     from quotation_builder import inr, SECTION_ICONS, MASCOT_PATH
 
@@ -1402,7 +1403,10 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
             if len(incl) > 3:
                 det.append(" · ".join(incl[3:]))
         det.append(cust("decor"))
-        lines.append(priced(it, name, det, resolve_decor_image_by_name(theme or None, tier)))
+        img = resolve_decor_image_by_name(theme or None, tier)
+        if img and decor_image_is_reference(theme or None, tier):
+            det.append(DECOR_REFERENCE_NOTE)
+        lines.append(priced(it, name, det, img))
     add("Decor", lines)
 
     # 2. Activities
