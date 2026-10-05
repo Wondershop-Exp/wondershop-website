@@ -172,6 +172,7 @@ th.th-sort:hover{color:var(--pk)}
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 12px center;cursor:pointer}
 .ref-note{font-size:11px;color:#9A93A8;margin:4px 0 8px}
+.host-incl{font-size:12px;color:#1E7A45;background:#EAF7EF;border:1px solid #BFE6CD;border-radius:8px;padding:7px 10px;margin:2px 0 8px}
 .pick-row{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
 .pick-row select{flex:1;min-width:160px;padding:9px 34px 9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:12.5px;background-color:#fff}
 .pick-row input[type="text"]{flex:1;min-width:160px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:12.5px;background-color:#fff;font-family:var(--fb)}
@@ -217,6 +218,7 @@ th.th-sort:hover{color:var(--pk)}
 .act-item{border:1.5px solid var(--li2);border-radius:10px;overflow:hidden}
 .act-item .act-main{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer}
 .act-item.sel .act-main{background:var(--li3)}
+.act-warn{font-size:11px;color:#B45309;font-weight:600;margin-top:3px;max-width:380px;line-height:1.35}
 .act-item .box{width:20px;height:20px;border-radius:6px;border:2px solid var(--li2);background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .act-item.sel .box{background:var(--pk);border-color:var(--pk)}
 .act-item .box svg{display:none}
@@ -1058,6 +1060,31 @@ function _upperTier(list, cost){
   const fits = (list||[]).filter(t=>t.price!=null && Number(t.price) >= c).sort((x,y)=>x.price-y.price);
   return fits.length ? fits[0] : null;
 }
+// 2026-10-05, per Shruti — a spy ACTIVITY (not the spy theme) comes with a
+// Signature host (our higher tier) at no extra cost. Twin of catalogue_data.spy_host_included_by():
+// returns the spy activity's name, or null.
+function spyHostIncludedBy(){
+  const sh = (CATALOGUE && CATALOGUE.spy_host) || {ids:['a28','spy-mission'], names:['Spy Treasure Hunt'], tier:'Signature'};
+  for(const a of ((DATA && DATA.activities) || [])){
+    if(!a) continue;
+    const name = String(a.name||'').replace(/\s*\(.*\)\s*$/,'').trim();
+    if(a.id==='spy-mission' || /mission station/i.test(name)) return 'Spy Mission';
+    if(sh.ids.includes(a.id) || sh.names.includes(name)) return 'Spy Treasure Hunt';
+  }
+  return null;
+}
+function hostIncludedNoteHtml(){
+  const by = spyHostIncludedBy();
+  const h = req('host');
+  if(!by) return '';
+  const tier = ((CATALOGUE && CATALOGUE.spy_host) || {}).tier || 'Signature';
+  if(h.cost!=null && h.cost!=='') return '<div class="ref-note">'+esc(by)+' includes a '+tier+' Host. The quote above is charged on top (e.g. for an upgrade) — clear it to keep the host included.</div>';
+  return '<div class="host-incl">✓ <b>'+tier+' Host</b> — included with '+esc(by)+', no extra cost. Type a quote only if the client upgrades.</div>';
+}
+function refreshHostIncludedNote(){
+  const el = document.getElementById('hostSpyNote');
+  if(el) el.innerHTML = hostIncludedNoteHtml();
+}
 function listBreakdown(){
   const C = CATALOGUE || {};
   const reqs = (DATA && DATA.requirements) || {};
@@ -1083,9 +1110,13 @@ function listBreakdown(){
   const d = sel('decor');
   if(on(d) || num(d.cost)!==null) line('Decor'+(d.selected?': '+(d.theme_name?d.theme_name+' – ':'')+d.selected:''), d.cost, _catPrice(C.decor_tiers,'name',d.selected));
   const h = sel('host');
+  const spyBy = spyHostIncludedBy();
   if(num(h.cost)!==null){
     const t = _upperTier(C.host_reference, h.cost);
     line('Host'+(t?': '+t.name+' tier':' (above all tiers)'), h.cost, t ? t.price : null);
+  }else if(spyBy){
+    // Spy activity -> Signature host at no extra cost (2026-10-05).
+    items.push({label:'Host: '+(((C.spy_host)||{}).tier||'Signature')+' (included with '+spyBy+')', mrp:0, quote:0, noMrp:false});
   }
   const m = sel('music');
   if(on(m) || num(m.cost)!==null) line('Music'+(m.selected?': '+m.selected:''), m.cost, _catPrice(C.music,'name',m.selected));
@@ -1615,6 +1646,7 @@ function reqHostRow(){
   return '<div class="req-row"><div class="rlabel">Host</div>'
     + '<input type="number" id="req_host_cost" placeholder="Sales Quote (₹)" title="Sales Quote (₹)" style="width:100%;padding:10px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'host\')">'
     + (ref?('<div class="ref-note">Reference: '+ref+'</div>'):'')
+    + '<div id="hostSpyNote">'+hostIncludedNoteHtml()+'</div>'
     + custBox('host', 'Customizations / remarks...')
     + '</div>';
 }
@@ -2281,6 +2313,7 @@ async function addActivityFromPicker(){
 // the /activities/field endpoint are untouched, so nothing is lost — this
 // only removes the inputs from this card).
 function renderActivities(){
+  refreshHostIncludedNote();
   const listEl = document.getElementById('actList');
   if(!listEl) return;
   const chosen = DATA.activities || [];
@@ -2288,6 +2321,12 @@ function renderActivities(){
   if(!chosen.length){
     listEl.innerHTML = '<div style="font-size:12.5px;color:var(--gy);padding:4px 0 8px">No activities added yet — search above.</div>';
   }else{
+    // Venue requirement for an activity (e.g. popcorn: ventilated, not for
+    // home setups) — 2026-10-05, per Shruti; from catalogue_data.ACTIVITY_VENUE_NOTES.
+    const venueNote = a => {
+      const c = (CATALOGUE.activities||[]).find(x=>(a.id && x.id===a.id) || x.name===a.name);
+      return (c && c.note) ? '<div class="act-warn">⚠ '+esc(c.note)+'</div>' : '';
+    };
     listEl.innerHTML = chosen.map(a=>{
       const idJs = String(a.id).replace(/\'/g,"\\'");
       if(isPriceOnRequest(a)){
@@ -2298,7 +2337,7 @@ function renderActivities(){
         // confirmed card on Convert to Booking.
         return '<div class="act-item sel">'
           + '<div class="act-main" style="cursor:default">'
-            + '<div class="an">'+esc(a.name)+'<div style="font-size:11px;color:#B7791F;font-weight:600;margin-top:2px">Price on request — enter the price quoted to the client</div></div>'
+            + '<div class="an">'+esc(a.name)+'<div style="font-size:11px;color:#B7791F;font-weight:600;margin-top:2px">Price on request — enter the price quoted to the client</div>'+venueNote(a)+'</div>'
             + '<input type="number" min="0" step="1" placeholder="Sales Quote ₹ (flat)" title="Sales Quote — flat price for this activity" style="width:120px;padding:7px 9px;border:1px solid var(--li2);border-radius:8px;font-size:13px" value="'+(Number(a.price)>0?Number(a.price):'')+'" onblur="onPorPrice(\''+idJs+'\',this.value)">'
             + '<button type="button" class="icon-btn" onclick="toggleActivity(\''+a.id+'\',\''+esc(a.name).replace(/\'/g,"\\'")+'\',null,null)" title="Remove">✕</button>'
           + '</div>'
@@ -2317,7 +2356,7 @@ function renderActivities(){
       const rm = '<button type="button" class="icon-btn" onclick="toggleActivity(\''+a.id+'\',\''+nameJs+'\',null,null)" title="Remove">✕</button>';
       if(a.flat){
         return '<div class="act-item sel"><div class="act-main" style="cursor:default;flex-wrap:wrap;gap:8px">'
-          + '<div class="an">'+esc(a.name)+'<div class="act-ref">Flat · list price '+(listPrice!=null?money(listPrice):'—')+'</div></div>'
+          + '<div class="an">'+esc(a.name)+'<div class="act-ref">Flat · list price '+(listPrice!=null?money(listPrice):'—')+'</div>'+venueNote(a)+'</div>'
           + '<label class="act-fld">Sales Quote (₹)<input type="number" min="0" step="1" style="width:120px;'+inp+'" value="'+(a.price==null?'':Number(a.price))+'" onblur="onActField(\''+idJs+'\',\'price\',this.value)"></label>'
           + '<div class="ap">'+money(Number(a.price)||0)+'</div>'
           + rm + '</div></div>';
@@ -2326,7 +2365,7 @@ function renderActivities(){
       const lineTotal = (Number(a.price)||0) * q;
       return '<div class="act-item sel"><div class="act-main" style="cursor:default;flex-wrap:wrap;gap:8px">'
         + '<div class="an">'+esc(a.name)+'<div class="act-ref">Per child · list price '+(listPrice!=null?money(listPrice):'—')+'/child'
-          + (a.qty==null ? (kids ? ' · kids = # Kids above' : ' · # Kids not set yet') : '')+'</div></div>'
+          + (a.qty==null ? (kids ? ' · kids = # Kids above' : ' · # Kids not set yet') : '')+'</div>'+venueNote(a)+'</div>'
         + '<label class="act-fld">Kids<input type="number" min="0" step="1" style="width:72px;'+inp+'" value="'+q+'" onblur="onActField(\''+idJs+'\',\'qty\',this.value)"></label>'
         + '<span style="color:var(--gy)">×</span>'
         + '<label class="act-fld">Sales Quote ₹/child<input type="number" min="0" step="1" style="width:100px;'+inp+'" value="'+(a.price==null?'':Number(a.price))+'" onblur="onActField(\''+idJs+'\',\'price\',this.value)"></label>'
@@ -2525,9 +2564,25 @@ const PAYMENT_METHODS = ['Cash','UPI Transfer','Bank Transfer','Internal Settle'
 // their own figure (client_budget_manual), it simply follows the Grand
 // Total live; the server stores the same default (_mrp_total). Only an
 // actual edit in the box saves it as the rep's own quote (data-touched).
+// 2026-10-05, per Shruti: the default is the SUM OF THE QUOTED PRICES (each
+// line's Sales Quote, e.g. Spy at ₹900/child), not the list prices — twin of
+// _full_detail()'s default_quote. A typed Sales Quote still overrides.
 function salesQuoteValue(LB){
   if(DATA && DATA.client_budget_manual) return DATA.client_budget;
-  return (LB || listBreakdown()).total;
+  return (LB || listBreakdown()).quoteTotal;
+}
+// 2026-10-05, per Shruti — "sales quote should be total of sales quote for
+// all the selections above". A figure typed into the box earlier stays put
+// (it's the rep's own); this link puts it back to following the sum of the
+// line quotes (saving it empty clears client_budget_manual on the server).
+function salesQuoteResetHtml(LB){
+  if(!DATA || !DATA.client_budget_manual || DATA.is_booking) return '';
+  if(Number(DATA.client_budget) === Number(LB.quoteTotal)) return '';
+  return '<div class="ref-note" style="margin-top:6px">Typed by hand. <a href="#" onclick="resetSalesQuote();return false" style="color:var(--pu,#6B3FA0);font-weight:600">Use total of sales quotes ('+money(LB.quoteTotal)+')</a></div>';
+}
+function resetSalesQuote(){
+  saveField('client_budget', '', 'number');
+  renderDetail();
 }
 function sectionBilling(){
   const d = DATA;
@@ -2537,7 +2592,7 @@ function sectionBilling(){
     + (d.kids_count?'':'<div class="ref-note">Activities priced per child use ×1 until # Kids is filled in above.</div>')
     + '<div class="grid4">'
       + '<div class="fld"><label>Grand Total (from selections)</label><div class="readonly-amt" id="bill_est_total">'+(money(LB.total)||'₹0')+'</div></div>'
-      + '<div class="fld"><label>Sales Quote (₹)</label><input type="number" id="bill_grand_total" value="'+(salesQuoteValue(LB)==null?'':salesQuoteValue(LB))+'" oninput="this.dataset.touched=1;updateDiscountPreview()" onblur="if(this.dataset.touched)saveField(\'client_budget\', this.value, this.type)"></div>'
+      + '<div class="fld"><label>Sales Quote (₹)</label><input type="number" id="bill_grand_total" value="'+(salesQuoteValue(LB)==null?'':salesQuoteValue(LB))+'" oninput="this.dataset.touched=1;updateDiscountPreview()" onblur="if(this.dataset.touched)saveField(\'client_budget\', this.value, this.type)">'+salesQuoteResetHtml(LB)+'</div>'
       + '<div class="fld"><label>Balance / Advance Received (₹)</label><input type="number" id="bill_advance" value="'+(d.order_advance==null?'':d.order_advance)+'" onblur="saveField(\'order_advance\', this.value, this.type)"></div>'
       + '<div class="fld"><label>Payment Method</label><select id="bill_pm" onchange="saveField(\'payment_method\', this.value)">'+pmOpts+'</select></div>'
     + '</div>'

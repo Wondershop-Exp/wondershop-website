@@ -472,7 +472,16 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
             if m:
                 p = float(m.group(1).replace(",", ""))
         return p
-    tiered("svc_host", "Host", _host_price)
+    # 2026-10-05, per Shruti — a spy activity (Spy Treasure Hunt / the Spy
+    # package's mission stations) includes a Signature host at no extra cost:
+    # with one on the booking, Signature (or no host picked yet) shows as an
+    # included ₹0 line; any other tier is charged as usual.
+    spy_by = cat.spy_host_included_by(_resolved(cur, "svc_activities", removed))
+    host_val = _resolved(cur, "svc_host", removed)
+    if spy_by and "svc_host" not in removed and host_val in (None, "", cat.SPY_INCLUDED_HOST_TIER):
+        items.append((f"Host: {cat.SPY_INCLUDED_HOST_TIER} (included with {spy_by})", 0.0))
+    else:
+        tiered("svc_host", "Host", _host_price)
     tiered("svc_dj", "Music", lambda n: cat.DJ_TIER_PRICES.get(n))
     tiered("svc_photo", "Photography", lambda n: cat.PHOTO_TIER_PRICES.get(n))
     tiered("svc_pinata", "Piñata", lambda n: cat.PINATA_TIER_PRICES.get(n))

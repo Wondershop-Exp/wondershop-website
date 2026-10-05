@@ -454,10 +454,65 @@ ACTIVITIES = [
 # standalone BAB activity, only ever created by that package hand-off), so
 # it's listed here explicitly rather than by id-in-ACTIVITIES.
 SPY_ACTIVITY_IDS = {"a26", "a27", "a28", "spy-mission"}
+
+# Venue notes shown with an activity wherever it's quoted (sales panel,
+# quotation PDF, booking emails) — 2026-10-05, per Shruti, for the popcorn
+# station. builder.html carries the same text in that activity's `req`.
+ACTIVITY_VENUE_NOTES = {
+    "play-area": "Needs a minimum of 15 × 15 ft of open space.",   # 2026-10-05, per Shruti
+    "popcorn": "Needs a spacious, well-ventilated venue — the popcorn machine gives off heat and some smoke, so it isn't suitable for a home setup.",
+}
+
+
+def activity_venue_note(aid=None, name=None) -> Optional[str]:
+    if aid in ACTIVITY_VENUE_NOTES:
+        return ACTIVITY_VENUE_NOTES[aid]
+    for i, n, _p, _f in ACTIVITIES:
+        if n == name and i in ACTIVITY_VENUE_NOTES:
+            return ACTIVITY_VENUE_NOTES[i]
+    return None
 SPY_ACTIVITY_NAMES = {"Laser Tunnel", "Dark Room", "Spy Treasure Hunt"}
 # The "N Mission Stations (K kids)" name is built dynamically (N and K vary
 # per booking), so it's matched by this substring rather than an exact name.
 SPY_MISSION_NAME_HINT = "mission station"
+
+# 2026-10-05, per Shruti — "for spy activity, we have host included in the
+# pricing. if the user selects spy in sales module or bab, in both places, a
+# premium category [host] should show autoselected  (tier: see below) with no additional cost"
+# (the spy THEME doesn't count — a spy-themed party may only do tattoos).
+# The Spy Treasure Hunt (and the Spy package's mission stations) is the spy
+# activity that's run by a host; Laser Tunnel / Dark Room are set pieces
+# added on top, so on their own they don't bring a host. Used by the sales
+# panel breakup + quotation PDF (sales_leads.py, twin in sales-leads.html),
+# the booking's Total MRP (booking_pricing.compute_billing), the admin
+# booking page and the summary email.
+SPY_HOST_INCLUDED_IDS = {"a28", "spy-mission"}
+SPY_HOST_INCLUDED_NAMES = {"Spy Treasure Hunt"}
+# 2026-10-05, per Shruti — "host tiers should be same in both [BAB and
+# sales/bookings]. we have 2 tiers - so choose the higher one": Signature,
+# same as the Spy package hand-off in builder.html (S.host={tier:'Signature',p:0}).
+SPY_INCLUDED_HOST_TIER = "Signature"
+
+
+def spy_host_included_by(activities) -> Optional[str]:
+    """Name of the spy activity that brings a free Signature host, else None.
+    activities: dicts ({id, name} / {id, n}) or plain names, or a
+    comma-separated string of names (the admin Activities field)."""
+    if not activities:
+        return None
+    if isinstance(activities, str):
+        activities = [x for x in activities.split(",")]
+    for a in activities:
+        if isinstance(a, dict):
+            aid, name = a.get("id"), (a.get("name") or a.get("n") or "")
+        else:
+            aid, name = None, str(a or "")
+        name = re.sub(r"\s*\(.*\)\s*$", "", name.strip())   # "Spy Treasure Hunt (70)" -> name
+        if aid == "spy-mission" or SPY_MISSION_NAME_HINT in name.lower():
+            return "Spy Mission"
+        if aid in SPY_HOST_INCLUDED_IDS or name in SPY_HOST_INCLUDED_NAMES:
+            return "Spy Treasure Hunt"
+    return None
 
 # ─── Return Gifts ────────────────────────────────────────────────────────
 # (id, name, image path, catalogue unit price — the unit price actually

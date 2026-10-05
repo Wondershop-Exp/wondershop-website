@@ -3456,7 +3456,7 @@ function totalMrpNoteHtml(f){
   const items = f.items || [];
   let h = items.length
     ? '<span class="gt-title">Sum of everything currently selected:</span><ul class="gt-breakdown">'
-      + items.map(x => '<li><span>'+esc(x.label)+'</span><b class="pos">'+bdRupees(x.amount)+'</b></li>').join('')
+      + items.map(x => '<li><span>'+esc(x.label)+'</span><b class="pos">'+(x.amount ? bdRupees(x.amount) : (/included/i.test(x.label) ? 'Included' : bdRupees(x.amount)))+'</b></li>').join('')
       + '</ul>'
     : 'Nothing priced yet — select a service, activity or gift above.';
   if(f.unpriced && f.unpriced.length){

@@ -1020,13 +1020,26 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
                 else {"name": a["n"], "price": a.get("p")}
                 for a in acts_named
             ],
+            # Venue requirement (e.g. popcorn station: ventilated, not for
+            # home setups) — 2026-10-05, per Shruti.
+            "note": " ".join(n for n in dict.fromkeys(
+                cat.activity_venue_note(a.get("id"), a.get("n")) for a in acts_named) if n) or None,
         })
     else:
         out.append({"label": "Activities", "not_selected": True})
 
     host = snap.get("host") or {}
+    # 2026-10-05, per Shruti — a spy activity includes a host at no extra
+    # cost; say so in the email ("to avoid any confusion") instead of
+    # showing the host with no price, or as not selected.
+    spy_by = cat.spy_host_included_by([{"id": a.get("id"), "n": a.get("n")} for a in acts_named])
     if host.get("tier"):
-        out.append({"label": "Host", "name": f"{host['tier']} Host", "price": host.get("p")})
+        if spy_by and not host.get("p"):
+            out.append({"label": "Host", "name": f"{host['tier']} Host — included with {spy_by} (no extra cost)", "price": None})
+        else:
+            out.append({"label": "Host", "name": f"{host['tier']} Host", "price": host.get("p")})
+    elif spy_by:
+        out.append({"label": "Host", "name": f"{cat.SPY_INCLUDED_HOST_TIER} Host — included with {spy_by} (no extra cost)", "price": None})
     else:
         out.append({"label": "Host", "not_selected": True})
 

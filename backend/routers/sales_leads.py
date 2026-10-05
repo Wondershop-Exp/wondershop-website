@@ -57,7 +57,8 @@ from catalogue_data import (
     PHOTO_TIER_PRICES, PHOTO_TIER_FEATURES, PINATA_TIER_PRICES,
     PACKAGING_LABELS, ACTIVITIES, GIFTS, ACTIVE_GIFTS, EINVITE_TIER_PRICES, SAVE_THE_DATE_PRICE,
     THEME_PREFERENCE_NAMES,
-    host_tier_for_quote,
+    SPY_HOST_INCLUDED_IDS, SPY_HOST_INCLUDED_NAMES, SPY_INCLUDED_HOST_TIER,
+    host_tier_for_quote, spy_host_included_by, activity_venue_note,
 )
 
 router = APIRouter()
@@ -191,7 +192,7 @@ def _build_catalogue() -> dict:
         for pid, label in PACKAGING_LABELS.items()
     ] + [{"id": "none", "label": "None", "price": None}]
     activities = [
-        {"id": aid, "name": name, "price": price, "flat": flat}
+        {"id": aid, "name": name, "price": price, "flat": flat, "note": activity_venue_note(aid)}
         for aid, name, price, flat in ACTIVITIES
     ]
     return_gifts_catalogue = [{"id": gid, "name": name, "price": price} for gid, name, _img, price in ACTIVE_GIFTS]
@@ -204,6 +205,10 @@ def _build_catalogue() -> dict:
         # decor designs and so are not in decor_themes (2026-10-03).
         "theme_options": THEME_PREFERENCE_NAMES,
         "host_reference": host_reference,
+        # Spy activity -> Signature host included at no extra cost (2026-10-05);
+        # the page's twin of catalogue_data.spy_host_included_by().
+        "spy_host": {"ids": sorted(SPY_HOST_INCLUDED_IDS), "names": sorted(SPY_HOST_INCLUDED_NAMES),
+                     "tier": SPY_INCLUDED_HOST_TIER},
         "music": music,
         "music_addons": MUSIC_ADDONS,
         "photographer": photographer,
@@ -495,9 +500,16 @@ def _list_breakdown(requirements: dict, activities: list, kids_count: Optional[i
     if on(d) or num(d.get("cost")) is not None:
         line("decor", "Decor", d.get("cost"), cat_price(C["decor_tiers"], "name", d.get("selected")))
     h = sel("host")
+    spy_by = spy_host_included_by(activities)
     if num(h.get("cost")) is not None:
         tier = host_tier_for_quote(h.get("cost"))
         line("host", "Host", h.get("cost"), HOST_TIER_PRICES.get(tier) if tier else None, tier=tier)
+    elif spy_by:
+        # A spy activity brings a Signature host at no extra cost (2026-10-05).
+        # A typed Host quote (an upgrade) replaces this with a normal line.
+        items.append({"key": "host", "label": f"Host: {SPY_INCLUDED_HOST_TIER} (included with {spy_by})",
+                      "mrp": 0.0, "quote": 0.0, "no_mrp": False, "tier": SPY_INCLUDED_HOST_TIER,
+                      "included_with": spy_by})
     m = sel("music")
     if on(m) or num(m.get("cost")) is not None:
         line("music", "Music", m.get("cost"), cat_price(C["music"], "name", m.get("selected")))
@@ -714,7 +726,11 @@ async def _full_detail(lead_row) -> dict:
     # Grand Total at MRP (_mrp_total — what the page shows as Grand Total),
     # no longer the sum of typed quotes. Still stops the moment a rep types
     # their own Sales Quote (client_budget_manual).
-    default_quote = _mrp_total(reqs, acts, lead.get("kids_count"))
+    # 2026-10-05, per Shruti: the default is now the SUM OF THE QUOTED
+    # PRICES (e.g. Spy at the ₹900/child she typed, not the ₹1,500 list
+    # price), so the Sales Quote follows each line's quote; Grand Total
+    # stays at MRP and the gap shows as the discount.
+    default_quote = _list_breakdown(reqs, acts, lead.get("kids_count"))["quote_total"]
     if not lead.get("is_booking") and not lead.get("client_budget_manual"):
         stored_budget = float(lead["client_budget"]) if lead.get("client_budget") is not None else None
         if stored_budget != default_quote:
@@ -1338,7 +1354,11 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
             ln["price_text"] = "To be confirmed"
             unpriced["any"] = True
         else:
-            ln["price"] = it["mrp"]
+            # 2026-10-05, per Shruti: the price the customer is quoted, with
+            # the list price struck through above it when it's lower.
+            ln["price"] = it["quote"]
+            if not it.get("no_mrp") and it["quote"] < it["mrp"] - 0.5:
+                ln["strike"] = it["mrp"]
         return ln
 
     sections = []
@@ -1377,8 +1397,9 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
     for it in by_key.get("activity") or []:
         a = it.get("activity") or {}
         img = resolve_activity_image(a.get("id"), a.get("name"))
+        venue_note = activity_venue_note(a.get("id"), a.get("name"))
         if it["flat"] and not it["unit"]:
-            lines.append({"name": a.get("name"), "details": [], "image": img,
+            lines.append({"name": a.get("name"), "details": [venue_note], "image": img,
                           "price": None, "price_text": "Price on request"})
             unpriced["any"] = True
             continue
@@ -1386,17 +1407,33 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
             det = ["Flat price for the group"]
         elif it["flat"]:
             det = ["Price quoted for your party"]
-        elif kids or a.get("qty") not in (None, ""):
-            det = [f"{it['qty']} kids × {inr(it['unit'])} per child"]
         else:
-            det = [f"{inr(it['unit'])} per child — total shown for 1 child until the number of kids is confirmed"]
-        lines.append({"name": a.get("name"), "details": det, "image": img, "price": it["mrp"]})
+            # Per-child: show the QUOTED rate (2026-10-05) — e.g. 70 kids ×
+            # ₹900 per child, with the list total struck through.
+            q_unit = (it["quote"] / it["qty"]) if it["qty"] else it["unit"]
+            # List rate struck out before the quoted rate when it's lower
+            # ("~~…~~" -> strike in quotation_builder), 2026-10-05.
+            rate = (f"~~{inr(it['unit'])}~~ {inr(q_unit)}" if q_unit < it["unit"] - 0.005 else inr(q_unit))
+            if kids or a.get("qty") not in (None, ""):
+                det = [f"{it['qty']} kids × {rate} per child"]
+            else:
+                det = [f"{rate} per child — total shown for 1 child until the number of kids is confirmed"]
+        ln = {"name": a.get("name"), "details": det + [venue_note], "image": img, "price": it["quote"]}
+        if it["quote"] < it["mrp"] - 0.5:
+            ln["strike"] = it["mrp"]
+        lines.append(ln)
     add("Activities", lines)
 
     # 3. Host (+ host gifts add-on)
     lines = []
     it = first("host")
-    if it:
+    if it and it.get("included_with"):
+        # Spy activity -> Signature host at no extra cost (2026-10-05).
+        tier = it.get("tier")
+        lines.append({"name": f"{tier} Host", "image": HOST_TIER_IMAGES.get(tier) or HOST_TIER_IMAGES.get("Signature"),
+                      "details": [f"Included with {it['included_with']} — no extra cost", cust("host")],
+                      "price": None, "price_text": "Included"})
+    elif it:
         tier = it.get("tier")
         lines.append(priced(it, f"{tier} Host" if tier else "Host (customised)", [cust("host")],
                             HOST_TIER_IMAGES.get(tier) or HOST_TIER_IMAGES.get("Signature")))
@@ -1427,7 +1464,11 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
                             resolve_pinata_image(PINATA_NAME_TO_ID.get(r("pinata_type").get("selected")))))
     it = first("pinata_bags")
     if it:
-        lines.append(priced(it, "Add-on: Pinata bags", ["One bag per child"]))
+        ln = priced(it, "Add-on: Pinata bags", ["One bag per child"])
+        n_bags = kids or 1
+        if ln.get("strike"):
+            ln["details"] = [f"One bag per child · {n_bags} × ~~{inr(it['mrp'] / n_bags)}~~ {inr(it['quote'] / n_bags)}"]
+        lines.append(ln)
     if r("pinata_fillings").get("selected") == "Yes":
         lines.append({"name": "Add-on: Pinata fillings", "details": ["Price confirmed once the pinata is built"],
                       "image": None, "price": None, "price_text": "To be confirmed"})
@@ -1483,6 +1524,24 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
                     unit = 0
             lines.append({"name": g["name"], "details": [f"{qty} × {inr(unit)}"] if qty else ["Quantity to be confirmed"],
                           "image": resolve_gift_image_by_name(g["name"]), "price": unit * qty})
+        # A lower Sales Quote for the gifts (2026-10-05): one gift -> the
+        # per-gift rate struck out like activities; several -> the list
+        # prices stay struck and one "special price" line gives the total.
+        it = first("return_gifts")
+        g_mrp = sum(l["price"] for l in lines)
+        if it and it.get("quote") is not None and it["quote"] < g_mrp - 0.5:
+            for l in lines:
+                l["strike"] = l["price"]
+            if len(lines) == 1 and qty:
+                q_unit = it["quote"] / qty
+                lines[0]["details"] = [f"{qty} × ~~{inr(unit)}~~ {inr(q_unit)}"]
+                lines[0]["price"] = it["quote"]
+            else:
+                for l in lines:
+                    l["price"] = None
+                    l["price_text"] = None
+                lines.append({"name": "Special price for the return gifts above", "details": [],
+                              "image": None, "price": it["quote"], "strike": g_mrp})
         if cust("return_gifts"):
             lines[-1]["details"].append(cust("return_gifts"))
     else:
@@ -1512,7 +1571,7 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
 
     # ── totals: same figures as the page's Grand Total bar ───────────────
     subtotal = B["total"]
-    estimate = d.get("client_budget") if (d.get("client_budget_manual") and d.get("client_budget") is not None) else subtotal
+    estimate = d.get("client_budget") if (d.get("client_budget_manual") and d.get("client_budget") is not None) else B["quote_total"]
     discount = round(subtotal - float(estimate), 2)
 
     # ── header / details ─────────────────────────────────────────────────

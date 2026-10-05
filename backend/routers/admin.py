@@ -1124,6 +1124,17 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             updated_value = ov["assigned_value"] if ov else None
             original_value = derived   # sourced from the immutable booking snapshot — never mutated by an override
 
+        # 2026-10-05, per Shruti — a spy activity includes a Signature host at
+        # no extra cost: with no host picked, show Premium pre-selected
+        # (compute_billing prices it ₹0 as "included with ...").
+        host_included_note = None
+        if key == "svc_host" and not customer_choice and not (ov and ov["removed"]):
+            acts_f = next((x for x in sections.get("Services", []) if x["field_key"] == "svc_activities"), None)
+            spy_by = cat.spy_host_included_by(acts_f["customer_choice"]) if acts_f and not acts_f["removed"] else None
+            if spy_by:
+                customer_choice = cat.SPY_INCLUDED_HOST_TIER
+                host_included_note = f"Included with {spy_by} (no extra cost)"
+
         sections[f["section"]].append({
             "field_key": key,
             "label": f["label"],
@@ -1144,7 +1155,7 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             "original_value": original_value,
             "customer_choice": customer_choice,
             "assigned_value": updated_value,
-            "remarks": ov["remarks"] if ov else None,
+            "remarks": (ov["remarks"] if ov else None) or host_included_note,
             "removed": bool(ov["removed"]) if ov else False,
             "updated_by": ov["updated_by"] if ov else None,
             "updated_at_ist": _to_ist_str(ov["updated_at"]) if ov else None,
@@ -1958,6 +1969,14 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
                 to_write.append(("bill_discount_type", "value", None))
                 to_write.append(("bill_discount_value", _num_str(gap),
                                   f"{prefix} Host negotiated ₹{_num_str(cost_f)} vs. {host_tier} catalogue ₹{_num_str(tier_price)}"))
+        elif cat.spy_host_included_by(activities):
+            # 2026-10-05, per Shruti — a spy activity includes a Signature
+            # host at no extra cost (priced ₹0 by compute_billing).
+            spy_by = cat.spy_host_included_by(activities)
+            bits = [f"Included with {spy_by} (no extra cost)"]
+            if h.get("customization"):
+                bits.append(h["customization"])
+            to_write.append(("svc_host", cat.SPY_INCLUDED_HOST_TIER, f"{prefix} " + " · ".join(bits)))
         elif h.get("customization"):
             to_write.append(("svc_host", None, f"{prefix} {h['customization']}"))
 
@@ -2903,6 +2922,19 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
             decor_entry = _resolve_decor_override(decor_value)
             if decor_entry:
                 snap["decor"] = decor_entry
+
+        # 2026-10-05 — Host picked on the admin/sales side (no builder
+        # journey) was missing from the email too. customer_choice_override
+        # only: assigned_value on this row is the host's own NAME. With a
+        # spy activity, Premium is included at no extra cost (p 0 ->
+        # _services_detail_list says "included with ...").
+        host_ov = overrides_by_key.get("svc_host")
+        if not (snap.get("host") or {}).get("tier") and host_ov:
+            host_value = (host_ov["customer_choice_override"] or "").strip()
+            if host_value:
+                spy_acts = [{"id": a.get("id"), "n": a.get("n")} for a in (snap.get("activities") or []) if a]
+                included = host_value == cat.SPY_INCLUDED_HOST_TIER and cat.spy_host_included_by(spy_acts)
+                snap["host"] = {"tier": host_value, "p": 0 if included else cat.HOST_TIER_PRICES.get(host_value)}
 
         if snap != (fake_req.builder_snapshot or {}):
             fake_req.builder_snapshot = snap

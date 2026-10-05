@@ -20,6 +20,7 @@ the ₹ glyph, so amounts print as ₹ rather than the invoice's "Rs.".
 import asyncio
 import io
 import os
+import re
 import urllib.parse
 from datetime import datetime
 from typing import Dict, Iterable, Optional
@@ -389,8 +390,13 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
             det = [d for d in (ln.get("details") or []) if d]
             if det:
                 desc.append(Spacer(1, 0.8 * mm))
-                desc.append(Paragraph("<br/>".join(_x(d) for d in det), s_det))
+                # "~~₹1,500~~" in a detail line = struck-through list price
+                # (2026-10-05, e.g. "70 kids × ~~₹1,500~~ ₹900 per child").
+                desc.append(Paragraph("<br/>".join(re.sub(r"~~(.+?)~~", r"<strike>\1</strike>", _x(d)) for d in det), s_det))
             price_cell = []
+            if ln.get("strike"):
+                # List price struck through above the quoted price (2026-10-05).
+                price_cell.append(Paragraph(f'<strike>{inr(ln["strike"])}</strike>', s_price_note))
             if ln.get("price") is not None:
                 price_cell.append(Paragraph(inr(ln["price"]), s_price))
             if ln.get("price_text"):
@@ -419,7 +425,8 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
     T = data.get("totals") or {}
     s_tl = _style("tl", size=9.6, color=INK)
     s_tr = _style("tr", size=9.6, font=BODY_BOLD, align=TA_RIGHT)
-    trows = [[Paragraph("Total (all selected services)", s_tl), Paragraph(inr(T.get("subtotal") or 0), s_tr)]]
+    sub_label = "Total at list price" if T.get("discount") else "Total (all selected services)"
+    trows = [[Paragraph(sub_label, s_tl), Paragraph(inr(T.get("subtotal") or 0), s_tr)]]
     if T.get("discount"):
         d = float(T["discount"])
         if d > 0:
