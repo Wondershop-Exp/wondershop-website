@@ -1194,7 +1194,41 @@ function patchSheet(body){
   // immediately, even though nothing has actually reached the server yet.
   DATA.estimated_total = estimateTotalLocal();
   setSaveStatus('dirty', 'Save');
-  renderDetail();
+  renderDetailKeepFocus();
+}
+// 2026-10-05, per Shruti — "tab is not working to switch to next inputs on
+// sales panel". Every edit is staged on blur and the page re-renders so the
+// totals stay live — but redrawing the page in the middle of a Tab threw
+// away the field the cursor was moving to, so focus fell back to the page.
+// The redraw now waits until the Tab has landed, then puts the cursor back
+// in the same field (same position among the page's inputs, same text
+// selection) and keeps the scroll position.
+let _RENDER_PENDING = false;
+function renderDetailKeepFocus(){
+  if(_RENDER_PENDING) return;
+  _RENDER_PENDING = true;
+  setTimeout(function(){
+    _RENDER_PENDING = false;
+    if(!DATA || !CURRENT_ID) return;
+    const body = document.getElementById('detailBody');
+    const sel = 'input,select,textarea,button,a[href]';
+    const act = document.activeElement;
+    let idx = -1, selStart = null, selEnd = null;
+    if(body && act && body.contains(act)){
+      idx = Array.prototype.indexOf.call(body.querySelectorAll(sel), act);
+      try{ selStart = act.selectionStart; selEnd = act.selectionEnd; }catch(e){ /* not a text field */ }
+    }
+    const y = window.scrollY;
+    renderDetail();
+    window.scrollTo(0, y);
+    if(idx >= 0){
+      const el = document.getElementById('detailBody').querySelectorAll(sel)[idx];
+      if(el){
+        el.focus({preventScroll:true});
+        if(selStart !== null){ try{ el.setSelectionRange(selStart, selEnd); }catch(e){ /* number/date inputs */ } }
+      }
+    }
+  }, 0);
 }
 
 // The real network call — only ever invoked now from flushPendingSave()
@@ -1884,7 +1918,7 @@ function reqEinviteDetailsBlock(){
     + '</div>'
     + '<input type="text" placeholder="Venue / Address" style="width:100%;margin-top:8px;padding:10px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+v('venue', DATA.venue)+'" onblur="saveEinviteDetail(\'venue\', this.value)">'
     + '<div class="req-grid" style="margin-top:8px">'
-      + '<input type="text" placeholder="RSVP Name (optional)" value="'+v('rsvp_name')+'" onblur="saveEinviteDetail(\'rsvp_name\', this.value)">'
+      + '<input type="text" placeholder="RSVP Name (optional)" value="'+v('rsvp_name', (DATA.client_name && DATA.client_name !== 'New Sales Lead') ? DATA.client_name : '')+'" onblur="saveEinviteDetail(\'rsvp_name\', this.value)">'
       + '<input type="tel" placeholder="RSVP Mobile (optional)" maxlength="10" value="'+v('rsvp_mobile', DATA.mobile)+'" onblur="saveEinviteDetail(\'rsvp_mobile\', this.value)">'
     + '</div>'
     + '<input type="text" placeholder="Any special instruction (optional)" style="width:100%;margin-top:8px;padding:10px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+v('instructions')+'" onblur="saveEinviteDetail(\'instructions\', this.value)">'

@@ -389,7 +389,7 @@ ACTIVITIES = [
     ("zorb", "Body Zorbing", 9500, True),
     ("gym", "Gymnastics", 11800, True),
     ("a26", "Laser Tunnel", 4000, True),
-    ("a27", "Dark Room", 15000, True),
+    ("a27", "Dark Room", 25000, True),   # 2026-10-05, per Shruti (was 15,000)
     ("a28", "Spy Treasure Hunt", 1500, False),
     ("hit-the-cans", "Hit the Cans", 5000, True),   # 2026-10-02, BAB + Unicorn
     # 2026-10-03 — package-page activities now also in Build-a-Birthday.
