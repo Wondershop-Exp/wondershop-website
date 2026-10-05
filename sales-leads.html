@@ -81,6 +81,8 @@ a{color:var(--bl)}
 .btn.gh{background:#fff;border:1px solid var(--li2);color:var(--bk)}
 .btn.sm{padding:6px 12px;font-size:12px;border-radius:8px}
 .btn:disabled{opacity:.5;cursor:default}
+.act-fld{display:flex;flex-direction:column;gap:3px;font-size:10.5px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px}
+.act-ref{font-size:11px;color:var(--gy);font-weight:400;margin-top:2px}
 /* 2026-09-21, per Shruti: "+ Register a lead" straight away creates a lead, so an
    accidental click left an empty lead behind — it now asks first. */
 .confirm-back{position:fixed;inset:0;z-index:900;background:rgba(25,25,25,.45);display:none;align-items:center;justify-content:center;padding:16px}
@@ -1013,11 +1015,10 @@ function estimateTotalLocal(){
       });
     }
   });
-  const kids = DATA.kids_count || 1;
   (DATA.activities || []).forEach(function(a){
     let price = Number((a && a.price) || 0);
     if(isNaN(price)) price = 0;
-    total += a.flat ? price : price * kids;
+    total += a.flat ? price : price * actQty(a);
   });
   return Math.round(total * 100) / 100;
 }
@@ -1135,8 +1136,8 @@ function listBreakdown(){
     // Price-on-request activities (catalogue price 0) count at the price the
     // sales person typed in (2026-10-03) — twin of _list_breakdown().
     const qUnit = num(a.price), cUnit = (catA && Number(catA.price)) ? Number(catA.price) : qUnit;
-    const mult = flat ? 1 : kids;
-    items.push({label:'Activity: '+a.name+(flat?'':' ('+kids+' × '+money(cUnit||0)+')'),
+    const mult = flat ? 1 : actQty(a);   // per-activity kids count (2026-10-05)
+    items.push({label:'Activity: '+a.name+(flat?'':' ('+mult+' × '+money(cUnit||0)+')'),
                 mrp: (cUnit||0)*mult, quote: (qUnit===null ? cUnit||0 : qUnit)*mult});
   });
   const r2 = v => Math.round(v*100)/100;
@@ -1421,14 +1422,14 @@ function reqSelectRow(key, label, list, note){
   const r = req(key);
   return '<div class="req-row"><div class="rlabel">'+label+'</div><div class="req-grid">'
     + '<select onchange="onReqSelectChange(\''+key+'\')" id="req_'+key+'_sel">' + optionsHtml(list, r.selected) + '</select>'
-    + '<input type="number" id="req_'+key+'_cost" placeholder="Cost (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\''+key+'\')">'
+    + '<input type="number" id="req_'+key+'_cost" placeholder="Sales Quote (₹)" title="Sales Quote (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\''+key+'\')">'
     + '</div>' + (note?('<div class="req-note">'+note+'</div>'):'') + '</div>';
 }
 function reqTextRow(key, label, note){
   const r = req(key);
   return '<div class="req-row"><div class="rlabel">'+label+'</div><div class="req-grid">'
     + '<input type="text" id="req_'+key+'_sel" placeholder="Details" value="'+esc(r.selected||'')+'" onblur="onReqTextBlur(\''+key+'\')">'
-    + '<input type="number" id="req_'+key+'_cost" placeholder="Cost (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\''+key+'\')">'
+    + '<input type="number" id="req_'+key+'_cost" placeholder="Sales Quote (₹)" title="Sales Quote (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\''+key+'\')">'
     + '</div>' + (note?('<div class="req-note">'+note+'</div>'):'') + '</div>';
 }
 function reqYesNoRow(key, label, note){
@@ -1528,7 +1529,7 @@ function reqDecorRow(){
     + (CATALOGUE.decor_themes||[]).map(t=>'<option value="'+esc(t.name)+'" '+(t.name===r.theme_name?'selected':'')+'>'+esc(t.name)+'</option>').join('');
   return '<div class="req-row"><div class="rlabel">Decor</div><div class="req-grid">'
     + '<select id="req_decor_sel" onchange="onDecorTierChange()">' + tierOpts + '</select>'
-    + '<input type="number" id="req_decor_cost" placeholder="Cost (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'decor\')">'
+    + '<input type="number" id="req_decor_cost" placeholder="Sales Quote (₹)" title="Sales Quote (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'decor\')">'
     + '</div>'
     + custBox('decor', 'Customizations (colours, add-ons, special requests...)')
     + '<div class="pick-row">'
@@ -1578,7 +1579,7 @@ function reqHostRow(){
   const r = req('host');
   const ref = (CATALOGUE.host_reference||[]).map(h=>h.name+' '+money(h.price)).join(' · ');
   return '<div class="req-row"><div class="rlabel">Host</div>'
-    + '<input type="number" id="req_host_cost" placeholder="Cost (₹)" style="width:100%;padding:10px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'host\')">'
+    + '<input type="number" id="req_host_cost" placeholder="Sales Quote (₹)" title="Sales Quote (₹)" style="width:100%;padding:10px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'host\')">'
     + (ref?('<div class="ref-note">Reference: '+ref+'</div>'):'')
     + custBox('host', 'Customizations / remarks...')
     + '</div>';
@@ -1652,7 +1653,7 @@ function reqReturnGiftsRow(){
       + '</div>'
       + '<button type="button" class="btn sm gh" onclick="addReturnGiftFromPicker()">Add</button>'
     + '</div>'
-    + '<input type="number" id="req_return_gifts_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'return_gifts\')">'
+    + '<input type="number" id="req_return_gifts_cost" placeholder="Sales Quote (₹)" title="Sales Quote (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'return_gifts\')">'
     + (total!=null ? '<div class="ref-note">Total: '+money(total)+'</div>' : '')
     + custBox('return_gifts', 'Customizations / specific items discussed...')
     + '<div class="pick-row"><a href="builder.html?gifts=1" target="_blank">Open Build-a-Birthday (return gifts) ↗</a></div>'
@@ -1844,7 +1845,7 @@ function reqYesNoCostRow(key, label, note){
     + '<button type="button" class="'+(r.selected==='Yes'?'sel':'')+'" onclick="onYesNoCostPick(\''+key+'\',\'Yes\')">Yes</button>'
     + '<button type="button" class="'+(r.selected==='No'?'sel':'')+'" onclick="onYesNoCostPick(\''+key+'\',\'No\')">No</button>'
     + '</div>'
-    + '<input type="number" id="req_'+key+'_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\''+key+'\')">'
+    + '<input type="number" id="req_'+key+'_cost" placeholder="Sales Quote (₹)" title="Sales Quote (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\''+key+'\')">'
     + (note?('<div class="req-note">'+note+'</div>'):'') + '</div>';
 }
 async function onYesNoCostPick(key, val){
@@ -1915,7 +1916,7 @@ function reqPackagingRow(){
   }).join('');
   const note = qty ? ('Qty from Return Gifts above: '+qty) : 'Set a Return Gifts quantity above to price this automatically.';
   return '<div class="req-row"><div class="rlabel">Packaging (Add-on)</div><div class="chip-row">'+chips+'</div>'
-    + '<input type="number" id="req_packaging_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'packaging\')">'
+    + '<input type="number" id="req_packaging_cost" placeholder="Sales Quote (₹)" title="Sales Quote (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'packaging\')">'
     + '<div class="req-note">'+note+'</div></div>';
 }
 async function onPackagingChipPick(label){
@@ -1942,7 +1943,7 @@ function reqPinataRow(){
     return '<button type="button" class="'+(r.selected===o.name?'sel':'')+'" onclick="onPinataChipPick(\''+esc(o.name).replace(/\'/g,"\\'")+'\')">'+esc(lbl)+'</button>';
   }).join('');
   return '<div class="req-row"><div class="rlabel">Pinata Type</div><div class="chip-row">'+chips+'</div>'
-    + '<input type="number" id="req_pinata_type_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'pinata_type\')">'
+    + '<input type="number" id="req_pinata_type_cost" placeholder="Sales Quote (₹)" title="Sales Quote (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'pinata_type\')">'
     + '<div class="req-note">Custom has no fixed price — quote separately.</div></div>';
 }
 async function onPinataChipPick(name){
@@ -1978,7 +1979,7 @@ function reqReturnGiftTagsRow(){
     + '<button type="button" class="'+(r.selected==='Yes'?'sel':'')+'" onclick="onReturnGiftTagsPick(\'Yes\')">Yes</button>'
     + '<button type="button" class="'+(r.selected==='No'?'sel':'')+'" onclick="onReturnGiftTagsPick(\'No\')">No</button>'
     + '</div>'
-    + '<input type="number" id="req_return_gift_tags_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'return_gift_tags\')">'
+    + '<input type="number" id="req_return_gift_tags_cost" placeholder="Sales Quote (₹)" title="Sales Quote (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'return_gift_tags\')">'
     + '<div class="req-note">'+note+'</div></div>';
 }
 async function onReturnGiftTagsPick(val){
@@ -2013,7 +2014,7 @@ function reqPinataBagsRow(){
     + '<button type="button" class="'+(r.selected==='Yes'?'sel':'')+'" onclick="onPinataBagsPick(\'Yes\')">Yes</button>'
     + '<button type="button" class="'+(r.selected==='No'?'sel':'')+'" onclick="onPinataBagsPick(\'No\')">No</button>'
     + '</div>'
-    + '<input type="number" id="req_pinata_bags_cost" placeholder="Cost (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'pinata_bags\')">'
+    + '<input type="number" id="req_pinata_bags_cost" placeholder="Sales Quote (₹)" title="Sales Quote (₹)" style="margin-top:10px;max-width:220px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'pinata_bags\')">'
     + '<div class="req-note">'+note+'</div></div>';
 }
 async function onPinataBagsPick(val){
@@ -2057,7 +2058,7 @@ function reqMusicRow(){
   }).join('');
   return '<div class="req-row"><div class="rlabel">Music</div><div class="req-grid">'
     + '<select id="req_music_sel" onchange="onReqSelectChange(\'music\')">' + optionsHtml(CATALOGUE.music, r.selected) + '</select>'
-    + '<input type="number" id="req_music_cost" placeholder="Cost (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'music\')">'
+    + '<input type="number" id="req_music_cost" placeholder="Sales Quote (₹)" title="Sales Quote (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'music\')">'
     + '</div>' + addonsHtml + custBox('music', 'Customizations (song requests, timing...)') + '</div>';
 }
 async function onMusicAddonChange(name, price, checked){
@@ -2264,26 +2265,42 @@ function renderActivities(){
         return '<div class="act-item sel">'
           + '<div class="act-main" style="cursor:default">'
             + '<div class="an">'+esc(a.name)+'<div style="font-size:11px;color:#B7791F;font-weight:600;margin-top:2px">Price on request — enter the price quoted to the client</div></div>'
-            + '<input type="number" min="0" step="1" placeholder="Price ₹ (flat)" title="Flat price for this activity" style="width:120px;padding:7px 9px;border:1px solid var(--li2);border-radius:8px;font-size:13px" value="'+(Number(a.price)>0?Number(a.price):'')+'" onblur="onPorPrice(\''+idJs+'\',this.value)">'
+            + '<input type="number" min="0" step="1" placeholder="Sales Quote ₹ (flat)" title="Sales Quote — flat price for this activity" style="width:120px;padding:7px 9px;border:1px solid var(--li2);border-radius:8px;font-size:13px" value="'+(Number(a.price)>0?Number(a.price):'')+'" onblur="onPorPrice(\''+idJs+'\',this.value)">'
             + '<button type="button" class="icon-btn" onclick="toggleActivity(\''+a.id+'\',\''+esc(a.name).replace(/\'/g,"\\'")+'\',null,null)" title="Remove">✕</button>'
           + '</div>'
           + '</div>';
       }
-      let priceLbl = money(a.price) + (a.flat ? ' flat' : '/child');
-      if(!a.flat){
-        const lineTotal = (a.price||0) * (kids || 1);
-        priceLbl += ' · ' + (kids ? ('Total for '+kids+' kids: '+money(lineTotal)) : ('Total (×1 — # Kids not set): '+money(lineTotal)));
+      // 2026-10-05, per Shruti — "give an option to give sales quote for
+      // activities. The user can edit kids count and per child pricing. total
+      // will be autocalculated. the kids count can differ from the overall
+      // count ... spy for 70 kids and slime for 10 kids." a.qty = this
+      // activity's own kids count (blank = follows # Kids above); a.price =
+      // the sales quote per child (or the flat sales quote).
+      const catA = (CATALOGUE.activities||[]).find(x=>(a.id && x.id===a.id) || x.name===a.name);
+      const listPrice = catA && catA.price!=null ? Number(catA.price) : null;
+      const inp = 'padding:7px 9px;border:1px solid var(--li2);border-radius:8px;font-size:13px';
+      const nameJs = esc(a.name).replace(/\'/g,"\\'");
+      const rm = '<button type="button" class="icon-btn" onclick="toggleActivity(\''+a.id+'\',\''+nameJs+'\',null,null)" title="Remove">✕</button>';
+      if(a.flat){
+        return '<div class="act-item sel"><div class="act-main" style="cursor:default;flex-wrap:wrap;gap:8px">'
+          + '<div class="an">'+esc(a.name)+'<div class="act-ref">Flat · list price '+(listPrice!=null?money(listPrice):'—')+'</div></div>'
+          + '<label class="act-fld">Sales Quote (₹)<input type="number" min="0" step="1" style="width:120px;'+inp+'" value="'+(a.price==null?'':Number(a.price))+'" onblur="onActField(\''+idJs+'\',\'price\',this.value)"></label>'
+          + '<div class="ap">'+money(Number(a.price)||0)+'</div>'
+          + rm + '</div></div>';
       }
-      return '<div class="act-item sel">'
-        + '<div class="act-main" style="cursor:default">'
-          + '<div class="an">'+esc(a.name)+'</div>'
-          + '<div class="ap">'+priceLbl+'</div>'
-          + '<button type="button" class="icon-btn" onclick="toggleActivity(\''+a.id+'\',\''+esc(a.name).replace(/\'/g,"\\'")+'\',null,null)" title="Remove">✕</button>'
-        + '</div>'
-        + '</div>';
+      const q = actQty(a);
+      const lineTotal = (Number(a.price)||0) * q;
+      return '<div class="act-item sel"><div class="act-main" style="cursor:default;flex-wrap:wrap;gap:8px">'
+        + '<div class="an">'+esc(a.name)+'<div class="act-ref">Per child · list price '+(listPrice!=null?money(listPrice):'—')+'/child'
+          + (a.qty==null ? (kids ? ' · kids = # Kids above' : ' · # Kids not set yet') : '')+'</div></div>'
+        + '<label class="act-fld">Kids<input type="number" min="0" step="1" style="width:72px;'+inp+'" value="'+q+'" onblur="onActField(\''+idJs+'\',\'qty\',this.value)"></label>'
+        + '<span style="color:var(--gy)">×</span>'
+        + '<label class="act-fld">Sales Quote ₹/child<input type="number" min="0" step="1" style="width:100px;'+inp+'" value="'+(a.price==null?'':Number(a.price))+'" onblur="onActField(\''+idJs+'\',\'price\',this.value)"></label>'
+        + '<div class="ap" title="Kids × Sales Quote per child">= '+money(lineTotal)+'</div>'
+        + rm + '</div></div>';
     }).join('');
-    const activitiesTotal = chosen.reduce((sum,a)=> sum + (a.flat ? (a.price||0) : (a.price||0)*(kids||1)), 0);
-    listEl.innerHTML += '<div class="ref-note" style="margin-top:8px">Activities total'+(kids?(' for '+kids+' kids'):' (×1 — # Kids not set)')+': <b style="color:var(--bk)">'+money(activitiesTotal)+'</b></div>';
+    const activitiesTotal = chosen.reduce((sum,a)=> sum + (Number(a.price)||0) * (a.flat ? 1 : actQty(a)), 0);
+    listEl.innerHTML += '<div class="ref-note" style="margin-top:8px">Activities total (sales quote): <b style="color:var(--bk)">'+money(activitiesTotal)+'</b></div>';
   }
 
   const suggEl = document.getElementById('suggList');
@@ -2298,6 +2315,30 @@ function renderActivities(){
 // array wholesale, same as event_schedule) — nothing reaches the server
 // until Save is clicked. Synchronous on purpose, same reasoning as
 // patchSheet() above.
+// This activity's own kids count (2026-10-05): a.qty when the sales person set
+// one, otherwise the party's overall # Kids (×1 until that's filled in).
+function actQty(a){
+  const q = (a && a.qty!=null && a.qty!=='') ? Number(a.qty) : NaN;
+  return !isNaN(q) ? q : ((DATA && DATA.kids_count) || 1);
+}
+// Kids count / sales quote edits on a chosen activity — staged like every
+// other edit, saved with the Save button.
+function onActField(id, field, value){
+  const chosen = DATA.activities || [];
+  const cur = chosen.find(a=>a.id===id);
+  if(!cur) return;
+  let v = (value===''||value===null) ? null : Math.max(0, Number(value));
+  if(v!==null && isNaN(v)) return;
+  if(field==='qty'){
+    if(v===null || (cur.qty==null && v===((DATA && DATA.kids_count)||1))) v = null;   // unchanged = keep following # Kids
+    if((cur.qty==null ? null : Number(cur.qty)) === v) return;
+  }else if((cur.price==null ? null : Number(cur.price)) === v){
+    return;
+  }
+  const next = chosen.map(a=> a.id===id ? Object.assign({}, a, {[field]: v}) : a);
+  DATA.activities = next;
+  patchSheet({activities: next});
+}
 // Price-on-request = catalogue price 0 (inflatables, play area, food stalls…).
 function isPriceOnRequest(a){
   const catA = (CATALOGUE.activities||[]).find(x=>(a.id && x.id===a.id) || x.name===a.name);

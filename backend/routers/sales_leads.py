@@ -552,7 +552,13 @@ def _list_breakdown(requirements: dict, activities: list, kids_count: Optional[i
         # Price-on-request activities (catalogue price 0) count at the price
         # the sales person typed in; unpriced they stay at 0 (2026-10-03).
         c_unit = float(cat_a["price"]) if cat_a and cat_a.get("price") else q_unit
-        mult = 1 if flat else kids
+        # Per-activity kids count (2026-10-05, per Shruti — e.g. spy for 70 of
+        # 80 kids, slime for 10): a.qty when set, else the party's # Kids.
+        try:
+            own_qty = None if a.get("qty") in (None, "") else int(float(a.get("qty")))
+        except (TypeError, ValueError):
+            own_qty = None
+        mult = 1 if flat else (own_qty if own_qty is not None else kids)
         items.append({
             "key": "activity", "label": a.get("name"), "no_mrp": False,
             "mrp": (c_unit or 0) * mult, "quote": ((c_unit or 0) if q_unit is None else q_unit) * mult,
@@ -590,10 +596,14 @@ def _estimate_total(requirements: dict, activities: list, kids_count: Optional[i
             price = float(a.get("price") or 0)
         except (TypeError, ValueError):
             price = 0
+        try:
+            qty = None if a.get("qty") in (None, "") else float(a.get("qty"))
+        except (TypeError, ValueError):
+            qty = None
         if a.get("flat"):
             total += price
         else:
-            total += price * (kids_count or 1)
+            total += price * (qty if qty is not None else (kids_count or 1))
     return round(total, 2)
 
 
@@ -1376,8 +1386,8 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
             det = ["Flat price for the group"]
         elif it["flat"]:
             det = ["Price quoted for your party"]
-        elif kids:
-            det = [f"{kids} kids × {inr(it['unit'])} per child"]
+        elif kids or a.get("qty") not in (None, ""):
+            det = [f"{it['qty']} kids × {inr(it['unit'])} per child"]
         else:
             det = [f"{inr(it['unit'])} per child — total shown for 1 child until the number of kids is confirmed"]
         lines.append({"name": a.get("name"), "details": det, "image": img, "price": it["mrp"]})

@@ -1891,6 +1891,23 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
                         negotiated_bits.append(f"{name}: negotiated ₹{sales_price} (standard ₹{standard})")
                 except (TypeError, ValueError):
                     pass
+        # Per-activity kids counts from the sales panel (2026-10-05) — this
+        # page prices activities for the whole # Kids, so note the real split
+        # for ops (e.g. "Spy Treasure Hunt: 70 kids; Slime Making: 10 kids").
+        kids_total = None
+        try:
+            _k = await database.fetch_val("SELECT kids_count FROM leads WHERE lead_id = :id", values={"id": lead_id})
+            kids_total = int(_k) if _k is not None else None
+        except Exception:
+            kids_total = None
+        for a in activities:
+            if a.get("name") in valid_names and not a.get("flat") and a.get("qty") not in (None, ""):
+                try:
+                    q = int(float(a["qty"]))
+                except (TypeError, ValueError):
+                    continue
+                if q != kids_total:
+                    negotiated_bits.append(f"{a['name']}: {q} kids")
         remark = f"{prefix} " + "; ".join(negotiated_bits) if negotiated_bits else None
         if names:
             to_write.append(("svc_activities", ", ".join(names), remark))
