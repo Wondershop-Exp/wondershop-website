@@ -3943,6 +3943,9 @@ function fieldRowHtml(f, isCustEvent, locked){
       ? grandTotalNoteHtml(f)
       : f.field_key==='bill_total_mrp'
       ? totalMrpNoteHtml(f)
+      : f.field_key==='bill_total_savings'
+      ? 'Auto-calculated: Total MRP − Grand Total (follows discount changes).'
+        + (f.checkout_value && Number(f.checkout_value) !== Number(f.customer_choice) ? ' At checkout (incl. freebies): '+bdRupees(f.checkout_value)+'.' : '')
       : 'Captured at checkout — not re-calculated when services/overrides change here.';
     // 2026-09-22, per Shruti — Grand Total / Balance Due / Total Savings
     // are bare rupee amounts and get the same ₹ + Indian-system grouping

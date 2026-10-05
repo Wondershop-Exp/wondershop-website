@@ -1232,6 +1232,14 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
         # is "%"; when it's "value" the % shown next to Grand Total above
         # (discount_pct, from pricing) is the back-computed equivalent
         # instead, so the two don't have to be kept in sync by hand.
+        # 2026-10-05, per Shruti — "total savings is blank, can you
+        # calculate that as well": live = Total MRP − Grand Total (the
+        # discount, flat or %). The figure captured at checkout (which also
+        # counted freebies) is kept alongside for reference.
+        savings_field = billing_fields.get("bill_total_savings")
+        if savings_field is not None:
+            savings_field["checkout_value"] = savings_field.get("customer_choice")
+            savings_field["customer_choice"] = _num_str(round(float(pricing["discount_amt"] or 0), 2))
         if total_mrp_field is not None:
             total_mrp_field["customer_choice"] = _num_str(pricing["total_mrp"])
             total_mrp_field["items"] = pricing["items"]
