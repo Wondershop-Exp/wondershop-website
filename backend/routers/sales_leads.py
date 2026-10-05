@@ -1627,6 +1627,9 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
         ("Birthday child", ", ".join(filter(None, [d.get("child_name"), f"turning {d['child_age']}" if d.get("child_age") else None]))),
         ("Event date", event_date),
         ("Time", times or None),
+        # 2026-10-05, per Shruti — venue handover & packup times.
+        ("Venue handover", _fmt_time_12h(d.get("venue_handover_time")) or None),
+        ("Packup", _fmt_time_12h(d.get("packup_time")) or None),
         ("No. of kids", str(kids) if kids else None),
         ("Venue", venue_text),
         ("Theme", d.get("theme")),

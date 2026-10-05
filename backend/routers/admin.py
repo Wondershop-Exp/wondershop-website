@@ -187,6 +187,11 @@ FIELD_CATALOG = [
     {"key": "kids_count",           "label": "Kids Count",             "section": "Customer & Event Details"},
     {"key": "event_date",           "label": "Event Date",             "section": "Customer & Event Details"},
     {"key": "event_time",           "label": "Event Time",             "section": "Customer & Event Details"},
+    # 2026-10-05, per Shruti — the sales panel's Venue Handover / Packup
+    # times, on the booking too. No leads column: stored as overrides (NOT
+    # direct-write, see DIRECT_WRITE_FIELDS), original = the sales sheet's.
+    {"key": "venue_handover_time",  "label": "Venue Handover Time",    "section": "Customer & Event Details"},
+    {"key": "packup_time",          "label": "Packup Time",            "section": "Customer & Event Details"},
     {"key": "venue",                "label": "Venue",                  "section": "Customer & Event Details"},
     {"key": "venue_maps_link",      "label": "Venue Maps Link",        "section": "Customer & Event Details"},
     {"key": "venue_contact_name",   "label": "Venue Contact Name",     "section": "Customer & Event Details"},
@@ -288,7 +293,8 @@ FIELD_CATALOG = [
 SECTIONS = ["Customer & Event Details", "Services", "Add-ons", "Billing & Rewards"]
 CATALOG_BY_KEY = {f["key"]: f for f in FIELD_CATALOG}
 
-DIRECT_WRITE_FIELDS = {f["key"] for f in FIELD_CATALOG if f["section"] == "Customer & Event Details"}
+EVENT_TIMING_FIELDS = {"venue_handover_time", "packup_time"}
+DIRECT_WRITE_FIELDS = {f["key"] for f in FIELD_CATALOG if f["section"] == "Customer & Event Details"} - EVENT_TIMING_FIELDS
 # Payment Status values that mean the team HAS seen the advance arrive.
 ADVANCE_CONFIRMED_STATUSES = ("Advance Paid Verified", "Complete")
 READ_ONLY_FIELDS = {"bill_total_mrp", "bill_grand_total", "bill_balance", "bill_total_savings", "bill_freebies"}
@@ -1091,12 +1097,25 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
 
     sections = {s: [] for s in SECTIONS}
 
+    # Venue Handover / Packup times typed in the sales panel (2026-10-05).
+    pb_times = {}
+    try:
+        pb_t = await database.fetch_one(
+            "SELECT venue_handover_time, packup_time FROM lead_sales_playbook WHERE lead_id = :id",
+            values={"id": lead_id})
+        if pb_t:
+            pb_times = {k: (str(pb_t[k])[:5] if pb_t[k] else None) for k in EVENT_TIMING_FIELDS}
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: couldn't read sales-panel event times")
+
     for f in FIELD_CATALOG:
         key = f["key"]
         ov = overrides.get(key)
         is_direct = key in DIRECT_WRITE_FIELDS
         is_read_only = key in READ_ONLY_FIELDS
         derived = None if f.get("admin_only") else _derive_original_value(key, lead, snap)
+        if key in EVENT_TIMING_FIELDS:
+            derived = pb_times.get(key)
 
         if is_direct:
             # "Current Value" always mirrors the live `leads` column — never
