@@ -1275,16 +1275,15 @@ function renderBookingHead(d){
   const facts = [
     ['Event date', esc(bdLongDate(bdVal(d, 'event_date')))],
     ['Time', esc(bdTime(bdVal(d, 'event_time')))],
-    ['Venue handover', esc(bdTime(bdVal(d, 'venue_handover_time')))],
-    ['Packup', esc(bdTime(bdVal(d, 'packup_time')))],
-  ].filter(f => f[1] || (f[0] !== 'Venue handover' && f[0] !== 'Packup')).concat([
+    ['Venue handover', esc(bdTime(bdVal(d, 'venue_handover_time'))) || '<span style="color:#B7791F;font-weight:600">To be confirmed</span>'],  // always asked of the client (2026-10-05)
+    ['Packup', esc(bdTime(bdVal(d, 'packup_time'))) || '<span style="color:#B7791F;font-weight:600">To be confirmed</span>'],  // always asked of the client (2026-10-05)
     ['Venue', esc(bdVal(d, 'venue'))],
     ['Address', esc([bdVal(d, 'city'), bdVal(d, 'pincode')].filter(Boolean).join(' - '))],
     ['Kids', esc(bdVal(d, 'kids_count'))],
     ['Child', esc(bdChildLine(d))],
     ['Phone', phone ? '<a href="tel:'+esc(phone.replace(/[^0-9+]/g, ''))+'">'+esc(phone)+'</a>' : ''],
     ['Theme', esc(bdVal(d, 'theme'))],
-  ]);
+  ];
   // 2026-09-25, per Shruti -- "if I choose the Custom Pinata design option,
   // it should be flagged in red ... as a task to be completed in the admin
   // panel": Custom Design has no fixed price/production, so it always
