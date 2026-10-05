@@ -48,6 +48,7 @@ from fastapi import APIRouter, Header, HTTPException, Response
 from pydantic import BaseModel
 
 from database import database
+from config import settings
 from routers.admin import (
     _require_admin, _do_convert_lead, _sync_discount_to_agreed_total, _gift_order_payload,
     LEAD_STATUS_OPTIONS, NON_CONVERT_REASON_OPTIONS, NON_CONVERT_STATUSES,
@@ -736,18 +737,26 @@ async def _full_detail(lead_row) -> dict:
     # can still choose to give more discount by editing the figure"). One at
     # or above that sum (e.g. the old MRP default saved before this change)
     # goes back to following the line quotes.
-    if not lead.get("is_booking"):
-        stored_budget = float(lead["client_budget"]) if lead.get("client_budget") is not None else None
-        manual = bool(lead.get("client_budget_manual"))
-        if manual and (stored_budget is None or stored_budget >= default_quote - 0.005):
-            manual = False
-        if not manual and (stored_budget != default_quote or lead.get("client_budget_manual")):
-            await database.execute(
-                "UPDATE leads SET client_budget = :v, client_budget_manual = FALSE WHERE lead_id = :id",
-                values={"v": default_quote, "id": lead["lead_id"]},
-            )
-            lead["client_budget"] = default_quote
-            lead["client_budget_manual"] = False
+    # 2026-10-05, per Shruti (booking: sales showed ₹64,500 off, the booking
+    # only ₹8,500 — its agreed total was still the old ₹1,85,000): the same
+    # rule now applies to a converted booking too, and a change re-syncs the
+    # booking's discount so its Grand Total = this Sales Quote.
+    stored_budget = float(lead["client_budget"]) if lead.get("client_budget") is not None else None
+    manual = bool(lead.get("client_budget_manual"))
+    if manual and (stored_budget is None or stored_budget >= default_quote - 0.005):
+        manual = False
+    if not manual and (stored_budget is None or abs(stored_budget - default_quote) > 0.005 or lead.get("client_budget_manual")):
+        await database.execute(
+            "UPDATE leads SET client_budget = :v, client_budget_manual = FALSE WHERE lead_id = :id",
+            values={"v": default_quote, "id": lead["lead_id"]},
+        )
+        lead["client_budget"] = default_quote
+        lead["client_budget_manual"] = False
+        if lead.get("is_booking"):
+            try:
+                await _sync_discount_to_agreed_total(lead["lead_id"], "Sales panel", settings.ADMIN_PASSWORD)
+            except Exception:
+                logger.exception(f"Lead #{lead['lead_id']}: couldn't sync booking discount to the Sales Quote")
 
     out = {
         "lead_id": lead["lead_id"],
