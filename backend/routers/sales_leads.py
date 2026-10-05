@@ -1635,7 +1635,14 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
         ("Venue", venue_text),
         ("Theme", d.get("theme")),
     ]
+    # Event schedule from the sales panel (2026-10-05, per Shruti).
+    schedule = []
+    for it in d.get("event_schedule") or []:
+        t, i = (it.get("time") or "").strip(), (it.get("item") or "").strip()
+        if t or i:
+            schedule.append((_fmt_time_12h(t) if re.fullmatch(r"\d{1,2}:\d{2}(:\d{2})?", t) else t, i))
     data = {
+        "schedule": schedule,
         "quote_no": f"WSQ-{d['lead_id']}-{ist.strftime('%d%m%y-%H%M')}",
         "issued_at_text": fmt(ist),
         "valid_until_text": fmt(valid),

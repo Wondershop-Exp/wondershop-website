@@ -349,6 +349,22 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
         ]))
         story += [card, Spacer(1, 6 * mm)]
 
+    # ── event schedule (2026-10-05, per Shruti) ─────────────────────────
+    sched = [(t, i) for t, i in (data.get("schedule") or []) if t or i]
+    if sched:
+        s_st = _style("sch_t", font=BODY_BOLD, size=9.4, color=PURPLE_DARK, leading=12)
+        s_si = _style("sch_i", size=9.4, leading=12)
+        head = Paragraph("Event Schedule", _style("sch_h", font=HEAD, size=12.5, color=PURPLE, leading=15))
+        rows = [[Paragraph(_x(t or "—"), s_st), Paragraph(_x(i), s_si)] for t, i in sched]
+        tbl = Table(rows, colWidths=[30 * mm, W - 30 * mm])
+        tbl.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4 * mm), ("RIGHTPADDING", (0, 0), (-1, -1), 2 * mm),
+            ("TOPPADDING", (0, 0), (-1, -1), 1.6 * mm), ("BOTTOMPADDING", (0, 0), (-1, -1), 1.6 * mm),
+            ("LINEBELOW", (0, 0), (-1, -2), 0.4, colors.HexColor("#F1ECF8")),
+        ]))
+        story += [KeepTogether([head, Spacer(1, 2 * mm), tbl]), Spacer(1, 6 * mm)]
+
     # ── "Your party plan" sections ──────────────────────────────────────
     story.append(Paragraph("YOUR PARTY PLAN", _style("pp", font=BODY_BOLD, size=9, color=PINK_DARK, leading=12)))
     story.append(Spacer(1, 2.5 * mm))

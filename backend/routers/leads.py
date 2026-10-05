@@ -1355,7 +1355,8 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
                        reward_code: Optional[str], referral_code: Optional[str] = None,
                        recipient_kind: str, event_sales_lead: Optional[str] = None,
                        added_service_label: Optional[str] = None,
-                       pending_tasks: Optional[list] = None) -> str:
+                       pending_tasks: Optional[list] = None,
+                       event_schedule: Optional[list] = None) -> str:
     """recipient_kind: 'customer' or 'team' — team version skips the welcome
     fluff and T&C footer link but keeps the same details table + styling.
     pending_tasks (team only, 2026-09-25 per Shruti): short list of things
@@ -1568,6 +1569,8 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
     sections = "".join(filter(None, [
         pending_tasks_html,
         _html_section_title("Booking Details" if is_booking else "Enquiry Details") + details_html,
+        (_html_section_title("Event Schedule") + _html_details_table(
+            [(t or "—", i or "") for t, i in event_schedule])) if event_schedule else "",
         (_html_section_title("Order Summary") + order_html) if order_rows else "",
         gift_bill_html,
         services_html,
@@ -1681,6 +1684,45 @@ async def _build_booking_invoice_pdf(lead_id: int, req: LeadSubmitRequest) -> tu
     return invoice_filename(data), pdf_bytes
 
 
+def _fmt_sched_time(t: str) -> str:
+    m = re.fullmatch(r"(\d{1,2}):(\d{2})(?::\d{2})?", (t or "").strip())
+    if not m:
+        return (t or "").strip()
+    h = int(m.group(1))
+    return f"{(h % 12) or 12}:{m.group(2)} {'AM' if h < 12 else 'PM'}"
+
+
+async def _load_event_schedule(lead_id: int) -> list:
+    """[(time, item)] for the booking emails — the admin page's Event
+    Schedule (booking_field_overrides.event_schedule_text, "time<TAB>item"
+    per line) when set, else the sales panel's (2026-10-05, per Shruti)."""
+    try:
+        ov = await database.fetch_one(
+            "SELECT customer_choice_override FROM booking_field_overrides "
+            "WHERE lead_id = :id AND field_key = 'event_schedule_text' AND removed = FALSE", values={"id": lead_id})
+        text = (ov["customer_choice_override"] or "").strip() if ov else ""
+        out = []
+        if text:
+            for line in text.splitlines():
+                if not line.strip():
+                    continue
+                t, _, i = line.partition("\t")
+                out.append((_fmt_sched_time(t), i.strip()) if i else ("", t.strip()))
+            return out
+        pb = await database.fetch_one("SELECT event_schedule FROM lead_sales_playbook WHERE lead_id = :id",
+                                      values={"id": lead_id})
+        raw = pb["event_schedule"] if pb else None
+        rows = json.loads(raw) if isinstance(raw, str) else (raw or [])
+        for it in rows:
+            t, i = (it.get("time") or "").strip(), (it.get("item") or "").strip()
+            if t or i:
+                out.append((_fmt_sched_time(t), i))
+        return out
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: couldn't load the event schedule for the email")
+        return []
+
+
 async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str] = None,
                           added_service_label: Optional[str] = None, is_upgrade: bool = False,
                           attach_invoice: bool = False) -> None:
@@ -1741,6 +1783,9 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Opti
                 f"Rs.{REFERRAL_REWARD_AMOUNT} credit towards your next booking every time it's used.\n"
             )
         tnc_line = f"\nPlease review our Terms & Conditions: {TERMS_URL}\n" if is_booking else ""
+        event_schedule = await _load_event_schedule(lead_id)
+        schedule_block = ("\nEvent Schedule:\n" + "".join(
+            f"  {t:<10} {i}\n" for t, i in event_schedule)) if event_schedule else ""
         body = f"""Hi {first_name}! 🎉 (Ref #{lead_id})
 
 {intro_line}
@@ -1749,7 +1794,7 @@ Your details:
   Event Date  : {req.event_date.isoformat() if req.event_date else '—'}
   Theme       : {_theme_label(req.theme)}
   City        : {req.city or '—'}
-{remarks_block}{order_block}{services_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{referral_block}{tnc_line}
+{schedule_block}{remarks_block}{order_block}{services_block}{dj_addons_block}{venue_block}{gift_delivery_block}{reward_block}{referral_block}{tnc_line}
 If you have any questions in the meantime, WhatsApp us at +91 90044 35362.
 
 Warmly,
@@ -1759,7 +1804,7 @@ wondershopexperiences.com
         html_body = _build_html_email(
             is_booking=is_booking, lead_id=lead_id, req=req,
             reward_code=reward_code, referral_code=referral_code, recipient_kind="customer",
-            added_service_label=added_service_label,
+            added_service_label=added_service_label, event_schedule=event_schedule,
         )
         # 2026-08-14, per Shruti: attach the actual .ics calendar invite the
         # confirmation page/event/email already promise ("your date is
