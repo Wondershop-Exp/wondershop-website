@@ -2567,9 +2567,13 @@ const PAYMENT_METHODS = ['Cash','UPI Transfer','Bank Transfer','Internal Settle'
 // 2026-10-05, per Shruti: the default is the SUM OF THE QUOTED PRICES (each
 // line's Sales Quote, e.g. Spy at ₹900/child), not the list prices — twin of
 // _full_detail()'s default_quote. A typed Sales Quote still overrides.
+// A typed figure only stands when it's BELOW that sum — it's then an
+// additional discount on top of the line quotes (2026-10-05, per Shruti).
+// At or above the sum it's ignored (server resets it the same way).
 function salesQuoteValue(LB){
-  if(DATA && DATA.client_budget_manual) return DATA.client_budget;
-  return (LB || listBreakdown()).quoteTotal;
+  const qt = (LB || listBreakdown()).quoteTotal;
+  if(DATA && DATA.client_budget_manual && DATA.client_budget!=null && Number(DATA.client_budget) < qt) return Number(DATA.client_budget);
+  return qt;
 }
 // 2026-10-05, per Shruti — "sales quote should be total of sales quote for
 // all the selections above". A figure typed into the box earlier stays put
@@ -2577,8 +2581,21 @@ function salesQuoteValue(LB){
 // line quotes (saving it empty clears client_budget_manual on the server).
 function salesQuoteResetHtml(LB){
   if(!DATA || !DATA.client_budget_manual || DATA.is_booking) return '';
-  if(Number(DATA.client_budget) === Number(LB.quoteTotal)) return '';
-  return '<div class="ref-note" style="margin-top:6px">Typed by hand. <a href="#" onclick="resetSalesQuote();return false" style="color:var(--pu,#6B3FA0);font-weight:600">Use total of sales quotes ('+money(LB.quoteTotal)+')</a></div>';
+  if(!(Number(DATA.client_budget) < Number(LB.quoteTotal))) return '';
+  return '<div class="ref-note" style="margin-top:6px"><a href="#" onclick="resetSalesQuote();return false" style="color:var(--pu,#6B3FA0);font-weight:600">Remove additional discount (back to '+money(LB.quoteTotal)+')</a></div>';
+}
+function onSalesQuoteBlur(el){
+  const qt = listBreakdown().quoteTotal;
+  if(el.value === '' || Number(el.value) >= qt){
+    // Only a LOWER figure is an additional discount; anything else goes
+    // back to the total of the line quotes (2026-10-05).
+    if(el.value !== '' && Number(el.value) > qt) showToast('To charge more, raise the Sales Quote on the line items above.');
+    saveField('client_budget', '', 'number');
+    renderDetailKeepFocus();
+    return;
+  }
+  saveField('client_budget', el.value, 'number');
+  renderDetailKeepFocus();
 }
 function resetSalesQuote(){
   saveField('client_budget', '', 'number');
@@ -2592,12 +2609,12 @@ function sectionBilling(){
     + (d.kids_count?'':'<div class="ref-note">Activities priced per child use ×1 until # Kids is filled in above.</div>')
     + '<div class="grid4">'
       + '<div class="fld"><label>Grand Total (from selections)</label><div class="readonly-amt" id="bill_est_total">'+(money(LB.total)||'₹0')+'</div></div>'
-      + '<div class="fld"><label>Sales Quote (₹)</label><input type="number" id="bill_grand_total" value="'+(salesQuoteValue(LB)==null?'':salesQuoteValue(LB))+'" oninput="this.dataset.touched=1;updateDiscountPreview()" onblur="if(this.dataset.touched)saveField(\'client_budget\', this.value, this.type)">'+salesQuoteResetHtml(LB)+'</div>'
+      + '<div class="fld"><label>Sales Quote (₹)</label><input type="number" id="bill_grand_total" value="'+(salesQuoteValue(LB)==null?'':salesQuoteValue(LB))+'" oninput="this.dataset.touched=1;updateDiscountPreview()" onblur="if(this.dataset.touched)onSalesQuoteBlur(this)">'+salesQuoteResetHtml(LB)+'</div>'
       + '<div class="fld"><label>Balance / Advance Received (₹)</label><input type="number" id="bill_advance" value="'+(d.order_advance==null?'':d.order_advance)+'" onblur="saveField(\'order_advance\', this.value, this.type)"></div>'
       + '<div class="fld"><label>Payment Method</label><select id="bill_pm" onchange="saveField(\'payment_method\', this.value)">'+pmOpts+'</select></div>'
     + '</div>'
     + breakupHtml(LB)
-    + '<div class="disc-box" id="discBox">'+discountHtml(LB.total, salesQuoteValue(LB))+'</div>'
+    + '<div class="disc-box" id="discBox">'+discountHtml(LB.total, salesQuoteValue(LB), LB.quoteTotal)+'</div>'
     + (d.gift_order
         ? '<div style="margin-top:14px">'+giftOrderHtml(d.gift_order, CURRENT_ID, reloadSalesDetail)+'</div>'
         : (LB.giftItems.length ? '<div class="gift-sep-note">🎁 Return gifts ('+money(LB.giftTotal)+') are billed separately and are not part of the Sales Quote. Once the booking is confirmed, a Return Gift Order opens for ops: they confirm stock, then send the customer a payment link (100% advance) on email and WhatsApp.</div>' : ''))
@@ -2612,8 +2629,20 @@ function sectionBilling(){
 // agreed with the client. Positive => a discount was given; negative =>
 // the agreed total is above the derived total (no discount — flagged, not
 // hidden, so a typo or a premium/rush booking stands out either way).
-function discountHtml(estimatedTotal, agreedTotal){
+function discountHtml(estimatedTotal, agreedTotal, quoteTotal){
   const est = Number(estimatedTotal) || 0;
+  // 2026-10-05, per Shruti — split the discount: what the line quotes take
+  // off the Grand Total, plus any ADDITIONAL discount typed into Sales Quote.
+  const qt = (quoteTotal===undefined || quoteTotal===null) ? null : Number(quoteTotal);
+  const ag = (agreedTotal===null || agreedTotal===undefined || agreedTotal==='') ? null : Number(agreedTotal);
+  if(qt!==null && ag!==null && !isNaN(ag) && qt - ag > 0.004){
+    const items = est - qt, extra = qt - ag, tot = est - ag;
+    const pct = v => est > 0 ? ' ('+(v/est*100).toFixed(1)+'%)' : '';
+    return '<div class="disc-row disc-pos">'
+      + (items > 0.004 ? 'Discount on items: <b>'+money(items)+'</b> · ' : '')
+      + 'Additional discount on Grand Total: <b>'+money(extra)+'</b>'
+      + ' · Total discount: <b>'+money(tot)+'</b>'+pct(tot)+'</div>';
+  }
   if(agreedTotal===null || agreedTotal===undefined || agreedTotal===''){
     return '<div class="disc-note">Enter the total agreed with the client to see the discount.</div>';
   }
@@ -2632,7 +2661,8 @@ function updateDiscountPreview(){
   const box = document.getElementById('discBox');
   if(!box) return;
   const val = document.getElementById('bill_grand_total').value;
-  box.innerHTML = discountHtml(listBreakdown().total, val===''?null:val);
+  const LBp = listBreakdown();
+  box.innerHTML = discountHtml(LBp.total, val===''?null:val, LBp.quoteTotal);
   updateGrandTotalBar(val);
 }
 

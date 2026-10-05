@@ -731,14 +731,23 @@ async def _full_detail(lead_row) -> dict:
     # price), so the Sales Quote follows each line's quote; Grand Total
     # stays at MRP and the gap shows as the discount.
     default_quote = _list_breakdown(reqs, acts, lead.get("kids_count"))["quote_total"]
-    if not lead.get("is_booking") and not lead.get("client_budget_manual"):
+    # A typed Sales Quote only stands as an ADDITIONAL discount — i.e. when
+    # it's below the sum of the line quotes (2026-10-05, per Shruti: "user
+    # can still choose to give more discount by editing the figure"). One at
+    # or above that sum (e.g. the old MRP default saved before this change)
+    # goes back to following the line quotes.
+    if not lead.get("is_booking"):
         stored_budget = float(lead["client_budget"]) if lead.get("client_budget") is not None else None
-        if stored_budget != default_quote:
+        manual = bool(lead.get("client_budget_manual"))
+        if manual and (stored_budget is None or stored_budget >= default_quote - 0.005):
+            manual = False
+        if not manual and (stored_budget != default_quote or lead.get("client_budget_manual")):
             await database.execute(
-                "UPDATE leads SET client_budget = :v WHERE lead_id = :id",
+                "UPDATE leads SET client_budget = :v, client_budget_manual = FALSE WHERE lead_id = :id",
                 values={"v": default_quote, "id": lead["lead_id"]},
             )
             lead["client_budget"] = default_quote
+            lead["client_budget_manual"] = False
 
     out = {
         "lead_id": lead["lead_id"],
@@ -1571,8 +1580,14 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
 
     # ── totals: same figures as the page's Grand Total bar ───────────────
     subtotal = B["total"]
-    estimate = d.get("client_budget") if (d.get("client_budget_manual") and d.get("client_budget") is not None) else B["quote_total"]
+    estimate = B["quote_total"]
+    if d.get("client_budget_manual") and d.get("client_budget") is not None and float(d["client_budget"]) < estimate:
+        estimate = float(d["client_budget"])
     discount = round(subtotal - float(estimate), 2)
+    # Split (2026-10-05): what the line quotes already take off the list
+    # prices, and any further discount typed into the Sales Quote box.
+    discount_items = round(subtotal - B["quote_total"], 2)
+    discount_extra = round(B["quote_total"] - float(estimate), 2)
 
     # ── header / details ─────────────────────────────────────────────────
     ist = issued_at_utc + IST_OFFSET
@@ -1621,6 +1636,7 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
         "sections": sections,
         "totals": {
             "subtotal": subtotal, "discount": discount, "estimate": float(estimate),
+            "discount_items": discount_items, "discount_extra": discount_extra,
             "gift_total": B["gift_total"], "gift_mrp": B["gift_mrp"], "has_unpriced": unpriced["any"],
         },
         "extra_terms": d.get("terms_conditions"),
