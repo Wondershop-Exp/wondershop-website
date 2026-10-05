@@ -14,8 +14,22 @@
  *   7. Every time you edit this script, click Deploy → Manage deployments
  *      → pencil icon → New version → Deploy (URL stays the same)
  *
- * The script appends one row per lead to the "Leads & Bookings" tab. Column
- * order matches HEADERS below.
+ * 2026-10-05 — ONE ROW PER LEAD/BOOKING, KEPT UP TO DATE. The backend now
+ * sends action "upsert_lead" with the lead's full current row (keyed by
+ * column name) after every change from ANY panel — website checkout,
+ * Sales Quotation Module, admin Leads/Bookings (edits, status, Convert to
+ * Booking, cancel). The row whose Lead ID matches is updated in place; a
+ * new lead gets a new row. "delete_lead" removes a deleted lead's row and
+ * "prune_leads" (admin "Sync Google Sheet" button) removes rows for leads
+ * that no longer exist. The database is the source of truth: edit leads in
+ * admin / the sales module, not in this sheet — sheet edits get overwritten
+ * on the next save. AFTER PASTING THIS VERSION: Deploy → Manage deployments
+ * → pencil → New version → Deploy, then Run → setupSheet once (new Status
+ * colours + Confirmed Bookings view).
+ *
+ * Columns are matched by their header NAME, so the order of columns in the
+ * sheet doesn't matter; any column in HEADERS missing from the sheet is
+ * added at the end automatically.
  *
  * WORKFLOW (single source of truth — no more separate booking/lead sheets):
  *   - Every submission (checkout or custom request) lands here with
@@ -35,7 +49,13 @@
 // a name mismatch here silently sent data to the wrong tab.
 var SHEET_NAME = "Leads & Bookings";       // Raw feed — every submission lands here
 var CONFIRMED_TAB_NAME = "Confirmed Bookings"; // Live filtered view for ops
-var STATUS_OPTIONS = ["Lead", "Contacted", "Confirmed", "Lost"];
+// 2026-10-05 — Status now mirrors the admin page: a lead's pipeline status,
+// or "Booking – <New/Upcoming/Complete/Cancelled>" once it's a booking.
+var STATUS_OPTIONS = [
+  "New", "Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing",
+  "Not Interested", "DND",
+  "Booking – New", "Booking – Upcoming", "Booking – Complete", "Booking – Cancelled"
+];
 
 // 2026-08-27, per Shruti — cart-abandonment recovery. builder.html posts
 // action:"abandoned_cart" once someone's given a phone number but then
@@ -95,7 +115,9 @@ var HEADERS = [
   "Gift Delivery Contact", "Gift Delivery Contact Phone", "Gift Required By Date",
   "DJ Lights Addon", "Smoke Machine Addon",
   "Decor", "Pinata", "Return Gifts", "Music", "Host", "Activities", "Photography", "E-Invite",
-  "Cart Snapshot (JSON)"
+  "Cart Snapshot (JSON)",
+  // 2026-10-05 — added at the end (existing sheets get them appended).
+  "Record Type", "Origin", "Event Time", "Sales Lead", "Non-conversion Reason", "Last Updated (IST)"
 ];
 
 function doPost(e) {
@@ -113,6 +135,23 @@ function doPost(e) {
     // they upsert a row on their own "Event Photos" tab.
     if (d0.action === "update_event_photos") {
       return _updateOrAppendEventPhotos(ss, d0);
+    }
+
+    // 2026-10-05 — one row per lead, kept up to date (see top of file).
+    if (d0.action === "upsert_lead" || d0.action === "delete_lead" || d0.action === "prune_leads") {
+      var lock = LockService.getScriptLock();
+      lock.waitLock(25000);   // one write at a time, so two quick saves never add two rows
+      try {
+        var ls = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+        var cols = _ensureHeaders(ls);
+        if (d0.action === "upsert_lead") return _upsertLead(ls, cols, d0);
+        if (d0.action === "delete_lead") return _deleteLeadRows(ls, cols, function (id) { return id === String(d0.lead_id); });
+        var keep = {};
+        (d0.keep_ids || []).forEach(function (id) { keep[String(id)] = true; });
+        return _deleteLeadRows(ls, cols, function (id) { return id !== "" && !keep[id]; });
+      } finally {
+        lock.releaseLock();
+      }
     }
 
     // 2026-08-14, per Shruti — this used to fall back to ss.getActiveSheet()
@@ -215,6 +254,114 @@ function doPost(e) {
       .createTextOutput(JSON.stringify({ success: false, error: err.message }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+/**
+ * Makes sure row 1 has every HEADERS name (writing it on an empty sheet,
+ * or appending any missing ones at the end), and returns
+ * {header name: 1-based column}.
+ */
+function _ensureHeaders(sheet) {
+  var lastCol = sheet.getLastColumn();
+  var current = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+  var hasAny = current.some(function (h) { return String(h).trim() !== ""; });
+  if (!hasAny) {
+    sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+    current = HEADERS.slice();
+  } else {
+    // Ignore trailing blank header cells when finding where to append.
+    while (current.length && String(current[current.length - 1]).trim() === "") current.pop();
+    var missing = HEADERS.filter(function (h) { return current.indexOf(h) === -1; });
+    if (missing.length) {
+      sheet.getRange(1, current.length + 1, 1, missing.length).setValues([missing]);
+      current = current.concat(missing);
+    }
+  }
+  sheet.getRange(1, 1, 1, current.length)
+       .setFontWeight("bold").setBackground("#F4A932").setFontColor("#FFFFFF");
+  sheet.setFrozenRows(1);
+  var map = {};
+  current.forEach(function (h, i) { if (String(h).trim() !== "") map[String(h).trim()] = i + 1; });
+  return map;
+}
+
+/** Row number (1-based) per Lead ID, read from the "Lead ID" column. */
+function _leadRows(sheet, cols) {
+  var idCol = cols["Lead ID"];
+  var last = sheet.getLastRow();
+  var out = {};
+  if (!idCol || last < 2) return out;
+  var ids = sheet.getRange(2, idCol, last - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) {
+    var id = String(ids[i][0]).trim();
+    if (id !== "" && !out[id]) out[id] = i + 2;
+  }
+  return out;
+}
+
+/**
+ * "upsert_lead": d.row is {column name: value}. Updates the row with the
+ * same Lead ID, or appends one. A null value leaves that cell as it is.
+ */
+function _upsertLead(sheet, cols, d) {
+  var id = String(d.lead_id);
+  var width = Math.max(sheet.getLastColumn(), 1);
+  var rowNum = _leadRows(sheet, cols)[id];
+  var values;
+  if (rowNum) {
+    values = sheet.getRange(rowNum, 1, 1, width).getValues()[0];
+  } else {
+    values = [];
+    for (var i = 0; i < width; i++) values.push("");
+  }
+  var row = d.row || {};
+  Object.keys(row).forEach(function (name) {
+    var c = cols[name];
+    if (!c || row[name] === null || row[name] === undefined) return;
+    values[c - 1] = row[name];
+  });
+  if (rowNum) {
+    sheet.getRange(rowNum, 1, 1, width).setValues([values]);
+  } else {
+    // First completely empty row (the tab may have blank rows left from
+    // clearing old test data — fill those rather than adding below them).
+    rowNum = _firstEmptyRow(sheet, width);
+    sheet.getRange(rowNum, 1, 1, width).setValues([values]);
+  }
+  return ContentService
+    .createTextOutput(JSON.stringify({ success: true, lead_id: d.lead_id, row: rowNum }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/** First row (from row 2) with nothing in any column; else the row after the last. */
+function _firstEmptyRow(sheet, width) {
+  var last = sheet.getLastRow();
+  if (last < 2) return 2;
+  var data = sheet.getRange(2, 1, last - 1, width).getValues();
+  for (var i = 0; i < data.length; i++) {
+    var empty = data[i].every(function (v) { return v === "" || v === null; });
+    if (empty) return i + 2;
+  }
+  return last + 1;
+}
+
+/** Deletes every row whose Lead ID matches shouldDelete(id). */
+function _deleteLeadRows(sheet, cols, shouldDelete) {
+  var idCol = cols["Lead ID"];
+  var last = sheet.getLastRow();
+  var deleted = 0;
+  if (idCol && last >= 2) {
+    var ids = sheet.getRange(2, idCol, last - 1, 1).getValues();
+    for (var i = ids.length - 1; i >= 0; i--) {   // bottom-up so row numbers stay valid
+      if (shouldDelete(String(ids[i][0]).trim())) {
+        sheet.deleteRow(i + 2);
+        deleted++;
+      }
+    }
+  }
+  return ContentService
+    .createTextOutput(JSON.stringify({ success: true, deleted: deleted }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 /**
@@ -360,14 +507,7 @@ function setupSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
 
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(HEADERS);
-  }
-  sheet.getRange(1, 1, 1, HEADERS.length)
-       .setFontWeight("bold")
-       .setBackground("#F4A932")
-       .setFontColor("#FFFFFF");
-  sheet.setFrozenRows(1);
+  var cols = _ensureHeaders(sheet);
 
   _applyStatusFormatting(sheet, Math.max(sheet.getLastRow(), 2000));
 
@@ -375,47 +515,46 @@ function setupSheet() {
   // This is a formula, not a copy, so it always reflects the Leads & Bookings tab.
   var confSheet = ss.getSheetByName(CONFIRMED_TAB_NAME) || ss.insertSheet(CONFIRMED_TAB_NAME);
   confSheet.clear();
-  var statusColLetter = _colLetter(HEADERS.indexOf("Status") + 1);
-  var lastColLetter   = _colLetter(HEADERS.length);
+  var statusColLetter = _colLetter(cols["Status"]);
+  var lastColLetter   = _colLetter(sheet.getLastColumn());
   // Sheet name has a space + "&" in it, so it must be single-quoted inside
   // the formula (bare 'Leads & Bookings!A1:...' would fail to parse).
   confSheet.getRange("A1").setFormula(
     "=QUERY('" + SHEET_NAME + "'!A1:" + lastColLetter + ',' +
-    '"select * where ' + statusColLetter + ' = \'Confirmed\'", 1)'
+    '"select * where ' + statusColLetter + ' starts with \'Booking\' and not ' + statusColLetter + ' contains \'Cancelled\'", 1)'
   );
   confSheet.setFrozenRows(1);
 
   SpreadsheetApp.getUi().alert(
-    'Setup complete: "' + SHEET_NAME + '" now has a Status dropdown + color-coding, ' +
-    'and "' + CONFIRMED_TAB_NAME + '" live-filters to Confirmed rows.'
+    'Setup complete: "' + SHEET_NAME + '" has its headers, Status colours and dropdown, ' +
+    'and "' + CONFIRMED_TAB_NAME + '" live-filters to bookings (not cancelled).'
   );
 }
 
 /** Applies the Status dropdown + conditional color-coding through row `throughRow`. */
 function _applyStatusFormatting(sheet, throughRow) {
-  var statusCol = HEADERS.indexOf("Status") + 1; // 1-based
+  var statusCol = _ensureHeaders(sheet)["Status"]; // 1-based, found by name
   var numRows = Math.max(throughRow - 1, 1);
   var statusRange = sheet.getRange(2, statusCol, numRows, 1);
 
   var rule = SpreadsheetApp.newDataValidation()
     .requireValueInList(STATUS_OPTIONS, true)
-    .setAllowInvalid(false)
+    .setAllowInvalid(true)
     .build();
   statusRange.setDataValidation(rule);
 
+  function rule(fn, bg, fg) {
+    return fn(SpreadsheetApp.newConditionalFormatRule()).setBackground(bg).setFontColor(fg)
+      .setRanges([statusRange]).build();
+  }
+  // First matching rule wins, so the red ones come first.
   var rules = [
-    SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo("Lead").setBackground("#FEF3C7").setFontColor("#92400E")
-      .setRanges([statusRange]).build(),
-    SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo("Contacted").setBackground("#DBEAFE").setFontColor("#1E40AF")
-      .setRanges([statusRange]).build(),
-    SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo("Confirmed").setBackground("#DCFCE7").setFontColor("#166534")
-      .setRanges([statusRange]).build(),
-    SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo("Lost").setBackground("#FEE2E2").setFontColor("#991B1B")
-      .setRanges([statusRange]).build(),
+    rule(function (r) { return r.whenTextEqualTo("Booking – Cancelled"); }, "#FEE2E2", "#991B1B"),
+    rule(function (r) { return r.whenTextEqualTo("Not Interested"); },     "#FEE2E2", "#991B1B"),
+    rule(function (r) { return r.whenTextEqualTo("DND"); },                "#FEE2E2", "#991B1B"),
+    rule(function (r) { return r.whenTextStartsWith("Booking"); },         "#DCFCE7", "#166534"),
+    rule(function (r) { return r.whenTextEqualTo("New"); },                "#FEF3C7", "#92400E"),
+    rule(function (r) { return r.whenTextContains(" "); },                 "#DBEAFE", "#1E40AF"),
   ];
   sheet.setConditionalFormatRules(rules);
 }
@@ -463,6 +602,30 @@ function doPost_test() {
   };
   var result = doPost(fakeEvent);
   Logger.log(result.getContent());
+}
+
+/** Run this manually to test the upsert path: run it twice — still ONE row for Lead 999. */
+function doPost_test_upsert() {
+  var fakeEvent = {
+    postData: {
+      contents: JSON.stringify({
+        action: "upsert_lead",
+        lead_id: 999,
+        row: {
+          "Lead ID": "999", "Submitted At": "2026-10-05 13:00:00", "Status": "New",
+          "Parent Name": "Test Parent", "Phone": "9999999999", "Record Type": "Lead",
+          "Origin": "Sales Team", "Last Updated (IST)": new Date().toISOString()
+        }
+      })
+    }
+  };
+  Logger.log(doPost(fakeEvent).getContent());
+}
+
+/** Removes the Lead 999 test row added by doPost_test_upsert. */
+function doPost_test_delete() {
+  var fakeEvent = { postData: { contents: JSON.stringify({ action: "delete_lead", lead_id: 999 }) } };
+  Logger.log(doPost(fakeEvent).getContent());
 }
 
 /** Run this manually once to test the Event Photos path without an HTTP request */

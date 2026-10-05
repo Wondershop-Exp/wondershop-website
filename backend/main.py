@@ -5,6 +5,8 @@ from contextlib import asynccontextmanager
 
 from config import settings
 from security import security_middleware
+import re
+import sheet_sync
 from database import connect_db, disconnect_db
 from routers import catalogue, cart, leads, config, admin, instagram, packaging, vendors, dashboard, sales_leads, vendor_onboarding, spy_registration
 
@@ -32,6 +34,25 @@ app = FastAPI(
     redoc_url="/redoc" if settings.ENABLE_API_DOCS else None,
     openapi_url="/openapi.json" if settings.ENABLE_API_DOCS else None,
 )
+
+# 2026-10-05, per Shruti — "1 row per lead/booking ... from any panel": after
+# any successful change to a lead (admin Leads/Bookings or the Sales
+# Quotation Module), refresh that lead's row in the Google Sheet. Done here,
+# once, so no endpoint can forget it — including ones added later. Runs in
+# the background (debounced), never slows down or fails the request.
+_SHEET_SYNC_PATH = re.compile(r"^/api/admin/(?:bookings|sales-leads)/(\d+)(?:/|$)")
+
+
+async def sheet_sync_middleware(request, call_next):
+    response = await call_next(request)
+    if request.method in ("POST", "PATCH", "PUT", "DELETE") and response.status_code < 400:
+        m = _SHEET_SYNC_PATH.match(request.url.path)
+        if m:
+            sheet_sync.schedule_sync(int(m.group(1)))
+    return response
+
+
+app.middleware("http")(sheet_sync_middleware)
 
 # Added BEFORE the CORS middleware on purpose: the last middleware added is the
 # outermost one, and CORS must wrap everything so that our 429/413 replies still

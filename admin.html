@@ -65,6 +65,11 @@ table.list tr{cursor:pointer}
 table.list tr:hover td{background:var(--li3)}
 table.list tr:last-child td{border-bottom:none}
 .status-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+/* Status dropdown on the Leads list (2026-10-05, per Shruti — the arrow sat on the
+   pill's edge): own chevron with room on the right instead of the browser's. */
+select.status-pick{border:none;font:inherit;font-size:12px;font-weight:700;padding:5px 30px 5px 12px;cursor:pointer;
+  appearance:none;-webkit-appearance:none;background-repeat:no-repeat;background-position:right 11px center;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23475569' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
 .status-Complete,.status-Converted{background:var(--sgr);color:#166534}
 .status-New,.status-Upcoming{background:var(--sbl);color:#1e3a8a}
 .status-ProposalSent,.status-InitialDiscussionsDone,.status-NegotiationsOngoing{background:var(--syl);color:#92400e}
@@ -614,11 +619,12 @@ body.role-sales .admin-only{display:none!important}
       <button class="tab-btn" id="tabCalBtn" onclick="switchTab('cal')">📅 Calendar</button>
     </div>
     <div id="leadTableWrap">
-      <div id="leadOriginChips" style="margin:2px 0 12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <div id="leadOriginChips" style="margin:0;padding:14px 16px 12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <button class="pill active" data-val="all" onclick="setLeadOriginFilter('all')">All leads</button>
         <button class="pill" data-val="website" onclick="setLeadOriginFilter('website')">🌐 Website</button>
         <button class="pill" data-val="sales" onclick="setLeadOriginFilter('sales')">📞 Sales team</button>
-        <button class="add-field-btn" style="margin-left:auto" onclick="registerSalesLead()">+ Register a lead (sales)</button>
+        <button class="add-field-btn admin-only" style="margin-left:auto" id="sheetSyncBtn" onclick="syncSheetAll()" title="Rewrite every lead/booking row in the Google Sheet (rows also update by themselves after each change)">↻ Sync Google Sheet</button>
+        <button class="add-field-btn" onclick="registerSalesLead()">+ Register a lead (sales)</button>
       </div>
       <table class="list">
         <thead><tr>
@@ -2627,6 +2633,23 @@ function setLeadOriginFilter(val){
   renderRows('lead');
 }
 
+// ↻ Sync Google Sheet (2026-10-05, per Shruti — "1 row per lead/booking ...
+// from any panel"). Rows update by themselves after every change; this
+// rewrites them all at once (and drops rows for deleted leads) — for the
+// first fill after go-live, or to repair the sheet. Admin login only.
+async function syncSheetAll(){
+  const btn = document.getElementById('sheetSyncBtn');
+  if(!confirm('Rewrite every lead and booking row in the Google Sheet now? Rows for leads that no longer exist will be removed.')) return;
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Syncing…';
+  try{
+    const r = await apiCall('/api/admin/sheet/sync-all', {method:'POST'});
+    const failed = (r.failed||[]).length;
+    showToast(failed ? ('⚠ Synced '+r.synced+' of '+r.total+' — '+failed+' failed (see server log)') : ('✓ Google Sheet synced — '+r.synced+' row'+(r.synced===1?'':'s')));
+  }catch(e){ if(e.message!=='unauthorized') showToast('⚠ '+e.message); }
+  finally{ btn.disabled = false; btn.textContent = label; }
+}
+
 // "+ Register a lead (sales)" on the combined Leads tab — the sales
 // module's own list used to be the only place this action lived
 // (startNewLead() in sales-leads.html); now it's reachable from the
@@ -2678,7 +2701,7 @@ function listStatusCellHtml(r, kind){
     return '<span class="status-pill '+cls+'">'+esc(r.status||'')+'</span>';
   }
   const opts = LEAD_STATUS_OPTIONS.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===r.status?' selected':'')+'>'+esc(o.label)+'</option>').join('');
-  return '<select class="status-pill '+cls+'" style="border:none;font:inherit;padding:3px 6px" '
+  return '<select class="status-pill status-pick '+cls+'" '
     +'onclick="event.stopPropagation()" onchange="event.stopPropagation();quickSetStatus('+r.lead_id+',this.value)">'+opts+'</select>';
 }
 function listActionsCellHtml(r, kind){

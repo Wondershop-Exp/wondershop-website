@@ -2688,6 +2688,21 @@ async def update_gift_order(lead_id: int, body: GiftOrderUpdateRequest, x_admin_
             "sent_to": sent_to, "whatsapp_link": wa_link}
 
 
+# ─── GOOGLE SHEET: SYNC EVERYTHING (2026-10-05, per Shruti) ──────────────────
+# Rows normally update by themselves after every change (sheet_sync +
+# main.py's middleware). This button-backed endpoint (re)writes every lead's
+# row in one go — used once after go-live to fill the sheet, and any time to
+# repair it — and removes rows for leads that no longer exist. Admin only.
+@router.post("/sheet/sync-all")
+async def sync_all_to_sheet(x_admin_password: Optional[str] = Header(None)):
+    if _require_admin(x_admin_password) != "admin":
+        raise HTTPException(status_code=403, detail="Only the admin login can do this.")
+    if not settings.GOOGLE_SHEET_WEBHOOK_URL:
+        raise HTTPException(status_code=503, detail="GOOGLE_SHEET_WEBHOOK_URL isn't set on the server.")
+    import sheet_sync
+    return await sheet_sync.sync_all()
+
+
 # ─── TO BE CONFIRMED (2026-10-03, per Shruti) ───────────────────────────────
 class TbcUpdateRequest(ChangedByRequest):
     key: str

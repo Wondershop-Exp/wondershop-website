@@ -1993,83 +1993,14 @@ def _sheet_service_columns(snapshot: Optional[dict]) -> dict:
 
 async def _append_to_sheet(lead_id: int, req: LeadSubmitRequest, reward_code: Optional[str], referral_code: Optional[str] = None) -> None:
     """
-    POST to the Google Apps Script webhook.
-    The Apps Script appends one row to the sheet.
+    Writes this lead's row to the Google Sheet. 2026-10-05 — now the same
+    one-row-per-lead upsert every panel uses (sheet_sync.sync_lead_to_sheet,
+    built from the database), so later edits update this row instead of the
+    sheet only ever seeing the first submission. Reward Terms isn't stored
+    in the DB, so it's passed along here, once.
     """
-    if not settings.GOOGLE_SHEET_WEBHOOK_URL:
-        logger.warning("GOOGLE_SHEET_WEBHOOK_URL not set — skipping sheet append")
-        return
-
-    try:
-        service_cols = _sheet_service_columns(req.builder_snapshot)
-        payload = {
-            "lead_id":      lead_id,
-            "submitted_at": datetime.utcnow().isoformat(),
-            "parent_name":  req.parent_name,
-            "phone":        req.phone,
-            "email":        req.email or "",
-            "event_date":   req.event_date.isoformat() if req.event_date else "",
-            "kids_count":   req.kids_count or "",
-            "child_names":  req.child_names or "",
-            "child_ages":   req.child_ages or "",
-            "child_genders":req.child_genders or "",
-            # 2026-08-14, per Shruti — DOB captured in the Sheet for
-            # reference, and also persisted to the `leads` DB table (see
-            # migration 013 + the INSERT in submit_lead() above).
-            "child_dobs":   req.child_dobs or "",
-            "decor":        service_cols["decor"],
-            "pinata":       service_cols["pinata"],
-            "return_gifts": service_cols["return_gifts"],
-            "music":        service_cols["music"],
-            "host":         service_cols["host"],
-            "activities":   service_cols["activities"],
-            "photography":  service_cols["photography"],
-            "einvite":      service_cols["einvite"],
-            "theme":        req.theme or "",
-            "interests":    req.interests or "",
-            "interest_other": req.interest_other or "",
-            "venue":        req.venue or "",
-            "venue_maps_link":    req.venue_maps_link or "",
-            "venue_contact_name": req.venue_contact_name or "",
-            "venue_contact_phone":req.venue_contact_phone or "",
-            "location_type":req.location_type or "",
-            "city":         req.city or "",
-            "pincode":      req.pincode or "",
-            "client_budget":req.client_budget or "",
-            "lead_source":  req.lead_source or "",
-            "referred_by":  req.referred_by or "",
-            "order_grand_total":  req.order_grand_total or "",
-            "order_discount_pct": req.order_discount_pct or "",
-            "order_advance":      req.order_advance or "",
-            "order_balance":      req.order_balance or "",
-            "order_total_savings": req.order_total_savings or "",
-            "order_freebies_text": req.order_freebies_text or "",
-            "reward_type":        req.reward_type or "",
-            "reward_label":       req.reward_label or "",
-            "reward_value":       req.reward_value or "",
-            "reward_terms":       req.reward_terms or "",
-            "reward_expiry":      req.reward_expiry.isoformat() if req.reward_expiry else "",
-            "reward_code":        reward_code or "",
-            "redeemed_coupon_code": req.redeemed_coupon_code or "",
-            "referral_code":      referral_code or "",
-            "remarks":            req.remarks or "",
-            "lead_source_detail": req.lead_source_detail or "",
-            "gift_delivery_address":      req.gift_delivery_address or "",
-            "gift_delivery_maps_link":    req.gift_delivery_maps_link or "",
-            "gift_delivery_address_type": req.gift_delivery_address_type or "",
-            "gift_delivery_contact":      req.gift_delivery_contact or "",
-            "gift_delivery_contact_phone":req.gift_delivery_contact_phone or "",
-            "gift_required_by_date":      req.gift_required_by_date.isoformat() if req.gift_required_by_date else "",
-            "dj_lights_addon":            "Yes" if req.dj_lights_addon else "No",
-            "dj_smoke_machine_addon":     "Yes" if req.dj_smoke_machine_addon else "No",
-            "cart_snapshot":      json.dumps(req.builder_snapshot) if req.builder_snapshot else "",
-            "status":       "Confirmed" if req.is_booking else "Lead",
-        }
-        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
-            r = await client.post(settings.GOOGLE_SHEET_WEBHOOK_URL, json=payload)
-        logger.info(f"Lead #{lead_id}: sheet append → {r.status_code}")
-    except Exception as exc:
-        logger.error(f"Lead #{lead_id}: sheet append failed — {exc}")
+    import sheet_sync
+    await sheet_sync.sync_lead_to_sheet(lead_id, extra={"Reward Terms": req.reward_terms or None})
 
 
 async def _append_abandoned_cart_to_sheet(req: AbandonedCartRequest) -> None:
@@ -2510,21 +2441,10 @@ class RedeemServiceRequest(LeadSubmitRequest):
 async def _update_sheet_reward_service(lead_id: int, service_label: str) -> None:
     """Pushes an update to the customer's EXISTING sheet row (found by Lead
     ID) rather than appending a new one — see the matching `action` handler
-    in google_sheet_webhook.js."""
-    if not settings.GOOGLE_SHEET_WEBHOOK_URL:
-        logger.warning("GOOGLE_SHEET_WEBHOOK_URL not set — skipping sheet update")
-        return
-    try:
-        payload = {
-            "action": "update_reward_service",
-            "lead_id": lead_id,
-            "service_label": service_label,
-        }
-        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
-            r = await client.post(settings.GOOGLE_SHEET_WEBHOOK_URL, json=payload)
-        logger.info(f"Lead #{lead_id}: sheet reward-service update → {r.status_code}")
-    except Exception as exc:
-        logger.error(f"Lead #{lead_id}: sheet reward-service update failed — {exc}")
+    in google_sheet_webhook.js. 2026-10-05 — now a full row refresh via
+    sheet_sync (redeemed_reward_service is already saved in the DB)."""
+    import sheet_sync
+    await sheet_sync.sync_lead_to_sheet(lead_id)
 
 
 @router.post("/redeem-service")

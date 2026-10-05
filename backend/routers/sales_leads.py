@@ -1577,8 +1577,11 @@ async def quotation_pdf(lead_id: int, by: Optional[str] = None, x_admin_password
     pdf = build_quotation_pdf(data, images)
     actor = (by or "").strip() or "Someone"
     try:
-        await _log(pb_row["id"], actor, "quotation_generated",
-                   detail=f"{data['quote_no']} · estimated total {inr(data['totals']['estimate'])}")
+        # Logged as "updated": lead_sales_playbook_log.action has a CHECK list
+        # (migration 028) with no quotation action, so a new action name was
+        # rejected and the history entry silently dropped (found 2026-10-05).
+        await _log(pb_row["id"], actor, "updated",
+                   detail=f"quotation generated: {data['quote_no']} · estimated total {inr(data['totals']['estimate'])}")
     except Exception:
         logger.exception(f"Lead #{lead_id}: couldn't log quotation_generated")
     fname = quotation_filename(data)
