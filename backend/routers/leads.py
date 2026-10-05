@@ -680,7 +680,7 @@ async def _redeem_referral_code(code: str, phone: str, lead_id: int) -> bool:
             "SELECT parent_name, email FROM leads WHERE lead_id = :lid", values={"lid": row["owner_lead_id"]},
         )
         if owner and owner["email"] and "@" in owner["email"] and settings.GMAIL_CLIENT_ID:
-            first = _cap_first(owner["parent_name"].split()[0] if owner["parent_name"] else None)
+            first = _cap_first(cat.greeting_name(owner["parent_name"]) or None)
             body = (
                 f"Hi {first}! 🎉\n\nGreat news — someone just booked with Wondershop using your referral code "
                 f"{code}. You've earned Rs.{REFERRAL_REWARD_AMOUNT} credit, which your Party Experience Lead "
@@ -1362,7 +1362,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
     ops must action manually (e.g. a Custom Piñata design with no fixed
     price/production) — rendered as a red banner right under the heading
     so it can't be missed."""
-    first_name = _cap_first(req.parent_name.split()[0] if req.parent_name else None)
+    first_name = _cap_first(cat.greeting_name(req.parent_name) or None)
     party_title = _party_title(req)
     # 2026-08-14, per Shruti: merge the party title directly into the main
     # heading for the customer's booking-confirmation email — "Booking
@@ -1702,7 +1702,7 @@ async def _send_user_ack(lead_id: int, req: LeadSubmitRequest, reward_code: Opti
         return
 
     try:
-        first_name = _cap_first(req.parent_name.split()[0] if req.parent_name else None)
+        first_name = _cap_first(cat.greeting_name(req.parent_name) or None)
         is_booking = bool(req.is_booking)
 
         if is_upgrade:
@@ -2129,7 +2129,7 @@ async def _send_whatsapp_booking_confirmation(lead_id: int, req: LeadSubmitReque
     if not settings.AISENSY_API_KEY or not settings.AISENSY_CAMPAIGN_NAME:
         return
     try:
-        first_name = _cap_first(req.parent_name.split()[0] if req.parent_name else None)
+        first_name = _cap_first(cat.greeting_name(req.parent_name) or None)
         params = [
             first_name,
             req.child_names or "your little one",

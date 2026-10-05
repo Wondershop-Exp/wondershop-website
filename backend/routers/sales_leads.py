@@ -59,7 +59,7 @@ from catalogue_data import (
     PACKAGING_LABELS, ACTIVITIES, GIFTS, ACTIVE_GIFTS, EINVITE_TIER_PRICES, SAVE_THE_DATE_PRICE,
     THEME_PREFERENCE_NAMES,
     SPY_HOST_INCLUDED_IDS, SPY_HOST_INCLUDED_NAMES, SPY_INCLUDED_HOST_TIER,
-    host_tier_for_quote, spy_host_included_by, activity_venue_note,
+    host_tier_for_quote, spy_host_included_by, activity_venue_note, greeting_name,
 )
 
 router = APIRouter()
@@ -1639,7 +1639,7 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
         "prepared_by": d.get("sales_lead_name"),
         "party_title": party_title,
         "client_name": d.get("client_name"),
-        "client_first_name": ((d.get("client_name") or "").split() or [""])[0] if d.get("client_name") != "New Sales Lead" else "",
+        "client_first_name": greeting_name(d.get("client_name")) if d.get("client_name") != "New Sales Lead" else "",
         "child_first_name": child,
         "details": details,
         "sections": sections,

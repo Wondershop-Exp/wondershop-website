@@ -772,3 +772,18 @@ def resolve_decor_image_by_name(theme_name: Optional[str], tier: Optional[str]) 
 def resolve_gift_image_by_name(name: Optional[str]) -> Optional[str]:
     g = _GIFTS_BY_NAME.get(name or "")
     return f"img/{g[2]}" if g else None
+
+
+# ─── Greeting name ──────────────────────────────────────────────────────
+_TITLES = {"dr", "mr", "mrs", "ms", "miss", "mx", "prof", "shri", "smt"}
+
+
+def greeting_name(full: Optional[str]) -> str:
+    """First name for "Hi …" — keeps a title with it ("Dr. Vyoma Shah" ->
+    "Dr. Vyoma", not "Dr."), 2026-10-05, per Shruti. "" when blank."""
+    parts = (full or "").split()
+    if not parts:
+        return ""
+    if parts[0].rstrip(".").lower() in _TITLES and len(parts) > 1:
+        return f"{parts[0]} {parts[1]}"
+    return parts[0]

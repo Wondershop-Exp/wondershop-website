@@ -2550,7 +2550,7 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
 
     who = body.changed_by.strip()
     subject = f"📄 Your Updated Wondershop Invoice (Order #{lead_id})"
-    first_name = (lead.get("parent_name") or "there").split()[0]
+    first_name = cat.greeting_name(lead.get("parent_name")) or "there"
     body_text = (
         f"Hi {first_name},\n\n"
         f"Here's your updated invoice for booking #{lead_id} ({invoice_number}), reflecting the "
@@ -2633,7 +2633,7 @@ def _money_or_none(v) -> Optional[float]:
 
 
 def _gift_link_message(lead: dict, total: Optional[float], link: str) -> str:
-    first = (lead.get("parent_name") or "there").split()[0]
+    first = cat.greeting_name(lead.get("parent_name")) or "there"
     amt = f"Rs.{total:,.0f}" if total else "the amount shown"
     return (
         f"Hi {first}, good news! The return gifts for your Wondershop booking #{lead['lead_id']} are in stock. "
