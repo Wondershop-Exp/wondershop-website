@@ -470,7 +470,11 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
         else:
             add(f"{label}: {val}", p)
 
-    tiered("svc_decor", "Decor", lambda n: DECOR_PRICES.get(n))
+    # A design not in the catalogue (e.g. a website "reference" design,
+    # 2026-10-06) is priced at what the customer saw at checkout.
+    _snap_decor = snap.get("decor") or {}
+    tiered("svc_decor", "Decor", lambda n: DECOR_PRICES.get(n) if DECOR_PRICES.get(n) is not None
+           else (money(_snap_decor.get("p")) if _snap_decor.get("n") == n else None))
     # A host quoted above every tier is stored as "Custom (₹18,000)" (see
     # catalogue_data.custom_host_label) — its MRP is that quoted figure.
     def _host_price(n):

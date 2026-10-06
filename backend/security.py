@@ -78,6 +78,10 @@ SALES_ALLOWED = [(m, re.compile(p)) for m, p in [
     ("GET",  r"/api/admin/bookings"),
     ("GET",  rf"/api/admin/bookings/{_ID}"),
     ("POST", rf"/api/admin/bookings/{_ID}/(field|status|convert|cancel|invoice/send|summary/send|tbc)"),
+    # Quotation PDF of a booking (2026-10-06).
+    ("GET",  rf"/api/admin/bookings/{_ID}/quotation\.pdf"),
+    # Decor reference images on a lead/booking (2026-10-06).
+    ("*",    r"/api/admin/decor-refs(/.*)?"),
     # Partner NAMES only, for the "assigned partner" suggestions on a booking
     # (never /vendors itself, which carries bank details).
     ("GET",  r"/api/admin/vendors/names"),

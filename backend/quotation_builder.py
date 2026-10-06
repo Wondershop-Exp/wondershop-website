@@ -244,7 +244,9 @@ def _img(data: Optional[bytes], w_mm: float, h_mm: Optional[float] = None):
 def quotation_filename(data: dict) -> str:
     who = (data.get("child_first_name") or data.get("client_name") or "Client").strip()
     safe = "".join(c for c in who if c.isalnum() or c in " -_").strip().replace(" ", "-") or "Client"
-    return f"Wondershop-Quotation-{safe}-{data.get('quote_no', '')}.pdf".replace("--", "-")
+    kind = "Party-Plan" if data.get("booked") else "Quotation"
+    qno = "".join(c for c in str(data.get("quote_no") or "") if c.isalnum() or c in "-_")
+    return f"Wondershop-{kind}-{safe}-{qno}.pdf".replace("--", "-")
 
 
 def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
@@ -290,12 +292,16 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
     left = [logo or Paragraph(_x(BUSINESS_NAME), _style("bn", font=HEAD, size=16)),
             Spacer(1, 2.5 * mm),
             Paragraph(f"{_x(BUSINESS_ADDRESS)}<br/>{_x(BUSINESS_PHONES)} · {_x(BUSINESS_EMAIL)}", s_tiny)]
+    # booked=True (2026-10-06): a confirmed booking's party plan from the
+    # bookings panel — no validity window, "Booking No." instead of quote.
+    booked = bool(data.get("booked"))
     meta_rows = [
-        [Paragraph("QUOTATION", _style("qt", font=HEAD, size=20, color=PURPLE_DARK, align=TA_RIGHT, leading=23))],
-        [Paragraph(f"<font color='#7B5DAE'>Quote No.</font>&nbsp; <b>{_x(data.get('quote_no'))}</b>", _style("m1", size=8.8, align=TA_RIGHT))],
+        [Paragraph("PARTY PLAN" if booked else "QUOTATION", _style("qt", font=HEAD, size=20, color=PURPLE_DARK, align=TA_RIGHT, leading=23))],
+        [Paragraph(f"<font color='#7B5DAE'>{'Booking No.' if booked else 'Quote No.'}</font>&nbsp; <b>{_x(data.get('quote_no'))}</b>", _style("m1", size=8.8, align=TA_RIGHT))],
         [Paragraph(f"<font color='#7B5DAE'>Issued</font>&nbsp; {_x(data.get('issued_at_text'))}", _style("m2", size=8.8, align=TA_RIGHT))],
-        [Paragraph(f"<b>Valid till {_x(data.get('valid_until_text'))}</b>", _style("m3", size=8.8, color=PINK_DARK, align=TA_RIGHT))],
     ]
+    if not booked:
+        meta_rows.append([Paragraph(f"<b>Valid till {_x(data.get('valid_until_text'))}</b>", _style("m3", size=8.8, color=PINK_DARK, align=TA_RIGHT))])
     meta = Table(meta_rows, colWidths=[W * 0.46 - 10 * mm])
     meta.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "RIGHT"), ("LEFTPADDING", (0, 0), (-1, -1), 0),
                               ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0.6),
@@ -315,9 +321,12 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
     first = (data.get("client_first_name") or "").strip()
     intro = (
         (f"Hi {_x(first)}, thank you" if first else "Thank you")
-        + " for considering Wondershop Experiences! Here is the party plan we have put together for you, "
-          "with a picture and an estimate for each service. Anything marked <i>Not selected</i> can still be "
-          "added — just let us know."
+        + (" for booking with Wondershop Experiences! Here are all the details of your party — please go "
+           "through them and let us know if anything needs to change."
+           if booked else
+           " for considering Wondershop Experiences! Here is the party plan we have put together for you, "
+           "with a picture and an estimate for each service. Anything marked <i>Not selected</i> can still be "
+           "added — just let us know.")
     )
     mascot = _img(images.get(MASCOT_PATH), 34)
     title_cell = [Paragraph(_x(title), s_h1), Spacer(1, 1.6 * mm), Paragraph(intro, _style("intro", size=9.4, color=MUTED, leading=13.4))]
@@ -459,7 +468,7 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
         else:
             trows.append([Paragraph("Customisation &amp; other charges", s_tl), Paragraph("+ " + inr(-d), s_tr)])
     n_plain = len(trows)
-    trows.append([Paragraph("Estimated Total", _style("gl", font=HEAD, size=13, color=WHITE, leading=16)),
+    trows.append([Paragraph("Grand Total" if data.get("booked") else "Estimated Total", _style("gl", font=HEAD, size=13, color=WHITE, leading=16)),
                   Paragraph(inr(T.get("estimate") or 0), _style("gr", font=BODY_BOLD, size=15, color=WHITE, align=TA_RIGHT, leading=18))])
     tw = 96 * mm
     tt = Table(trows, colWidths=[tw * 0.58, tw * 0.42])
@@ -493,6 +502,10 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
 
     # ── terms ────────────────────────────────────────────────────────────
     terms = [
+        "<b>Your booking.</b> These are the details of your confirmed party. Final designs, colours and "
+        "timings are confirmed with you by your party manager; any change to the party details may change "
+        "the total."
+    ] if booked else [
         "<b>Tentative pricing.</b> This quotation is an estimate. Prices and inclusions are tentative and may "
         "change due to availability of artists, materials or slots, venue requirements, or changes to the "
         "party details.",
@@ -500,7 +513,9 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
         f"{int(data.get('valid_hours') or 72)} hours from the time of issue "
         f"(till {_x(data.get('valid_until_text'))}). After that, the quotation will need to be re-reviewed "
         f"by our team.",
-        "<b>Confidential.</b> This quotation has been prepared exclusively for you. It is not to be shared, "
+    ]
+    terms += [
+        "<b>Confidential.</b> This " + ("document" if booked else "quotation") + " has been prepared exclusively for you. It is not to be shared, "
         "forwarded or published without prior permission from Wondershop Experiences.",
         f"Full terms &amp; conditions: {BUSINESS_WEB}/terms.html",
     ]

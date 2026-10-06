@@ -2950,6 +2950,16 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
             if decor_entry:
                 snap["decor"] = decor_entry
 
+        # Uploaded decor reference photo (2026-10-06) — shown on the Decor
+        # line of the email instead of a catalogue/standard photo.
+        try:
+            from routers.decor_refs import current_for_lead
+            _ref = await current_for_lead(lead_id)
+            if _ref:
+                snap["decor_ref_url"] = _ref["image_url"]
+        except Exception:
+            logger.exception(f"Lead #{lead_id}: couldn't attach the decor reference photo to the email")
+
         # 2026-10-05 — Host picked on the admin/sales side (no builder
         # journey) was missing from the email too. customer_choice_override
         # only: assigned_value on this row is the host's own NAME. With a

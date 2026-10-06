@@ -2975,6 +2975,36 @@ function themeTierEntries(t){
 // what the "Set the Scene" grid renders, one card per tier (no more
 // clubbing multiple tiers' photos into a single card/price).
 const THEME_TIERS=THEMES.reduce((acc,t)=>acc.concat(themeTierEntries(t)),[]);
+// Decor designs uploaded from the sales / bookings panels and marked "show
+// on website" (2026-10-06, per Shruti) — added to the themed decor grid at
+// their own cost. Ids are "ref-<n>"; the photo URL travels with the order
+// (snapshot decor.img) so the confirmation email can show it.
+async function loadRefDecor(){
+  if(!window.WS_API_BASE)return;
+  try{
+    const r=await fetch(window.WS_API_BASE+'/api/decor-refs/public/website');
+    if(!r.ok)return;
+    const items=((await r.json())||{}).items||[];
+    let added=0;
+    items.forEach(it=>{
+      const tm=DECOR_TIER_META.find(x=>x.tier===it.tier);
+      if(!tm||!it.image_url||THEME_TIERS.some(x=>x.id==='ref-'+it.id))return;
+      const th=THEMES.find(t=>t.n.toLowerCase()===String(it.theme||'').trim().toLowerCase());
+      const colors=th?extractColors(th.b):'As per theme';
+      const themeName=th?th.n:it.theme;
+      THEME_TIERS.push({
+        id:'ref-'+it.id, themeId:th?th.id:String(it.theme).toLowerCase().replace(/[^a-z0-9]+/g,'-'), themeName, tier:it.tier,
+        n:themeName+' - '+it.tier+' · Design '+it.id, e:th?th.e:'🎈', bg:th?th.bg:'linear-gradient(135deg,#EDE6FA,#FAFAFA)',
+        age:it.age_group==='1-12'?'1-12':it.age_group, gn:it.gender, tag:'new', s:th?th.s:'3 hrs', ni:th?th.ni:'Tables, chairs',
+        p:Math.round(Number(it.cost)), origP:null, refImg:it.image_url,
+        spec:tm.spec.map(x=>x.v==='__THEME__'?Object.assign({},x,{v:colors}):x),
+        gallery:[{type:'img',src:it.image_url}],
+      });
+      added++;
+    });
+    if(added&&document.getElementById('thCards')&&typeof buildDec==='function')buildDec();
+  }catch(e){}
+}
 // "Standard" (non-themed) decor — trimmed to exactly the same 4 tiers as
 // themed decor (Classic/Premium/Luxury/Signature, same pricing + spec, see
 // DECOR_TIER_META above), just with generic reference photos that aren't
@@ -6362,7 +6392,7 @@ function buildSnapshot(){
       // never persisted before — S._pkgOrigin lived only in the in-memory
       // builder state and never made it into the submitted lead.
       package_origin: S._pkgOrigin || null,
-      decor:       S.decor    ? {id:S.decor.id, n:S.decor.n, p:S.decor.p}    : null,
+      decor:       S.decor    ? Object.assign({id:S.decor.id, n:S.decor.n, p:S.decor.p}, String(S.decor.id||'').indexOf('ref-')===0 ? {img:(THEME_TIERS.find(t=>t.id===S.decor.id)||{}).refImg||null} : {})    : null,
       host:        S.host     ? {tier:S.host.tier, p:S.host.p}                : null,
       dj:          S.dj       ? {tier:S.dj.tier, p:S.dj.p}                   : null,
       dj_addons:   {lights:!!S.djAddons.lights, smoke:!!S.djAddons.smoke},
@@ -7056,6 +7086,7 @@ function referWS(){
 // HOMEPAGE JS
 // ══════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',()=>{
+  loadRefDecor();   // website decor designs from the sales/bookings panels (2026-10-06)
   populateThemeCatalogSelects();
   makeAssistedSelect('f-theme');
   makeAssistedSelect('decThemeSel');

@@ -1683,6 +1683,10 @@ async def quotation_pdf(lead_id: int, by: Optional[str] = None, x_admin_password
     d = await _full_detail(lead_row)
     data, paths = _quotation_data(d, datetime.utcnow())
     images = await fetch_images(paths)
+    # Uploaded decor reference photo, if any (2026-10-06).
+    from booking_quote import apply_decor_ref
+    from routers.decor_refs import current_for_lead
+    apply_decor_ref(data, images, await current_for_lead(lead_id, with_image=True))
     pdf = build_quotation_pdf(data, images)
     actor = (by or "").strip() or "Someone"
     try:

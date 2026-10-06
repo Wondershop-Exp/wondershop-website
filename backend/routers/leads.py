@@ -989,7 +989,15 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
     out = []
 
     decor = snap.get("decor") or {}
-    if decor.get("n"):
+    # Uploaded decor reference photo (2026-10-06): the lead's own one
+    # (decor_ref_url, filled in by the sender) or a website design picked
+    # in Build-a-Birthday (id "ref-<n>", photo URL carried as "img").
+    ref_url = snap.get("decor_ref_url") or (decor.get("img") if str(decor.get("id") or "").startswith("ref-") else None)
+    if ref_url:
+        out.append({"label": "Decor", "name": decor.get("n") or "As per your reference picture",
+                    "price": decor.get("p") if decor.get("n") else None,
+                    "image_path": ref_url, "inclusions": []})
+    elif decor.get("n"):
         decor_ref = cat.resolve_decor(decor.get("id"), decor.get("p"))
         # No photo of the chosen design (e.g. a theme with no photo at this
         # tier): a standard-decor photo for the tier, marked as reference.
@@ -1227,7 +1235,7 @@ def _html_services_section(req: LeadSubmitRequest, added_service_label: Optional
             # needed; e-invite paths point at the root-level einvites/
             # folder instead) — do NOT prepend "/img/" here (2026-08-14,
             # per Shruti, fixes e-invite thumbnails 404ing in emails).
-            img_url = f"{SITE_BASE_URL}/{urllib.parse.quote(img_path)}"
+            img_url = img_path if img_path.startswith("http") else f"{SITE_BASE_URL}/{urllib.parse.quote(img_path)}"
             img_html = (
                 f'<img src="{img_url}" width="72" height="72" alt="{_html_escape(svc["label"])}" '
                 f'style="width:72px;height:72px;object-fit:cover;border-radius:8px;flex-shrink:0;margin-right:12px">'
