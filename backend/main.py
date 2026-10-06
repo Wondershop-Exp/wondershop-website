@@ -22,6 +22,8 @@ async def lifespan(app: FastAPI):
     logger.info(f"WS_PHONE_2               : {settings.WS_PHONE_2}")
     logger.info(f"Gmail API configured     : {bool(settings.GMAIL_CLIENT_ID)}")
     await connect_db()
+    from db_ensure import ensure_schema
+    await ensure_schema()   # idempotent column/table top-ups (2026-10-06)
     yield
     await disconnect_db()
 
