@@ -67,6 +67,8 @@ table.list tr:hover td{background:var(--li3)}
 .card h3{font-size:14px;text-transform:uppercase;letter-spacing:.4px;color:var(--pk);margin-bottom:12px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+.grid3 + .grid3{margin-top:16px}   /* space between the Party details rows (2026-10-06) */
+.fld input[readonly]{background:#F4F1FA;color:#4B4060;cursor:not-allowed}
 @media(max-width:600px){.grid2,.grid3{grid-template-columns:1fr}}
 .fld{display:flex;flex-direction:column;gap:4px}
 .fld label{font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);font-weight:600}
@@ -159,12 +161,17 @@ table.list tr:hover td{background:var(--li3)}
       <div class="grid3">
         <div class="fld"><label>Title</label><input type="text" id="cTitle" placeholder="e.g. Advit's 8th Birthday"></div>
         <div class="fld"><label>Event lead</label><input type="text" id="cEventLead" placeholder="e.g. Mitika"></div>
-        <div class="fld"><label>Booking ID (optional)</label><input type="number" id="cLeadId" placeholder="e.g. 214"></div>
+        <div class="fld"><label>Booking ID</label><input type="number" id="cLeadId" placeholder="e.g. 214" onchange="prefillFromBooking(this.value)"></div>
       </div>
       <div class="grid3">
         <div class="fld"><label>Event date</label><input type="text" id="cEventDate" placeholder="e.g. 12Sep"></div>
         <div class="fld"><label>Event time</label><input type="text" id="cEventTime" placeholder="e.g. 11am"></div>
         <div class="fld"><label>Venue</label><input type="text" id="cVenue" placeholder="e.g. Andheri"></div>
+      </div>
+      <div class="grid3">
+        <div class="fld"><label>Child's age</label><input type="text" id="cAges" readonly placeholder="Not on the booking"></div>
+        <div class="fld"><label>Gender</label><input type="text" id="cGenders" readonly placeholder="Not on the booking"></div>
+        <div class="fld"><label>No. of kids</label><input type="text" id="cKids" readonly placeholder="Not on the booking"></div>
       </div>
     </div>
 
@@ -288,7 +295,7 @@ function enterApp(){
     openComposer();
     if(params.get('title')) document.getElementById('cTitle').value = params.get('title');
     if(params.get('event_lead')) document.getElementById('cEventLead').value = params.get('event_lead');
-    if(params.get('lead_id')) document.getElementById('cLeadId').value = params.get('lead_id');
+    if(params.get('lead_id')){ document.getElementById('cLeadId').value = params.get('lead_id'); lockBookingId(true); prefillFromBooking(params.get('lead_id')); }
     if(params.get('event_date')) document.getElementById('cEventDate').value = params.get('event_date');
     if(params.get('event_time')) document.getElementById('cEventTime').value = params.get('event_time');
     if(params.get('venue')) document.getElementById('cVenue').value = params.get('venue');
@@ -343,6 +350,7 @@ function openComposer(){
   document.getElementById('cTitle').value='';
   document.getElementById('cEventLead').value='';
   document.getElementById('cLeadId').value='';
+  lockBookingId(false); showPartyFacts(null);
   document.getElementById('cEventDate').value='';
   document.getElementById('cEventTime').value='';
   document.getElementById('cVenue').value='';
@@ -367,9 +375,11 @@ async function editList(id){
     document.getElementById('cTitle').value = d.title||'';
     document.getElementById('cEventLead').value = d.event_lead||'';
     document.getElementById('cLeadId').value = d.lead_id||'';
+    lockBookingId(!!d.lead_id);
     document.getElementById('cEventDate').value = d.event_date||'';
     document.getElementById('cEventTime').value = d.event_time||'';
     document.getElementById('cVenue').value = d.venue||'';
+    showPartyFacts(d.party);
     document.getElementById('pasteArea').value='';
     SECTIONS = (d.sections||[]).map(s=>({header:s.header, items:(s.items||[]).map(it=>({
       text:it.text, checked:!!it.checked, qty:(it.qty===undefined?null:it.qty),
@@ -572,6 +582,47 @@ async function deleteTemplate(id){
   }catch(e){ showToast(e.message); }
 }
 
+// ── Booking ID / prefill (2026-10-06, per Shruti) ───────────────────────
+// "booking id should be prefetched and not editable, this is not optional.
+// event date, event time, venue should be prefetched if available. age,
+// gender and no. of kids to be mentioned."
+function lockBookingId(lock){
+  const el = document.getElementById('cLeadId');
+  el.readOnly = !!lock;
+  el.title = lock ? 'Linked to this booking — can\'t be changed' : '';
+}
+function showPartyFacts(p){
+  p = p || {};
+  document.getElementById('cAges').value = p.child_ages || '';
+  document.getElementById('cGenders').value = p.child_genders || '';
+  document.getElementById('cKids').value = p.kids_count || '';
+}
+function fmtPackDate(iso){
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso||'');
+  if(!m) return iso||'';
+  return parseInt(m[3],10)+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m[2],10)-1];
+}
+function fmtPackTime(t){
+  const m = /^(\d{1,2}):(\d{2})/.exec(t||'');
+  if(!m) return t||'';
+  const h = parseInt(m[1],10);
+  return ((h%12)||12)+(m[2]==='00'?'':':'+m[2])+(h<12?'am':'pm');
+}
+async function prefillFromBooking(id){
+  id = String(id||'').trim();
+  if(!id) return;
+  try{
+    const d = await apiCall('/api/admin/bookings/'+id);
+    const f = {};
+    (d.sections||[]).forEach(s=>(s.fields||[]).forEach(x=>{ f[x.field_key] = (x.assigned_value || x.customer_choice || ''); }));
+    const fill = (elId, v) => { const el = document.getElementById(elId); if(el && !el.value.trim() && v) el.value = v; };
+    fill('cEventDate', fmtPackDate(f.event_date));
+    fill('cEventTime', fmtPackTime(f.event_time));
+    fill('cVenue', f.venue);
+    showPartyFacts({child_ages: f.child_ages, child_genders: f.child_genders, kids_count: f.kids_count});
+  }catch(e){ showToast ? showToast('Couldn\'t find booking #'+id) : null; }
+}
+
 // ── Save ─────────────────────────────────────────────────────────────────
 async function saveList(){
   const title = document.getElementById('cTitle').value.trim();
@@ -582,6 +633,7 @@ async function saveList(){
   const venue = document.getElementById('cVenue').value.trim();
   const msg = document.getElementById('saveMsg');
   if(!title){ msg.textContent='Give the party a title first.'; msg.style.color='var(--pk)'; return; }
+  if(!leadIdRaw){ msg.textContent='Enter the Booking ID first.'; msg.style.color='var(--pk)'; return; }
   const payloadSections = SECTIONS
     .map(s=>({header:(s.header||'').trim()||'Items', items:s.items.filter(it=>it.text.trim()).map(it=>({
       text:it.text.trim(), checked:!!it.checked,
@@ -593,7 +645,7 @@ async function saveList(){
   try{
     let d;
     if(CURRENT_LIST_ID){
-      await apiCall('/api/admin/packaging/lists/'+CURRENT_LIST_ID+'/meta', {method:'PUT', body:JSON.stringify({title, event_lead:eventLead, event_date:eventDate, event_time:eventTime, venue})});
+      await apiCall('/api/admin/packaging/lists/'+CURRENT_LIST_ID+'/meta', {method:'PUT', body:JSON.stringify({title, event_lead:eventLead, event_date:eventDate, event_time:eventTime, venue, lead_id: leadIdRaw?parseInt(leadIdRaw,10):null})});
       d = await apiCall('/api/admin/packaging/lists/'+CURRENT_LIST_ID+'/content', {method:'PUT', body:JSON.stringify({sections:payloadSections, updated_by:getName()})});
     } else {
       d = await apiCall('/api/admin/packaging/lists', {method:'POST', body:JSON.stringify({

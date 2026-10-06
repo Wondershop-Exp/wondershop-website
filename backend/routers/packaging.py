@@ -92,6 +92,7 @@ class ListMetaIn(BaseModel):
     event_date: Optional[str] = None
     event_time: Optional[str] = None
     venue: Optional[str] = None
+    lead_id: Optional[int] = None   # only fills in a list with no booking yet (2026-10-06)
 
 
 class ListContentIn(BaseModel):
@@ -203,6 +204,17 @@ async def _hydrate(lst) -> dict:
     d["submitted_at"] = _to_ist_str(d.get("submitted_at"))
     d["progress"] = {"checked": checked_count, "total": total}
     d["share_url"] = f"/pack.html?t={d['share_token']}"
+    # The booking's kids' ages / genders and kids count, read live from the
+    # booking (2026-10-06, per Shruti — "age, gender and no. of kids to be
+    # mentioned"); nothing extra stored on the list.
+    d["party"] = None
+    if d.get("lead_id"):
+        b = await database.fetch_one(
+            "SELECT child_names, child_ages, child_genders, kids_count, event_date, event_time, venue "
+            "FROM leads WHERE lead_id = :id", values={"id": d["lead_id"]})
+        if b:
+            d["party"] = {k: (str(b[k]) if b[k] is not None else None) for k in
+                          ("child_names", "child_ages", "child_genders", "kids_count", "event_date", "event_time", "venue")}
     return d
 
 
@@ -261,10 +273,16 @@ async def get_list(list_id: int, x_admin_password: Optional[str] = Header(None))
 @router.put("/admin/packaging/lists/{list_id}/meta")
 async def update_list_meta(list_id: int, body: ListMetaIn, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
-    row = await database.fetch_one("SELECT id FROM packaging_lists WHERE id = :id", values={"id": list_id})
+    row = await database.fetch_one("SELECT id, lead_id FROM packaging_lists WHERE id = :id", values={"id": list_id})
     if not row:
         raise HTTPException(status_code=404, detail="Packaging list not found.")
     sets, values = [], {"id": list_id}
+    # The booking a list belongs to never changes once set; an older list
+    # saved without one can be linked now.
+    if body.lead_id and not row["lead_id"]:
+        if not await database.fetch_one("SELECT 1 FROM leads WHERE lead_id = :l", values={"l": body.lead_id}):
+            raise HTTPException(status_code=400, detail=f"No booking #{body.lead_id}.")
+        sets.append("lead_id = :lead_id"); values["lead_id"] = body.lead_id
     if body.title is not None:
         sets.append("title = :title"); values["title"] = body.title.strip()
     if body.event_lead is not None:

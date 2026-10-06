@@ -225,7 +225,14 @@ async function loadList(silent){
 
 function render(){
   document.getElementById('listTitle').textContent = DATA.title;
-  document.getElementById('listMeta').textContent = DATA.event_lead ? ('Event lead: '+DATA.event_lead) : '';
+  // Kids' age / gender and no. of kids from the booking (2026-10-06).
+  const pty = DATA.party || {};
+  const metaBits = [DATA.event_lead ? 'Event lead: '+DATA.event_lead : '',
+    [DATA.event_date, DATA.event_time, DATA.venue].filter(Boolean).join(' · '),
+    pty.kids_count ? pty.kids_count+' kids' : '',
+    pty.child_ages ? 'Age '+pty.child_ages : '',
+    pty.child_genders ? pty.child_genders : ''].filter(Boolean);
+  document.getElementById('listMeta').textContent = metaBits.join('  ·  ');
   document.getElementById('whoBadge').textContent = 'Packing as ' + getStaffName();
   const p = DATA.progress || {checked:0,total:0};
   const pct = p.total ? Math.round(100*p.checked/p.total) : 0;
