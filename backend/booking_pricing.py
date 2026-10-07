@@ -526,6 +526,19 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
     if std.startswith("yes"):
         add("E-Invite: Save the Date", cat.SAVE_THE_DATE_PRICE)
 
+    # Cake (2026-10-07, per Shruti) — from the sales panel; priced at the
+    # amount entered in "Cake: Price (₹)", else To be confirmed.
+    cake = _resolved(cur, "svc_cake", removed)
+    if cake:
+        try:
+            cake_price = float(str(_resolved(cur, "svc_cake_price", removed) or "").replace(",", "").replace("₹", "").strip() or "nan")
+        except ValueError:
+            cake_price = float("nan")
+        if cake_price == cake_price and cake_price > 0:
+            add(f"Cake: {cake}", cake_price)
+        else:
+            unpriced.append(f"Cake: {cake}")
+
     act_items, act_unpriced = _price_activities(_resolved(cur, "svc_activities", removed), kids)
     for label, amt in act_items:
         add(label, amt)

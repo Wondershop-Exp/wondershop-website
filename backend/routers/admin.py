@@ -223,6 +223,11 @@ FIELD_CATALOG = [
     {"key": "einvite_instructions",  "label": "E-Invite: Instructions",  "section": "Services", "admin_only": True},
     {"key": "svc_photo",       "label": "Photography",       "section": "Services"},
     {"key": "svc_gifts",       "label": "Gifts",              "section": "Services"},
+    # Cake (2026-10-07, per Shruti) — sales-module only (not on the website):
+    # what was ordered + its price, carried over on Convert to Booking and
+    # added to Total MRP (booking_pricing.compute_billing). Assigned = baker.
+    {"key": "svc_cake",        "label": "Cake",               "section": "Services", "admin_only": True},
+    {"key": "svc_cake_price",  "label": "Cake: Price (₹)",    "section": "Services", "admin_only": True},
 
     # Add-ons
     {"key": "addon_dj_lights",       "label": "Music Lights",           "section": "Add-ons"},
@@ -2089,6 +2094,21 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
             if rsvp:
                 to_write.append(("einvite_rsvp", rsvp, None))
 
+    # ── Cake (2026-10-07) — "Chocolate 2kg" + the sales quote for it ──
+    cake = _req("cake")
+    cake_txt = (cake.get("selected") or "").strip()
+    if cake_txt.lower() in ("no", "none"):
+        cake_txt = ""
+    try:
+        cake_cost = float(cake.get("cost")) if cake.get("cost") not in (None, "") else None
+    except (TypeError, ValueError):
+        cake_cost = None
+    if "svc_cake" not in already and (cake_txt or cake_cost):
+        to_write.append(("svc_cake", cake_txt or "Cake",
+                         f"{prefix} {cake['customization']}" if cake.get("customization") else None))
+    if "svc_cake_price" not in already and cake_cost:
+        to_write.append(("svc_cake_price", f"{cake_cost:g}", None))
+
     act_notes = (_req("activity_notes").get("customization") or "").strip()
     if "activities_notes" not in already and act_notes:
         to_write.append(("activities_notes", act_notes, None))
@@ -3035,6 +3055,16 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
                 spy_acts = [{"id": a.get("id"), "n": a.get("n")} for a in (snap.get("activities") or []) if a]
                 included = host_value == cat.SPY_INCLUDED_HOST_TIER and cat.spy_host_included_by(spy_acts)
                 snap["host"] = {"tier": host_value, "p": 0 if included else cat.HOST_TIER_PRICES.get(host_value)}
+
+        # Cake (2026-10-07) — sales-module only, so never in the snapshot.
+        cake_ov = overrides_by_key.get("svc_cake")
+        if cake_ov and (cake_ov["customer_choice_override"] or "").strip():
+            _cp = overrides_by_key.get("svc_cake_price")
+            try:
+                _cp = float(_cp["customer_choice_override"]) if _cp and _cp["customer_choice_override"] not in (None, "") else None
+            except (TypeError, ValueError):
+                _cp = None
+            snap["cake"] = {"n": cake_ov["customer_choice_override"].strip(), "p": _cp}
 
         act_notes_ov = overrides_by_key.get("activities_notes")
         if act_notes_ov and (act_notes_ov["customer_choice_override"] or "").strip():

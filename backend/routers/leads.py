@@ -1104,6 +1104,11 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
     else:
         out.append({"label": "Photographer", "not_selected": True})
 
+    # Cake — sales-module only (2026-10-07); folded in by the admin summary email.
+    cake = snap.get("cake") or {}
+    if cake.get("n"):
+        out.append({"label": "Cake", "name": cake["n"], "price": cake.get("p")})
+
     gifts = snap.get("gifts") or []
     gifts_named = [g for g in gifts if g.get("n")]
     if gifts_named:

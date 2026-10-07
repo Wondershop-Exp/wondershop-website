@@ -4067,6 +4067,11 @@ function fieldRowHtml(f, isCustEvent, locked){
   }else if(f.field_key==='activities_notes'){
     // Client-facing remarks about the activities, from the sales panel (2026-10-07).
     ccCell = '<textarea id="'+rid+'_cc" placeholder="Details about the activities (shown to the client)" style="min-height:64px">'+esc(f.customer_choice||'')+'</textarea>';
+  }else if(f.field_key==='svc_cake_price'){
+    // Cake price (2026-10-07) — added to Total MRP.
+    ccCell = '<span class="pct-wrap"><span class="pct-suffix" style="left:9px;right:auto">₹</span><input type="number" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="—" step="1" min="0" style="padding-left:22px;padding-right:11px"></span>';
+  }else if(f.field_key==='svc_cake'){
+    ccCell = '<input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="e.g. Chocolate truffle, 2 kg">';
   }else if(f.field_key==='venue_handover_time' || f.field_key==='packup_time'){
     // 2026-10-05, per Shruti — from the sales panel; editable here too.
     ccCell = '<input type="time" step="900" id="'+rid+'_cc" value="'+esc((f.customer_choice||'').slice(0,5))+'">';
@@ -4124,7 +4129,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     // — readonly (not disabled) so onPincodeInput() can still set .value
     // programmatically and Save still picks it up.
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Auto-fills from pincode')+'" readonly style="background:var(--lgy);cursor:not-allowed">';
-  }else if(['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','venue_handover_time','packup_time','activities_notes'].includes(f.field_key)){
+  }else if(['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','venue_handover_time','packup_time','activities_notes','svc_cake_price'].includes(f.field_key)){
     avCell = noAssignedCell(rid);
   }else{
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'">';

@@ -198,6 +198,16 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
                       "image": cat.PHOTO_IMAGES.get(tier), "price": amt})
     add("Photographer", lines)
 
+    # 6b. Cake (sales-module only, 2026-10-07)
+    lines = []
+    for label, amt in take("Cake"):
+        lines.append({"name": "Cake", "details": [after(label)], "image": "img/checklist-cake.jpg", "price": amt})
+    for u in take_unpriced("Cake"):
+        lines.append({"name": "Cake", "details": [after(u)], "image": "img/checklist-cake.jpg",
+                      "price": None, "price_text": "To be confirmed"})
+    if lines:
+        add("Cake", lines)
+
     # 7. E-Invite (+ Save the Date)
     lines = []
     for label, amt in take("E-Invite"):
