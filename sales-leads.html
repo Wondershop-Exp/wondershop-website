@@ -218,6 +218,14 @@ th.th-sort:hover{color:var(--pk)}
 .act-item{border:1.5px solid var(--li2);border-radius:10px;overflow:hidden}
 .act-item .act-main{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer}
 .act-item.sel .act-main{background:var(--li3)}
+.call-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.call-form .act-fld{display:grid;gap:4px;font-size:11px;font-weight:600;color:var(--gy);text-transform:uppercase;letter-spacing:.3px}
+.call-first{display:flex;gap:6px;align-items:center;font-size:13px;font-weight:600;color:var(--bk);padding-bottom:9px;cursor:pointer}
+.call-rm-fld{flex:1 1 260px}
+.call-list{margin-top:14px;display:grid;gap:8px}
+.call-row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--li2);border-radius:10px;font-size:13px;background:#FCFBFF}
+.call-rm{margin-top:4px;color:var(--bk);white-space:pre-line}
+.call-by{margin-top:3px;font-size:11px;color:var(--gy)}
 .act-warn{font-size:11px;color:#B45309;font-weight:600;margin-top:3px;max-width:380px;line-height:1.35}
 .act-item .box{width:20px;height:20px;border-radius:6px;border:2px solid var(--li2);background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .act-item.sel .box{background:var(--pk);border-color:var(--pk)}
@@ -303,6 +311,7 @@ body.role-sales .admin-only{display:none!important}
       <button class="btn bk" onclick="doSearch()">Search</button>
       <button class="btn pk" onclick="startNewLead()" id="newLeadBtn">+ Register a lead</button>
     </div>
+    <div style="overflow-x:auto">
     <table class="list" id="listTable">
       <thead><tr>
         <th>ID</th>
@@ -311,6 +320,8 @@ body.role-sales .admin-only{display:none!important}
         <th class="th-sort" id="th_created" onclick="setSort('created')">Created</th>
         <th class="th-sort" id="th_birthday" onclick="setSort('birthday')">Birthday</th>
         <th class="th-sort" id="th_modified" onclick="setSort('modified')">Last Modified</th>
+        <th>Last Call</th>
+        <th class="th-sort" id="th_followup" onclick="setSort('followup')">Follow-up</th>
         <th>Sales Quote</th>
         <th>Stage</th>
         <th class="th-sort" id="th_status" onclick="setSort('status')">Status</th>
@@ -318,6 +329,7 @@ body.role-sales .admin-only{display:none!important}
       </tr></thead>
       <tbody id="listBody"></tbody>
     </table>
+    </div>
     <div class="empty" id="listEmpty" style="display:none">No sales leads yet — register one above.</div>
   </div>
 
@@ -571,12 +583,14 @@ const SORT_ACCESSORS = {
   birthday: r => r.event_date || '',
   modified: r => r.updated_at_ts || 0,
   status:   r => (r.status||'').toLowerCase(),
+  // No follow-up sorts last when ascending (soonest first).
+  followup: r => r.next_followup || (SORT_DIR==='asc' ? '9999' : ''),
 };
-const SORT_LABELS = {created:'Created', birthday:'Birthday', modified:'Last Modified', status:'Status'};
+const SORT_LABELS = {created:'Created', birthday:'Birthday', modified:'Last Modified', followup:'Follow-up', status:'Status'};
 
 function setSort(key){
   if(SORT_KEY===key){ SORT_DIR = SORT_DIR==='desc'?'asc':'desc'; }
-  else{ SORT_KEY=key; SORT_DIR = (key==='status')?'asc':'desc'; }
+  else{ SORT_KEY=key; SORT_DIR = (key==='status'||key==='followup')?'asc':'desc'; }
   renderListRows();
 }
 function sortedRows(){
@@ -598,6 +612,19 @@ function updateSortHeaders(){
     const arrow = active ? (SORT_DIR==='asc'?'\u25B2':'\u25BC') : '\u21C5';
     el.innerHTML = esc(SORT_LABELS[k])+' <span class="sort-arrow'+(active?' active':'')+'">'+arrow+'</span>';
   });
+}
+// Follow-up date/time — red when due/overdue (2026-10-07).
+function fmtFollowup(v){
+  if(!v) return '';
+  const [d, t] = String(v).split('T');
+  let out = fmtDateStr(d);
+  if(t){ const [h, m] = t.split(':').map(Number); out += ', '+((h%12)||12)+':'+String(m).padStart(2,'0')+(h<12?' am':' pm'); }
+  return out;
+}
+function followupHtml(v){
+  if(!v) return '—';
+  const due = new Date(String(v).length>10 ? v : v+'T23:59') <= new Date();
+  return '<span style="'+(due?'color:#B42318;font-weight:700':'')+'" title="'+(due?'Follow-up due':'')+'">'+esc(fmtFollowup(v))+'</span>';
 }
 function statusCellHtml(r){
   if(r.is_booking || !LEAD_STATUS_OPTIONS.length){
@@ -654,6 +681,8 @@ function renderListRows(){
       +'<td>'+fmtTs(r.created_at_ts)+'</td>'
       +'<td>'+fmtDateStr(r.event_date)+'</td>'
       +'<td>'+fmtTs(r.updated_at_ts)+'</td>'
+      +'<td>'+(r.last_call_date ? fmtDateStr(r.last_call_date)+(r.last_disposition?'<br><span style="color:var(--gy);font-size:12px">'+esc(r.last_disposition)+'</span>':'') : '<span style="color:var(--gy)">Not called</span>')+'</td>'
+      +'<td>'+followupHtml(r.next_followup)+'</td>'
       +'<td>'+(money(r.revenue_potential)||'—')+'</td>'
       +'<td>'+stagePill+suggPill+'</td>'
       +'<td>'+statusCellHtml(r)+'</td>'
@@ -934,6 +963,7 @@ function renderDetail(){
         +'<a class="btn sm gh" href="sales-lead-print.html?lead_id='+DATA.lead_id+'" target="_blank" style="text-decoration:none;display:inline-block">🖨 Print playbook</a></div>'
     +'</div>'
     + sectionStatus()
+    + sectionCalls()
     + sectionClientDetails()
     + sectionRequirements()
     + sectionSchedule()
@@ -1327,6 +1357,60 @@ async function flushPendingSave(){
 // and /convert endpoints (2026-09-16, per Shruti: "add a button to update
 // status of the lead (same as admin module) as converted or non converted
 // with reason"). ────────────────────────────────────────────────────────
+// ── Call log (2026-10-07, per Shruti — replaces the Google Sheet) ─────────
+// Each call: date (+ first call), disposition, follow-up date/time, remarks.
+// Saved straight away (not with the page's Save button).
+function todayIso(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function sectionCalls(){
+  const calls = (DATA.call_log||[]).slice().sort((a,b)=>((b.date||'')+(b.at||'')).localeCompare((a.date||'')+(a.at||'')));
+  const disps = DATA.call_dispositions || ['Unanswered','Call back later','Wrong number'];
+  const inp = 'padding:9px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px;background-color:#fff';
+  const list = calls.length ? calls.map(c=>
+      '<div class="call-row"><div class="call-main">'
+      + '<b>'+fmtDateStr(c.date)+'</b>'+(c.first_call?' <span class="pill pill-intake" style="font-size:10.5px;padding:2px 8px">First call</span>':'')
+      + (c.disposition?' · '+esc(c.disposition):'')
+      + (c.followup_at?' · <span style="color:var(--gy)">Follow-up</span> '+followupHtml(c.followup_at):'')
+      + (c.remarks?'<div class="call-rm">'+esc(c.remarks)+'</div>':'')
+      + '<div class="call-by">'+esc(c.by||'')+'</div></div>'
+      + '<button type="button" class="icon-btn" title="Delete this call" onclick="deleteCall(\''+esc(c.id)+'\')">✕</button></div>'
+    ).join('') : '<div style="font-size:12.5px;color:var(--gy)">No calls logged yet.</div>';
+  return '<div class="card"><h3>Calls</h3>'
+    + '<div class="call-form">'
+      + '<label class="act-fld">Call date<input type="date" id="callDate" value="'+todayIso()+'" style="'+inp+'"></label>'
+      + '<label class="call-first"><input type="checkbox" id="callFirst" '+((DATA.call_log||[]).length?'':'checked')+'> First call</label>'
+      + '<label class="act-fld">Disposition<select id="callDisp" style="'+inp+'"><option value="">—</option>'+disps.map(x=>'<option>'+esc(x)+'</option>').join('')+'</select></label>'
+      + '<label class="act-fld">Follow-up date &amp; time<input type="datetime-local" id="callFollowup" step="900" style="'+inp+'"></label>'
+      + '<label class="act-fld call-rm-fld">Remarks<textarea id="callRemarks" rows="2" style="'+inp+';resize:vertical" placeholder="What was discussed / next step"></textarea></label>'
+      + '<button type="button" class="btn pk" id="addCallBtn" onclick="addCall()">+ Add call</button>'
+    + '</div>'
+    + '<div class="call-list">'+list+'</div></div>';
+}
+async function saveCallLog(newLog, okMsg){
+  const res = await apiCall('/api/admin/sales-leads/'+CURRENT_ID, {method:'PATCH',
+    body: JSON.stringify({updated_by: getName() || 'Someone', call_log: newLog})});
+  DATA.call_log = res.call_log || newLog;
+  showToast(okMsg);
+  renderDetailKeepFocus();
+}
+async function addCall(){
+  const g = id => document.getElementById(id);
+  const entry = {
+    id: 'c'+Date.now(), date: g('callDate').value, first_call: g('callFirst').checked,
+    disposition: g('callDisp').value || null, followup_at: g('callFollowup').value || null,
+    remarks: g('callRemarks').value.trim() || null, by: getName() || null, at: new Date().toISOString(),
+  };
+  if(!entry.date){ showToast('Pick the call date.'); return; }
+  if(!entry.disposition && !entry.followup_at && !entry.remarks){ showToast('Add a disposition, follow-up or remarks for this call.'); return; }
+  const btn = g('addCallBtn'); btn.disabled = true;
+  try{ await saveCallLog((DATA.call_log||[]).concat([entry]), 'Call saved.'); }
+  catch(e){ showToast(e.message || 'Could not save the call.'); btn.disabled = false; }
+}
+async function deleteCall(id){
+  if(!confirm('Delete this call from the log?')) return;
+  try{ await saveCallLog((DATA.call_log||[]).filter(c=>c.id!==id), 'Call deleted.'); }
+  catch(e){ showToast(e.message || 'Could not delete the call.'); }
+}
+
 function sectionStatus(){
   const d = DATA;
   if(d.is_booking){

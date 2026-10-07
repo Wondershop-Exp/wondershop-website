@@ -347,6 +347,7 @@ class PatchIn(BaseModel):
     fields: Dict[str, Any] = {}                     # any subset of LEAD_FIELD_MAP / PLAYBOOK_SCALAR_FIELDS keys
     requirements: Optional[Dict[str, Any]] = None    # shallow-merged in, category by category
     event_schedule: Optional[list] = None            # full replace — [{"time","item"}]
+    call_log: Optional[list] = None                  # full replace — see _clean_call_log (2026-10-07)
     # 2026-09-25, per Shruti — "the save button in sales page is a live
     # save. I don't want that. I want the user to update all the values
     # and then click on save like a standard form." sales-leads.html no
@@ -678,10 +679,55 @@ def _is_blank_sheet(lead, pb) -> bool:
     for col in PLAYBOOK_SCALAR_FIELDS:
         if _has_content(pb.get(col)):
             return False
-    for col in ("requirements", "activities", "new_activity_suggestions", "event_schedule"):
+    for col in ("requirements", "activities", "new_activity_suggestions", "event_schedule", "call_log"):
         if _has_content(_json_val(pb.get(col))):
             return False
     return True
+
+
+# ─── Call log (2026-10-07, per Shruti) ──────────────────────────────────────
+# Replaces the sales team's Google Sheet columns: call date (+ first call),
+# disposition, follow-up date/time, remarks — one entry per call.
+CALL_DISPOSITIONS = ["Unanswered", "Call back later", "Wrong number"]
+
+
+def _clean_call_log(entries: list, by: str) -> list:
+    out = []
+    for e in entries or []:
+        if not isinstance(e, dict):
+            continue
+        date_s = str(e.get("date") or "").strip()[:10]
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_s):
+            raise HTTPException(status_code=400, detail="Each call needs a call date.")
+        disp = (e.get("disposition") or "").strip() or None
+        if disp and disp not in CALL_DISPOSITIONS:
+            raise HTTPException(status_code=400, detail=f"Disposition must be one of {', '.join(CALL_DISPOSITIONS)}.")
+        fu = str(e.get("followup_at") or "").strip()[:16] or None
+        if fu and not re.fullmatch(r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?", fu):
+            raise HTTPException(status_code=400, detail="Follow-up must be a date and time.")
+        out.append({
+            "id": str(e.get("id") or "")[:40] or f"c{len(out) + 1}",
+            "date": date_s, "first_call": bool(e.get("first_call")),
+            "disposition": disp, "followup_at": fu,
+            "remarks": (str(e.get("remarks") or "").strip()[:2000]) or None,
+            "by": (str(e.get("by") or by or "").strip()[:80]) or None,
+            "at": str(e.get("at") or "")[:30] or None,
+        })
+    return out
+
+
+def _call_summary(call_log) -> dict:
+    """Latest call (by call date, then entry time) and its follow-up."""
+    calls = _json_val(call_log) or []
+    calls = [c for c in calls if isinstance(c, dict) and c.get("date")]
+    if not calls:
+        return {"calls": 0, "last_call_date": None, "last_disposition": None, "next_followup": None}
+    ordered = sorted(calls, key=lambda c: (c.get("date") or "", c.get("at") or ""))
+    last = ordered[-1]
+    # The most recently set follow-up (a later call without one keeps it).
+    fu = next((c.get("followup_at") for c in reversed(ordered) if c.get("followup_at")), None)
+    return {"calls": len(calls), "last_call_date": last.get("date"),
+            "last_disposition": last.get("disposition"), "next_followup": fu}
 
 
 async def _full_detail(lead_row) -> dict:
@@ -697,6 +743,8 @@ async def _full_detail(lead_row) -> dict:
     sugg = json.loads(sugg) if isinstance(sugg, str) else (sugg or [])
     sched = pb.get("event_schedule")
     sched = json.loads(sched) if isinstance(sched, str) else (sched or [])
+    calls = pb.get("call_log")
+    calls = json.loads(calls) if isinstance(calls, str) else (calls or [])
 
     log_rows = []
     if pb.get("id"):
@@ -791,6 +839,8 @@ async def _full_detail(lead_row) -> dict:
         "activities": acts,
         "new_activity_suggestions": sugg,
         "event_schedule": sched,
+        "call_log": calls,
+        "call_dispositions": CALL_DISPOSITIONS,
         "notes_special_instructions": pb.get("notes_special_instructions"),
         "notes_changes_updates": pb.get("notes_changes_updates"),
         "volunteers_general": pb.get("volunteers_general"),
@@ -842,7 +892,7 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
         f"""SELECT l.lead_id, l.parent_name, l.phone, l.event_date, l.is_booking, l.status,
                    l.child_ages, l.child_genders, l.client_budget,
                    p.id AS playbook_id, p.playbook_stage, p.created_by, p.created_at,
-                   p.updated_by, p.updated_at, p.new_activity_suggestions
+                   p.updated_by, p.updated_at, p.new_activity_suggestions, p.call_log
             FROM leads l
             JOIN lead_sales_playbook p ON p.lead_id = l.lead_id
             WHERE {where}
@@ -883,6 +933,7 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
             "revenue_potential": float(d["client_budget"]) if d["client_budget"] is not None else None,
             "is_booking": bool(d["is_booking"]),
             "is_blank": d["lead_id"] in blank_ids,
+            **_call_summary(d.get("call_log")),
             "status": d["status"],
             "playbook_stage": d["playbook_stage"],
             "created_by": d["created_by"],
@@ -1065,6 +1116,11 @@ async def patch_sheet(lead_id: int, body: PatchIn, x_admin_password: Optional[st
         pb_sets.append("event_schedule = CAST(:sched AS JSONB)")
         pb_values["sched"] = json.dumps(body.event_schedule)
         changed.append("event_schedule")
+
+    if body.call_log is not None:
+        pb_sets.append("call_log = CAST(:calls AS JSONB)")
+        pb_values["calls"] = json.dumps(_clean_call_log(body.call_log, by))
+        changed.append("call_log")
 
     if body.activities is not None:
         pb_sets.append("activities = CAST(:acts AS JSONB)")

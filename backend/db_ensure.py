@@ -20,6 +20,7 @@ SAFE_MIGRATIONS = [
     "040_to_be_confirmed.sql",
     "041_decor_reference_images.sql",
     "042_status_did_not_enquire.sql",
+    "043_sales_call_log.sql",
 ]
 
 
