@@ -150,6 +150,9 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         note = cat.activity_venue_note(None, name)
         lines.append({"name": name, "details": [note] if note else [], "image": cat.resolve_activity_image(None, name),
                       "price": None, "price_text": "Price on request"})
+    if cust_val("activities_notes"):   # remarks about the activities (2026-10-07)
+        lines.append({"name": "Activity notes", "details": cust_val("activities_notes").splitlines(),
+                      "image": None, "price": None})
     add("Activities", lines)
 
     # 3. Host

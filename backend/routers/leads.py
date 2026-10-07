@@ -1040,8 +1040,9 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
             ],
             # Venue requirement (e.g. popcorn station: ventilated, not for
             # home setups) — 2026-10-05, per Shruti.
-            "note": " ".join(n for n in dict.fromkeys(
-                cat.activity_venue_note(a.get("id"), a.get("n")) for a in acts_named) if n) or None,
+            "note": " ".join(n for n in list(dict.fromkeys(
+                cat.activity_venue_note(a.get("id"), a.get("n")) for a in acts_named))
+                + [snap.get("activities_notes")] if n) or None,   # + sales remarks (2026-10-07)
         })
     else:
         out.append({"label": "Activities", "not_selected": True})

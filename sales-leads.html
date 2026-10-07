@@ -2311,6 +2311,10 @@ function sectionActivities(){
       + '<button type="button" class="btn sm gh" onclick="addActivityFromPicker()">Add</button>'
     + '</div>'
     + '<div class="act-list" id="actList" style="margin-top:12px"></div>'
+    // Notes about the activities (2026-10-07) — shown to the client on the
+    // quotation / party plan and email, and carried to the booking.
+    + '<div style="margin-top:12px"><div style="font-size:11px;font-weight:600;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Activity remarks</div>'
+    + custBox('activity_notes', 'Details about the activities — e.g. stations set up in the garden, slime colours, age split… (shown to the client)')+'</div>'
     + '<div class="add-new-act">'
       + '<input type="text" id="newActInput" placeholder="Not in the list? Type it as free text and add" onkeydown="if(event.key===\'Enter\')submitNewActivity()">'
       + '<button type="button" onclick="submitNewActivity()">Add</button>'

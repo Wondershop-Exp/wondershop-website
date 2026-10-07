@@ -780,9 +780,10 @@ const LOCATION_TYPE_OPTIONS = [
   {value:'', label:'Select'},
   {value:'Home', label:'Home'},
   {value:'Society Banquet', label:'Banquet Hall'},
+  {value:'Society Banquet Hall', label:'Society Banquet Hall'},   // 2026-10-07
   {value:'Club', label:'Club / Resort'},
   {value:'Restaurant', label:'Restaurant'},
-  {value:'Outdoor', label:'Outdoor'},
+  {value:'Turf', label:'Turf'},   // replaces Outdoor (2026-10-07)
   {value:'Other', label:'Other'},
   {value:'Not Decided', label:'Not Decided Yet'},
 ];
@@ -4063,6 +4064,9 @@ function fieldRowHtml(f, isCustEvent, locked){
     // 2026-09-23, per Shruti -- "i want event schedule in admin like this"
     // (same Time/Item row editor as the Sales panel, not a free-text box).
     ccCell = renderEventScheduleEditor(rid, f.customer_choice||'');
+  }else if(f.field_key==='activities_notes'){
+    // Client-facing remarks about the activities, from the sales panel (2026-10-07).
+    ccCell = '<textarea id="'+rid+'_cc" placeholder="Details about the activities (shown to the client)" style="min-height:64px">'+esc(f.customer_choice||'')+'</textarea>';
   }else if(f.field_key==='venue_handover_time' || f.field_key==='packup_time'){
     // 2026-10-05, per Shruti — from the sales panel; editable here too.
     ccCell = '<input type="time" step="900" id="'+rid+'_cc" value="'+esc((f.customer_choice||'').slice(0,5))+'">';
@@ -4120,7 +4124,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     // — readonly (not disabled) so onPincodeInput() can still set .value
     // programmatically and Save still picks it up.
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Auto-fills from pincode')+'" readonly style="background:var(--lgy);cursor:not-allowed">';
-  }else if(['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','venue_handover_time','packup_time'].includes(f.field_key)){
+  }else if(['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','venue_handover_time','packup_time','activities_notes'].includes(f.field_key)){
     avCell = noAssignedCell(rid);
   }else{
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'">';

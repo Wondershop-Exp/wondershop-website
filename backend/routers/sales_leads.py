@@ -105,9 +105,11 @@ DECOR_TIER_ORDER = ["Classic", "Premium", "Signature", "Luxury"]
 VENUE_TYPES = [
     {"value": "Home", "label": "Home"},
     {"value": "Society Banquet", "label": "Banquet Hall"},
+    # 2026-10-07, per Shruti — "add society banquet hall and turf. remove outdoor"
+    {"value": "Society Banquet Hall", "label": "Society Banquet Hall"},
     {"value": "Club", "label": "Club / Resort"},
     {"value": "Restaurant", "label": "Restaurant"},
-    {"value": "Outdoor", "label": "Outdoor"},
+    {"value": "Turf", "label": "Turf"},
     {"value": "Other", "label": "Other"},
     {"value": "Not Decided", "label": "Not Decided Yet"},
 ]
@@ -1500,6 +1502,9 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
         if it["quote"] < it["mrp"] - 0.5:
             ln["strike"] = it["mrp"]
         lines.append(ln)
+    act_notes = (r("activity_notes").get("customization") or "").strip()
+    if act_notes:   # 2026-10-07 — the rep's remarks about the activities
+        lines.append({"name": "Activity notes", "details": act_notes.splitlines(), "image": None, "price": None})
     add("Activities", lines)
 
     # 3. Host (+ host gifts add-on)

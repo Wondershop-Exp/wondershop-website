@@ -652,7 +652,7 @@ PACKAGING_LABELS = {
 # picture next to each quoted item. Paths are relative to SITE_BASE_URL,
 # same convention as the resolvers above. Activity photos mirror the
 # img/... path builder.html's ACTS array shows for each id ('img/' + img +
-# '.jpg'); ids with no real photo on the site (Mallakhamb, Ball Pool) are
+# '.jpg'); ids with no real photo on the site (Mallakhamb) are
 # left out, so the PDF shows no picture rather than a wrong one. Keep in
 # sync by hand with builder.html, like everything else in this file.
 ACTIVITY_IMAGES = {
@@ -714,6 +714,7 @@ ACTIVITY_IMAGES = {
     "jumping-2in1": "img/activity/act-2in1-jumping.jpg",
     "balloon-house": "img/activity/act-balloon-house.jpg",
     "play-area": "img/activity/act-play-area.jpg",
+    "ball-pool": "img/activity/act-ball-pool.jpg",   # 2026-10-07, from "Ball Pool 10x10.png"
     "trampoline": "img/activity/act-trampoline.jpg",
     "toy-train": "img/activity/act-toy-train.jpg",
     "cotton-candy": "img/activity/act-cotton-candy.jpg",

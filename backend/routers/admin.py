@@ -209,6 +209,9 @@ FIELD_CATALOG = [
     # vendor/host/volunteer name (free text for now).
     {"key": "svc_decor",       "label": "Decor",             "section": "Services"},
     {"key": "svc_activities",  "label": "Activities",        "section": "Services"},
+    # Client-facing remarks about the activities, from the sales panel
+    # (2026-10-07) — on the party plan PDF and the summary email.
+    {"key": "activities_notes", "label": "Activities: Remarks",  "section": "Services", "admin_only": True},
     {"key": "svc_host",        "label": "Host",               "section": "Services"},
     {"key": "svc_dj",          "label": "Music (DJ)",        "section": "Services"},
     {"key": "svc_pinata",      "label": "Piñata",            "section": "Services"},
@@ -2084,6 +2087,12 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
             rsvp = ", ".join(x for x in [details.get("rsvp_name"), details.get("rsvp_mobile")] if x)
             if rsvp:
                 to_write.append(("einvite_rsvp", rsvp, None))
+
+    act_notes = (_req("activity_notes").get("customization") or "").strip()
+    if "activities_notes" not in already and act_notes:
+        to_write.append(("activities_notes", act_notes, None))
+
+    if details:
         if "einvite_instructions" not in already and details.get("instructions"):
             to_write.append(("einvite_instructions", details["instructions"], None))
 
@@ -2973,6 +2982,10 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
                 spy_acts = [{"id": a.get("id"), "n": a.get("n")} for a in (snap.get("activities") or []) if a]
                 included = host_value == cat.SPY_INCLUDED_HOST_TIER and cat.spy_host_included_by(spy_acts)
                 snap["host"] = {"tier": host_value, "p": 0 if included else cat.HOST_TIER_PRICES.get(host_value)}
+
+        act_notes_ov = overrides_by_key.get("activities_notes")
+        if act_notes_ov and (act_notes_ov["customer_choice_override"] or "").strip():
+            snap["activities_notes"] = act_notes_ov["customer_choice_override"].strip()
 
         if snap != (fake_req.builder_snapshot or {}):
             fake_req.builder_snapshot = snap
