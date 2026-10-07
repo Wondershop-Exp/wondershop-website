@@ -1733,7 +1733,8 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
 
 
 @router.get("/admin/sales-leads/{lead_id}/quotation.pdf")
-async def quotation_pdf(lead_id: int, by: Optional[str] = None, x_admin_password: Optional[str] = Header(None)):
+async def quotation_pdf(lead_id: int, by: Optional[str] = None, hide_total: bool = False,
+                        x_admin_password: Optional[str] = Header(None)):
     """The customer quotation as a PDF download (see the section comment
     above). Uses what's SAVED on the lead — sales-leads.html saves any
     pending edits before calling this. Logged to the lead's edit history."""
@@ -1748,6 +1749,8 @@ async def quotation_pdf(lead_id: int, by: Optional[str] = None, x_admin_password
     from booking_quote import apply_decor_ref
     from routers.decor_refs import current_for_lead
     apply_decor_ref(data, images, await current_for_lead(lead_id, with_image=True))
+    # "Hide total" (2026-10-07) — for showing several combinations of options.
+    data["hide_total"] = bool(hide_total)
     pdf = build_quotation_pdf(data, images)
     actor = (by or "").strip() or "Someone"
     try:
@@ -1755,7 +1758,8 @@ async def quotation_pdf(lead_id: int, by: Optional[str] = None, x_admin_password
         # (migration 028) with no quotation action, so a new action name was
         # rejected and the history entry silently dropped (found 2026-10-05).
         await _log(pb_row["id"], actor, "updated",
-                   detail=f"quotation generated: {data['quote_no']} · estimated total {inr(data['totals']['estimate'])}")
+                   detail=f"quotation generated: {data['quote_no']} · estimated total {inr(data['totals']['estimate'])}"
+                          + (" (total hidden on the PDF)" if hide_total else ""))
     except Exception:
         logger.exception(f"Lead #{lead_id}: couldn't log quotation_generated")
     fname = quotation_filename(data)

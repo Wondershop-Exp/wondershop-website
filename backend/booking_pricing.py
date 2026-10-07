@@ -374,6 +374,17 @@ def to_be_confirmed(cur: dict, removed: set, snap: Optional[dict] = None, lead: 
                     "why": "Custom design — confirm the design brief with the customer"
                            + (f" (theme: {theme})" if theme else ""),
                     "price_editable": True})
+    # Custom activities typed on the sales panel (2026-10-07, per Shruti —
+    # "if the price is given - add that to the quote as well to the booking.
+    # Shruti can review it later"): not in the catalogue, so they live only
+    # here, written on Convert to Booking (admin.py) as "custom:<name>".
+    for key, st in state.items():
+        if key.startswith("custom:") and isinstance(st, dict) and st.get("custom") and not st.get("removed"):
+            name = st.get("name") or key[len("custom:"):]
+            out.append({"key": key, "kind": "custom", "name": name,
+                        "label": f"Activity: {name} (custom)",
+                        "why": "Custom activity added by sales — review the price & availability",
+                        "price_editable": True})
     for it in out:
         st = state.get(it["key"]) or {}
         it["status"] = "confirmed" if st.get("status") == "confirmed" else "pending"
@@ -537,6 +548,8 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
     # to_be_confirmed()) replace their unpriced / list-price line.
     for t in to_be_confirmed(cur, removed, snap, lead):
         if t.get("price") in (None, ""):
+            if t["kind"] == "custom":
+                unpriced.append(t["label"])   # custom activity, no price yet
             continue
         try:
             price = float(t["price"])
@@ -544,6 +557,8 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
             continue
         if t["kind"] == "activity":
             drop = (lambda l, n=t["name"]: l == f"Activity: {n}")
+        elif t["kind"] == "custom":
+            drop = (lambda l: False)   # no catalogue line to replace
         elif t["kind"] == "pinata":
             drop = (lambda l: l.startswith("Piñata:"))
         else:

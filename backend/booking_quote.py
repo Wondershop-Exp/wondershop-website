@@ -106,7 +106,8 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
 
     def after(label):
         name = label.split(":", 1)[1].strip() if ":" in label else label
-        return re.sub(r"\s*\((confirmed|quoted, to be confirmed)\)$", "", name)
+        name = re.sub(r"\s*\((confirmed|quoted, to be confirmed)\)$", "", name)
+        return re.sub(r"\s*\(custom\)$", "", name)   # custom activity (2026-10-07) — internal tag
 
     sections = []
 

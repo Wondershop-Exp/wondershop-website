@@ -241,7 +241,11 @@ th.th-sort:hover{color:var(--pk)}
 .act-item.sel .act-assign{display:grid}
 .act-item .act-assign input{padding:8px 10px;border:1px solid var(--li2);border-radius:7px;font-size:12.5px}
 .add-new-act{display:flex;gap:8px;margin-top:6px}
-.add-new-act input{flex:1;padding:11px 12px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px}
+.add-new-act input,.add-new-act select{flex:1;padding:11px 12px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px;min-width:0}
+.add-new-act #newActPrice{flex:0 0 160px}
+.add-new-act select{flex:0 0 118px;background-color:#fff}
+@media(max-width:600px){.add-new-act{flex-wrap:wrap}.add-new-act #newActInput{flex:1 1 100%}}
+.act-custom{display:inline-block;font-size:10.5px;font-weight:700;color:#7A4B00;background:#FFF4D6;border-radius:999px;padding:1px 8px;margin-top:3px}
 .add-new-act button{padding:0 15px;border:none;border-radius:8px;background:var(--plum);color:#fff;font-weight:700;font-size:12.5px}
 .sugg-list{margin-top:10px;display:flex;flex-direction:column;gap:6px}
 .sugg-item{font-size:12.5px;background:#FFF7EC;border:1px solid #F3DFB0;color:#8A6A1E;border-radius:9px;padding:8px 11px}
@@ -913,13 +917,14 @@ function canShareFiles(){
     return !!(navigator.canShare && navigator.canShare({files:[new File([''], 'q.pdf', {type:'application/pdf'})]}));
   }catch(e){ return false; }
 }
+let QUOTE_HIDE_TOTAL = false;
 async function getQuotation(share){
   const btn = document.getElementById(share ? 'quoteShareBtn' : 'quoteBtn');
   const label = btn ? btn.textContent : '';
   if(!(await ensureSavedBeforeAction())){ showToast('Save failed — fix that first, then try the quotation again.'); return; }
   if(btn){ btn.disabled = true; btn.textContent = 'Preparing…'; }
   try{
-    const res = await fetch(API+'/api/admin/sales-leads/'+CURRENT_ID+'/quotation.pdf?by='+encodeURIComponent(getName()),
+    const res = await fetch(API+'/api/admin/sales-leads/'+CURRENT_ID+'/quotation.pdf?by='+encodeURIComponent(getName())+(QUOTE_HIDE_TOTAL?'&hide_total=true':''),
       {headers:{'X-Admin-Password':getPw()}});
     if(!res.ok){ const b = await res.json().catch(()=>({})); throw new Error(b.detail || ('Could not create the quotation ('+res.status+')')); }
     const blob = await res.blob();
@@ -964,6 +969,9 @@ function renderDetail(){
         +(DATA.is_blank ? '<button type="button" class="btn sm gh" id="discardLeadBtn" style="color:#B42318" onclick="askDeleteLead('+DATA.lead_id+')">🗑 Delete blank lead</button>' : '')
         +'<button type="button" class="btn sm pk" id="quoteBtn" onclick="getQuotation(false)" title="Customer quotation PDF — pictures, prices and estimated total, ready to send on WhatsApp">📄 Quotation PDF</button>'
         +(canShareFiles() ? '<button type="button" class="btn sm gh" id="quoteShareBtn" onclick="getQuotation(true)" title="Share the quotation PDF straight to WhatsApp">📤 Share</button>' : '')
+        // Hide total (2026-10-07, per Shruti) — for quotes showing several
+        // combinations of options; just this download, not saved.
+        +'<label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--gy);cursor:pointer" title="Leave the Estimated Total off the PDF — useful when you\'re showing the client several options to combine"><input type="checkbox" id="quoteHideTotal"'+(QUOTE_HIDE_TOTAL?' checked':'')+' onchange="QUOTE_HIDE_TOTAL=this.checked"> Hide total</label>'
         +'<a class="btn sm gh" href="sales-lead-print.html?lead_id='+DATA.lead_id+'" target="_blank" style="text-decoration:none;display:inline-block">🖨 Print playbook</a></div>'
     +'</div>'
     + sectionStatus()
@@ -1203,7 +1211,7 @@ function listBreakdown(){
     // sales person typed in (2026-10-03) — twin of _list_breakdown().
     const qUnit = num(a.price), cUnit = (catA && Number(catA.price)) ? Number(catA.price) : qUnit;
     const mult = flat ? 1 : actQty(a);   // per-activity kids count (2026-10-05)
-    items.push({label:'Activity: '+a.name+(flat?'':' ('+mult+' × '+money(cUnit||0)+')'),
+    items.push({label:'Activity: '+a.name+(a.custom?' (custom'+(qUnit?'':', price to be confirmed')+')':'')+(flat?'':' ('+mult+' × '+money(cUnit||0)+')'),
                 mrp: (cUnit||0)*mult, quote: (qUnit===null ? cUnit||0 : qUnit)*mult});
   });
   const r2 = v => Math.round(v*100)/100;
@@ -2316,7 +2324,12 @@ function sectionActivities(){
     + '<div style="margin-top:12px"><div style="font-size:11px;font-weight:600;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Activity remarks</div>'
     + custBox('activity_notes', 'Details about the activities — e.g. stations set up in the garden, slime colours, age split… (shown to the client)')+'</div>'
     + '<div class="add-new-act">'
-      + '<input type="text" id="newActInput" placeholder="Not in the list? Type it as free text and add" onkeydown="if(event.key===\'Enter\')submitNewActivity()">'
+      // Custom activity (2026-10-07, per Shruti): name + optional price ->
+      // goes on the quote, Grand Total and the booking (To be confirmed
+      // card, for Shruti to review later).
+      + '<input type="text" id="newActInput" placeholder="Not in the list? Type the activity" onkeydown="if(event.key===\'Enter\')submitNewActivity()">'
+      + '<input type="number" id="newActPrice" min="0" step="1" placeholder="Price ₹ (optional)" onkeydown="if(event.key===\'Enter\')submitNewActivity()">'
+      + '<select id="newActUnit" title="Is the price for the whole group or per child?"><option value="flat">Flat price</option><option value="child">Per child</option></select>'
       + '<button type="button" onclick="submitNewActivity()">Add</button>'
     + '</div>'
     + '<div class="sugg-list" id="suggList"></div>'
@@ -2450,7 +2463,7 @@ function renderActivities(){
       const rm = '<button type="button" class="icon-btn" onclick="toggleActivity(\''+a.id+'\',\''+nameJs+'\',null,null)" title="Remove">✕</button>';
       if(a.flat){
         return '<div class="act-item sel"><div class="act-main" style="cursor:default;flex-wrap:wrap;gap:8px">'
-          + '<div class="an">'+esc(a.name)+'<div class="act-ref">Flat · list price '+(listPrice!=null?money(listPrice):'—')+'</div>'+venueNote(a)+'</div>'
+          + '<div class="an">'+esc(a.name)+(a.custom ? customActTag() : '<div class="act-ref">Flat · list price '+(listPrice!=null?money(listPrice):'—')+'</div>')+venueNote(a)+'</div>'
           + '<label class="act-fld">Sales Quote (₹)<input type="number" min="0" step="1" style="width:120px;'+inp+'" value="'+(a.price==null?'':Number(a.price))+'" onblur="onActField(\''+idJs+'\',\'price\',this.value)"></label>'
           + '<div class="ap">'+money(Number(a.price)||0)+'</div>'
           + rm + '</div></div>';
@@ -2458,7 +2471,7 @@ function renderActivities(){
       const q = actQty(a);
       const lineTotal = (Number(a.price)||0) * q;
       return '<div class="act-item sel"><div class="act-main" style="cursor:default;flex-wrap:wrap;gap:8px">'
-        + '<div class="an">'+esc(a.name)+'<div class="act-ref">Per child · list price '+(listPrice!=null?money(listPrice):'—')+'/child'
+        + '<div class="an">'+esc(a.name)+(a.custom ? customActTag() : '')+'<div class="act-ref">Per child'+(a.custom?'':' · list price '+(listPrice!=null?money(listPrice):'—')+'/child')
           + (a.qty==null ? (kids ? ' · kids = # Kids above' : ' · # Kids not set yet') : '')+'</div>'+venueNote(a)+'</div>'
         + '<label class="act-fld">Kids<input type="number" min="0" step="1" style="width:72px;'+inp+'" value="'+q+'" onblur="onActField(\''+idJs+'\',\'qty\',this.value)"></label>'
         + '<span style="color:var(--gy)">×</span>'
@@ -2541,20 +2554,43 @@ async function onActivityAssign(id, field, value){
     showToast(e.message||"Couldn't save that.");
   }
 }
-async function submitNewActivity(){
+function customActTag(){
+  return '<div><span class="act-custom" title="Not in the activity list — Shruti reviews it on the booking">Custom activity · Shruti will review</span></div>';
+}
+// 2026-10-07, per Shruti — "for custom activities, the same should reflect in
+// the confirm booking section list as well. when the user adds this - they
+// will also add a price (optional). if the price is given - add that to the
+// quote as well to the booking. Shruti can review it later. let the quote go
+// for now". A custom activity is now a normal entry in DATA.activities
+// (custom:true, id "custom-…"), staged and saved with the Save button like
+// any other pick — so it's in the breakup, Sales Quote, quotation PDF and,
+// on Convert to Booking, the booking's To be confirmed card.
+function submitNewActivity(){
   const input = document.getElementById('newActInput');
   const text = input.value.trim();
-  if(!text) return;
-  try{
-    DATA = await apiCall('/api/admin/sales-leads/'+CURRENT_ID+'/new-activity', {
-      method:'POST', body: JSON.stringify({added_by:getName(), text}) });
-    input.value = '';
-    renderActivities();
-    renderHistory();
-    showToast('Added — Shruti will take a look.');
-  }catch(e){
-    showToast(e.message||"Couldn't add that.");
+  if(!text){ input.focus(); return; }
+  const pEl = document.getElementById('newActPrice');
+  const price = pEl.value === '' ? null : Math.max(0, Number(pEl.value));
+  if(price !== null && isNaN(price)){ showToast('Enter the price as a number.'); return; }
+  const flat = (document.getElementById('newActUnit')||{}).value !== 'child';
+  const chosen = DATA.activities || [];
+  if(chosen.some(a=>(a.name||'').trim().toLowerCase() === text.toLowerCase())){ showToast('That activity is already added.'); return; }
+  // Typed the name of an activity that IS in the list -> add that one.
+  const catA = (CATALOGUE.activities||[]).find(x=>x.name.trim().toLowerCase() === text.toLowerCase());
+  if(catA){
+    toggleActivity(catA.id, catA.name, price!==null ? price : catA.price, catA.flat);
+    input.value = ''; pEl.value = '';
+    showToast(catA.name+' is in the activity list — added from there.');
+    return;
   }
+  const next = chosen.concat([{id:'custom-'+Date.now().toString(36), name:text, price: price || null, flat,
+                               custom:true, added_by:getName(), volunteer:null, materials:null}]);
+  DATA.activities = next;
+  patchSheet({activities: next});
+  input.value = ''; pEl.value = '';
+  renderActivities();
+  renderHistory();
+  showToast(price ? 'Added to the quote — click Save. Shruti will review it on the booking.' : 'Added (price to be confirmed) — click Save.');
 }
 
 // ── 5. Notes ─────────────────────────────────────────────────────────────

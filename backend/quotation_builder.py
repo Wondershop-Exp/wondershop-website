@@ -78,6 +78,7 @@ SECTION_ICONS = {
     "E-Invite": "img/icons/icon-invite.png",
     "Photographer": "img/icons/icon-photographer.png",
     "Return Gifts": "img/icons/icon-gift.png",
+    "Cake": "img/icons/icon-cake.png",   # 2026-10-07 — was missing (no icon)
 }
 MASCOT_PATH = "img/icons/icon-mascot-kids.png"
 
@@ -247,6 +248,20 @@ def quotation_filename(data: dict) -> str:
     kind = "Party-Plan" if data.get("booked") else "Quotation"
     qno = "".join(c for c in str(data.get("quote_no") or "") if c.isalnum() or c in "-_")
     return f"Wondershop-{kind}-{safe}-{qno}.pdf".replace("--", "-")
+
+
+def _totals_block(story, notes, tt, tw, W):
+    """The notes + totals box at the end of the quotation."""
+    note_p = Paragraph("<br/><br/>".join(notes), _style("tn", size=8.4, color=MUTED, leading=11.6))
+    tot_wrap = Table([[note_p, tt]], colWidths=[W - tw - 6 * mm, tw + 6 * mm])
+    tot_wrap.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("LEFTPADDING", (1, 0), (1, 0), 6 * mm),
+        ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    story.append(KeepTogether([Spacer(1, 1 * mm), tot_wrap]))
+    story.append(Spacer(1, 7 * mm))
 
 
 def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
@@ -489,16 +504,19 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
         notes.append("Items marked <i>Price on request</i> or <i>To be confirmed</i> are not included in the "
                      "Estimated Total; your Party Experience Lead will confirm them.")
     notes.append("All prices are estimates for the details shown above (date, venue and number of kids).")
-    note_p = Paragraph("<br/><br/>".join(notes), _style("tn", size=8.4, color=MUTED, leading=11.6))
-    tot_wrap = Table([[note_p, tt]], colWidths=[W - tw - 6 * mm, tw + 6 * mm])
-    tot_wrap.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("LEFTPADDING", (1, 0), (1, 0), 6 * mm),
-        ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-    ]))
-    story.append(KeepTogether([Spacer(1, 1 * mm), tot_wrap]))
-    story.append(Spacer(1, 7 * mm))
+    if data.get("hide_total"):
+        # 2026-10-07, per Shruti — "give an option to the user to hide total
+        # from the quote as the user might want to show multiple combinations
+        # of options": no totals box, just the per-item prices and a note.
+        notes = ["<b>Prices are shown for each option.</b> Pick the combination that suits your party — "
+                 "your Party Experience Lead will share the total for it."]
+        if T.get("gift_total") or any(sec.get("billed_separately") and sec.get("lines") for sec in data.get("sections") or []):
+            notes.append("Return gifts are billed separately, after we confirm stock.")
+        notes.append("All prices are estimates for the details shown above (date, venue and number of kids).")
+        story.append(Paragraph("<br/>".join(notes), _style("tn", size=8.6, color=MUTED, leading=12)))
+        story.append(Spacer(1, 7 * mm))
+    else:
+        _totals_block(story, notes, tt, tw, W)
 
     # ── terms ────────────────────────────────────────────────────────────
     terms = [

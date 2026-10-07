@@ -1954,7 +1954,8 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
         if names:
             to_write.append(("svc_activities", ", ".join(names), remark))
         else:
-            raw = ", ".join(a.get("name", "") for a in activities if a.get("name"))
+            # Custom activities go to the To be confirmed card instead (below).
+            raw = ", ".join(a.get("name", "") for a in activities if a.get("name") and not a.get("custom"))
             if raw:
                 to_write.append(("svc_activities", None, remark or f"{prefix} {raw}"))
 
@@ -2175,10 +2176,47 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
                 price = None
             if name in POR_ACTIVITY_NAMES and price:
                 por_prices[name] = price
-        if por_prices:
+        # Custom activities (2026-10-07, per Shruti) — "if the price is given
+        # - add that to the quote as well to the booking. Shruti can review it
+        # later": each becomes a "custom:<name>" To be confirmed item, its
+        # sales price (flat, or per child × kids) already in Total MRP.
+        customs = {}
+        valid_names_all = {o["value"] for o in ACTIVITY_OPTIONS}
+        _kids_c = None
+        for a in activities:
+            if not a.get("custom") or not (a.get("name") or "").strip():
+                continue
+            if a.get("name") in valid_names_all:
+                continue   # typed as custom but it IS a catalogue activity — already in svc_activities
+            if _kids_c is None:
+                try:
+                    _kids_c = int(await database.fetch_val("SELECT kids_count FROM leads WHERE lead_id = :id", values={"id": lead_id}) or 0)
+                except Exception:
+                    _kids_c = 0
+            try:
+                unit = float(a.get("price")) if a.get("price") not in (None, "") else None
+            except (TypeError, ValueError):
+                unit = None
+            try:
+                qty = int(float(a["qty"])) if a.get("qty") not in (None, "") else (_kids_c or 1)
+            except (TypeError, ValueError):
+                qty = _kids_c or 1
+            flat = bool(a.get("flat", True))
+            price = (unit if flat else unit * qty) if unit else None
+            how = (f"₹{unit:,.0f} flat" if flat else f"{qty} kids × ₹{unit:,.0f}") if unit else "no price yet"
+            customs[a["name"].strip()] = {"price": price,
+                                          "note": f"Custom activity from sales ({a.get('added_by') or who}): {how}"}
+        if por_prices or customs:
             lead_now = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
             state = tbc_state(dict(lead_now)) if lead_now else {}
             changed = False
+            for name, c in customs.items():
+                key = f"custom:{name}"
+                if key in state:
+                    continue
+                state[key] = {"custom": True, "name": name, "status": "pending", "price": c["price"],
+                              "note": c["note"], "by": who, "at": _to_ist_str(now)}
+                changed = True
             for name, price in por_prices.items():
                 key = f"act:{name}"
                 if (state.get(key) or {}).get("price") is not None:
@@ -2803,7 +2841,8 @@ async def update_tbc_item(lead_id: int, body: TbcUpdateRequest, x_admin_password
     lead_row = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
     state = tbc_state(dict(lead_row))
     now = datetime.utcnow()
-    state[body.key] = {"status": body.status, "price": body.price,
+    keep = {k: v for k, v in (state.get(body.key) or {}).items() if k in ("custom", "name")}   # custom activity
+    state[body.key] = {**keep, "status": body.status, "price": body.price,
                        "note": (body.note or "").strip() or None,
                        "by": who, "at": _to_ist_str(now)}
     try:
@@ -2940,6 +2979,20 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
                     acts.append({"n": name, "id": match[0] if match else None, "p": match[2] if match else None})
                 if acts:
                     snap["activities"] = acts
+
+        # Custom activities from the sales panel (2026-10-07) — on the To be
+        # confirmed card, not in svc_activities; listed in the email too.
+        try:
+            _lr = await database.fetch_one("SELECT tbc_items FROM leads WHERE lead_id = :id", values={"id": lead_id})
+            for _k, _st in tbc_state(dict(_lr) if _lr else {}).items():
+                if _k.startswith("custom:") and isinstance(_st, dict) and _st.get("custom"):
+                    _nm = _st.get("name") or _k[7:]
+                    if not any((a or {}).get("n") == _nm for a in (snap.get("activities") or [])):
+                        snap["activities"] = list(snap.get("activities") or []) + [
+                            {"n": _nm, "id": None, "p": _st.get("price"),
+                             "price_on_request": _st.get("price") in (None, "")}]
+        except Exception:
+            logger.exception(f"Lead #{lead_id}: couldn't add custom activities to the email")
 
         einv_ov = overrides_by_key.get("svc_einvite")
         if not (snap.get("einvite") or {}).get("n") and einv_ov:
