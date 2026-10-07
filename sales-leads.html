@@ -218,10 +218,14 @@ th.th-sort:hover{color:var(--pk)}
 .act-item{border:1.5px solid var(--li2);border-radius:10px;overflow:hidden}
 .act-item .act-main{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer}
 .act-item.sel .act-main{background:var(--li3)}
-.call-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.call-form{display:grid;grid-template-columns:minmax(150px,1fr) auto minmax(170px,1fr) minmax(200px,1.3fr);gap:10px 14px;align-items:start}
+.call-form .act-fld input,.call-form .act-fld select,.call-form .act-fld textarea{width:100%;box-sizing:border-box;font-family:inherit}
+.call-form .act-fld input,.call-form .act-fld select{height:40px}
+.call-form #addCallBtn{justify-self:start}
+@media(max-width:700px){.call-form{grid-template-columns:1fr 1fr}}
 .call-form .act-fld{display:grid;gap:4px;font-size:11px;font-weight:600;color:var(--gy);text-transform:uppercase;letter-spacing:.3px}
-.call-first{display:flex;gap:6px;align-items:center;font-size:13px;font-weight:600;color:var(--bk);padding-bottom:9px;cursor:pointer}
-.call-rm-fld{flex:1 1 260px}
+.call-first{display:flex;gap:6px;align-items:center;font-size:13px;font-weight:600;color:var(--bk);height:40px;margin-top:17px;cursor:pointer}
+.call-rm-fld{grid-column:1/-1}
 .call-list{margin-top:14px;display:grid;gap:8px}
 .call-row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--li2);border-radius:10px;font-size:13px;background:#FCFBFF}
 .call-rm{margin-top:4px;color:var(--bk);white-space:pre-line}
