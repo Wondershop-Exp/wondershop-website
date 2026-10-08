@@ -323,3 +323,62 @@ async def dismiss_pending_update(vendor_id: int, x_admin_password: Optional[str]
         raise HTTPException(status_code=404, detail="Vendor not found.")
     logger.info(f"Vendor {vendor_id}: pending onboarding update dismissed")
     return _row_out(out)
+
+
+# ─── Decorator rate cards (2026-10-08, per Shruti) ──────────────────────────
+# Rate cards decorators submit with the public partner form (see
+# routers/vendor_onboarding.py and migrations/044). Read by
+# decor-rate-cards.html, which lines decorators up side by side so the team
+# can pick the best fit on price and quality. Admin-only (security.py keeps
+# every /api/admin call closed to the sales login unless listed there).
+@router.get("/decor-rate-cards")
+async def list_decor_rate_cards(x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    rows = await database.fetch_all(
+        """SELECT c.id, c.vendor_id, c.vendor_name, c.mobile, c.language, c.rate_card,
+                  c.reviewed, c.submitted_on,
+                  v.is_active, v.locality, v.city, v.pincode, v.name AS vendor_master_name,
+                  COALESCE((SELECT array_agg(p.id ORDER BY p.id) FROM decor_rate_card_photos p
+                            WHERE p.rate_card_id = c.id), '{}') AS photo_ids
+             FROM decor_rate_cards c
+             LEFT JOIN vendor_master v ON v.vendor_id = c.vendor_id
+            ORDER BY c.submitted_on DESC, c.id DESC"""
+    )
+    out = []
+    for r in rows:
+        d = dict(r)
+        card = d.get("rate_card")
+        if isinstance(card, (str, bytes)):
+            try:
+                card = json.loads(card)
+            except ValueError:
+                card = {}
+        d["rate_card"] = card if isinstance(card, dict) else {}
+        d["photo_ids"] = list(d.get("photo_ids") or [])
+        d["submitted_on_ist"] = _to_ist_str(d.pop("submitted_on", None))
+        out.append(d)
+    return out
+
+
+@router.get("/decor-rate-cards/photos/{photo_id}")
+async def get_decor_rate_card_photo(photo_id: int, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    row = await database.fetch_one(
+        "SELECT image, image_type FROM decor_rate_card_photos WHERE id = :id", {"id": photo_id}
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Photo not found.")
+    kind = row["image_type"] if row["image_type"] in ("image/jpeg", "image/png", "image/webp") else "application/octet-stream"
+    return Response(content=bytes(row["image"]), media_type=kind,
+                    headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=3600"})
+
+
+@router.post("/decor-rate-cards/{card_id}/reviewed")
+async def mark_decor_rate_card_reviewed(card_id: int, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    done = await database.fetch_val(
+        "UPDATE decor_rate_cards SET reviewed = TRUE WHERE id = :id RETURNING id", {"id": card_id}
+    )
+    if not done:
+        raise HTTPException(status_code=404, detail="Rate card not found.")
+    return {"ok": True}

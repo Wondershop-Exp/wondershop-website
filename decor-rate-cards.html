@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Decor Rate Cards — Wondershop Admin</title>
+<link rel="icon" type="image/png" href="logo-square.png">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Hind:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Decorator rate cards (2026-10-08, per Shruti: "This quote we'll track for
+     multiple decorators and offer the pricing based on who is the best fit in
+     terms of price and quality"). Admin-only: uses the admin password saved by
+     admin.html in this browser (or asks for it). Data comes from
+     /api/admin/decor-rate-cards - see backend/routers/vendors.py. -->
+<style>
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;font-family:'Hind',sans-serif;background:#FFFBF5;color:#1E1B2E;font-size:15px}
+.top{background:#1E1B2E;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.top b{font:700 20px 'Baloo 2',sans-serif}
+.top a{color:#FDE7C7;font-size:14px}
+.wrap{max-width:1300px;margin:0 auto;padding:20px 16px 60px}
+h1{font:700 26px 'Baloo 2',sans-serif;margin:0 0 4px}
+.sub{color:#5B5670;margin:0 0 16px}
+.login{max-width:360px;background:#fff;border:2px solid #E7DFD3;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.login input{height:46px;border:2px solid #CFC7BC;border-radius:10px;padding:0 12px;font:500 16px 'Hind',sans-serif}
+button{font-family:'Hind',sans-serif;cursor:pointer}
+.btn{min-height:42px;padding:0 16px;border:0;border-radius:10px;background:#C2410C;color:#fff;font-weight:700;font-size:15px}
+.btn.ghost{background:#fff;color:#1E1B2E;border:2px solid #CFC7BC}
+.err{color:#B91C1C;font-weight:600}
+.tblwrap{overflow-x:auto;background:#fff;border:2px solid #E7DFD3;border-radius:14px}
+table{border-collapse:collapse;width:100%;min-width:980px}
+th,td{padding:10px 12px;border-bottom:1px solid #F1EADF;text-align:left;vertical-align:top;white-space:nowrap}
+th{font-size:13px;color:#5B5670;font-weight:600;background:#FFF6EA;position:sticky;top:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.row{cursor:pointer}
+tr.row:hover td{background:#FFF6EA}
+tr.row.sel td{background:#FDE7C7}
+.best{color:#0F766E;font-weight:700}
+.na{color:#A39CAE}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700}
+.pill.new{background:#FDE7C7;color:#9A3412}
+.pill.ok{background:#E8F3F1;color:#0F766E}
+.note{font-size:12px;color:#5B5670;display:block}
+.detail{margin-top:20px;background:#fff;border:2px solid #E7DFD3;border-radius:14px;padding:18px}
+.detail h2{font:700 22px 'Baloo 2',sans-serif;margin:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px}
+.box{border:1px solid #E7DFD3;border-radius:12px;padding:12px}
+.box h3{margin:0 0 6px;font:700 17px 'Baloo 2',sans-serif}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed #F1EADF}
+.kv span:last-child{font-weight:600;text-align:right}
+.photos{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.photos img{width:160px;height:160px;object-fit:cover;border-radius:10px;border:1px solid #E7DFD3;cursor:zoom-in}
+.empty{padding:30px;text-align:center;color:#5B5670}
+.lightbox{position:fixed;inset:0;background:rgba(30,27,46,.85);display:flex;align-items:center;justify-content:center;z-index:10}
+.lightbox img{max-width:94vw;max-height:90vh;border-radius:10px}
+</style>
+</head>
+<body>
+<div class="top"><b>Decor Rate Cards</b><a href="admin.html">← Admin</a><a href="vendor-onboarding.html" target="_blank" rel="noopener">Partner form</a></div>
+<div class="wrap">
+  <h1>Decorators side by side</h1>
+  <p class="sub">Latest rate card per decorator. Lowest price in each column is green. Click a row for the full card, the per-design exceptions and their photos.</p>
+  <div id="login" class="login" hidden>
+    <label for="pw"><b>Admin password</b></label>
+    <input id="pw" type="password" autocomplete="current-password">
+    <button class="btn" id="loginBtn" type="button">Open</button>
+    <span class="err" id="loginErr"></span>
+  </div>
+  <div id="app" hidden>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <label><input type="checkbox" id="showAll"> Show older submissions too</label>
+      <button class="btn ghost" type="button" id="reload">Refresh</button>
+      <span class="err" id="appErr"></span>
+    </div>
+    <div class="tblwrap"><table id="tbl"></table></div>
+    <div id="detail"></div>
+  </div>
+</div>
+<script>
+const API = 'https://wondershop-website-production.up.railway.app';
+const TIERS = [['classic','Classic'],['premium','Premium'],['luxury','Luxury'],['signature','Signature']];
+const ZONES = [[1,'Central'],[2,'Western'],[3,'South'],[4,'Thane/Navi'],[5,'Malad–Mira'],[6,'Far']];
+let CARDS = [], SEL = null;
+const photoCache = {};
+
+function getPw(){ try{ return localStorage.getItem('ws_admin_pw') || ''; }catch(e){ return ''; } }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function rs(n){ return (n || n === 0) && n !== '' ? '₹' + Number(n).toLocaleString('en-IN') : ''; }
+
+async function api(path, opts){
+  opts = opts || {};
+  opts.headers = Object.assign({'X-Admin-Password': getPw()}, opts.headers || {});
+  const res = await fetch(API + path, opts);
+  if(res.status === 401){ showLogin('Password not accepted — please enter it again.'); throw new Error('auth'); }
+  if(!res.ok){ const d = await res.json().catch(() => ({})); throw new Error(d.detail || ('Error ' + res.status)); }
+  return res;
+}
+
+function showLogin(msg){
+  document.getElementById('app').hidden = true;
+  document.getElementById('login').hidden = false;
+  document.getElementById('loginErr').textContent = msg || '';
+}
+
+document.getElementById('loginBtn').onclick = () => {
+  const pw = document.getElementById('pw').value;
+  try{ localStorage.setItem('ws_admin_pw', pw); }catch(e){}
+  load();
+};
+document.getElementById('pw').addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('loginBtn').click(); });
+document.getElementById('reload').onclick = () => load();
+document.getElementById('showAll').onchange = () => render();
+
+async function load(){
+  if(!getPw()){ showLogin(); return; }
+  document.getElementById('appErr').textContent = '';
+  try{
+    const res = await api('/api/admin/decor-rate-cards');
+    CARDS = await res.json();
+    document.getElementById('login').hidden = true;
+    document.getElementById('app').hidden = false;
+    render();
+  }catch(e){
+    if(e.message !== 'auth') document.getElementById('appErr').textContent = e.message;
+  }
+}
+
+function visible(){
+  if(document.getElementById('showAll').checked) return CARDS;
+  const seen = new Set();
+  return CARDS.filter(c => { if(seen.has(c.mobile)) return false; seen.add(c.mobile); return true; });
+}
+
+function tierCell(t){
+  if(!t) return '<span class="na">—</span>';
+  if(!t.does) return '<span class="na">Don\'t do</span>';
+  const other = (t.designs || []).filter(d => d.mode === 'other').length;
+  const no = (t.designs || []).filter(d => d.mode === 'no').length;
+  const note = (other || no) ? `<span class="note">${other ? other + ' other' : ''}${other && no ? ' · ' : ''}${no ? no + ' can\'t' : ''}</span>` : '';
+  return rs(t.rate) + note;
+}
+
+function render(){
+  const rows = visible();
+  const tbl = document.getElementById('tbl');
+  if(!rows.length){ tbl.innerHTML = '<tr><td class="empty">No rate cards yet. They appear here when a decorator submits the partner form.</td></tr>'; document.getElementById('detail').innerHTML=''; return; }
+  // lowest value per column (only among decorators who quoted it)
+  const min = {};
+  rows.forEach(c => {
+    const rc = c.rate_card || {};
+    TIERS.forEach(([k]) => { const t = (rc.tiers || {})[k]; if(t && t.does && t.rate) min[k] = Math.min(min[k] ?? Infinity, t.rate); });
+    ((rc.transport || {}).zones || []).forEach(z => { if(z.serves && z.rate) min['z' + z.zone] = Math.min(min['z' + z.zone] ?? Infinity, z.rate); });
+  });
+  let h = '<tr><th>Decorator</th><th>Submitted</th><th>Area</th><th>Exp.</th>' +
+    TIERS.map(([, l]) => `<th class="num">${l}</th>`).join('') +
+    ZONES.map(([n, l]) => `<th class="num">Z${n} ${l}</th>`).join('') + '<th>Photos</th><th>Status</th></tr>';
+  rows.forEach(c => {
+    const rc = c.rate_card || {}, tiers = rc.tiers || {}, zones = {};
+    ((rc.transport || {}).zones || []).forEach(z => zones[z.zone] = z);
+    h += `<tr class="row${SEL === c.id ? ' sel' : ''}" data-id="${c.id}">
+      <td><b>${esc(c.vendor_name)}</b><span class="note">${esc(c.mobile)}</span></td>
+      <td>${esc(c.submitted_on_ist || '')}</td>
+      <td>${esc([c.locality, c.pincode].filter(Boolean).join(' · '))}</td>
+      <td>${esc((rc.about || {}).years || '')}</td>` +
+      TIERS.map(([k]) => { const t = tiers[k]; const best = t && t.does && t.rate && t.rate === min[k] && rows.length > 1; return `<td class="num${best ? ' best' : ''}">${tierCell(t)}</td>`; }).join('') +
+      ZONES.map(([n]) => { const z = zones[n]; if(!z) return '<td class="num na">—</td>'; if(!z.serves) return '<td class="num na">Don\'t go</td>'; const best = z.rate === min['z' + n] && rows.length > 1; return `<td class="num${best ? ' best' : ''}">${rs(z.rate)}</td>`; }).join('') +
+      `<td>${(c.photo_ids || []).length}</td><td>${c.reviewed ? '<span class="pill ok">Reviewed</span>' : '<span class="pill new">New</span>'}</td></tr>`;
+  });
+  tbl.innerHTML = h;
+  tbl.querySelectorAll('tr.row').forEach(tr => tr.onclick = () => { SEL = Number(tr.dataset.id); render(); showDetail(SEL); });
+  if(SEL) showDetail(SEL);
+}
+
+function kv(k, v){ return `<div class="kv"><span>${esc(k)}</span><span>${v}</span></div>`; }
+
+async function showDetail(id){
+  const c = CARDS.find(x => x.id === id);
+  const el = document.getElementById('detail');
+  if(!c){ el.innerHTML = ''; return; }
+  const rc = c.rate_card || {}, a = rc.about || {};
+  let h = `<div class="detail"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
+    <div><h2>${esc(c.vendor_name)}</h2><span class="note">${esc(c.mobile)} · submitted ${esc(c.submitted_on_ist || '')} · form language: ${esc(rc.language || '')}${c.vendor_id ? ' · partner #' + c.vendor_id : ''}</span></div>
+    ${c.reviewed ? '<span class="pill ok">Reviewed</span>' : `<button class="btn" type="button" id="markRev">Mark reviewed</button>`}</div>
+    <div class="grid"><div class="box"><h3>About</h3>${kv('Years in decoration', esc(a.years || '—'))}${kv('Team size', esc(a.team || '—'))}${kv('Decors per day', esc(a.decors_per_day || '—'))}${kv('Flex pickup from office', esc(rc.flex_pickup || '—'))}${kv('Minimum notice', esc(rc.min_notice || '—'))}
+    ${a.page_link ? kv('Page', `<a href="${esc(/^https?:\/\//.test(a.page_link) ? a.page_link : 'https://' + a.page_link)}" target="_blank" rel="noopener">open</a>`) : ''}
+    ${rc.remarks ? `<p class="note" style="margin-top:8px">${esc(rc.remarks)}</p>` : ''}</div>`;
+  TIERS.forEach(([k, l]) => {
+    const t = (rc.tiers || {})[k];
+    h += `<div class="box"><h3>${l}</h3>`;
+    if(!t || !t.does){ h += '<span class="na">Doesn\'t do this decor</span></div>'; return; }
+    h += kv('Rate (normal balloons)', rs(t.rate)) + kv('Pastel extra', rs(t.pastel_extra) || '—') + kv('Chrome extra', rs(t.chrome_extra) || '—') + kv('Set-up time', esc(t.setup_time || '—'));
+    const ex = (t.designs || []).filter(d => d.mode !== 'same');
+    h += ex.length ? '<p style="margin:8px 0 2px;font-weight:700">Exceptions</p>' + ex.map(d => kv(d.name, d.mode === 'other' ? rs(d.rate) : '<span class="na">Can\'t do</span>')).join('') : '<p class="note" style="margin-top:6px">Same rate for all ' + (t.designs || []).length + ' website designs</p>';
+    if(t.remarks) h += `<p class="note" style="margin-top:8px">${esc(t.remarks)}</p>`;
+    h += '</div>';
+  });
+  h += '<div class="box"><h3>Transport</h3>' + ((rc.transport || {}).zones || []).map(z => kv(`Zone ${z.zone} · ${z.name}`, z.serves ? rs(z.rate) : '<span class="na">Don\'t go</span>')).join('') +
+    ((rc.transport || {}).remarks ? `<p class="note" style="margin-top:8px">${esc(rc.transport.remarks)}</p>` : '') + '</div></div>';
+  h += `<h3 style="font:700 18px 'Baloo 2',sans-serif;margin:18px 0 0">Photos of their work</h3><div class="photos" id="photos">${(c.photo_ids || []).length ? '' : '<span class="na">None</span>'}</div></div>`;
+  el.innerHTML = h;
+  const mr = document.getElementById('markRev');
+  if(mr) mr.onclick = async () => { try{ await api(`/api/admin/decor-rate-cards/${c.id}/reviewed`, {method:'POST'}); c.reviewed = true; render(); }catch(e){ if(e.message !== 'auth') alertBox(e.message); } };
+  const box = document.getElementById('photos');
+  for(const pid of (c.photo_ids || [])){
+    try{
+      if(!photoCache[pid]){ const res = await api('/api/admin/decor-rate-cards/photos/' + pid); photoCache[pid] = URL.createObjectURL(await res.blob()); }
+      const img = document.createElement('img'); img.src = photoCache[pid]; img.alt = 'Work photo';
+      img.onclick = () => { const lb = document.createElement('div'); lb.className = 'lightbox'; lb.innerHTML = `<img src="${photoCache[pid]}" alt="">`; lb.onclick = () => lb.remove(); document.body.appendChild(lb); };
+      if(SEL === c.id) box.appendChild(img);
+    }catch(e){ /* skip a photo that fails */ }
+  }
+}
+function alertBox(msg){ document.getElementById('appErr').textContent = msg; }
+load();
+</script>
+</body>
+</html>

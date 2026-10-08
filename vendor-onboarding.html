@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="logo-square.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Hind:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -92,12 +92,13 @@ a{color:var(--pk)}
 .ft a{color:var(--gy);text-decoration:underline}
 </style>
 <style id="ws-no-caret">/* hide stray text cursor on non-editable text (2026-10-03) */body{caret-color:transparent}input,textarea,select,[contenteditable],[contenteditable] *{caret-color:auto}</style><style id="ws-select-arrow">/* every dropdown: own chevron with room from the edge (2026-10-05) */select:not([multiple]):not([size]){-webkit-appearance:none;appearance:none;padding-right:36px;background-repeat:no-repeat;background-position:right 14px center;background-size:10px 6px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}select::-ms-expand{display:none}</style>
+<link rel="stylesheet" href="css/vendor-decor.css">
 </head>
 <body>
 
 <div class="wrap">
   <div class="hdr">
-    <a href="index.html"><img src="logo-horizontal.png" alt="Wondershop Experiences"></a>
+    <a href="index.html"><img src="logo-horizontal-dark.png" alt="Wondershop Experiences"></a>
   </div>
 
   <div class="card" id="formCard">
@@ -143,6 +144,8 @@ a{color:var(--pk)}
         <label>Please specify</label>
         <input type="text" id="f_deals_other">
       </div>
+      <!-- Decorator rate card (2026-10-08) - filled in by js/decor-rate-card.js -->
+      <div id="decorCallout" hidden></div>
       <div class="row2">
         <div class="fld">
           <label>Mobile Number *</label>
@@ -196,6 +199,8 @@ a{color:var(--pk)}
         <div class="loc-chips" id="locChips"></div>
       </div>
 
+      <div id="decorSection" hidden></div>
+
       <div class="sec-h">Payment Details</div>
       <div class="sec-sub">Upload a cancelled cheque or a bank passbook photo — <strong>or</strong> fill in your bank details manually below. Either one works, we just need one of them so we can pay you correctly.</div>
 
@@ -247,6 +252,9 @@ a{color:var(--pk)}
   <div class="ft">Having trouble? WhatsApp us at <a href="https://wa.me/919742240477" target="_blank" rel="noopener">+91 97422 40477</a></div>
 </div>
 
+<script src="js/decor-rate-card-data.js"></script>
+<script src="js/decor-rate-card-designs.js"></script>
+<script src="js/decor-rate-card.js"></script>
 <script>
 const WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -352,6 +360,7 @@ const dealsSelect = document.getElementById('f_deals');
 const dealsOtherFld = document.getElementById('dealsOtherFld');
 dealsSelect.addEventListener('change', () => {
   dealsOtherFld.style.display = dealsSelect.value === 'Others' ? 'block' : 'none';
+  if(window.WSDecor) WSDecor.toggle(dealsSelect.value === 'Decorator');
 });
 
 // ── Field validation (2026-09-30, per Shruti: "add validations on mobile
@@ -457,6 +466,18 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
     deals = dealsOther;
   }
 
+  // Decorator rate card (2026-10-08): must be complete before sending.
+  const isDecorator = deals === 'Decorator' && window.WSDecor;
+  if(isDecorator){
+    const check = WSDecor.validate();
+    if(check.error){
+      showErr(check.error);
+      if(check.el && check.el.scrollIntoView) setTimeout(() => check.el.scrollIntoView({behavior:'smooth', block:'center'}), 400);
+      if(check.el && check.el.focus) check.el.focus({preventScroll:true});
+      return;
+    }
+  }
+
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
   btn.textContent = 'Submitting…';
@@ -480,6 +501,7 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   fd.append('bank_account_number', bankAcc);
   fd.append('bank_ifsc_code', bankIfsc);
   if(hasFile) fd.append('cancelled_cheque', fileInput.files[0]);
+  if(isDecorator) await WSDecor.appendTo(fd);
 
   try{
     const res = await fetch(WS_API_BASE + '/api/vendor-onboarding/submit', {method:'POST', body: fd});

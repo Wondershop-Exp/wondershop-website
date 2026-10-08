@@ -21,6 +21,7 @@ SAFE_MIGRATIONS = [
     "041_decor_reference_images.sql",
     "042_status_did_not_enquire.sql",
     "043_sales_call_log.sql",
+    "044_decor_rate_cards.sql",
 ]
 
 

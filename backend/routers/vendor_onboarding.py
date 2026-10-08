@@ -25,7 +25,7 @@ import logging
 import re
 import time
 from difflib import SequenceMatcher
-from typing import Optional
+from typing import List, Optional
 
 import httpx
 from fastapi import APIRouter, Form, File, UploadFile, HTTPException
@@ -185,6 +185,77 @@ async def _update_existing_vendor(mobile: str, values: dict, file_bytes, file_na
     return True
 
 
+# ─── Decorator rate card (2026-10-08, per Shruti) ───────────────────────────
+# When the partner picks "Decorator", vendor-onboarding.html adds a Decor Rate
+# Card section: a rate for each of the 4 standard decors (with pastel/chrome
+# extras and, per website design, same rate / other rate / can't do), a
+# transport rate per Mumbai zone, flex pickup, booking notice and 1-5 photos of
+# past work. It arrives as one JSON form field plus the photos, and is saved to
+# decor_rate_cards / decor_rate_card_photos (migrations/044) so the team can
+# compare decorators side by side (decor-rate-cards.html).
+_MAX_RATE_CARD_CHARS = 200_000
+MAX_WORK_PHOTOS = 5
+_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+
+def _parse_rate_card(raw: Optional[str]) -> Optional[dict]:
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    if len(raw) > _MAX_RATE_CARD_CHARS:
+        raise HTTPException(status_code=400, detail="The decor rate card is too long — please shorten the remarks.")
+    try:
+        card = json.loads(raw)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="We could not read the decor rate card — please try again.")
+    if not isinstance(card, dict) or not isinstance(card.get("tiers"), dict):
+        raise HTTPException(status_code=400, detail="We could not read the decor rate card — please try again.")
+    return card
+
+
+async def _read_work_photos(files) -> list:
+    photos = []
+    for f in files or []:
+        if f is None or not getattr(f, "filename", None):
+            continue
+        if len(photos) >= MAX_WORK_PHOTOS:
+            raise HTTPException(status_code=400, detail=f"Please add at most {MAX_WORK_PHOTOS} photos of your work.")
+        raw = await f.read(MAX_FILE_BYTES + 1)
+        if len(raw) > MAX_FILE_BYTES:
+            raise HTTPException(status_code=400, detail="One of the work photos is too large — please keep each under 5MB.")
+        if not raw:
+            continue
+        kind = _sniff_file_type(raw)
+        if kind not in _IMAGE_TYPES:
+            raise HTTPException(status_code=400, detail="Work photos must be JPG, PNG or WEBP images.")
+        photos.append((raw, kind, _safe_filename(f.filename)))
+    return photos
+
+
+async def _save_rate_card(card: dict, photos: list, vendor_name: str, mobile: str) -> None:
+    prim, alt = _DIGITS.format(c="primary_mobile"), _DIGITS.format(c="alternate_mobile")
+    language = str(card.get("language") or "")[:5] or None
+    async with database.transaction():
+        vendor_id = await database.fetch_val(
+            f"SELECT vendor_id FROM vendor_master WHERE duplicate_of_id IS NULL AND ({prim} = :m OR {alt} = :m) "
+            f"ORDER BY ({prim} = :m) DESC, vendor_id DESC LIMIT 1",
+            {"m": mobile},
+        )
+        card_id = await database.fetch_val(
+            """INSERT INTO decor_rate_cards (vendor_id, vendor_name, mobile, language, rate_card)
+               VALUES (:vid, :name, :m, :lang, CAST(:card AS JSONB)) RETURNING id""",
+            {"vid": vendor_id, "name": vendor_name, "m": mobile, "lang": language,
+             "card": json.dumps(card, ensure_ascii=False)},
+        )
+        for raw, kind, fname in photos:
+            await database.execute(
+                """INSERT INTO decor_rate_card_photos (rate_card_id, image, image_type, image_name)
+                   VALUES (:cid, :img, :t, :n)""",
+                {"cid": card_id, "img": raw, "t": kind, "n": fname},
+            )
+    logger.info(f"Decor rate card {card_id} saved for {vendor_name} ({mobile}), vendor {vendor_id}, {len(photos)} photo(s)")
+
+
 def _clean(s: Optional[str]) -> Optional[str]:
     s = (s or "").strip()
     return s or None
@@ -289,6 +360,8 @@ async def submit_vendor_onboarding(
     preferred_payment_mode: Optional[str] = Form(None),
     gst_number: Optional[str] = Form(None),
     cancelled_cheque: Optional[UploadFile] = File(None),
+    decor_rate_card: Optional[str] = Form(None),
+    work_photos: Optional[List[UploadFile]] = File(None),
 ):
     name = _clean(name)
     if not name:
@@ -386,6 +459,11 @@ async def submit_vendor_onboarding(
             detail="Please either upload a cancelled cheque/passbook photo, or fill in all four bank account fields.",
         )
 
+    # Decorator rate card (2026-10-08): checked before anything is written, so a
+    # bad card or photo is reported to the vendor instead of half-saving.
+    rate_card = _parse_rate_card(decor_rate_card) if (_clean(deals_in) or "").lower() == "decorator" else None
+    work = await _read_work_photos(work_photos) if rate_card is not None else []
+
     # 2026-09-30, per Shruti: "by default, save the mobile no. as the whatsapp
     # no. in the database. if the user inputs something on whatsapp no - then
     # update accordingly".
@@ -416,6 +494,8 @@ async def submit_vendor_onboarding(
     defaulted = frozenset() if whatsapp_given else frozenset({"whatsapp_number"})
     matched = await _update_existing_vendor(mobile, values, file_bytes, file_name, file_content_type, defaulted)
     if matched is True:
+        if rate_card is not None:
+            await _save_rate_card(rate_card, work, name, mobile)
         return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}
     if matched:   # number shared by several partners and the name didn't pick one
         values["remarks"] = (
@@ -434,4 +514,6 @@ async def submit_vendor_onboarding(
         values=values,
     )
     logger.info(f"Vendor onboarding submission received: {name} ({mobile})")
+    if rate_card is not None:
+        await _save_rate_card(rate_card, work, name, mobile)
     return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}
