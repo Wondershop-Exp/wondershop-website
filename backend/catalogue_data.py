@@ -150,10 +150,11 @@ THEMES = [
     {"id": "ledscreen", "n": "Sustainable LED Decor", "b": "As per theme", "anyTheme": True,
      "tierPhotos": {"Signature": "Decor/decor-sustainable-led-signature.jpg"},
      "tierOverrides": {"Signature": {"price": 25000, "spec": [
-         ("Backdrop", "LED screen mounted on a platform — your theme & the birthday child's name on screen", False),
+         ("Backdrop", "6 × 6 ft LED screen mounted on a platform — your theme & the birthday child's name on screen", False),
          ("Welcome Decor", "Balloon welcome arch + A3 welcome board", False),
          ("Cutouts", "Theme-based cutouts", False),
          ("Sustainable", "No flex printing — the design is shown on a reusable LED screen", False),
+         ("Needed from you", "1 table and an electrical plug point", False),
      ]}}},
 ]
 _THEMES_BY_ID = {t["id"]: t for t in THEMES}
