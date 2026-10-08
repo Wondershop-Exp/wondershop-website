@@ -596,7 +596,8 @@ def _derive_original_value(key: str, lead: dict, snap: dict):
         return d.get("n") if d else None
     if key == "svc_activities":
         acts = snap.get("activities") or []
-        names = [a.get("n") for a in acts if a.get("n")]
+        # Renamed activities (2026-10-08, cat.ACTIVITY_RENAMES) show under the new name.
+        names = [cat.ACTIVITY_RENAMES.get(a.get("n"), a.get("n")) for a in acts if a.get("n")]
         return ", ".join(names) if names else None
     if key == "svc_host":
         h = snap.get("host")

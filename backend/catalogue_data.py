@@ -412,12 +412,12 @@ ACTIVITIES = [
     ("buzz-wire", "Buzz Wire", 13000, True),
     ("spin-art", "Spin Art", 13000, True),
     # Price on request — confirmed by the party lead post order confirmation.
-    ("inflatable-3-row", "Inflatable 3-Row Jumping", 0, True),
-    ("inflatable-rock-climb", "Inflatable Rock Climb", 0, True),
-    ("inflatable-lion", "Inflatable Lion (2-Row)", 0, True),
-    ("inflatable-castle", "Inflatable Castle (2-Row)", 0, True),
-    ("jumping-2in1", "2-in-1 Jumping", 0, True),
-    ("balloon-house", "Balloon House", 0, True),
+    ("inflatable-3-row", "Inflatable 3-Row Jumping (24 × 16 ft)", 0, True),
+    ("inflatable-rock-climb", "Inflatable Rock Climb (20 × 20 ft)", 0, True),
+    ("inflatable-lion", "Inflatable Lion 2-Row (16 × 12 ft)", 0, True),
+    ("inflatable-castle", "Inflatable Castle 2-Row (14 × 12 ft)", 0, True),
+    ("jumping-2in1", "Inflatable 2-in-1 Jumping (15 × 10 ft)", 0, True),
+    ("balloon-house", "Inflatable Balloon House (14 × 10 ft)", 0, True),
     ("play-area", "Play Area", 0, True),
     ("trampoline", "Trampoline", 0, True),
     ("toy-train", "Toy Train (Mini Train)", 0, True),
@@ -435,6 +435,18 @@ ACTIVITIES = [
     ("bubble-show", "Bubble Show", 8500, True),
     ("magic-show", "Magic Show", 8500, True),
 ]
+
+# 2026-10-08, per Shruti — inflatables renamed: "Inflatable …" + size in the
+# name. Old name -> new name; db_ensure.rename_activities() updates bookings
+# and sales leads saved under the old names (idempotent).
+ACTIVITY_RENAMES = {
+    "Inflatable 3-Row Jumping": "Inflatable 3-Row Jumping (24 × 16 ft)",
+    "Inflatable Rock Climb": "Inflatable Rock Climb (20 × 20 ft)",
+    "Inflatable Lion (2-Row)": "Inflatable Lion 2-Row (16 × 12 ft)",
+    "Inflatable Castle (2-Row)": "Inflatable Castle 2-Row (14 × 12 ft)",
+    "2-in-1 Jumping": "Inflatable 2-in-1 Jumping (15 × 10 ft)",
+    "Balloon House": "Inflatable Balloon House (14 × 10 ft)",
+}
 
 # 2026-09-23, per Shruti — "spy themed should be spy in the activities...
 # theme can be anything." The `leads.theme` field is no longer a reliable
