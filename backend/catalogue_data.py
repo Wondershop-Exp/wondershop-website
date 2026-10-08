@@ -421,7 +421,7 @@ ACTIVITIES = [
     ("play-area", "Play Area", 0, True),
     ("trampoline", "Trampoline", 0, True),
     ("toy-train", "Toy Train (Mini Train)", 0, True),
-    ("ball-pool", "Ball Pool", 0, True),
+    ("ball-pool", "Inflatable Ball Pool (10 × 10 ft)", 0, True),
     ("cotton-candy", "Cotton Candy Stall", 0, True),
     ("chocolate-fondue", "Chocolate Fondue", 0, True),
     ("popcorn", "Live Popcorn Station", 0, True),
@@ -446,6 +446,7 @@ ACTIVITY_RENAMES = {
     "Inflatable Castle (2-Row)": "Inflatable Castle 2-Row (14 × 12 ft)",
     "2-in-1 Jumping": "Inflatable 2-in-1 Jumping (15 × 10 ft)",
     "Balloon House": "Inflatable Balloon House (14 × 10 ft)",
+    "Ball Pool": "Inflatable Ball Pool (10 × 10 ft)",
 }
 
 # 2026-09-23, per Shruti — "spy themed should be spy in the activities...
