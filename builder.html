@@ -2912,6 +2912,21 @@ const THEMES=[
   // default price (₹6500), no override needed. Age/gender/balloon count
   // are a reasonable estimate, not yet confirmed by Shruti.
   {id:'cricket',n:'Cricket Party',e:'🏏',bg:'linear-gradient(135deg,#8FBF6B,#F2D147)',age:'6-12',gn:'Both',b:'200 (Green, White, Maroon, Gold)',s:'3 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Classic:'img/Decor/decor-cricket-classic.png'}},
+  // Sustainable LED Decor (2026-10-08, per Shruti — "Sustainable LED Decor
+  // Signature .png", ₹25,000): an LED screen on a platform shows the party's
+  // theme, so it works for ANY theme (anyTheme — kept on the decor grid
+  // whatever theme / interests the family picked, and not listed as a party
+  // theme in the Theme Preference / Theme filter dropdowns). Its own
+  // inclusions replace the shared Signature spec (tierOverrides spec); flat
+  // price, no launch-offer strike-through.
+  {id:'ledscreen',n:'Sustainable LED Decor',e:'🌿',bg:'linear-gradient(135deg,#52C470,#B59DDE)',age:'1-14',gn:'Both',b:'As per theme',s:'3 hrs',ni:'Tables, chairs, power point near the screen',tag:'new',anyTheme:true,
+    tierPhotos:{Signature:'img/Decor/decor-sustainable-led-signature.jpg'},
+    tierOverrides:{Signature:{price:25000,origPrice:null,spec:[
+      {l:'Backdrop',v:'LED screen mounted on a platform — your theme & the birthday child\'s name on screen'},
+      {l:'Welcome Decor',v:'Balloon welcome arch + A3 welcome board'},
+      {l:'Cutouts',v:'Theme-based cutouts'},
+      {l:'Sustainable',v:'No flex printing — the design is shown on a reusable LED screen'},
+    ]}}},
 ];
 // Extracts the balloon-colour list out of a theme's `b` field, e.g.
 // "150 (Pink, Purple, White)" -> "Pink, Purple, White".
@@ -2962,12 +2977,13 @@ function themeTierEntries(t){
     // Floor Flex/Neon Light Strip setup, Lilo & Stitch's pricier Premium
     // panel), 2026-09-18 per Shruti.
     const ov=(t.tierOverrides&&t.tierOverrides[tm.tier])||null;
-    const finalSpec=ov&&ov.extraSpec?spec.concat(ov.extraSpec):spec;
+    const baseSpec=ov&&ov.spec?ov.spec:spec;   // full replacement (Sustainable LED Decor, 2026-10-08)
+    const finalSpec=ov&&ov.extraSpec?baseSpec.concat(ov.extraSpec):baseSpec;
     const price=ov&&ov.price!=null?ov.price:tm.price;
     const origPrice=ov?(ov.origPrice!==undefined?ov.origPrice:tm.origPrice):tm.origPrice;
     return {
       id:t.id+'-'+tm.tier.toLowerCase(), themeId:t.id, themeName:t.n, tier:tm.tier,
-      n:t.n+' - '+tm.tier, e:t.e, bg:t.bg, age:t.age, gn:t.gn, tag:t.tag, s:t.s, ni:t.ni,
+      n:t.n+' - '+tm.tier, e:t.e, bg:t.bg, age:t.age, gn:t.gn, tag:t.tag, s:t.s, ni:t.ni, anyTheme:!!t.anyTheme,
       p:price, origP:origPrice, spec:finalSpec,
       gallery:[{type:'img',src:t.tierPhotos[tm.tier]}].concat(extra.map(src=>({type:'img',src}))),
     };
@@ -4531,7 +4547,7 @@ function buildDec(){
   // "Show All" behavior, just now also covering the new interest filter
   // (2026-08-16, per Shruti).
   if(!decShowAll){
-    if(S.theme){fl=THEME_TIERS.filter(t=>t.themeId.toLowerCase().includes(S.theme.toLowerCase())||t.themeName.toLowerCase().includes(S.theme.toLowerCase()));}
+    if(S.theme){fl=THEME_TIERS.filter(t=>t.anyTheme||t.themeId.toLowerCase().includes(S.theme.toLowerCase())||t.themeName.toLowerCase().includes(S.theme.toLowerCase()));if(fl.every(t=>t.anyTheme))fl=[];}
     else if(S.children.length){const gs=S.children.map(c=>c.gender).filter(Boolean);if(gs.length)fl=THEME_TIERS.filter(t=>t.gn==='Both'||gs.some(g=>t.gn===g||g==='Either'));}
     if(!fl.length)fl=THEME_TIERS;
     // 2026-09-08, per Shruti — filterApplied now covers EVERY narrowing
@@ -4547,7 +4563,7 @@ function buildDec(){
     // unless narrowing would leave nothing to show.
     if(!interestFilterOff(false)){
       const il=fl.filter(t=>matchesInterests(t.themeName));
-      if(il.length){fl=il;filterApplied=true;}
+      if(il.length){fl=il.concat(fl.filter(t=>t.anyTheme&&!il.includes(t)));filterApplied=true;}
     }
   }
   const fNote=document.getElementById('fNote');
@@ -4560,7 +4576,7 @@ function buildDec(){
   // soft "preference" narrowing above, they apply even when decShowAll is
   // true (Show All only bypasses the soft recommendation logic, not an
   // explicit filter the visitor just set).
-  if(decFilterTheme)fl=fl.filter(t=>t.themeId===decFilterTheme);
+  if(decFilterTheme)fl=fl.filter(t=>t.themeId===decFilterTheme||t.anyTheme);
   if(decFilterGender)fl=fl.filter(t=>decGenderMatches(t.gn,decFilterGender));
   if(decFilterAge)fl=fl.filter(t=>decAgeInRange(t.age,decFilterAge));
   const anyExplicitDecFilter=!!(decFilterTheme||decFilterGender||decFilterAge);
@@ -4630,7 +4646,7 @@ function decAgeInRange(ageStr,want){
 // dropdowns on the site (this filter + Theme Preference) can never show
 // different values again.
 function populateThemeCatalogSelects(){
-  const sorted=[...THEMES].sort((a,b)=>a.n.localeCompare(b.n));
+  const sorted=THEMES.filter(t=>!t.anyTheme).sort((a,b)=>a.n.localeCompare(b.n));   // not a party theme (Sustainable LED Decor)
   const themeSel=document.getElementById('decThemeSel');
   if(themeSel&&themeSel.options.length===1){
     sorted.forEach(t=>{themeSel.innerHTML+='<option value="'+t.id+'">'+t.e+' '+t.n+'</option>';});

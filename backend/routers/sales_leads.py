@@ -1451,7 +1451,10 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
         theme = (r("decor").get("theme_name") or "").strip()
         if tier in DECOR_TIER_META:
             name = f"{theme} — {tier} Decor" if theme else f"{tier} Decor"
-            incl = [f"{l}: {v}" for l, v, na in DECOR_TIER_META[tier]["spec"] if not na and v != "__THEME__"]
+            from catalogue_data import THEMES as _TH
+            _own = next(((((t.get("tierOverrides") or {}).get(tier) or {}).get("spec")) for t in _TH if t["n"] == theme), None)
+            # A design with its own inclusions (Sustainable LED Decor, 2026-10-08).
+            incl = [f"{l}: {v}" for l, v, na in (_own or DECOR_TIER_META[tier]["spec"]) if not na and v != "__THEME__"]
         else:
             name = f"{theme} — Custom Decor" if theme else "Custom Decor"
             incl = []

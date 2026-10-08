@@ -144,6 +144,17 @@ THEMES = [
      "tierOverrides": {"Classic": {"price": 4500}}},
     {"id": "cricket", "n": "Cricket Party", "b": "200 (Green, White, Maroon, Gold)",
      "tierPhotos": {"Classic": "Decor/decor-cricket-classic.png"}},
+    # Sustainable LED Decor (2026-10-08, per Shruti) — works with any theme
+    # (anyTheme: not offered as a party theme); its own inclusions replace
+    # the shared Signature spec. Mirrors builder.html.
+    {"id": "ledscreen", "n": "Sustainable LED Decor", "b": "As per theme", "anyTheme": True,
+     "tierPhotos": {"Signature": "Decor/decor-sustainable-led-signature.jpg"},
+     "tierOverrides": {"Signature": {"price": 25000, "spec": [
+         ("Backdrop", "LED screen mounted on a platform — your theme & the birthday child's name on screen", False),
+         ("Welcome Decor", "Balloon welcome arch + A3 welcome board", False),
+         ("Cutouts", "Theme-based cutouts", False),
+         ("Sustainable", "No flex printing — the design is shown on a reusable LED screen", False),
+     ]}}},
 ]
 _THEMES_BY_ID = {t["id"]: t for t in THEMES}
 
@@ -154,7 +165,7 @@ _THEMES_BY_ID = {t["id"]: t for t in THEMES}
 # emails and the theme pickers in admin / the sales module.
 PREF_ONLY_THEMES = [{"id": "among-us", "n": "Among Us"}, {"id": "imposter", "n": "Imposter"}]
 # Every theme a customer can pick as their party theme, by display name.
-THEME_PREFERENCE_NAMES = sorted([t["n"] for t in THEMES] + [t["n"] for t in PREF_ONLY_THEMES], key=str.lower)
+THEME_PREFERENCE_NAMES = sorted([t["n"] for t in THEMES if not t.get("anyTheme")] + [t["n"] for t in PREF_ONLY_THEMES], key=str.lower)
 
 STD_META = {
     "Classic": "Decor/Standard Classic Balloon Arch.jpg",
@@ -219,12 +230,15 @@ def resolve_decor(decor_id: Optional[str], decor_price: Optional[float]) -> Opti
 
     return {
         "image_path": f"img/{photo}",
-        "spec": _spec_for(theme["n"], tier, colors=_extract_colors(theme["b"])),
+        "spec": _spec_for(theme["n"], tier, colors=_extract_colors(theme["b"]), theme=theme),
         "reference": False,   # the chosen design's own photo
     }
 
 
-def _spec_for(label: str, tier: str, colors: str) -> list:
+def _spec_for(label: str, tier: str, colors: str, theme: Optional[dict] = None) -> list:
+    own = (((theme or {}).get("tierOverrides") or {}).get(tier) or {}).get("spec")
+    if own:   # a design with its own inclusions (Sustainable LED Decor)
+        return list(own)
     meta = DECOR_TIER_META.get(tier)
     if not meta:
         return []
@@ -783,6 +797,14 @@ def decor_image_is_reference(theme_name: Optional[str], tier: Optional[str]) -> 
         if tier not in STD_META and photos:
             return False
     return True
+
+
+def decor_spec_by_name(theme_name: Optional[str], tier: Optional[str]) -> list:
+    """(label, value, not_included) rows for a named design + tier — the
+    design's own list when it has one (Sustainable LED Decor), else the
+    tier's shared list. Used by the sales quotation."""
+    theme = _THEMES_BY_NAME.get(theme_name or "")
+    return _spec_for(theme_name or "", tier, colors=_extract_colors(theme["b"]) if theme else "As per theme", theme=theme)
 
 
 def resolve_decor_image_by_name(theme_name: Optional[str], tier: Optional[str]) -> Optional[str]:
