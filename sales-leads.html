@@ -1529,6 +1529,31 @@ async function convertLeadDetail(){
 // person who has logged in, this can be edited". New leads get it from the
 // server at creation; an older lead with none shows the "Editing as" name
 // here and it's saved with the next Save (see patchSheet()).
+// 12-hour time picker (2026-10-08, per Shruti — "event start time, event
+// handover time - make it 12 hour format with AM/PM like other time fields").
+// A native <input type="time"> shows 24-hour or 12-hour depending on the
+// computer's own clock setting, so the same field looked different from
+// person to person. This is ONE dropdown of 15-minute slots labelled
+// "2:30 PM" (6:00 AM first), still saving the same "HH:MM" value as before;
+// a stored time off the 15-minute grid stays as its own option.
+function to12h(v){
+  const m = /^(\d{1,2}):(\d{2})/.exec(v || '');
+  if(!m) return v || '';
+  const h = +m[1];
+  return ((h % 12) || 12) + ':' + m[2] + ' ' + (h < 12 ? 'AM' : 'PM');
+}
+function timeSelectHtml(attrs, value, placeholder){
+  const cur = (/^(\d{1,2}):(\d{2})/.exec(value || '') || [])[0] || '';
+  const curN = cur ? cur.padStart(5, '0') : '';
+  const slots = [];
+  for(let i = 0; i < 96; i++){
+    const mins = (6*60 + i*15) % (24*60);
+    slots.push(String(Math.floor(mins/60)).padStart(2,'0') + ':' + String(mins%60).padStart(2,'0'));
+  }
+  if(curN && !slots.includes(curN)) slots.unshift(curN);
+  return '<select '+attrs+'><option value="">'+(placeholder || '— select time —')+'</option>'
+    + slots.map(t=>'<option value="'+t+'"'+(t===curN?' selected':'')+'>'+to12h(t)+'</option>').join('') + '</select>';
+}
 function salesLeadField(){
   const v = (DATA && DATA.sales_lead_name) || getName() || '';
   return '<div class="fld"><label>Sales Lead</label><input type="text" id="f_sales_lead_name" value="'+esc(v)+'" onblur="saveField(\'sales_lead_name\', this.value, this.type)"></div>';
@@ -1544,16 +1569,18 @@ function sectionClientDetails(){
     + '<option value="Male" '+(d.child_gender==='Male'?'selected':'')+'>Male</option>'
     + '<option value="Female" '+(d.child_gender==='Female'?'selected':'')+'>Female</option>'
     + '</select></div>';
+  const tf = (key,label) => '<div class="fld"><label>'+label+'</label>'
+    + timeSelectHtml('id="f_'+key+'" onchange="saveField(\''+key+'\', this.value)"', d[key]) + '</div>';
   return '<div class="card"><h3>1 · Client &amp; Event Details</h3>'
     + '<div class="grid2">' + f('client_name','Client Name','text') + f('mobile','Mobile No.','tel') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('email','Email','email','placeholder="name@example.com"') + salesLeadField() + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('child_name',"Child's Name",'text') + f('child_age','Celebrating Age','text') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + genderSel + f('kids_count','# Kids','number') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('event_date','Event Date','date') + themeField() + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('event_start_time','Event Start Time','time','step="900"') + f('event_end_time','Event End Time','time','step="900"') + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + tf('event_start_time','Event Start Time') + tf('event_end_time','Event End Time') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + venueTypeField() + '<div></div></div>'
     + '<div class="fld" style="margin-top:10px">' + f('venue','Venue','text').replace(/<div class="fld">|<\/div>$/g,'') + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + f('venue_handover_time','Venue Handover Time','time','step="900"') + f('packup_time','Packup Time','time','step="900"') + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + tf('venue_handover_time','Venue Handover Time') + tf('packup_time','Packup Time') + '</div>'
     + '</div>';
 }
 // Theme: an "assisted" input — types and filters against Build-a-Birthday's
@@ -2098,10 +2125,10 @@ function reqEinviteDetailsBlock(){
     + '</div>'
     + '<div class="req-grid" style="margin-top:8px">'
       + '<input type="date" value="'+v('date', DATA.event_date)+'" onblur="saveEinviteDetail(\'date\', this.value)">'
-      + '<input type="time" step="900" value="'+v('start_time', DATA.event_start_time)+'" onblur="saveEinviteDetail(\'start_time\', this.value)">'
+      + timeSelectHtml('onchange="saveEinviteDetail(\'start_time\', this.value)"', (d.start_time || DATA.event_start_time || ''), '— start time —')
     + '</div>'
     + '<div class="req-grid" style="margin-top:8px">'
-      + '<input type="time" step="900" placeholder="Pickup Time (optional)" value="'+esc(pickup)+'" onblur="saveEinviteDetail(\'pickup_time\', this.value)">'
+      + timeSelectHtml('onchange="saveEinviteDetail(\'pickup_time\', this.value)"', pickup, '— pickup time (optional) —')
       + '<label class="addon-row" style="margin-top:0"><input type="checkbox" '+(d.show_pickup_on_invite?'checked':'')+' onchange="saveEinviteDetail(\'show_pickup_on_invite\', this.checked)"> Show pickup time on invite</label>'
     + '</div>'
     + '<input type="text" placeholder="Venue / Address" style="width:100%;margin-top:8px;padding:10px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px" value="'+v('venue', DATA.venue)+'" onblur="saveEinviteDetail(\'venue\', this.value)">'

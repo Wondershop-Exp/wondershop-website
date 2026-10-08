@@ -1235,6 +1235,21 @@ function bdLongDate(s){
   const dt = new Date(+m[1], +m[2]-1, +m[3]);
   return CAL_DAYS[dt.getDay()].slice(0, 3)+', '+dt.getDate()+' '+CAL_MONTHS[dt.getMonth()].slice(0, 3)+' '+dt.getFullYear();
 }
+// 12-hour time dropdown (2026-10-08, per Shruti) — native time inputs show
+// 24-hour on some computers; this always reads "2:30 PM" and still saves
+// "HH:MM". Same helper as sales-leads.html's timeSelectHtml().
+function timeSelect12(id, value){
+  const cur = ((/^(\d{1,2}):(\d{2})/.exec(value || '') || [])[0] || '');
+  const curN = cur ? cur.padStart(5, '0') : '';
+  const slots = [];
+  for(let i = 0; i < 96; i++){
+    const mins = (6*60 + i*15) % (24*60);
+    slots.push(String(Math.floor(mins/60)).padStart(2,'0') + ':' + String(mins%60).padStart(2,'0'));
+  }
+  if(curN && !slots.includes(curN)) slots.unshift(curN);
+  return '<select id="'+id+'"><option value="">— select time —</option>'
+    + slots.map(t=>'<option value="'+t+'"'+(t===curN?' selected':'')+'>'+bdTime(t)+'</option>').join('') + '</select>';
+}
 function bdTime(s){
   const m = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec((s || '').trim());
   if(!m) return s || '';
@@ -4075,7 +4090,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     ccCell = '<input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="e.g. Chocolate truffle, 2 kg">';
   }else if(f.field_key==='venue_handover_time' || f.field_key==='packup_time'){
     // 2026-10-05, per Shruti — from the sales panel; editable here too.
-    ccCell = '<input type="time" step="900" id="'+rid+'_cc" value="'+esc((f.customer_choice||'').slice(0,5))+'">';
+    ccCell = timeSelect12(rid+'_cc', f.customer_choice||'');
   }else if(f.field_key==='event_payment_confirmed_amount'){
     // 2026-09-11, per Shruti — event-completion payment confirmation. Value
     // lands in Customer's Choice like every other admin-only field here
@@ -4121,7 +4136,7 @@ function fieldRowHtml(f, isCustEvent, locked){
   }else if(f.field_key==='event_date'){
     avCell = '<input type="date" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'">';
   }else if(f.field_key==='event_time'){
-    avCell = '<input type="time" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'">';
+    avCell = timeSelect12(rid+'_av', avValue);
   }else if(f.field_key==='pincode'){
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'6-digit pincode')+'" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').slice(0,6);onPincodeInput(this.value);">';
   }else if(f.field_key==='city'){
