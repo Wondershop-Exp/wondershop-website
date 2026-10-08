@@ -433,6 +433,11 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
                 # "~~₹1,500~~" in a detail line = struck-through list price
                 # (2026-10-05, e.g. "70 kids × ~~₹1,500~~ ₹900 per child").
                 desc.append(Paragraph("<br/>".join(re.sub(r"~~(.+?)~~", r"<strike>\1</strike>", _x(d)) for d in det), s_det))
+            if ln.get("link"):   # a clickable link (decor options page, 2026-10-08)
+                L = ln["link"]
+                desc.append(Spacer(1, 0.8 * mm))
+                desc.append(Paragraph(f'<a href="{_x(L["url"])}" color="#C2427A"><u>{_x(L.get("text") or L["url"])}</u></a>',
+                                      _style("lnk", font=BODY_BOLD, size=9, color=colors.HexColor("#C2427A"))))
             price_cell = []
             if ln.get("strike"):
                 # List price struck through above the quoted price (2026-10-05).

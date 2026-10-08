@@ -257,3 +257,24 @@ async def public_website_items():
         o = _row_out(r)
         items.append({k: o[k] for k in ("id", "image_url", "theme", "tier", "cost", "age_group", "gender")})
     return {"items": items}
+
+
+# ─── Decor options page (2026-10-08, per Shruti) ─────────────────────────
+# decor-options.html?o=uni-signature,ledscreen-signature — the bigger photos
+# + inclusions/exclusions for the decor options a sales quote lists
+# (catalogue_data.decor_options). Public: the link is printed on the PDF.
+@router.get("/decor-options/public")
+async def public_decor_options(o: Optional[str] = None):
+    import catalogue_data as cat
+    ids = [x.strip() for x in (o or "").split(",") if x.strip()][:12]
+    site = cat.SITE_BASE_URL.rstrip("/")
+    items = []
+    for oid in dict.fromkeys(ids):
+        it = cat.decor_option(oid)
+        if not it:
+            continue
+        it = dict(it)
+        it["photos"] = [f"{site}/{p}" for p in it["photos"]]
+        it["image"] = it["photos"][0] if it["photos"] else None
+        items.append(it)
+    return {"items": items}

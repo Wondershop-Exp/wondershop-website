@@ -98,11 +98,12 @@ THEMES = [
                     "Luxury": "Decor/decor-spy-2panel.jpg", "Signature": "Decor/decor-spy-3panel.jpg"}},
     {"id": "kpop", "n": "K-Pop Party", "b": "180 (Purple, Pink, Black)",
      "tierPhotos": {"Classic": "Decor/decor-kpop-arch.jpg", "Premium": "Decor/decor-kpop-1panel.jpg",
-                    "Luxury": "Decor/decor-kpop-2panel.jpg", "Signature": "Decor/decor-kpop-3panel.jpg"}},
+                    "Luxury": "Decor/decor-kpop-luxury.png", "Signature": "Decor/decor-kpop-3panel.jpg"}},
     {"id": "hp", "n": "Harry Potter", "b": "180 (Black, Gold, Red)",
-     "tierPhotos": {"Premium": "Decor/decor-hp-1panel.jpg", "Signature": "Decor/decor-hp-3panel.jpg"}},
+     "tierPhotos": {"Classic": "Decor/decor-hp-arch.jpg", "Premium": "Decor/decor-hp-1panel.jpg", "Signature": "Decor/decor-hp-3panel.jpg"},
+     "retiredTiers": ["Signature"]},   # no longer on the website (kept for older bookings)
     {"id": "art", "n": "Art & Paint Party", "b": "150 (Colorful mix)",
-     "tierPhotos": {"Premium": "Decor/decor-art-1panel.jpg", "Luxury": "Decor/decor-art-2panel.jpg"}},
+     "tierPhotos": {"Classic": "Decor/decor-art-classic.png", "Premium": "Decor/decor-art-1panel.jpg", "Luxury": "Decor/decor-art-2panel.jpg"}},
     {"id": "science", "n": "Science Party", "b": "150 (Blue, Green, White)",
      "tierPhotos": {"Premium": "Decor/decor-science-1panel.jpg"}},
     {"id": "racing", "n": "Race Track & Cars", "b": "150 (Black, Red, Yellow)",
@@ -117,9 +118,11 @@ THEMES = [
     {"id": "railways", "n": "Indian Railways", "b": "180 (mixed colours)",
      "tierPhotos": {"Signature": "Decor/decor-railways-3panel.jpg"}},
     {"id": "katseye", "n": "Katseye", "b": "150 (mixed colours)",
-     "tierPhotos": {"Signature": "Decor/decor-katseye-3panel.jpg"}},
+     "tierPhotos": {"Classic": "Decor/decor-katseye-classic.png", "Signature": "Decor/decor-katseye-3panel.jpg"},
+     "tierOverrides": {"Signature": {"price": 30000, "extraSpec": [("Floor Flex", "Included", False), ("Neon Light Strip", "Included", False)]}}},
     {"id": "stitch", "n": "Lilo & Stitch", "b": "150 (Blue, Turquoise, White)",
-     "tierPhotos": {"Premium": "Decor/decor-stitch-1panel.jpg"}},
+     "tierPhotos": {"Premium": "Decor/decor-stitch-1panel.jpg"},
+     "tierOverrides": {"Premium": {"price": 18000}}},
     {"id": "malgudi", "n": "Malgudi Days", "b": "180 (mixed colours)",
      "tierPhotos": {"Signature": "Decor/decor-malgudi-3panel.jpg"}},
     {"id": "mithai", "n": "Mithai Theme", "b": "180 (mixed colours)",
@@ -138,10 +141,10 @@ THEMES = [
     # them under "Not priced automatically" instead of pricing them.
     {"id": "frozen", "n": "Frozen", "b": "150 (Blue, White, Silver)",
      "tierPhotos": {"Classic": "Decor/decor-frozen-classic-net.png"},
-     "tierOverrides": {"Classic": {"price": 9000}}},
+     "tierOverrides": {"Classic": {"price": 9000, "extraSpec": [("Backdrop", "Light-up net with fairy lights", False)]}}},
     {"id": "pawpatrol", "n": "Paw Patrol", "b": "200 (Blue, Red, Yellow, White)",
      "tierPhotos": {"Classic": "Decor/decor-pawpatrol-classic.png", "Premium": "Decor/decor-pawpatrol-premium.png"},
-     "tierOverrides": {"Classic": {"price": 4500}}},
+     "tierOverrides": {"Classic": {"price": 4500, "extraSpec": [("Decor Style", "Wall-mounted balloon cluster (no arch/panel)", False)]}}},
     {"id": "cricket", "n": "Cricket Party", "b": "200 (Green, White, Maroon, Gold)",
      "tierPhotos": {"Classic": "Decor/decor-cricket-classic.png"}},
     # Sustainable LED Decor (2026-10-08, per Shruti) — works with any theme
@@ -157,6 +160,40 @@ THEMES = [
          ("Needed from you", "1 table and an electrical plug point", False),
      ]}}},
 ]
+# More photos of a design (builder.html tierExtraPhotos) — shown on the
+# decor options page (decor-options.html, 2026-10-08).
+TIER_EXTRA_PHOTOS = {
+    "spy": {
+        "Premium": [
+            "Decor/decor-spy-premium-2.png",
+            "Decor/decor-spy-premium-3.jpeg",
+            "Decor/decor-spy-premium-4.jpg"
+        ],
+        "Classic": [
+            "Decor/decor-spy-classic-sustainable.png"
+        ],
+        "Signature": [
+            "Decor/decor-spy-kpop-3panel.jpg"
+        ]
+    },
+    "racing": {
+        "Luxury": [
+            "Decor/decor-racing-luxury-alt.png"
+        ]
+    },
+    "craftbazaar": {
+        "Signature": [
+            "Decor/decor-craftbazaar-3panel-alt.jpg"
+        ]
+    },
+    "malgudi": {
+        "Signature": [
+            "Decor/decor-malgudi-3panel-alt.jpg"
+        ]
+    }
+}
+for _t in THEMES:
+    _t["tierExtraPhotos"] = TIER_EXTRA_PHOTOS.get(_t["id"], {})
 _THEMES_BY_ID = {t["id"]: t for t in THEMES}
 
 # Theme-preference-only themes (2026-10-02, per Shruti — "add among us and
@@ -248,7 +285,8 @@ def _spec_for(label: str, tier: str, colors: str, theme: Optional[dict] = None) 
         if v == "__THEME__":
             v = colors
         out.append((l, v, na))
-    return out
+    extra = (((theme or {}).get("tierOverrides") or {}).get(tier) or {}).get("extraSpec") or []
+    return out + [tuple(x) for x in extra]
 
 
 # ─── Photographer ───────────────────────────────────────────────────────
@@ -845,3 +883,60 @@ def greeting_name(full: Optional[str]) -> str:
     if parts[0].rstrip(".").lower() in _TITLES and len(parts) > 1:
         return f"{parts[0]} {parts[1]}"
     return parts[0]
+
+
+# ─── Decor options (2026-10-08, per Shruti) ────────────────────────────────
+# "the salesteam needs to send multiple decor options in the sales quote ...
+# select decor options from the decor list and those photos with pricing and
+# details comes up on the pdf ... add a link which directs to a page where
+# they can see bigger photos with inclusions exclusions." Every design live
+# on Build-a-Birthday (theme x tier with a photo) plus the 4 standard decors,
+# ids as on the website ("uni-signature", "std-premium").
+DECOR_OPTIONS_PAGE = f"{SITE_BASE_URL}/decor-options.html"
+_STD_NAMES = {"Classic": "Classic Balloon Arch", "Premium": "Premium Decor",
+              "Luxury": "Luxury Decor", "Signature": "Signature Decor"}
+_TIER_ORDER = ["Classic", "Premium", "Luxury", "Signature"]
+
+
+def _excl(label, value):
+    v = (value or "").strip()
+    if v.upper() in ("NA", "N/A", "") or v.lower() == "not included":
+        return label
+    if v.lower().startswith("not included"):
+        return label + v[len("not included"):]       # "Name on Bunting — add for ₹200"
+    return f"{label}: {v}"
+
+
+def _option_dict(oid, name, theme_name, tier, price, photos, spec):
+    return {
+        "id": oid, "name": name, "theme": theme_name, "tier": tier, "price": price,
+        "image": photos[0] if photos else None, "photos": photos,
+        "included": [f"{l}: {v}" for l, v, na in spec if not na and not l.lower().startswith("needed from you")],
+        "needed": [v for l, v, na in spec if l.lower().startswith("needed from you")],
+        "excluded": [_excl(l, v) for l, v, na in spec if na],
+    }
+
+
+def decor_options() -> list:
+    out = []
+    for t in sorted(THEMES, key=lambda x: x["n"].lower()):
+        retired = set(t.get("retiredTiers") or [])
+        for tier in _TIER_ORDER:
+            photo = (t.get("tierPhotos") or {}).get(tier)
+            if not photo or tier in retired or tier not in DECOR_TIER_META:
+                continue
+            ov = ((t.get("tierOverrides") or {}).get(tier) or {})
+            photos = [f"img/{photo}"] + [f"img/{x}" for x in (t.get("tierExtraPhotos") or {}).get(tier, [])]
+            out.append(_option_dict(f"{t['id']}-{tier.lower()}", f"{t['n']} — {tier}", t["n"], tier,
+                                    ov.get("price", DECOR_TIER_META[tier]["price"]), photos,
+                                    _spec_for(t["n"], tier, colors=_extract_colors(t["b"]), theme=t)))
+    for tier in _TIER_ORDER:
+        if tier in STD_META:
+            out.append(_option_dict(f"std-{tier.lower()}", f"Standard — {_STD_NAMES[tier]}", None, tier,
+                                    DECOR_TIER_META[tier]["price"], [f"img/{STD_META[tier]}"],
+                                    _spec_for("Standard Decor", tier, colors="As per theme")))
+    return out
+
+
+def decor_option(oid: Optional[str]) -> Optional[dict]:
+    return next((o for o in decor_options() if o["id"] == oid), None) if oid else None

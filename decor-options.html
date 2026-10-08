@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Decor Options — Wondershop Experiences</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="logo-square.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<!--
+  Decor options page (2026-10-08, per Shruti): "add a link which directs to
+  a page where they can see bigger photos with inclusions exclusions." The
+  sales quotation PDF links here with ?o=<design ids>; details come from
+  GET /api/decor-options/public (backend catalogue_data.decor_options).
+-->
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--li:#B59DDE;--li2:#EDE6FA;--li3:#F5F0FF;--pk:#E65A96;--pu:#6C4AB6;--bk:#191919;--gy:#6B7280;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif}
+body{font-family:var(--fb);color:var(--bk);background:#FBF9FF;line-height:1.5}
+.top{background:#fff;border-bottom:1px solid var(--li2);padding:14px 16px;display:flex;align-items:center;justify-content:center}
+.top img{height:40px}
+.wrap{max-width:980px;margin:0 auto;padding:24px 16px 48px}
+h1{font-family:var(--fd);font-size:28px;line-height:1.2}
+.sub{color:var(--gy);margin-top:6px;font-size:15px}
+.opt{background:#fff;border:1px solid var(--li2);border-radius:18px;overflow:hidden;margin-top:24px;box-shadow:0 4px 18px rgba(108,74,182,.07)}
+.photo{position:relative;background:#F1ECF8}
+.photo img{display:block;width:100%;max-height:620px;object-fit:contain;background:#F1ECF8}
+.thumbs{display:flex;gap:8px;padding:10px 16px 0;overflow-x:auto}
+.thumbs img{width:72px;height:54px;object-fit:cover;border-radius:8px;border:2px solid transparent;cursor:pointer;flex:0 0 auto}
+.thumbs img.on{border-color:var(--pk)}
+.body{padding:18px 20px 22px}
+.hd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.num{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--pk)}
+.name{font-family:var(--fd);font-size:22px;margin-top:2px}
+.tier{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--li3);color:var(--pu)}
+.price{font-family:var(--fd);font-size:24px;font-weight:700;white-space:nowrap}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px}
+.cols h3{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px}
+.inc h3{color:#166534}.exc h3{color:#9F1239}
+ul{list-style:none;display:grid;gap:6px}
+li{font-size:14.5px;padding-left:24px;position:relative}
+.inc li::before{content:"✓";position:absolute;left:2px;color:#16A34A;font-weight:700}
+.exc li::before{content:"✕";position:absolute;left:3px;color:#E11D48;font-weight:700}
+.exc li{color:var(--gy)}
+.none{font-size:14px;color:var(--gy)}
+.need{margin-top:14px;font-size:14px;background:#FFF8E6;border:1px solid #F5DFA0;border-radius:10px;padding:9px 12px}
+.note{margin-top:26px;font-size:13px;color:var(--gy);background:#fff;border:1px solid var(--li2);border-radius:12px;padding:14px 16px}
+.msg{margin-top:30px;text-align:center;color:var(--gy)}
+.cta{display:inline-block;margin-top:14px;background:#25D366;color:#fff;font-weight:700;text-decoration:none;padding:11px 20px;border-radius:999px}
+@media(max-width:640px){h1{font-size:23px}.cols{grid-template-columns:1fr}.name{font-size:19px}.price{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="top"><a href="index.html"><img src="logo-horizontal.png" alt="Wondershop Experiences"></a></div>
+<div class="wrap">
+  <h1>Your decor options</h1>
+  <p class="sub">Here are the decor designs we picked for your party, with everything that's included in each. Tell your Party Experience Lead which one you'd like.</p>
+  <div id="list"><div class="msg">Loading your decor options…</div></div>
+  <div class="note">Photos show a design we've set up before. Balloon colours, names on flex/sunboard and other details are personalised for your party and confirmed with you by your party manager before we finalise. Prices are estimates for the party details in your quotation.</div>
+  <div style="text-align:center"><a class="cta" href="https://wa.me/919004435362" target="_blank" rel="noopener">💬 Chat with us on WhatsApp</a></div>
+</div>
+<script>
+const API = 'https://wondershop-website-production.up.railway.app';
+const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const inr = n => '₹' + Number(n||0).toLocaleString('en-IN');
+function card(o, i){
+  const thumbs = o.photos.length > 1
+    ? '<div class="thumbs">' + o.photos.map((p,k)=>'<img src="'+esc(p)+'" alt="" class="'+(k?'':'on')+'" onclick="pick(this)">').join('') + '</div>' : '';
+  const list = (arr, cls) => arr.length ? '<ul>'+arr.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>' : '<div class="none">'+(cls==='exc'?'Nothing — it\'s all included.':'—')+'</div>';
+  return '<div class="opt"><div class="photo"><img src="'+esc(o.image)+'" alt="'+esc(o.name)+'" loading="'+(i?'lazy':'eager')+'"></div>' + thumbs
+    + '<div class="body"><div class="hd"><div><div class="num">Option '+(i+1)+'</div><div class="name">'+esc(o.name)+'</div><span class="tier">'+esc(o.tier)+'</span></div>'
+    + '<div class="price">'+inr(o.price)+'</div></div>'
+    + '<div class="cols"><div class="inc"><h3>Included</h3>'+list(o.included,'inc')+'</div>'
+    + '<div class="exc"><h3>Not included</h3>'+list(o.excluded,'exc')+'</div></div>'
+    + ((o.needed||[]).length ? '<div class="need"><b>Needed from you:</b> '+o.needed.map(esc).join(' · ')+'</div>' : '')
+    + '</div></div>';
+}
+function pick(t){
+  const opt = t.closest('.opt');
+  opt.querySelector('.photo img').src = t.src;
+  opt.querySelectorAll('.thumbs img').forEach(x=>x.classList.toggle('on', x===t));
+}
+(async ()=>{
+  const ids = new URLSearchParams(location.search).get('o') || '';
+  const el = document.getElementById('list');
+  if(!ids){ el.innerHTML = '<div class="msg">No decor options in this link.</div>'; return; }
+  try{
+    const r = await fetch(API + '/api/decor-options/public?o=' + encodeURIComponent(ids));
+    const items = ((await r.json()) || {}).items || [];
+    el.innerHTML = items.length ? items.map(card).join('') : '<div class="msg">These decor options are no longer available — please ask your Party Experience Lead.</div>';
+  }catch(e){
+    el.innerHTML = '<div class="msg">Couldn\'t load the decor options right now — please try again in a moment.</div>';
+  }
+})();
+</script>
+</body>
+</html>

@@ -241,6 +241,14 @@ th.th-sort:hover{color:var(--pk)}
 .act-item.sel .act-assign{display:grid}
 .act-item .act-assign input{padding:8px 10px;border:1px solid var(--li2);border-radius:7px;font-size:12.5px}
 .add-new-act{display:flex;gap:8px;margin-top:6px}
+.dopt{margin-top:12px;border:1px dashed #CDBFE8;border-radius:12px;padding:10px 12px;background:#FBF9FF}
+.dopt-hd{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6C4AB6}
+.dopt-hd .opt{font-weight:400;text-transform:none;color:var(--gy)}
+.dopt-note{font-size:12px;color:var(--gy);margin-top:3px}
+.dopt .pick-wrap{position:relative}
+.dopt .pick-wrap input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px;background:#fff}
+.dopt-list{display:grid;gap:6px;margin-top:8px}
+.dopt-chip{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;border:1px solid #E3DCEE;border-radius:8px;padding:6px 6px 6px 10px;font-size:13px}
 .add-new-act input,.add-new-act select{flex:1;padding:11px 12px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px;min-width:0}
 .add-new-act #newActPrice{flex:0 0 160px}
 .add-new-act select{flex:0 0 118px;background-color:#fff}
@@ -1698,8 +1706,58 @@ function reqDecorRow(){
     + '<div class="pick-row">'
       + '<select onchange="onDecorThemePick(this.value)">' + themeOpts + '</select>'
       + '<a href="builder.html?browse=decor" target="_blank">Open Build-a-Birthday (decor) ↗</a>'
-    + '</div></div>';
+    + '</div>'
+    + decorOptionsHtml()
+    + '</div>';
 }
+// ── Decor options for the client (2026-10-08, per Shruti) ───────────────
+// "the salesteam needs to send multiple decor options in the sales quote ...
+// select decor options from the decor list and those photos with pricing and
+// details comes up on the pdf ... add a link which directs to a page where
+// they can see bigger photos with inclusions exclusions." Saved as
+// requirements.decor_options.ids (Build-a-Birthday design ids); the quote
+// PDF lists each one (not in the total) + a link to decor-options.html.
+function decorOptIds(){ return (req('decor_options').ids || []).filter(x=>typeof x==='string'); }
+function decorOptionsHtml(){
+  const all = CATALOGUE.decor_options || [];
+  const ids = decorOptIds();
+  const chips = ids.map((id,i)=>{
+    const o = all.find(x=>x.id===id);
+    return '<div class="dopt-chip"><span><b>Option '+(i+1)+':</b> '+esc(o?o.name:id)+(o?' · '+money(o.price):'')+'</span>'
+      + '<button type="button" class="icon-btn" title="Remove" onclick="removeDecorOption(\''+esc(id)+'\')">✕</button></div>';
+  }).join('');
+  const link = ids.length ? '<a href="decor-options.html?o='+encodeURIComponent(ids.join(','))+'" target="_blank">Preview the client page ↗</a>' : '';
+  return '<div class="dopt"><div class="dopt-hd">Decor options for the client <span class="opt">optional</span></div>'
+    + '<div class="dopt-note">Pick a few designs to show side by side — each goes on the quotation with its photo, price and inclusions (not in the total), with a link to bigger photos.</div>'
+    + '<div class="pick-wrap" style="margin-top:6px"><input type="text" id="doptInput" autocomplete="off" placeholder="Search decor designs to add as options…" '
+      + 'oninput="onDecorOptInput()" onfocus="onDecorOptInput()" onblur="setTimeout(()=>{const b=document.getElementById(\'doptSuggest\');if(b)b.classList.remove(\'show\')},200)">'
+      + '<div class="pick-suggest" id="doptSuggest"></div></div>'
+    + (chips ? '<div class="dopt-list">'+chips+'</div>' : '')
+    + (link ? '<div style="margin-top:6px;font-size:12px">'+link+'</div>' : '')
+    + '</div>';
+}
+function onDecorOptInput(){
+  const box = document.getElementById('doptSuggest'), input = document.getElementById('doptInput');
+  if(!box || !input) return;
+  const q = input.value.trim().toLowerCase(), have = new Set(decorOptIds());
+  const list = (CATALOGUE.decor_options||[]).filter(o=>!have.has(o.id) && (!q || o.name.toLowerCase().includes(q)));
+  box.innerHTML = list.length ? list.slice(0,40).map(o=>'<div class="ps-item" onclick="addDecorOption(\''+esc(o.id)+'\')"><span class="ps-name">'+esc(o.name)+'</span><span class="ps-price">'+money(o.price)+'</span></div>').join('')
+    : '<div class="ps-empty">No matching decor design.</div>';
+  box.classList.add('show');
+}
+function setDecorOptions(ids){
+  saveRequirement('decor_options', {ids});
+  const sec = document.querySelector('.dopt');
+  if(sec){ sec.outerHTML = decorOptionsHtml(); }
+}
+function addDecorOption(id){
+  const ids = decorOptIds();
+  if(ids.includes(id)) return;
+  if(ids.length >= 8){ showToast('Up to 8 decor options.'); return; }
+  setDecorOptions(ids.concat([id]));
+  showToast('Decor option added — click Save.');
+}
+function removeDecorOption(id){ setDecorOptions(decorOptIds().filter(x=>x!==id)); }
 // 2026-09-16, per Shruti: "decor - by default, add the decor price based on
 // the selection. user can edit it" — picking a tier auto-fills the cost
 // field from that tier's reference price (CATALOGUE.decor_tiers); the cost

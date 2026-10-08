@@ -162,6 +162,9 @@ def _build_catalogue() -> dict:
     # list the public builder uses.
     decor_tiers = [{"name": t, "price": DECOR_TIER_META[t]["price"]} for t in DECOR_TIER_ORDER if t in DECOR_TIER_META]
     decor_themes = [{"id": t["id"], "name": t["n"]} for t in THEMES]
+    # Decor options to show the client side by side (2026-10-08).
+    from catalogue_data import decor_options as _decor_options
+    decor_option_list = [{"id": x["id"], "name": x["name"], "price": x["price"], "tier": x["tier"]} for x in _decor_options()]
     # Host: no tier dropdown anymore (Shruti — "remove dropdown, just keep
     # cost") — reference prices are still sent for the hint text next to
     # the free-entry cost field.
@@ -203,6 +206,7 @@ def _build_catalogue() -> dict:
     return {
         "decor_tiers": decor_tiers,
         "decor_themes": decor_themes,
+        "decor_options": decor_option_list,
         # Party theme picker (Client & Event Details) — every theme a customer
         # can choose on the website, incl. Among Us / Imposter, which have no
         # decor designs and so are not in decor_themes (2026-10-03).
@@ -1468,6 +1472,25 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
         if img and decor_image_is_reference(theme or None, tier):
             det.append(DECOR_REFERENCE_NOTE)
         lines.append(priced(it, name, det, img))
+    # Decor options to choose from (2026-10-08, per Shruti) — each with its
+    # photo, price and inclusions; NOT in the Estimated Total (only the decor
+    # picked above is). Link to decor-options.html for bigger photos.
+    from catalogue_data import decor_option, DECOR_OPTIONS_PAGE
+    opt_ids = [x for x in (r("decor_options").get("ids") or []) if isinstance(x, str)]
+    opts = [o for o in (decor_option(x) for x in dict.fromkeys(opt_ids)) if o]
+    if opts:   # link first, so it sits with the options even across a page break
+        url = DECOR_OPTIONS_PAGE + "?o=" + ",".join(o["id"] for o in opts)
+        lines.append({"name": f"{len(opts)} decor option{'s' if len(opts) > 1 else ''} for you to choose from",
+                      "details": ["Tap the link for bigger photos, with everything included and not included in each design."],
+                      "image": None, "price": None,
+                      "link": {"url": url, "text": "View your decor options ↗"}})
+    for i, o in enumerate(opts, 1):
+        inc = o["included"]
+        det = [" · ".join(inc[:3])] + ([" · ".join(inc[3:])] if len(inc) > 3 else [])
+        det += [f"Needed from you: {x}" for x in o.get("needed") or []]
+        lines.append({"name": f"Option {i}: {o['name']}", "details": det, "image": o["image"],
+                      "price": o["price"],
+                      "price_text": "Not in the total" if it else "Option — pick one"})
     add("Decor", lines)
 
     # 2. Activities
