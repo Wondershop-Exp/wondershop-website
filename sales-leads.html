@@ -248,11 +248,20 @@ th.th-sort:hover{color:var(--pk)}
 .dopt .pick-wrap{position:relative}
 .dopt .pick-wrap input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px;background:#fff}
 .dopt-list{display:grid;gap:6px;margin-top:8px}
-.dopt-chip{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;border:1px solid #E3DCEE;border-radius:8px;padding:6px 6px 6px 10px;font-size:13px}
+.dopt-chip{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid #E3DCEE;border-radius:8px;padding:6px 6px 6px 10px;font-size:13px}
+.dopt-ref{color:var(--gy);font-size:12px}
+.dopt-q{display:flex;align-items:center;gap:6px}
+.dopt-q label{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--gy)}
+.dopt-q input{width:110px;padding:7px 9px;border:1px solid var(--li2);border-radius:8px;font-size:13px}
 .add-new-act input,.add-new-act select{flex:1;padding:11px 12px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px;min-width:0}
 .add-new-act #newActPrice{flex:0 0 160px}
 .add-new-act select{flex:0 0 118px;background-color:#fff}
 @media(max-width:600px){.add-new-act{flex-wrap:wrap}.add-new-act #newActInput{flex:1 1 100%}}
+.act-photo-row{margin-top:6px;display:flex;align-items:center;gap:8px}
+.act-photo{display:flex;align-items:center;gap:8px}
+.act-photo img{width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--li2);cursor:zoom-in}
+.act-photo-btn{display:inline-block;font-size:11.5px;font-weight:600;color:#6C4AB6;background:#fff;border:1px solid #CDBFE8;border-radius:7px;padding:4px 9px;cursor:pointer}
+.act-photo-btn input{display:none}
 .act-custom{display:inline-block;font-size:10.5px;font-weight:700;color:#7A4B00;background:#FFF4D6;border-radius:999px;padding:1px 8px;margin-top:3px}
 .add-new-act button{padding:0 15px;border:none;border-radius:8px;background:var(--plum);color:#fff;font-weight:700;font-size:12.5px}
 .sugg-list{margin-top:10px;display:flex;flex-direction:column;gap:6px}
@@ -1159,7 +1168,7 @@ function listBreakdown(){
   const sel = k => (reqs[k] && typeof reqs[k]==='object') ? reqs[k] : {};
   const on = r => r.selected && r.selected !== 'No';
   const d = sel('decor');
-  if(on(d) || num(d.cost)!==null) line('Decor'+(d.selected?': '+(d.theme_name?d.theme_name+' – ':'')+d.selected:''), d.cost, _catPrice(C.decor_tiers,'name',d.selected));
+  if(on(d) || num(d.cost)!==null) line('Decor'+(d.selected?': '+(d.theme_name?d.theme_name+' – ':'')+d.selected:''), d.cost, decorListPrice(d.theme_name, d.selected));
   const h = sel('host');
   const spyBy = spyHostIncludedBy();
   if(num(h.cost)!==null){
@@ -1745,13 +1754,47 @@ function reqDecorRow(){
 // requirements.decor_options.ids (Build-a-Birthday design ids); the quote
 // PDF lists each one (not in the total) + a link to decor-options.html.
 function decorOptIds(){ return (req('decor_options').ids || []).filter(x=>typeof x==='string'); }
+// Sales quote per decor option (2026-10-08, per Shruti) — blank = list price.
+function decorOptQuote(id){ const q = (req('decor_options').quotes || {})[id]; return (q===undefined||q===null||q==='') ? null : Number(q); }
+function setDecorOptQuote(id, v){
+  const r = req('decor_options'), quotes = Object.assign({}, r.quotes || {});
+  const o = (CATALOGUE.decor_options||[]).find(x=>x.id===id);
+  const n = v === '' ? null : Math.max(0, Number(v));
+  if(n === null || isNaN(n) || (o && n === Number(o.price))) delete quotes[id]; else quotes[id] = n;
+  if(JSON.stringify(quotes) === JSON.stringify(r.quotes || {})) return;
+  saveRequirement('decor_options', {ids: decorOptIds(), quotes});
+  refreshBillingBreakup();
+}
+// Decor options as summary rows (not in the Grand Total).
+function decorOptionRows(){
+  return decorOptIds().map((id,i)=>{
+    const o = (CATALOGUE.decor_options||[]).find(x=>x.id===id);
+    if(!o) return null;
+    const q = decorOptQuote(id);
+    return {label:'Option '+(i+1)+': '+o.name, mrp:Number(o.price), quote: q==null ? Number(o.price) : q};
+  }).filter(Boolean);
+}
+function refreshBillingBreakup(){
+  const box = document.getElementById('doptBreakup');
+  if(box) box.outerHTML = decorOptBreakupHtml();
+}
+function decorOptBreakupHtml(){
+  const rows = decorOptionRows();
+  if(!rows.length) return '<div id="doptBreakup"></div>';
+  return '<div class="gt-breakup gifts" id="doptBreakup"><div class="gb-hd">🎈 Decor options shown to the client — not in the Grand Total</div><table>'
+    + '<thead><tr><th>Item</th><th>MRP</th><th>Sales quote</th></tr></thead><tbody>'
+    + rows.map(i=>'<tr><td>'+esc(i.label)+'</td><td>'+money(i.mrp)+'</td><td'+(i.quote < i.mrp ? ' class="neg"' : '')+'>'+money(i.quote)+'</td></tr>').join('')
+    + '</tbody></table></div>';
+}
 function decorOptionsHtml(){
   const all = CATALOGUE.decor_options || [];
   const ids = decorOptIds();
   const chips = ids.map((id,i)=>{
     const o = all.find(x=>x.id===id);
-    return '<div class="dopt-chip"><span><b>Option '+(i+1)+':</b> '+esc(o?o.name:id)+(o?' · '+money(o.price):'')+'</span>'
-      + '<button type="button" class="icon-btn" title="Remove" onclick="removeDecorOption(\''+esc(id)+'\')">✕</button></div>';
+    const q = decorOptQuote(id);
+    return '<div class="dopt-chip"><span><b>Option '+(i+1)+':</b> '+esc(o?o.name:id)+(o?' <span class="dopt-ref">list '+money(o.price)+'</span>':'')+'</span>'
+      + '<span class="dopt-q"><label>Sales Quote (₹)<input type="number" min="0" step="1" value="'+(q==null?(o?o.price:''):q)+'" onblur="setDecorOptQuote(\''+esc(id)+'\', this.value)"></label>'
+      + '<button type="button" class="icon-btn" title="Remove" onclick="removeDecorOption(\''+esc(id)+'\')">✕</button></span></div>';
   }).join('');
   const link = ids.length ? '<a href="decor-options.html?o='+encodeURIComponent(ids.join(','))+'" target="_blank">Preview the client page ↗</a>' : '';
   return '<div class="dopt"><div class="dopt-hd">Decor options for the client <span class="opt">optional</span></div>'
@@ -1773,7 +1816,10 @@ function onDecorOptInput(){
   box.classList.add('show');
 }
 function setDecorOptions(ids){
-  saveRequirement('decor_options', {ids});
+  const quotes = Object.assign({}, req('decor_options').quotes || {});
+  Object.keys(quotes).forEach(k=>{ if(!ids.includes(k)) delete quotes[k]; });
+  saveRequirement('decor_options', {ids, quotes});
+  refreshBillingBreakup();
   const sec = document.querySelector('.dopt');
   if(sec){ sec.outerHTML = decorOptionsHtml(); }
 }
@@ -1805,16 +1851,27 @@ async function onDecorTierChange(){
   if(!tierName){
     r.cost = null;
   }else{
-    const tier = (CATALOGUE.decor_tiers||[]).find(t=>t.name===tierName);
-    if(tier && tier.price!=null) r.cost = tier.price;
+    const p = decorListPrice(r.theme_name, tierName);
+    if(p!=null) r.cost = p;
   }
   const costEl = document.getElementById('req_decor_cost');
   if(costEl) costEl.value = r.cost==null?'':r.cost;
   await saveRequirement('decor', r);
 }
+// List price of a decor: a named design's own price when it has one (e.g.
+// Sustainable LED Decor ₹30,000), else the tier's (2026-10-08).
+function decorListPrice(theme, tier){
+  const o = (CATALOGUE.decor_options||[]).find(x=>x.theme && x.theme===(theme||'').trim() && x.tier===tier);
+  return o ? Number(o.price) : _catPrice((CATALOGUE||{}).decor_tiers,'name',tier);
+}
 async function onDecorThemePick(name){
   if(!name) return;
   const r = Object.assign({}, req('decor'));
+  // Re-price an untouched tier price to this design's own price.
+  if(r.selected && (r.cost==null || Number(r.cost)===Number(decorListPrice(r.theme_name, r.selected)))){
+    const p = decorListPrice(name, r.selected);
+    if(p!=null) r.cost = p;
+  }
   r.theme_name = name;
   await saveRequirement('decor', r);
   await saveField('theme', name);
@@ -2548,7 +2605,7 @@ function renderActivities(){
       const rm = '<button type="button" class="icon-btn" onclick="toggleActivity(\''+a.id+'\',\''+nameJs+'\',null,null)" title="Remove">✕</button>';
       if(a.flat){
         return '<div class="act-item sel"><div class="act-main" style="cursor:default;flex-wrap:wrap;gap:8px">'
-          + '<div class="an">'+esc(a.name)+(a.custom ? customActTag() : '<div class="act-ref">Flat · list price '+(listPrice!=null?money(listPrice):'—')+'</div>')+venueNote(a)+'</div>'
+          + '<div class="an">'+esc(a.name)+(a.custom ? customActTag(a) : '<div class="act-ref">Flat · list price '+(listPrice!=null?money(listPrice):'—')+'</div>')+venueNote(a)+'</div>'
           + '<label class="act-fld">Sales Quote (₹)<input type="number" min="0" step="1" style="width:120px;'+inp+'" value="'+(a.price==null?'':Number(a.price))+'" onblur="onActField(\''+idJs+'\',\'price\',this.value)"></label>'
           + '<div class="ap">'+money(Number(a.price)||0)+'</div>'
           + rm + '</div></div>';
@@ -2556,7 +2613,7 @@ function renderActivities(){
       const q = actQty(a);
       const lineTotal = (Number(a.price)||0) * q;
       return '<div class="act-item sel"><div class="act-main" style="cursor:default;flex-wrap:wrap;gap:8px">'
-        + '<div class="an">'+esc(a.name)+(a.custom ? customActTag() : '')+'<div class="act-ref">Per child'+(a.custom?'':' · list price '+(listPrice!=null?money(listPrice):'—')+'/child')
+        + '<div class="an">'+esc(a.name)+(a.custom ? customActTag(a) : '')+'<div class="act-ref">Per child'+(a.custom?'':' · list price '+(listPrice!=null?money(listPrice):'—')+'/child')
           + (a.qty==null ? (kids ? ' · kids = # Kids above' : ' · # Kids not set yet') : '')+'</div>'+venueNote(a)+'</div>'
         + '<label class="act-fld">Kids<input type="number" min="0" step="1" style="width:72px;'+inp+'" value="'+q+'" onblur="onActField(\''+idJs+'\',\'qty\',this.value)"></label>'
         + '<span style="color:var(--gy)">×</span>'
@@ -2639,8 +2696,43 @@ async function onActivityAssign(id, field, value){
     showToast(e.message||"Couldn't save that.");
   }
 }
-function customActTag(){
-  return '<div><span class="act-custom" title="Not in the activity list — Shruti reviews it on the booking">Custom activity · Shruti will review</span></div>';
+function customActTag(a){
+  // Reference photo for a custom activity (2026-10-08, per Shruti) — shown on
+  // the quotation PDF / party plan instead of a catalogue picture.
+  const idJs = String(a && a.id || '').replace(/'/g, "\\'");
+  const photo = (a && a.photo_url)
+    ? '<span class="act-photo"><img src="'+esc(a.photo_url)+'" alt="" onclick="window.open(this.src,\'_blank\')">'
+      + '<label class="act-photo-btn">Change<input type="file" accept="image/jpeg,image/png,image/webp" onchange="uploadActivityPhoto(\''+idJs+'\', this)"></label>'
+      + '<button type="button" class="act-photo-btn" onclick="removeActivityPhoto(\''+idJs+'\')">Remove</button></span>'
+    : '<label class="act-photo-btn">📷 Add reference photo<input type="file" accept="image/jpeg,image/png,image/webp" onchange="uploadActivityPhoto(\''+idJs+'\', this)"></label>';
+  return '<div><span class="act-custom" title="Not in the activity list — Shruti reviews it on the booking">Custom activity · Shruti will review</span></div>'
+    + '<div class="act-photo-row">'+photo+'</div>';
+}
+async function uploadActivityPhoto(id, input){
+  const f = input.files && input.files[0];
+  if(!f) return;
+  if(f.size > 7*1024*1024){ showToast('That picture is over 7 MB — please pick a smaller one.'); return; }
+  const fd = new FormData(); fd.append('image', f); fd.append('uploaded_by', getName());
+  showToast('Uploading photo…');
+  try{
+    const res = await fetch(API+'/api/admin/sales-leads/'+CURRENT_ID+'/activity-photo', {method:'POST', headers:{'X-Admin-Password':getPw()}, body:fd});
+    const b = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(b.detail || ('Upload failed ('+res.status+')'));
+    const next = (DATA.activities||[]).map(a=> a.id===id ? Object.assign({}, a, {photo_token:b.token, photo_url:b.url}) : a);
+    DATA.activities = next;
+    patchSheet({activities: next});
+    renderActivities();
+    showToast('Photo added — click Save. It goes on the quotation PDF.');
+  }catch(e){ showToast(e.message || "Couldn't upload the photo."); }
+}
+function removeActivityPhoto(id){
+  const next = (DATA.activities||[]).map(a=>{
+    if(a.id!==id) return a;
+    const c = Object.assign({}, a); delete c.photo_token; delete c.photo_url; return c;
+  });
+  DATA.activities = next;
+  patchSheet({activities: next});
+  renderActivities();
 }
 // 2026-10-07, per Shruti — "for custom activities, the same should reflect in
 // the confirm booking section list as well. when the user adds this - they
@@ -2829,6 +2921,7 @@ function sectionBilling(){
       + '<div class="fld"><label>Payment Method</label><select id="bill_pm" onchange="saveField(\'payment_method\', this.value)">'+pmOpts+'</select></div>'
     + '</div>'
     + breakupHtml(LB)
+    + decorOptBreakupHtml()
     + '<div class="disc-box" id="discBox">'+discountHtml(LB.total, salesQuoteValue(LB), LB.quoteTotal)+'</div>'
     + (d.gift_order
         ? '<div style="margin-top:14px">'+giftOrderHtml(d.gift_order, CURRENT_ID, reloadSalesDetail)+'</div>'

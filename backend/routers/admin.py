@@ -2225,7 +2225,7 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
             flat = bool(a.get("flat", True))
             price = (unit if flat else unit * qty) if unit else None
             how = (f"₹{unit:,.0f} flat" if flat else f"{qty} kids × ₹{unit:,.0f}") if unit else "no price yet"
-            customs[a["name"].strip()] = {"price": price,
+            customs[a["name"].strip()] = {"price": price, "photo": a.get("photo_token"),
                                           "note": f"Custom activity from sales ({a.get('added_by') or who}): {how}"}
         if por_prices or customs:
             lead_now = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
@@ -2235,7 +2235,7 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
                 key = f"custom:{name}"
                 if key in state:
                     continue
-                state[key] = {"custom": True, "name": name, "status": "pending", "price": c["price"],
+                state[key] = {"custom": True, "name": name, "photo": c.get("photo"), "status": "pending", "price": c["price"],
                               "note": c["note"], "by": who, "at": _to_ist_str(now)}
                 changed = True
             for name, price in por_prices.items():
@@ -2332,8 +2332,8 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
                     acts_snap = []
                     for a in activities:
                         name = a.get("name")
-                        if not name:
-                            continue
+                        if not name or a.get("custom"):
+                            continue   # custom activities live on the To be confirmed card (2026-10-08)
                         if a.get("id") in cat.SPY_ACTIVITY_IDS:
                             acts_snap.append({"id": a.get("id"), "n": name, "p": round(spy_share, 2)})
                         else:
@@ -2862,7 +2862,7 @@ async def update_tbc_item(lead_id: int, body: TbcUpdateRequest, x_admin_password
     lead_row = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
     state = tbc_state(dict(lead_row))
     now = datetime.utcnow()
-    keep = {k: v for k, v in (state.get(body.key) or {}).items() if k in ("custom", "name")}   # custom activity
+    keep = {k: v for k, v in (state.get(body.key) or {}).items() if k in ("custom", "name", "photo")}   # custom activity
     state[body.key] = {**keep, "status": body.status, "price": body.price,
                        "note": (body.note or "").strip() or None,
                        "by": who, "at": _to_ist_str(now)}

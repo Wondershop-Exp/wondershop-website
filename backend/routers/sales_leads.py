@@ -164,7 +164,7 @@ def _build_catalogue() -> dict:
     decor_themes = [{"id": t["id"], "name": t["n"]} for t in THEMES]
     # Decor options to show the client side by side (2026-10-08).
     from catalogue_data import decor_options as _decor_options
-    decor_option_list = [{"id": x["id"], "name": x["name"], "price": x["price"], "tier": x["tier"]} for x in _decor_options()]
+    decor_option_list = [{"id": x["id"], "name": x["name"], "price": x["price"], "tier": x["tier"], "theme": x["theme"]} for x in _decor_options()]
     # Host: no tier dropdown anymore (Shruti — "remove dropdown, just keep
     # cost") — reference prices are still sent for the hint text next to
     # the free-entry cost field.
@@ -506,7 +506,12 @@ def _list_breakdown(requirements: dict, activities: list, kids_count: Optional[i
 
     d = sel("decor")
     if on(d) or num(d.get("cost")) is not None:
-        line("decor", "Decor", d.get("cost"), cat_price(C["decor_tiers"], "name", d.get("selected")))
+        # A named design with its own price (e.g. Sustainable LED Decor ₹30,000,
+        # Katseye Signature) beats the tier's shared price (2026-10-08).
+        from catalogue_data import decor_options as _dopts
+        _own = next((o["price"] for o in _dopts() if o["theme"] and o["theme"] == (d.get("theme_name") or "").strip()
+                     and o["tier"] == d.get("selected")), None)
+        line("decor", "Decor", d.get("cost"), _own if _own is not None else cat_price(C["decor_tiers"], "name", d.get("selected")))
     h = sel("host")
     spy_by = spy_host_included_by(activities)
     if num(h.get("cost")) is not None:
@@ -1477,9 +1482,17 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
     # picked above is). Link to decor-options.html for bigger photos.
     from catalogue_data import decor_option, DECOR_OPTIONS_PAGE
     opt_ids = [x for x in (r("decor_options").get("ids") or []) if isinstance(x, str)]
+    opt_quotes = r("decor_options").get("quotes") or {}
     opts = [o for o in (decor_option(x) for x in dict.fromkeys(opt_ids)) if o]
     if opts:   # link first, so it sits with the options even across a page break
-        url = DECOR_OPTIONS_PAGE + "?o=" + ",".join(o["id"] for o in opts)
+        def _tok(o):   # "uni-signature:22000" carries the sales quote to the page
+            q = opt_quotes.get(o["id"])
+            try:
+                q = int(round(float(q))) if q not in (None, "") else None
+            except (TypeError, ValueError):
+                q = None
+            return f"{o['id']}:{q}" if q is not None and q != int(o["price"]) else o["id"]
+        url = DECOR_OPTIONS_PAGE + "?o=" + ",".join(_tok(o) for o in opts)
         lines.append({"name": f"{len(opts)} decor option{'s' if len(opts) > 1 else ''} for you to choose from",
                       "details": ["Tap the link for bigger photos, with everything included and not included in each design."],
                       "image": None, "price": None,
@@ -1488,9 +1501,16 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
         inc = o["included"]
         det = [" · ".join(inc[:3])] + ([" · ".join(inc[3:])] if len(inc) > 3 else [])
         det += [f"Needed from you: {x}" for x in o.get("needed") or []]
-        lines.append({"name": f"Option {i}: {o['name']}", "details": det, "image": o["image"],
-                      "price": o["price"],
-                      "price_text": "Not in the total" if it else "Option — pick one"})
+        try:   # the sales quote for this option (2026-10-08); list price if none
+            q = float(opt_quotes.get(o["id"])) if opt_quotes.get(o["id"]) not in (None, "") else None
+        except (TypeError, ValueError):
+            q = None
+        ln = {"name": f"Option {i}: {o['name']}", "details": det, "image": o["image"],
+              "price": q if q is not None else o["price"],
+              "price_text": "Not in the total" if it else "Option — pick one"}
+        if q is not None and q < o["price"] - 0.5:
+            ln["strike"] = o["price"]
+        lines.append(ln)
     add("Decor", lines)
 
     # 2. Activities
@@ -1503,6 +1523,8 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
     for it in by_key.get("activity") or []:
         a = it.get("activity") or {}
         img = resolve_activity_image(a.get("id"), a.get("name"))
+        if a.get("photo_token"):   # custom activity's own reference photo (2026-10-08)
+            img = "aref:" + str(a["photo_token"])
         venue_note = activity_venue_note(a.get("id"), a.get("name"))
         if it["flat"] and not it["unit"]:
             lines.append({"name": a.get("name"), "details": [venue_note], "image": img,
@@ -1758,6 +1780,19 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
     return data, paths
 
 
+async def load_activity_photos(images: dict, paths) -> None:
+    """Custom-activity reference photos ("aref:<token>" image keys) from
+    activity_ref_images into the PDF's image map (2026-10-08)."""
+    from routers.decor_refs import activity_photo_bytes
+    from quotation_builder import _thumb
+    for p in paths:
+        if str(p).startswith("aref:") and p not in images:
+            raw = await activity_photo_bytes(str(p)[5:])
+            th = _thumb(raw) if raw else None
+            if th:
+                images[p] = th
+
+
 @router.get("/admin/sales-leads/{lead_id}/quotation.pdf")
 async def quotation_pdf(lead_id: int, by: Optional[str] = None, hide_total: bool = False,
                         x_admin_password: Optional[str] = Header(None)):
@@ -1770,7 +1805,8 @@ async def quotation_pdf(lead_id: int, by: Optional[str] = None, hide_total: bool
     pb_row = await _get_playbook_row(lead_id)
     d = await _full_detail(lead_row)
     data, paths = _quotation_data(d, datetime.utcnow())
-    images = await fetch_images(paths)
+    images = await fetch_images([p for p in paths if not str(p).startswith("aref:")])
+    await load_activity_photos(images, paths)
     # Uploaded decor reference photo, if any (2026-10-06).
     from booking_quote import apply_decor_ref
     from routers.decor_refs import current_for_lead

@@ -136,6 +136,9 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
 
     # 2. Activities
     lines = []
+    # Custom activities' reference photos (2026-10-08) — "aref:<token>".
+    custom_photo = {t.get("name"): "aref:" + t["photo"] for t in (d.get("to_be_confirmed") or [])
+                    if t.get("kind") == "custom" and t.get("photo")}
     for label, amt in take("Activity"):
         name = after(label)
         det = []
@@ -145,11 +148,11 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
             det.append(f"{m.group(2)} kids × {inr(float(m.group(3).replace(',', '')))} per child")
         note = cat.activity_venue_note(None, name)
         lines.append({"name": name, "details": det + ([note] if note else []),
-                      "image": cat.resolve_activity_image(None, name), "price": amt})
+                      "image": custom_photo.get(name) or cat.resolve_activity_image(None, name), "price": amt})
     for u in take_unpriced("Activity"):
         name = after(u)
         note = cat.activity_venue_note(None, name)
-        lines.append({"name": name, "details": [note] if note else [], "image": cat.resolve_activity_image(None, name),
+        lines.append({"name": name, "details": [note] if note else [], "image": custom_photo.get(name) or cat.resolve_activity_image(None, name),
                       "price": None, "price_text": "Price on request"})
     if cust_val("activities_notes"):   # remarks about the activities (2026-10-07)
         lines.append({"name": "Activity notes", "details": cust_val("activities_notes").splitlines(),
@@ -317,7 +320,9 @@ async def booking_quotation_pdf(lead_id: int, by: Optional[str] = None, x_admin_
     from quotation_builder import build_quotation_pdf, fetch_images, quotation_filename
     _require_admin(x_admin_password)
     data, paths = await booking_quotation_data(lead_id, x_admin_password, by)
-    images = await fetch_images(paths)
+    images = await fetch_images([p for p in paths if not str(p).startswith("aref:")])
+    from routers.sales_leads import load_activity_photos
+    await load_activity_photos(images, paths)
     ref = await current_for_lead(lead_id, with_image=True)
     own = bool(ref)
     if not ref:

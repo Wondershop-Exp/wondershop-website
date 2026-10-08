@@ -269,12 +269,68 @@ async def public_decor_options(o: Optional[str] = None):
     ids = [x.strip() for x in (o or "").split(",") if x.strip()][:12]
     site = cat.SITE_BASE_URL.rstrip("/")
     items = []
-    for oid in dict.fromkeys(ids):
+    for tok in dict.fromkeys(ids):
+        oid, _, q = tok.partition(":")   # "uni-signature:22000" = sales quote
         it = cat.decor_option(oid)
         if not it:
             continue
         it = dict(it)
+        try:
+            it["quote"] = int(q) if q and int(q) > 0 else None
+        except ValueError:
+            it["quote"] = None
         it["photos"] = [f"{site}/{p}" for p in it["photos"]]
         it["image"] = it["photos"][0] if it["photos"] else None
         items.append(it)
     return {"items": items}
+
+
+# ─── Custom-activity reference photos (2026-10-08, per Shruti) ───────────
+# "for the custom activities, give an option to upload a reference photo
+# which will come up in the pdf as well". Table: activity_ref_images
+# (migration 045). The sales panel keeps the returned token on the custom
+# activity (photo_token); the quotation PDF / party plan load it by token.
+def activity_photo_url(token: str) -> str:
+    return f"{PUBLIC_API_BASE}/api/activity-photos/public/{token}"
+
+
+async def activity_photo_bytes(token: Optional[str]) -> Optional[bytes]:
+    if not token:
+        return None
+    try:
+        r = await database.fetch_one("SELECT image FROM activity_ref_images WHERE public_token = :t", values={"t": token})
+    except Exception:
+        logger.exception("activity photo read failed (run migration 045?)")
+        return None
+    return bytes(r["image"]) if r else None
+
+
+@router.post("/admin/sales-leads/{lead_id}/activity-photo")
+async def upload_activity_photo(lead_id: int, image: UploadFile = File(...),
+                                uploaded_by: Optional[str] = Form(None),
+                                x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    raw = await image.read(MAX_FILE_BYTES + 1)
+    if not raw:
+        raise HTTPException(status_code=400, detail="No image was received — please choose a file and try again.")
+    if len(raw) > MAX_FILE_BYTES:
+        raise HTTPException(status_code=400, detail="That image is too large — please keep it under 7 MB.")
+    kind = _sniff(raw)
+    if not kind:
+        raise HTTPException(status_code=400, detail="Please upload a JPG, PNG or WEBP image.")
+    tok = secrets.token_urlsafe(18)
+    await database.execute(
+        """INSERT INTO activity_ref_images (lead_id, public_token, image, image_type, image_name, uploaded_by)
+           VALUES (:l, :t, :img, :k, :n, :by)""",
+        values={"l": lead_id, "t": tok, "img": raw, "k": kind, "n": (image.filename or "")[:200] or None,
+                "by": (uploaded_by or "").strip()[:80] or None})
+    return {"token": tok, "url": activity_photo_url(tok)}
+
+
+@router.get("/activity-photos/public/{token}")
+async def public_activity_photo(token: str):
+    r = await database.fetch_one("SELECT image, image_type FROM activity_ref_images WHERE public_token = :t", values={"t": token})
+    if not r:
+        raise HTTPException(status_code=404, detail="Not found.")
+    return Response(content=bytes(r["image"]), media_type=r["image_type"],
+                    headers={"Cache-Control": "public, max-age=86400"})

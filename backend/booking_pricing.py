@@ -392,6 +392,7 @@ def to_be_confirmed(cur: dict, removed: set, snap: Optional[dict] = None, lead: 
         it["note"] = st.get("note")
         it["updated_by"] = st.get("by")
         it["updated_at"] = st.get("at")
+        it["photo"] = st.get("photo")   # custom activity's reference photo token (2026-10-08)
     return out
 
 
@@ -540,6 +541,10 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
             unpriced.append(f"Cake: {cake}")
 
     act_items, act_unpriced = _price_activities(_resolved(cur, "svc_activities", removed), kids)
+    # A custom activity (on the To be confirmed card, priced there) can also
+    # sit in an older booking's activity list — never count it twice.
+    _customs = {k[len("custom:"):] for k in tbc_state(lead) if k.startswith("custom:")}
+    act_unpriced = [u for u in act_unpriced if u[len("Activity: "):] not in _customs]
     for label, amt in act_items:
         add(label, amt)
     unpriced += act_unpriced

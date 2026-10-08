@@ -152,12 +152,12 @@ THEMES = [
     # the shared Signature spec. Mirrors builder.html.
     {"id": "ledscreen", "n": "Sustainable LED Decor", "b": "As per theme", "anyTheme": True,
      "tierPhotos": {"Signature": "Decor/decor-sustainable-led-signature.jpg"},
-     "tierOverrides": {"Signature": {"price": 25000, "spec": [
+     "tierOverrides": {"Signature": {"price": 30000, "spec": [
          ("Backdrop", "6 × 6 ft LED screen mounted on a platform — your theme & the birthday child's name on screen", False),
          ("Welcome Decor", "Balloon welcome arch + A3 welcome board", False),
          ("Cutouts", "Theme-based cutouts", False),
          ("Sustainable", "No flex printing — the design is shown on a reusable LED screen", False),
-         ("Needed from you", "1 table and an electrical plug point", False),
+         ("Needed from you", "1 table and 1 electrical power plug point (15 Amp)", False),
      ]}}},
 ]
 # More photos of a design (builder.html tierExtraPhotos) — shown on the
