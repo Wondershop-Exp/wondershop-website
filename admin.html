@@ -135,6 +135,11 @@ table.list th.sortable:hover{color:var(--bk)}
 .go-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
 .go-btn{padding:9px 16px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:#E65A96;color:#fff}
 .go-btn.ghost{background:#fff;border:1px solid #E3DCEE;color:#3B2A55}
+.pm-card{background:#fff;border:1.5px solid #CDEBD8;border-radius:14px;padding:16px 18px;margin:0 0 22px}
+.pm-hd{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;font-weight:700;font-size:15px;color:#1E5B3A}
+.pm-sub{font-size:12.5px;color:var(--gy);font-weight:500;margin-top:3px}
+.pm-text{width:100%;min-height:380px;margin-top:12px;padding:12px 14px;border:1px solid #E3DCEE;border-radius:10px;font:13.5px/1.55 system-ui,-apple-system,sans-serif;white-space:pre-wrap;box-sizing:border-box}
+.pm-btn.wa{background:#25A35A}
 .go-meta{font-size:11.5px;color:#8B7FA0;line-height:1.5}
 #spySection .spy-reg-card{box-shadow:none;padding:0;margin:0;background:none}
 #spySection .spy-reg-card .srh{display:none}
@@ -713,6 +718,7 @@ body.role-sales .admin-only{display:none!important}
     <div id="lockBanner"></div>
     <div id="bdNav"></div>
     <div id="tbcBlock"></div>
+    <div id="preMsgBlock"></div>
     <div id="sectionsContainer"></div>
     <div id="giftOrderBlock"></div>
     <!-- 2026-10-02, per Shruti — "move spy registration page section at the
@@ -1325,6 +1331,50 @@ function renderBookingHead(d){
     + (bookingCanShareFiles() ? ' <button type="button" class="mini-btn" id="bdQuoteShareBtn" onclick="getBookingQuote(true)" title="Share the PDF straight to WhatsApp">📤 Share</button>' : '');
   document.getElementById('bdTopRight').innerHTML = quoteBtns + (CURRENT_ORIGIN === 'Sales'
     ? ' <a class="linkbtn" href="sales-leads.html?lead_id='+d.lead_id+'" target="_blank">Open sales playbook ↗</a>' : '');
+}
+
+// ── 1-day-before WhatsApp message (2026-10-09, per Shruti) ──────────────
+// Shown on approved bookings (not leads, not cancelled). Built server-side
+// from the booking's current details (GET .../pre-event-message), editable
+// here before copying / opening WhatsApp. Sent by hand for now.
+function renderPreEventMsg(d){
+  const box = document.getElementById('preMsgBlock');
+  if(!box) return;
+  if(!d.is_booking || d.status === 'Cancelled'){ box.innerHTML = ''; return; }
+  box.innerHTML = '<div class="pm-card"><div class="pm-hd"><div>📲 Message for client — 1 day before the event'
+    + '<div class="pm-sub">Date, times, event plan and payment summary, ready to send on WhatsApp.</div></div>'
+    + '<button type="button" class="go-btn" id="pmPrepBtn" onclick="loadPreEventMsg()">Prepare message</button></div>'
+    + '<div id="pmBody"></div></div>';
+}
+let PM_PHONE = '';
+async function loadPreEventMsg(){
+  const btn = document.getElementById('pmPrepBtn');
+  const body = document.getElementById('pmBody');
+  if(btn){ btn.disabled = true; btn.textContent = 'Preparing…'; }
+  try{
+    const r = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/pre-event-message');
+    PM_PHONE = r.phone || '';
+    body.innerHTML = '<textarea class="pm-text" id="pmText"></textarea>'
+      + '<div class="go-btns" style="margin-top:10px">'
+      + '<button type="button" class="go-btn ghost" onclick="copyPreEventMsg()">📋 Copy</button>'
+      + '<button type="button" class="go-btn pm-btn wa" onclick="waPreEventMsg()">Open in WhatsApp</button></div>'
+      + '<div class="pm-sub" style="margin-top:8px">Missing a time? Fill in Event End Time / Setup Ready Time / Venue Handover Time under Customer &amp; Event Details, then press Refresh. Edits made in the box above aren’t saved.</div>';
+    document.getElementById('pmText').value = r.text || '';
+    if(btn) btn.textContent = '↻ Refresh';
+  }catch(e){
+    if(e.message !== 'unauthorized') showToast('⚠ '+(e.message || 'Could not prepare the message'));
+    if(btn) btn.textContent = 'Prepare message';
+  }finally{ if(btn) btn.disabled = false; }
+}
+async function copyPreEventMsg(){
+  const t = document.getElementById('pmText'); if(!t) return;
+  try{ await navigator.clipboard.writeText(t.value); }
+  catch(e){ t.select(); document.execCommand('copy'); }
+  showToast('✓ Message copied');
+}
+function waPreEventMsg(){
+  const t = document.getElementById('pmText'); if(!t) return;
+  window.open('https://wa.me/'+(PM_PHONE||'')+'?text='+encodeURIComponent(t.value), '_blank');
 }
 
 function bookingCanShareFiles(){
@@ -3063,6 +3113,7 @@ function renderDetail(d){
   renderSpyRegistrationBlock(d);
   document.getElementById('giftOrderBlock').innerHTML = giftOrderHtml(d.gift_order, d.lead_id, loadDetail);
   document.getElementById('tbcBlock').innerHTML = tbcHtml(d);
+  renderPreEventMsg(d);
 
   const container = document.getElementById('sectionsContainer');
   container.innerHTML = d.sections.map(sec=>{
@@ -4088,7 +4139,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     ccCell = '<span class="pct-wrap"><span class="pct-suffix" style="left:9px;right:auto">₹</span><input type="number" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="—" step="1" min="0" style="padding-left:22px;padding-right:11px"></span>';
   }else if(f.field_key==='svc_cake'){
     ccCell = '<input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="e.g. Chocolate truffle, 2 kg">';
-  }else if(f.field_key==='venue_handover_time' || f.field_key==='packup_time'){
+  }else if(['venue_handover_time','packup_time','event_end_time','setup_ready_time'].includes(f.field_key)){
     // 2026-10-05, per Shruti — from the sales panel; editable here too.
     ccCell = timeSelect12(rid+'_cc', f.customer_choice||'');
   }else if(f.field_key==='event_payment_confirmed_amount'){
@@ -4145,7 +4196,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     // — readonly (not disabled) so onPincodeInput() can still set .value
     // programmatically and Save still picks it up.
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Auto-fills from pincode')+'" readonly style="background:var(--lgy);cursor:not-allowed">';
-  }else if(['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','venue_handover_time','packup_time','activities_notes','svc_cake_price'].includes(f.field_key)){
+  }else if(['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','venue_handover_time','packup_time','event_end_time','setup_ready_time','activities_notes','svc_cake_price'].includes(f.field_key)){
     avCell = noAssignedCell(rid);
   }else{
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'">';

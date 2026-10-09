@@ -345,3 +345,145 @@ async def booking_quotation_pdf(lead_id: int, by: Optional[str] = None, x_admin_
                  "X-Quote-Filename": fname, "Access-Control-Expose-Headers": "X-Quote-Filename",
                  "Cache-Control": "no-store"},
     )
+
+
+# ── 1-day-before WhatsApp message (2026-10-09, per Shruti) ──────────────
+# "a message to send to the client 1 day before the event" — sent by hand
+# on WhatsApp for now (copy / open WhatsApp from the booking page), to be
+# automated later. Built from the same booking data as the party plan PDF
+# above, so it always matches what's on the booking.
+def _plan_names(section: Optional[dict]) -> list:
+    if not section:
+        return []
+    out = []
+    for ln in section.get("lines") or []:
+        name = (ln.get("name") or "").strip()
+        if not name or name == "Activity notes":
+            continue
+        if name.startswith("Add-on: "):
+            name = name[len("Add-on: "):]
+        if ln.get("price_text") == "To be confirmed":
+            name += " (to be confirmed)"
+        out.append(name)
+    return out
+
+
+async def pre_event_message_text(lead_id: int, pw: Optional[str]) -> dict:
+    from routers.admin import get_booking_detail
+    from routers.sales_leads import _fmt_time_12h, _ordinal_age
+    from quotation_builder import inr
+    from database import database
+    import json
+
+    d = await get_booking_detail(lead_id, pw)
+    fields = {f["field_key"]: f for s in d["sections"] for f in s["fields"]}
+
+    def val(key):
+        f = fields.get(key)
+        if not f or f.get("removed"):
+            return None
+        v = f.get("assigned_value") if f.get("is_direct_write") and f.get("assigned_value") else f.get("customer_choice")
+        v = (str(v).strip() if v is not None else "")
+        return v or None
+
+    data, _paths = await booking_quotation_data(lead_id, pw)
+    secs = {s["label"]: s for s in data["sections"]}
+
+    child = (val("child_names") or "").split(",")[0].strip()
+    age_ord = _ordinal_age((val("child_ages") or "").split(",")[0].strip() or None)
+    title = (f"{child}'s {age_ord} Birthday" if age_ord else f"{child}'s Birthday") if child else "the Birthday Party"
+    tbc = "To be confirmed"
+    t = lambda k: _fmt_time_12h(val(k)) or tbc
+    event_date = tbc
+    if val("event_date"):
+        try:
+            event_date = date.fromisoformat(val("event_date")[:10]).strftime("%A, %d %B %Y").replace(" 0", " ")
+        except ValueError:
+            event_date = val("event_date")
+
+    # Host game gifts live on the sales panel only.
+    host_gifts = None
+    try:
+        row = await database.fetch_one("SELECT requirements FROM lead_sales_playbook WHERE lead_id = :id", values={"id": lead_id})
+        reqs = (row and row["requirements"]) or {}
+        reqs = json.loads(reqs) if isinstance(reqs, str) else reqs
+        hg = (reqs or {}).get("host_gifts") or {}
+        host_gifts = (str(hg.get("selected") or "").strip() or None) if isinstance(hg, dict) else None
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: couldn't read host gifts for the pre-event message")
+
+    none = "Not included"
+    host_lines = [n for n in _plan_names(secs.get("Host")) if n.lower() != "host gifts"]
+    engagement = " + ".join(filter(None, [
+        " + ".join(host_lines) or None,
+        ("Activities: " + ", ".join(_plan_names(secs.get("Activities")))) if _plan_names(secs.get("Activities")) else None,
+    ])) or none
+    gifts = ", ".join(_plan_names(secs.get("Return Gifts"))) or none
+    if gifts != none and secs.get("Return Gifts", {}).get("billed_separately"):
+        gifts += " (billed separately)"
+    extras = _plan_names(secs.get("E-Invite")) + _plan_names(secs.get("Other"))
+    terms = [x.strip(" •-\t") for x in (data.get("extra_terms") or "").splitlines() if x.strip(" •-\t")]
+
+    plan = [
+        ("Decor", ", ".join(_plan_names(secs.get("Decor"))) or none),
+        ("Engagement", engagement),
+        ("Music", ", ".join(_plan_names(secs.get("Music"))) or none),
+        ("Cake", ", ".join(ln["details"][0] for ln in (secs.get("Cake") or {}).get("lines", []) if ln.get("details")) or none),
+        ("Return gifts", gifts),
+        ("Piñata", ", ".join(_plan_names(secs.get("Pinata"))) or none),
+        ("Host game gifts", host_gifts or none),
+        ("Photographer", ", ".join(_plan_names(secs.get("Photographer"))) or none),
+    ]
+    lines = [
+        f"Hi {data.get('client_first_name') or 'there'}! 🎉",
+        "",
+        f"We're all set for *{title}* tomorrow! Here's a quick recap of the plan:",
+        "",
+        f"📅 *Date:* {event_date}",
+        f"⏰ *Event start time:* {t('event_time')}",
+        f"⏳ *Event end time:* {t('event_end_time')}",
+        f"🔑 *Venue handover time:* {t('venue_handover_time')}",
+        f"✨ *Setup ready by:* {t('setup_ready_time')}",
+    ]
+    if val("venue"):
+        lines.append(f"📍 *Venue:* {val('venue')}")
+    lines += ["", "*Event Plan*"]
+    for i, (k, v) in enumerate(plan, 1):
+        lines.append(f"{i}. *{k}:* {v}")
+    lines.append(f"9. *Anything else / T&C:*" + ("" if (extras or terms) else " None"))
+    for x in extras + terms:
+        lines.append(f"   • {x}")
+
+    grand = _money(val("bill_grand_total"))
+    adv = _money(val("bill_advance"))
+    bal = _money(val("bill_balance"))
+    if bal is None and grand is not None:
+        bal = round(grand - (adv or 0), 2)
+    money = lambda n: inr(n) if n is not None else tbc
+    lines += [
+        "",
+        "*Payment Summary*",
+        f"Total event amount: {money(grand)}",
+        f"Advance received: {money(adv)}",
+        f"Amount payable: *{money(bal)}*",
+        "",
+        (f"We'd be grateful if the balance of {money(bal)} could be kept ready before the event begins, "
+         "so the handover goes smoothly and you can enjoy the party stress-free. 🙏") if (bal or 0) > 0
+        else "Your payment is all settled — thank you! 🙏",
+        "",
+        "Please let us know if anything needs a change. Looking forward to celebrating with you tomorrow! 🎈",
+        "",
+        "Warm regards,",
+        "Team Wondershop Experiences",
+    ]
+    phone = re.sub(r"\D", "", val("phone") or "")
+    if len(phone) == 10:
+        phone = "91" + phone
+    return {"text": "\n".join(lines), "phone": phone}
+
+
+@router.get("/admin/bookings/{lead_id}/pre-event-message")
+async def booking_pre_event_message(lead_id: int, x_admin_password: Optional[str] = Header(None)):
+    from routers.admin import _require_admin
+    _require_admin(x_admin_password)
+    return await pre_event_message_text(lead_id, x_admin_password)
