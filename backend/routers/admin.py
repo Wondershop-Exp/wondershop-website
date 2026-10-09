@@ -187,11 +187,6 @@ FIELD_CATALOG = [
     {"key": "kids_count",           "label": "Kids Count",             "section": "Customer & Event Details"},
     {"key": "event_date",           "label": "Event Date",             "section": "Customer & Event Details"},
     {"key": "event_time",           "label": "Event Time",             "section": "Customer & Event Details"},
-    # 2026-10-09, per Shruti — for the 1-day-before WhatsApp message.
-    # End time comes from the sales panel (like handover/packup); Setup
-    # Ready Time is booking-only. Both stored as overrides, not leads columns.
-    {"key": "event_end_time",       "label": "Event End Time",         "section": "Customer & Event Details"},
-    {"key": "setup_ready_time",     "label": "Setup Ready Time",       "section": "Customer & Event Details"},
     # 2026-10-05, per Shruti — the sales panel's Venue Handover / Packup
     # times, on the booking too. No leads column: stored as overrides (NOT
     # direct-write, see DIRECT_WRITE_FIELDS), original = the sales sheet's.
@@ -306,8 +301,7 @@ FIELD_CATALOG = [
 SECTIONS = ["Customer & Event Details", "Services", "Add-ons", "Billing & Rewards"]
 CATALOG_BY_KEY = {f["key"]: f for f in FIELD_CATALOG}
 
-EVENT_TIMING_FIELDS = {"venue_handover_time", "packup_time", "event_end_time", "setup_ready_time"}
-PB_TIMING_FIELDS = ("venue_handover_time", "packup_time", "event_end_time")   # columns on lead_sales_playbook
+EVENT_TIMING_FIELDS = {"venue_handover_time", "packup_time"}
 DIRECT_WRITE_FIELDS = {f["key"] for f in FIELD_CATALOG if f["section"] == "Customer & Event Details"} - EVENT_TIMING_FIELDS
 # Payment Status values that mean the team HAS seen the advance arrive.
 ADVANCE_CONFIRMED_STATUSES = ("Advance Paid Verified", "Complete")
@@ -1117,10 +1111,10 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
     pb_times = {}
     try:
         pb_t = await database.fetch_one(
-            "SELECT " + ", ".join(PB_TIMING_FIELDS) + " FROM lead_sales_playbook WHERE lead_id = :id",
+            "SELECT venue_handover_time, packup_time FROM lead_sales_playbook WHERE lead_id = :id",
             values={"id": lead_id})
         if pb_t:
-            pb_times = {k: (str(pb_t[k])[:5] if pb_t[k] else None) for k in PB_TIMING_FIELDS}
+            pb_times = {k: (str(pb_t[k])[:5] if pb_t[k] else None) for k in EVENT_TIMING_FIELDS}
     except Exception:
         logger.exception(f"Lead #{lead_id}: couldn't read sales-panel event times")
 

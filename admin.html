@@ -1358,7 +1358,7 @@ async function loadPreEventMsg(){
       + '<div class="go-btns" style="margin-top:10px">'
       + '<button type="button" class="go-btn ghost" onclick="copyPreEventMsg()">📋 Copy</button>'
       + '<button type="button" class="go-btn pm-btn wa" onclick="waPreEventMsg()">Open in WhatsApp</button></div>'
-      + '<div class="pm-sub" style="margin-top:8px">Missing a time? Fill in Event End Time / Setup Ready Time / Venue Handover Time under Customer &amp; Event Details, then press Refresh. Edits made in the box above aren’t saved.</div>';
+      + '<div class="pm-sub" style="margin-top:8px">Missing a time? Fill in Event Time / Venue Handover Time under Customer &amp; Event Details, then press Refresh. Edits made in the box above aren’t saved.</div>';
     document.getElementById('pmText').value = r.text || '';
     if(btn) btn.textContent = '↻ Refresh';
   }catch(e){
@@ -4139,7 +4139,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     ccCell = '<span class="pct-wrap"><span class="pct-suffix" style="left:9px;right:auto">₹</span><input type="number" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="—" step="1" min="0" style="padding-left:22px;padding-right:11px"></span>';
   }else if(f.field_key==='svc_cake'){
     ccCell = '<input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="e.g. Chocolate truffle, 2 kg">';
-  }else if(['venue_handover_time','packup_time','event_end_time','setup_ready_time'].includes(f.field_key)){
+  }else if(f.field_key==='venue_handover_time' || f.field_key==='packup_time'){
     // 2026-10-05, per Shruti — from the sales panel; editable here too.
     ccCell = timeSelect12(rid+'_cc', f.customer_choice||'');
   }else if(f.field_key==='event_payment_confirmed_amount'){
@@ -4196,7 +4196,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     // — readonly (not disabled) so onPincodeInput() can still set .value
     // programmatically and Save still picks it up.
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Auto-fills from pincode')+'" readonly style="background:var(--lgy);cursor:not-allowed">';
-  }else if(['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','venue_handover_time','packup_time','event_end_time','setup_ready_time','activities_notes','svc_cake_price'].includes(f.field_key)){
+  }else if(['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','venue_handover_time','packup_time','activities_notes','svc_cake_price'].includes(f.field_key)){
     avCell = noAssignedCell(rid);
   }else{
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'">';

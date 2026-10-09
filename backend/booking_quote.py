@@ -441,9 +441,7 @@ async def pre_event_message_text(lead_id: int, pw: Optional[str]) -> dict:
         "",
         f"📅 *Date:* {event_date}",
         f"⏰ *Event start time:* {t('event_time')}",
-        f"⏳ *Event end time:* {t('event_end_time')}",
         f"🔑 *Venue handover time:* {t('venue_handover_time')}",
-        f"✨ *Setup ready by:* {t('setup_ready_time')}",
     ]
     if val("venue"):
         lines.append(f"📍 *Venue:* {val('venue')}")
