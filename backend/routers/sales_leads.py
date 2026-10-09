@@ -1701,7 +1701,11 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
         add("Other", others)
 
     # ── totals: same figures as the page's Grand Total bar ───────────────
-    subtotal = B["total"]
+    # 2026-10-09, per Shruti — a line quoted ABOVE its website/list price
+    # (travel, hidden costs…) is shown at the quoted price only: it counts
+    # at its quote in the list-price total too, so no MRP and no "extra
+    # charges" row ever reaches the client.
+    subtotal = round(sum(max(float(i["mrp"]), float(i["quote"])) for i in B["items"]), 2)
     estimate = B["quote_total"]
     if d.get("client_budget_manual") and d.get("client_budget") is not None and float(d["client_budget"]) < estimate:
         estimate = float(d["client_budget"])

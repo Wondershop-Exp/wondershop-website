@@ -257,6 +257,10 @@ FIELD_CATALOG = [
     {"key": "bill_discount_type",   "label": "Discount Type",          "section": "Billing & Rewards"},
     {"key": "bill_discount_pct",    "label": "Discount %",             "section": "Billing & Rewards"},
     {"key": "bill_discount_value",  "label": "Discount Amount (₹)",    "section": "Billing & Rewards", "admin_only": True},
+    # 2026-10-09, per Shruti — sales quoted ABOVE the list prices (travel,
+    # hidden costs): this gap is added to Grand Total but never shown to the
+    # client as a separate charge (party plan / emails show the total only).
+    {"key": "bill_quote_adjustment", "label": "Above list price (₹, internal)", "section": "Billing & Rewards", "admin_only": True},
     # 2026-08-24, per Shruti (Image 3c) — "the same [freebies/discounts]
     # should be visible on the admin page." System-calculated, same as
     # Grand Total (read-only, see READ_ONLY_FIELDS below) — bill_discount_pct
@@ -1401,6 +1405,7 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
         "pricing": ({"subtotal": pricing["subtotal"], "checkout_total": pricing["checkout_total"],
                      "total_mrp": pricing["total_mrp"], "discount_pct": pricing["discount_pct"],
                      "discount_amt": pricing["discount_amt"], "extra_items": pricing["extra_items"],
+                     "quote_adjustment": pricing.get("quote_adjustment") or 0,
                      "items": pricing["items"], "unpriced": pricing["unpriced"],
                      "gifts_separate": pricing.get("gifts_separate"),
                      "gift_items": pricing.get("gift_items"), "gift_total": pricing.get("gift_total")} if pricing else None),
@@ -2425,6 +2430,7 @@ async def _sync_discount_to_agreed_total(lead_id: int, who: str, x_admin_passwor
     extras = round(sum(float(x.get("amount") or 0) for x in (pricing.get("extra_items") or [])), 2)
     gap = round(mrp + extras - agreed, 2)
     discount = round(min(max(0.0, gap), mrp), 2)
+    above = round(max(0.0, -gap), 2)   # quoted above the list prices (2026-10-09)
     def _inr(v):  # Indian digit grouping: 1,77,500
         n = int(round(v)); sgn = "-" if n < 0 else ""; t = str(abs(n))
         if len(t) > 3:
@@ -2435,7 +2441,7 @@ async def _sync_discount_to_agreed_total(lead_id: int, who: str, x_admin_passwor
     fees_txt = f" + ₹{_inr(extras)} fees" if extras else ""
     if gap < 0:
         note = (f"Agreed with client ₹{_inr(agreed)} is above Total MRP ₹{_inr(mrp)}{fees_txt} "
-                f"— no discount; Grand Total shows the catalogue total, so check the services.")
+                f"— no discount; ₹{_inr(above)} added as 'Above list price' (not shown to the client).")
     else:
         note = f"Agreed with client ₹{_inr(agreed)} vs Total MRP ₹{_inr(mrp)}{fees_txt}"
     note = f"[{who}, {_to_ist_short_str(datetime.utcnow())}] {note}"
@@ -2444,6 +2450,9 @@ async def _sync_discount_to_agreed_total(lead_id: int, who: str, x_admin_passwor
     await update_booking_field(lead_id, FieldUpdateRequest(
         field_key="bill_discount_value", customer_choice_override=_num_str(discount),
         remarks=note, changed_by=who), x_admin_password)
+    await update_booking_field(lead_id, FieldUpdateRequest(
+        field_key="bill_quote_adjustment", customer_choice_override=_num_str(above) if above else "",
+        changed_by=who), x_admin_password)
     logger.info(f"Lead #{lead_id}: discount set to ₹{discount} so Grand Total matches agreed ₹{agreed}")
     return discount
 
@@ -3067,6 +3076,14 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
                 _cp = None
             snap["cake"] = {"n": cake_ov["customer_choice_override"].strip(), "p": _cp}
 
+        try:   # quoted above the list prices -> no per-line prices (2026-10-09)
+            _qa = overrides_by_key.get("bill_quote_adjustment")
+            _adj = float(str((_qa["customer_choice_override"] if _qa else None) or 0).replace(",", ""))
+        except (TypeError, ValueError, AttributeError):
+            _adj = 0.0
+        if _adj > 0.5:
+            snap["hide_line_prices"] = True
+
         act_notes_ov = overrides_by_key.get("activities_notes")
         if act_notes_ov and (act_notes_ov["customer_choice_override"] or "").strip():
             snap["activities_notes"] = act_notes_ov["customer_choice_override"].strip()
@@ -3124,7 +3141,9 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
 
         live_pricing = live_detail.get("pricing")
         if live_pricing:
-            fake_req.order_grand_total = live_pricing["total_mrp"]
+            # A quote above the list prices (2026-10-09) is folded into the
+            # subtotal so the email never shows the gap as a separate figure.
+            fake_req.order_grand_total = round(live_pricing["total_mrp"] + float(live_pricing.get("quote_adjustment") or 0), 2)
         fake_req.client_budget = _live_money("bill_grand_total")
         fake_req.order_discount_pct = _live_money("bill_discount_pct")
         fake_req.order_advance = _live_money("bill_advance")

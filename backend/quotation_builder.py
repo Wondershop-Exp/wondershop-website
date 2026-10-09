@@ -486,7 +486,9 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
             trows.append([Paragraph("Special discount", _style("dl", size=9.6, color=colors.HexColor("#1E8A4C"))),
                           Paragraph("− " + inr(d), _style("dr", size=9.6, font=BODY_BOLD, align=TA_RIGHT, color=colors.HexColor("#1E8A4C")))])
         else:
-            trows.append([Paragraph("Customisation &amp; other charges", s_tl), Paragraph("+ " + inr(-d), s_tr)])
+            # Total above the list prices (2026-10-09, per Shruti): never
+            # show the difference as its own charge — just the total.
+            trows = []
     n_plain = len(trows)
     trows.append([Paragraph("Grand Total" if data.get("booked") else "Estimated Total", _style("gl", font=HEAD, size=13, color=WHITE, leading=16)),
                   Paragraph(inr(T.get("estimate") or 0), _style("gr", font=BODY_BOLD, size=15, color=WHITE, align=TA_RIGHT, leading=18))])

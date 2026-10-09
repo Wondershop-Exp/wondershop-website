@@ -243,6 +243,22 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
 
     # ── totals: the booking's own Total MRP / discount / Grand Total ─────
     total_mrp = float(P.get("total_mrp") or 0)
+    # Quoted above the list prices (2026-10-09, per Shruti — travel / hidden
+    # costs): the client sees the total only — no list prices per line and
+    # no separate charge for the difference.
+    if float(P.get("quote_adjustment") or 0) > 0.5:
+        for s in sections:
+            if s.get("billed_separately"):
+                continue
+            for ln in s["lines"]:
+                if ln.get("price") is not None:
+                    ln["price"] = None
+                    ln["price_text"] = "Included"
+                ln.pop("strike", None)
+                # no list rates either ("15 kids × ₹1,500 per child")
+                ln["details"] = [re.sub(r"\s*×\s*(~~)?₹[\d,.]+(~~)?(\s*₹[\d,.]+)?\s*per child", "", x) if isinstance(x, str) else x
+                                 for x in (ln.get("details") or [])]
+        total_mrp += float(P.get("quote_adjustment") or 0)
     extra_total = round(sum(a for _l, a in extras), 2)
     grand = _money(val("bill_grand_total"))
     discount = float(P.get("discount_amt") or 0)

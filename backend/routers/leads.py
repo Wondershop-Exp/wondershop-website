@@ -1175,6 +1175,14 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
     if added_service_label:
         out.append({"label": "Bonus Service", "name": added_service_label, "price": None, "free": True})
 
+    # Quoted above the list prices (2026-10-09, per Shruti): the client sees
+    # the total only — per-line list prices would not add up to it.
+    if snap.get("hide_line_prices"):
+        for svc in out:
+            if not svc.get("free"):
+                svc.pop("price", None)
+            for it in svc.get("items") or []:
+                it.pop("price", None)
     return out
 
 

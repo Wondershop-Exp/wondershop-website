@@ -632,7 +632,14 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
     else:
         pct = discount_pct if discount_pct is not None else 0.0
         discount_amt = round(total_mrp * pct / 100.0, 2)
-    grand_total = max(0.0, round(total_mrp - discount_amt + extra_total, 2))
+    # Sales quote ABOVE the list prices (2026-10-09, per Shruti — travel /
+    # hidden costs): the gap is added to Grand Total here, but it is internal
+    # only — client documents never show it as its own line.
+    try:
+        quote_adj = max(0.0, float(str(_resolved(cur, "bill_quote_adjustment", removed) or 0).replace(",", "")))
+    except ValueError:
+        quote_adj = 0.0
+    grand_total = max(0.0, round(total_mrp - discount_amt + extra_total + quote_adj, 2))
 
     return {
         "total_mrp": total_mrp,
@@ -640,6 +647,7 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
         "discount_amt": discount_amt,
         "extra_total": extra_total,
         "grand_total": grand_total,
+        "quote_adjustment": round(quote_adj, 2),
         "items": [{"label": l, "amount": a} for l, a in items],
         "extra_items": [{"label": l, "amount": a} for l, a in extra_items],
         "unpriced": unpriced,
