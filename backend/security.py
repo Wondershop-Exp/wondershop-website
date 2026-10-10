@@ -34,7 +34,7 @@ ADMIN_MAX_FAILS = 10
 ADMIN_FAIL_WINDOW_S = 15 * 60
 ADMIN_LOCK_S = 15 * 60
 
-MAX_BODY_BYTES = 8 * 1024 * 1024   # vendor upload cap is 5MB; JSON bodies are tiny
+MAX_BODY_BYTES = 12 * 1024 * 1024  # partner form: cheque (5MB) + volunteer resume (5MB); JSON bodies are tiny
 
 # (method, path, path_is_prefix, max_requests, window_seconds)
 PUBLIC_LIMITS = [

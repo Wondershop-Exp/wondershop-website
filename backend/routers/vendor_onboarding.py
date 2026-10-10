@@ -256,6 +256,180 @@ async def _save_rate_card(card: dict, photos: list, vendor_name: str, mobile: st
     logger.info(f"Decor rate card {card_id} saved for {vendor_name} ({mobile}), vendor {vendor_id}, {len(photos)} photo(s)")
 
 
+# ─── Event Volunteer profile (2026-10-10, per Shruti) ───────────────────────
+# When the partner picks "Event Volunteer", vendor-onboarding.html adds the
+# volunteer questions (js/volunteer-form.js), the volunteer T&C and an optional
+# resume. Address and an alternate number are mandatory for volunteers. The
+# answers are stored as JSON on the vendor_master row (migrations/046) and can
+# be edited by the team in the Partners tab.
+VOLUNTEER = "event volunteer"
+_DOC_TYPES = {
+    "application/pdf": ".pdf", "image/jpeg": ".jpg", "image/png": ".png",
+    "application/msword": ".doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+}
+_YEAR_RE = re.compile(r"^(19[5-9][0-9]|20[0-9]{2})$")
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _txt(v, n: int = 300) -> str:
+    return re.sub(r"\s+", " ", str(v or "")).strip()[:n] if not isinstance(v, (dict, list)) else ""
+
+
+def _para(v, n: int = 1200) -> str:
+    return str(v or "").strip()[:n] if not isinstance(v, (dict, list)) else ""
+
+
+def _str_list(v, n_items: int = 20, n: int = 100) -> list:
+    if not isinstance(v, list):
+        return []
+    out = []
+    for x in v[:n_items]:
+        t = _txt(x, n)
+        if t and t not in out:
+            out.append(t)
+    return out
+
+
+def clean_volunteer_profile(p: dict, strict: bool) -> dict:
+    """Keeps only the known keys, trimmed to sane lengths. With strict=True
+    (the public form) every required answer must be there; the admin panel
+    saves with strict=False so the team can fill gaps over time."""
+    from datetime import date
+    if not isinstance(p, dict):
+        raise HTTPException(status_code=400, detail="We could not read the volunteer details — please try again.")
+    school = p.get("school") if isinstance(p.get("school"), dict) else {}
+    college = p.get("college") if isinstance(p.get("college"), dict) else {}
+    status = _txt(college.get("status"), 20)
+    if status not in ("current", "graduated", "na"):
+        status = ""
+    try:
+        comfort = int(p.get("public_comfort") or 0)
+    except (TypeError, ValueError):
+        comfort = 0
+    zones = []
+    for z in p.get("zones") or []:
+        try:
+            z = int(z)
+        except (TypeError, ValueError):
+            continue
+        if 1 <= z <= 6 and z not in zones:
+            zones.append(z)
+    exp = _txt(p.get("has_experience"), 5)
+    training = _txt(p.get("open_to_training"), 10)
+    out = {
+        "dob": _txt(p.get("dob"), 10),
+        "school": {"name": _txt(school.get("name"), 150), "marks": _txt(school.get("marks"), 30), "year": _txt(school.get("year"), 4)},
+        "college": {"status": status} if status in ("", "na") else {
+            "status": status, "name": _txt(college.get("name"), 150), "course": _txt(college.get("course"), 100),
+            "marks": _txt(college.get("marks"), 30), "year": _txt(college.get("year"), 4)},
+        "has_experience": exp if exp in ("yes", "no") else "",
+        "event_types": _str_list(p.get("event_types")),
+        "event_types_other": _txt(p.get("event_types_other"), 200),
+        "experience_desc": _para(p.get("experience_desc")),
+        "skills": _str_list(p.get("skills")),
+        "skills_other": _txt(p.get("skills_other"), 200),
+        "responsibilities": _str_list(p.get("responsibilities")),
+        "public_comfort": comfort if 1 <= comfort <= 5 else None,
+        "why_wonderfest": _para(p.get("why_wonderfest")),
+        "open_to_training": training if training in ("yes", "maybe", "no") else "",
+        "zones": sorted(zones),
+        "tnc_version": _txt(p.get("tnc_version"), 20),
+    }
+    if out["dob"] and not _DATE_RE.match(out["dob"]):
+        out["dob"] = ""
+    if not strict:
+        return out
+
+    def need(ok, msg):
+        if not ok:
+            raise HTTPException(status_code=400, detail=msg)
+    try:
+        dob = date.fromisoformat(out["dob"])
+        age = (date.today() - dob).days / 365.25
+    except ValueError:
+        age = -1
+    need(14 <= age <= 80, "Please enter a valid date of birth.")
+    need(out["school"]["name"] and out["school"]["marks"], "Please enter your school name and marks.")
+    need(_YEAR_RE.match(out["school"]["year"]), "Please enter your school year of passing.")
+    need(status, "Please tell us your college status.")
+    if status != "na":
+        c = out["college"]
+        need(c["name"] and c["course"], "Please enter your college name and course.")
+        need(_YEAR_RE.match(c["year"]), "Please enter your college year of passing.")
+        need(status != "graduated" or c["marks"], "Please enter your college marks or CGPA.")
+    need(out["has_experience"], "Please tell us if you have past volunteering experience.")
+    if out["has_experience"] == "yes":
+        need(out["event_types"] or out["event_types_other"], "Please pick the kinds of events you have done.")
+        need(len(out["experience_desc"]) >= 20, "Please describe your most relevant experience in 2-3 sentences.")
+    else:
+        out.update(event_types=[], event_types_other="", experience_desc="")
+    need(out["skills"] or out["skills_other"], "Please pick at least one skill.")
+    need(out["responsibilities"], "Please pick at least one responsibility you are interested in.")
+    need(out["public_comfort"], "Please rate how comfortable you are with the public (1 to 5).")
+    need(len(out["why_wonderfest"]) >= 10, "Please tell us why you want to volunteer for Wonderfest NGMA.")
+    need(out["open_to_training"], "Please tell us if you are open to training for senior positions.")
+    need(out["zones"], "Please pick at least one zone you can work in.")
+    return out
+
+
+def _parse_volunteer_profile(raw: Optional[str]) -> dict:
+    raw = (raw or "").strip()
+    if not raw or len(raw) > 30_000:
+        raise HTTPException(status_code=400, detail="Please fill in the volunteer details.")
+    try:
+        p = json.loads(raw)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="We could not read the volunteer details — please try again.")
+    return clean_volunteer_profile(p, strict=True)
+
+
+def _sniff_resume(raw: bytes, filename: str) -> Optional[str]:
+    kind = _sniff_file_type(raw)
+    if kind in ("application/pdf", "image/jpeg", "image/png"):
+        return kind
+    low = (filename or "").lower()
+    if raw.startswith(b"PK\x03\x04") and low.endswith(".docx"):
+        return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    if raw.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1") and low.endswith(".doc"):
+        return "application/msword"
+    return None
+
+
+async def _read_resume(f: Optional[UploadFile]):
+    if f is None or not getattr(f, "filename", None):
+        return None
+    raw = await f.read(MAX_FILE_BYTES + 1)
+    if len(raw) > MAX_FILE_BYTES:
+        raise HTTPException(status_code=400, detail="Your resume is too large — please keep it under 5MB.")
+    if not raw:
+        return None
+    kind = _sniff_resume(raw, f.filename)
+    if not kind:
+        raise HTTPException(status_code=400, detail="Your resume must be a PDF, Word file, or a JPG / PNG photo.")
+    return raw, kind, _safe_filename(f.filename)
+
+
+async def _save_volunteer(profile: dict, resume, mobile: str) -> None:
+    prim, alt = _DIGITS.format(c="primary_mobile"), _DIGITS.format(c="alternate_mobile")
+    vendor_id = await database.fetch_val(
+        f"SELECT vendor_id FROM vendor_master WHERE duplicate_of_id IS NULL AND ({prim} = :m OR {alt} = :m) "
+        f"ORDER BY ({prim} = :m) DESC, vendor_id DESC LIMIT 1",
+        {"m": mobile},
+    )
+    if not vendor_id:
+        logger.warning(f"Volunteer profile for {mobile}: no partner row found")
+        return
+    sets = ["volunteer_profile = CAST(:p AS JSONB)", "volunteer_tnc_accepted_at = NOW()",
+            "volunteer_tnc_version = :v", "onboarding_reviewed = FALSE"]
+    params = {"id": vendor_id, "p": json.dumps(profile, ensure_ascii=False), "v": profile.get("tnc_version") or None}
+    if resume:
+        sets += ["resume_file = :rf", "resume_content_type = :rt", "resume_filename = :rn"]
+        params.update({"rf": resume[0], "rt": resume[1], "rn": resume[2]})
+    await database.execute(f"UPDATE vendor_master SET {', '.join(sets)} WHERE vendor_id = :id", params)
+    logger.info(f"Volunteer profile saved on partner {vendor_id} ({mobile}){' + resume' if resume else ''}")
+
+
 def _clean(s: Optional[str]) -> Optional[str]:
     s = (s or "").strip()
     return s or None
@@ -362,6 +536,9 @@ async def submit_vendor_onboarding(
     cancelled_cheque: Optional[UploadFile] = File(None),
     decor_rate_card: Optional[str] = Form(None),
     work_photos: Optional[List[UploadFile]] = File(None),
+    volunteer_profile: Optional[str] = Form(None),
+    volunteer_tnc_accepted: Optional[str] = Form(None),
+    resume: Optional[UploadFile] = File(None),
 ):
     name = _clean(name)
     if not name:
@@ -464,6 +641,22 @@ async def submit_vendor_onboarding(
     rate_card = _parse_rate_card(decor_rate_card) if (_clean(deals_in) or "").lower() == "decorator" else None
     work = await _read_work_photos(work_photos) if rate_card is not None else []
 
+    # Event Volunteer (2026-10-10): address + alternate number mandatory, the
+    # volunteer questions complete, and the volunteer T&C accepted.
+    is_volunteer = (_clean(deals_in) or "").lower() == VOLUNTEER
+    vol_profile, vol_resume = None, None
+    if is_volunteer:
+        if len(_clean(address) or "") < 10:
+            raise HTTPException(status_code=400, detail="Please enter your full address.")
+        if not alternate_mobile:
+            raise HTTPException(status_code=400, detail="Please enter an alternate mobile number.")
+        if alternate_mobile == mobile:
+            raise HTTPException(status_code=400, detail="Your alternate number must be different from your mobile number.")
+        vol_profile = _parse_volunteer_profile(volunteer_profile)
+        if (volunteer_tnc_accepted or "").strip().lower() != "yes":
+            raise HTTPException(status_code=400, detail="Please read and accept the terms and conditions.")
+        vol_resume = await _read_resume(resume)
+
     # 2026-09-30, per Shruti: "by default, save the mobile no. as the whatsapp
     # no. in the database. if the user inputs something on whatsapp no - then
     # update accordingly".
@@ -496,6 +689,8 @@ async def submit_vendor_onboarding(
     if matched is True:
         if rate_card is not None:
             await _save_rate_card(rate_card, work, name, mobile)
+        if vol_profile is not None:
+            await _save_volunteer(vol_profile, vol_resume, mobile)
         return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}
     if matched:   # number shared by several partners and the name didn't pick one
         values["remarks"] = (
@@ -516,4 +711,6 @@ async def submit_vendor_onboarding(
     logger.info(f"Vendor onboarding submission received: {name} ({mobile})")
     if rate_card is not None:
         await _save_rate_card(rate_card, work, name, mobile)
+    if vol_profile is not None:
+        await _save_volunteer(vol_profile, vol_resume, mobile)
     return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}

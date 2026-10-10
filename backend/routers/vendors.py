@@ -38,6 +38,7 @@ from pydantic import BaseModel
 
 from database import database
 from routers.admin import _require_admin, _to_ist_str
+from routers.vendor_onboarding import clean_volunteer_profile
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -61,6 +62,10 @@ VENDOR_READ_COLUMNS = VENDOR_FIELDS + [
     # them — see routers/vendor_onboarding.py and migrations/032.
     "pending_update", "pending_submitted_on",
     "pending_cheque_filename", "pending_cheque_content_type",
+    # Event Volunteer answers (2026-10-10, migrations/046). The resume bytes are
+    # only read by the /resume endpoint below.
+    "volunteer_profile", "volunteer_tnc_accepted_at", "volunteer_tnc_version",
+    "resume_filename", "resume_content_type",
 ]
 
 # Fields a pending update is allowed to write when approved (never is_active,
@@ -99,6 +104,8 @@ class VendorRequest(BaseModel):
     bank_ifsc_code: Optional[str] = None
     preferred_payment_mode: Optional[str] = None
     gst_number: Optional[str] = None
+    # Only sent by the Partners tab for Event Volunteers; None leaves it as is.
+    volunteer_profile: Optional[dict] = None
 
 
 def _row_out(r) -> dict:
@@ -118,11 +125,22 @@ def _row_out(r) -> dict:
     d.pop("pending_cheque_content_type", None)
     d["has_pending_update"] = bool(d["pending_update"]) or d["has_pending_cheque"]
     d["pending_submitted_on_ist"] = _to_ist_str(d.pop("pending_submitted_on", None))
+    vp = d.get("volunteer_profile")
+    if isinstance(vp, (str, bytes)):
+        try:
+            vp = json.loads(vp)
+        except ValueError:
+            vp = None
+    d["volunteer_profile"] = vp if isinstance(vp, dict) else None
+    d["volunteer_tnc_accepted_on_ist"] = _to_ist_str(d.pop("volunteer_tnc_accepted_at", None))
+    d["has_resume"] = bool(d.pop("resume_filename", None))
+    d.pop("resume_content_type", None)
     return d
 
 
 def _values_for_write(body: VendorRequest) -> dict:
     v = body.dict()
+    v.pop("volunteer_profile", None)   # written separately, see _volunteer_set()
     v["name"] = v["name"].strip()
     if v.get("bank_ifsc_code"):
         v["bank_ifsc_code"] = v["bank_ifsc_code"].strip().upper() or None
@@ -221,6 +239,28 @@ async def get_vendor_cancelled_cheque(vendor_id: int, pending: bool = False, x_a
     )
 
 
+@router.get("/vendors/{vendor_id}/resume")
+async def get_vendor_resume(vendor_id: int, x_admin_password: Optional[str] = Header(None)):
+    """An Event Volunteer's resume from the partner form (2026-10-10). PDFs and
+    photos open in the browser; Word files download."""
+    _require_admin(x_admin_password)
+    row = await database.fetch_one(
+        "SELECT resume_file AS f, resume_filename AS fn, resume_content_type AS ct FROM vendor_master WHERE vendor_id = :id",
+        {"id": vendor_id},
+    )
+    if not row or not row["f"]:
+        raise HTTPException(status_code=404, detail="No resume on file for this partner.")
+    inline_types = {"image/jpeg", "image/png", "application/pdf"}
+    word_types = {"application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
+    ct = row["ct"] if row["ct"] in inline_types | word_types else "application/octet-stream"
+    disposition = "inline" if ct in inline_types else "attachment"
+    filename = re.sub(r"[^A-Za-z0-9._ -]", "_", row["fn"] or "resume").strip(" .")[:100] or "resume"
+    return Response(content=bytes(row["f"]), media_type=ct, headers={
+        "Content-Disposition": f'{disposition}; filename="{filename}"',
+        "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store",
+    })
+
+
 @router.post("/vendors")
 async def create_vendor(body: VendorRequest, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
@@ -253,6 +293,9 @@ async def update_vendor(vendor_id: int, body: VendorRequest, x_admin_password: O
     # deliberately leave it inactive, it's no longer "pending review"
     # (2026-09-17, per the vendor-onboarding self-submission flow above).
     set_clause = ", ".join(f"{k} = :{k}" for k in VENDOR_FIELDS) + ", onboarding_reviewed = TRUE"
+    if body.volunteer_profile is not None:
+        set_clause += ", volunteer_profile = CAST(:volunteer_profile AS JSONB)"
+        values["volunteer_profile"] = json.dumps(clean_volunteer_profile(body.volunteer_profile, strict=False), ensure_ascii=False)
     values["id"] = vendor_id
     read_cols = ", ".join(VENDOR_READ_COLUMNS)
     row = await database.fetch_one(

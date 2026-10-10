@@ -253,6 +253,24 @@ table.list.static tr:hover td{background:inherit}
 #statusBlock{margin-bottom:22px}
 .status-card{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:0 2px 10px rgba(25,25,25,.06);display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
 .status-card .fld{display:flex;flex-direction:column;gap:4px;min-width:160px}
+/* Event Volunteer profile on a partner (2026-10-10) */
+.vol-card{border:2px solid var(--li);background:#fff;border-radius:16px;padding:16px 18px;margin-top:14px}
+.vol-card h3{font-size:16px;margin:0 0 4px}
+.vol-card .vol-note{font-size:12px;color:var(--gy);margin-bottom:8px}
+.vol-card h4{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--pk);margin:16px 0 8px}
+.vol-grid{display:flex;flex-wrap:wrap;gap:12px 14px}
+.vol-grid .fld{display:flex;flex-direction:column;gap:4px;min-width:160px}
+.vol-grid .fld.wide{flex:1 1 100%}
+.vol-card label.vl{font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);font-weight:600}
+.vol-card input[type=text],.vol-card input[type=date],.vol-card select,.vol-card textarea{padding:8px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13px;font-family:inherit}
+.vol-card textarea{width:100%;min-height:60px;resize:vertical}
+.vchips{display:flex;flex-wrap:wrap;gap:6px}
+.vchip{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--li2);border-radius:999px;padding:5px 11px;font-size:12.5px;cursor:pointer;background:#fff}
+.vchip input{width:auto;margin:0;accent-color:var(--pk)}
+.vchip:has(input:checked){border-color:var(--pk);background:#FDEFF5}
+.vol-tnc{font-size:12.5px;padding:8px 12px;border-radius:8px;display:inline-block}
+.vol-tnc.ok{background:var(--sgr,#DCFCE7);color:#166534}
+.vol-tnc.no{background:#FEE2E2;color:#B91C1C}
 .status-card label{font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);font-weight:600}
 .status-card select,.status-card input{padding:8px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13px}
 .status-card .btns{display:flex;gap:8px;margin-left:auto}
@@ -744,6 +762,7 @@ body.role-sales .admin-only{display:none!important}
      show up as the admin types, but any other text is still accepted. -->
 <datalist id="themeOptionsList"><option value="Among Us"><option value="Art &amp; Paint Party"><option value="Cricket Party"><option value="Football Party"><option value="Frozen"><option value="Harry Potter"><option value="Imposter"><option value="Indian Craft Bazaar"><option value="Indian Palace"><option value="Indian Railways"><option value="Jungle Safari"><option value="K-Pop Party"><option value="Katseye"><option value="Lilo &amp; Stitch"><option value="Malgudi Days"><option value="Mithai Theme"><option value="Mystery &amp; Spy"><option value="Nani ka Ghar"><option value="Paw Patrol"><option value="Race Track &amp; Cars"><option value="Science Party"><option value="Space Explorer"><option value="Superhero"><option value="The Great Ancient Indian Treasure"><option value="Unicorn Magic"></datalist>
 
+<script src="js/volunteer-data.js"></script>
 <script>
 const API = 'https://wondershop-website-production.up.railway.app';
 let CURRENT_LEAD_ID = null;
@@ -2419,11 +2438,12 @@ async function doSearch(){
 // like bookings have — vendor_master is a straight team-maintained
 // directory, so Save just writes the row directly.
 let CURRENT_VENDOR_ID = null;
+let CURRENT_VENDOR = null;   // last loaded partner (keeps the volunteer T&C version on save)
 const VENDOR_FORM_FIELDS = [
   {key:'name', label:'Partner Name', required:true},
   {key:'primary_contact_name', label:'Contact Name'},
   {key:'primary_mobile', label:'Primary Mobile'},
-  {key:'alternate_mobile', label:'Alternate Mobile'},
+  {key:'alternate_mobile', label:'Alternate Mobile', volRequired:true},
   {key:'whatsapp_number', label:'WhatsApp Number'},
   {key:'email', label:'Email'},
   {key:'deals_in', label:'Deals In'},
@@ -2433,7 +2453,7 @@ const VENDOR_FORM_FIELDS = [
   {key:'timings', label:'Timings'},
   {key:'website', label:'Website'},
   {key:'gst_number', label:'GST Number'},
-  {key:'address', label:'Address', textarea:true},
+  {key:'address', label:'Address', textarea:true, volRequired:true},
   {key:'remarks', label:'Remarks', textarea:true},
 ];
 // 2026-09-17, per Shruti — vendor onboarding form's bank/payment fields,
@@ -2585,7 +2605,7 @@ function renderVendorForm(v){
       ? '<textarea id="vf_'+f.key+'" rows="2" style="width:220px">'+val+'</textarea>'
       : '<input type="text" id="vf_'+f.key+'" value="'+val+'">';
     return '<div class="fld">'
-      +'<label>'+esc(f.label)+(f.required?' *':'')+'</label>'
+      +'<label>'+esc(f.label)+((f.required || (f.volRequired && isVolunteerVendor(v)))?' *':'')+'</label>'
       +input
       +'</div>';
   }).join('');
@@ -2608,10 +2628,12 @@ function renderVendorForm(v){
   const chequeLink = v.has_cancelled_cheque
     ? '<button class="mini-btn" onclick="viewVendorCheque('+v.vendor_id+')">📎 View uploaded cheque / passbook photo</button>'
     : '<div style="font-size:12.5px;color:var(--gy)">No cheque or passbook photo on file — bank fields below were entered manually.</div>';
+  CURRENT_VENDOR = v;
   const container = document.getElementById('vendorFormContainer');
   container.innerHTML =
       pendingBanner
     + '<div class="status-card" style="align-items:flex-start">'+fieldsHtml+'</div>'
+    + (isVolunteerVendor(v) ? volunteerSectionHtml(v) : '')
     + '<div class="section-block" style="padding:16px 18px;margin-top:14px">'
       + '<h3>Bank / Payment Details</h3>'
       + '<div class="status-card" style="align-items:flex-start;margin-top:10px">'+bankFieldsHtml+'</div>'
@@ -2628,17 +2650,122 @@ function renderVendorForm(v){
     + '</div>';
 }
 
+// ── Event Volunteer profile (2026-10-10, per Shruti) ──
+// Answers a volunteer gave on the partner form (js/volunteer-form.js), shown
+// and editable here. Question lists come from js/volunteer-data.js.
+function isVolunteerVendor(v){ return /event volunteer/i.test(v.deals_in||'') || !!v.volunteer_profile; }
+function volAge(dob){
+  if(!dob) return '';
+  const a = Math.floor((Date.now() - new Date(dob+'T00:00:00')) / (365.25*864e5));
+  return a > 0 && a < 120 ? a+' yrs' : '';
+}
+function volChips(name, list, sel){
+  return '<div class="vchips">'+list.map(o=>{
+    const val = typeof o==='object' ? String(o.v!=null?o.v:o.n) : o;
+    const lbl = typeof o==='object' ? (o.n!=null ? 'Z'+o.n+' · '+o.en : o.v) : o;
+    const tip = typeof o==='object' ? (o.areas||o.d||'') : '';
+    return '<label class="vchip"'+(tip?' title="'+esc(tip)+'"':'')+'><input type="checkbox" name="'+name+'" value="'+esc(val)+'"'+(sel.map(String).includes(val)?' checked':'')+'>'+esc(lbl)+'</label>';
+  }).join('')+'</div>';
+}
+function volSelect(id, list, cur){
+  return '<select id="'+id+'"><option value="">—</option>'+list.map(o=>'<option value="'+esc(o.v)+'"'+(String(cur||'')===String(o.v)?' selected':'')+'>'+esc(o.l)+'</option>').join('')+'</select>';
+}
+function volText(id, label, val, wide){
+  return '<div class="fld'+(wide?' wide':'')+'"><label class="vl" for="'+id+'">'+label+'</label><input type="text" id="'+id+'" value="'+esc(val||'')+'"></div>';
+}
+function volunteerSectionHtml(v){
+  const D = window.WS_VOLUNTEER;
+  if(!D) return '';
+  const p = v.volunteer_profile || {}, sc = p.school||{}, co = p.college||{};
+  const tnc = v.volunteer_tnc_accepted_on_ist
+    ? '<span class="vol-tnc ok">✓ T&amp;C accepted on '+esc(v.volunteer_tnc_accepted_on_ist)+(v.volunteer_tnc_version?' (version '+esc(v.volunteer_tnc_version)+')':'')+'</span>'
+    : '<span class="vol-tnc no">T&amp;C not accepted yet — send them the partner form link</span>';
+  const resume = v.has_resume
+    ? '<button class="mini-btn" onclick="viewVendorResume('+v.vendor_id+')">📎 View resume</button>'
+    : '<span style="font-size:12.5px;color:var(--gy)">No resume uploaded.</span>';
+  return '<div class="vol-card" id="volSec">'
+    + '<h3>🙋 Volunteer Profile</h3>'
+    + '<div class="vol-note">From the partner form. Address and alternate mobile are mandatory for volunteers.</div>'
+    + '<div class="vol-grid" style="align-items:center">'+tnc+resume+'</div>'
+    + '<h4>Personal</h4><div class="vol-grid">'
+      + '<div class="fld"><label class="vl" for="vv_dob">Date of birth</label><input type="date" id="vv_dob" value="'+esc(p.dob||'')+'"></div>'
+      + '<div class="fld"><label class="vl">Age</label><div style="font-size:13px;padding:8px 0">'+(volAge(p.dob)||'—')+'</div></div>'
+    + '</div>'
+    + '<h4>Education</h4><div class="vol-grid">'
+      + volText('vv_school_name','School name',sc.name) + volText('vv_school_marks','School marks',sc.marks) + volText('vv_school_year','School year of passing',sc.year)
+    + '</div><div class="vol-grid" style="margin-top:12px">'
+      + '<div class="fld"><label class="vl" for="vv_college_status">College status</label>'+volSelect('vv_college_status', D.collegeStatus, co.status)+'</div>'
+      + volText('vv_college_name','College name',co.name) + volText('vv_college_course','Course / degree',co.course)
+      + volText('vv_college_marks','College marks / CGPA',co.marks) + volText('vv_college_year','College year of passing',co.year)
+    + '</div>'
+    + '<h4>Experience &amp; skills</h4><div class="vol-grid">'
+      + '<div class="fld"><label class="vl" for="vv_exp">Past volunteering experience</label>'+volSelect('vv_exp',[{v:'yes',l:'Yes'},{v:'no',l:'No'}],p.has_experience)+'</div>'
+      + '<div class="fld wide"><label class="vl">Events done</label>'+volChips('vv_event_types', D.eventTypes, p.event_types||[])
+        + '<input type="text" id="vv_event_types_other" placeholder="Others" value="'+esc(p.event_types_other||'')+'" style="margin-top:6px;max-width:360px"></div>'
+      + '<div class="fld wide"><label class="vl" for="vv_exp_desc">Most relevant experience</label><textarea id="vv_exp_desc">'+esc(p.experience_desc||'')+'</textarea></div>'
+      + '<div class="fld wide"><label class="vl">Skills</label>'+volChips('vv_skills', D.skills, p.skills||[])
+        + '<input type="text" id="vv_skills_other" placeholder="Others" value="'+esc(p.skills_other||'')+'" style="margin-top:6px;max-width:360px"></div>'
+    + '</div>'
+    + '<h4>Roles &amp; availability</h4><div class="vol-grid">'
+      + '<div class="fld wide"><label class="vl">Responsibilities interested in</label>'+volChips('vv_resp', D.responsibilities, p.responsibilities||[])+'</div>'
+      + '<div class="fld"><label class="vl" for="vv_comfort">Comfort with public (1-5)</label>'+volSelect('vv_comfort',[1,2,3,4,5].map(n=>({v:n,l:String(n)})),p.public_comfort)+'</div>'
+      + '<div class="fld"><label class="vl" for="vv_training">Open to senior-role training</label>'+volSelect('vv_training', D.training, p.open_to_training)+'</div>'
+      + '<div class="fld wide"><label class="vl">Zones open to work in</label>'+volChips('vv_zones', D.zones, p.zones||[])+'</div>'
+      + '<div class="fld wide"><label class="vl" for="vv_why">Why Wonderfest NGMA</label><textarea id="vv_why">'+esc(p.why_wonderfest||'')+'</textarea></div>'
+    + '</div>'
+  + '</div>';
+}
+function collectVolunteerAdmin(){
+  const g = id => (document.getElementById(id).value||'').trim();
+  const picked = n => Array.from(document.querySelectorAll('#volSec input[name="'+n+'"]:checked')).map(i=>i.value);
+  const prev = (CURRENT_VENDOR && CURRENT_VENDOR.volunteer_profile) || {};
+  const cs = g('vv_college_status');
+  return {
+    dob: g('vv_dob'),
+    school: {name:g('vv_school_name'), marks:g('vv_school_marks'), year:g('vv_school_year')},
+    college: Object.assign({status:cs}, cs && cs!=='na' ? {name:g('vv_college_name'), course:g('vv_college_course'), marks:g('vv_college_marks'), year:g('vv_college_year')} : {}),
+    has_experience: g('vv_exp'),
+    event_types: picked('vv_event_types'), event_types_other: g('vv_event_types_other'),
+    experience_desc: g('vv_exp_desc'),
+    skills: picked('vv_skills'), skills_other: g('vv_skills_other'),
+    responsibilities: picked('vv_resp'),
+    public_comfort: +g('vv_comfort') || null,
+    why_wonderfest: g('vv_why'),
+    open_to_training: g('vv_training'),
+    zones: picked('vv_zones').map(Number),
+    tnc_version: prev.tnc_version || ''
+  };
+}
+async function viewVendorResume(vendorId){
+  try{
+    const res = await fetch(API+'/api/admin/vendors/'+vendorId+'/resume', {headers:{'X-Admin-Password':getPw()}});
+    if(!res.ok){ showToast('Could not load the resume.'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const cd = res.headers.get('Content-Disposition')||'';
+    if(/^attachment/i.test(cd)){
+      const a = document.createElement('a'); a.href = url; a.download = (cd.match(/filename="([^"]+)"/)||[])[1] || 'resume'; a.click();
+    } else window.open(url, '_blank');
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }catch(e){ showToast('Could not load the resume.'); }
+}
+
 async function saveVendor(){
   const body = {};
   VENDOR_FORM_FIELDS.forEach(f=>{ body[f.key] = document.getElementById('vf_'+f.key).value.trim(); });
   VENDOR_BANK_FIELDS.forEach(f=>{ body[f.key] = document.getElementById('vf_'+f.key).value.trim(); });
   body.is_active = document.getElementById('vf_is_active').checked;
   if(!body.name){ showToast('Partner name is required.'); return; }
+  const volSec = document.getElementById('volSec');
+  if(volSec) body.volunteer_profile = collectVolunteerAdmin();
+  const volMissing = (volSec || /event volunteer/i.test(body.deals_in)) ? ['alternate_mobile','address'].filter(k=>!body[k]) : [];
   try{
     const path = CURRENT_VENDOR_ID===null ? '/api/admin/vendors' : ('/api/admin/vendors/'+CURRENT_VENDOR_ID);
     const method = CURRENT_VENDOR_ID===null ? 'POST' : 'PUT';
     const result = await apiCall(path, {method: method, body: JSON.stringify(body)});
-    showToast('✓ Partner saved.');
+    showToast(volMissing.length
+      ? '✓ Saved. Still missing for this volunteer: '+volMissing.map(k=>k==='address'?'address':'alternate mobile').join(' and ')+' (mandatory).'
+      : '✓ Partner saved.');
     CURRENT_VENDOR_ID = result.vendor_id;
     document.getElementById('vendorDetTitle').textContent = result.name;
     renderVendorForm(result);

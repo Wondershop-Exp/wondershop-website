@@ -23,6 +23,7 @@ SAFE_MIGRATIONS = [
     "043_sales_call_log.sql",
     "044_decor_rate_cards.sql",
     "045_activity_ref_images.sql",
+    "046_volunteer_profile.sql",
 ]
 
 

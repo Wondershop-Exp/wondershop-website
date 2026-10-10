@@ -72,7 +72,7 @@ a{color:var(--pk)}
 .err-box.show{display:block}
 .fld .f-err{display:none;color:var(--rd);font-size:12.5px;margin-top:5px}
 .fld.has-err .f-err{display:block}
-.fld.has-err input{border-color:var(--rd)}
+.fld.has-err input,.fld.has-err textarea{border-color:var(--rd)}
 .f-hint{font-size:12px;color:var(--gy);margin-top:5px;min-height:0}
 .loc-chips{display:none;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
 .loc-chips.show{display:flex}
@@ -90,6 +90,38 @@ a{color:var(--pk)}
 
 .ft{text-align:center;margin-top:26px;font-size:12.5px;color:var(--gy)}
 .ft a{color:var(--gy);text-decoration:underline}
+
+/* Event Volunteer section (2026-10-10) - js/volunteer-form.js */
+.vl-sub{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--pk);margin:22px 0 -2px}
+.vl-chips{display:flex;flex-wrap:wrap;gap:8px}
+.vl-chip,.vl-radio{position:relative;cursor:pointer}
+.vl-chip input,.vl-radio input,.vl-zone input,.vl-scale input{position:absolute;opacity:0;pointer-events:none}
+.vl-chip span,.vl-radio span{display:block;border:1.5px solid var(--li2);background:var(--wh);border-radius:12px;padding:8px 12px;font-size:13.5px;color:var(--bk);transition:border-color .15s,background .15s}
+.vl-chip b{font-weight:600}
+.vl-chip small{display:block;font-size:11.5px;color:var(--gy);margin-top:2px}
+.vl-chip input:checked+span,.vl-radio input:checked+span,.vl-zone input:checked+span{border-color:var(--pk);background:#FDEFF5}
+.vl-chip input:focus-visible+span,.vl-radio input:focus-visible+span,.vl-zone input:focus-visible+span,.vl-scale input:focus-visible+span{outline:2px solid var(--li);outline-offset:2px}
+.vl-radios{display:flex;flex-wrap:wrap;gap:8px}
+.vl-other{margin-top:10px}
+.vl-scale{display:flex;gap:8px}
+.vl-scale label{flex:1;position:relative;cursor:pointer}
+.vl-scale span{display:block;text-align:center;border:1.5px solid var(--li2);border-radius:10px;padding:10px 0;font-weight:700;font-size:15px;background:var(--wh)}
+.vl-scale input:checked+span{border-color:var(--pk);background:var(--pk);color:#fff}
+.vl-scale-ends{display:flex;justify-content:space-between;font-size:11.5px;color:var(--gy);margin-top:6px}
+.vl-zones{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:480px){.vl-zones{grid-template-columns:1fr}}
+.vl-zone{position:relative;cursor:pointer}
+.vl-zone span{display:block;height:100%;border:1.5px solid var(--li2);border-radius:12px;padding:10px 12px;background:var(--wh)}
+.vl-zone b{display:block;font-size:13.5px;font-weight:700}
+.vl-zone small{display:block;font-size:11.5px;color:var(--gy);margin-top:3px;line-height:1.45}
+.vl-tnc{margin:12px 0 0 20px;font-size:13.5px;line-height:1.6;color:var(--bk)}
+.vl-tnc li{margin-bottom:6px}
+.vl-accept{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding:14px;border:1.5px solid var(--li);border-radius:12px;background:var(--li3);font-size:13.5px;font-weight:600;cursor:pointer}
+.vl-accept input{margin-top:3px;width:17px;height:17px;flex-shrink:0;accent-color:var(--pk)}
+.fld input[type=date]{width:100%;padding:12px 14px;border:1.5px solid var(--li2);border-radius:10px;font-family:var(--fb);font-size:14.5px;color:var(--bk);background:var(--wh)}
+.req-vol{display:none}
+body.is-volunteer .req-vol{display:inline}
+body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
 </style>
 <style id="ws-no-caret">/* hide stray text cursor on non-editable text (2026-10-03) */body{caret-color:transparent}input,textarea,select,[contenteditable],[contenteditable] *{caret-color:auto}</style><style id="ws-select-arrow">/* every dropdown: own chevron with room from the edge (2026-10-05) */select:not([multiple]):not([size]){-webkit-appearance:none;appearance:none;padding-right:36px;background-repeat:no-repeat;background-position:right 14px center;background-size:10px 6px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}select::-ms-expand{display:none}</style>
 <link rel="stylesheet" href="css/vendor-decor.css">
@@ -108,11 +140,11 @@ a{color:var(--pk)}
     <form id="vendorForm" novalidate>
       <div class="sec-h">Business Details</div>
       <div class="fld">
-        <label>Business / Partner Name *</label>
+        <label><span class="opt-vol">Business / Partner Name</span><span class="req-vol">Full Name</span> *</label>
         <input type="text" id="f_name" required>
       </div>
       <div class="row2">
-        <div class="fld">
+        <div class="fld hide-vol">
           <label>Contact Person <span class="opt">(optional)</span></label>
           <input type="text" id="f_contact">
         </div>
@@ -160,11 +192,11 @@ a{color:var(--pk)}
       </div>
       <div class="row2">
         <div class="fld">
-          <label>Alternate Mobile Number <span class="opt">(optional)</span></label>
+          <label>Alternate Mobile Number <span class="opt opt-vol">(optional)</span><span class="req-vol">*</span></label>
           <input type="tel" id="f_alt_mobile" inputmode="numeric">
           <div class="f-err" id="f_alt_mobile_err"></div>
         </div>
-        <div class="fld">
+        <div class="fld hide-vol">
           <label>GST Number <span class="opt">(optional)</span></label>
           <input type="text" id="f_gst" style="text-transform:uppercase" maxlength="15">
         </div>
@@ -175,8 +207,9 @@ a{color:var(--pk)}
           <div class="f-err" id="f_email_err"></div>
       </div>
       <div class="fld">
-        <label>Address</label>
+        <label>Address <span class="req-vol">*</span></label>
         <textarea id="f_address"></textarea>
+        <div class="f-err" id="f_address_err"></div>
       </div>
       <div class="row2">
         <div class="fld">
@@ -200,6 +233,8 @@ a{color:var(--pk)}
       </div>
 
       <div id="decorSection" hidden></div>
+      <!-- Event Volunteer questions (2026-10-10) - filled in by js/volunteer-form.js -->
+      <div id="volunteerSection" hidden></div>
 
       <div class="sec-h">Payment Details</div>
       <div class="sec-sub">Upload a cancelled cheque or a bank passbook photo — <strong>or</strong> fill in your bank details manually below. Either one works, we just need one of them so we can pay you correctly.</div>
@@ -255,6 +290,8 @@ a{color:var(--pk)}
 <script src="js/decor-rate-card-data.js"></script>
 <script src="js/decor-rate-card-designs.js"></script>
 <script src="js/decor-rate-card.js"></script>
+<script src="js/volunteer-data.js"></script>
+<script src="js/volunteer-form.js"></script>
 <script>
 const WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -361,7 +398,14 @@ const dealsOtherFld = document.getElementById('dealsOtherFld');
 dealsSelect.addEventListener('change', () => {
   dealsOtherFld.style.display = dealsSelect.value === 'Others' ? 'block' : 'none';
   if(window.WSDecor) WSDecor.toggle(dealsSelect.value === 'Decorator');
+  const vol = isVolunteer();
+  document.body.classList.toggle('is-volunteer', vol);
+  if(window.WSVolunteer) WSVolunteer.toggle(vol);
+  ['f_alt_mobile', 'f_address'].forEach(id => setFieldErr(id, ''));
 });
+// Event Volunteer (2026-10-10, per Shruti): address and an alternate number
+// are mandatory, and the volunteer questions + T&C must be filled in.
+function isVolunteer(){ return dealsSelect.value === 'Event Volunteer'; }
 
 // ── Field validation (2026-09-30, per Shruti: "add validations on mobile
 // no. (10 digits), email (should be valid) and show errors accordingly") ──
@@ -379,7 +423,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
 const FIELD_RULES = {
   f_mobile:     {required:true, kind:'mobile', label:'mobile number'},
   f_whatsapp:   {kind:'mobile', label:'WhatsApp number'},
-  f_alt_mobile: {kind:'mobile', label:'alternate mobile number'},
+  f_alt_mobile: {kind:'mobile', label:'alternate mobile number', volRequired:true},
+  f_address:    {kind:'address', label:'address', volRequired:true},
   f_email:      {kind:'email'},
   f_city:       {kind:'city'},
   f_locality:   {kind:'locality'},
@@ -388,7 +433,10 @@ const FIELD_RULES = {
 function fieldError(id){
   const rule = FIELD_RULES[id];
   const raw = document.getElementById(id).value.trim();
-  if(!raw) return rule.required ? 'Please enter your ' + rule.label + '.' : '';
+  if(!raw) return (rule.required || (rule.volRequired && isVolunteer())) ? 'Please enter your ' + rule.label + '.' : '';
+  if(rule.kind === 'address' && isVolunteer() && raw.length < 10) return 'Please enter your full address.';
+  if(id === 'f_alt_mobile' && isVolunteer() && normMobile(raw) === normMobile(document.getElementById('f_mobile').value))
+    return 'Please give a different number from your mobile number.';
   if(rule.kind === 'mobile'){
     const d = normMobile(raw);
     if(d.length !== 10) return 'Please enter a valid 10-digit ' + rule.label + '.';
@@ -430,7 +478,7 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
 
   const name = document.getElementById('f_name').value.trim();
   const mobile = normMobile(document.getElementById('f_mobile').value);
-  if(!name){ showErr('Please enter your business or partner name.'); return; }
+  if(!name){ showErr(isVolunteer() ? 'Please enter your full name.' : 'Please enter your business or partner name.'); return; }
   let firstBad = null;
   Object.keys(FIELD_RULES).forEach(id => {
     const msg = fieldError(id);
@@ -478,6 +526,17 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
     }
   }
 
+  const isVol = deals === 'Event Volunteer' && window.WSVolunteer;
+  if(isVol){
+    const check = WSVolunteer.validate();
+    if(check.error){
+      showErr(check.error);
+      if(check.el && check.el.scrollIntoView) setTimeout(() => check.el.scrollIntoView({behavior:'smooth', block:'center'}), 400);
+      if(check.el && check.el.focus) check.el.focus({preventScroll:true});
+      return;
+    }
+  }
+
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
   btn.textContent = 'Submitting…';
@@ -502,6 +561,8 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   fd.append('bank_ifsc_code', bankIfsc);
   if(hasFile) fd.append('cancelled_cheque', fileInput.files[0]);
   if(isDecorator) await WSDecor.appendTo(fd);
+  if(isVol) WSVolunteer.appendTo(fd);
+  if(isVol){ fd.set('primary_contact_name', ''); fd.set('gst_number', ''); }
 
   try{
     const res = await fetch(WS_API_BASE + '/api/vendor-onboarding/submit', {method:'POST', body: fd});
