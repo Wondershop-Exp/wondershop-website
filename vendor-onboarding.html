@@ -114,7 +114,10 @@ a{color:var(--pk)}
 .vl-zone span{display:block;height:100%;border:1.5px solid var(--li2);border-radius:12px;padding:10px 12px;background:var(--wh)}
 .vl-zone b{display:block;font-size:13.5px;font-weight:700}
 .vl-zone small{display:block;font-size:11.5px;color:var(--gy);margin-top:3px;line-height:1.45}
-.vl-tnc{margin:12px 0 0 20px;font-size:13.5px;line-height:1.6;color:var(--bk)}
+.vl-tnc-intro{font-size:13.5px;margin-top:4px}
+.vl-tnc-h{font-size:13.5px;font-weight:700;color:var(--bk);margin-top:16px}
+.vl-tnc{margin:6px 0 0 20px;font-size:13.5px;line-height:1.6;color:var(--bk)}
+.vl-tnc-outro{font-size:13.5px;font-weight:600;color:var(--bk);margin-top:16px}
 .vl-tnc li{margin-bottom:6px}
 .vl-accept{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding:14px;border:1.5px solid var(--li);border-radius:12px;background:var(--li3);font-size:13.5px;font-weight:600;cursor:pointer}
 .vl-accept input{margin-top:3px;width:17px;height:17px;flex-shrink:0;accent-color:var(--pk)}
@@ -277,6 +280,9 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
           </div>
         </div>
       </div>
+
+      <!-- Volunteer T&C (2026-10-10) - filled in by js/volunteer-form.js -->
+      <div id="volunteerTnc" hidden></div>
 
       <div class="err-box" id="errBox"></div>
 

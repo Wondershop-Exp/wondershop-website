@@ -40,16 +40,40 @@ window.WS_VOLUNTEER = {
   ],
   // Bump the version whenever the wording below changes; the version a
   // volunteer accepted is saved with their profile.
-  tncVersion: '2026-10-10',
+  tncVersion: '2026-10-10-v2',
+  tncIntro: 'Thank you for choosing to volunteer with Wondershop Experiences! These guidelines help us keep every event safe, happy and well run. Please read them carefully before you submit.',
   tnc: [
-    'Report at the time given to you. Being late, or not turning up after confirming, lowers your rating.',
-    'Wear the dress code shared for the event, and come neat and well groomed.',
-    'Speak to guests politely and confidently.',
-    'Do not use your phone during the event unless the event needs it. Always answer calls from Wondershop Experiences.',
-    'Stay calm and polite through the event. Never argue with the client, guests or children.',
-    'Every event is rated. Your rating decides the future events you are offered and your pay.',
-    'Payment is made within 7 working days of the event.',
-    'If you are late, argue with anyone, or do not follow company policies, Wondershop Experiences may apply a penalty as it sees fit.'
+    { h: 'Punctuality and commitment', items: [
+      'Please arrive at the reporting time shared with you. If you are running late or cannot make it, let the team know as early as possible.',
+      'Once you confirm an event, the team counts on you. Arriving late, or not turning up after confirming, will lower your rating.'
+    ] },
+    { h: 'Dress and conduct', items: [
+      'Please wear the dress code shared for the event, and come neat and well groomed.',
+      'Speak to guests politely and confidently, and greet everyone with a smile.',
+      'Stay calm and courteous throughout the event. Please never argue with the client, guests or children. If a situation becomes difficult, step away and call a senior team member.',
+      'Please do not eat any food at the event unless the client offers it to you.'
+    ] },
+    { h: 'Children\'s safety', items: [
+      'Please do not touch a child unless it is truly necessary, and always ask for permission before you do.',
+      'Never leave children in your care unattended. Hand them over to a team member before you step away.',
+      'Please do not take photos or videos of children on your personal phone, or post event photos on social media, without permission from the Wondershop Experiences team.',
+      'If a child is hurt or unwell, or anything feels unsafe, tell a senior team member straight away.'
+    ] },
+    { h: 'During your duty', items: [
+      'Please stay at your station and on your task until someone else has taken it over.',
+      'Keep your phone away while on duty unless the event needs it, and always answer calls from the Wondershop Experiences team.',
+      'If you are stuck or unsure about anything, please ask the senior team members present at the event for help.',
+      'Take ownership of your role and be responsible for the guests, children and things in your care.'
+    ] },
+    { h: 'Training', items: [
+      'During training, please ask questions about anything that is not clear. It is always better to ask than to guess.'
+    ] },
+    { h: 'Ratings, payment and policies', items: [
+      'Every event is rated. Your ratings decide the future events you are offered and your pay.',
+      'Payment is made within 7 working days of the event.',
+      'If you are late, get into arguments, or do not follow company policies, Wondershop Experiences reserves the right to take action, including penalties, as it sees fit.'
+    ] }
   ],
-  tncAccept: 'I have read all the terms and conditions above and I agree to them.'
+  tncOutro: 'Most of all, smile and enjoy the event. You are helping make a child\'s day special!',
+  tncAccept: 'I have read and understood all the terms and conditions above, and I agree to follow them.'
 };

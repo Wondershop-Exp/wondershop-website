@@ -88,10 +88,18 @@
       '<input type="file" id="v_resume" accept=".pdf,.doc,.docx,image/jpeg,image/png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">' +
       '<div class="ic">📎</div><div class="txt" id="v_resume_txt">Tap to upload your resume <span class="opt">(optional)</span></div>' +
     '</label>' +
-    '<div class="upload-note">PDF, Word or a photo (JPG / PNG), up to 5MB.</div>' +
+    '<div class="upload-note">PDF, Word or a photo (JPG / PNG), up to 5MB.</div>';
 
-    '<div class="sec-h">Terms &amp; Conditions</div>' +
-    '<ol class="vl-tnc">' + D.tnc.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ol>' +
+  // The T&C sit at the very end of the form, just above Submit.
+  var tncHost = document.getElementById('volunteerTnc');
+  tncHost.innerHTML =
+    '<div class="sec-h">Terms &amp; Conditions for Volunteers</div>' +
+    '<p class="vl-tnc-intro">' + esc(D.tncIntro) + '</p>' +
+    D.tnc.map(function (g) {
+      return '<div class="vl-tnc-h">' + esc(g.h) + '</div><ul class="vl-tnc">' +
+        g.items.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>';
+    }).join('') +
+    '<p class="vl-tnc-outro">' + esc(D.tncOutro) + '</p>' +
     '<label class="vl-accept" id="v_tnc_lbl"><input type="checkbox" id="v_tnc"><span>' + esc(D.tncAccept) + ' *</span></label>';
 
   function $(id) { return document.getElementById(id); }
@@ -161,7 +169,7 @@
   }
 
   window.WSVolunteer = {
-    toggle: function (on) { host.hidden = !on; },
+    toggle: function (on) { host.hidden = !on; tncHost.hidden = !on; },
     validate: function () {
       var p = collect();
       function bad(msg, el) { return { error: msg, el: el }; }
