@@ -1625,7 +1625,7 @@ function renderSpyRegistrationBody(leadId, status){
       + (status.pickup_drop_source === 'parent' ? 'Confirmed by parent' : 'Set by admin')
       + (status.pickup_drop_updated_at ? ' \u00b7 '+esc(status.pickup_drop_updated_at) : '')
       + '</div>'
-    : '<div id="srPickupDropStatus" style="font-size:11.5px;color:var(--gy);margin-top:8px">Not set yet \u2014 the registration page will ask the parent to confirm.</div>';
+    : '<div id="srPickupDropStatus" style="font-size:11.5px;color:var(--gy);margin-top:8px">Not set yet \u2014 nothing is shown on the registration page until a time is saved.</div>';
   // 2026-09-23, per Shruti — optional per-event T-Shirt Size question
   // ("for some spy registration, we might need to ask additional
   // questions like tshirt size ... an image to upload (optional) with a

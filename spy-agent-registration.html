@@ -651,15 +651,21 @@
         // prompt when neither is set yet.
         var timeLineEl = document.getElementById('timeLineOut');
         var pdPromptEl = document.getElementById('pickupDropPrompt');
-        if (d.show_pickup_drop === false) {
-          timeLineEl.style.display = 'none';
-          pdPromptEl.style.display = 'none';
-        } else if (d.drop_off_time_display && d.pick_up_time_display) {
-          timeLineEl.textContent = 'Drop off: ' + d.drop_off_time_display + '  |  Pick up: ' + d.pick_up_time_display;
-          pdPromptEl.style.display = 'none';
+        // 2026-10-10, per Shruti — "if pickup or dropoff time is not
+        // mentioned, don't show it on this page at all": each time shows
+        // only when it's set (a drop-off without a pick-up still shows),
+        // and the parent no longer gets the confirm-times prompt.
+        pdPromptEl.style.display = 'none';
+        var pdParts = [];
+        if (d.show_pickup_drop !== false) {
+          if (d.drop_off_time_display) pdParts.push('Drop off: ' + d.drop_off_time_display);
+          if (d.pick_up_time_display) pdParts.push('Pick up: ' + d.pick_up_time_display);
+        }
+        if (pdParts.length) {
+          timeLineEl.textContent = pdParts.join('  |  ');
+          timeLineEl.style.display = '';
         } else {
-          timeLineEl.textContent = 'Drop off / Pick up time: to be confirmed';
-          pdPromptEl.style.display = 'block';
+          timeLineEl.style.display = 'none';
         }
         // Split on commas so a full street address reads as clean stacked
         // lines (like the old hand-typed 3-line address did) instead of
