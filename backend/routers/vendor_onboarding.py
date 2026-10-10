@@ -331,7 +331,7 @@ def clean_volunteer_profile(p: dict, strict: bool) -> dict:
         "skills_other": _txt(p.get("skills_other"), 200),
         "responsibilities": _str_list(p.get("responsibilities")),
         "public_comfort": comfort if 1 <= comfort <= 5 else None,
-        "why_wonderfest": _para(p.get("why_wonderfest")),
+        "why_volunteer": _para(p.get("why_volunteer")),
         "open_to_training": training if training in ("yes", "maybe", "no") else "",
         "zones": sorted(zones),
         "tnc_version": _txt(p.get("tnc_version"), 20),
@@ -367,7 +367,7 @@ def clean_volunteer_profile(p: dict, strict: bool) -> dict:
     need(out["skills"] or out["skills_other"], "Please pick at least one skill.")
     need(out["responsibilities"], "Please pick at least one responsibility you are interested in.")
     need(out["public_comfort"], "Please rate how comfortable you are with the public (1 to 5).")
-    need(len(out["why_wonderfest"]) >= 10, "Please tell us why you want to volunteer for Wonderfest NGMA.")
+    need(len(out["why_volunteer"]) >= 10, "Please tell us why you are interested in volunteering with Wondershop Experiences.")
     need(out["open_to_training"], "Please tell us if you are open to training for senior positions.")
     need(out["zones"], "Please pick at least one zone you can work in.")
     return out

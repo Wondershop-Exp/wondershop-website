@@ -2711,7 +2711,7 @@ function volunteerSectionHtml(v){
       + '<div class="fld"><label class="vl" for="vv_comfort">Comfort with public (1-5)</label>'+volSelect('vv_comfort',[1,2,3,4,5].map(n=>({v:n,l:String(n)})),p.public_comfort)+'</div>'
       + '<div class="fld"><label class="vl" for="vv_training">Open to senior-role training</label>'+volSelect('vv_training', D.training, p.open_to_training)+'</div>'
       + '<div class="fld wide"><label class="vl">Zones open to work in</label>'+volChips('vv_zones', D.zones, p.zones||[])+'</div>'
-      + '<div class="fld wide"><label class="vl" for="vv_why">Why Wonderfest NGMA</label><textarea id="vv_why">'+esc(p.why_wonderfest||'')+'</textarea></div>'
+      + '<div class="fld wide"><label class="vl" for="vv_why">Why volunteer with Wondershop</label><textarea id="vv_why">'+esc(p.why_volunteer||'')+'</textarea></div>'
     + '</div>'
   + '</div>';
 }
@@ -2730,7 +2730,7 @@ function collectVolunteerAdmin(){
     skills: picked('vv_skills'), skills_other: g('vv_skills_other'),
     responsibilities: picked('vv_resp'),
     public_comfort: +g('vv_comfort') || null,
-    why_wonderfest: g('vv_why'),
+    why_volunteer: g('vv_why'),
     open_to_training: g('vv_training'),
     zones: picked('vv_zones').map(Number),
     tnc_version: prev.tnc_version || ''

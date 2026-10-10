@@ -74,7 +74,7 @@
       '<div class="vl-scale">' + [1, 2, 3, 4, 5].map(function (n) {
         return '<label><input type="radio" name="v_comfort" value="' + n + '"><span>' + n + '</span></label>';
       }).join('') + '</div><div class="vl-scale-ends"><span>1 = not comfortable</span><span>5 = very comfortable</span></div>') +
-    fld('Why do you want to volunteer for Wonderfest NGMA? *', '<textarea id="v_why" maxlength="1200"></textarea>') +
+    fld('Why are you interested in volunteering with Wondershop Experiences? *', '<textarea id="v_why" maxlength="1200"></textarea>') +
     fld('Would you be open to training and grooming for senior volunteering positions? *', radios('v_training', D.training)) +
 
     '<div class="vl-sub">Zones</div>' +
@@ -153,7 +153,7 @@
       skills_other: val('v_skills_other'),
       responsibilities: picked('v_resp'),
       public_comfort: +radio('v_comfort') || null,
-      why_wonderfest: val('v_why'),
+      why_volunteer: val('v_why'),
       open_to_training: radio('v_training'),
       zones: picked('v_zones').map(Number),
       tnc_version: D.tncVersion
@@ -187,7 +187,7 @@
       if (!p.skills.length && !p.skills_other) return bad('Please pick at least one skill.', $('v_skills_fld'));
       if (!p.responsibilities.length) return bad('Please pick at least one responsibility you are interested in.', $('v_resp_fld'));
       if (!p.public_comfort) return bad('Please rate how comfortable you are with the public (1 to 5).', host.querySelector('input[name="v_comfort"]'));
-      if (p.why_wonderfest.length < 10) return bad('Please tell us why you want to volunteer for Wonderfest NGMA.', $('v_why'));
+      if (p.why_volunteer.length < 10) return bad('Please tell us why you are interested in volunteering with Wondershop Experiences.', $('v_why'));
       if (!p.open_to_training) return bad('Please tell us if you are open to training for senior positions.', host.querySelector('input[name="v_training"]'));
       if (!p.zones.length) return bad('Please pick at least one zone you can work in.', $('v_zones_fld'));
       if (!$('v_tnc').checked) return bad('Please read and accept the terms and conditions.', $('v_tnc_lbl'));

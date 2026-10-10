@@ -1,7 +1,7 @@
 -- 046: Event Volunteer profile (2026-10-10, per Shruti).
 -- Partners who pick "Event Volunteer" on vendor-onboarding.html answer extra
 -- questions (date of birth, education, experience, skills, roles, comfort with
--- the public, why Wonderfest NGMA, open to training, zones) and accept the
+-- the public, why they want to volunteer with Wondershop, open to training, zones) and accept the
 -- volunteer terms. The answers are kept as one JSON object on the partner's
 -- vendor_master row; the team can edit them in the Partners tab. The resume is
 -- BYTEA like the cancelled cheque and only served through the admin API.
