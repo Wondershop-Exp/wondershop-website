@@ -20,10 +20,13 @@ shows up in admin.html's existing Vendors tab (sorted to the top, with a
 migrations/031_vendor_onboarding.sql for the columns this writes to, and
 routers/vendors.py for the admin-side read/review endpoints.
 """
+import hashlib
 import json
 import logging
 import re
+import secrets
 import time
+from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from typing import List, Optional
 
@@ -123,7 +126,7 @@ def _pick_by_name(rows, submitted_name: str):
 
 
 async def _update_existing_vendor(mobile: str, values: dict, file_bytes, file_name, file_type,
-                                  defaulted: frozenset = frozenset()):
+                                  defaulted: frozenset = frozenset(), vendor_id: Optional[int] = None):
     """If a vendor with this mobile (primary or alternate) already exists,
     merge the submission into it and return True. Return False when there is
     no match, or a list of the matching partners when the number belongs to
@@ -132,12 +135,18 @@ async def _update_existing_vendor(mobile: str, values: dict, file_bytes, file_na
     prim, alt = _DIGITS.format(c="primary_mobile"), _DIGITS.format(c="alternate_mobile")
     cols = ", ".join(_PLAIN_FIELDS + _BANK_FIELDS)
     async with database.transaction():
-        matches = await database.fetch_all(
-            f"SELECT vendor_id, {cols} FROM vendor_master "
-            f"WHERE duplicate_of_id IS NULL AND ({prim} = :m OR {alt} = :m) "
-            f"ORDER BY ({prim} = :m) DESC, vendor_id ASC",
-            {"m": mobile},
-        )
+        if vendor_id is not None:
+            # Came in through a private update link (see below): that link
+            # names the partner, so no matching on the mobile number.
+            matches = await database.fetch_all(
+                f"SELECT vendor_id, {cols} FROM vendor_master WHERE vendor_id = :id", {"id": vendor_id})
+        else:
+            matches = await database.fetch_all(
+                f"SELECT vendor_id, {cols} FROM vendor_master "
+                f"WHERE duplicate_of_id IS NULL AND ({prim} = :m OR {alt} = :m) "
+                f"ORDER BY ({prim} = :m) DESC, vendor_id ASC",
+                {"m": mobile},
+            )
         if not matches:
             return False
         existing = matches[0] if len(matches) == 1 else _pick_by_name(matches, values.get("name"))
@@ -410,13 +419,14 @@ async def _read_resume(f: Optional[UploadFile]):
     return raw, kind, _safe_filename(f.filename)
 
 
-async def _save_volunteer(profile: dict, resume, mobile: str) -> None:
+async def _save_volunteer(profile: dict, resume, mobile: str, vendor_id: Optional[int] = None) -> None:
     prim, alt = _DIGITS.format(c="primary_mobile"), _DIGITS.format(c="alternate_mobile")
-    vendor_id = await database.fetch_val(
-        f"SELECT vendor_id FROM vendor_master WHERE duplicate_of_id IS NULL AND ({prim} = :m OR {alt} = :m) "
-        f"ORDER BY ({prim} = :m) DESC, vendor_id DESC LIMIT 1",
-        {"m": mobile},
-    )
+    if vendor_id is None:
+        vendor_id = await database.fetch_val(
+            f"SELECT vendor_id FROM vendor_master WHERE duplicate_of_id IS NULL AND ({prim} = :m OR {alt} = :m) "
+            f"ORDER BY ({prim} = :m) DESC, vendor_id DESC LIMIT 1",
+            {"m": mobile},
+        )
     if not vendor_id:
         logger.warning(f"Volunteer profile for {mobile}: no partner row found")
         return
@@ -514,6 +524,119 @@ async def lookup_pincode(pin: str):
     return result
 
 
+# ─── What a partner still has to fill in (2026-10-10, per Shruti) ──────────
+# "there are some volunteers who have filled in some details, but left some
+# open. how can I ask them to update the missing fields?" Shown in the Partners
+# tab and on the private update link, so both list the same things.
+def _has_bank(row) -> bool:
+    return bool(all((row.get(f) or "").strip() for f in _BANK_FIELDS) or row.get("cancelled_cheque_filename"))
+
+
+def partner_missing(row) -> List[str]:
+    """Human-readable list of what is still missing on a partner row (a dict
+    with the vendor_master columns, volunteer_profile already parsed)."""
+    row = dict(row)
+    out = []
+    is_vol = VOLUNTEER in (row.get("deals_in") or "").lower() or bool(row.get("volunteer_profile"))
+    if is_vol:
+        if len((row.get("address") or "").strip()) < 10:
+            out.append("Address")
+        if not (row.get("alternate_mobile") or "").strip():
+            out.append("Alternate mobile number")
+        p = row.get("volunteer_profile") or {}
+        if isinstance(p, (str, bytes)):
+            try:
+                p = json.loads(p)
+            except ValueError:
+                p = {}
+        p = p if isinstance(p, dict) else {}
+        sc, co = p.get("school") or {}, p.get("college") or {}
+        checks = [
+            ("Date of birth", p.get("dob")),
+            ("School details", sc.get("name") and sc.get("marks") and sc.get("year")),
+            ("College details", co.get("status") == "na" or (co.get("status") and co.get("name") and co.get("course") and co.get("year"))),
+            ("Past volunteering experience", p.get("has_experience") and (p.get("has_experience") == "no" or p.get("experience_desc"))),
+            ("Skills", p.get("skills") or p.get("skills_other")),
+            ("Responsibilities you are interested in", p.get("responsibilities")),
+            ("Comfort with the public (1 to 5)", p.get("public_comfort")),
+            ("Why you want to volunteer with us", p.get("why_volunteer")),
+            ("Open to training for senior roles", p.get("open_to_training")),
+            ("Zones you can work in", p.get("zones")),
+        ]
+        out += [label for label, ok in checks if not ok]
+        if not row.get("volunteer_tnc_accepted_at"):
+            out.append("Terms & conditions")
+    if not _has_bank(row):
+        out.append("Bank details")
+    return out
+
+
+# ─── Private update links (2026-10-10, per Shruti) ──────────────────────────
+# The team makes a link for one partner in the Partners tab (routers/vendors.py
+# -> make_update_link). The link carries a random secret; only its SHA-256 hash
+# is stored (migrations/047). It opens vendor-onboarding.html already filled
+# with what the partner gave before, lasts 14 days, and stops working once the
+# partner submits. Bank details are never sent back to the page.
+UPDATE_LINK_DAYS = 14
+_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{20,100}$")
+_PREFILL_FIELDS = ["name", "primary_mobile", "alternate_mobile", "whatsapp_number", "email", "deals_in",
+                   "address", "locality", "city", "pincode", "preferred_payment_mode"]
+
+
+def _token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+async def new_update_token(vendor_id: int):
+    """Makes a fresh link secret for a partner (replacing any earlier one) and
+    returns (token, expires_at)."""
+    token = secrets.token_urlsafe(24)
+    expires = datetime.now(timezone.utc) + timedelta(days=UPDATE_LINK_DAYS)
+    await database.execute(
+        "UPDATE vendor_master SET update_token_hash = :h, update_token_expires = :e WHERE vendor_id = :id",
+        {"h": _token_hash(token), "e": expires, "id": vendor_id},
+    )
+    return token, expires
+
+
+async def _vendor_by_token(token: Optional[str]):
+    if not token or not _TOKEN_RE.match(token):
+        return None
+    cols = ", ".join(_PLAIN_FIELDS + _BANK_FIELDS + [
+        "vendor_id", "primary_mobile", "cancelled_cheque_filename", "volunteer_profile",
+        "volunteer_tnc_accepted_at", "resume_filename"])
+    return await database.fetch_one(
+        f"SELECT {cols} FROM vendor_master WHERE update_token_hash = :h AND update_token_expires > NOW()",
+        {"h": _token_hash(token)},
+    )
+
+
+_LINK_GONE = "This link has expired or has already been used. Please ask the Wondershop Experiences team for a new link."
+
+
+@router.get("/prefill/{token}")
+async def prefill(token: str):
+    row = await _vendor_by_token(token)
+    if not row:
+        raise HTTPException(status_code=404, detail=_LINK_GONE)
+    d = dict(row)
+    vp = d.get("volunteer_profile")
+    if isinstance(vp, (str, bytes)):
+        try:
+            vp = json.loads(vp)
+        except ValueError:
+            vp = None
+    d["volunteer_profile"] = vp if isinstance(vp, dict) else None
+    out = {k: d.get(k) for k in _PREFILL_FIELDS}
+    out.update({
+        "volunteer_profile": d["volunteer_profile"],
+        "has_bank": _has_bank(d),
+        "has_resume": bool(d.get("resume_filename")),
+        "missing": partner_missing(d),
+    })
+    return out
+
+
 @router.post("/submit")
 async def submit_vendor_onboarding(
     name: str = Form(...),
@@ -539,7 +662,18 @@ async def submit_vendor_onboarding(
     volunteer_profile: Optional[str] = Form(None),
     volunteer_tnc_accepted: Optional[str] = Form(None),
     resume: Optional[UploadFile] = File(None),
+    update_token: Optional[str] = Form(None),
 ):
+    # Sent through a private update link? Then this is that partner, and the
+    # bank details they gave before can stand.
+    link_row = None
+    if (update_token or "").strip():
+        link_row = await _vendor_by_token(update_token.strip())
+        if not link_row:
+            raise HTTPException(status_code=400, detail=_LINK_GONE)
+        on_record = _normalize_mobile(link_row["primary_mobile"])
+        if _MOBILE_RE.match(on_record or ""):
+            primary_mobile = on_record     # the mobile number is fixed on an update link
     name = _clean(name)
     if not name:
         raise HTTPException(status_code=400, detail="Business/vendor name is required.")
@@ -630,7 +764,7 @@ async def submit_vendor_onboarding(
     # either is an acceptable way to capture payment info, but the vendor
     # must give at least one of the two, or there's nothing to pay them
     # against.
-    if not has_full_bank_details and not file_bytes:
+    if not has_full_bank_details and not file_bytes and not (link_row and _has_bank(dict(link_row))):
         raise HTTPException(
             status_code=400,
             detail="Please either upload a cancelled cheque/passbook photo, or fill in all four bank account fields.",
@@ -685,12 +819,21 @@ async def submit_vendor_onboarding(
     }
     # Already one of our vendors? Merge into that record instead of duplicating.
     defaulted = frozenset() if whatsapp_given else frozenset({"whatsapp_number"})
-    matched = await _update_existing_vendor(mobile, values, file_bytes, file_name, file_content_type, defaulted)
+    link_id = link_row["vendor_id"] if link_row else None
+    matched = await _update_existing_vendor(mobile, values, file_bytes, file_name, file_content_type, defaulted,
+                                            vendor_id=link_id)
+    if link_id is not None:
+        # A link works once. Also fill in the mobile number if the record had none.
+        await database.execute(
+            "UPDATE vendor_master SET update_token_hash = NULL, update_token_expires = NULL, "
+            "primary_mobile = COALESCE(NULLIF(TRIM(primary_mobile), ''), :m) WHERE vendor_id = :id",
+            {"id": link_id, "m": mobile},
+        )
     if matched is True:
         if rate_card is not None:
             await _save_rate_card(rate_card, work, name, mobile)
         if vol_profile is not None:
-            await _save_volunteer(vol_profile, vol_resume, mobile)
+            await _save_volunteer(vol_profile, vol_resume, mobile, vendor_id=link_id)
         return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}
     if matched:   # number shared by several partners and the name didn't pick one
         values["remarks"] = (

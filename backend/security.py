@@ -40,6 +40,7 @@ MAX_BODY_BYTES = 12 * 1024 * 1024  # partner form: cheque (5MB) + volunteer resu
 PUBLIC_LIMITS = [
     ("POST", "/api/vendor-onboarding/submit", False, 20, 3600),
     ("GET", "/api/vendor-onboarding/pincode/", True, 60, 600),
+    ("GET", "/api/vendor-onboarding/prefill/", True, 30, 600),
     ("POST", "/api/leads/submit", False, 40, 3600),
     ("POST", "/api/leads/finalize-notify", False, 40, 3600),
     ("POST", "/api/leads/abandoned-cart", False, 40, 3600),

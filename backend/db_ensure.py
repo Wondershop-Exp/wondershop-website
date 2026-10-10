@@ -24,6 +24,7 @@ SAFE_MIGRATIONS = [
     "044_decor_rate_cards.sql",
     "045_activity_ref_images.sql",
     "046_volunteer_profile.sql",
+    "047_partner_update_link.sql",
 ]
 
 

@@ -92,6 +92,12 @@ a{color:var(--pk)}
 .ft a{color:var(--gy);text-decoration:underline}
 
 /* Event Volunteer section (2026-10-10) - js/volunteer-form.js */
+.upd-box{margin-top:18px;border-radius:12px;padding:14px 16px;font-size:13.5px;line-height:1.55;background:var(--li3);border:1.5px solid var(--li)}
+.upd-box.bad{background:var(--srd);border-color:var(--rd);color:var(--rd)}
+.upd-box b{color:var(--bk)}
+.upd-box ul{margin:8px 0 0 18px}
+.upd-bank{background:var(--sgr);color:#166534;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;margin-bottom:10px}
+.fld input[readonly]{background:#F3F4F6;color:var(--gy)}
 .vl-sub{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--pk);margin:22px 0 -2px}
 .vl-chips{display:flex;flex-wrap:wrap;gap:8px}
 .vl-chip,.vl-radio{position:relative;cursor:pointer}
@@ -139,6 +145,8 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
   <div class="card" id="formCard">
     <div class="title">Partner Onboarding</div>
     <div class="sub">Tell us a bit about your business and how we should pay you — this takes about 3 minutes.</div>
+    <!-- Private update link (2026-10-10): filled in by the ?u= code below -->
+    <div class="upd-box" id="updBox" hidden></div>
 
     <form id="vendorForm" novalidate>
       <div class="sec-h">Business Details</div>
@@ -240,6 +248,7 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
       <div id="volunteerSection" hidden></div>
 
       <div class="sec-h">Payment Details</div>
+      <div class="upd-bank" id="updBank" hidden>✓ We already have your bank details. Leave this section blank unless they have changed.</div>
       <div class="sec-sub">Upload a cancelled cheque or a bank passbook photo — <strong>or</strong> fill in your bank details manually below. Either one works, we just need one of them so we can pay you correctly.</div>
 
       <div class="fld">
@@ -504,7 +513,7 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   const hasFullBankDetails = bankHolder && bankName && bankAcc && bankIfsc;
   const hasFile = fileInput.files.length > 0;
 
-  if(!hasFullBankDetails && !hasFile){
+  if(!hasFullBankDetails && !hasFile && !UPD.hasBank){
     showErr('Please either upload a cancelled cheque/passbook photo, or fill in all four bank detail fields.');
     return;
   }
@@ -549,6 +558,7 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
 
   const fd = new FormData();
   fd.append('name', name);
+  if(UPD.ok) fd.append('update_token', UPD.token);
   fd.append('primary_contact_name', document.getElementById('f_contact').value.trim());
   fd.append('primary_mobile', mobile);
   fd.append('alternate_mobile', normMobile(document.getElementById('f_alt_mobile').value));
@@ -591,6 +601,52 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
     btn.textContent = 'Submit Details';
   }
 });
+
+// ── Private update link (2026-10-10, per Shruti) ──
+// The team sends a partner vendor-onboarding.html?u=<secret> from the
+// Partners tab. The form opens with what they gave before, lists what is
+// missing, and keeps the bank details already on file (never sent back here).
+const UPD = {token: new URLSearchParams(location.search).get('u') || '', ok: false, hasBank: false};
+(async function loadUpdateLink(){
+  if(!UPD.token) return;
+  const box = document.getElementById('updBox');
+  const escH = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  box.hidden = false;
+  box.textContent = 'Loading your details…';
+  try{
+    const res = await fetch(WS_API_BASE + '/api/vendor-onboarding/prefill/' + encodeURIComponent(UPD.token));
+    const d = await res.json().catch(() => ({}));
+    if(!res.ok) throw new Error(d.detail || 'This link could not be opened.');
+    UPD.ok = true;
+    UPD.hasBank = !!d.has_bank;
+    const set = (id, v) => { if(v) document.getElementById(id).value = v; };
+    set('f_name', d.name);
+    set('f_mobile', d.primary_mobile);
+    if(d.primary_mobile) document.getElementById('f_mobile').readOnly = true;
+    set('f_alt_mobile', d.alternate_mobile);
+    if(d.whatsapp_number && d.whatsapp_number !== d.primary_mobile) set('f_whatsapp', d.whatsapp_number);
+    set('f_email', d.email); set('f_address', d.address);
+    set('f_pincode', d.pincode); set('f_city', d.city); set('f_locality', d.locality);
+    set('f_payment_mode', d.preferred_payment_mode);
+    if(d.deals_in){
+      const opt = Array.from(dealsSelect.options).find(o => o.value.toLowerCase() === d.deals_in.toLowerCase());
+      if(opt) dealsSelect.value = opt.value;
+      else { dealsSelect.value = 'Others'; set('f_deals_other', d.deals_in); }
+      dealsSelect.dispatchEvent(new Event('change'));
+    }
+    if(window.WSVolunteer && isVolunteer()) WSVolunteer.fill(d.volunteer_profile, d.has_resume);
+    document.getElementById('updBank').hidden = !UPD.hasBank;
+    const missing = (d.missing || []).filter(m => !(m === 'Bank details' && UPD.hasBank));
+    box.innerHTML = '<b>Hi ' + escH(d.name || '') + '!</b> Your earlier answers are filled in below. '
+      + (missing.length
+          ? 'Please add these missing details, check the rest, and tap Submit:<ul>' + missing.map(m => '<li>' + escH(m) + '</li>').join('') + '</ul>'
+          : 'Please check them and tap Submit.');
+    ['f_alt_mobile', 'f_address'].forEach(id => { const m = fieldError(id); if(m) setFieldErr(id, m); });
+  }catch(err){
+    box.classList.add('bad');
+    box.textContent = err.message + ' You can still fill in the form below.';
+  }
+})();
 </script>
 
 </body>

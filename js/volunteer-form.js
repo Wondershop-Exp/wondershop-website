@@ -170,6 +170,35 @@
 
   window.WSVolunteer = {
     toggle: function (on) { host.hidden = !on; tncHost.hidden = !on; },
+    // Private update link (2026-10-10): put back the answers they gave before.
+    fill: function (p, hasResume) {
+      p = p || {};
+      function setVal(id, v) { if (v != null && v !== '') $(id).value = v; }
+      function check(name, values) {
+        (values || []).forEach(function (v) {
+          var el = host.querySelector('input[name="' + name + '"][value="' + String(v).replace(/"/g, '\\"') + '"]');
+          if (el) el.checked = true;
+        });
+      }
+      var sc = p.school || {}, co = p.college || {};
+      setVal('v_dob', p.dob);
+      setVal('v_school_name', sc.name); setVal('v_school_marks', sc.marks); setVal('v_school_year', sc.year);
+      check('v_college_status', co.status ? [co.status] : []);
+      setVal('v_college_name', co.name); setVal('v_college_course', co.course);
+      setVal('v_college_marks', co.marks); setVal('v_college_year', co.year);
+      syncCollege();
+      check('v_exp', p.has_experience ? [p.has_experience] : []);
+      $('v_exp_box').hidden = p.has_experience !== 'yes';
+      check('v_event_types', p.event_types); setVal('v_event_types_other', p.event_types_other);
+      setVal('v_exp_desc', p.experience_desc);
+      check('v_skills', p.skills); setVal('v_skills_other', p.skills_other);
+      check('v_resp', p.responsibilities);
+      check('v_comfort', p.public_comfort ? [p.public_comfort] : []);
+      setVal('v_why', p.why_volunteer);
+      check('v_training', p.open_to_training ? [p.open_to_training] : []);
+      check('v_zones', p.zones);
+      if (hasResume) resumeTxt.innerHTML = 'We already have your resume. Tap to upload a new one <span class="opt">(optional)</span>';
+    },
     validate: function () {
       var p = collect();
       function bad(msg, el) { return { error: msg, el: el }; }

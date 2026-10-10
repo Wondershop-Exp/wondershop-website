@@ -38,7 +38,7 @@ from pydantic import BaseModel
 
 from database import database
 from routers.admin import _require_admin, _to_ist_str
-from routers.vendor_onboarding import clean_volunteer_profile
+from routers.vendor_onboarding import clean_volunteer_profile, partner_missing, new_update_token
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -110,6 +110,10 @@ class VendorRequest(BaseModel):
 
 def _row_out(r) -> dict:
     d = dict(r)
+    # What the partner still has to fill in (volunteer questions, address,
+    # alternate number, T&C, bank details) — 2026-10-10.
+    d["missing"] = partner_missing(d)
+    d["is_volunteer"] = "event volunteer" in (d.get("deals_in") or "").lower() or bool(d.get("volunteer_profile"))
     d["created_on_ist"] = _to_ist_str(d.pop("created_on", None))
     d["updated_on_ist"] = _to_ist_str(d.pop("updated_on", None))
     d["submitted_on_ist"] = _to_ist_str(d.pop("submitted_on", None))
@@ -237,6 +241,21 @@ async def get_vendor_cancelled_cheque(vendor_id: int, pending: bool = False, x_a
             "Cache-Control": "no-store",
         },
     )
+
+
+@router.post("/vendors/{vendor_id}/update-link")
+async def make_update_link(vendor_id: int, x_admin_password: Optional[str] = Header(None)):
+    """A private link for this partner to complete their details (2026-10-10).
+    Making a new link cancels the previous one. The page builds the full URL
+    and the WhatsApp message from the token and the missing list."""
+    _require_admin(x_admin_password)
+    cols = ", ".join(VENDOR_READ_COLUMNS)
+    row = await database.fetch_one(f"SELECT {cols} FROM vendor_master WHERE vendor_id = :id", {"id": vendor_id})
+    if not row:
+        raise HTTPException(status_code=404, detail="Vendor not found.")
+    token, expires = await new_update_token(vendor_id)
+    logger.info(f"Vendor {vendor_id}: update link made")
+    return {"token": token, "expires_on_ist": _to_ist_str(expires), "missing": partner_missing(dict(row))}
 
 
 @router.get("/vendors/{vendor_id}/resume")
