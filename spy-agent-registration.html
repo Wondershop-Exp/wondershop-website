@@ -3,19 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agent Registration — Wondershop Experiences</title>
+<title>Party Registration — Wondershop Experiences</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* Colours: these defaults (purple neon) are used until/unless the
+     booking's uploaded invite loads — then applyInvitePalette() below
+     repaints them from the invite's own colours (2026-10-10, per Shruti).
+     Every colour on the page comes from these variables. */
   :root{
     --bg-deep:#0a0414;
+    --bg-deep-rgb:10,4,20;
     --bg-mid:#1a0b2e;
+    --hero-1:#2a1147;
+    --hero-2:#170a2b;
+    --form-end:#120826;
     --neon:#c77dff;
+    --neon-rgb:199,125,255;
     --neon-bright:#e0aaff;
     --magenta:#e040fb;
+    --magenta-rgb:224,64,251;
+    --grad-end:#7b2ff7;
     --ink:#f4ecff;
     --ink-dim:#c9b8e8;
+    --faint:#8a7aa8;
+    --footer:#6a5a86;
     --gold:#f4a932;
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -31,7 +44,7 @@
   .hero{
     position:relative;
     overflow:hidden;
-    background:radial-gradient(120% 90% at 50% 0%, #2a1147 0%, #170a2b 45%, #0a0414 100%);
+    background:radial-gradient(120% 90% at 50% 0%, var(--hero-1) 0%, var(--hero-2) 45%, var(--bg-deep) 100%);
     padding:36px 20px 56px;
     text-align:center;
   }
@@ -41,7 +54,7 @@
     top:-10%;
     width:60%;
     height:60%;
-    background:radial-gradient(circle, rgba(199,125,255,0.22) 0%, transparent 70%);
+    background:radial-gradient(circle, rgba(var(--neon-rgb),0.22) 0%, transparent 70%);
     pointer-events:none;
   }
   .hero::before{left:-15%}
@@ -61,10 +74,10 @@
     border:2px solid var(--neon);
     border-bottom:none;
     border-radius:200px 200px 0 0;
-    box-shadow:0 0 24px 2px rgba(199,125,255,0.55), inset 0 0 30px rgba(199,125,255,0.18);
-    background:rgba(20,8,38,0.35);
+    box-shadow:0 0 24px 2px rgba(var(--neon-rgb),0.55), inset 0 0 30px rgba(var(--neon-rgb),0.18);
+    background:rgba(var(--bg-deep-rgb),0.35);
   }
-  .hat-icon{font-size:42px;filter:drop-shadow(0 0 10px rgba(199,125,255,0.8));margin-bottom:6px}
+  .hat-icon{font-size:42px;filter:drop-shadow(0 0 10px rgba(var(--neon-rgb),0.8));margin-bottom:6px}
   .stamp{
     display:inline-block;
     border:2px solid var(--ink);
@@ -95,7 +108,7 @@
   .agent-name-big{
     font-size:56px;
     color:var(--magenta);
-    text-shadow:0 0 18px rgba(224,64,251,0.75);
+    text-shadow:0 0 18px rgba(var(--magenta-rgb),0.75);
     line-height:1;
   }
   .quest-line{
@@ -125,7 +138,7 @@
     display:inline-block;
     margin-top:26px;
     padding:14px 34px;
-    background:linear-gradient(135deg,var(--magenta),#7b2ff7);
+    background:linear-gradient(135deg,var(--magenta),var(--grad-end));
     color:#fff;
     font-weight:700;
     font-size:15px;
@@ -134,7 +147,7 @@
     border:none;
     border-radius:30px;
     cursor:pointer;
-    box-shadow:0 0 20px rgba(224,64,251,0.55);
+    box-shadow:0 0 20px rgba(var(--magenta-rgb),0.55);
     text-decoration:none;
   }
   .invite-photo{
@@ -143,12 +156,12 @@
     margin:0 auto 28px;
     display:block;
     border-radius:14px;
-    box-shadow:0 0 30px rgba(199,125,255,0.35);
+    box-shadow:0 0 30px rgba(var(--neon-rgb),0.35);
   }
 
   /* ── FORM SECTION ─────────────────────────────────────────────── */
   .form-section{
-    background:linear-gradient(180deg,#0a0414 0%, #120826 100%);
+    background:linear-gradient(180deg,var(--bg-deep) 0%, var(--form-end) 100%);
     padding:44px 18px 70px;
   }
   .form-wrap{max-width:520px;margin:0 auto}
@@ -158,7 +171,7 @@
     letter-spacing:2px;
     color:var(--neon-bright);
     text-align:center;
-    text-shadow:0 0 14px rgba(199,125,255,0.5);
+    text-shadow:0 0 14px rgba(var(--neon-rgb),0.5);
   }
   .form-subtitle{
     text-align:center;
@@ -170,8 +183,8 @@
     margin-bottom:22px;
   }
   .intro-card, .guidelines-card, .privacy-card{
-    background:rgba(199,125,255,0.06);
-    border:1px solid rgba(199,125,255,0.3);
+    background:rgba(var(--neon-rgb),0.06);
+    border:1px solid rgba(var(--neon-rgb),0.3);
     border-radius:14px;
     padding:18px 20px;
     margin-bottom:18px;
@@ -191,7 +204,7 @@
   }
   form{
     background:rgba(255,255,255,0.03);
-    border:1px solid rgba(199,125,255,0.25);
+    border:1px solid rgba(var(--neon-rgb),0.25);
     border-radius:18px;
     padding:26px 22px;
   }
@@ -239,20 +252,20 @@
     width:100%;
     padding:13px 14px;
     background:rgba(255,255,255,0.06);
-    border:1px solid rgba(199,125,255,0.35);
+    border:1px solid rgba(var(--neon-rgb),0.35);
     border-radius:10px;
     color:var(--ink);
     font-size:15px;
     font-family:inherit;
   }
-  input::placeholder{color:#8a7aa8}
+  input::placeholder{color:var(--faint)}
   input:focus{outline:2px solid var(--neon);outline-offset:0;border-color:var(--neon)}
   input[type="date"]{color-scheme:dark}
   select{
     width:100%;
     padding:13px 14px;
     background:rgba(255,255,255,0.06);
-    border:1px solid rgba(199,125,255,0.35);
+    border:1px solid rgba(var(--neon-rgb),0.35);
     border-radius:10px;
     color:var(--ink);
     font-size:15px;
@@ -264,7 +277,7 @@
     width:100%;
     border-radius:10px;
     margin-bottom:10px;
-    border:1px solid rgba(199,125,255,0.35);
+    border:1px solid rgba(var(--neon-rgb),0.35);
     display:block;
   }
   input[type="time"]{
@@ -273,7 +286,7 @@
     min-width:130px;
     padding:12px 14px;
     background:rgba(255,255,255,0.06);
-    border:1px solid rgba(199,125,255,0.35);
+    border:1px solid rgba(var(--neon-rgb),0.35);
     border-radius:10px;
     color:var(--ink);
     font-size:15px;
@@ -283,7 +296,7 @@
   .pd-prompt{
     margin-top:12px;
     padding:16px;
-    border:1px solid rgba(199,125,255,0.35);
+    border:1px solid rgba(var(--neon-rgb),0.35);
     border-radius:14px;
     background:rgba(255,255,255,0.04);
     text-align:center;
@@ -300,7 +313,7 @@
   .pd-confirm-btn{
     margin-top:12px;
     padding:11px 26px;
-    background:linear-gradient(135deg,var(--magenta),#7b2ff7);
+    background:linear-gradient(135deg,var(--magenta),var(--grad-end));
     color:#fff;
     font-weight:700;
     font-size:13px;
@@ -313,7 +326,7 @@
   .pd-confirm-btn:disabled{opacity:0.6;cursor:default}
   .pd-msg{margin-top:8px;font-size:12.5px;min-height:1em}
   .file-drop{
-    border:1.5px dashed rgba(199,125,255,0.45);
+    border:1.5px dashed rgba(var(--neon-rgb),0.45);
     border-radius:12px;
     padding:18px;
     text-align:center;
@@ -330,7 +343,7 @@
   }
   .file-preview img{
     width:56px;height:56px;object-fit:cover;border-radius:10px;
-    border:1px solid rgba(199,125,255,0.5);
+    border:1px solid rgba(var(--neon-rgb),0.5);
   }
   .file-preview .fp-name{font-size:12.5px;color:var(--ink-dim);word-break:break-all}
   .file-preview .fp-remove{
@@ -340,7 +353,7 @@
   .submit-btn{
     width:100%;
     padding:16px;
-    background:linear-gradient(135deg,var(--magenta),#7b2ff7);
+    background:linear-gradient(135deg,var(--magenta),var(--grad-end));
     color:#fff;
     font-weight:700;
     font-size:15px;
@@ -349,7 +362,7 @@
     border:none;
     border-radius:12px;
     cursor:pointer;
-    box-shadow:0 0 20px rgba(224,64,251,0.45);
+    box-shadow:0 0 20px rgba(var(--magenta-rgb),0.45);
     margin-top:6px;
   }
   .submit-btn:disabled{opacity:0.55;cursor:not-allowed}
@@ -374,9 +387,9 @@
     padding:24px;
     font-size:11px;
     letter-spacing:2px;
-    color:#6a5a86;
+    color:var(--footer);
     text-transform:uppercase;
-    background:#0a0414;
+    background:var(--bg-deep);
   }
   @media (max-width:420px){
     .agent-name-big{font-size:44px}
@@ -398,10 +411,10 @@
     position:fixed;
     left:0; right:0; bottom:0;
     z-index:100;
-    background:rgba(10,4,20,0.92);
+    background:rgba(var(--bg-deep-rgb),0.92);
     backdrop-filter:blur(6px);
     -webkit-backdrop-filter:blur(6px);
-    border-top:1px solid rgba(199,125,255,0.25);
+    border-top:1px solid rgba(var(--neon-rgb),0.25);
     padding:10px 16px;
     text-align:center;
   }
@@ -421,7 +434,7 @@
      automatically on the success/invalid-link screens via JS below,
      since there's nothing left to register at that point. -->
 <div class="sticky-cta-bar" id="stickyCtaBar">
-  <a href="#registerForm" class="cta-btn">🕵️ Register Your Agent</a>
+  <a href="#registerForm" class="cta-btn">✨ Register Your Child</a>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════
@@ -443,17 +456,17 @@
 
   <!-- If a real designed invite image is supplied (INVITE_IMAGE_URL),
        it's shown here instead of the coded arch below. -->
-  <img id="inviteImg" class="invite-photo" style="display:none" alt="Mission invite">
+  <img id="inviteImg" class="invite-photo" style="display:none" alt="Party invite">
 
   <div class="arch" id="codedInvite">
-    <div class="hat-icon">🎩</div>
+    <div class="hat-icon">🔍</div>
     <div class="stamp">TOP SECRET</div>
-    <div class="attn">Attention, Secret Agent!</div>
-    <div class="assign">You are hereby assigned a classified mission to assist</div>
+    <div class="attn">Psst&hellip; you&rsquo;re invited!</div>
+    <div class="assign">You&rsquo;ve been chosen for a top-secret mission to celebrate</div>
     <div class="agent-name-big" id="childNameOut">—</div>
     <div class="quest-line" id="questLineOut">on their birthday quest</div>
 
-    <div class="mission-details-label">Mission Details</div>
+    <div class="mission-details-label">Party Details</div>
     <div class="mission-line" id="dateLineOut">Date: —</div>
     <div class="mission-line" id="timeLineOut">Drop off: — | Pick up: —</div>
 
@@ -468,53 +481,52 @@
     </div>
 
     <div class="venue-block">
-      <div class="mission-line">Please report to Spy Headquarters</div>
+      <div class="mission-line">Venue</div>
       <div class="mission-line" id="venueLinesOut"></div>
     </div>
 
   </div>
 
-  <a href="#registerForm" class="cta-btn">🕵️ Register Your Agent</a>
+  <a href="#registerForm" class="cta-btn">✨ Register Your Child</a>
 </section>
 
 <section class="form-section" id="registerForm">
   <div class="form-wrap">
-    <div class="form-title">Agent Registration</div>
-    <div class="form-subtitle" id="formSubtitleOut">Confidential: Registration Form</div>
+    <div class="form-title">Player Registration</div>
+    <div class="form-subtitle" id="formSubtitleOut">Registration Form</div>
 
     <div class="intro-card">
-      Attention, Operatives! To officially enlist your agent for the mission, we require a
-      classified profile submission. Please ensure all details are accurate and follow the
-      instructions carefully.
+      Every player needs to be registered before the big day! Please fill in your child&rsquo;s
+      details below &mdash; we use them to get everything ready for the game, from name tags to
+      i-cards.
       <br><br>
-      Incomplete or unclear submissions may delay your agent's clearance. Once registered, your
-      agent will be one step closer to entering headquarters and taking on their secret
-      mission&hellip; Submit wisely. The mission awaits.
+      Please make sure the details are accurate. Once registered, your child is all set for the
+      party &mdash; the mission awaits!
     </div>
 
     <div class="guidelines-card">
-      <span class="card-heading">📸 Agent Photo Guidelines (Highly Confidential)</span>
+      <span class="card-heading">📸 Photo Guidelines</span>
       <ul>
-        <li>The agent must be <b>facing the camera directly</b></li>
+        <li>Your child should be <b>facing the camera directly</b></li>
         <li>The face should be <b>clearly visible and centered</b></li>
-        <li>Only <b>one photo per agent</b> is permitted</li>
+        <li>Only <b>one photo per child</b></li>
         <li>Ensure the image is <b>clear and high quality</b> (no blur, no disguises&hellip; yet 😉)</li>
       </ul>
     </div>
 
     <form id="spyForm" novalidate>
       <div class="field">
-        <label for="agentName">Agent Name <span class="req">*</span></label>
+        <label for="agentName">Child&rsquo;s Name <span class="req">*</span></label>
         <input type="text" id="agentName" name="agent_name" placeholder="Your child's name" required>
       </div>
 
       <div class="field">
-        <label for="agentDob">Agent DOB <span class="req">*</span></label>
+        <label for="agentDob">Child&rsquo;s Date of Birth <span class="req">*</span></label>
         <input type="date" id="agentDob" name="agent_dob" required>
       </div>
 
       <div class="field">
-        <label for="agentPhoto">Agent Photo <span class="opt">(optional — for the i-card)</span></label>
+        <label for="agentPhoto">Child&rsquo;s Photo <span class="opt">(optional — for the i-card)</span></label>
         <label class="file-drop" for="agentPhoto">
           <span class="fd-label">📷 Tap to add a photo</span>
           <input type="file" id="agentPhoto" name="agent_photo" accept="image/png,image/jpeg,image/webp">
@@ -527,8 +539,8 @@
       </div>
 
       <div class="privacy-card">
-        <b>Note:</b> the photo is solely for the agent i-card and will be deleted after the
-        mission. If you're not comfortable sharing a photo, you can skip it.
+        <b>Note:</b> the photo is used only for your child&rsquo;s i-card and will be deleted after
+        the party. If you're not comfortable sharing a photo, you can skip it.
       </div>
 
       <div class="field" id="tshirtField" style="display:none">
@@ -554,17 +566,17 @@
         <label for="marketingOptIn">Yes, send me birthday reminders, new theme launches, and offers from Wondershop Experiences.</label>
       </div>
 
-      <button type="submit" class="submit-btn" id="submitBtn">Submit Mission Profile</button>
+      <button type="submit" class="submit-btn" id="submitBtn">Submit Registration</button>
       <div class="form-msg" id="formMsg"></div>
     </form>
   </div>
 </section>
 
 <div class="success-screen" id="successScreen" style="display:none">
-  <div class="big-check"><img src="img/icons/spy color 2.png" alt="" style="height:56px"></div>
-  <h2>Agent Cleared for the Mission</h2>
-  <p id="successTextOut">Your agent's profile has been received. Headquarters will be in touch with
-    further instructions before the mission begins.</p>
+  <div class="big-check">🎉</div>
+  <h2>You&rsquo;re All Set!</h2>
+  <p id="successTextOut">Your child&rsquo;s registration has been received. We&rsquo;ll be in touch
+    with any further details before the big day.</p>
 </div>
 
 <!-- Shown instead of everything else when the ?t= token is missing or the
@@ -633,7 +645,7 @@
         var d = res.data;
 
         // ── Populate the coded invite / mission header from the backend's response ──
-        document.title = 'Agent Registration — ' + d.child_name + "'s Mission";
+        document.title = 'Party Registration — ' + d.child_name + "'s Birthday";
         document.getElementById('childNameOut').textContent = d.child_name.toUpperCase();
         // 2026-09-23, per Shruti — restore the "On Her 10th Birthday Quest"
         // style line (real data now, from age_ordinal/child_pronoun —
@@ -696,9 +708,12 @@
             chartImg.style.display = 'block';
           }
         }
-        document.getElementById('formSubtitleOut').textContent = 'Confidential: Registration Form for ' + d.mission_label;
+        document.getElementById('formSubtitleOut').textContent = 'Registration Form for ' + d.mission_label;
+        // Match the page's colours to this party's uploaded invite
+        // (2026-10-10, per Shruti — "choose colours as per the invite").
+        if (d.has_invite && d.invite_image_url) applyInvitePalette(API_BASE + d.invite_image_url);
         document.getElementById('successTextOut').textContent =
-          "Your agent's profile has been received for " + d.child_name + "'s mission. Headquarters will be in touch with further instructions before the big day.";
+          "Your child's registration for " + d.child_name + "'s party has been received. We'll be in touch with any further details before the big day.";
 
         // 2026-09-23, per Shruti — "I'll prefer let's use the design you
         // made than the invite, as the invite already will go as an image
@@ -711,6 +726,105 @@
       })
       .catch(function(){ showInvalidLink(); });
   }
+
+  // ══════════════════════════════════════════════════════════════
+  // COLOURS FROM THE INVITE (2026-10-10, per Shruti — "let's choose
+  // colours as per the invite. you decide what goes best"). The page keeps
+  // its dark night-time look (it suits every secret-game theme — spy,
+  // imposter, mafia, among us — and keeps text readable), but its glow,
+  // buttons, name colour and background tint are taken from the invite:
+  //  - main accent  = the invite's most prominent vivid colour
+  //  - second accent = the next vivid colour with a clearly different hue
+  //    (or a shifted shade of the first, for one-colour invites)
+  //  - backgrounds  = very dark shades tinted with the main accent's hue
+  // Every colour is clamped to a lightness that reads well on the dark
+  // background, so a pale or muddy invite can't make the page unreadable.
+  // Any failure (no invite, image won't load) just keeps the default
+  // purple — nothing breaks.
+  // ══════════════════════════════════════════════════════════════
+  function hsl2rgb(h, s, l){
+    h = ((h % 360) + 360) % 360 / 360;
+    function f(p, q, t){ if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; }
+    if (s === 0) { var v = Math.round(l*255); return [v,v,v]; }
+    var q = l < 0.5 ? l*(1+s) : l+s-l*s, p = 2*l-q;
+    return [Math.round(f(p,q,h+1/3)*255), Math.round(f(p,q,h)*255), Math.round(f(p,q,h-1/3)*255)];
+  }
+  function rgb2hsl(r, g, b){
+    r/=255; g/=255; b/=255;
+    var mx = Math.max(r,g,b), mn = Math.min(r,g,b), l = (mx+mn)/2, h = 0, s = 0, d = mx-mn;
+    if (d) {
+      s = l > 0.5 ? d/(2-mx-mn) : d/(mx+mn);
+      h = mx===r ? (g-b)/d + (g<b?6:0) : mx===g ? (b-r)/d + 2 : (r-g)/d + 4;
+      h *= 60;
+    }
+    return [h, s, l];
+  }
+  function hex(rgb){ return '#' + rgb.map(function(v){ return ('0'+v.toString(16)).slice(-2); }).join(''); }
+  function hueDist(a, b){ var d = Math.abs(a-b) % 360; return d > 180 ? 360-d : d; }
+
+  function invitePalette(img){
+    var W = 72, H = Math.max(1, Math.round(72 * img.height / img.width));
+    var c = document.createElement('canvas'); c.width = W; c.height = H;
+    var ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, W, H);
+    var px = ctx.getImageData(0, 0, W, H).data;
+    // 24 hue buckets; vivid pixels only (greys/near-black/near-white skipped)
+    var buckets = [];
+    for (var i = 0; i < 24; i++) buckets.push({w:0, h:0, s:0, l:0});
+    for (var k = 0; k < px.length; k += 4) {
+      if (px[k+3] < 128) continue;
+      var hsl = rgb2hsl(px[k], px[k+1], px[k+2]);
+      if (hsl[1] < 0.3 || hsl[2] < 0.15 || hsl[2] > 0.9) continue;
+      var b = buckets[Math.floor(hsl[0] / 15) % 24], w = hsl[1];
+      b.w += w; b.h += hsl[0]*w; b.s += hsl[1]*w; b.l += hsl[2]*w;
+    }
+    var ranked = buckets.filter(function(b){ return b.w > 0; })
+      .map(function(b){ return {w:b.w, h:b.h/b.w, s:b.s/b.w}; })
+      .sort(function(a, b){ return b.w - a.w; });
+    var total = ranked.reduce(function(t, b){ return t + b.w; }, 0);
+    if (!ranked.length || total < W*H*0.03) return null;   // almost no colour in it
+    var a1 = ranked[0];
+    // A second colour only if the invite really uses one (at least a
+    // quarter as much as the main one); otherwise a warmer shade of the
+    // main colour, so a one-colour invite stays one-colour.
+    var a2 = ranked.filter(function(b){ return hueDist(b.h, a1.h) >= 40 && b.w >= a1.w * 0.25; })[0]
+             || {h: a1.h - 18, s: a1.s};
+    var sat = function(x){ return Math.min(0.95, Math.max(0.6, x)); };
+    var neon = hsl2rgb(a1.h, sat(a1.s), 0.7), mag = hsl2rgb(a2.h, sat(a2.s), 0.6);
+    return {
+      '--neon': hex(neon), '--neon-rgb': neon.join(','),
+      '--neon-bright': hex(hsl2rgb(a1.h, sat(a1.s), 0.84)),
+      '--magenta': hex(mag), '--magenta-rgb': mag.join(','),
+      '--grad-end': hex(hsl2rgb(a1.h, sat(a1.s), 0.45)),
+      '--bg-deep': hex(hsl2rgb(a1.h, 0.55, 0.05)), '--bg-deep-rgb': hsl2rgb(a1.h, 0.55, 0.05).join(','),
+      '--bg-mid': hex(hsl2rgb(a1.h, 0.5, 0.11)),
+      '--hero-1': hex(hsl2rgb(a1.h, 0.55, 0.17)),
+      '--hero-2': hex(hsl2rgb(a1.h, 0.55, 0.1)),
+      '--form-end': hex(hsl2rgb(a1.h, 0.5, 0.09)),
+      '--ink': hex(hsl2rgb(a1.h, 0.6, 0.96)),
+      '--ink-dim': hex(hsl2rgb(a1.h, 0.35, 0.8)),
+      '--faint': hex(hsl2rgb(a1.h, 0.2, 0.58)),
+      '--footer': hex(hsl2rgb(a1.h, 0.2, 0.45))
+    };
+  }
+  function applyInvitePalette(url){
+    // Fetched as a blob (same cross-origin rules as the API calls above),
+    // so the pixels can be read without a "tainted canvas" error.
+    fetch(url).then(function(r){ if (!r.ok) throw 0; return r.blob(); })
+      .then(function(blob){
+        var u = URL.createObjectURL(blob), img = new Image();
+        img.onload = function(){
+          try {
+            var pal = invitePalette(img);
+            if (pal) Object.keys(pal).forEach(function(k){ document.documentElement.style.setProperty(k, pal[k]); });
+          } catch (e) { /* keep the default colours */ }
+          URL.revokeObjectURL(u);
+        };
+        img.src = u;
+      })
+      .catch(function(){ /* keep the default colours */ });
+  }
+  window.__invitePalette = invitePalette;   // used by tests only
 
   // ── Parent confirms drop-off/pick-up time (shown only when admin
   // hasn't set one yet — see pickup_drop_needs_confirmation above) ──
@@ -816,8 +930,8 @@
     var parentName = document.getElementById('parentName').value.trim();
     var parentPhone = document.getElementById('parentPhone').value.trim();
 
-    if (!agentName) { showMsg('Please enter the Agent Name.', 'error'); document.getElementById('agentName').focus(); return; }
-    if (!agentDob) { showMsg('Please enter the Agent DOB.', 'error'); document.getElementById('agentDob').focus(); return; }
+    if (!agentName) { showMsg('Please enter your child\'s name.', 'error'); document.getElementById('agentName').focus(); return; }
+    if (!agentDob) { showMsg('Please enter your child\'s date of birth.', 'error'); document.getElementById('agentDob').focus(); return; }
     var tshirtField = document.getElementById('tshirtField');
     var tshirtSize = document.getElementById('tshirtSize').value;
     if (tshirtField.style.display !== 'none' && !tshirtSize) {
@@ -873,7 +987,7 @@
       .catch(function(err){
         showMsg(err.message || 'Something went wrong — please try again.', 'error');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit Mission Profile';
+        submitBtn.textContent = 'Submit Registration';
       });
   });
 
