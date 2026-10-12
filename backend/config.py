@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     # (team still gets the full email) until then.
     AISENSY_TEAM_CAMPAIGN_NAME: str = ""
 
+    # Google review link for the post-event feedback page (2026-10-12) —
+    # Google Business Profile -> "Ask for reviews" -> copy the link
+    # (g.page/r/.../review). Blank = the page hides the Google review step.
+    GOOGLE_REVIEW_URL: str = ""
+
     # Google Sheets — Apps Script webhook URL (no service account needed)
     GOOGLE_SHEET_WEBHOOK_URL: str = ""
 

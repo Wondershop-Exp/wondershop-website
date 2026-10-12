@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>How was the party? — Wondershop Experiences</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="logo-square.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<!--
+  Post-event feedback (2026-10-12, per Shruti). Opened from the link sent by
+  email / WhatsApp: feedback.html?t=<token>. Backend: backend/routers/feedback.py.
+  Star ratings for the categories the team picked for this booking, a comment
+  box, then a Google review step (copy comment -> open Google's review box).
+-->
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--pk:#E65A96;--pu:#8A67BE;--pu-d:#6C4AB6;--li2:#EDE6FA;--li3:#F7F3FF;--bk:#2D2140;--gy:#6B6280;--star:#FFB400;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--fb);color:var(--bk);background:#FBF9FF;line-height:1.5;min-height:100vh}
+.hero{background:linear-gradient(135deg,#F7B6D2 0%,#C9B3EE 100%);padding:26px 18px 54px;text-align:center}
+.hero img.logo{height:34px;margin-bottom:14px}
+.hero h1{font-family:var(--fd);font-size:25px;line-height:1.25;color:#2D2140}
+.hero p{margin-top:6px;font-size:14.5px;color:#4B3F63}
+.wrap{max-width:560px;margin:-34px auto 0;padding:0 14px 40px}
+.card{background:#fff;border-radius:20px;box-shadow:0 8px 28px rgba(45,33,64,.08);padding:20px 18px;margin-bottom:14px}
+.q{padding:14px 0;border-bottom:1px solid #F1ECF8}
+.q:last-child{border-bottom:none}
+.q-lbl{font-weight:700;font-size:15.5px}
+.q-lbl .opt{font-weight:400;font-size:12.5px;color:var(--gy)}
+.q.big .q-lbl{font-family:var(--fd);font-size:19px;text-align:center}
+.stars{display:flex;gap:6px;margin-top:8px}
+.q.big .stars{justify-content:center;gap:10px}
+.star{border:none;background:none;padding:2px;cursor:pointer;line-height:0;-webkit-tap-highlight-color:transparent}
+.star svg{width:36px;height:36px;fill:#E7E1F1;transition:transform .12s,fill .12s}
+.q.big .star svg{width:46px;height:46px}
+.star.on svg{fill:var(--star)}
+.star:active svg{transform:scale(.88)}
+.word{font-size:12.5px;color:var(--gy);margin-top:4px;min-height:18px}
+.q.big .word{text-align:center;font-weight:700;color:var(--pu-d)}
+.na{font-size:12px;color:var(--gy);background:none;border:none;text-decoration:underline;cursor:pointer;margin-top:2px;padding:0}
+label.t{display:block;font-weight:700;font-size:15.5px;margin-bottom:8px}
+textarea,input[type=text]{width:100%;font:inherit;font-size:16px;border:1.5px solid var(--li2);border-radius:14px;padding:12px 14px;background:#fff;color:var(--bk)}
+textarea{min-height:120px;resize:vertical}
+textarea:focus,input:focus{outline:none;border-color:var(--pu)}
+.hint{font-size:12.5px;color:var(--gy);margin-top:6px}
+.btn{display:block;width:100%;border:none;border-radius:999px;padding:16px;font:inherit;font-size:16.5px;font-weight:700;cursor:pointer;text-align:center;text-decoration:none}
+.btn.pk{background:var(--pk);color:#fff;box-shadow:0 6px 18px rgba(230,90,150,.35)}
+.btn.pk:disabled{opacity:.6}
+.btn.g{background:#fff;color:#1F1F1F;border:1.5px solid #DADCE0;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn.g svg{width:22px;height:22px}
+.err{color:#B4232C;font-size:13.5px;text-align:center;margin-top:10px;min-height:1em}
+.done{text-align:center}
+.done .big{font-size:52px}
+.done h2{font-family:var(--fd);font-size:24px;margin:6px 0}
+.done p{color:var(--gy);font-size:14.5px}
+.gbox{margin-top:18px;text-align:left;background:var(--li3);border-radius:16px;padding:16px}
+.gbox h3{font-size:16px;margin-bottom:4px}
+.gbox ol{margin:8px 0 14px 20px;font-size:13.5px;color:var(--gy)}
+.copied{font-size:12.5px;color:#16794A;text-align:center;margin-top:8px;min-height:1em}
+.msg{text-align:center;padding:40px 10px;color:var(--gy)}
+footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
+</style>
+</head>
+<body>
+<div class="hero">
+  <img class="logo" src="logo-horizontal.png" alt="Wondershop Experiences">
+  <h1 id="title">How was the party?</h1>
+  <p id="sub">It takes about a minute — thank you!</p>
+</div>
+<div class="wrap">
+  <div id="app"><div class="card msg">Loading…</div></div>
+</div>
+<footer>Wondershop Experiences · +91 90044 35362</footer>
+
+<script>
+(function(){
+  var API = 'https://wondershop-website-production.up.railway.app';
+  var TOKEN = new URLSearchParams(location.search).get('t');
+  var app = document.getElementById('app');
+  var WORDS = ['', 'Poor', 'Could be better', 'Good', 'Great', 'Loved it!'];
+  var STAR = '<svg viewBox="0 0 24 24"><path d="M12 2.6l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.5 6.1 20.6l1.2-6.5L2.5 9.5l6.6-.9z"/></svg>';
+  var G = '<svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
+  var D = null, R = {overall: 0};
+
+  function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function starsHtml(key){
+    var h = '';
+    for (var i = 1; i <= 5; i++) h += '<button type="button" class="star" data-k="'+key+'" data-v="'+i+'" aria-label="'+i+' star'+(i>1?'s':'')+'">'+STAR+'</button>';
+    return '<div class="stars" role="radiogroup">'+h+'</div><div class="word" id="w_'+key+'"></div>';
+  }
+  function paint(key){
+    var v = R[key] || 0;
+    document.querySelectorAll('.star[data-k="'+key+'"]').forEach(function(b){ b.classList.toggle('on', +b.dataset.v <= v); });
+    var w = document.getElementById('w_'+key); if (w) w.textContent = v ? WORDS[v] : '';
+  }
+
+  function render(){
+    var name = D.child_name ? D.child_name + '’s' : 'the';
+    document.getElementById('title').textContent = 'How was ' + name + ' party?';
+    document.getElementById('sub').textContent = (D.client_first_name ? 'Hi ' + D.client_first_name + '! ' : '') + 'It takes about a minute — thank you!';
+    var cats = (D.categories || []).map(function(c){
+      return '<div class="q"><div class="q-lbl">'+esc(c.label)+'</div>'+starsHtml(c.key)+'</div>';
+    }).join('');
+    app.innerHTML =
+      '<div class="card"><div class="q big"><div class="q-lbl">Overall, how was the party?</div>'+starsHtml('overall')+'</div></div>'
+      + (cats ? '<div class="card"><div style="font-size:13px;color:var(--gy);margin-bottom:2px">Rate what you can — skip anything you didn’t notice.</div>'+cats+'</div>' : '')
+      + '<div class="card"><label class="t" for="remarks">Anything you’d like to tell us?</label>'
+      + '<textarea id="remarks" placeholder="What did the kids love? What could we do better?">'+esc(D.remarks||'')+'</textarea>'
+      + '<div class="hint">This can also be your Google review — we’ll help you post it next.</div>'
+      + '<label class="t" for="who" style="margin-top:14px">Your name <span style="font-weight:400;font-size:12.5px;color:var(--gy)">(optional)</span></label>'
+      + '<input type="text" id="who" placeholder="e.g. Neha" autocomplete="name"></div>'
+      + '<button class="btn pk" id="send">Send feedback</button><div class="err" id="err"></div>';
+    Object.keys(D.ratings || {}).forEach(function(k){ R[k] = D.ratings[k]; });
+    if (D.overall) R.overall = D.overall;
+    Object.keys(R).forEach(paint);
+    (D.categories || []).forEach(function(c){ paint(c.key); });
+    app.querySelectorAll('.star').forEach(function(b){
+      b.addEventListener('click', function(){
+        var k = b.dataset.k, v = +b.dataset.v;
+        R[k] = (R[k] === v && k !== 'overall') ? 0 : v;   // tap the same star again to clear (not overall)
+        paint(k);
+        if (k === 'overall') document.getElementById('err').textContent = '';
+      });
+    });
+    document.getElementById('send').addEventListener('click', submit);
+  }
+
+  function submit(){
+    var err = document.getElementById('err'), btn = document.getElementById('send');
+    if (!R.overall){ err.textContent = 'Please tap the stars for your overall rating.'; window.scrollTo({top:0, behavior:'smooth'}); return; }
+    var ratings = {};
+    (D.categories || []).forEach(function(c){ if (R[c.key]) ratings[c.key] = R[c.key]; });
+    var remarks = document.getElementById('remarks').value.trim();
+    btn.disabled = true; btn.textContent = 'Sending…'; err.textContent = '';
+    fetch(API + '/api/feedback/' + encodeURIComponent(TOKEN), {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({overall: R.overall, ratings: ratings, remarks: remarks, respondent: document.getElementById('who').value.trim()})})
+      .then(function(r){ return r.json().then(function(b){ if (!r.ok) throw new Error(b.detail || 'Something went wrong'); return b; }); })
+      .then(function(b){ thanks(remarks, b.google_review_url || D.google_review_url); })
+      .catch(function(e){ btn.disabled = false; btn.textContent = 'Send feedback'; err.textContent = e.message || 'Something went wrong — please try again.'; });
+  }
+
+  // After submitting: everyone is offered the Google review step (Google
+  // reviews can only be posted from the reviewer's own Google account, so
+  // we copy their comment and open the review box for them to paste).
+  function thanks(remarks, gurl){
+    document.getElementById('title').textContent = 'Thank you! 💜';
+    document.getElementById('sub').textContent = 'Your feedback means a lot to our team.';
+    var g = gurl ? (
+      '<div class="gbox"><h3>Would you share this on Google too?</h3>'
+      + '<div style="font-size:13.5px;color:var(--gy)">It helps other parents find us. It’s just 2 taps:</div>'
+      + '<ol><li>Tap the button — we’ll copy your comment'+(remarks ? '' : ' (if any)')+'</li><li>Pick the stars and paste it in Google’s review box</li></ol>'
+      + '<a class="btn g" id="gbtn" href="'+esc(gurl)+'" target="_blank" rel="noopener">'+G+' Post a Google review</a>'
+      + '<div class="copied" id="copied"></div></div>') : '';
+    app.innerHTML = '<div class="card done"><div class="big">🎉</div><h2>Feedback received</h2>'
+      + '<p>Thank you for celebrating with Wondershop Experiences. We read every response.</p>' + g + '</div>';
+    var gb = document.getElementById('gbtn');
+    if (gb) gb.addEventListener('click', function(){
+      var text = remarks;
+      if (text && navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(function(){ document.getElementById('copied').textContent = '✓ Your comment is copied — paste it in the review box'; }).catch(function(){});
+      }
+      fetch(API + '/api/feedback/' + encodeURIComponent(TOKEN) + '/google', {method:'POST'}).catch(function(){});
+    });
+  }
+
+  if (!TOKEN) { app.innerHTML = '<div class="card msg">This feedback link isn’t complete — please open the link we sent you.</div>'; return; }
+  fetch(API + '/api/feedback/' + encodeURIComponent(TOKEN))
+    .then(function(r){ return r.json().then(function(b){ if (!r.ok) throw new Error(b.detail); return b; }); })
+    .then(function(b){ D = b; render(); })
+    .catch(function(e){ app.innerHTML = '<div class="card msg">'+esc(e.message || 'This feedback link isn’t valid.')+'</div>'; });
+})();
+</script>
+</body>
+</html>

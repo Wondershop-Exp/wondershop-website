@@ -150,6 +150,15 @@ table.list th.sortable:hover{color:var(--bk)}
 .spy-reg-card .sr-btn.primary{background:var(--pk);color:#fff}
 .spy-reg-card .sr-btn.ghost{background:#fff;border:1px solid var(--li2);color:var(--plum)}
 .spy-reg-card .sr-status{font-size:12px;color:var(--gr);font-weight:600}
+.fb-cats{display:flex;flex-wrap:wrap;gap:8px 14px;margin:8px 0 12px}
+.fb-cats label{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
+.fb-btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fb-btn{padding:9px 14px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.fb-btn.pk{background:var(--pk);color:#fff}.fb-btn.wa{background:#25D366;color:#fff}.fb-btn.gh{background:#fff;border:1px solid var(--li2);color:var(--plum)}
+.fb-meta{font-size:12px;color:var(--gy);margin-top:8px}
+.fb-res{margin-top:12px;background:var(--li3);border-radius:12px;padding:12px 14px;font-size:13.5px}
+.fb-res .stars{color:#F5A400;letter-spacing:1px}
+.fb-res table{border-collapse:collapse;margin-top:6px}.fb-res td{padding:3px 14px 3px 0}
 
 /* ─── Leads / Bookings tabs ─── */
 .tabs{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
@@ -753,6 +762,11 @@ body.role-sales .admin-only{display:none!important}
     <div id="preMsgBlock"></div>
     <div id="sectionsContainer"></div>
     <div id="giftOrderBlock"></div>
+    <!-- Post-event feedback (2026-10-12, per Shruti) -->
+    <div class="log-section" id="fbSection" style="display:none">
+      <h3>⭐ Client Feedback</h3>
+      <div id="fbBlock"></div>
+    </div>
     <!-- 2026-10-02, per Shruti — "move spy registration page section at the
          end before modification trail, as a collapsible module". -->
     <div class="log-section" id="spySection" style="display:none">
@@ -1604,6 +1618,88 @@ function renderBookingBar(d){
 // (spy-agent-registration.html?t=...) the first time, and just swaps the
 // image (keeping the same link) after that.
 let SPY_REG_LEAD_ID = null;
+
+// ── Post-event feedback (2026-10-12, per Shruti) ──────────────────────
+// "feedback form for our events ... send a whatsapp and mail both". One
+// link per booking (backend/routers/feedback.py, page feedback.html): pick
+// what to ask about (pre-ticked from the booking), create the link, then
+// Email it from here and/or open WhatsApp with the message filled in.
+let FB = null;
+async function renderFeedbackBlock(d){
+  const sec = document.getElementById('fbSection'), block = document.getElementById('fbBlock');
+  if(!sec || !block) return;
+  if(!d.is_booking){ sec.style.display = 'none'; block.innerHTML = ''; return; }
+  sec.style.display = 'block';
+  block.innerHTML = '<div style="font-size:12.5px;color:var(--gy)">Loading…</div>';
+  try{ FB = await apiCall('/api/admin/feedback/'+d.lead_id); }
+  catch(e){ block.innerHTML = '<div style="font-size:12.5px;color:var(--gy)">'+esc(e.message||'Could not load feedback.')+'</div>'; return; }
+  if(FB && FB.lead_id === undefined) FB.lead_id = d.lead_id;
+  drawFeedbackBlock(d.locked);
+}
+function fbStars(n){ n = Number(n)||0; return '<span class="stars">'+'★'.repeat(n)+'</span><span style="color:#D9D2E6">'+'★'.repeat(5-n)+'</span>'; }
+function drawFeedbackBlock(locked){
+  const block = document.getElementById('fbBlock'); if(!block || !FB) return;
+  const chosen = new Set(FB.exists ? FB.categories : FB.default_categories);
+  const cats = (FB.all_categories||[]).map(c=>'<label><input type="checkbox" class="fbCat" value="'+c.key+'"'+(chosen.has(c.key)?' checked':'')+(locked?' disabled':'')+'> '+esc(c.label)+'</label>').join('');
+  const hosts = FB.exists ? (FB.host_names||'') : (FB.default_host_names||'');
+  let h = '<div style="font-size:12.5px;color:var(--gy)">Overall rating + a comment box are always asked. Also ask about:</div>'
+    + '<div class="fb-cats">'+cats+'</div>'
+    + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><span style="font-size:12.5px;color:var(--gy)">Host name(s) shown on the form</span>'
+    + '<input type="text" id="fbHosts" value="'+esc(hosts)+'" placeholder="e.g. Ritika & Sunny" style="padding:7px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13px;min-width:200px"'+(locked?' disabled':'')+'></div>';
+  if(!FB.exists){
+    h += '<div class="fb-btns"><button class="fb-btn pk" onclick="saveFeedbackSetup()">Create feedback link</button></div>';
+  }else{
+    const waMsg = 'Hi'+(FB.client_name?' '+FB.client_name.split(' ')[0]:'')+'! Thank you for celebrating '+(FB.child_name?FB.child_name+'\u2019s birthday ':'')+'with Wondershop Experiences 💜 We\'d love to hear how it went — it takes a minute: '+FB.url;
+    const phone = String(FB.phone||'').replace(/\D/g,'').replace(/^0+/,'');
+    const waNum = phone.length===10 ? '91'+phone : phone;
+    h += '<div class="fb-btns">'
+      + '<button class="fb-btn gh" onclick="saveFeedbackSetup()">Save questions</button>'
+      + '<a class="fb-btn wa" href="https://wa.me/'+waNum+'?text='+encodeURIComponent(waMsg)+'" target="_blank" rel="noopener" onclick="markFeedbackWhatsapp()">WhatsApp</a>'
+      + '<button class="fb-btn pk" onclick="emailFeedback(this)"'+(FB.email?'':' disabled title="No email on file"')+'>Email</button>'
+      + '<button class="fb-btn gh" onclick="navigator.clipboard.writeText('+attrJson(FB.url)+').then(()=>showToast(\'Link copied\'))">Copy link</button>'
+      + '<a class="fb-btn gh" href="'+esc(FB.url)+'" target="_blank" rel="noopener">Open ↗</a>'
+      + '</div>'
+      + '<div class="fb-meta">'+[
+          FB.emailed_at ? 'Emailed '+esc(FB.emailed_at) : null,
+          FB.whatsapp_at ? 'WhatsApp opened '+esc(FB.whatsapp_at) : null,
+          FB.opened_at ? 'Client opened it '+esc(FB.opened_at) : 'Not opened yet',
+          FB.google_clicked_at ? 'Tapped “Post a Google review” '+esc(FB.google_clicked_at) : null,
+        ].filter(Boolean).join(' · ')+'</div>';
+    if(FB.submitted_at){
+      const labels = {}; (FB.all_categories||[]).forEach(c=>labels[c.key]=c.label);
+      const rows = Object.keys(FB.ratings||{}).map(k=>'<tr><td>'+esc(labels[k]||k)+'</td><td>'+fbStars(FB.ratings[k])+'</td></tr>').join('');
+      h += '<div class="fb-res"><b>Received '+esc(FB.submitted_at)+'</b>'+(FB.respondent?' from '+esc(FB.respondent):'')
+        + '<table><tr><td><b>Overall</b></td><td>'+fbStars(FB.overall)+'</td></tr>'+rows+'</table>'
+        + (FB.remarks ? '<div style="margin-top:8px;white-space:pre-wrap">“'+esc(FB.remarks)+'”</div>' : '')
+        + '</div>';
+    }
+  }
+  block.innerHTML = h;
+}
+async function saveFeedbackSetup(){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); highlightWhoName(); return; }
+  const cats = Array.from(document.querySelectorAll('.fbCat:checked')).map(x=>x.value);
+  try{
+    FB = await apiCall('/api/admin/feedback/'+CURRENT_LEAD_ID, {method:'POST', body: JSON.stringify({categories:cats, host_names:(document.getElementById('fbHosts')||{}).value||'', changed_by:who})});
+    showToast(FB.exists ? '✓ Feedback link ready' : 'Saved');
+    drawFeedbackBlock(false);
+  }catch(e){ if(e.message!=='unauthorized') showToast('Could not save: '+e.message); }
+}
+async function emailFeedback(btn){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); highlightWhoName(); return; }
+  btn.disabled = true;
+  try{
+    const r = await apiCall('/api/admin/feedback/'+CURRENT_LEAD_ID+'/email', {method:'POST', body: JSON.stringify({changed_by:who})});
+    showToast('✓ Feedback email sent to '+r.sent_to);
+    FB = await apiCall('/api/admin/feedback/'+CURRENT_LEAD_ID); drawFeedbackBlock(false);
+  }catch(e){ btn.disabled = false; if(e.message!=='unauthorized') showToast('Could not send: '+e.message); }
+}
+function markFeedbackWhatsapp(){
+  apiCall('/api/admin/feedback/'+CURRENT_LEAD_ID+'/whatsapp', {method:'POST', body: JSON.stringify({changed_by:getName()||''})})
+    .then(()=>apiCall('/api/admin/feedback/'+CURRENT_LEAD_ID)).then(r=>{ FB = r; drawFeedbackBlock(false); }).catch(()=>{});
+}
 
 function renderSpyRegistrationBlock(d){
   const block = document.getElementById('spyRegBlock');
@@ -3293,6 +3389,7 @@ function renderDetail(d){
   }
 
   renderSpyRegistrationBlock(d);
+  renderFeedbackBlock(d);
   document.getElementById('giftOrderBlock').innerHTML = giftOrderHtml(d.gift_order, d.lead_id, loadDetail);
   document.getElementById('tbcBlock').innerHTML = tbcHtml(d);
   renderPreEventMsg(d);
