@@ -4814,7 +4814,9 @@ function actQuoteCardsHtml(locked){
 // quote ₹/child and the line total, like the sales panel.
 function activityQuoteInline(name){
   if(!name || !CURRENT_DETAIL || !CURRENT_DETAIL.is_booking) return '';
-  const it = _lqItems('svc_activities').find(i => i.key === 'activity:'+String(name).trim().toLowerCase());
+  // Same key as booking_pricing.line_key(): lower-case, anything from " (" dropped.
+  const key = 'activity:'+String(name).replace(/\s*\(.*$/,'').trim().toLowerCase();
+  const it = _lqItems('svc_activities').find(i => i.key === key);
   if(!it) return '';
   const m = Number(it.amount||0), q = Number(it.quote==null?m:it.quote);
   const qu = _lqQtyUnit(it.label, m), perKid = /kids?\s*×/.test(it.label);

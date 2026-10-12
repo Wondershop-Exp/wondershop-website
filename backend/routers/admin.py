@@ -2483,7 +2483,8 @@ async def _copy_sales_line_quotes(lead_id: int, who: str) -> None:
     for it in b["items"]:
         k = it.get("key")
         if k == "activity":
-            k = "activity:" + str((it.get("activity") or {}).get("name") or it.get("label") or "").strip().lower()
+            from booking_pricing import line_key as _lk
+            k = _lk("Activity: " + str((it.get("activity") or {}).get("name") or it.get("label") or ""))
             if not it.get("flat") and it.get("qty") and int(it["qty"]) != int(pb["kids_count"] or 0):
                 out["kids:" + k] = int(it["qty"])
         elif k == "music_addon":

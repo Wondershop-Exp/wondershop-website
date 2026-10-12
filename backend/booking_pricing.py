@@ -451,7 +451,7 @@ def _price_activities(names_csv: Optional[str], kids: int, kids_by: Optional[dic
             continue
         p, flat = p_flat
         # Per-activity kids count set on the booking (2026-10-12), else # Kids.
-        n = int((kids_by or {}).get("kids:activity:" + name.strip().lower()) or kids or 0)
+        n = int((kids_by or {}).get("kids:" + line_key("Activity: " + name)) or kids or 0)
         amount = p if flat else p * max(n, 1)
         detail = "" if flat else f" ({n} kids × ₹{p:g})"
         items.append((f"Activity: {name}{detail}", amount))
