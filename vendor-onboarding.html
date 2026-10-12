@@ -131,6 +131,17 @@ a{color:var(--pk)}
 .req-vol{display:none}
 body.is-volunteer .req-vol{display:inline}
 body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
+/* Carnival Stalls & Mascots (2026-10-12) */
+.req-car{display:none}
+body.is-carnival .req-vol,body.is-carnival .req-car{display:inline}
+body.is-carnival .opt-vol{display:none}
+.cv-add-btn{flex:0 0 auto;padding:0 18px;border:0;border-radius:10px;background:var(--pk);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.cv-svc{border:1px solid var(--li2);border-radius:12px;padding:12px;margin-top:10px}
+.cv-svc-h{font-size:13.5px;font-weight:700;margin-bottom:6px}
+.cv-svc textarea{width:100%;min-height:64px;padding:10px 12px;border:1.5px solid var(--li2);border-radius:10px;font-family:var(--fb);font-size:14px;background:var(--wh);resize:vertical}
+.cv-files{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.cv-files li{display:flex;justify-content:space-between;gap:10px;font-size:13px;background:var(--li3);border-radius:8px;padding:7px 10px;word-break:break-all}
+.cv-files button{border:0;background:none;color:var(--gy);cursor:pointer;margin-left:6px;font-size:13px}
 </style>
 <style id="ws-no-caret">/* hide stray text cursor on non-editable text (2026-10-03) */body{caret-color:transparent}input,textarea,select,[contenteditable],[contenteditable] *{caret-color:auto}</style><style id="ws-select-arrow">/* every dropdown: own chevron with room from the edge (2026-10-05) */select:not([multiple]):not([size]){-webkit-appearance:none;appearance:none;padding-right:36px;background-repeat:no-repeat;background-position:right 14px center;background-size:10px 6px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}select::-ms-expand{display:none}</style>
 <link rel="stylesheet" href="css/vendor-decor.css">
@@ -164,6 +175,7 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
           <select id="f_deals">
             <option value="">Select...</option>
             <option value="Event Volunteer">Event Volunteer</option>
+            <option value="Carnival Stalls & Mascots">Carnival Stalls &amp; Mascots</option>
             <option value="Wondershop Team Member">Wondershop Team Member (internal)</option>
             <option value="Photographer">Photographer</option>
             <option value="Decorator">Decorator</option>
@@ -197,7 +209,7 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
           <div class="f-err" id="f_mobile_err"></div>
         </div>
         <div class="fld">
-          <label>WhatsApp Number <span class="opt">(if different)</span></label>
+          <label>WhatsApp Number</label>
           <input type="tel" id="f_whatsapp" inputmode="numeric">
           <div class="f-err" id="f_whatsapp_err"></div>
         </div>
@@ -225,7 +237,7 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
       </div>
       <div class="row2">
         <div class="fld">
-          <label>Pincode</label>
+          <label>Pincode <span class="req-car">*</span></label>
           <input type="text" id="f_pincode" inputmode="numeric" maxlength="6" autocomplete="postal-code">
           <div class="f-err" id="f_pincode_err"></div>
           <div class="f-hint" id="pinHint"></div>
@@ -237,7 +249,7 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
         </div>
       </div>
       <div class="fld">
-        <label>Locality / Area</label>
+        <label>Locality / Area <span class="req-car">*</span></label>
         <input type="text" id="f_locality" list="localityList" autocomplete="off" placeholder="e.g. Andheri West">
         <datalist id="localityList"></datalist>
         <div class="f-err" id="f_locality_err"></div>
@@ -245,6 +257,8 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
       </div>
 
       <div id="decorSection" hidden></div>
+      <!-- Carnival Stalls & Mascots (2026-10-12) - filled in by js/carnival-form.js -->
+      <div id="carnivalSection" hidden></div>
       <!-- Event Volunteer questions (2026-10-10) - filled in by js/volunteer-form.js -->
       <div id="volunteerSection" hidden></div>
 
@@ -315,6 +329,7 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
 <script src="js/decor-rate-card.js"></script>
 <script src="js/volunteer-data.js"></script>
 <script src="js/volunteer-form.js"></script>
+<script src="js/carnival-form.js"></script>
 <script>
 const WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -425,11 +440,23 @@ dealsSelect.addEventListener('change', () => {
   document.body.classList.toggle('is-volunteer', vol);
   { const o=document.getElementById('f_email_opt'); if(o) o.hidden = emailRequired(); }
   if(window.WSVolunteer) WSVolunteer.toggle(vol);
-  ['f_alt_mobile', 'f_address'].forEach(id => setFieldErr(id, ''));
+  document.body.classList.toggle('is-carnival', isCarnival());
+  if(window.WSCarnival) WSCarnival.toggle(isCarnival());
+  ['f_alt_mobile', 'f_address', 'f_locality', 'f_pincode'].forEach(id => setFieldErr(id, ''));
 });
 // Event Volunteer (2026-10-10, per Shruti): address and an alternate number
 // are mandatory, and the volunteer questions + T&C must be filled in.
 function isVolunteer(){ return dealsSelect.value === 'Event Volunteer'; }
+// Carnival Stalls & Mascots (2026-10-12): alternate number, address, locality
+// and pincode are mandatory too.
+function isCarnival(){ return dealsSelect.value === 'Carnival Stalls & Mascots'; }
+function extrasRequired(){ return isVolunteer() || isCarnival(); }
+// WhatsApp starts as the mobile number; once edited by hand it stays as typed.
+(function(){
+  const m = document.getElementById('f_mobile'), w = document.getElementById('f_whatsapp');
+  w.addEventListener('input', () => { w.dataset.edited = w.value.trim() ? '1' : ''; });
+  m.addEventListener('input', () => { if(!w.dataset.edited) w.value = m.value; });
+})();
 // 2026-10-12, per Shruti: email is mandatory for volunteers and internal team members.
 function emailRequired(){ return isVolunteer() || dealsSelect.value === 'Wondershop Team Member'; }
 
@@ -453,15 +480,15 @@ const FIELD_RULES = {
   f_address:    {kind:'address', label:'address', volRequired:true},
   f_email:      {kind:'email', label:'email address', emailRequired:true},
   f_city:       {kind:'city'},
-  f_locality:   {kind:'locality'},
-  f_pincode:    {kind:'pincode'},
+  f_locality:   {kind:'locality', label:'locality', carRequired:true},
+  f_pincode:    {kind:'pincode', label:'pincode', carRequired:true},
 };
 function fieldError(id){
   const rule = FIELD_RULES[id];
   const raw = document.getElementById(id).value.trim();
-  if(!raw) return (rule.required || (rule.volRequired && isVolunteer()) || (rule.emailRequired && emailRequired())) ? 'Please enter your ' + rule.label + '.' : '';
-  if(rule.kind === 'address' && isVolunteer() && raw.length < 10) return 'Please enter your full address.';
-  if(id === 'f_alt_mobile' && isVolunteer() && normMobile(raw) === normMobile(document.getElementById('f_mobile').value))
+  if(!raw) return (rule.required || (rule.volRequired && extrasRequired()) || (rule.carRequired && isCarnival()) || (rule.emailRequired && emailRequired())) ? 'Please enter your ' + rule.label + '.' : '';
+  if(rule.kind === 'address' && extrasRequired() && raw.length < 10) return 'Please enter your full address.';
+  if(id === 'f_alt_mobile' && extrasRequired() && normMobile(raw) === normMobile(document.getElementById('f_mobile').value))
     return 'Please give a different number from your mobile number.';
   if(rule.kind === 'mobile'){
     const d = normMobile(raw);
@@ -565,6 +592,16 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
     }
   }
 
+  const isCarn = deals === 'Carnival Stalls & Mascots' && window.WSCarnival;
+  if(isCarn){
+    const check = WSCarnival.validate();
+    if(check.error){
+      showErr(check.error);
+      if(check.el && check.el.scrollIntoView) setTimeout(() => check.el.scrollIntoView({behavior:'smooth', block:'center'}), 400);
+      return;
+    }
+  }
+
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
   btn.textContent = 'Submitting…';
@@ -592,6 +629,7 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   if(hasFile) fd.append('cancelled_cheque', fileInput.files[0]);
   if(isDecorator) await WSDecor.appendTo(fd);
   if(isVol) WSVolunteer.appendTo(fd);
+  if(isCarn) WSCarnival.appendTo(fd);
   if(isVol){ fd.set('primary_contact_name', ''); fd.set('gst_number', ''); }
 
   try{
@@ -639,6 +677,7 @@ const UPD = {token: new URLSearchParams(location.search).get('u') || '', ok: fal
     if(d.primary_mobile) document.getElementById('f_mobile').readOnly = true;
     set('f_alt_mobile', d.alternate_mobile);
     if(d.whatsapp_number && d.whatsapp_number !== d.primary_mobile) set('f_whatsapp', d.whatsapp_number);
+    { const w = document.getElementById('f_whatsapp'); if(w && !w.value) w.value = document.getElementById('f_mobile').value; }
     set('f_email', d.email); set('f_address', d.address);
     set('f_pincode', d.pincode); set('f_city', d.city); set('f_locality', d.locality);
     set('f_payment_mode', d.preferred_payment_mode);
@@ -649,6 +688,7 @@ const UPD = {token: new URLSearchParams(location.search).get('u') || '', ok: fal
       dealsSelect.dispatchEvent(new Event('change'));
     }
     if(window.WSVolunteer && isVolunteer()) WSVolunteer.fill(d.volunteer_profile, d.has_resume);
+    if(window.WSCarnival && isCarnival()) WSCarnival.fill(d.carnival_profile);
     document.getElementById('updBank').hidden = !UPD.hasBank;
     const missing = (d.missing || []).filter(m => !(m === 'Bank details' && UPD.hasBank));
     box.innerHTML = '<b>Hi ' + escH(d.name || '') + '!</b> Your earlier answers are filled in below. '

@@ -66,6 +66,8 @@ VENDOR_READ_COLUMNS = VENDOR_FIELDS + [
     # only read by the /resume endpoint below.
     "volunteer_profile", "volunteer_tnc_accepted_at", "volunteer_tnc_version",
     "resume_filename", "resume_content_type",
+    # Carnival Stalls & Mascots answers (2026-10-12, migrations/053).
+    "carnival_profile",
 ]
 
 # Fields a pending update is allowed to write when approved (never is_active,
@@ -140,6 +142,13 @@ def _row_out(r) -> dict:
     d["volunteer_tnc_accepted_on_ist"] = _to_ist_str(d.pop("volunteer_tnc_accepted_at", None))
     d["has_resume"] = bool(d.pop("resume_filename", None))
     d.pop("resume_content_type", None)
+    cp = d.get("carnival_profile")
+    if isinstance(cp, (str, bytes)):
+        try:
+            cp = json.loads(cp)
+        except ValueError:
+            cp = None
+    d["carnival_profile"] = cp if isinstance(cp, dict) else None
     return d
 
 
@@ -242,6 +251,43 @@ async def get_vendor_cancelled_cheque(vendor_id: int, pending: bool = False, x_a
             "Cache-Control": "no-store",
         },
     )
+
+
+# ─── Catalogues (Carnival Stalls & Mascots, 2026-10-12) ───────────────────
+@router.get("/vendors/{vendor_id}/catalogues")
+async def list_vendor_catalogues(vendor_id: int, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    try:
+        rows = await database.fetch_all(
+            "SELECT id, filename, content_type, size_bytes, created_at FROM vendor_catalogues "
+            "WHERE vendor_id = :id ORDER BY id", {"id": vendor_id})
+    except Exception:
+        return {"files": []}   # table not created yet (migration 053)
+    return {"files": [{"id": r["id"], "filename": r["filename"], "content_type": r["content_type"],
+                       "size_bytes": r["size_bytes"], "uploaded_on": _to_ist_str(r["created_at"])} for r in rows]}
+
+
+@router.get("/vendors/{vendor_id}/catalogues/{file_id}")
+async def get_vendor_catalogue(vendor_id: int, file_id: int, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    row = await database.fetch_one(
+        "SELECT filename, content_type, file_data FROM vendor_catalogues WHERE id = :f AND vendor_id = :v",
+        {"f": file_id, "v": vendor_id})
+    if not row:
+        raise HTTPException(status_code=404, detail="File not found.")
+    safe_types = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
+    ct = row["content_type"] if row["content_type"] in safe_types else "application/octet-stream"
+    fn = re.sub(r"[^A-Za-z0-9._ -]", "_", row["filename"] or "catalogue").strip(" .")[:100] or "catalogue"
+    return Response(content=bytes(row["file_data"]), media_type=ct, headers={
+        "Content-Disposition": f'{"inline" if ct in safe_types else "attachment"}; filename="{fn}"',
+        "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store"})
+
+
+@router.delete("/vendors/{vendor_id}/catalogues/{file_id}")
+async def delete_vendor_catalogue(vendor_id: int, file_id: int, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    await database.execute("DELETE FROM vendor_catalogues WHERE id = :f AND vendor_id = :v", {"f": file_id, "v": vendor_id})
+    return {"success": True}
 
 
 @router.post("/vendors/{vendor_id}/update-link")

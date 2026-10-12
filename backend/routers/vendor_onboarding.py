@@ -440,6 +440,96 @@ async def _save_volunteer(profile: dict, resume, mobile: str, vendor_id: Optiona
     logger.info(f"Volunteer profile saved on partner {vendor_id} ({mobile}){' + resume' if resume else ''}")
 
 
+# ─── Carnival Stalls & Mascots (2026-10-12, per Shruti) ───────────────────
+# Services offered (with free-text details), catalogues (several PDFs /
+# photos), heads-up time, setup time, venue needs, minimum order and the
+# Mumbai zones they cover. Alternate number, address, locality and pincode
+# are mandatory for them. See js/carnival-form.js.
+CARNIVAL = "carnival stalls & mascots"
+MAX_CATALOGUES = 10
+MAX_CATALOGUE_BYTES = 10 * 1024 * 1024
+MAX_CATALOGUE_TOTAL = 50 * 1024 * 1024
+CARNIVAL_HEADSUP = ["24 hours", "2 days", "3 days", "1 week", "2 weeks or more"]
+
+
+def _parse_carnival_profile(raw: Optional[str]) -> dict:
+    if not raw or len(raw) > 40000:
+        raise HTTPException(status_code=400, detail="Please fill in what you offer.")
+    try:
+        p = json.loads(raw)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="We could not read your details — please try again.")
+    if not isinstance(p, dict):
+        raise HTTPException(status_code=400, detail="We could not read your details — please try again.")
+    services, seen = [], set()
+    for s in (p.get("services") or [])[:40]:
+        if not isinstance(s, dict):
+            continue
+        name = _txt(s.get("name"), 60)
+        if name and name.lower() not in seen:
+            seen.add(name.lower())
+            services.append({"name": name, "details": str(s.get("details") or "").strip()[:1500]})
+    if not services:
+        raise HTTPException(status_code=400, detail="Please tick at least one service you offer.")
+    headsup = _txt(p.get("headsup"), 30)
+    if headsup not in CARNIVAL_HEADSUP:
+        raise HTTPException(status_code=400, detail="Please choose the heads-up time you need.")
+    zones = sorted({int(z) for z in (p.get("zones") or []) if str(z).isdigit() and 1 <= int(z) <= 6})
+    if not zones:
+        raise HTTPException(status_code=400, detail="Please pick the areas of Mumbai you cover.")
+    return {
+        "services": services, "headsup": headsup, "setup_time": _txt(p.get("setup_time"), 30),
+        "venue_needs": _txt(p.get("venue_needs"), 300), "min_order": _txt(p.get("min_order"), 60),
+        "instagram": _txt(p.get("instagram"), 200), "zones": zones,
+        "travel_charge": _txt(p.get("travel_charge"), 200),
+    }
+
+
+async def _read_catalogues(files) -> list:
+    out, total = [], 0
+    for f in files or []:
+        if f is None or not getattr(f, "filename", None):
+            continue
+        if len(out) >= MAX_CATALOGUES:
+            raise HTTPException(status_code=400, detail=f"Please add at most {MAX_CATALOGUES} catalogue files.")
+        raw = await f.read(MAX_CATALOGUE_BYTES + 1)
+        if len(raw) > MAX_CATALOGUE_BYTES:
+            raise HTTPException(status_code=400, detail=f"{_safe_filename(f.filename)} is larger than 10 MB.")
+        if not raw:
+            continue
+        total += len(raw)
+        if total > MAX_CATALOGUE_TOTAL:
+            raise HTTPException(status_code=400, detail="Your files add up to more than 50 MB — please remove a few.")
+        kind = _sniff_file_type(raw)
+        if kind is None:
+            raise HTTPException(status_code=400, detail=f"{_safe_filename(f.filename)} must be a PDF, JPG or PNG.")
+        out.append((raw, kind, _safe_filename(f.filename)))
+    return out
+
+
+async def _save_carnival(profile: dict, catalogues: list, mobile: str, vendor_id: Optional[int] = None) -> None:
+    prim, alt = _DIGITS.format(c="primary_mobile"), _DIGITS.format(c="alternate_mobile")
+    if vendor_id is None:
+        vendor_id = await database.fetch_val(
+            f"SELECT vendor_id FROM vendor_master WHERE duplicate_of_id IS NULL AND ({prim} = :m OR {alt} = :m) "
+            f"ORDER BY ({prim} = :m) DESC, vendor_id DESC LIMIT 1",
+            {"m": mobile},
+        )
+    if not vendor_id:
+        logger.warning(f"Carnival profile for {mobile}: no partner row found")
+        return
+    async with database.transaction():
+        await database.execute(
+            "UPDATE vendor_master SET carnival_profile = CAST(:p AS JSONB), onboarding_reviewed = FALSE WHERE vendor_id = :id",
+            {"id": vendor_id, "p": json.dumps(profile, ensure_ascii=False)})
+        for raw, kind, fname in catalogues:
+            await database.execute(
+                """INSERT INTO vendor_catalogues (vendor_id, filename, content_type, size_bytes, file_data)
+                   VALUES (:v, :n, :t, :s, :d)""",
+                {"v": vendor_id, "n": fname, "t": kind, "s": len(raw), "d": raw})
+    logger.info(f"Carnival profile saved on partner {vendor_id} ({mobile}), {len(catalogues)} catalogue file(s)")
+
+
 def _clean(s: Optional[str]) -> Optional[str]:
     s = (s or "").strip()
     return s or None
@@ -604,7 +694,7 @@ async def _vendor_by_token(token: Optional[str]):
         return None
     cols = ", ".join(_PLAIN_FIELDS + _BANK_FIELDS + [
         "vendor_id", "primary_mobile", "cancelled_cheque_filename", "volunteer_profile",
-        "volunteer_tnc_accepted_at", "resume_filename"])
+        "volunteer_tnc_accepted_at", "resume_filename", "carnival_profile"])
     return await database.fetch_one(
         f"SELECT {cols} FROM vendor_master WHERE update_token_hash = :h AND update_token_expires > NOW()",
         {"h": _token_hash(token)},
@@ -628,7 +718,14 @@ async def prefill(token: str):
             vp = None
     d["volunteer_profile"] = vp if isinstance(vp, dict) else None
     out = {k: d.get(k) for k in _PREFILL_FIELDS}
+    cp = d.get("carnival_profile")
+    if isinstance(cp, (str, bytes)):
+        try:
+            cp = json.loads(cp)
+        except ValueError:
+            cp = None
     out.update({
+        "carnival_profile": cp if isinstance(cp, dict) else None,
         "volunteer_profile": d["volunteer_profile"],
         "has_bank": _has_bank(d),
         "has_resume": bool(d.get("resume_filename")),
@@ -663,6 +760,8 @@ async def submit_vendor_onboarding(
     volunteer_profile: Optional[str] = Form(None),
     volunteer_tnc_accepted: Optional[str] = Form(None),
     resume: Optional[UploadFile] = File(None),
+    carnival_profile: Optional[str] = Form(None),
+    catalogues: Optional[List[UploadFile]] = File(None),
     update_token: Optional[str] = Form(None),
 ):
     # Sent through a private update link? Then this is that partner, and the
@@ -801,6 +900,20 @@ async def submit_vendor_onboarding(
             raise HTTPException(status_code=400, detail="Please read and accept the terms and conditions.")
         vol_resume = await _read_resume(resume)
 
+    is_carnival = (_clean(deals_in) or "").lower() == CARNIVAL
+    carn_profile, carn_files = None, []
+    if is_carnival:
+        if len(_clean(address) or "") < 10:
+            raise HTTPException(status_code=400, detail="Please enter your full office address.")
+        if not alternate_mobile:
+            raise HTTPException(status_code=400, detail="Please enter an alternate mobile number.")
+        if alternate_mobile == mobile:
+            raise HTTPException(status_code=400, detail="Your alternate number must be different from your mobile number.")
+        if not locality or not pincode:
+            raise HTTPException(status_code=400, detail="Please enter your locality and pincode.")
+        carn_profile = _parse_carnival_profile(carnival_profile)
+        carn_files = await _read_catalogues(catalogues)
+
     # 2026-09-30, per Shruti: "by default, save the mobile no. as the whatsapp
     # no. in the database. if the user inputs something on whatsapp no - then
     # update accordingly".
@@ -845,6 +958,8 @@ async def submit_vendor_onboarding(
             await _save_rate_card(rate_card, work, name, mobile)
         if vol_profile is not None:
             await _save_volunteer(vol_profile, vol_resume, mobile, vendor_id=link_id)
+        if carn_profile is not None:
+            await _save_carnival(carn_profile, carn_files, mobile, vendor_id=link_id)
         return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}
     if matched:   # number shared by several partners and the name didn't pick one
         values["remarks"] = (
@@ -867,4 +982,6 @@ async def submit_vendor_onboarding(
         await _save_rate_card(rate_card, work, name, mobile)
     if vol_profile is not None:
         await _save_volunteer(vol_profile, vol_resume, mobile)
+    if carn_profile is not None:
+        await _save_carnival(carn_profile, carn_files, mobile)
     return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}
