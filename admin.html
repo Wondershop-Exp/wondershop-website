@@ -4867,6 +4867,15 @@ function quoteStripHtml(f, locked){
       + (m-q>0 ? '<span class="lq-off">−'+_inr(m-q)+'</span>' : (q>m ? '<span class="lq-off up">+'+_inr(q-m)+'</span>' : '')) + '</div>';
   }).join('') + '</div>';
 }
+// Picking a new value on Decor / Music / etc. (not saved yet): say so in the
+// quote column, since the quote box needs the saved list price (2026-10-12).
+document.addEventListener('change', e=>{
+  const tr = e.target.closest && e.target.closest('tr[data-key]');
+  if(!tr || !LQ_FIELD_KEYS[tr.dataset.key] || !e.target.id || !e.target.id.endsWith('_cc')) return;
+  const td = tr.children[2]; if(!td) return;
+  const old = td.querySelector('.lq-strip'); if(old) old.remove();
+  if(e.target.value) td.insertAdjacentHTML('afterbegin', '<div class="lq-strip"><div class="lq-line"><span style="font-style:italic">Press Save, then set the sales quote here</span></div></div>');
+});
 async function saveOneQuote(el){
   if(el.value === el.dataset.old) return;
   const who = getName();
