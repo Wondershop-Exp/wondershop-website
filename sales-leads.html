@@ -300,6 +300,10 @@ th.th-sort:hover{color:var(--pk)}
 .role-badge{font-size:11px;font-weight:700;border-radius:20px;padding:3px 10px;background:var(--li3);color:var(--gy);white-space:nowrap}
 .role-badge:empty{display:none}
 body.role-sales .admin-only{display:none!important}
+.lf-bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin:0 0 14px}
+.lf-bar label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px}
+.lf-bar select{font:inherit;font-size:13px;font-weight:500;text-transform:none;letter-spacing:0;color:#111;padding:7px 10px;border:1px solid #E5E1F5;border-radius:8px;background:#fff;min-width:130px}
+.lf-count{font-size:12.5px;color:var(--gy);margin-left:auto}
 </style>
 <style id="ws-no-caret">/* hide stray text cursor on non-editable text (2026-10-03) */body{caret-color:transparent}input,textarea,select,[contenteditable],[contenteditable] *{caret-color:auto}</style><style id="ws-select-arrow">/* every dropdown: own chevron with room from the edge (2026-10-05) */select:not([multiple]):not([size]){-webkit-appearance:none;appearance:none;padding-right:36px;background-repeat:no-repeat;background-position:right 14px center;background-size:10px 6px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}select::-ms-expand{display:none}</style>
 </head>
@@ -336,20 +340,38 @@ body.role-sales .admin-only{display:none!important}
       <button class="btn bk" onclick="doSearch()">Search</button>
       <button class="btn pk" onclick="startNewLead()" id="newLeadBtn">+ Register a lead</button>
     </div>
+    <!-- 2026-10-12, per Shruti: list filters (all applied in the browser). -->
+    <div class="lf-bar" id="lfBar">
+      <label>Birthday month<select id="lf_month" onchange="renderListRows()"><option value="">All</option></select></label>
+      <label>Sales quote<select id="lf_quote" onchange="renderListRows()">
+        <option value="">All</option><option value="0-20000">Below ₹20k</option><option value="20000-30000">₹20k – 30k</option>
+        <option value="30000-50000">₹30k – 50k</option><option value="30000-">Above ₹30k</option><option value="50000-">Above ₹50k</option>
+        <option value="100000-">Above ₹1 lakh</option><option value="none">Not quoted</option></select></label>
+      <label>Sales lead<select id="lf_lead" onchange="renderListRows()"><option value="">All</option></select></label>
+      <label>Status<select id="lf_status" onchange="renderListRows()"><option value="">All</option></select></label>
+      <label>Age/Gender<select id="lf_ag" onchange="renderListRows()">
+        <option value="">All</option><option value="B">Boys</option><option value="G">Girls</option>
+        <option value="0-4">Age up to 4</option><option value="5-7">Age 5 – 7</option><option value="8-10">Age 8 – 10</option><option value="11-99">Age 11+</option></select></label>
+      <label>Follow-up<select id="lf_fu" onchange="renderListRows()">
+        <option value="today" selected>Due today</option><option value="due">Due today + overdue</option><option value="week">Next 7 days</option>
+        <option value="any">Has a follow-up</option><option value="">All leads</option></select></label>
+      <button class="linkbtn" onclick="clearListFilters()">Clear filters</button>
+      <span class="lf-count" id="lfCount"></span>
+    </div>
     <div style="overflow-x:auto">
     <table class="list" id="listTable">
       <thead><tr>
         <th>ID</th>
         <th>Client</th>
-        <th>Age/Gender</th>
-        <th class="th-sort" id="th_created" onclick="setSort('created')">Created</th>
         <th class="th-sort" id="th_birthday" onclick="setSort('birthday')">Birthday</th>
-        <th class="th-sort" id="th_modified" onclick="setSort('modified')">Last Modified</th>
-        <th>Last Call</th>
+        <th>Theme</th>
+        <th>Location</th>
+        <th class="th-sort" id="th_quote" onclick="setSort('quote')">Sales Quote</th>
+        <th>Age/Gender</th>
         <th class="th-sort" id="th_followup" onclick="setSort('followup')">Follow-up</th>
-        <th>Sales Quote</th>
-        <th>Stage</th>
         <th class="th-sort" id="th_status" onclick="setSort('status')">Status</th>
+        <th class="th-sort" id="th_modified" onclick="setSort('modified')">Last Modified</th>
+        <th>Sales Lead</th>
         <th></th>
       </tr></thead>
       <tbody id="listBody"></tbody>
@@ -605,13 +627,14 @@ const STAGE_LABEL = {sales_intake:'Sales — in progress', sent_to_ops:'Sent to 
 const STAGE_PILL   = {sales_intake:'pill-intake', sent_to_ops:'pill-ops', ops_ready:'pill-ready'};
 const SORT_ACCESSORS = {
   created:  r => r.created_at_ts || 0,
+  quote:    r => r.revenue_potential == null ? -1 : r.revenue_potential,
   birthday: r => r.event_date || '',
   modified: r => r.updated_at_ts || 0,
   status:   r => (r.status||'').toLowerCase(),
   // No follow-up sorts last when ascending (soonest first).
   followup: r => r.next_followup || (SORT_DIR==='asc' ? '9999' : ''),
 };
-const SORT_LABELS = {created:'Created', birthday:'Birthday', modified:'Last Modified', followup:'Follow-up', status:'Status'};
+const SORT_LABELS = {birthday:'Birthday', quote:'Sales Quote', followup:'Follow-up', status:'Status', modified:'Last Modified'};
 
 function setSort(key){
   if(SORT_KEY===key){ SORT_DIR = SORT_DIR==='desc'?'asc':'desc'; }
@@ -684,35 +707,90 @@ async function doSearch(){
   const empty = document.getElementById('listEmpty');
   body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:#6B7280">Loading...</td></tr>';
   try{
+    // Searching for someone shouldn't be hidden by the "due today" follow-up filter.
+    if(q){ const fu=document.getElementById('lf_fu'); if(fu) fu.value=''; }
     const d = await apiCall('/api/admin/sales-leads'+(q?('?search='+encodeURIComponent(q)):''));
     LIST_ROWS = d.sheets||[];
     if(!LIST_ROWS.length){ body.innerHTML=''; empty.style.display='block'; return; }
     empty.style.display='none';
+    fillListFilters();
     renderListRows();
   }catch(e){
     body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:var(--pk)">'+esc(e.message)+'</td></tr>';
   }
 }
+const _MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function _todayStr(){ const t=new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
+function _fillSel(id, values){
+  const el = document.getElementById(id); if(!el) return;
+  const cur = el.value;
+  el.innerHTML = '<option value="">All</option>' + values.map(v=>'<option value="'+esc(v[0])+'">'+esc(v[1])+'</option>').join('');
+  if(values.some(v=>v[0]===cur)) el.value = cur;
+}
+function fillListFilters(){
+  const months = Array.from(new Set(LIST_ROWS.map(r=>(r.event_date||'').slice(0,7)).filter(Boolean))).sort();
+  _fillSel('lf_month', months.map(m=>[m, _MON[+m.slice(5,7)-1]+' '+m.slice(0,4)]));
+  const leads = Array.from(new Set(LIST_ROWS.map(r=>(r.sales_lead||'').trim()).filter(Boolean))).sort();
+  _fillSel('lf_lead', leads.map(x=>[x,x]));
+  const sts = Array.from(new Set(LIST_ROWS.map(r=>(r.is_booking?'Booking · ':'')+(r.status||'')).filter(Boolean))).sort();
+  _fillSel('lf_status', sts.map(x=>[x,x]));
+}
+function clearListFilters(){
+  ['lf_month','lf_quote','lf_lead','lf_status','lf_ag','lf_fu'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  renderListRows();
+}
+function rowPassesFilters(r){
+  const v = id => (document.getElementById(id)||{}).value || '';
+  const m = v('lf_month'); if(m && (r.event_date||'').slice(0,7) !== m) return false;
+  const q = v('lf_quote');
+  if(q){
+    const amt = r.revenue_potential;
+    if(q==='none'){ if(amt) return false; }
+    else{ const [lo, hi] = q.split('-'); if(amt==null || amt < +lo || (hi && amt > +hi)) return false; }
+  }
+  const sl = v('lf_lead'); if(sl && (r.sales_lead||'').trim() !== sl) return false;
+  const st = v('lf_status'); if(st && ((r.is_booking?'Booking · ':'')+(r.status||'')) !== st) return false;
+  const ag = v('lf_ag');
+  if(ag){
+    if(ag==='B' || ag==='G'){ if(((r.child_gender||'').trim()[0]||'').toUpperCase() !== ag) return false; }
+    else{ const age = parseInt(r.child_age,10), [lo,hi] = ag.split('-').map(Number); if(isNaN(age) || age<lo || age>hi) return false; }
+  }
+  const fu = v('lf_fu');
+  if(fu){
+    const d = (r.next_followup||'').slice(0,10), today = _todayStr();
+    if(!d) return false;
+    if(fu==='today' && d !== today) return false;
+    if(fu==='due' && d > today) return false;
+    if(fu==='week'){ const w=new Date(); w.setDate(w.getDate()+7); const ws=w.getFullYear()+'-'+String(w.getMonth()+1).padStart(2,'0')+'-'+String(w.getDate()).padStart(2,'0'); if(d < today || d > ws) return false; }
+  }
+  return true;
+}
 function renderListRows(){
   const body = document.getElementById('listBody');
-  const rows = sortedRows();
+  const all = sortedRows();
+  const rows = all.filter(rowPassesFilters);
+  const cnt = document.getElementById('lfCount');
+  if(cnt) cnt.textContent = rows.length+' of '+all.length+' leads';
+  if(!rows.length){
+    const fu = (document.getElementById('lf_fu')||{}).value;
+    body.innerHTML = '<tr><td colspan="12" style="padding:16px;color:#6B7280">'+(fu==='today' ? 'No follow-ups due today. Change the Follow-up filter to see other leads.' : 'No leads match these filters.')+'</td></tr>';
+    updateSortHeaders(); return;
+  }
   body.innerHTML = rows.map(r=>{
-    const stagePill = '<span class="pill '+(STAGE_PILL[r.playbook_stage]||'pill-intake')+'">'+(STAGE_LABEL[r.playbook_stage]||r.playbook_stage)+'</span>';
     const suggPill = r.pending_activity_suggestions>0 ? ' <span class="pill pill-sugg">'+r.pending_activity_suggestions+' idea'+(r.pending_activity_suggestions>1?'s':'')+'</span>' : '';
     return '<tr onclick="openDetail('+r.lead_id+')" style="cursor:pointer">'
       +'<td style="color:var(--gy);font-size:12.5px">#'+r.lead_id+'</td>'
-      +'<td><strong>'+esc(r.client_name||'(no name yet)')+'</strong><br><span style="color:var(--gy);font-size:12px">'+esc(r.mobile||'')+'</span></td>'
-      +'<td>'+esc(ageGender(r))+'</td>'
-      +'<td>'+fmtTs(r.created_at_ts)+'</td>'
+      +'<td><strong>'+esc(r.client_name||'(no name yet)')+'</strong>'+suggPill+'<br><span style="color:var(--gy);font-size:12px">'+esc(r.mobile||'')+'</span></td>'
       +'<td>'+fmtDateStr(r.event_date)+'</td>'
-      +'<td>'+fmtTs(r.updated_at_ts)+'</td>'
-      +'<td>'+(r.last_call_date ? fmtDateStr(r.last_call_date)+(r.last_disposition?'<br><span style="color:var(--gy);font-size:12px">'+esc(r.last_disposition)+'</span>':'') : '<span style="color:var(--gy)">Not called</span>')+'</td>'
-      +'<td>'+followupHtml(r.next_followup)+'</td>'
+      +'<td>'+esc(r.theme||'—')+'</td>'
+      +'<td>'+esc(r.venue||'—')+'</td>'
       +'<td>'+(money(r.revenue_potential)||'—')+'</td>'
-      +'<td>'+stagePill+suggPill+'</td>'
+      +'<td>'+esc(ageGender(r))+'</td>'
+      +'<td>'+followupHtml(r.next_followup)+'</td>'
       +'<td>'+statusCellHtml(r)+'</td>'
-      +'<td><a href="#" onclick="event.stopPropagation();window.open(\'sales-lead-print.html?lead_id=\'+'+r.lead_id+',\'_blank\')" class="linkbtn">Print</a>'
-        +(r.is_blank ? ' <a href="#" onclick="event.stopPropagation();askDeleteLead('+r.lead_id+');return false" class="linkbtn" style="color:#B42318;margin-left:8px">Delete</a>' : '')+'</td>'
+      +'<td>'+fmtTs(r.updated_at_ts)+'</td>'
+      +'<td>'+esc(r.sales_lead||'—')+'</td>'
+      +'<td>'+(r.is_blank ? '<a href="#" onclick="event.stopPropagation();askDeleteLead('+r.lead_id+');return false" class="linkbtn" style="color:#B42318">Delete</a>' : '')+'</td>'
       +'</tr>';
   }).join('');
   updateSortHeaders();
