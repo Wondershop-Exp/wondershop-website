@@ -955,6 +955,13 @@ async function loadRole(){
   if(ROLE === 'sales' && (ACTIVE_TAB === 'vendor' || ACTIVE_TAB === 'dash')) switchTab('lead');
 }
 
+// The server said this is the sales login — switch the page to the sales view.
+function _becomeSales(){
+  if(ROLE === 'sales') return;
+  ROLE = 'sales'; document.body.classList.add('role-sales');
+  const sub = document.querySelector('.topbar-sub'); if(sub) sub.textContent = 'Sales team';
+}
+
 async function enterApp(){
   await loadRole();
   document.getElementById('gate').style.display='none';
@@ -1649,10 +1656,12 @@ async function renderTeamBlock(d){
   const sec = document.getElementById('teamSection'), block = document.getElementById('teamBlock');
   if(!sec || !block) return;
   if(!d.is_booking || ROLE === 'sales'){ sec.style.display = 'none'; block.innerHTML = ''; return; }
-  sec.style.display = 'block';
-  block.innerHTML = '<div style="font-size:12.5px;color:var(--gy)">Loading…</div>';
+  // 2026-10-12: shown only once the admin-only API answers — a sales login
+  // (even if whoami failed and ROLE fell back to admin) never sees the section.
+  sec.style.display = 'none';
   try{ const r = await apiCall('/api/admin/event-team/'+d.lead_id); TEAM = r.rows||[]; TEAM_CATS = r.categories||[]; TEAM_VIA = r.paid_via||['Pending']; }
-  catch(e){ block.innerHTML = '<div style="font-size:12.5px;color:var(--gy)">'+esc(e.message||'Could not load.')+'</div>'; return; }
+  catch(e){ if(/sales login|admins only|403/i.test(e.message||'')) _becomeSales(); return; }
+  sec.style.display = 'block';
   drawTeamBlock(d);
 }
 function teamJobOptions(d){
@@ -1743,10 +1752,10 @@ async function renderFeedbackBlock(d){
   const sec = document.getElementById('fbSection'), block = document.getElementById('fbBlock');
   if(!sec || !block) return;
   if(!d.is_booking || ROLE === 'sales'){ sec.style.display = 'none'; block.innerHTML = ''; return; }   // admin only
-  sec.style.display = 'block';
-  block.innerHTML = '<div style="font-size:12.5px;color:var(--gy)">Loading…</div>';
+  sec.style.display = 'none';
   try{ FB = await apiCall('/api/admin/feedback/'+d.lead_id); }
-  catch(e){ block.innerHTML = '<div style="font-size:12.5px;color:var(--gy)">'+esc(e.message||'Could not load feedback.')+'</div>'; return; }
+  catch(e){ if(/sales login|admins only|403/i.test(e.message||'')) _becomeSales(); return; }
+  sec.style.display = 'block';
   if(FB && FB.lead_id === undefined) FB.lead_id = d.lead_id;
   drawFeedbackBlock(d.locked);
 }
