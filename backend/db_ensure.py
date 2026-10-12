@@ -54,6 +54,11 @@ async def ensure_schema() -> None:
         await rename_activities()
     except Exception as exc:
         logger.warning(f"rename_activities: {exc}")
+    try:   # 2026-10-12 — old Assigned Value partners -> Partners & Expenses (once)
+        from routers.event_team import carry_over_assignments
+        await carry_over_assignments()
+    except Exception as exc:
+        logger.warning(f"carry_over_assignments: {exc}")
 
 
 async def rename_activities() -> None:

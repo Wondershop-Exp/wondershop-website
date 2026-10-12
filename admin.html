@@ -770,9 +770,11 @@ body.role-sales .admin-only{display:none!important}
     <div id="preMsgBlock"></div>
     <div id="sectionsContainer"></div>
     <div id="giftOrderBlock"></div>
-    <!-- Event team + payments (2026-10-12, per Shruti) -->
+    <!-- Partners & Expenses (2026-10-12, per Shruti) — admin only, never
+         rendered for the sales login (renderTeamBlock) and its API refuses
+         the sales password. -->
     <div class="log-section" id="teamSection" style="display:none">
-      <h3>👥 Event Team &amp; Payments</h3>
+      <h3>👥 Partners &amp; Expenses <span style="font-size:11px;font-weight:600;color:var(--gy);text-transform:none;letter-spacing:0">admin only</span></h3>
       <div id="teamBlock"></div>
     </div>
     <!-- Post-event feedback (2026-10-12, per Shruti) -->
@@ -1480,7 +1482,7 @@ function renderBookingNav(d){
   nav.innerHTML = d.sections.map(s => {
     const id = 'sect-'+secId(s.section);
     return '<a href="#'+id+'" onclick="bdJump(event,\''+id+'\')">'+esc(s.section)+'</a>';
-  }).join('') + (d.is_spy_booking ? '<a href="#spySection" onclick="bdJump(event,\'spySection\')">Spy registration</a>' : '') + '<a href="#bdLog" onclick="bdJump(event,\'bdLog\')">Modification trail</a>'
+  }).join('') + (d.is_booking && ROLE !== 'sales' ? '<a href="#teamSection" onclick="bdJump(event,\'teamSection\')">Partners &amp; expenses</a><a href="#fbSection" onclick="bdJump(event,\'fbSection\')">Feedback</a>' : '') + (d.is_spy_booking ? '<a href="#spySection" onclick="bdJump(event,\'spySection\')">Spy registration</a>' : '') + '<a href="#bdLog" onclick="bdJump(event,\'bdLog\')">Modification trail</a>'
     + '<button type="button" class="sec-all" id="secAllBtn" onclick="secToggleAll()">Collapse all</button>';
 }
 
@@ -1632,80 +1634,84 @@ function renderBookingBar(d){
 // image (keeping the same link) after that.
 let SPY_REG_LEAD_ID = null;
 
-// ── Event team & payments (2026-10-12, per Shruti) ─────────────────────
-// "one activity can have many volunteers ... for spy, we have 4-8 stations,
-// every station can have 1-2 volunteers ... we can also add payment". One
-// row per person per job: who, role, activity / station, hours (optional),
-// amount (varies by person) and paid / pending. Saved as a whole list
-// (backend/routers/event_team.py). Host rows also name the host(s) on the
-// feedback form.
-let TEAM = null, TEAM_ROLES = [];
+// ── Partners & Expenses (2026-10-12, per Shruti) ──────────────────────
+// Every cost for the event in one list — partners of any kind (host,
+// volunteers, decorator, DJ, cake, activity vendors ...) plus transport,
+// printing, materials or anything else: payee, category, details, bill date,
+// amount and how it was paid (Pending / Gpay / Cash ...). Replaces the
+// Assigned Value partner pickers on the service rows and the expense sheet.
+// ADMIN ONLY: not rendered for the sales login, and the API refuses it.
+// Host rows also name the host(s) on the feedback form.
+let TEAM = null, TEAM_CATS = [], TEAM_VIA = [];
+let CUR_SEC = '';
+const NO_PARTNER_SECTIONS = ['Services', 'Add-ons'];
 async function renderTeamBlock(d){
   const sec = document.getElementById('teamSection'), block = document.getElementById('teamBlock');
   if(!sec || !block) return;
-  if(!d.is_booking){ sec.style.display = 'none'; block.innerHTML = ''; return; }
+  if(!d.is_booking || ROLE === 'sales'){ sec.style.display = 'none'; block.innerHTML = ''; return; }
   sec.style.display = 'block';
   block.innerHTML = '<div style="font-size:12.5px;color:var(--gy)">Loading…</div>';
-  try{ const r = await apiCall('/api/admin/event-team/'+d.lead_id); TEAM = r.rows||[]; TEAM_ROLES = r.roles||[]; }
-  catch(e){ block.innerHTML = '<div style="font-size:12.5px;color:var(--gy)">'+esc(e.message||'Could not load the team.')+'</div>'; return; }
+  try{ const r = await apiCall('/api/admin/event-team/'+d.lead_id); TEAM = r.rows||[]; TEAM_CATS = r.categories||[]; TEAM_VIA = r.paid_via||['Pending']; }
+  catch(e){ block.innerHTML = '<div style="font-size:12.5px;color:var(--gy)">'+esc(e.message||'Could not load.')+'</div>'; return; }
   drawTeamBlock(d);
 }
 function teamJobOptions(d){
   const acts = String((_billField('svc_activities')||{}).customer_choice||'').split(',').map(x=>x.replace(/\s+x\d+$/i,'').trim()).filter(Boolean);
   const customs = (d.to_be_confirmed||[]).filter(t=>t.kind==='custom').map(t=>t.name);
   const stations = Array.from({length:8},(_, i)=>'Station '+(i+1));
-  return Array.from(new Set(acts.concat(customs, stations, ['Hosting','Decor setup','Music','Photography','Return gifts','Floater / support'])));
+  return Array.from(new Set(acts.concat(customs, stations)));
 }
-function teamRowHtml(r, i, locked){
-  const dis = locked ? ' disabled' : '';
-  const roles = '<option value="">—</option>' + TEAM_ROLES.map(x=>'<option'+(x===r.role?' selected':'')+'>'+esc(x)+'</option>').join('');
-  return '<tr class="'+(r.paid?'paid':'')+'" data-i="'+i+'">'
-    + '<td><input type="text" class="tm-name" list="vendorNamesList" value="'+esc(r.person_name||'')+'" placeholder="Name"'+dis+'></td>'
-    + '<td><select class="tm-role"'+dis+'>'+roles+'</select></td>'
-    + '<td><input type="text" class="tm-to" list="teamJobsList" value="'+esc(r.assigned_to||'')+'" placeholder="Activity / station"'+dis+'></td>'
-    + '<td style="width:74px"><input type="number" class="tm-hours" min="0" step="0.5" value="'+(r.hours==null?'':r.hours)+'" placeholder="Hrs"'+dis+'></td>'
-    + '<td style="width:110px"><input type="number" class="tm-amt" min="0" step="1" value="'+(r.amount==null?'':r.amount)+'" placeholder="₹"'+dis+'></td>'
-    + '<td style="white-space:nowrap"><label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="tm-paid"'+(r.paid?' checked':'')+dis+'> Paid</label>'
-    +   (r.paid && r.paid_at ? '<div style="font-size:10.5px;color:var(--gy)">'+esc(r.paid_at)+'</div>' : '') + '</td>'
-    + '<td style="width:30px">'+(locked?'':'<button type="button" class="icon-btn" title="Remove" onclick="teamRemove('+i+')">✕</button>')+'</td></tr>';
+function teamRowHtml(r, i){
+  const via = r.paid_via || 'Pending';
+  const viaOpts = Array.from(new Set(TEAM_VIA.concat([via]))).map(x=>'<option'+(x===via?' selected':'')+'>'+esc(x)+'</option>').join('');
+  return '<tr class="'+(via!=='Pending'?'paid':'')+'" data-i="'+i+'">'
+    + '<td><input type="text" class="tm-name" list="vendorNamesList" value="'+esc(r.partner||'')+'" placeholder="Partner / payee"></td>'
+    + '<td><input type="text" class="tm-cat" list="teamCatsList" value="'+esc(r.category||'')+'" placeholder="Category"></td>'
+    + '<td><input type="text" class="tm-det" list="teamJobsList" value="'+esc(r.details||'')+'" placeholder="Activity / station / what for"></td>'
+    + '<td style="width:132px"><input type="date" class="tm-date" value="'+esc(r.bill_date||'')+'" style="width:100%;box-sizing:border-box;padding:6px 6px;border:1px solid var(--li2);border-radius:8px;font:inherit;font-size:12.5px"></td>'
+    + '<td style="width:100px"><input type="number" class="tm-amt" min="0" step="1" value="'+(r.amount==null?'':r.amount)+'" placeholder="₹"></td>'
+    + '<td style="width:118px"><select class="tm-via" onchange="this.closest(\'tr\').classList.toggle(\'paid\', this.value!==\'Pending\')">'+viaOpts+'</select>'
+    +   (via!=='Pending' && r.paid_at ? '<div style="font-size:10.5px;color:var(--gy)">'+esc(r.paid_at)+'</div>' : '') + '</td>'
+    + '<td style="width:30px"><button type="button" class="icon-btn" title="Remove" onclick="teamRemove('+i+')">✕</button></td></tr>';
 }
 function readTeamRows(){
   return Array.from(document.querySelectorAll('#teamBlock tbody tr')).map(tr=>({
-    person_name: tr.querySelector('.tm-name').value.trim(), role: tr.querySelector('.tm-role').value,
-    assigned_to: tr.querySelector('.tm-to').value.trim(),
-    hours: tr.querySelector('.tm-hours').value===''?null:Number(tr.querySelector('.tm-hours').value),
+    partner: tr.querySelector('.tm-name').value.trim(), category: tr.querySelector('.tm-cat').value.trim(),
+    details: tr.querySelector('.tm-det').value.trim(), bill_date: tr.querySelector('.tm-date').value || null,
     amount: tr.querySelector('.tm-amt').value===''?null:Number(tr.querySelector('.tm-amt').value),
-    paid: tr.querySelector('.tm-paid').checked,
+    paid_via: tr.querySelector('.tm-via').value,
     paid_at: (TEAM[+tr.dataset.i]||{}).paid_at || null,
   }));
 }
 function drawTeamBlock(d){
-  d = d || CURRENT_DETAIL;
+  d = d || CURRENT_DETAIL || {};
   const block = document.getElementById('teamBlock'); if(!block) return;
-  const locked = !!(d && d.locked);
-  const total = TEAM.reduce((t,r)=>t+(Number(r.amount)||0),0), paid = TEAM.reduce((t,r)=>t+(r.paid?(Number(r.amount)||0):0),0);
-  const people = new Set(TEAM.map(r=>(r.person_name||'').trim().toLowerCase()).filter(Boolean)).size;
-  block.innerHTML = '<datalist id="teamJobsList">'+teamJobOptions(d||{}).map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist>'
-    + '<div style="font-size:12.5px;color:var(--gy);margin-bottom:8px">Everyone working this event — one row per person per job (e.g. 2 volunteers on Slime Making, 1–2 per spy station). Pick names from your partners list or type a new one.</div>'
-    + '<table class="team-tbl"><thead><tr><th>Person</th><th>Role</th><th>Activity / station</th><th>Hours</th><th>Amount (₹)</th><th>Payment</th><th></th></tr></thead><tbody>'
-    + (TEAM.length ? TEAM.map((r,i)=>teamRowHtml(r,i,locked)).join('') : '')
-    + '</tbody></table>'
-    + (TEAM.length ? '' : '<div style="font-size:12.5px;color:var(--gy);padding:6px 0">No one added yet.</div>')
-    + '<div class="team-sum"><span>People: <b>'+people+'</b></span><span>Team cost: <b>'+_inr(total)+'</b></span>'
-    + '<span style="color:#166534">Paid: <b>'+_inr(paid)+'</b></span><span style="color:#B4232C">Pending: <b>'+_inr(total-paid)+'</b></span></div>'
-    + (locked ? '' : '<div class="fb-btns"><button class="fb-btn gh" onclick="teamAdd()">+ Add person</button>'
-        + '<select class="fb-btn gh" style="padding-right:30px" onchange="teamAddStations(this.value);this.value=\'\'"><option value="">+ Add spy stations…</option>'+[4,5,6,7,8].map(n=>'<option value="'+n+'">'+n+' stations</option>').join('')+'</select>'
-        + '<button class="fb-btn pk" onclick="saveTeam(this)">Save team</button></div>');
+  const total = TEAM.reduce((t,r)=>t+(Number(r.amount)||0),0);
+  const paid = TEAM.reduce((t,r)=>t+((r.paid_via||'Pending')!=='Pending'?(Number(r.amount)||0):0),0);
+  const gt = Number(String((_billField('bill_grand_total')||{}).customer_choice||'').replace(/[^\d.]/g,''))||0;
+  block.innerHTML = '<datalist id="teamJobsList">'+teamJobOptions(d).map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist>'
+    + '<datalist id="teamCatsList">'+TEAM_CATS.map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist>'
+    + '<div style="font-size:12.5px;color:var(--gy);margin-bottom:8px">Every cost for this event — partners (pick from the partners list), volunteers per activity or station, and anything else like transport, printing or materials. One row per payment. Not visible to the sales team.</div>'
+    + '<div style="overflow-x:auto"><table class="team-tbl"><thead><tr><th>Partner</th><th>Category</th><th>Details</th><th>Bill date</th><th>Amount (₹)</th><th>Paid via</th><th></th></tr></thead><tbody>'
+    + TEAM.map((r,i)=>teamRowHtml(r,i)).join('')
+    + '</tbody></table></div>'
+    + (TEAM.length ? '' : '<div style="font-size:12.5px;color:var(--gy);padding:6px 0">Nothing added yet.</div>')
+    + '<div class="team-sum"><span>Total expenses: <b>'+_inr(total)+'</b></span>'
+    + '<span style="color:#166534">Paid: <b>'+_inr(paid)+'</b></span><span style="color:#B4232C">Pending: <b>'+_inr(total-paid)+'</b></span>'
+    + (gt ? '<span>Grand Total '+_inr(gt)+' − expenses = <b>'+_inr(gt-total)+'</b></span>' : '') + '</div>'
+    + '<div class="fb-btns"><button class="fb-btn gh" onclick="teamAdd()">+ Add row</button>'
+    + '<select class="fb-btn gh" style="padding-right:30px" onchange="teamAddStations(this.value);this.value=\'\'"><option value="">+ Add spy stations…</option>'+[4,5,6,7,8].map(n=>'<option value="'+n+'">'+n+' stations</option>').join('')+'</select>'
+    + '<button class="fb-btn pk" onclick="saveTeam(this)">Save</button></div>';
 }
-function teamAdd(role){ TEAM = readTeamRows(); TEAM.push({person_name:'', role: role||'Volunteer', paid:false}); drawTeamBlock(); }
+function teamAdd(){ TEAM = readTeamRows(); TEAM.push({partner:'', category:'', paid_via:'Pending'}); drawTeamBlock(); }
 function teamRemove(i){ TEAM = readTeamRows(); TEAM.splice(i,1); drawTeamBlock(); }
 function teamAddStations(v){
   const n = Number(v);
   if(!n || n < 1 || n > 12) return;
   TEAM = readTeamRows();
-  for(let k=1;k<=n;k++) TEAM.push({person_name:'', role:'Station volunteer', assigned_to:'Station '+k, paid:false});
+  for(let k=1;k<=n;k++) TEAM.push({partner:'', category:'Volunteer', details:'Station '+k, paid_via:'Pending'});
   drawTeamBlock();
-  showToast('Added '+n+' station rows — fill in the names (blank rows are skipped when saving).');
+  showToast('Added '+n+' station rows — fill in the names (empty rows are skipped when saving).');
 }
 async function saveTeam(btn){
   const who = getName();
@@ -1715,7 +1721,7 @@ async function saveTeam(btn){
   try{
     const r = await apiCall('/api/admin/event-team/'+CURRENT_LEAD_ID, {method:'POST', body: JSON.stringify({rows, changed_by:who})});
     TEAM = r.rows||[]; drawTeamBlock();
-    showToast('✓ Event team saved');
+    showToast('✓ Partners & expenses saved');
   }catch(e){ btn.disabled = false; if(e.message!=='unauthorized') showToast('Could not save: '+e.message); }
 }
 
@@ -1728,7 +1734,7 @@ let FB = null;
 async function renderFeedbackBlock(d){
   const sec = document.getElementById('fbSection'), block = document.getElementById('fbBlock');
   if(!sec || !block) return;
-  if(!d.is_booking){ sec.style.display = 'none'; block.innerHTML = ''; return; }
+  if(!d.is_booking || ROLE === 'sales'){ sec.style.display = 'none'; block.innerHTML = ''; return; }   // admin only
   sec.style.display = 'block';
   block.innerHTML = '<div style="font-size:12.5px;color:var(--gy)">Loading…</div>';
   try{ FB = await apiCall('/api/admin/feedback/'+d.lead_id); }
@@ -3499,7 +3505,10 @@ function renderDetail(d){
   container.innerHTML = d.sections.map(sec=>{
     if(sec.section === 'Notes') return notesSectionHtml(d.locked);
     const isCustEvent = sec.section==='Customer & Event Details';
-    const col3Label = isCustEvent ? 'Updated Value' : 'Assigned Value';
+    // 2026-10-12 — partners are assigned in Partners & Expenses now, so the
+    // service rows no longer have an Assigned Value (partner) column.
+    CUR_SEC = sec.section;
+    const col3Label = isCustEvent ? 'Updated Value' : (NO_PARTNER_SECTIONS.includes(sec.section) ? '' : 'Assigned Value');
     // 2026-09-22, per Shruti — "combine advance amount and payment method
     // ... utilize the space [Assigned Value] to capture payment method" and
     // the same for Event Payment Confirmed + Event Payment Mode. Both merges
@@ -4389,7 +4398,7 @@ const NOTE_CARDS = [
     {key:'post_event_internal_notes',  label:'Internal Learning / What to Improve'}]},
 ];
 function notesSectionHtml(locked){
-  return '<div class="section-block" id="sect-notes"><div class="notes-cards">' + NOTE_CARDS.map(c=>{
+  return '<div class="section-block" id="sect-Notes"><div class="notes-cards">' + NOTE_CARDS.map(c=>{
     const cells = c.fields.map(x=>{
       const v = _billField(x.key).customer_choice || '';
       return '<div class="ei-fld wide"><label>'+esc(x.label)+'</label>'
@@ -4444,6 +4453,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     return fieldRowHtml(Object.assign({}, f, {_withReq:true}), isCustEvent, locked) + salesActivityRequestsRow();
   }
   const rid = 'fld_'+f.field_key;
+  const noPartner = !isCustEvent && NO_PARTNER_SECTIONS.includes(CUR_SEC);   // 2026-10-12
   const col3 = isCustEvent ? 'Updated value' : 'Assigned value';
   const removedCls = f.removed ? ' removed' : '';
   // "None selected" instead of a blank note when the customer genuinely left
@@ -4503,7 +4513,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
       +'<td data-label="Current value"><span class="readonly-cell" style="'+(['event_photos_link','terms_conditions'].includes(f.field_key)?'white-space:pre-line':'')+'">'+(f.field_key==='event_schedule_text'?scheduleReadOnlyHtml(f.customer_choice||''):esc(f.customer_choice||'—'))+'</span></td>'
-      +((['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key)) ? '<td></td>' : '<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>')
+      +((noPartner || ['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key)) ? '<td></td>' : '<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>')
       +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
       +'</tr>';
@@ -4590,7 +4600,11 @@ function fieldRowHtml(f, isCustEvent, locked){
   const avPlaceholder = f.placeholder || (isCustEvent ? '' : 'Assign...');
   let avCell;
   const VENDOR_PICKER_FIELDS = ['svc_decor', 'svc_host', 'svc_dj', 'svc_photo'];
-  if(VENDOR_PICKER_FIELDS.includes(f.field_key)){
+  if(NO_PARTNER_SECTIONS.includes(CUR_SEC)){
+    // Kept as a hidden value (not cleared) so saving a row never wipes an
+    // older assignment; partners live in Partners & Expenses (2026-10-12).
+    avCell = '<input type="hidden" id="'+rid+'_av" value="'+esc(f.assigned_value||'')+'">';
+  }else if(VENDOR_PICKER_FIELDS.includes(f.field_key)){
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Partner name')+'" list="vendorNamesList" autocomplete="off">';
   }else if(f.multi_options){
     // Activities / Gifts — one "who's doing it" box per selected item
@@ -4636,7 +4650,7 @@ function fieldRowHtml(f, isCustEvent, locked){
   return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
     +'<td data-label="Current value">'+ccCell+'</td>'
-    +'<td'+((['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key))?'':' data-label="'+col3+'"')+'>'+avCell+'</td>'
+    +'<td'+((noPartner || ['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key))?'':' data-label="'+col3+'"')+'>'+avCell+'</td>'
     +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
       // 2026-09-24, per Shruti — "i clicked on remove - then it was striked
