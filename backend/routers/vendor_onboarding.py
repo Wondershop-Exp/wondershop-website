@@ -619,7 +619,10 @@ async def lookup_pincode(pin: str):
 # open. how can I ask them to update the missing fields?" Shown in the Partners
 # tab and on the private update link, so both list the same things.
 def _has_bank(row) -> bool:
-    return bool(all((row.get(f) or "").strip() for f in _BANK_FIELDS[:4]) or row.get("cancelled_cheque_filename"))
+    # 2026-10-12, per Shruti: every bank field is mandatory (account holder,
+    # bank, account number, IFSC and account type); the cheque photo alone
+    # no longer counts.
+    return all((row.get(f) or "").strip() for f in _BANK_FIELDS)
 
 
 def partner_missing(row) -> List[str]:
@@ -627,6 +630,39 @@ def partner_missing(row) -> List[str]:
     with the vendor_master columns, volunteer_profile already parsed)."""
     row = dict(row)
     out = []
+    # 2026-10-12, per Shruti: checked for EVERY partner type, so any partner can
+    # be sent a link to fill in what's missing.
+    deals = (row.get("deals_in") or "").strip().lower()
+    mob = re.sub(r"\D", "", row.get("primary_mobile") or "")[-10:]
+    if not _MOBILE_RE.match(mob or "") or mob == "1111111111":
+        out.append("Mobile number")
+    if not deals:
+        out.append("What you deal in")
+    if deals in (VOLUNTEER, "wondershop team member") and not (row.get("email") or "").strip():
+        out.append("Email")
+    is_carn = deals == CARNIVAL or bool(row.get("carnival_profile"))
+    if is_carn:
+        if len((row.get("address") or "").strip()) < 10:
+            out.append("Office address")
+        if not (row.get("alternate_mobile") or "").strip():
+            out.append("Alternate mobile number")
+        if not (row.get("locality") or "").strip():
+            out.append("Locality")
+        if not (row.get("pincode") or "").strip():
+            out.append("Pincode")
+        cp = row.get("carnival_profile") or {}
+        if isinstance(cp, (str, bytes)):
+            try:
+                cp = json.loads(cp)
+            except ValueError:
+                cp = {}
+        cp = cp if isinstance(cp, dict) else {}
+        if not cp.get("services"):
+            out.append("Services you offer")
+        if not cp.get("headsup"):
+            out.append("Heads-up time")
+        if not cp.get("zones"):
+            out.append("Service areas")
     is_vol = VOLUNTEER in (row.get("deals_in") or "").lower() or bool(row.get("volunteer_profile"))
     if is_vol:
         if len((row.get("address") or "").strip()) < 10:
@@ -657,7 +693,10 @@ def partner_missing(row) -> List[str]:
         if not row.get("volunteer_tnc_accepted_at"):
             out.append("Terms & conditions")
     if not _has_bank(row):
-        out.append("Bank details")
+        if all((row.get(f) or "").strip() for f in _BANK_FIELDS[:4]):
+            out.append("Bank account type (savings / current)")
+        else:
+            out.append("Bank details")
     return out
 
 
@@ -718,6 +757,9 @@ async def prefill(token: str):
             vp = None
     d["volunteer_profile"] = vp if isinstance(vp, dict) else None
     out = {k: d.get(k) for k in _PREFILL_FIELDS}
+    for k in ("primary_mobile", "whatsapp_number", "alternate_mobile"):
+        if re.sub(r"\D", "", out.get(k) or "") == "1111111111":
+            out[k] = None   # placeholder, not a real number (migration 052)
     cp = d.get("carnival_profile")
     if isinstance(cp, (str, bytes)):
         try:
@@ -950,7 +992,10 @@ async def submit_vendor_onboarding(
         # A link works once. Also fill in the mobile number if the record had none.
         await database.execute(
             "UPDATE vendor_master SET update_token_hash = NULL, update_token_expires = NULL, "
-            "primary_mobile = COALESCE(NULLIF(TRIM(primary_mobile), ''), :m) WHERE vendor_id = :id",
+            # 2026-10-12: also replaces the 1111111111 placeholder (migration 052).
+            "primary_mobile = CASE WHEN COALESCE(TRIM(primary_mobile), '') IN ('', '1111111111') THEN :m ELSE primary_mobile END, "
+            "whatsapp_number = CASE WHEN COALESCE(TRIM(whatsapp_number), '') IN ('', '1111111111') THEN :m ELSE whatsapp_number END "
+            "WHERE vendor_id = :id",
             {"id": link_id, "m": mobile},
         )
     if matched is True:

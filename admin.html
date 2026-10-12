@@ -2732,7 +2732,7 @@ async function loadVendors(q){
         +'<td>'+esc(v.primary_contact_name||'—')+'</td>'
         +'<td>'+esc(v.primary_mobile||'—')+'</td>'
         +'<td>'+esc(v.deals_in||'—')
-          +(v.is_volunteer && (v.missing||[]).length ? '<div class="vol-miss-tag" title="'+esc(v.missing.join(', '))+'">'+v.missing.length+' detail'+(v.missing.length>1?'s':'')+' missing</div>' : '')+'</td>'
+          +((v.missing||[]).length ? '<div class="vol-miss-tag" title="'+esc(v.missing.join(', '))+'">'+v.missing.length+' detail'+(v.missing.length>1?'s':'')+' missing</div>' : '')+'</td>'
         +'<td>'+esc(v.city||'—')+'</td>'
         +'<td>'+vendorOriginCellHtml(v)+'</td>'
         +'<td>'+(v.is_active
@@ -2921,6 +2921,7 @@ function renderVendorForm(v){
   const container = document.getElementById('vendorFormContainer');
   container.innerHTML =
       pendingBanner
+    + volMissingHtml(v)
     + '<div class="status-card" style="align-items:flex-start">'+fieldsHtml+'</div>'
     + (isVolunteerVendor(v) ? volunteerSectionHtml(v) : '')
     + (isCarnivalVendor(v) ? carnivalSectionHtml(v) : '')
@@ -2976,7 +2977,6 @@ function volunteerSectionHtml(v){
   return '<div class="vol-card" id="volSec">'
     + '<h3>🙋 Volunteer Profile</h3>'
     + '<div class="vol-note">From the partner form. Address and alternate mobile are mandatory for volunteers.</div>'
-    + volMissingHtml(v)
     + '<div class="vol-grid" style="align-items:center">'+tnc+resume+'</div>'
     + '<h4>Personal</h4><div class="vol-grid">'
       + '<div class="fld"><label class="vl" for="vv_dob">Date of birth</label><input type="date" id="vv_dob" value="'+esc(p.dob||'')+'"></div>'
@@ -3010,7 +3010,7 @@ function volunteerSectionHtml(v){
 // (2026-10-10, per Shruti). The link opens the partner form pre-filled.
 function volMissingHtml(v){
   const miss = v.missing || [];
-  if(!miss.length) return '<div class="vol-miss ok">✓ All volunteer details are filled in.</div>';
+  if(!miss.length) return '<div class="vol-miss ok">✓ All required details are filled in.</div>';
   return '<div class="vol-miss"><b>'+miss.length+' detail'+(miss.length>1?'s':'')+' missing</b>'
     + '<div class="vm-list">'+miss.map(m=>'<span>'+esc(m)+'</span>').join('')+'</div>'
     + '<button class="mini-btn" onclick="makeUpdateLink('+v.vendor_id+')">🔗 Send update link</button>'
@@ -3022,9 +3022,10 @@ async function makeUpdateLink(vendorId){
     const r = await apiCall('/api/admin/vendors/'+vendorId+'/update-link', {method:'POST'});
     const v = CURRENT_VENDOR || {};
     const url = 'https://www.wondershopexperiences.com/vendor-onboarding.html?u='+encodeURIComponent(r.token);
-    const first = String(v.name||'').trim().split(/\s+/)[0] || 'there';
+    const first = String(v.primary_contact_name||v.name||'').trim().split(/\s+/)[0] || 'there';
     const miss = r.missing||[];
-    const msg = 'Hi '+first+'! Thank you for registering as a volunteer with Wondershop Experiences.\n\n'
+    const role = /volunteer/i.test(v.deals_in||'') ? 'a volunteer' : (/team member/i.test(v.deals_in||'') ? 'a team member' : 'a partner');
+    const msg = 'Hi '+first+'! Thank you for registering as '+role+' with Wondershop Experiences.\n\n'
       + 'A few details are still missing from your profile:\n'+miss.map(m=>'• '+m).join('\n')+'\n\n'
       + 'Please complete them using this link (your earlier answers are already filled in):\n'+url+'\n\n'
       + 'The link works for 14 days. Thank you!';
