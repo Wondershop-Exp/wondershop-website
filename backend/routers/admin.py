@@ -300,9 +300,22 @@ FIELD_CATALOG = [
     # not some other kind of "reward", so the label makes that explicit.
     {"key": "bill_reward_won",      "label": "Scratch Card Reward Won", "section": "Billing & Rewards"},
     {"key": "bill_reward_redeemed", "label": "Scratch Card Reward Redeemed As", "section": "Billing & Rewards"},
+
+    # Notes (2026-10-12, per Shruti — "please add this in the booking page as
+    # well" / "move [post-event notes] from sales quote to bookings as this
+    # will only be applicable for confirmed events"). Same keys as the sales
+    # panel's columns (lead_sales_playbook): until edited here, a booking
+    # shows whatever the sales panel holds (PLAYBOOK_NOTE_FIELDS below).
+    {"key": "notes_special_instructions", "label": "Notes / Special Instructions", "section": "Notes", "admin_only": True},
+    {"key": "notes_changes_updates",      "label": "Changes / Last-Minute Updates", "section": "Notes", "admin_only": True},
+    {"key": "post_event_missing_items",   "label": "Missing / Damaged / Left-Behind Items", "section": "Notes", "admin_only": True},
+    {"key": "post_event_client_feedback", "label": "Client Feedback", "section": "Notes", "admin_only": True},
+    {"key": "post_event_internal_notes",  "label": "Internal Learning / What to Improve", "section": "Notes", "admin_only": True},
 ]
 
-SECTIONS = ["Customer & Event Details", "Services", "Add-ons", "Billing & Rewards"]
+SECTIONS = ["Customer & Event Details", "Services", "Add-ons", "Billing & Rewards", "Notes"]
+PLAYBOOK_NOTE_FIELDS = ("notes_special_instructions", "notes_changes_updates",
+                        "post_event_missing_items", "post_event_client_feedback", "post_event_internal_notes")
 CATALOG_BY_KEY = {f["key"]: f for f in FIELD_CATALOG}
 
 EVENT_TIMING_FIELDS = {"venue_handover_time", "packup_time"}
@@ -1121,6 +1134,16 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             pb_times = {k: (str(pb_t[k])[:5] if pb_t[k] else None) for k in EVENT_TIMING_FIELDS}
     except Exception:
         logger.exception(f"Lead #{lead_id}: couldn't read sales-panel event times")
+    # Notes typed in the sales panel (2026-10-12) — shown until edited here.
+    pb_notes = {}
+    try:
+        pb_n = await database.fetch_one(
+            f"SELECT {', '.join(PLAYBOOK_NOTE_FIELDS)} FROM lead_sales_playbook WHERE lead_id = :id",
+            values={"id": lead_id})
+        if pb_n:
+            pb_notes = {k: ((pb_n[k] or "").strip() or None) for k in PLAYBOOK_NOTE_FIELDS}
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: couldn't read sales-panel notes")
 
     for f in FIELD_CATALOG:
         key = f["key"]
@@ -1130,6 +1153,8 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
         derived = None if f.get("admin_only") else _derive_original_value(key, lead, snap)
         if key in EVENT_TIMING_FIELDS:
             derived = pb_times.get(key)
+        if key in PLAYBOOK_NOTE_FIELDS:
+            derived = pb_notes.get(key)
 
         if is_direct:
             # "Current Value" always mirrors the live `leads` column — never
@@ -1693,6 +1718,16 @@ async def update_booking_field(lead_id: int, body: FieldUpdateRequest, x_admin_p
     # that doesn't have a link yet.
     if key == "event_photos_link" and not body.removed and new_customer_choice:
         await _push_event_photos_to_sheet(lead_id, lead, snap, new_customer_choice)
+
+    # Notes are shared with the sales panel (2026-10-12): keep its copy in
+    # step so both pages always show the same text.
+    if key in PLAYBOOK_NOTE_FIELDS:
+        try:
+            await database.execute(
+                f"UPDATE lead_sales_playbook SET {key} = :v WHERE lead_id = :id",
+                values={"v": (None if body.removed else (new_customer_choice or None)), "id": lead_id})
+        except Exception:
+            logger.exception(f"Lead #{lead_id}: couldn't copy {key} back to the sales panel")
 
     return {
         "success": True, "field_key": key, "field_label": label, "changes_logged": len(log_entries),

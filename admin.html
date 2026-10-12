@@ -602,6 +602,9 @@ body.role-sales .admin-only{display:none!important}
 .ei-fld.wide{grid-column:1 / -1}
 .ei-fld label{font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px}
 .ei-fld input{width:100%;background:#fff}
+.notes-cards{display:grid;gap:14px}
+.notes-card textarea{width:100%;min-height:78px;background:#fff;border:1px solid var(--li2);border-radius:10px;padding:10px 12px;font:inherit;font-size:13.5px;resize:vertical;box-sizing:border-box}
+.notes-card .ei-fld{margin-top:4px}
 @media(max-width:640px){.ei-grid{grid-template-columns:1fr}}
 .sugg-box{display:flex;flex-direction:column;gap:6px}
 .sugg-head{font-size:12px;font-weight:700;color:#8A6A1E}
@@ -3296,6 +3299,7 @@ function renderDetail(d){
 
   const container = document.getElementById('sectionsContainer');
   container.innerHTML = d.sections.map(sec=>{
+    if(sec.section === 'Notes') return notesSectionHtml(d.locked);
     const isCustEvent = sec.section==='Customer & Event Details';
     const col3Label = isCustEvent ? 'Updated Value' : 'Assigned Value';
     // 2026-09-22, per Shruti — "combine advance amount and payment method
@@ -4171,6 +4175,50 @@ function einviteCardHtml(locked){
     + '<div class="ei-head"><span>E-Invite Details</span>'
     + (locked ? '' : '<button class="mini-btn save" onclick="saveEinviteCard()">Save</button>')
     + '</div><div class="ei-grid">'+cells+'</div></div></td></tr>';
+}
+// ── Notes + Post-Event Notes (2026-10-12, per Shruti) ─────────────────
+// Same notes as the sales panel's section 5 (shared — editing either page
+// updates both); post-event notes moved here from the sales panel since
+// they only apply to confirmed events. Each card saves only what changed,
+// through the normal /field endpoint (so the change log records it).
+const NOTE_CARDS = [
+  {id:'notes', title:'Notes / Client Special Instructions', fields:[
+    {key:'notes_special_instructions', label:'Notes / Special Instructions'},
+    {key:'notes_changes_updates',      label:'Changes / Last-Minute Updates'}]},
+  {id:'post', title:'Post-Event Notes', fields:[
+    {key:'post_event_missing_items',   label:'Missing / Damaged / Left-Behind Items'},
+    {key:'post_event_client_feedback', label:'Client Feedback'},
+    {key:'post_event_internal_notes',  label:'Internal Learning / What to Improve'}]},
+];
+function notesSectionHtml(locked){
+  return '<div class="section-block" id="sect-notes"><div class="notes-cards">' + NOTE_CARDS.map(c=>{
+    const cells = c.fields.map(x=>{
+      const v = _billField(x.key).customer_choice || '';
+      return '<div class="ei-fld wide"><label>'+esc(x.label)+'</label>'
+        + (locked ? '<span class="readonly-cell" style="white-space:pre-wrap">'+esc(v||'—')+'</span>'
+                  : '<textarea id="nt_'+x.key+'" data-orig="'+esc(v)+'">'+esc(v)+'</textarea>')
+        + '</div>';
+    }).join('');
+    return '<div class="ei-card notes-card"><div class="ei-head"><span>'+esc(c.title)+'</span>'
+      + (locked ? '' : '<button class="mini-btn save" onclick="saveNotesCard(\''+c.id+'\')">Save</button>')
+      + '</div>'+cells+'</div>';
+  }).join('') + '</div></div>';
+}
+async function saveNotesCard(id){
+  const card = NOTE_CARDS.find(c=>c.id===id);
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
+  const changed = card.fields.filter(x=>{ const el = document.getElementById('nt_'+x.key); return el && el.value.trim() !== (el.dataset.orig||'').trim(); });
+  if(!changed.length){ showToast('No changes to save.'); return; }
+  try{
+    for(const x of changed){
+      await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {method:'POST', body: JSON.stringify({
+        field_key:x.key, customer_choice_override: document.getElementById('nt_'+x.key).value.trim(),
+        assigned_value:'', remarks:'', removed:false, changed_by:who})});
+    }
+    showToast('✓ '+card.title+' saved');
+    await loadDetail();
+  }catch(e){ if(e.message!=='unauthorized') showToast('Save failed: '+e.message); }
 }
 async function saveEinviteCard(){
   const who = getName();

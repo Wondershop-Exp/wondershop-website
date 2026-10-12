@@ -1106,6 +1106,17 @@ async def patch_sheet(lead_id: int, body: PatchIn, x_admin_password: Optional[st
             pb_sets.append(f"{key} = :{key}")
             pb_values[key] = val
             changed.append(key)
+            # Notes shared with the booking page (2026-10-12): if the booking
+            # already has its own copy, keep it in step.
+            if key in ("notes_special_instructions", "notes_changes_updates",
+                       "post_event_missing_items", "post_event_client_feedback", "post_event_internal_notes"):
+                try:
+                    await database.execute(
+                        "UPDATE booking_field_overrides SET customer_choice_override = :v "
+                        "WHERE lead_id = :id AND field_key = :k",
+                        values={"v": val, "id": lead_id, "k": key})
+                except Exception:
+                    logger.exception(f"Lead #{lead_id}: couldn't copy {key} to the booking page")
 
     if body.requirements:
         # 2026-09-16 — was "requirements || :req_patch::jsonb". SQLAlchemy's
