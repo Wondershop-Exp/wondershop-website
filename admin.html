@@ -1620,10 +1620,16 @@ function renderBookingBar(d){
   const advPending = !(d.advance_confirmed);
   const bal = bdMoney(bdVal(d, 'bill_balance'));
   BD_HAS_MONEY = gt !== null || adv !== null || bal !== null;
+  // 2026-10-12, per Shruti: once the event's final payment is recorded, show
+  // Grand total + Total amount received instead of advance / balance.
+  const finF = bdField(d, 'event_payment_confirmed_amount');
+  const fin = (finF && !finF.removed) ? bdMoney(finF.customer_choice) : null;
+  const done = fin !== null;
   bar.innerHTML = '<div class="bd-bar-in">'
     + '<div class="m"><div class="k">Grand total</div><div class="v">'+bdRupees(gt)+'</div></div>'
-    + '<div class="m'+(advPending ? ' pend' : '')+'"><div class="k">'+(advPending ? 'Advance pending' : 'Advance paid')+'</div><div class="v">'+bdRupees(adv)+'</div></div>'
-    + '<div class="m due'+(bal !== null && bal <= 0 ? ' clear' : '')+'"><div class="k">Balance due</div><div class="v">'+bdRupees(bal)+'</div></div>'
+    + (done ? '<div class="m"><div class="k">Total amount received</div><div class="v">'+bdRupees((adv||0)+fin)+'</div></div>' : '')
+    + (done ? '' : '<div class="m'+(advPending ? ' pend' : '')+'"><div class="k">'+(advPending ? 'Advance pending' : 'Advance paid')+'</div><div class="v">'+bdRupees(adv)+'</div></div>'
+    + '<div class="m due'+(bal !== null && bal <= 0 ? ' clear' : '')+'"><div class="k">Balance due</div><div class="v">'+bdRupees(bal)+'</div></div>')
     + (d.gift_order ? '<div class="m"><div class="k">Return gifts · '+esc(d.gift_order.status_label||'')+'</div><div class="v">'+bdRupees(d.gift_order.total==null?null:Number(d.gift_order.total))+'</div></div>' : '')
     + '<span class="bd-unsaved" id="bdUnsaved" style="display:none"></span>'
     + '</div>';
