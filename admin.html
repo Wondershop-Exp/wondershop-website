@@ -4677,14 +4677,35 @@ function activityQuoteInline(name){
   const it = _lqItems('svc_activities').find(i => i.key === 'activity:'+String(name).trim().toLowerCase());
   if(!it) return '';
   const m = Number(it.amount||0), q = Number(it.quote==null?m:it.quote);
-  const qu = _lqQtyUnit(it.label, m), perKid = qu.qty > 1;
-  const qVal = perKid ? Math.round(q/qu.qty*100)/100 : q;
-  const locked = !!CURRENT_DETAIL.locked;
-  const inp = locked ? '<b>'+_inr(qVal)+'</b>'
-    : '<input type="number" min="0" step="1" class="aq-in" value="'+qVal+'" data-k="'+esc(it.key)+'" data-q="'+qu.qty+'" data-pk="'+(perKid?1:0)+'" data-old="'+qVal+'" onblur="saveOneQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()">';
-  return '<span class="aq-inline"><span class="aq-mrp">'+(perKid?'List '+_inr(qu.unit)+' × '+qu.qty:'List '+_inr(m))+'</span>'
-    + '<span class="aq-qlbl">Quote ₹</span>'+inp+(perKid?'<span class="aq-mrp">/child</span>':'')
+  const qu = _lqQtyUnit(it.label, m), perKid = /kids?\s*×/.test(it.label);
+  const qVal = perKid ? Math.round(q/Math.max(qu.qty,1)*100)/100 : q;
+  if(CURRENT_DETAIL.locked) return '<span class="aq-inline">'+(perKid?qu.qty+' kids × '+_inr(qVal)+' = ':'')+'<b>'+_inr(q)+'</b></span>';
+  const k = esc(it.key);
+  return '<span class="aq-inline" data-k="'+k+'" data-pk="'+(perKid?1:0)+'">'
+    + (perKid ? '<span class="aq-qlbl">Kids</span><input type="number" min="1" step="1" class="aq-in aq-kids" value="'+qu.qty+'" data-old="'+qu.qty+'" onblur="saveActQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()"><span class="aq-qlbl">× ₹</span>'
+              : '<span class="aq-qlbl">₹</span>')
+    + '<input type="number" min="0" step="1" class="aq-in aq-price" value="'+qVal+'" data-old="'+qVal+'" onblur="saveActQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()">'
+    + (perKid ? '<span class="aq-qlbl">/child</span>' : '')
     + '<span class="aq-eq'+(q<m?' neg':'')+'">= '+_inr(q)+'</span></span>';
+}
+async function saveActQuote(el){
+  const wrap = el.closest('.aq-inline'); if(!wrap) return;
+  const kidsEl = wrap.querySelector('.aq-kids'), priceEl = wrap.querySelector('.aq-price');
+  if((!kidsEl || kidsEl.value===kidsEl.dataset.old) && priceEl.value===priceEl.dataset.old) return;
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
+  const key = wrap.dataset.k, perKid = wrap.dataset.pk==='1';
+  const kids = kidsEl ? Math.max(1, parseInt(kidsEl.value||kidsEl.dataset.old,10)) : 1;
+  const unit = priceEl.value.trim()==='' ? null : Number(priceEl.value);
+  const quotes = {[key]: unit==null ? null : unit*(perKid?kids:1)};
+  if(kidsEl) quotes['kids:'+key] = kids;
+  try{
+    const r = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/line-quotes', {method:'POST', body: JSON.stringify({quotes, changed_by: who})});
+    if(kidsEl) kidsEl.dataset.old = kidsEl.value; priceEl.dataset.old = priceEl.value;
+    if(document.querySelectorAll('#sectionsContainer tr.dirty').length){
+      showToast('✓ Saved — discount is now '+_inr(r.discount)+'. Save your other changes, then refresh to see it.');
+    }else{ showToast('✓ Saved — discount is now '+_inr(r.discount)); await loadDetail(); }
+  }catch(e){ if(e.message!=='unauthorized') showToast('Save failed: '+e.message); }
 }
 function quoteStripHtml(f, locked){
   if(!CURRENT_DETAIL || !CURRENT_DETAIL.is_booking) return '';
@@ -4700,7 +4721,7 @@ function quoteStripHtml(f, locked){
     const box = locked ? '<b'+(q<m?' class="neg"':'')+'>'+_inr(q)+'</b>'
       : '<span class="lq-inp"><span>₹</span><input type="number" min="0" step="1" value="'+qVal+'" data-k="'+esc(i.key)+'" data-q="'+qu.qty+'" data-pk="'+(perKid?1:0)+'" data-old="'+qVal+'" onblur="saveOneQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()"></span>'
         + (perKid ? '<span class="lq-per">/child = <b'+(q<m?' class="neg"':'')+'>'+_inr(q)+'</b></span>' : '');
-    return '<div class="lq-line">'+name+'<span class="lq-mrp">MRP '+mrpTxt+'</span><span class="lq-q">Sales quote '+box+'</span>'
+    return '<div class="lq-line">'+name+'<span class="lq-q">Sales quote '+box+'</span>'
       + (m-q>0 ? '<span class="lq-off">−'+_inr(m-q)+'</span>' : (q>m ? '<span class="lq-off up">+'+_inr(q-m)+'</span>' : '')) + '</div>';
   }).join('') + '</div>';
 }

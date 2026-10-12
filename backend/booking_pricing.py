@@ -438,7 +438,7 @@ def to_be_confirmed(cur: dict, removed: set, snap: Optional[dict] = None, lead: 
     return out
 
 
-def _price_activities(names_csv: Optional[str], kids: int):
+def _price_activities(names_csv: Optional[str], kids: int, kids_by: Optional[dict] = None):
     """Every currently-selected activity, priced off the same catalogue the
     admin's own picker shows (ACTIVITY_PRICES: price + whether it's flat or
     per-child) — exactly what Shruti described: "1500 x 45" for a per-child
@@ -450,8 +450,10 @@ def _price_activities(names_csv: Optional[str], kids: int):
             unpriced.append(f"Activity: {name}")
             continue
         p, flat = p_flat
-        amount = p if flat else p * max(kids, 1)
-        detail = "" if flat else f" ({kids} kids × ₹{p:g})"
+        # Per-activity kids count set on the booking (2026-10-12), else # Kids.
+        n = int((kids_by or {}).get("kids:activity:" + name.strip().lower()) or kids or 0)
+        amount = p if flat else p * max(n, 1)
+        detail = "" if flat else f" ({n} kids × ₹{p:g})"
         items.append((f"Activity: {name}{detail}", amount))
     return items, unpriced
 
@@ -582,7 +584,7 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
         else:
             unpriced.append(f"Cake: {cake}")
 
-    act_items, act_unpriced = _price_activities(_resolved(cur, "svc_activities", removed), kids)
+    act_items, act_unpriced = _price_activities(_resolved(cur, "svc_activities", removed), kids, line_quotes(cur, removed))
     # A custom activity (on the To be confirmed card, priced there) can also
     # sit in an older booking's activity list — never count it twice.
     _customs = {k[len("custom:"):] for k in tbc_state(lead) if k.startswith("custom:")}

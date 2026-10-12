@@ -2463,6 +2463,8 @@ async def _copy_sales_line_quotes(lead_id: int, who: str) -> None:
         k = it.get("key")
         if k == "activity":
             k = "activity:" + str((it.get("activity") or {}).get("name") or it.get("label") or "").strip().lower()
+            if not it.get("flat") and it.get("qty") and int(it["qty"]) != int(pb["kids_count"] or 0):
+                out["kids:" + k] = int(it["qty"])
         elif k == "music_addon":
             k = str(it.get("label") or "").strip().lower()
         else:
@@ -2499,30 +2501,39 @@ async def save_line_quotes(lead_id: int, body: LineQuotesRequest, x_admin_passwo
         raise HTTPException(status_code=400, detail="This booking has no priced items yet.")
     lines = {i["key"]: i for i in pricing["items"]}
 
-    def gap_of(quotes):
-        return round(sum(float(i["amount"]) - float(quotes.get(k, i["amount"])) for k, i in lines.items()), 2)
+    def gap_of(items, quotes):
+        return round(sum(float(i["amount"]) - float(quotes.get(i["key"], i["amount"])) for i in items), 2)
 
-    old_q = {k: float(i["quote"]) for k, i in lines.items() if i.get("quote") is not None and float(i["quote"]) != float(i["amount"])}
-    old_gap = gap_of(old_q)
+    stored = {}
+    for _s in detail.get("sections") or []:
+        for _f in _s.get("fields") or []:
+            if _f.get("field_key") == "bill_line_quotes" and _f.get("customer_choice"):
+                try:
+                    stored = {k: float(v) for k, v in json.loads(_f["customer_choice"]).items()}
+                except (ValueError, TypeError, AttributeError):
+                    stored = {}
+    old_gap = gap_of(pricing["items"], {k: v for k, v in stored.items() if k in lines})
     old_disc = float(pricing.get("discount_amt") or 0) - float(pricing.get("quote_adjustment") or 0)
     extra = round(old_disc - old_gap, 2)          # discount the user added on top of the items
-    new_q = dict(old_q)
+    new_q = dict(stored)
     for k, v in (body.quotes or {}).items():
-        if k not in lines:
+        is_kids = k.startswith("kids:") and k[5:] in lines
+        if k not in lines and not is_kids:
             continue
         if v is None:
             new_q.pop(k, None)
             continue
         if v < 0:
             raise HTTPException(status_code=400, detail="A sales quote can't be negative.")
-        new_q[k] = round(float(v), 2)
-    new_q = {k: v for k, v in new_q.items() if abs(v - float(lines[k]["amount"])) >= 0.005}
-    total = round(gap_of(new_q) + extra, 2)
-    mrp = round(sum(float(i["amount"]) for i in lines.values()), 2)
-    discount = round(min(max(0.0, total), mrp), 2)
-    above = round(max(0.0, -total), 2)
+        new_q[k] = int(v) if is_kids else round(float(v), 2)
     await update_booking_field(lead_id, FieldUpdateRequest(
         field_key="bill_line_quotes", customer_choice_override=json.dumps(new_q) if new_q else "", changed_by=who), x_admin_password)
+    # Kids changes move the list price, so measure the gap on fresh pricing.
+    fresh = (await get_booking_detail(lead_id, x_admin_password)).get("pricing") or pricing
+    total = round(gap_of(fresh["items"], new_q) + extra, 2)
+    mrp = round(sum(float(i["amount"]) for i in fresh["items"]), 2)
+    discount = round(min(max(0.0, total), mrp), 2)
+    above = round(max(0.0, -total), 2)
     await update_booking_field(lead_id, FieldUpdateRequest(
         field_key="bill_discount_type", customer_choice_override="value", changed_by=who), x_admin_password)
     await update_booking_field(lead_id, FieldUpdateRequest(
