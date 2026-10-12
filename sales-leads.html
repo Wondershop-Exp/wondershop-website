@@ -303,6 +303,7 @@ body.role-sales .admin-only{display:none!important}
 .lf-bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin:0 0 14px}
 .lf-bar label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px}
 .lf-bar select{font:inherit;font-size:13px;font-weight:500;text-transform:none;letter-spacing:0;color:#111;padding:7px 10px;border:1px solid #E5E1F5;border-radius:8px;background:#fff;min-width:130px}
+.lf-bar .lf-chk{flex-direction:row;align-items:center;gap:6px;font-size:13px;text-transform:none;letter-spacing:0;color:#111;font-weight:600;padding-bottom:8px;cursor:pointer}
 .lf-count{font-size:12.5px;color:var(--gy);margin-left:auto}
 </style>
 <style id="ws-no-caret">/* hide stray text cursor on non-editable text (2026-10-03) */body{caret-color:transparent}input,textarea,select,[contenteditable],[contenteditable] *{caret-color:auto}</style><style id="ws-select-arrow">/* every dropdown: own chevron with room from the edge (2026-10-05) */select:not([multiple]):not([size]){-webkit-appearance:none;appearance:none;padding-right:36px;background-repeat:no-repeat;background-position:right 14px center;background-size:10px 6px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}select::-ms-expand{display:none}</style>
@@ -352,9 +353,7 @@ body.role-sales .admin-only{display:none!important}
       <label>Age/Gender<select id="lf_ag" onchange="renderListRows()">
         <option value="">All</option><option value="B">Boys</option><option value="G">Girls</option>
         <option value="0-4">Age up to 4</option><option value="5-7">Age 5 – 7</option><option value="8-10">Age 8 – 10</option><option value="11-99">Age 11+</option></select></label>
-      <label>Follow-up<select id="lf_fu" onchange="renderListRows()">
-        <option value="today" selected>Due today</option><option value="due">Due today + overdue</option><option value="week">Next 7 days</option>
-        <option value="any">Has a follow-up</option><option value="">All leads</option></select></label>
+<label class="lf-chk"><input type="checkbox" id="lf_fu" onchange="renderListRows()"> Follow-ups due today</label>
       <button class="linkbtn" onclick="clearListFilters()">Clear filters</button>
       <span class="lf-count" id="lfCount"></span>
     </div>
@@ -708,7 +707,7 @@ async function doSearch(){
   body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:#6B7280">Loading...</td></tr>';
   try{
     // Searching for someone shouldn't be hidden by the "due today" follow-up filter.
-    if(q){ const fu=document.getElementById('lf_fu'); if(fu) fu.value=''; }
+    if(q){ const fu=document.getElementById('lf_fu'); if(fu) fu.checked=false; }
     const d = await apiCall('/api/admin/sales-leads'+(q?('?search='+encodeURIComponent(q)):''));
     LIST_ROWS = d.sheets||[];
     if(!LIST_ROWS.length){ body.innerHTML=''; empty.style.display='block'; return; }
@@ -736,7 +735,8 @@ function fillListFilters(){
   _fillSel('lf_status', sts.map(x=>[x,x]));
 }
 function clearListFilters(){
-  ['lf_month','lf_quote','lf_lead','lf_status','lf_ag','lf_fu'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['lf_month','lf_quote','lf_lead','lf_status','lf_ag'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const fuc = document.getElementById('lf_fu'); if(fuc) fuc.checked = false;
   renderListRows();
 }
 function rowPassesFilters(r){
@@ -755,15 +755,14 @@ function rowPassesFilters(r){
     if(ag==='B' || ag==='G'){ if(((r.child_gender||'').trim()[0]||'').toUpperCase() !== ag) return false; }
     else{ const age = parseInt(r.child_age,10), [lo,hi] = ag.split('-').map(Number); if(isNaN(age) || age<lo || age>hi) return false; }
   }
-  const fu = v('lf_fu');
-  if(fu){
-    const d = (r.next_followup||'').slice(0,10), today = _todayStr();
-    if(!d) return false;
-    if(fu==='today' && d !== today) return false;
-    if(fu==='due' && d > today) return false;
-    if(fu==='week'){ const w=new Date(); w.setDate(w.getDate()+7); const ws=w.getFullYear()+'-'+String(w.getMonth()+1).padStart(2,'0')+'-'+String(w.getDate()).padStart(2,'0'); if(d < today || d > ws) return false; }
-  }
+  if((document.getElementById('lf_fu')||{}).checked && (r.next_followup||'').slice(0,10) !== _todayStr()) return false;
   return true;
+}
+// Location = the locality: the last comma-separated part of the venue
+// ("Lodha, Lower Parel" -> "Lower Parel"); the full venue shows on hover.
+function localityOf(v){
+  const parts = String(v||'').split(',').map(x=>x.trim()).filter(Boolean);
+  return parts.length ? parts[parts.length-1] : '';
 }
 function renderListRows(){
   const body = document.getElementById('listBody');
@@ -772,8 +771,8 @@ function renderListRows(){
   const cnt = document.getElementById('lfCount');
   if(cnt) cnt.textContent = rows.length+' of '+all.length+' leads';
   if(!rows.length){
-    const fu = (document.getElementById('lf_fu')||{}).value;
-    body.innerHTML = '<tr><td colspan="12" style="padding:16px;color:#6B7280">'+(fu==='today' ? 'No follow-ups due today. Change the Follow-up filter to see other leads.' : 'No leads match these filters.')+'</td></tr>';
+    const fu = (document.getElementById('lf_fu')||{}).checked;
+    body.innerHTML = '<tr><td colspan="12" style="padding:16px;color:#6B7280">'+(fu ? 'No follow-ups due today.' : 'No leads match these filters.')+'</td></tr>';
     updateSortHeaders(); return;
   }
   body.innerHTML = rows.map(r=>{
@@ -783,7 +782,7 @@ function renderListRows(){
       +'<td><strong>'+esc(r.client_name||'(no name yet)')+'</strong>'+suggPill+'<br><span style="color:var(--gy);font-size:12px">'+esc(r.mobile||'')+'</span></td>'
       +'<td>'+fmtDateStr(r.event_date)+'</td>'
       +'<td>'+esc(r.theme||'—')+'</td>'
-      +'<td>'+esc(r.venue||'—')+'</td>'
+      +'<td title="'+esc(r.venue||'')+'">'+esc(localityOf(r.venue)||'—')+'</td>'
       +'<td>'+(money(r.revenue_potential)||'—')+'</td>'
       +'<td>'+esc(ageGender(r))+'</td>'
       +'<td>'+followupHtml(r.next_followup)+'</td>'
