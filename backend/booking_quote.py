@@ -86,7 +86,10 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         return v or None
 
     P = d.get("pricing") or {}
-    items = [(i["label"], float(i["amount"] or 0)) for i in (P.get("items") or [])]
+    # 2026-10-12, per Shruti — the client sees each item's agreed sales quote
+    # (set under each service on the booking), not its list price.
+    items = [(i["label"], float(i["quote"] if i.get("quote") is not None else (i["amount"] or 0)))
+             for i in (P.get("items") or [])]
     extras = [(i["label"], float(i["amount"] or 0)) for i in (P.get("extra_items") or [])]
     gift_items = [(i["label"], float(i["amount"] or 0)) for i in (P.get("gift_items") or [])]
     unpriced = list(P.get("unpriced") or [])
@@ -145,7 +148,8 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         m = re.match(r"^(.*?) \((\d+) kids × ₹([\d.,]+)\)$", name)
         if m:
             name = m.group(1)
-            det.append(f"{m.group(2)} kids × {inr(float(m.group(3).replace(',', '')))} per child")
+            n_kids = int(m.group(2))
+            det.append(f"{n_kids} kids × {inr(round(amt / n_kids, 2) if n_kids else 0)} per child")
         note = cat.activity_venue_note(None, name)
         lines.append({"name": name, "details": det + ([note] if note else []),
                       "image": custom_photo.get(name) or cat.resolve_activity_image(None, name), "price": amt})
@@ -243,6 +247,11 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
 
     # ── totals: the booking's own Total MRP / discount / Grand Total ─────
     total_mrp = float(P.get("total_mrp") or 0)
+    # Lines show the sales quote, so start the total from the quotes and keep
+    # only the discount on top of them (2026-10-12).
+    _q_gap = round(sum(float(i["amount"] or 0) - float(i["quote"] if i.get("quote") is not None else (i["amount"] or 0))
+                       for i in (P.get("items") or [])), 2)
+    total_mrp = round(total_mrp - _q_gap, 2)
     # Quoted above the list prices (2026-10-09, per Shruti — travel / hidden
     # costs): the client sees the total only — no list prices per line and
     # no separate charge for the difference.
@@ -261,7 +270,7 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         total_mrp += float(P.get("quote_adjustment") or 0)
     extra_total = round(sum(a for _l, a in extras), 2)
     grand = _money(val("bill_grand_total"))
-    discount = float(P.get("discount_amt") or 0)
+    discount = max(0.0, float(P.get("discount_amt") or 0) - max(0.0, _q_gap))
     subtotal = round(total_mrp + extra_total, 2)
     if grand is None:
         grand = round(subtotal - discount, 2)

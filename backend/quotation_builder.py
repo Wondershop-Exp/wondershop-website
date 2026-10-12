@@ -470,7 +470,7 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
     T = data.get("totals") or {}
     s_tl = _style("tl", size=9.6, color=INK)
     s_tr = _style("tr", size=9.6, font=BODY_BOLD, align=TA_RIGHT)
-    sub_label = "Total at list price" if T.get("discount") else "Total (all selected services)"
+    sub_label = ("Total" if booked else "Total at list price") if T.get("discount") else "Total (all selected services)"
     trows = [[Paragraph(sub_label, s_tl), Paragraph(inr(T.get("subtotal") or 0), s_tr)]]
     if T.get("discount_extra") and float(T["discount_extra"]) > 0.004:
         # Line-quote discount + an additional one on the total (2026-10-05).
@@ -542,8 +542,17 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
     terms += [
         "<b>Confidential.</b> This " + ("document" if booked else "quotation") + " has been prepared exclusively for you. It is not to be shared, "
         "forwarded or published without prior permission from Wondershop Experiences.",
-        f"Full terms &amp; conditions: {BUSINESS_WEB}/terms.html",
     ]
+    if booked:
+        # 2026-10-12, per Shruti — the full website T&C on the party plan.
+        from terms_data import WEBSITE_TERMS
+        for c in WEBSITE_TERMS:
+            body = []
+            for kind, txt in c["parts"]:
+                body.append(("• " if kind == "li" else "") + _x(txt))
+            terms.append(f"<b>{_x(c['title'])}.</b><br/>" + "<br/>".join(body))
+    else:
+        terms.append(f"Full terms &amp; conditions: {BUSINESS_WEB}/terms.html")
     extra = (data.get("extra_terms") or "").strip()
     if extra:
         terms.append("<b>Also agreed:</b> " + _x(extra).replace("\n", "<br/>"))
@@ -571,7 +580,9 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
         + f"Questions or changes? Call or WhatsApp us on <b>{_x(BUSINESS_PHONES)}</b> or write to {_x(BUSINESS_EMAIL)}."
     )
     tail.append(Paragraph(sign, _style("sign", size=8.8, color=MUTED, align=TA_CENTER, leading=12.4)))
-    story.append(KeepTogether(tail))
+    story.append(KeepTogether(tail) if not booked else tail[0])
+    if booked:
+        story += tail[1:]
 
     quote_no = data.get("quote_no") or ""
 
