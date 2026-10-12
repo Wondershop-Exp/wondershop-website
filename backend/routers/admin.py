@@ -919,6 +919,10 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
     is_booking = kind == "booking"
     where = ["is_booking = :is_booking"]
     values = {"is_booking": is_booking}
+    # 2026-10-12 — WSR Repeat (past store customer) leads appear only from
+    # their show_from date, and never the ones hidden from the team — same
+    # rule as the Sales Leads list (routers/sales_leads.py).
+    where.append("(show_from IS NULL OR show_from <= CURRENT_DATE) AND NOT COALESCE(hidden_from_team, FALSE)")
     if q:
         where.append("(parent_name ILIKE :like OR phone ILIKE :like OR email ILIKE :like OR CAST(lead_id AS TEXT) = :q)")
         values["like"] = f"%{q}%"

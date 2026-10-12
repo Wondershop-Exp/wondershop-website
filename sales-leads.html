@@ -328,6 +328,15 @@ body.role-sales .admin-only{display:none!important}
 .src-filter .pill-bubble.show{display:inline-block}
 .src-filter button.sel .pill-bubble{background:#fff;color:var(--pk)}
 .src-tag{display:inline-block;margin-top:3px;padding:1px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#FDECF4;color:#B4236B;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+/* 2026-10-12 — WSR Repeat (past store customer) leads */
+.wsr-tag{display:inline-block;margin-top:3px;padding:1px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#EDE7F8;color:#4B2A7B;white-space:nowrap}
+.hl-tag{display:inline-block;margin:3px 0 0 4px;padding:1px 7px;border-radius:20px;font-size:10.5px;font-weight:800;letter-spacing:.2px;white-space:nowrap}
+.hl-mile{background:#FFE58A;color:#6B4E00}
+.hl-reg{background:#D9F2DC;color:#1E6B2A}
+.hl-high{background:#E3ECFB;color:#1F4E9B}
+.wsr-box{background:#F6F2FD;border:1px solid #D9CCF1;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.5}
+.wsr-box .k{display:block;font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}
+.wsr-box .wsr-note{white-space:pre-wrap;margin-top:8px}
 .src-box{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 14px;background:#FDF3F8;border:1px solid #F5C3D7;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px}
 .src-box input{padding:8px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px;background:#fff;box-sizing:border-box}
 .src-box .k{display:block;font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}
@@ -373,6 +382,7 @@ body.role-sales .admin-only{display:none!important}
     <div class="chip-row src-filter" id="srcFilter">
       <button type="button" class="sel" data-val="all" onclick="setSrcFilter('all')">All leads</button>
       <button type="button" data-val="insta" onclick="setSrcFilter('insta')" title="Leads from Instagram ads, sent in by AiSensy">📸 Instagram leads<span class="pill-bubble" id="instaBubble"></span></button>
+      <button type="button" data-val="wsr" onclick="setSrcFilter('wsr')" title="Past customers of the Wondershop retail store whose birthday or party is coming up">WSR Repeat<span class="pill-bubble" id="wsrBubble"></span></button>
     </div>
     <!-- 2026-10-12, per Shruti: list filters (all applied in the browser). -->
     <div class="lf-bar" id="lfBar">
@@ -488,12 +498,29 @@ function hasPendingChanges(){
     || PENDING_PATCH.event_schedule !== undefined || PENDING_PATCH.activities !== undefined);
 }
 let LIST_ROWS = [];
-let SRC_FILTER = 'all';   // 'all' | 'insta' — 2026-10-12, Instagram ad leads (AiSensy)
+let SRC_FILTER = 'all';   // 'all' | 'insta' | 'wsr' — 2026-10-12, Instagram ad leads (AiSensy)
 function isInstaLead(r){ return ['insta','instagram'].includes(String(r.lead_source||'').trim().toLowerCase()); }
 function setSrcFilter(val){
   SRC_FILTER = val;
   document.querySelectorAll('#srcFilter button').forEach(b=>b.classList.toggle('sel', b.dataset.val===val));
   renderListRows();
+}
+function isWsrLead(r){ return String(r.lead_source||'').trim().toLowerCase()==='wsr repeat'; }
+// Milestone (1st/5th/10th birthday) is worked out from the age, so it stays right each year.
+function wsrTags(r){
+  if(!isWsrLead(r)) return '';
+  const age = parseInt(r.child_age,10);
+  const hl = String(r.lead_highlights||'').toUpperCase();
+  let out = '';
+  if((r.occasion||'Birthday')==='Birthday' && [1,5,10].includes(age)) out += '<span class="hl-tag hl-mile">MILESTONE '+age+(age===1?'st':'th')+'</span>';
+  if(hl.includes('REGULAR')) out += '<span class="hl-tag hl-reg">REGULAR</span>';
+  if(hl.includes('HIGH SPENDER')) out += '<span class="hl-tag hl-high">HIGH SPENDER</span>';
+  return out;
+}
+function updateWsrBubble(){
+  const el = document.getElementById('wsrBubble'); if(!el) return;
+  const n = LIST_ROWS.filter(r=>isWsrLead(r) && !r.is_booking && r.status==='New').length;
+  el.textContent = n; el.classList.toggle('show', n>0);
 }
 function updateInstaBubble(){
   const el = document.getElementById('instaBubble'); if(!el) return;
@@ -766,6 +793,7 @@ async function doSearch(){
     empty.style.display='none';
     fillListFilters();
     updateInstaBubble();
+    updateWsrBubble();
     renderListRows();
   }catch(e){
     body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:var(--pk)">'+esc(e.message)+'</td></tr>';
@@ -813,6 +841,7 @@ function clearListFilters(){
 // Age/Gender: ticked genders and ticked age bands are checked separately (e.g. Girls + 5–7 = girls aged 5–7).
 function rowPassesFilters(r){
   if(SRC_FILTER==='insta' && !isInstaLead(r)) return false;
+  if(SRC_FILTER==='wsr' && !isWsrLead(r)) return false;
   const m = msSel('lf_month'); if(m.length && !m.includes((r.event_date||'').slice(0,7))) return false;
   const q = msSel('lf_quote');
   if(q.length){
@@ -866,6 +895,7 @@ function renderListRows(){
       +'<td style="color:var(--gy);font-size:12.5px">#'+r.lead_id+'</td>'
       +'<td><strong>'+esc(r.client_name||'(no name yet)')+'</strong>'+suggPill+'<br><span style="color:var(--gy);font-size:12px">'+esc(r.mobile||'')+'</span>'
         +(isInstaLead(r) ? '<br><span class="src-tag" title="'+esc('Instagram ad lead via '+(r.lead_source_platform||'AISensy')+(r.lead_generated_at?' · '+r.lead_generated_at:'')+(r.ad_shown?' · Ad: '+r.ad_shown:''))+'">📸 Insta'+(r.ad_shown?' · '+esc(r.ad_shown):'')+'</span>' : '')
+        +(isWsrLead(r) ? '<br><span class="wsr-tag">WSR Repeat · '+esc(r.occasion||'Birthday')+(r.child_name&&r.child_name!=='—'?' · '+esc(r.child_name):'')+'</span>'+wsrTags(r) : '')
       +'</td>'
       +'<td>'+fmtDateStr(r.event_date)+'</td>'
       +'<td>'+statusCellHtml(r)+'</td>'
@@ -1764,8 +1794,20 @@ function sectionClientDetails(){
       +   (/^https?:\/\//i.test(d.ad_source_url||'') ? ' <a href="'+esc(d.ad_source_url)+'" target="_blank" rel="noopener" style="font-size:12px">Open ad ↗</a>' : '')
       + '</div></div>'
     : '';
+  // 2026-10-12 — WSR Repeat (past store customer): occasion, highlights,
+  // notes for sales and the store purchase history.
+  const wsrBox = isWsrLead(d)
+    ? '<div class="wsr-box">'
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline">'
+      +   '<div><span class="k">Lead source</span>WSR Repeat</div>'
+      +   '<div><span class="k">Occasion</span>'+esc(d.occasion||'Birthday')+'</div>'
+      +   (wsrTags(d) ? '<div>'+wsrTags(d)+'</div>' : '')
+      + '</div>'
+      + (d.past_customer_note ? '<div class="wsr-note">'+esc(d.past_customer_note)+'</div>' : '')
+      + '</div>'
+    : '';
   return '<div class="card"><h3>1 · Client &amp; Event Details</h3>'
-    + srcBox
+    + srcBox + wsrBox
     + '<div class="grid2">' + f('client_name','Client Name','text') + f('mobile','Mobile No.','tel') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('email','Email','email','placeholder="name@example.com"') + salesLeadField() + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('child_name',"Child's Name",'text') + f('child_age','Celebrating Age','text') + '</div>'

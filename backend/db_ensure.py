@@ -33,6 +33,7 @@ SAFE_MIGRATIONS = [
     "053_carnival_partners.sql",
     "054_mascot_name.sql",
     "055_aisensy_instagram_leads.sql",
+    "056_wsr_repeat_leads.sql",
 ]
 
 

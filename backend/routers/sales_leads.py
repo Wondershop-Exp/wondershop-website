@@ -42,7 +42,7 @@ import json
 import re
 import logging
 from datetime import datetime, timedelta, date
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from fastapi import APIRouter, Header, HTTPException, Response
 from pydantic import BaseModel
@@ -831,6 +831,9 @@ async def _full_detail(lead_row) -> dict:
         "ad_shown": lead.get("ad_shown"),
         "ad_source_url": lead.get("ad_source_url"),
         "lead_generated_at": _to_ist_str(lead.get("lead_generated_at")),
+        "occasion": lead.get("occasion"),
+        "lead_highlights": lead.get("lead_highlights"),
+        "past_customer_note": lead.get("past_customer_note"),
         "mobile": lead.get("phone"),
         "child_name": lead.get("child_names"),
         "child_age": lead.get("child_ages"),
@@ -902,10 +905,106 @@ async def _full_detail(lead_row) -> dict:
 
 # ─── list / create ──────────────────────────────────────────────────────────
 
+# ── WSR Repeat leads (2026-10-12, per Shruti) ────────────────────────────────
+# Past customers of the Wondershop retail store, loaded once from the store's
+# purchase history. Each lead shows up in the sales list on its show_from date
+# (2 months before the birthday / party, 3 months for a 1st, 5th or 10th
+# birthday) — so the team only ever sees what's coming up, not all of them.
+WSR_REPEAT_SOURCE = "WSR Repeat"
+MILESTONE_AGES = (1, 5, 10)
+VISIBLE_TO_TEAM_SQL = "({t}show_from IS NULL OR {t}show_from <= CURRENT_DATE) AND NOT COALESCE({t}hidden_from_team, FALSE)"
+
+
+async def _roll_wsr_repeat_leads():
+    """A WSR Repeat birthday/party that passed (a week's grace) without a
+    booking comes back next year: date +1 year, child's age +1, status back
+    to New, show_from re-worked out (3 months ahead if the new age is a
+    milestone, else 2). DND / Cancelled leads are left alone."""
+    try:
+        await database.execute(
+            """UPDATE leads SET
+                 event_date = (event_date + INTERVAL '1 year')::date,
+                 child_ages = CASE WHEN child_ages ~ '^[0-9]+$' THEN (child_ages::int + 1)::text ELSE child_ages END,
+                 show_from = ((event_date + INTERVAL '1 year')::date
+                              - CASE WHEN child_ages ~ '^[0-9]+$' AND (child_ages::int + 1) IN (1, 5, 10)
+                                     THEN 90 ELSE 60 END),
+                 status = 'New'
+               WHERE lead_source = :src AND lead_origin = 'sales_module' AND is_booking = FALSE
+                 AND event_date IS NOT NULL AND event_date < CURRENT_DATE - 7
+                 AND status NOT IN ('DND', 'Cancelled')""",
+            values={"src": WSR_REPEAT_SOURCE},
+        )
+    except Exception:
+        logger.exception("WSR Repeat: couldn't roll past leads over to next year")
+
+
+class WsrRepeatLead(BaseModel):
+    parent_name: str
+    phone: str
+    child_names: Optional[str] = None
+    child_ages: Optional[str] = None
+    event_date: str
+    show_from: str
+    occasion: str
+    lead_highlights: Optional[str] = None
+    past_customer_note: Optional[str] = None
+    hidden_from_team: bool = False
+
+
+class WsrRepeatImport(BaseModel):
+    created_by: str
+    leads: List[WsrRepeatLead]
+
+
+@router.post("/admin/wsr-repeat/import")
+async def import_wsr_repeat(body: WsrRepeatImport, x_admin_password: Optional[str] = Header(None)):
+    """One-time load of WSR Repeat leads (admin password only — not on the
+    sales login's allow-list). Safe to re-run: a lead already loaded (same
+    phone + occasion + child) is skipped, not duplicated."""
+    _require_admin(x_admin_password)
+    created, skipped = 0, 0
+    for l in body.leads:
+        exists = await database.fetch_val(
+            """SELECT lead_id FROM leads WHERE lead_source = :src AND phone = :phone
+                 AND occasion = :occ AND COALESCE(child_names, '') = COALESCE(:child, '')""",
+            values={"src": WSR_REPEAT_SOURCE, "phone": l.phone.strip(), "occ": l.occasion, "child": l.child_names},
+        )
+        if exists:
+            skipped += 1
+            continue
+        lead_id = await database.execute(
+            """INSERT INTO leads
+                 (parent_name, phone, child_names, child_ages, event_date, theme, lead_origin, lead_source,
+                  status, is_booking, show_from, hidden_from_team, occasion, lead_highlights, past_customer_note)
+               VALUES
+                 (:parent_name, :phone, :child_names, :child_ages, :event_date, :theme, 'sales_module', :src,
+                  'New', FALSE, :show_from, :hidden, :occasion, :hl, :note)
+               RETURNING lead_id""",
+            values={
+                "parent_name": l.parent_name.strip(), "phone": l.phone.strip(),
+                "child_names": l.child_names, "child_ages": l.child_ages,
+                "event_date": _to_date(l.event_date), "show_from": _to_date(l.show_from),
+                "theme": None if l.occasion == "Birthday" else l.occasion,
+                "src": WSR_REPEAT_SOURCE, "hidden": l.hidden_from_team, "occasion": l.occasion,
+                "hl": l.lead_highlights, "note": l.past_customer_note,
+            },
+        )
+        playbook_id = await database.execute(
+            "INSERT INTO lead_sales_playbook (lead_id, requirements, created_by) VALUES (:id, '{}', :by) RETURNING id",
+            values={"id": lead_id, "by": body.created_by},
+        )
+        await _log(playbook_id, body.created_by, "created", "WSR Repeat import")
+        created += 1
+    return {"created": created, "skipped": skipped}
+
+
 @router.get("/admin/sales-leads")
 async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
-    where = "l.lead_origin = 'sales_module'"
+    await _roll_wsr_repeat_leads()
+    # 2026-10-12 — WSR Repeat leads: only once their show_from date arrives,
+    # and never the ones the owner has hidden.
+    where = "l.lead_origin = 'sales_module' AND " + VISIBLE_TO_TEAM_SQL.replace("{t}", "l.")
     values: Dict[str, Any] = {}
     if search:
         where += " AND (l.parent_name ILIKE :q OR l.phone ILIKE :q OR l.child_names ILIKE :q)"
@@ -915,7 +1014,8 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
                    l.child_ages, l.child_genders, l.client_budget, l.theme, l.venue, l.event_sales_lead,
                    p.id AS playbook_id, p.playbook_stage, p.created_by, p.created_at,
                    p.updated_by, p.updated_at, p.new_activity_suggestions, p.call_log,
-                   l.lead_source, l.lead_source_platform, l.ad_shown, l.lead_generated_at
+                   l.lead_source, l.lead_source_platform, l.ad_shown, l.lead_generated_at,
+                   l.occasion, l.lead_highlights, l.past_customer_note, l.child_names
             FROM leads l
             JOIN lead_sales_playbook p ON p.lead_id = l.lead_id
             WHERE {where}
@@ -973,6 +1073,11 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
             "ad_shown": d.get("ad_shown"),
             "lead_generated_at": _to_ist_str(d.get("lead_generated_at")),
             "lead_generated_at_ts": _to_ts_ms(d.get("lead_generated_at")),
+            # 2026-10-12 — WSR Repeat (past store customer) leads.
+            "occasion": d.get("occasion"),
+            "lead_highlights": d.get("lead_highlights"),
+            "past_customer_note": d.get("past_customer_note"),
+            "child_name": d.get("child_names"),
         })
     return {"sheets": out}
 
