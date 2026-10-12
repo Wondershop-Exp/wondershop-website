@@ -90,6 +90,13 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
     # (set under each service on the booking), not its list price.
     items = [(i["label"], float(i["quote"] if i.get("quote") is not None else (i["amount"] or 0)))
              for i in (P.get("items") or [])]
+    _mrp_by_label = {i["label"]: float(i["amount"] or 0) for i in (P.get("items") or [])}
+
+    def _strike(lines, label, amt):
+        """List price struck through next to the sales quote (2026-10-12)."""
+        m = _mrp_by_label.get(label)
+        if m is not None and lines and amt is not None and amt < m - 0.005:
+            lines[-1]["strike"] = m
     extras = [(i["label"], float(i["amount"] or 0)) for i in (P.get("extra_items") or [])]
     gift_items = [(i["label"], float(i["amount"] or 0)) for i in (P.get("gift_items") or [])]
     unpriced = list(P.get("unpriced") or [])
@@ -133,6 +140,7 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
             if res.get("reference"):
                 det.append(cat.DECOR_REFERENCE_NOTE)
         lines.append({"name": name, "details": det, "image": res["image_path"] if res else None, "price": amt})
+        _strike(lines, label, amt)
     for u in take_unpriced("Decor"):
         lines.append({"name": after(u), "details": [], "image": None, "price": None, "price_text": "To be confirmed"})
     add("Decor", lines)
@@ -149,10 +157,14 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         if m:
             name = m.group(1)
             n_kids = int(m.group(2))
-            det.append(f"{n_kids} kids × {inr(round(amt / n_kids, 2) if n_kids else 0)} per child")
+            unit_q = round(amt / n_kids, 2) if n_kids else 0
+            unit_l = float(m.group(3).replace(',', ''))
+            det.append(f"{n_kids} kids × ~~{inr(unit_l)}~~ {inr(unit_q)} per child" if unit_q < unit_l - 0.005
+                       else f"{n_kids} kids × {inr(unit_q)} per child")
         note = cat.activity_venue_note(None, name)
         lines.append({"name": name, "details": det + ([note] if note else []),
                       "image": custom_photo.get(name) or cat.resolve_activity_image(None, name), "price": amt})
+        _strike(lines, label, amt)
     for u in take_unpriced("Activity"):
         name = after(u)
         note = cat.activity_venue_note(None, name)
@@ -175,6 +187,8 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         if included:
             ln["price_text"] = "Included"
         lines.append(ln)
+        if not included:
+            _strike(lines, label, amt)
     for u in take_unpriced("Host"):
         lines.append({"name": after(u), "details": [], "image": None, "price": None, "price_text": "To be confirmed"})
     add("Host", lines)
@@ -184,6 +198,7 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
     for label, amt in take("Music:"):
         tier = after(label)
         lines.append({"name": MUSIC_LABELS.get(tier, tier), "details": [], "image": cat.MUSIC_IMAGES.get(tier), "price": amt})
+        _strike(lines, label, amt)
     for label, amt in take("Music lights") + take("Smoke machine"):
         lines.append({"name": f"Add-on: {label}", "details": [], "image": None, "price": amt})
     add("Music", lines)
@@ -193,6 +208,7 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
     for label, amt in take("Piñata"):
         name = after(label)
         lines.append({"name": name, "details": [], "image": cat.resolve_pinata_image(cat.PINATA_NAME_TO_ID.get(name)), "price": amt})
+        _strike(lines, label, amt)
     for u in take_unpriced("Piñata"):
         lines.append({"name": after(u), "details": [], "image": None, "price": None, "price_text": "To be confirmed"})
     add("Pinata", lines)
@@ -203,12 +219,14 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         tier = after(label)
         lines.append({"name": f"{tier} Photography", "details": [" · ".join(cat.PHOTO_TIER_FEATURES.get(tier, []))],
                       "image": cat.PHOTO_IMAGES.get(tier), "price": amt})
+        _strike(lines, label, amt)
     add("Photographer", lines)
 
     # 6b. Cake (sales-module only, 2026-10-07)
     lines = []
     for label, amt in take("Cake"):
         lines.append({"name": "Cake", "details": [after(label)], "image": "img/checklist-cake.jpg", "price": amt})
+        _strike(lines, label, amt)
     for u in take_unpriced("Cake"):
         lines.append({"name": "Cake", "details": [after(u)], "image": "img/checklist-cake.jpg",
                       "price": None, "price_text": "To be confirmed"})
@@ -221,6 +239,7 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         name = after(label)
         lines.append({"name": name if name.lower().startswith(("save", "video")) else f"{name} E-Invite",
                       "details": [], "image": None, "price": amt})
+        _strike(lines, label, amt)
     for u in take_unpriced("E-Invite"):
         lines.append({"name": after(u), "details": [], "image": None, "price": None, "price_text": "To be confirmed"})
     add("E-Invite", lines)
