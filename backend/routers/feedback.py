@@ -282,6 +282,7 @@ async def public_feedback(token: str):
     from catalogue_data import greeting_name
     return {
         "child_name": _first(lead["child_names"]),
+        "client_name": (lead["parent_name"] or "").strip(),
         "client_first_name": greeting_name(lead["parent_name"]) if lead["parent_name"] else "",
         "event_date": lead["event_date"].strftime("%d %b %Y").lstrip("0") if lead["event_date"] else None,
         "categories": cats,
