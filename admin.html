@@ -1688,7 +1688,13 @@ function drawTeamBlock(d){
   const block = document.getElementById('teamBlock'); if(!block) return;
   const total = TEAM.reduce((t,r)=>t+(Number(r.amount)||0),0);
   const paid = TEAM.reduce((t,r)=>t+((r.paid_via||'Pending')!=='Pending'?(Number(r.amount)||0):0),0);
-  const gt = Number(String((_billField('bill_grand_total')||{}).customer_choice||'').replace(/[^\d.]/g,''))||0;
+  const _m = k => Number(String((_billField(k)||{}).customer_choice||'').replace(/[^\d.]/g,''))||0;
+  // 2026-10-12, per Shruti: once the final payment is in, use what the client actually
+  // paid (advance + event-day payment), not the agreed Grand Total.
+  const finalPaid = _billField('event_payment_confirmed_amount');
+  const received = (finalPaid && !finalPaid.removed && String(finalPaid.customer_choice||'').trim()!=='') ? _m('bill_advance') + _m('event_payment_confirmed_amount') : 0;
+  const gt = received || _m('bill_grand_total');
+  const gtLabel = received ? 'Amount received' : 'Grand Total';
   block.innerHTML = '<datalist id="teamJobsList">'+teamJobOptions(d).map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist>'
     + '<datalist id="teamCatsList">'+TEAM_CATS.map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist>'
     + '<div style="font-size:12.5px;color:var(--gy);margin-bottom:8px">Every cost for this event — partners (pick from the partners list), volunteers per activity or station, and anything else like transport, printing or materials. One row per payment. Not visible to the sales team.</div>'
@@ -1698,7 +1704,7 @@ function drawTeamBlock(d){
     + (TEAM.length ? '' : '<div style="font-size:12.5px;color:var(--gy);padding:6px 0">Nothing added yet.</div>')
     + '<div class="team-sum"><span>Total expenses: <b>'+_inr(total)+'</b></span>'
     + '<span style="color:#166534">Paid: <b>'+_inr(paid)+'</b></span><span style="color:#B4232C">Pending: <b>'+_inr(total-paid)+'</b></span>'
-    + (gt ? '<span>Grand Total '+_inr(gt)+' − expenses = <b>'+_inr(gt-total)+'</b></span>' : '') + '</div>'
+    + (gt ? '<span>'+gtLabel+' '+_inr(gt)+' − expenses = <b>'+_inr(gt-total)+'</b></span>' : '') + '</div>'
     + '<div class="fb-btns"><button class="fb-btn gh" onclick="teamAdd()">+ Add row</button>'
     + '<select class="fb-btn gh" style="padding-right:30px" onchange="teamAddStations(this.value);this.value=\'\'"><option value="">+ Add spy stations…</option>'+[4,5,6,7,8].map(n=>'<option value="'+n+'">'+n+' stations</option>').join('')+'</select>'
     + '<button class="fb-btn pk" onclick="saveTeam(this)">Save</button></div>';
