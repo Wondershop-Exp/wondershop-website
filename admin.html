@@ -630,6 +630,21 @@ body.role-sales .admin-only{display:none!important}
 .sugg-item{font-size:12.5px;background:#FFF7EC;border:1px solid #F3DFB0;color:#8A6A1E;border-radius:9px;padding:8px 11px}
 .sugg-item b{color:#5C4610}
 .disc-edit .pct-wrap{max-width:220px}
+.lq-wide{grid-column:1 / -1}
+.aq-wrap{display:flex;flex-direction:column;gap:10px}
+.aq-card{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 16px;background:var(--li3);border:1px solid var(--li2);border-radius:14px;padding:14px 18px}
+.aq-name{flex:1 1 220px;min-width:0;align-self:center}
+.aq-name div{font-size:15px;font-weight:600}
+.aq-name small{display:block;font-size:12.5px;color:var(--gy);margin-top:3px}
+.aq-name .neg{color:#B42318;font-weight:700}
+.aq-f{display:flex;flex-direction:column;gap:4px}
+.aq-f label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.35px;color:var(--gy)}
+.aq-f input,.aq-ro{width:120px!important;padding:9px 12px!important;border:1px solid var(--li2)!important;border-radius:10px!important;background:#fff!important;font:inherit;font-size:14px;min-height:0!important;display:inline-block}
+.aq-ro{background:transparent!important;border-color:transparent!important;padding-left:0!important}
+.aq-x{color:var(--gy);font-weight:700;padding-bottom:10px}
+.aq-tot{font-weight:700;color:#6B4FA0;font-size:15px;padding-bottom:9px;min-width:90px}
+.aq-sum{font-size:13px;color:var(--gy)}
+.aq-sum b{color:var(--bk)}
 .lq-strip{display:flex;flex-direction:column;gap:6px;margin-top:10px}
 .lq-line{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:12.5px;color:var(--gy);background:var(--li3);border-radius:8px;padding:7px 10px}
 .lq-line b{color:var(--bk)}
@@ -4623,8 +4638,30 @@ function _lqQtyUnit(label, amount){
   const m = String(label||'').match(/\((\d+)\s*kids?\s*×\s*₹\s*([\d,]+(?:\.\d+)?)\)/);
   return m ? {qty:Number(m[1]), unit:Number(m[2].replace(/,/g,''))} : {qty:1, unit:Number(amount||0)};
 }
+// Activities: one card per priced activity, laid out like the sales panel
+// (name + list price, KIDS × SALES QUOTE ₹/CHILD = total), full row width.
+function actQuoteCardsHtml(locked){
+  if(!CURRENT_DETAIL || !CURRENT_DETAIL.is_booking) return '';
+  const items = _lqItems('svc_activities');
+  if(!items.length) return '';
+  let tot = 0;
+  const cards = items.map(i=>{
+    const m = Number(i.amount||0), q = Number(i.quote==null?m:i.quote); tot += q;
+    const qu = _lqQtyUnit(i.label, m), perKid = qu.qty > 1;
+    const name = String(i.label).replace(/^Activity:\s*/,'').replace(/\s*\(.*$/,'');
+    const qVal = perKid ? Math.round(q/qu.qty*100)/100 : q;
+    const inp = locked ? '<span class="aq-ro">'+_inr(qVal)+'</span>'
+      : '<input type="number" min="0" step="1" value="'+qVal+'" data-k="'+esc(i.key)+'" data-q="'+qu.qty+'" data-pk="'+(perKid?1:0)+'" data-old="'+qVal+'" onblur="saveOneQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()">';
+    return '<div class="aq-card"><div class="aq-name"><div>'+esc(name)+'</div><small>'+(perKid?'Per child · list price '+_inr(qu.unit)+'/child':'Flat · list price '+_inr(m))+(q<m?' · <span class="neg">−'+_inr(m-q)+'</span>':'')+'</small></div>'
+      + (perKid ? '<div class="aq-f"><label>Kids</label><span class="aq-ro">'+qu.qty+'</span></div><span class="aq-x">×</span>' : '')
+      + '<div class="aq-f"><label>Sales quote ₹'+(perKid?'/child':'')+'</label>'+inp+'</div>'
+      + '<div class="aq-tot">= '+_inr(q)+'</div></div>';
+  }).join('');
+  return '<div class="aq-wrap">'+cards+'<div class="aq-sum">Activities total (sales quote): <b>'+_inr(tot)+'</b></div></div>';
+}
 function quoteStripHtml(f, locked){
   if(!CURRENT_DETAIL || !CURRENT_DETAIL.is_booking) return '';
+  if(f.field_key==='svc_activities') return '';
   const items = _lqItems(f.field_key);
   if(!items.length) return '';
   return '<div class="lq-strip">' + items.map(i=>{
@@ -4663,7 +4700,9 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(f.field_key==='bill_line_quotes') return '';
   if(f.field_key==='bill_discount_type') return discountRowHtml(f, locked);
   if(f.field_key==='svc_activities' && !f._withReq){
-    return fieldRowHtml(Object.assign({}, f, {_withReq:true}), isCustEvent, locked) + salesActivityRequestsRow();
+    const base = fieldRowHtml(Object.assign({}, f, {_withReq:true}), isCustEvent, locked);
+    const cards = actQuoteCardsHtml(locked);
+    return (cards ? base.replace(/<\/tr>\s*$/, '<td class="lq-wide">'+cards+'</td></tr>') : base) + salesActivityRequestsRow();
   }
   const rid = 'fld_'+f.field_key;
   const noPartner = !isCustEvent && NO_PARTNER_SECTIONS.includes(CUR_SEC);   // 2026-10-12
