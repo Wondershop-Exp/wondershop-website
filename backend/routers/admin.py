@@ -3021,7 +3021,7 @@ async def sync_all_to_sheet(x_admin_password: Optional[str] = Header(None)):
 # ─── TO BE CONFIRMED (2026-10-03, per Shruti) ───────────────────────────────
 class TbcUpdateRequest(ChangedByRequest):
     key: str
-    status: str = "confirmed"           # "confirmed" | "pending"
+    status: str = "confirmed"           # "confirmed" | "pending" | "removed" (custom activities only)
     price: Optional[float] = None       # confirmed price (added to Total MRP); None = no price
     note: Optional[str] = None
 
@@ -3032,7 +3032,7 @@ async def update_tbc_item(lead_id: int, body: TbcUpdateRequest, x_admin_password
     who = (body.changed_by or "").strip()
     if not who:
         raise HTTPException(status_code=400, detail="changed_by is required.")
-    if body.status not in ("confirmed", "pending"):
+    if body.status not in ("confirmed", "pending", "removed"):
         raise HTTPException(status_code=400, detail="Unknown status.")
     if body.price is not None and body.price < 0:
         raise HTTPException(status_code=400, detail="The price can't be negative.")
@@ -3046,9 +3046,16 @@ async def update_tbc_item(lead_id: int, body: TbcUpdateRequest, x_admin_password
     state = tbc_state(dict(lead_row))
     now = datetime.utcnow()
     keep = {k: v for k, v in (state.get(body.key) or {}).items() if k in ("custom", "name", "photo")}   # custom activity
-    state[body.key] = {**keep, "status": body.status, "price": body.price,
-                       "note": (body.note or "").strip() or None,
-                       "by": who, "at": _to_ist_str(now)}
+    if body.status == "removed":
+        # 2026-10-12, per Shruti — drop a custom activity (e.g. once it's in
+        # the catalogue and added as a real activity). Kept, flagged removed.
+        if item.get("kind") != "custom":
+            raise HTTPException(status_code=400, detail="Only custom activities can be removed here.")
+        state[body.key] = {**keep, "removed": True, "status": "removed", "by": who, "at": _to_ist_str(now)}
+    else:
+        state[body.key] = {**keep, "status": body.status, "price": body.price,
+                           "note": (body.note or "").strip() or None,
+                           "by": who, "at": _to_ist_str(now)}
     try:
         await database.execute(
             "UPDATE leads SET tbc_items = CAST(:v AS JSONB) WHERE lead_id = :id",
@@ -3057,9 +3064,9 @@ async def update_tbc_item(lead_id: int, body: TbcUpdateRequest, x_admin_password
     except Exception as e:
         logger.exception(f"Lead #{lead_id}: couldn't save to-be-confirmed item")
         raise HTTPException(status_code=500, detail="Couldn't save — has migration 040 (tbc_items) been run?") from e
-    new_v = ("Confirmed" if body.status == "confirmed" else "Pending") \
+    new_v = ("Removed" if body.status == "removed" else "Confirmed" if body.status == "confirmed" else "Pending") \
         + (f" — ₹{body.price:,.0f}" if body.price is not None else "") \
-        + (f" — {state[body.key]['note']}" if state[body.key]["note"] else "")
+        + (f" — {state[body.key]['note']}" if state[body.key].get("note") else "")
     await database.execute(
         """
         INSERT INTO booking_change_log
