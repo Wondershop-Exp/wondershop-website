@@ -4513,7 +4513,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
       +'<td data-label="Current value"><span class="readonly-cell" style="'+(['event_photos_link','terms_conditions'].includes(f.field_key)?'white-space:pre-line':'')+'">'+(f.field_key==='event_schedule_text'?scheduleReadOnlyHtml(f.customer_choice||''):esc(f.customer_choice||'—'))+'</span></td>'
-      +((noPartner || ['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key)) ? '<td></td>' : '<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>')
+      +((noPartner || ['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','bill_quote_adjustment'].includes(f.field_key)) ? '<td></td>' : '<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>')
       +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
       +'</tr>';
@@ -4635,7 +4635,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     // — readonly (not disabled) so onPincodeInput() can still set .value
     // programmatically and Save still picks it up.
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder||'Auto-fills from pincode')+'" readonly style="background:var(--lgy);cursor:not-allowed">';
-  }else if(['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','venue_handover_time','packup_time','activities_notes','svc_cake_price'].includes(f.field_key)){
+  }else if(['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','venue_handover_time','packup_time','activities_notes','svc_cake_price','bill_quote_adjustment'].includes(f.field_key)){
     avCell = noAssignedCell(rid);
   }else{
     avCell = '<input type="text" id="'+rid+'_av" value="'+esc(avValue)+'" placeholder="'+esc(avPlaceholder)+'">';
@@ -4650,7 +4650,7 @@ function fieldRowHtml(f, isCustEvent, locked){
   return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
     +'<td data-label="Current value">'+ccCell+'</td>'
-    +'<td'+((noPartner || ['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text'].includes(f.field_key))?'':' data-label="'+col3+'"')+'>'+avCell+'</td>'
+    +'<td'+((noPartner || ['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','bill_quote_adjustment'].includes(f.field_key))?'':' data-label="'+col3+'"')+'>'+avCell+'</td>'
     +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
       // 2026-09-24, per Shruti — "i clicked on remove - then it was striked
