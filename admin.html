@@ -1757,19 +1757,18 @@ function drawFeedbackBlock(locked){
   if(!FB.exists){
     h += '<div class="fb-btns"><button class="fb-btn pk" onclick="saveFeedbackSetup()">Create feedback link</button></div>';
   }else{
-    const waMsg = 'Hi'+(FB.client_first_name?' '+FB.client_first_name:'')+'! Thank you for celebrating '+(FB.child_name?FB.child_name+'\u2019s birthday ':'')+'with Wondershop Experiences 💜 We\'d love to hear how it went — it takes a minute: '+FB.url;
-    const phone = String(FB.phone||'').replace(/\D/g,'').replace(/^0+/,'');
-    const waNum = phone.length===10 ? '91'+phone : phone;
+    // 2026-10-12: no wa.me link — the team pastes this into the event's WhatsApp group.
+    const waMsg = 'Hi'+(FB.client_first_name?' '+FB.client_first_name:'')+'! Thank you for celebrating '+(FB.child_name?FB.child_name+'\u2019s birthday ':'')+'with Wondershop Experiences 💜\n\nWe\'d love to hear how it went — it takes a minute and helps us improve our services for more awesome events!\n'+FB.url;
     h += '<div class="fb-btns">'
       + '<button class="fb-btn gh" onclick="saveFeedbackSetup()">Save questions</button>'
-      + '<a class="fb-btn wa" href="https://wa.me/'+waNum+'?text='+encodeURIComponent(waMsg)+'" target="_blank" rel="noopener" onclick="markFeedbackWhatsapp()">WhatsApp</a>'
+      + '<button class="fb-btn wa" onclick="navigator.clipboard.writeText('+attrJson(waMsg)+').then(()=>{showToast(\'WhatsApp message copied — paste it in the event group\');markFeedbackWhatsapp();})">Copy WhatsApp message</button>'
       + '<button class="fb-btn pk" onclick="emailFeedback(this)"'+(FB.email?'':' disabled title="No email on file"')+'>Email</button>'
       + '<button class="fb-btn gh" onclick="navigator.clipboard.writeText('+attrJson(FB.url)+').then(()=>showToast(\'Link copied\'))">Copy link</button>'
       + '<a class="fb-btn gh" href="'+esc(FB.url)+'" target="_blank" rel="noopener">Open ↗</a>'
       + '</div>'
       + '<div class="fb-meta">'+[
           FB.emailed_at ? 'Emailed '+esc(FB.emailed_at) : null,
-          FB.whatsapp_at ? 'WhatsApp opened '+esc(FB.whatsapp_at) : null,
+          FB.whatsapp_at ? 'WhatsApp message copied '+esc(FB.whatsapp_at) : null,
           FB.opened_at ? 'Client opened it '+esc(FB.opened_at) : 'Not opened yet',
           FB.google_clicked_at ? 'Tapped “Post a Google review” '+esc(FB.google_clicked_at) : null,
         ].filter(Boolean).join(' · ')+'</div>';
