@@ -250,7 +250,7 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
 
       <div class="sec-h">Payment Details</div>
       <div class="upd-bank" id="updBank" hidden>✓ We already have your bank details. Leave this section blank unless they have changed.</div>
-      <div class="sec-sub">Upload a cancelled cheque or a bank passbook photo — <strong>or</strong> fill in your bank details manually below. Either one works, we just need one of them so we can pay you correctly.</div>
+      <div class="sec-sub">We need your bank details so we can pay you correctly.</div>
 
       <div class="fld">
         <label>Preferred Payment Mode <span class="opt">(optional)</span></label>
@@ -260,15 +260,6 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
           <option value="cash">Cash</option>
         </select>
       </div>
-
-      <label class="upload-box" id="uploadBox" for="f_cheque">
-        <input type="file" id="f_cheque" accept="image/jpeg,image/png,image/webp,application/pdf">
-        <div class="ic">📄</div>
-        <div class="txt" id="uploadTxt">Tap to upload a cancelled cheque or passbook photo</div>
-      </label>
-      <div class="upload-note">JPG, PNG or PDF, up to 5MB.</div>
-
-      <div class="or-div">or enter manually</div>
 
       <div class="bank-grid">
         <div class="fld">
@@ -289,7 +280,23 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
             <input type="text" id="f_bank_ifsc" style="text-transform:uppercase" maxlength="11">
           </div>
         </div>
+        <div class="fld">
+          <label>Account Type</label>
+          <select id="f_bank_type">
+            <option value="">Select...</option>
+            <option value="Savings">Savings</option>
+            <option value="Current">Current</option>
+          </select>
+        </div>
       </div>
+
+      <div class="fld" style="margin-top:14px"><label>Cancelled cheque or passbook photo <span class="opt">(optional)</span></label></div>
+      <label class="upload-box" id="uploadBox" for="f_cheque">
+        <input type="file" id="f_cheque" accept="image/jpeg,image/png,image/webp,application/pdf">
+        <div class="ic">📄</div>
+        <div class="txt" id="uploadTxt">Tap to upload a cancelled cheque or passbook photo</div>
+      </label>
+      <div class="upload-note">JPG, PNG or PDF, up to 5MB.</div>
 
       <!-- Volunteer T&C (2026-10-10) - filled in by js/volunteer-form.js -->
       <div id="volunteerTnc" hidden></div>
@@ -514,11 +521,13 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   const bankName = document.getElementById('f_bank_name').value.trim();
   const bankAcc = document.getElementById('f_bank_acc').value.trim();
   const bankIfsc = document.getElementById('f_bank_ifsc').value.trim();
-  const hasFullBankDetails = bankHolder && bankName && bankAcc && bankIfsc;
+  const bankType = document.getElementById('f_bank_type').value;
+  const hasFullBankDetails = bankHolder && bankName && bankAcc && bankIfsc && bankType;
   const hasFile = fileInput.files.length > 0;
 
-  if(!hasFullBankDetails && !hasFile && !UPD.hasBank){
-    showErr('Please either upload a cancelled cheque/passbook photo, or fill in all four bank detail fields.');
+  // 2026-10-12, per Shruti: all bank fields are mandatory; the cheque photo is optional.
+  if(!hasFullBankDetails && !UPD.hasBank){
+    showErr('Please fill in all bank details: account holder name, bank name, account number, IFSC code and account type.');
     return;
   }
   if(bankIfsc && bankIfsc.length !== 11){
@@ -579,6 +588,7 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   fd.append('bank_name', bankName);
   fd.append('bank_account_number', bankAcc);
   fd.append('bank_ifsc_code', bankIfsc);
+  fd.append('bank_account_type', bankType);
   if(hasFile) fd.append('cancelled_cheque', fileInput.files[0]);
   if(isDecorator) await WSDecor.appendTo(fd);
   if(isVol) WSVolunteer.appendTo(fd);

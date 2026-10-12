@@ -2691,6 +2691,7 @@ const VENDOR_BANK_FIELDS = [
   {key:'bank_name', label:'Bank Name'},
   {key:'bank_account_number', label:'Account Number'},
   {key:'bank_ifsc_code', label:'IFSC Code'},
+  {key:'bank_account_type', label:'Account Type (Savings / Current)'},
 ];
 
 async function loadVendors(q){
@@ -2773,7 +2774,7 @@ const VENDOR_PENDING_LABELS = {
   whatsapp_number:'WhatsApp number', email:'Email', deals_in:'Deals in', address:'Address', locality:'Locality', city:'City',
   pincode:'Pincode', preferred_payment_mode:'Preferred payment mode', gst_number:'GST number',
   bank_account_holder_name:'Account holder name', bank_name:'Bank name',
-  bank_account_number:'Account number', bank_ifsc_code:'IFSC code'
+  bank_account_number:'Account number', bank_ifsc_code:'IFSC code', bank_account_type:'Account type'
 };
 // Banner(s) at the top of a partner's page: (1) a brand-new form submission
 // or blanks auto-filled on an existing partner, not yet reviewed; (2) details

@@ -86,7 +86,7 @@ _PLAIN_FIELDS = [
     "name", "primary_contact_name", "alternate_mobile", "whatsapp_number", "email",
     "deals_in", "address", "locality", "city", "pincode", "preferred_payment_mode", "gst_number",
 ]
-_BANK_FIELDS = ["bank_account_holder_name", "bank_name", "bank_account_number", "bank_ifsc_code"]
+_BANK_FIELDS = ["bank_account_holder_name", "bank_name", "bank_account_number", "bank_ifsc_code", "bank_account_type"]
 _DIGITS = "right(regexp_replace(COALESCE({c}, ''), '[^0-9]', '', 'g'), 10)"
 
 
@@ -529,7 +529,7 @@ async def lookup_pincode(pin: str):
 # open. how can I ask them to update the missing fields?" Shown in the Partners
 # tab and on the private update link, so both list the same things.
 def _has_bank(row) -> bool:
-    return bool(all((row.get(f) or "").strip() for f in _BANK_FIELDS) or row.get("cancelled_cheque_filename"))
+    return bool(all((row.get(f) or "").strip() for f in _BANK_FIELDS[:4]) or row.get("cancelled_cheque_filename"))
 
 
 def partner_missing(row) -> List[str]:
@@ -654,6 +654,7 @@ async def submit_vendor_onboarding(
     bank_name: Optional[str] = Form(None),
     bank_account_number: Optional[str] = Form(None),
     bank_ifsc_code: Optional[str] = Form(None),
+    bank_account_type: Optional[str] = Form(None),
     preferred_payment_mode: Optional[str] = Form(None),
     gst_number: Optional[str] = Form(None),
     cancelled_cheque: Optional[UploadFile] = File(None),
@@ -718,8 +719,13 @@ async def submit_vendor_onboarding(
         bank_ifsc_code = bank_ifsc_code.upper()
         if not _IFSC_RE.match(bank_ifsc_code):
             raise HTTPException(status_code=400, detail="IFSC code should look like HDFC0001234 (4 letters, a zero, then 6 letters/digits).")
+    bank_account_type = _clean(bank_account_type)
+    if bank_account_type:
+        bank_account_type = bank_account_type.capitalize()
+        if bank_account_type not in ("Savings", "Current"):
+            raise HTTPException(status_code=400, detail="Account type must be Savings or Current.")
     has_full_bank_details = bool(
-        bank_account_holder_name and bank_name and bank_account_number and bank_ifsc_code
+        bank_account_holder_name and bank_name and bank_account_number and bank_ifsc_code and bank_account_type
     )
 
     # Optional — "bank_transfer" or "cash". Originally cash / gpay
@@ -767,10 +773,11 @@ async def submit_vendor_onboarding(
     # either is an acceptable way to capture payment info, but the vendor
     # must give at least one of the two, or there's nothing to pay them
     # against.
-    if not has_full_bank_details and not file_bytes and not (link_row and _has_bank(dict(link_row))):
+    # 2026-10-12, per Shruti: all bank fields are mandatory (the cheque photo is extra, optional).
+    if not has_full_bank_details and not (link_row and _has_bank(dict(link_row))):
         raise HTTPException(
             status_code=400,
-            detail="Please either upload a cancelled cheque/passbook photo, or fill in all four bank account fields.",
+            detail="Please fill in all bank details: account holder name, bank name, account number, IFSC code and account type.",
         )
 
     # Decorator rate card (2026-10-08): checked before anything is written, so a
@@ -814,6 +821,7 @@ async def submit_vendor_onboarding(
         "bank_name": bank_name,
         "bank_account_number": bank_account_number,
         "bank_ifsc_code": bank_ifsc_code,
+        "bank_account_type": bank_account_type,
         "preferred_payment_mode": preferred_payment_mode,
         "gst_number": gst_number,
         "cancelled_cheque_file": file_bytes,
