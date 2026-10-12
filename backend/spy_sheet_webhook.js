@@ -35,7 +35,7 @@ var SPY_HEADERS = [
   // been sending tshirt_size in every payload since, but this script was
   // never updated to receive it, so it was silently dropped on every
   // submission (not recoverable — it was never written anywhere).
-  "Timestamp", "Agent Name", "Agent DOB", "Parent Name", "Parent Phone", "Agent Photo", "T-Shirt Size",
+  "Timestamp", "Agent Name", "Agent DOB", "Parent Name", "Parent Phone", "Agent Photo", "T-Shirt Size", "Marketing Opt-in",
 ];
 
 function doPost(e) {
@@ -97,12 +97,15 @@ function _appendSpyRegistration(d) {
     // every existing tab fixed by hand.
     var lastCol = sheet.getLastColumn();
     var headerRow = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
-    if (headerRow.indexOf("T-Shirt Size") === -1) {
-      sheet.getRange(1, SPY_HEADERS.length)
-           .setValue("T-Shirt Size")
-           .setFontWeight("bold")
-           .setBackground("#6B21A8")
-           .setFontColor("#FFFFFF");
+    // 2026-10-12: also adds "Marketing Opt-in" to older tabs.
+    for (var hc = 0; hc < SPY_HEADERS.length; hc++) {
+      if (headerRow.indexOf(SPY_HEADERS[hc]) === -1) {
+        sheet.getRange(1, hc + 1)
+             .setValue(SPY_HEADERS[hc])
+             .setFontWeight("bold")
+             .setBackground("#6B21A8")
+             .setFontColor("#FFFFFF");
+      }
     }
   }
 
@@ -136,6 +139,7 @@ function _appendSpyRegistration(d) {
     d.parent_phone || "",
     photoLink,
     d.tshirt_size  || "",
+    d.marketing_opt_in ? "Yes" : "No",
   ]);
 
   // The blank starter "Sheet1" tab Google adds to every new spreadsheet
