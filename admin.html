@@ -153,7 +153,7 @@ table.list th.sortable:hover{color:var(--bk)}
 .team-tbl{width:100%;border-collapse:collapse;font-size:13px}
 .team-tbl th{text-align:left;font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;padding:4px 6px}
 .team-tbl td{padding:4px 6px;vertical-align:middle}
-.team-tbl input[type=text],.team-tbl input[type=number],.team-tbl select{width:100%;box-sizing:border-box;padding:7px 8px;border:1px solid var(--li2);border-radius:8px;font:inherit;font-size:13px;background:#fff}
+.team-tbl input[type=text],.team-tbl input[type=number],.team-tbl input[type=date],.team-tbl select{width:100%;box-sizing:border-box;height:36px;padding:7px 8px;border:1px solid var(--li2);border-radius:8px;font:inherit;font-size:13px;background-color:#fff;margin:0}
 .team-tbl tr.paid td{background:#F3FBF5}
 .team-sum{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;margin:10px 0}
 .team-sum b{font-size:14px}
@@ -774,7 +774,7 @@ body.role-sales .admin-only{display:none!important}
          rendered for the sales login (renderTeamBlock) and its API refuses
          the sales password. -->
     <div class="log-section" id="teamSection" style="display:none">
-      <h3>👥 Partners &amp; Expenses <span style="font-size:11px;font-weight:600;color:var(--gy);text-transform:none;letter-spacing:0">admin only</span></h3>
+      <h3>Partners &amp; Expenses <span style="font-size:11px;font-weight:600;color:var(--gy);text-transform:none;letter-spacing:0">admin only</span></h3>
       <div id="teamBlock"></div>
     </div>
     <!-- Post-event feedback (2026-10-12, per Shruti) -->
@@ -1668,10 +1668,10 @@ function teamRowHtml(r, i){
     + '<td><input type="text" class="tm-name" list="vendorNamesList" value="'+esc(r.partner||'')+'" placeholder="Partner / payee"></td>'
     + '<td><input type="text" class="tm-cat" list="teamCatsList" value="'+esc(r.category||'')+'" placeholder="Category"></td>'
     + '<td><input type="text" class="tm-det" list="teamJobsList" value="'+esc(r.details||'')+'" placeholder="Activity / station / what for"></td>'
-    + '<td style="width:132px"><input type="date" class="tm-date" value="'+esc(r.bill_date||'')+'" style="width:100%;box-sizing:border-box;padding:6px 6px;border:1px solid var(--li2);border-radius:8px;font:inherit;font-size:12.5px"></td>'
+    + '<td style="width:136px"><input type="date" class="tm-date" value="'+esc(r.bill_date||'')+'"></td>'
     + '<td style="width:100px"><input type="number" class="tm-amt" min="0" step="1" value="'+(r.amount==null?'':r.amount)+'" placeholder="₹"></td>'
     + '<td style="width:118px"><select class="tm-via" onchange="this.closest(\'tr\').classList.toggle(\'paid\', this.value!==\'Pending\')">'+viaOpts+'</select>'
-    +   (via!=='Pending' && r.paid_at ? '<div style="font-size:10.5px;color:var(--gy)">'+esc(r.paid_at)+'</div>' : '') + '</td>'
+    + '</td>'
     + '<td style="width:30px"><button type="button" class="icon-btn" title="Remove" onclick="teamRemove('+i+')">✕</button></td></tr>';
 }
 function readTeamRows(){
