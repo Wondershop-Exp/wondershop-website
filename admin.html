@@ -3940,9 +3940,6 @@ function mpRowsHtml(rid){
     const totalHtml = (opt && opt.price != null && !opt.flat && MP_KIDS_COUNT)
       ? '<span class="mp-line-total">= '+bdRupees(opt.price * MP_KIDS_COUNT)+' ('+MP_KIDS_COUNT+' kids × '+bdRupees(opt.price)+')</span>' : '';
     let aq = rid==='fld_svc_activities' ? activityQuoteInline(r.v) : '';
-    // Picked but not saved yet (2026-10-12): the quote box needs the saved price.
-    if(rid==='fld_svc_activities' && !aq && r.v && CURRENT_DETAIL && CURRENT_DETAIL.is_booking && opt && opt.price)
-      aq = '<span class="aq-inline"><span class="aq-qlbl" style="font-style:italic">Press Save, then set the quote here</span></span>';
     return '<div class="mp-row">'+sel+qtyHtml+(aq || totalHtml)+'<button type="button" class="mini-btn remove" onclick="mpRemove('+attrJson(rid)+','+i+')">✕</button></div>';
   }).join('');
 }
@@ -3974,6 +3971,21 @@ function mpUpdate(rid, idx, val, qty){
   if(val!==null) row.v = val;
   if(qty!==null) row.q = Math.max(1, parseInt(qty,10)||1);
   mpSync(rid);
+  // Activities: redraw so the newly picked one gets its price box (2026-10-12),
+  // keeping anything already typed in the other boxes.
+  if(rid==='fld_svc_activities' && val!==null){
+    const keep = {};
+    document.querySelectorAll('#'+rid+'_mprows .aq-inline').forEach(w=>{
+      const k = w.querySelector('.aq-kids'), pr = w.querySelector('.aq-price');
+      keep[w.dataset.k] = {k: k && k.value, p: pr && pr.value, pending: w.classList.contains('lq-pending')};
+    });
+    mpRerender(rid);
+    document.querySelectorAll('#'+rid+'_mprows .aq-inline').forEach(w=>{
+      const v = keep[w.dataset.k]; if(!v || !v.pending) return;
+      const k = w.querySelector('.aq-kids'), pr = w.querySelector('.aq-price');
+      if(k && v.k) k.value = v.k; if(pr && v.p) pr.value = v.p; pendingActTotal(pr);
+    });
+  }
 }
 
 function mpSync(rid){
@@ -4817,7 +4829,7 @@ function activityQuoteInline(name){
   // Same key as booking_pricing.line_key(): lower-case, anything from " (" dropped.
   const key = 'activity:'+String(name).replace(/\s*\(.*$/,'').trim().toLowerCase();
   const it = _lqItems('svc_activities').find(i => i.key === key);
-  if(!it) return '';
+  if(!it) return pendingActQuoteHtml(name, key);
   const m = Number(it.amount||0), q = Number(it.quote==null?m:it.quote);
   const qu = _lqQtyUnit(it.label, m), perKid = /kids?\s*×/.test(it.label);
   const qVal = perKid ? Math.round(q/Math.max(qu.qty,1)*100)/100 : q;
@@ -4829,6 +4841,41 @@ function activityQuoteInline(name){
     + '<input type="number" min="0" step="1" class="aq-in aq-price" value="'+qVal+'" data-old="'+qVal+'" onblur="saveActQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()">'
     + (perKid ? '<span class="aq-qlbl">/child</span>' : '')
     + '<span class="aq-eq'+(q<m?' neg':'')+'">= '+_inr(q)+'</span></span>';
+}
+// Not saved yet (just picked): the list price from the dropdown, editable,
+// saved together with the row's Save (2026-10-12, per Shruti).
+function pendingActQuoteHtml(name, key){
+  if(CURRENT_DETAIL.locked) return '';
+  const opt = (MP_OPTIONS['fld_svc_activities']||[]).find(o => o.value === name);
+  if(!opt || !opt.price) return '';
+  const perKid = !opt.flat, kids = MP_KIDS_COUNT || 1, unit = Number(opt.price);
+  return '<span class="aq-inline lq-pending" data-k="'+esc(key)+'" data-pk="'+(perKid?1:0)+'">'
+    + (perKid ? '<span class="aq-qlbl">Kids</span><input type="number" min="1" step="1" class="aq-in aq-kids" value="'+kids+'" oninput="pendingActTotal(this)"><span class="aq-qlbl">× ₹</span>'
+              : '<span class="aq-qlbl">₹</span>')
+    + '<input type="number" min="0" step="1" class="aq-in aq-price" value="'+unit+'" oninput="pendingActTotal(this)">'
+    + (perKid ? '<span class="aq-qlbl">/child</span>' : '')
+    + '<span class="aq-eq">= '+_inr(unit*(perKid?kids:1))+'</span></span>';
+}
+function pendingActTotal(el){
+  const w = el.closest('.aq-inline'); if(!w) return;
+  const k = w.querySelector('.aq-kids'), p = w.querySelector('.aq-price');
+  const t = Number(p.value||0) * (k ? Number(k.value||0) : 1);
+  const eq = w.querySelector('.aq-eq'); if(eq) eq.textContent = '= '+_inr(t);
+}
+// Quotes typed before the row was saved: sent right after saveField() saves
+// the value itself, so both land together.
+async function savePendingQuotes(key){
+  const row = document.getElementById('fld_'+key); if(!row) return null;
+  const quotes = {};
+  row.querySelectorAll('.aq-inline.lq-pending').forEach(w=>{
+    const k = w.querySelector('.aq-kids'), p = w.querySelector('.aq-price');
+    const kids = k ? Math.max(1, parseInt(k.value||'1',10)) : 1;
+    quotes[w.dataset.k] = p.value.trim()==='' ? null : Number(p.value) * (w.dataset.pk==='1' ? kids : 1);
+    if(k) quotes['kids:'+w.dataset.k] = kids;
+  });
+  row.querySelectorAll('input.lq-pending').forEach(i=>{ quotes[i.dataset.k] = i.value.trim()==='' ? null : Number(i.value); });
+  if(!Object.keys(quotes).length) return null;
+  return apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/line-quotes', {method:'POST', body: JSON.stringify({quotes, changed_by: getName()})});
 }
 async function saveActQuote(el){
   const wrap = el.closest('.aq-inline'); if(!wrap) return;
@@ -4867,14 +4914,24 @@ function quoteStripHtml(f, locked){
       + (m-q>0 ? '<span class="lq-off">−'+_inr(m-q)+'</span>' : (q>m ? '<span class="lq-off up">+'+_inr(q-m)+'</span>' : '')) + '</div>';
   }).join('') + '</div>';
 }
-// Picking a new value on Decor / Music / etc. (not saved yet): say so in the
-// quote column, since the quote box needs the saved list price (2026-10-12).
+// Picking a value on Decor / Music / etc. shows the quote box at once,
+// pre-filled with that option's list price; it's saved with the row's Save
+// (2026-10-12, per Shruti — "we update both the things together").
+function _optListPrice(sel){
+  const o = sel.options[sel.selectedIndex]; if(!o) return null;
+  const m = String(o.textContent||'').match(/Rs\.?\s*([\d,]+)/i);
+  return m ? Number(m[1].replace(/,/g,'')) : null;
+}
 document.addEventListener('change', e=>{
   const tr = e.target.closest && e.target.closest('tr[data-key]');
   if(!tr || !LQ_FIELD_KEYS[tr.dataset.key] || !e.target.id || !e.target.id.endsWith('_cc')) return;
   const td = tr.children[2]; if(!td) return;
   const old = td.querySelector('.lq-strip'); if(old) old.remove();
-  if(e.target.value) td.insertAdjacentHTML('afterbegin', '<div class="lq-strip"><div class="lq-line"><span style="font-style:italic">Press Save, then set the sales quote here</span></div></div>');
+  const price = e.target.value ? _optListPrice(e.target) : null;
+  if(price == null) return;
+  td.insertAdjacentHTML('afterbegin', '<div class="lq-strip"><div class="lq-line"><span class="lq-q">Sales quote '
+    + '<span class="lq-inp"><span>₹</span><input type="number" min="0" step="1" class="lq-pending" data-k="'+LQ_FIELD_KEYS[tr.dataset.key]+'" value="'+price+'"></span></span>'
+    + '<span style="font-size:11.5px">saved with Save</span></div></div>');
 });
 async function saveOneQuote(el){
   if(el.value === el.dataset.old) return;
@@ -5151,7 +5208,10 @@ async function saveField(key, removedOverride){
         changed_by: who,
       }),
     });
-    showToast(saveResultMessage(result));
+    let qMsg = '';
+    try{ const q = await savePendingQuotes(key); if(q) qMsg = ' · discount now '+_inr(q.discount); }
+    catch(qe){ qMsg = ' · ⚠ sales quote not saved: '+qe.message; }
+    showToast(saveResultMessage(result)+qMsg);
     await loadDetail();
   }catch(e){
     console.error('saveField failed:', e);
