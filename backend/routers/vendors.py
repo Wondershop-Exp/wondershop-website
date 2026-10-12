@@ -286,6 +286,8 @@ async def create_vendor(body: VendorRequest, x_admin_password: Optional[str] = H
     _require_admin(x_admin_password)
     if not body.name.strip():
         raise HTTPException(status_code=400, detail="Vendor name is required.")
+    if not (body.primary_mobile or "").strip():
+        raise HTTPException(status_code=400, detail="Primary mobile is required.")
     values = _values_for_write(body)
     # 2026-09-30, per Shruti: WhatsApp defaults to the mobile number when left blank.
     if not (values.get("whatsapp_number") or "").strip() and values.get("primary_mobile"):
@@ -305,6 +307,8 @@ async def update_vendor(vendor_id: int, body: VendorRequest, x_admin_password: O
     _require_admin(x_admin_password)
     if not body.name.strip():
         raise HTTPException(status_code=400, detail="Vendor name is required.")
+    if not (body.primary_mobile or "").strip():
+        raise HTTPException(status_code=400, detail="Primary mobile is required.")
     existing = await database.fetch_one("SELECT vendor_id FROM vendor_master WHERE vendor_id = :id", {"id": vendor_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Vendor not found.")

@@ -2665,7 +2665,7 @@ let CURRENT_VENDOR = null;   // last loaded partner (keeps the volunteer T&C ver
 const VENDOR_FORM_FIELDS = [
   {key:'name', label:'Partner Name', required:true},
   {key:'primary_contact_name', label:'Contact Name'},
-  {key:'primary_mobile', label:'Primary Mobile'},
+  {key:'primary_mobile', label:'Primary Mobile *'},
   {key:'alternate_mobile', label:'Alternate Mobile', volRequired:true},
   {key:'whatsapp_number', label:'WhatsApp Number'},
   {key:'email', label:'Email'},
@@ -3021,6 +3021,7 @@ async function saveVendor(){
   VENDOR_BANK_FIELDS.forEach(f=>{ body[f.key] = document.getElementById('vf_'+f.key).value.trim(); });
   body.is_active = document.getElementById('vf_is_active').checked;
   if(!body.name){ showToast('Partner name is required.'); return; }
+  if(!String(body.primary_mobile||'').trim()){ showToast('Primary mobile is required.'); return; }
   const volSec = document.getElementById('volSec');
   if(volSec) body.volunteer_profile = collectVolunteerAdmin();
   const volMissing = (volSec || /event volunteer/i.test(body.deals_in)) ? ['alternate_mobile','address'].filter(k=>!body[k]) : [];
