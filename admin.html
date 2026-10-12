@@ -3939,7 +3939,10 @@ function mpRowsHtml(rid){
     const opt = (MP_OPTIONS[rid]||[]).find(o => o.value === r.v);
     const totalHtml = (opt && opt.price != null && !opt.flat && MP_KIDS_COUNT)
       ? '<span class="mp-line-total">= '+bdRupees(opt.price * MP_KIDS_COUNT)+' ('+MP_KIDS_COUNT+' kids × '+bdRupees(opt.price)+')</span>' : '';
-    const aq = rid==='fld_svc_activities' ? activityQuoteInline(r.v) : '';
+    let aq = rid==='fld_svc_activities' ? activityQuoteInline(r.v) : '';
+    // Picked but not saved yet (2026-10-12): the quote box needs the saved price.
+    if(rid==='fld_svc_activities' && !aq && r.v && CURRENT_DETAIL && CURRENT_DETAIL.is_booking && opt && opt.price)
+      aq = '<span class="aq-inline"><span class="aq-qlbl" style="font-style:italic">Press Save, then set the quote here</span></span>';
     return '<div class="mp-row">'+sel+qtyHtml+(aq || totalHtml)+'<button type="button" class="mini-btn remove" onclick="mpRemove('+attrJson(rid)+','+i+')">✕</button></div>';
   }).join('');
 }
