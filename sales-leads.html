@@ -99,9 +99,12 @@ table.list{width:100%;border-collapse:collapse;margin-bottom:20px}
 table.list th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--gy);padding:8px 9px;border-bottom:2px solid var(--li2);white-space:nowrap}
 table.list td{padding:10px 9px;border-bottom:1px solid var(--li2);font-size:13.5px;vertical-align:middle;white-space:nowrap}
 table.list tr:hover td{background:var(--li3)}
-/* 2026-10-12: ID + Client stay put while scrolling sideways */
-#listTable th:nth-child(1),#listTable td:nth-child(1){position:sticky;left:0;z-index:2;width:44px;min-width:44px;max-width:44px;background:var(--wh)}
-#listTable th:nth-child(2),#listTable td:nth-child(2){position:sticky;left:62px;z-index:2;background:var(--wh);box-shadow:6px 0 6px -6px rgba(0,0,0,.18)}
+/* 2026-10-12: ID + Client stay put while scrolling sideways, like Excel's
+   frozen columns. Client's left offset = the ID column's measured width
+   (set by freezeCols()), so nothing shows through between them. */
+#listTable{border-collapse:separate;border-spacing:0}
+#listTable th:nth-child(1),#listTable td:nth-child(1){position:sticky;left:0;z-index:2;background:var(--wh)}
+#listTable th:nth-child(2),#listTable td:nth-child(2){position:sticky;left:var(--c2left,0px);z-index:2;background:var(--wh);border-right:1px solid var(--li2)}
 #listTable tr:hover td:nth-child(1),#listTable tr:hover td:nth-child(2){background:var(--li3)}
 th.th-sort{cursor:pointer;user-select:none}
 th.th-sort:hover{color:var(--pk)}
@@ -797,7 +800,13 @@ function renderListRows(){
       +'</tr>';
   }).join('');
   updateSortHeaders();
+  freezeCols();
 }
+function freezeCols(){
+  const t = document.getElementById('listTable'), th = t && t.querySelector('thead th');
+  if(th) t.style.setProperty('--c2left', th.getBoundingClientRect().width+'px');
+}
+window.addEventListener('resize', freezeCols);
 
 // "+ Register a lead" only opens this question — the lead is created when
 // (and only when) "Yes, register lead" is pressed. "Go back", Esc, or a click
