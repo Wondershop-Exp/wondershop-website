@@ -1047,6 +1047,12 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
         "venue": row.get("venue"), "theme": row.get("theme"),
         "child_ages": row.get("child_ages"), "child_genders": row.get("child_genders"),
         "sales_lead": row.get("event_sales_lead"),
+        # 2026-10-12, per Shruti — Instagram ad leads from AiSensy
+        # (routers/aisensy_webhook.py): source columns + "Instagram" filter.
+        "lead_source": row.get("lead_source"),
+        "lead_source_platform": row.get("lead_source_platform"),
+        "ad_shown": row.get("ad_shown"),
+        "lead_generated_ist": _to_ist_str(row.get("lead_generated_at")),
     } for row in ordered]
     if is_booking and out:
         # Grand Total as on the booking page (live pricing), a few at a time.

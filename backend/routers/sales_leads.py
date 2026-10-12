@@ -283,6 +283,10 @@ LEAD_FIELD_MAP = {
     "client_budget": "client_budget",
     "order_advance": "order_advance",
     "payment_method": "payment_method",
+    # 2026-10-12 — Instagram ad leads (routers/aisensy_webhook.py): "Ad shown"
+    # is filled from AiSensy when it sends the ad's details; editable so the
+    # team can fill it in from AiSensy's Ad Manager when it doesn't.
+    "ad_shown": "ad_shown",
 }
 
 # LEAD_FIELD_MAP keys whose target `leads` column is a real numeric type
@@ -821,6 +825,12 @@ async def _full_detail(lead_row) -> dict:
     out = {
         "lead_id": lead["lead_id"],
         "client_name": lead.get("parent_name"),
+        # 2026-10-12 — where the lead came from (Instagram ads via AiSensy).
+        "lead_source": lead.get("lead_source"),
+        "lead_source_platform": lead.get("lead_source_platform"),
+        "ad_shown": lead.get("ad_shown"),
+        "ad_source_url": lead.get("ad_source_url"),
+        "lead_generated_at": _to_ist_str(lead.get("lead_generated_at")),
         "mobile": lead.get("phone"),
         "child_name": lead.get("child_names"),
         "child_age": lead.get("child_ages"),
@@ -904,7 +914,8 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
         f"""SELECT l.lead_id, l.parent_name, l.phone, l.event_date, l.is_booking, l.status,
                    l.child_ages, l.child_genders, l.client_budget, l.theme, l.venue, l.event_sales_lead,
                    p.id AS playbook_id, p.playbook_stage, p.created_by, p.created_at,
-                   p.updated_by, p.updated_at, p.new_activity_suggestions, p.call_log
+                   p.updated_by, p.updated_at, p.new_activity_suggestions, p.call_log,
+                   l.lead_source, l.lead_source_platform, l.ad_shown, l.lead_generated_at
             FROM leads l
             JOIN lead_sales_playbook p ON p.lead_id = l.lead_id
             WHERE {where}
@@ -956,6 +967,12 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
             "updated_at": _to_ist_str(d.get("updated_at")),
             "updated_at_ts": _to_ts_ms(d.get("updated_at")),
             "pending_activity_suggestions": len(sugg),
+            # 2026-10-12 — Instagram ad leads (AiSensy): source + filter.
+            "lead_source": d.get("lead_source"),
+            "lead_source_platform": d.get("lead_source_platform"),
+            "ad_shown": d.get("ad_shown"),
+            "lead_generated_at": _to_ist_str(d.get("lead_generated_at")),
+            "lead_generated_at_ts": _to_ts_ms(d.get("lead_generated_at")),
         })
     return {"sheets": out}
 

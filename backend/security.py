@@ -48,6 +48,9 @@ PUBLIC_LIMITS = [
     ("POST", "/api/leads/redeem-service", False, 20, 600),
     ("GET", "/api/config/coupons/validate/", True, 30, 600),
     ("POST", "/api/order/start", False, 30, 3600),
+    # AiSensy calls this once per WhatsApp event, all from its own servers —
+    # generous, just a ceiling against a runaway sender (2026-10-12).
+    ("POST", "/api/integrations/aisensy/webhook", False, 5000, 3600),
 ]
 
 # ─── Roles (2026-10-01, per Shruti: "separate out logins for the sales team.

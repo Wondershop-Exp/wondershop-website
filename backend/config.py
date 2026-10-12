@@ -36,6 +36,22 @@ class Settings(BaseSettings):
     # (team still gets the full email) until then.
     AISENSY_TEAM_CAMPAIGN_NAME: str = ""
 
+    # Instagram ad leads from AiSensy (2026-10-12) — routers/aisensy_webhook.py.
+    # AISENSY_WEBHOOK_TOKEN: a long random secret you make up; it goes at the
+    # end of the webhook URL pasted into AiSensy
+    # (.../api/integrations/aisensy/webhook?token=<this>). Blank = the
+    # webhook is switched off and refuses every call.
+    AISENSY_WEBHOOK_TOKEN: str = ""
+    # What every AiSensy webhook lead is tagged with (shown in the Lead
+    # Source / Lead Source Platform columns, and the "Instagram" filter).
+    AISENSY_LEAD_SOURCE: str = "Insta"
+    AISENSY_LEAD_PLATFORM: str = "AISensy"
+    # true = only messages that came from a click on an ad (AiSensy passes
+    # the ad's details along) become leads; false (default) = every NEW
+    # WhatsApp contact does, with "Ad shown" filled in whenever AiSensy
+    # sends it. Known partner (vendor) numbers are always skipped.
+    AISENSY_REQUIRE_AD: bool = False
+
     # Google review link for the post-event feedback page (2026-10-12) —
     # Google Business Profile -> "Ask for reviews" -> copy the link
     # (g.page/r/.../review). Blank = the page hides the Google review step.

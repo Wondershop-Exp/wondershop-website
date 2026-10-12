@@ -238,6 +238,12 @@ table.list.static tr:hover td{background:inherit}
 .pill-row{display:flex;gap:6px}
 .pill{padding:6px 15px;border-radius:20px;border:1px solid var(--li2);background:#fff;font-size:12.5px;font-weight:600;color:var(--gy);cursor:pointer}
 .pill.active{background:var(--plum);border-color:var(--plum);color:#fff}
+/* 2026-10-12 — count of new Instagram leads on the "Instagram leads" filter */
+.pill-bubble{display:none;margin-left:6px;background:var(--pk);color:#fff;font-size:10.5px;font-weight:700;border-radius:20px;min-width:17px;height:17px;line-height:17px;text-align:center;padding:0 5px;vertical-align:1px}
+.pill-bubble.show{display:inline-block}
+.src-cell{font-size:12px;line-height:1.35}
+.src-cell .src-ad{color:var(--gy);font-size:11.5px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src-insta{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;background:#FDECF4;color:#B4236B}
 .legend-row{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--gy);margin-top:10px}
 .legend-item{display:flex;align-items:center;gap:5px}
 .legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
@@ -744,6 +750,7 @@ body.role-sales .admin-only{display:none!important}
         <button class="pill active" data-val="all" onclick="setLeadOriginFilter('all')">All leads</button>
         <button class="pill" data-val="website" onclick="setLeadOriginFilter('website')">🌐 Website</button>
         <button class="pill" data-val="sales" onclick="setLeadOriginFilter('sales')">📞 Sales team</button>
+        <button class="pill" data-val="insta" onclick="setLeadOriginFilter('insta')" title="Leads from Instagram ads, sent in by AiSensy (number in the bubble = still New)">📸 Instagram leads<span class="pill-bubble" id="instaBubble"></span></button>
         <button class="add-field-btn admin-only" style="margin-left:auto" id="sheetSyncBtn" onclick="syncSheetAll()" title="Rewrite every lead/booking row in the Google Sheet (rows also update by themselves after each change)">↻ Sync Google Sheet</button>
         <button class="add-field-btn" onclick="registerSalesLead()">+ Register a lead (sales)</button>
       </div>
@@ -753,6 +760,7 @@ body.role-sales .admin-only{display:none!important}
           <th class="sortable" onclick="toggleSort('lead','event_date')">Event Date<span class="sort-arrow" id="arrow-lead-event_date"></span></th>
           <th>City</th>
           <th>Origin</th>
+          <th>Source</th>
           <th class="sortable" onclick="toggleSort('lead','status')">Status<span class="sort-arrow" id="arrow-lead-status"></span></th>
           <th class="sortable" onclick="toggleSort('lead','created')">Created<span class="sort-arrow" id="arrow-lead-created"></span></th>
           <th class="sortable" onclick="toggleSort('lead','modified')">Modified<span class="sort-arrow" id="arrow-lead-modified"></span></th>
@@ -3210,7 +3218,7 @@ async function saveVendor(){
 // LAST_ROWS caches the last-fetched rows per kind so the origin filter can
 // re-render instantly without refetching.
 let LAST_ROWS = {lead: [], booking: []};
-let LEAD_ORIGIN_FILTER = 'all'; // 'all' | 'website' | 'sales'
+let LEAD_ORIGIN_FILTER = 'all'; // 'all' | 'website' | 'sales' | 'insta'
 
 function setEmptyHint(el){
   const q = ((document.getElementById('searchQ')||{}).value||'').trim();
@@ -3224,17 +3232,36 @@ async function loadTable(kind, q){
   const emptyId = kind==='lead' ? 'leadEmpty' : 'bookingEmpty';
   const bubbleId = kind==='lead' ? 'leadBubble' : 'bookingBubble';
   const body = document.getElementById(bodyId);
-  body.innerHTML = '<tr><td colspan="10" style="padding:16px;color:#6B7280">Loading...</td></tr>';
+  body.innerHTML = '<tr><td colspan="11" style="padding:16px;color:#6B7280">Loading...</td></tr>';
   try{
     const s = SORT_STATE[kind];
     const path = '/api/admin/bookings?kind='+kind+(q?('&q='+encodeURIComponent(q)):'')+'&sort='+s.key+'&dir='+s.dir;
     const d = await apiCall(path);
     LAST_ROWS[kind] = d.rows||[];
     updateBubble(bubbleId, d.new_count||0);
+    if(kind==='lead') updateInstaBubble();
     renderRows(kind);
   }catch(e){
     if(e.message!=='unauthorized') showToast(e.message);
   }
+}
+
+// 2026-10-12, per Shruti — Instagram ad leads that AiSensy sends in
+// (backend routers/aisensy_webhook.py): "Instagram leads" filter + bubble
+// with how many are still New, and a Source column (Insta · AISensy + the
+// ad that was shown).
+function isInstaLead(r){ return ['insta','instagram'].includes(String(r.lead_source||'').trim().toLowerCase()); }
+function updateInstaBubble(){
+  const el = document.getElementById('instaBubble'); if(!el) return;
+  const n = (LAST_ROWS.lead||[]).filter(r=>isInstaLead(r) && r.status==='New').length;
+  el.textContent = n; el.classList.toggle('show', n>0);
+}
+function sourceCellHtml(r){
+  if(!r.lead_source && !r.lead_source_platform) return '—';
+  const src = isInstaLead(r) ? '<span class="src-insta">📸 '+esc(r.lead_source)+'</span>' : esc(r.lead_source||'');
+  const plat = r.lead_source_platform ? ' <span style="color:var(--gy)">· '+esc(r.lead_source_platform)+'</span>' : '';
+  const ad = r.ad_shown ? '<div class="src-ad" title="Ad shown: '+esc(r.ad_shown)+'">Ad: '+esc(r.ad_shown)+'</div>' : '';
+  return '<div class="src-cell">'+src+plat+ad+'</div>';
 }
 
 function originBadgeHtml(origin){
@@ -3249,7 +3276,9 @@ function renderRows(kind){
   const body = document.getElementById(bodyId);
   const empty = document.getElementById(emptyId);
   let rows = LAST_ROWS[kind];
-  if(kind==='lead' && LEAD_ORIGIN_FILTER!=='all'){
+  if(kind==='lead' && LEAD_ORIGIN_FILTER==='insta'){
+    rows = rows.filter(isInstaLead);
+  }else if(kind==='lead' && LEAD_ORIGIN_FILTER!=='all'){
     rows = rows.filter(r => (LEAD_ORIGIN_FILTER==='sales') === (r.origin==='Sales'));
   }
   if(kind==='booking'){ fillBookingFilters(); rows = rows.filter(bookingPassesFilters); updateBookingTotals(rows); }
@@ -3279,6 +3308,7 @@ function renderRows(kind){
       +'<td style="white-space:nowrap">'+fmtEventDate(r.event_date)+'</td>'
       +'<td>'+esc(r.city||'—')+'</td>'
       +'<td>'+originBadgeHtml(r.origin)+'</td>'
+      +'<td>'+sourceCellHtml(r)+'</td>'
       +'<td>'+listStatusCellHtml(r, kind)+(r.tbc_pending?'<span class="tbc-badge" title="Items to be confirmed by ops">⚠ '+r.tbc_pending+' to confirm</span>':'')+'</td>'
       +'<td>'+esc(r.created_on_ist||'')+'</td>'
       +'<td>'+esc(r.modified_on_ist||'')+'</td>'

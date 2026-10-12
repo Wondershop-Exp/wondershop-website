@@ -8,7 +8,7 @@ from security import security_middleware
 import re
 import sheet_sync
 from database import connect_db, disconnect_db
-from routers import catalogue, cart, leads, config, admin, instagram, packaging, vendors, dashboard, sales_leads, vendor_onboarding, spy_registration, decor_refs, feedback, event_team
+from routers import catalogue, cart, leads, config, admin, instagram, packaging, vendors, dashboard, sales_leads, vendor_onboarding, spy_registration, decor_refs, feedback, event_team, aisensy_webhook
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -85,6 +85,8 @@ app.include_router(spy_registration.router, prefix="/api/spy-registration", tags
 app.include_router(decor_refs.router, prefix="/api", tags=["Decor Reference Images"])
 app.include_router(feedback.router, prefix="/api", tags=["Event Feedback"])
 app.include_router(event_team.router, prefix="/api", tags=["Event Team"])
+# 2026-10-12 — Instagram ad leads from AiSensy (webhook) -> Leads.
+app.include_router(aisensy_webhook.router, prefix="/api", tags=["AiSensy Leads"])
 import booking_quote
 app.include_router(booking_quote.router, prefix="/api", tags=["Booking Quotation"])
 
