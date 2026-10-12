@@ -2669,7 +2669,7 @@ const VENDOR_FORM_FIELDS = [
   {key:'alternate_mobile', label:'Alternate Mobile', volRequired:true},
   {key:'whatsapp_number', label:'WhatsApp Number'},
   {key:'email', label:'Email'},
-  {key:'deals_in', label:'Deals In'},
+  {key:'deals_in', label:'Deals In', options:'DEALS'},
   {key:'pincode', label:'Pincode'},
   {key:'locality', label:'Locality'},
   {key:'city', label:'City'},
@@ -2686,12 +2686,12 @@ const VENDOR_FORM_FIELDS = [
 // existing PUT /vendors/{id} also marks the record reviewed (see
 // routers/vendors.py's update_vendor()).
 const VENDOR_BANK_FIELDS = [
-  {key:'preferred_payment_mode', label:'Preferred Payment Mode (bank_transfer / cash)'},
+  {key:'preferred_payment_mode', label:'Preferred Payment Mode', options:[['bank_transfer','Bank Transfer'],['cash','Cash']]},
   {key:'bank_account_holder_name', label:'Account Holder Name'},
   {key:'bank_name', label:'Bank Name'},
   {key:'bank_account_number', label:'Account Number'},
   {key:'bank_ifsc_code', label:'IFSC Code'},
-  {key:'bank_account_type', label:'Account Type (Savings / Current)'},
+  {key:'bank_account_type', label:'Account Type', options:['Savings','Current']},
 ];
 
 async function loadVendors(q){
@@ -2823,10 +2823,21 @@ async function resolveVendorPending(action){
   }
 }
 
+// 2026-10-12: dropdowns in the partner form (same list as vendor-onboarding.html).
+const DEALS_OPTIONS = ['Event Volunteer','Wondershop Team Member','Photographer','Decorator','Baker','Stationery Store',
+  'Personalization Store','Gift Shop','Packaging Store','Art & Craft Store','Host','DJ','Magician','Bubble Show Artist',
+  'Science Show Artist','Puppet Show Artist','Other Entertainer','Others'];
+function vendorSelectHtml(f, raw){
+  let opts = (f.options==='DEALS' ? DEALS_OPTIONS : f.options).map(o=>Array.isArray(o)?o:[o,o]);
+  if(raw && !opts.some(o=>o[0].toLowerCase()===String(raw).toLowerCase())) opts = [[raw, raw+' (old value)']].concat(opts);
+  return '<select id="vf_'+f.key+'"><option value="">Select…</option>'
+    + opts.map(o=>'<option value="'+esc(o[0])+'"'+(String(raw||'').toLowerCase()===o[0].toLowerCase()?' selected':'')+'>'+esc(o[1])+'</option>').join('')
+    + '</select>';
+}
 function renderVendorForm(v){
   const fieldsHtml = VENDOR_FORM_FIELDS.map(f=>{
     const val = esc(v[f.key]||'');
-    const input = f.textarea
+    const input = f.options ? vendorSelectHtml(f, v[f.key]) : f.textarea
       ? '<textarea id="vf_'+f.key+'" rows="2" style="width:220px">'+val+'</textarea>'
       : '<input type="text" id="vf_'+f.key+'" value="'+val+'">';
     return '<div class="fld">'
@@ -2838,7 +2849,7 @@ function renderVendorForm(v){
     const val = esc(v[f.key]||'');
     return '<div class="fld">'
       +'<label>'+esc(f.label)+'</label>'
-      +'<input type="text" id="vf_'+f.key+'" value="'+val+'">'
+      +(f.options ? vendorSelectHtml(f, v[f.key]) : '<input type="text" id="vf_'+f.key+'" value="'+val+'">')
       +'</div>';
   }).join('');
   const activeChecked = v.is_active===false ? '' : 'checked';
