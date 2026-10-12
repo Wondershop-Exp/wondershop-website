@@ -322,6 +322,15 @@ body.role-sales .admin-only{display:none!important}
 .lf-ms-panel .lf-ms-act button{border:0;background:none;color:var(--pk);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;padding:0}
 .lf-total{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;margin:0 0 12px;padding:10px 14px;background:var(--li3);border-radius:10px;font-size:13.5px}
 .lf-total b{font-size:18px}
+/* 2026-10-12 — "Instagram leads" bubble filter (AiSensy ad leads) */
+.src-filter{margin:0 0 12px}
+.src-filter .pill-bubble{display:none;margin-left:6px;background:var(--pk);color:#fff;font-size:10.5px;border-radius:20px;min-width:17px;height:17px;line-height:17px;text-align:center;padding:0 5px}
+.src-filter .pill-bubble.show{display:inline-block}
+.src-filter button.sel .pill-bubble{background:#fff;color:var(--pk)}
+.src-tag{display:inline-block;margin-top:3px;padding:1px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#FDECF4;color:#B4236B;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+.src-box{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 14px;background:#FDF3F8;border:1px solid #F5C3D7;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px}
+.src-box input{padding:8px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px;background:#fff;box-sizing:border-box}
+.src-box .k{display:block;font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}
 .lf-count{font-size:12.5px;color:var(--gy);margin-left:auto}
 </style>
 <style id="ws-no-caret">/* hide stray text cursor on non-editable text (2026-10-03) */body{caret-color:transparent}input,textarea,select,[contenteditable],[contenteditable] *{caret-color:auto}</style><style id="ws-select-arrow">/* every dropdown: own chevron with room from the edge (2026-10-05) */select:not([multiple]):not([size]){-webkit-appearance:none;appearance:none;padding-right:36px;background-repeat:no-repeat;background-position:right 14px center;background-size:10px 6px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}select::-ms-expand{display:none}</style>
@@ -359,20 +368,29 @@ body.role-sales .admin-only{display:none!important}
       <button class="btn bk" onclick="doSearch()">Search</button>
       <button class="btn pk" onclick="startNewLead()" id="newLeadBtn">+ Register a lead</button>
     </div>
+    <!-- 2026-10-12, per Shruti: Instagram ad leads from AiSensy — bubble filter;
+         the number = Instagram leads still New, waiting to be picked up. -->
+    <div class="chip-row src-filter" id="srcFilter">
+      <button type="button" class="sel" data-val="all" onclick="setSrcFilter('all')">All leads</button>
+      <button type="button" data-val="insta" onclick="setSrcFilter('insta')" title="Leads from Instagram ads, sent in by AiSensy">📸 Instagram leads<span class="pill-bubble" id="instaBubble"></span></button>
+    </div>
     <!-- 2026-10-12, per Shruti: list filters (all applied in the browser). -->
     <div class="lf-bar" id="lfBar">
-      <label>Birthday month<select id="lf_month" onchange="renderListRows()"><option value="">All</option></select></label>
-      <label>Sales quote<select id="lf_quote" onchange="renderListRows()">
-        <option value="">All</option><option value="0-20000">Below ₹20k</option><option value="20000-30000">₹20k – 30k</option>
-        <option value="30000-50000">₹30k – 50k</option><option value="30000-">Above ₹30k</option><option value="50000-">Above ₹50k</option>
-        <option value="100000-">Above ₹1 lakh</option><option value="none">Not quoted</option></select></label>
-      <label>Sales lead<select id="lf_lead" onchange="renderListRows()"><option value="">All</option></select></label>
+      <div class="lf-ms"><span class="lf-ms-l">Birthday month</span>
+        <button type="button" class="lf-ms-btn" id="lf_month_btn" onclick="msToggle(event,'lf_month')">All</button>
+        <div class="lf-ms-panel" id="lf_month" hidden onclick="event.stopPropagation()"></div></div>
+      <div class="lf-ms"><span class="lf-ms-l">Sales quote</span>
+        <button type="button" class="lf-ms-btn" id="lf_quote_btn" onclick="msToggle(event,'lf_quote')">All</button>
+        <div class="lf-ms-panel" id="lf_quote" hidden onclick="event.stopPropagation()"></div></div>
+      <div class="lf-ms"><span class="lf-ms-l">Sales lead</span>
+        <button type="button" class="lf-ms-btn" id="lf_lead_btn" onclick="msToggle(event,'lf_lead')">All</button>
+        <div class="lf-ms-panel" id="lf_lead" hidden onclick="event.stopPropagation()"></div></div>
       <div class="lf-ms"><span class="lf-ms-l">Status</span>
-        <button type="button" class="lf-ms-btn" id="lf_status_btn" onclick="toggleStatusPanel(event)">All</button>
+        <button type="button" class="lf-ms-btn" id="lf_status_btn" onclick="msToggle(event,'lf_status')">All</button>
         <div class="lf-ms-panel" id="lf_status" hidden onclick="event.stopPropagation()"></div></div>
-      <label>Age/Gender<select id="lf_ag" onchange="renderListRows()">
-        <option value="">All</option><option value="B">Boys</option><option value="G">Girls</option>
-        <option value="0-4">Age up to 4</option><option value="5-7">Age 5 – 7</option><option value="8-10">Age 8 – 10</option><option value="11-99">Age 11+</option></select></label>
+      <div class="lf-ms"><span class="lf-ms-l">Age/Gender</span>
+        <button type="button" class="lf-ms-btn" id="lf_ag_btn" onclick="msToggle(event,'lf_ag')">All</button>
+        <div class="lf-ms-panel" id="lf_ag" hidden onclick="event.stopPropagation()"></div></div>
 <label class="lf-chk"><input type="checkbox" id="lf_fu" onchange="renderListRows()"> Follow-ups due today</label>
       <button class="linkbtn" onclick="clearListFilters()">Clear filters</button>
       <span class="lf-count" id="lfCount"></span>
@@ -470,6 +488,18 @@ function hasPendingChanges(){
     || PENDING_PATCH.event_schedule !== undefined || PENDING_PATCH.activities !== undefined);
 }
 let LIST_ROWS = [];
+let SRC_FILTER = 'all';   // 'all' | 'insta' — 2026-10-12, Instagram ad leads (AiSensy)
+function isInstaLead(r){ return ['insta','instagram'].includes(String(r.lead_source||'').trim().toLowerCase()); }
+function setSrcFilter(val){
+  SRC_FILTER = val;
+  document.querySelectorAll('#srcFilter button').forEach(b=>b.classList.toggle('sel', b.dataset.val===val));
+  renderListRows();
+}
+function updateInstaBubble(){
+  const el = document.getElementById('instaBubble'); if(!el) return;
+  const n = LIST_ROWS.filter(r=>isInstaLead(r) && !r.is_booking && r.status==='New').length;
+  el.textContent = n; el.classList.toggle('show', n>0);
+}
 let SORT_KEY = 'modified';
 let SORT_DIR = 'desc';
 let LEAD_STATUS_OPTIONS = [];
@@ -735,6 +765,7 @@ async function doSearch(){
     if(!LIST_ROWS.length){ body.innerHTML=''; empty.style.display='block'; return; }
     empty.style.display='none';
     fillListFilters();
+    updateInstaBubble();
     renderListRows();
   }catch(e){
     body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:var(--pk)">'+esc(e.message)+'</td></tr>';
@@ -742,54 +773,63 @@ async function doSearch(){
 }
 const _MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function _todayStr(){ const t=new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
-function _fillSel(id, values){
-  const el = document.getElementById(id); if(!el) return;
-  const cur = el.value;
-  el.innerHTML = '<option value="">All</option>' + values.map(v=>'<option value="'+esc(v[0])+'">'+esc(v[1])+'</option>').join('');
-  if(values.some(v=>v[0]===cur)) el.value = cur;
+const LF_IDS = ['lf_month','lf_quote','lf_lead','lf_status','lf_ag'];
+const LF_QUOTE_OPTS = [['0-20000','Below ₹20k'],['20000-30000','₹20k – 30k'],['30000-50000','₹30k – 50k'],['30000-','Above ₹30k'],['50000-','Above ₹50k'],['100000-','Above ₹1 lakh'],['none','Not quoted']];
+const LF_AG_OPTS = [['B','Boys'],['G','Girls'],['0-4','Age up to 4'],['5-7','Age 5 – 7'],['8-10','Age 8 – 10'],['11-99','Age 11+']];
+// Multi-select checkbox popover (same look as Status). Keeps ticks across refills.
+function msBuild(id, values){
+  const panel = document.getElementById(id); if(!panel) return;
+  const was = new Set(msSel(id));
+  panel.innerHTML = values.map(v=>'<label><input type="checkbox" value="'+esc(v[0])+'" data-l="'+esc(v[1])+'"'+(was.has(v[0])?' checked':'')+' onchange="msChanged(\''+id+'\')"> '+esc(v[1])+'</label>').join('')
+    + '<div class="lf-ms-act"><button type="button" onclick="msAll(\''+id+'\',true)">Select all</button><button type="button" onclick="msAll(\''+id+'\',false)">Clear</button></div>';
+  msBtn(id);
 }
+function msSel(id){ return Array.from(document.querySelectorAll('#'+id+' input:checked')).map(i=>i.value); }
+function msBtn(id){
+  const sel = Array.from(document.querySelectorAll('#'+id+' input:checked')), b = document.getElementById(id+'_btn');
+  if(b) b.textContent = !sel.length ? 'All' : (sel.length===1 ? sel[0].dataset.l : sel.length+' selected');
+}
+function msChanged(id){ msBtn(id); renderListRows(); }
+function msAll(id, on){ document.querySelectorAll('#'+id+' input').forEach(i=>i.checked=on); msChanged(id); }
+function msToggle(e, id){ e.stopPropagation(); LF_IDS.forEach(x=>{ const p=document.getElementById(x); if(p) p.hidden = (x===id) ? !p.hidden : true; }); }
+document.addEventListener('click', ()=>{ LF_IDS.forEach(x=>{ const p=document.getElementById(x); if(p) p.hidden=true; }); });
 function fillListFilters(){
   const months = Array.from(new Set(LIST_ROWS.map(r=>(r.event_date||'').slice(0,7)).filter(Boolean))).sort();
-  _fillSel('lf_month', months.map(m=>[m, _MON[+m.slice(5,7)-1]+' '+m.slice(0,4)]));
+  msBuild('lf_month', months.map(m=>[m, _MON[+m.slice(5,7)-1]+' '+m.slice(0,4)]));
+  msBuild('lf_quote', LF_QUOTE_OPTS);
   const leads = Array.from(new Set(LIST_ROWS.map(r=>(r.sales_lead||'').trim()).filter(Boolean))).sort();
-  _fillSel('lf_lead', leads.map(x=>[x,x]));
+  msBuild('lf_lead', leads.map(x=>[x,x]));
   const sts = Array.from(new Set(LIST_ROWS.map(r=>(r.is_booking?'Booking · ':'')+(r.status||'')).filter(Boolean))).sort();
-  const panel = document.getElementById('lf_status');
-  const was = new Set(Array.from(panel.querySelectorAll('input:checked')).map(i=>i.value));
-  panel.innerHTML = sts.map(x=>'<label><input type="checkbox" value="'+esc(x)+'"'+(was.has(x)?' checked':'')+' onchange="statusChanged()"> '+esc(x)+'</label>').join('')
-    + '<div class="lf-ms-act"><button type="button" onclick="setAllStatus(true)">Select all</button><button type="button" onclick="setAllStatus(false)">Clear</button></div>';
-  updateStatusBtn();
+  msBuild('lf_status', sts.map(x=>[x,x]));
+  msBuild('lf_ag', LF_AG_OPTS);
 }
-function selectedStatuses(){ return Array.from(document.querySelectorAll('#lf_status input:checked')).map(i=>i.value); }
-function updateStatusBtn(){
-  const sel = selectedStatuses(), b = document.getElementById('lf_status_btn');
-  if(b) b.textContent = !sel.length ? 'All' : (sel.length===1 ? sel[0] : sel.length+' selected');
-}
-function statusChanged(){ updateStatusBtn(); renderListRows(); }
-function setAllStatus(on){ document.querySelectorAll('#lf_status input').forEach(i=>i.checked=on); statusChanged(); }
-function toggleStatusPanel(e){ e.stopPropagation(); const p=document.getElementById('lf_status'); p.hidden=!p.hidden; }
-document.addEventListener('click', ()=>{ const p=document.getElementById('lf_status'); if(p) p.hidden=true; });
 function clearListFilters(){
-  document.querySelectorAll('#lf_status input').forEach(i=>i.checked=false); updateStatusBtn();
-  ['lf_month','lf_quote','lf_lead','lf_ag'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  LF_IDS.forEach(id=>{ document.querySelectorAll('#'+id+' input').forEach(i=>i.checked=false); msBtn(id); });
   const fuc = document.getElementById('lf_fu'); if(fuc) fuc.checked = false;
+  SRC_FILTER = 'all'; document.querySelectorAll('#srcFilter button').forEach(b=>b.classList.toggle('sel', b.dataset.val==='all'));
   renderListRows();
 }
+// Within a filter: any ticked option matches (OR). Across filters: all must match (AND).
+// Age/Gender: ticked genders and ticked age bands are checked separately (e.g. Girls + 5–7 = girls aged 5–7).
 function rowPassesFilters(r){
-  const v = id => (document.getElementById(id)||{}).value || '';
-  const m = v('lf_month'); if(m && (r.event_date||'').slice(0,7) !== m) return false;
-  const q = v('lf_quote');
-  if(q){
+  if(SRC_FILTER==='insta' && !isInstaLead(r)) return false;
+  const m = msSel('lf_month'); if(m.length && !m.includes((r.event_date||'').slice(0,7))) return false;
+  const q = msSel('lf_quote');
+  if(q.length){
     const amt = r.revenue_potential;
-    if(q==='none'){ if(amt) return false; }
-    else{ const [lo, hi] = q.split('-'); if(amt==null || amt < +lo || (hi && amt > +hi)) return false; }
+    if(!q.some(x=>{
+      if(x==='none') return !amt;
+      const [lo, hi] = x.split('-'); return amt!=null && amt >= +lo && (!hi || amt <= +hi);
+    })) return false;
   }
-  const sl = v('lf_lead'); if(sl && (r.sales_lead||'').trim() !== sl) return false;
-  const sts = selectedStatuses(); if(sts.length && !sts.includes((r.is_booking?'Booking · ':'')+(r.status||''))) return false;
-  const ag = v('lf_ag');
-  if(ag){
-    if(ag==='B' || ag==='G'){ if(((r.child_gender||'').trim()[0]||'').toUpperCase() !== ag) return false; }
-    else{ const age = parseInt(r.child_age,10), [lo,hi] = ag.split('-').map(Number); if(isNaN(age) || age<lo || age>hi) return false; }
+  const sl = msSel('lf_lead'); if(sl.length && !sl.includes((r.sales_lead||'').trim())) return false;
+  const sts = msSel('lf_status'); if(sts.length && !sts.includes((r.is_booking?'Booking · ':'')+(r.status||''))) return false;
+  const ag = msSel('lf_ag');
+  const gs = ag.filter(x=>x==='B'||x==='G'), ages = ag.filter(x=>x!=='B'&&x!=='G');
+  if(gs.length && !gs.includes(((r.child_gender||'').trim()[0]||'').toUpperCase())) return false;
+  if(ages.length){
+    const age = parseInt(r.child_age,10);
+    if(isNaN(age) || !ages.some(x=>{ const [lo,hi]=x.split('-').map(Number); return age>=lo && age<=hi; })) return false;
   }
   if((document.getElementById('lf_fu')||{}).checked && (r.next_followup||'').slice(0,10) !== _todayStr()) return false;
   return true;
@@ -824,7 +864,9 @@ function renderListRows(){
     const suggPill = r.pending_activity_suggestions>0 ? ' <span class="pill pill-sugg">'+r.pending_activity_suggestions+' idea'+(r.pending_activity_suggestions>1?'s':'')+'</span>' : '';
     return '<tr onclick="openDetail('+r.lead_id+')" style="cursor:pointer">'
       +'<td style="color:var(--gy);font-size:12.5px">#'+r.lead_id+'</td>'
-      +'<td><strong>'+esc(r.client_name||'(no name yet)')+'</strong>'+suggPill+'<br><span style="color:var(--gy);font-size:12px">'+esc(r.mobile||'')+'</span></td>'
+      +'<td><strong>'+esc(r.client_name||'(no name yet)')+'</strong>'+suggPill+'<br><span style="color:var(--gy);font-size:12px">'+esc(r.mobile||'')+'</span>'
+        +(isInstaLead(r) ? '<br><span class="src-tag" title="'+esc('Instagram ad lead via '+(r.lead_source_platform||'AISensy')+(r.lead_generated_at?' · '+r.lead_generated_at:'')+(r.ad_shown?' · Ad: '+r.ad_shown:''))+'">📸 Insta'+(r.ad_shown?' · '+esc(r.ad_shown):'')+'</span>' : '')
+      +'</td>'
       +'<td>'+fmtDateStr(r.event_date)+'</td>'
       +'<td>'+statusCellHtml(r)+'</td>'
       +'<td title="'+esc(r.venue||'')+'">'+esc(localityOf(r.venue)||'—')+'</td>'
@@ -1709,7 +1751,21 @@ function sectionClientDetails(){
     + '</select></div>';
   const tf = (key,label) => '<div class="fld"><label>'+label+'</label>'
     + timeSelectHtml('id="f_'+key+'" onchange="saveField(\''+key+'\', this.value)"', d[key]) + '</div>';
+  // 2026-10-12 — Instagram ad leads from AiSensy: where it came from. Lead
+  // source / platform / generated time are set by the webhook; Ad shown can
+  // be filled in or corrected (e.g. from AiSensy's Ad Manager).
+  const srcBox = (d.lead_source_platform || isInstaLead(d))
+    ? '<div class="src-box">'
+      + '<div><span class="k">Lead generated</span>'+esc(d.lead_generated_at||d.created_at||'—')+'</div>'
+      + '<div><span class="k">Lead source</span>📸 '+esc(d.lead_source||'—')+'</div>'
+      + '<div><span class="k">Lead source platform</span>'+esc(d.lead_source_platform||'—')+'</div>'
+      + '<div style="grid-column:1/-1"><span class="k">Ad shown</span>'
+      +   '<input type="text" id="f_ad_shown" value="'+esc(d.ad_shown==null?'':d.ad_shown)+'" placeholder="Not sent by AiSensy — copy the ad name from AiSensy Ad Manager" onblur="saveField(\'ad_shown\', this.value, this.type)" style="width:100%">'
+      +   (/^https?:\/\//i.test(d.ad_source_url||'') ? ' <a href="'+esc(d.ad_source_url)+'" target="_blank" rel="noopener" style="font-size:12px">Open ad ↗</a>' : '')
+      + '</div></div>'
+    : '';
   return '<div class="card"><h3>1 · Client &amp; Event Details</h3>'
+    + srcBox
     + '<div class="grid2">' + f('client_name','Client Name','text') + f('mobile','Mobile No.','tel') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('email','Email','email','placeholder="name@example.com"') + salesLeadField() + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('child_name',"Child's Name",'text') + f('child_age','Celebrating Age','text') + '</div>'
