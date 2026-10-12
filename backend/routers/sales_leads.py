@@ -110,6 +110,7 @@ VENUE_TYPES = [
     {"value": "Club", "label": "Club / Resort"},
     {"value": "Restaurant", "label": "Restaurant"},
     {"value": "Turf", "label": "Turf"},
+    {"value": "Play Area", "label": "Play Area"},   # 2026-10-12, per Shruti
     {"value": "Other", "label": "Other"},
     {"value": "Not Decided", "label": "Not Decided Yet"},
 ]
