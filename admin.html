@@ -630,24 +630,23 @@ body.role-sales .admin-only{display:none!important}
 .sugg-item{font-size:12.5px;background:#FFF7EC;border:1px solid #F3DFB0;color:#8A6A1E;border-radius:9px;padding:8px 11px}
 .sugg-item b{color:#5C4610}
 .disc-edit .pct-wrap{max-width:220px}
-.lq-box{border:1px solid var(--li2);border-radius:12px;padding:12px 14px;background:#fff}
-.lq-hd{font-weight:700;font-size:14px;margin-bottom:8px}
-.lq-hd small{display:block;font-weight:400;font-size:12px;color:var(--gy);margin-top:2px}
-.lq-tbl{width:100%;border-collapse:collapse;font-size:13px}
-.lq-box table.lq-tbl{display:table!important;width:100%!important}
-.lq-box .lq-tbl thead{display:table-header-group!important}
-.lq-box .lq-tbl tbody{display:table-row-group!important}
-.lq-box .lq-tbl tfoot{display:table-footer-group!important}
-.lq-box .lq-tbl tr{display:table-row!important;border:0!important;padding:0!important;margin:0!important;background:none!important}
-.lq-box .lq-tbl th,.lq-box .lq-tbl td{display:table-cell!important;width:auto!important;vertical-align:middle!important}
-.lq-box .lq-tbl td::before{content:none!important;display:none!important}
-.lq-tbl th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);padding:6px 8px;border-bottom:1px solid var(--li2)}
-.lq-tbl td{padding:6px 8px;border-bottom:1px solid #F1EEF8}
-.lq-tbl .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-.lq-tbl td.neg{color:#B42318}
-.lq-tbl tfoot td{font-weight:700;border-bottom:0}
-.lq-tbl .lq-other td{color:var(--gy);font-style:italic}
-.lq-box input.lq-in{width:120px!important;max-width:120px!important;display:inline-block!important;min-height:0!important;text-align:right;padding:5px 8px;border:1px solid var(--li2);border-radius:7px;font:inherit}
+.gt-breakup{margin:4px 0 0;border:1px solid var(--li2);border-radius:8px;padding:6px 12px 8px;background:#fff;overflow-x:auto;max-width:720px}
+.gt-breakup .gb-hd{font-size:12px;font-weight:700;color:#6B4FA0;padding:6px 0 2px}
+.gt-breakup .lq-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.gt-breakup table{display:table!important;width:100%!important;border-collapse:collapse;font-size:12.5px;color:var(--bk)}
+.gt-breakup thead{display:table-header-group!important}.gt-breakup tbody{display:table-row-group!important}.gt-breakup tfoot{display:table-footer-group!important}
+.gt-breakup tr{display:table-row!important;border:0!important;padding:0!important;margin:0!important;background:none!important}
+.gt-breakup th,.gt-breakup td{display:table-cell!important;width:auto!important}
+.gt-breakup td::before{content:none!important;display:none!important}
+.gt-breakup th{font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;text-align:right;padding:6px 0 6px 12px;border-bottom:1px solid var(--li2)}
+.gt-breakup th:first-child,.gt-breakup td:first-child{text-align:left!important;padding-left:0}
+.gt-breakup td{padding:5px 0 5px 12px!important;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;border:0}
+.gt-breakup td:first-child{white-space:normal}
+.gt-breakup td.neg{color:#B42318}
+.gt-breakup tfoot td{border-top:1px solid var(--li2);padding-top:7px;font-weight:700}
+.gt-breakup .lq-other td{color:var(--gy);font-style:italic}
+.gt-breakup .lq-note{font-size:11.5px;color:var(--gy);margin-top:6px}
+.gt-breakup input.lq-in{width:110px!important;max-width:110px!important;display:inline-block!important;min-height:0!important;text-align:right;padding:3px 7px;border:1px solid var(--li2);border-radius:6px;font:inherit}
 </style>
 <style id="ws-no-caret">/* hide stray text cursor on non-editable text (2026-10-03) */body{caret-color:transparent}input,textarea,select,[contenteditable],[contenteditable] *{caret-color:auto}</style><style id="ws-select-arrow">/* every dropdown: own chevron with room from the edge (2026-10-05) */select:not([multiple]):not([size]){-webkit-appearance:none;appearance:none;padding-right:36px;background-repeat:no-repeat;background-position:right 14px center;background-size:10px 6px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}select::-ms-expand{display:none}</style>
 </head>
@@ -4542,40 +4541,47 @@ async function saveEinviteCard(){
 // MRP and the agreed sales quote. Saving sets the total discount to the
 // line-wise gap (Grand Total = sum of quotes + fees). Any discount on top
 // that isn't split by item shows as "Other discount".
+let LQ_EDIT = false;
 function lineQuotesRowHtml(locked){
   const P = (CURRENT_DETAIL && CURRENT_DETAIL.pricing) || null;
   if(!P || !(P.items||[]).length) return '';
-  const items = P.items;
+  const items = P.items, edit = LQ_EDIT && !locked;
   const mrp = items.reduce((t,i)=>t+Number(i.amount||0),0);
   const qt = items.reduce((t,i)=>t+Number(i.quote==null?i.amount:i.quote),0);
   const lineDisc = Math.round((mrp-qt)*100)/100;
-  const other = Math.round((Number(P.discount_amt||0) - Math.max(0,lineDisc) - Math.max(0,-lineDisc)*0)*100)/100;
+  const other = Math.round((Number(P.discount_amt||0) - Math.max(0,lineDisc))*100)/100;
   const otherAdj = Math.round((Number(P.quote_adjustment||0) - Math.max(0,-lineDisc))*100)/100;
-  const rows = items.map((i,idx)=>{
+  const rows = items.map(i=>{
     const q = Number(i.quote==null?i.amount:i.quote), m = Number(i.amount||0);
-    const cell = locked ? _inr(q)
-      : '<input type="number" min="0" step="1" class="lq-in" data-k="'+esc(i.key)+'" data-m="'+m+'" value="'+q+'" oninput="lineQuotesPreview()">';
-    return '<tr><td>'+esc(i.label)+'</td><td class="num">'+_inr(m)+'</td><td class="num'+(q<m?' neg':'')+'">'+cell+'</td><td class="num lq-d" data-i="'+idx+'">'+(m-q ? _inr(m-q) : '—')+'</td></tr>';
+    const cell = edit ? '<input type="number" min="0" step="1" class="lq-in" data-k="'+esc(i.key)+'" data-m="'+m+'" value="'+q+'" oninput="lineQuotesPreview()">' : _inr(q);
+    return '<tr><td>'+esc(i.label)+'</td><td>'+_inr(m)+'</td><td'+(q<m?' class="neg"':'')+'>'+cell+'</td></tr>';
   }).join('');
-  const otherRow = Math.abs(other) >= 1 ? '<tr class="lq-other"><td>Other discount (not split by item)</td><td></td><td></td><td class="num">'+_inr(other)+'</td></tr>' : '';
-  const adjRow = Math.abs(otherAdj) >= 1 ? '<tr class="lq-other"><td>Above list price (internal, not split by item)</td><td></td><td></td><td class="num">+'+_inr(otherAdj)+'</td></tr>' : '';
-  return '<tr data-key="bill_line_quotes"><td colspan="5" style="padding:10px 6px">'
-    + '<div class="lq-box"><div class="lq-hd">Sales quote by item <small>Item-wise split of the discount, like the sales panel. '+(locked?'':'Saving sets the Discount below to the total of these differences.')+'</small></div>'
-    + '<div style="overflow-x:auto"><table class="lq-tbl"><thead><tr><th>Item</th><th class="num">MRP</th><th class="num">Sales quote</th><th class="num">Discount</th></tr></thead><tbody>'
-    + rows + otherRow + adjRow
-    + '</tbody><tfoot><tr><td>Total</td><td class="num">'+_inr(mrp)+'</td><td class="num" id="lqQt">'+_inr(qt)+'</td><td class="num" id="lqDt">'+_inr(lineDisc)+'</td></tr></tfoot></table></div>'
-    + (locked ? '' : '<div class="row-actions" style="margin-top:8px"><button class="mini-btn save" onclick="saveLineQuotes(this)">Save item-wise quote</button></div>')
+  const extra = (Math.abs(other) >= 1 ? '<tr class="lq-other"><td>Other discount (not split by item)</td><td></td><td class="neg">−'+_inr(other)+'</td></tr>' : '')
+    + (Math.abs(otherAdj) >= 1 ? '<tr class="lq-other"><td>Above list price (internal)</td><td></td><td>+'+_inr(otherAdj)+'</td></tr>' : '');
+  const finalQt = qt - Math.max(0,other) + Math.max(0,otherAdj);
+  return '<tr data-key="bill_line_quotes"><td colspan="5" style="padding:8px 6px">'
+    + '<div class="gt-breakup"><div class="lq-top"><span class="gb-hd">Sales quote by item</span>'
+      + (locked ? '' : (edit
+          ? '<span><button class="mini-btn" onclick="LQ_EDIT=false;renderDetailAgain()">Cancel</button> <button class="mini-btn save" onclick="saveLineQuotes(this)">Save</button></span>'
+          : '<button class="mini-btn" onclick="LQ_EDIT=true;renderDetailAgain()">✎ Edit quotes</button>'))
+    + '</div><table><thead><tr><th>Item</th><th>MRP</th><th>Sales quote</th></tr></thead><tbody>'
+    + rows + extra
+    + '</tbody><tfoot><tr><td>Total</td><td>'+_inr(mrp)+'</td><td id="lqQt">'+_inr(edit?qt:finalQt)+'</td></tr></tfoot></table>'
+    + (edit ? '<div class="lq-note">Saving sets the Discount below to the total MRP minus these quotes.</div>' : '')
     + '</div></td></tr>';
+}
+function renderDetailAgain(){
+  const tr = document.querySelector('tr[data-key="bill_line_quotes"]');
+  if(tr && CURRENT_DETAIL) tr.outerHTML = lineQuotesRowHtml(!!CURRENT_DETAIL.locked);
 }
 function lineQuotesPreview(){
   let qt=0, mrp=0;
   document.querySelectorAll('.lq-in').forEach((el,idx)=>{
     const m = Number(el.dataset.m||0), q = el.value===''?m:Number(el.value);
     mrp+=m; qt+=q;
-    const d = el.closest('tr').querySelector('.lq-d'); if(d) d.textContent = (m-q) ? _inr(m-q) : '—';
+    const td = el.closest('td'); if(td) td.classList.toggle('neg', q<m);
   });
-  const a=document.getElementById('lqQt'), b=document.getElementById('lqDt');
-  if(a) a.textContent=_inr(qt); if(b) b.textContent=_inr(mrp-qt);
+  const a=document.getElementById('lqQt'); if(a) a.textContent=_inr(qt);
 }
 async function saveLineQuotes(btn){
   const who = getName();
@@ -4585,6 +4591,7 @@ async function saveLineQuotes(btn){
   btn.disabled = true;
   try{
     const r = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/line-quotes', {method:'POST', body: JSON.stringify({quotes, changed_by: who})});
+    LQ_EDIT = false;
     showToast('✓ Saved — discount set to '+_inr(r.discount)+(r.above_list?' (+'+_inr(r.above_list)+' above list price)':''));
     await loadDetail();
   }catch(e){ if(e.message!=='unauthorized') showToast('Save failed: '+e.message); }
