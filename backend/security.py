@@ -78,7 +78,7 @@ SALES_ALLOWED = [(m, re.compile(p)) for m, p in [
     # Leads, Bookings and Calendar tabs all read this one list endpoint.
     ("GET",  r"/api/admin/bookings"),
     ("GET",  rf"/api/admin/bookings/{_ID}"),
-    ("POST", rf"/api/admin/bookings/{_ID}/(field|status|convert|cancel|invoice/send|summary/send|tbc)"),
+    ("POST", rf"/api/admin/bookings/{_ID}/(field|status|convert|cancel|invoice/send|summary/send|tbc|line-quotes)"),
     # Quotation PDF of a booking (2026-10-06).
     ("GET",  rf"/api/admin/bookings/{_ID}/quotation\.pdf"),
     # Decor reference images on a lead/booking (2026-10-06).

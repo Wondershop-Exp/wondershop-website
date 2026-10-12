@@ -51,7 +51,7 @@ import json
 import logging
 import re
 from datetime import datetime, timedelta, date as date_cls
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
@@ -254,6 +254,9 @@ FIELD_CATALOG = [
     # Total actually uses (see booking_pricing.compute_billing()); the one
     # not selected is just ignored, not cleared, so switching back and
     # forth doesn't lose either number.
+    # 2026-10-12, per Shruti — line-wise sales quote on the booking (JSON
+    # {line key: ₹}); shown as its own table, see booking_pricing.line_key().
+    {"key": "bill_line_quotes",     "label": "Sales quote by item",    "section": "Billing & Rewards", "admin_only": True},
     {"key": "bill_discount_type",   "label": "Discount Type",          "section": "Billing & Rewards"},
     {"key": "bill_discount_pct",    "label": "Discount %",             "section": "Billing & Rewards"},
     {"key": "bill_discount_value",  "label": "Discount Amount (₹)",    "section": "Billing & Rewards", "admin_only": True},
@@ -1432,6 +1435,7 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
                      "discount_amt": pricing["discount_amt"], "extra_items": pricing["extra_items"],
                      "quote_adjustment": pricing.get("quote_adjustment") or 0,
                      "items": pricing["items"], "unpriced": pricing["unpriced"],
+                     "line_quotes_set": pricing.get("line_quotes_set", False),
                      "gifts_separate": pricing.get("gifts_separate"),
                      "gift_items": pricing.get("gift_items"), "gift_total": pricing.get("gift_total")} if pricing else None),
         "gift_order": _gift_order_payload(lead, snap, pricing),
@@ -2431,6 +2435,85 @@ async def _do_convert_lead(lead_id: int, who: str) -> None:
         await _copy_sales_data_to_admin_overrides(lead_id, who)
     except Exception:
         logger.exception(f"Sales-to-admin copy failed for lead #{lead_id} (booking conversion still succeeded)")
+    try:
+        await _copy_sales_line_quotes(lead_id, who)
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: couldn't copy the item-wise sales quote")
+
+
+# ─── Line-wise sales quote on bookings (2026-10-12, per Shruti) ───────────
+_SALES_KEY_TO_LINE = {"decor": "decor", "host": "host", "music": "music", "photographer": "photography",
+                      "einvite_type": "einvite", "save_the_date": "save_the_date", "pinata_type": "pinata"}
+
+
+async def _copy_sales_line_quotes(lead_id: int, who: str) -> None:
+    """Copy the sales panel's per-item quotes onto the booking (bill_line_quotes),
+    keyed like booking_pricing.line_key(). Lines the sales panel doesn't
+    quote stay at their MRP."""
+    from routers.sales_leads import _list_breakdown   # lazy: sales_leads imports from admin
+    pb = await database.fetch_one(
+        "SELECT p.requirements, p.activities, l.kids_count FROM lead_sales_playbook p JOIN leads l ON l.lead_id = p.lead_id "
+        "WHERE p.lead_id = :id", values={"id": lead_id})
+    if not pb:
+        return
+    j = lambda v: (json.loads(v) if isinstance(v, str) else v) if v is not None else None
+    b = _list_breakdown(j(pb["requirements"]) or {}, j(pb["activities"]) or [], pb["kids_count"])
+    out = {}
+    for it in b["items"]:
+        k = it.get("key")
+        if k == "activity":
+            k = "activity:" + str((it.get("activity") or {}).get("name") or it.get("label") or "").strip().lower()
+        elif k == "music_addon":
+            k = str(it.get("label") or "").strip().lower()
+        else:
+            k = _SALES_KEY_TO_LINE.get(k)
+        if k:
+            out[k] = round(out.get(k, 0.0) + float(it.get("quote") or 0), 2)
+    await update_booking_field(lead_id, FieldUpdateRequest(
+        field_key="bill_line_quotes", customer_choice_override=json.dumps(out) if out else "",
+        changed_by=who), settings.ADMIN_PASSWORD)
+
+
+class LineQuotesRequest(BaseModel):
+    quotes: Dict[str, Optional[float]] = {}
+    changed_by: str
+
+
+@router.post("/bookings/{lead_id}/line-quotes")
+async def save_line_quotes(lead_id: int, body: LineQuotesRequest, x_admin_password: Optional[str] = Header(None)):
+    """Save the booking's per-item sales quotes and set the total discount to
+    the line-wise gap: discount = Total MRP − Σ quotes (a total above Total
+    MRP goes to 'Above list price' instead). Grand Total = Σ quotes + fees."""
+    _require_admin(x_admin_password)
+    who = (body.changed_by or "").strip()
+    if not who:
+        raise HTTPException(status_code=400, detail="changed_by is required.")
+    detail = await get_booking_detail(lead_id, x_admin_password)
+    pricing = detail.get("pricing")
+    if not pricing:
+        raise HTTPException(status_code=400, detail="This booking has no priced items yet.")
+    lines = {i["key"]: i for i in pricing["items"]}
+    clean = {}
+    for k, v in (body.quotes or {}).items():
+        if k in lines and v is not None:
+            if v < 0:
+                raise HTTPException(status_code=400, detail="A sales quote can't be negative.")
+            clean[k] = round(float(v), 2)
+    mrp = round(sum(float(i["amount"]) for i in pricing["items"]), 2)
+    quote_total = round(sum(clean.get(k, float(i["amount"])) for k, i in lines.items()), 2)
+    gap = round(mrp - quote_total, 2)
+    discount, above = max(0.0, gap), max(0.0, -gap)
+    await update_booking_field(lead_id, FieldUpdateRequest(
+        field_key="bill_line_quotes", customer_choice_override=json.dumps(clean), changed_by=who), x_admin_password)
+    await update_booking_field(lead_id, FieldUpdateRequest(
+        field_key="bill_discount_type", customer_choice_override="value", changed_by=who), x_admin_password)
+    await update_booking_field(lead_id, FieldUpdateRequest(
+        field_key="bill_discount_value", customer_choice_override=_num_str(discount),
+        remarks=f"[{who}, {_to_ist_short_str(datetime.utcnow())}] Set from the item-wise sales quote", changed_by=who), x_admin_password)
+    await update_booking_field(lead_id, FieldUpdateRequest(
+        field_key="bill_quote_adjustment", customer_choice_override=_num_str(above) if above else "",
+        changed_by=who), x_admin_password)
+    return {"success": True, "discount": discount, "above_list": above, "quote_total": quote_total}
 
 
 async def _sync_discount_to_agreed_total(lead_id: int, who: str, x_admin_password: Optional[str]) -> Optional[float]:
@@ -2454,6 +2537,11 @@ async def _sync_discount_to_agreed_total(lead_id: int, who: str, x_admin_passwor
     Returns the discount written, or None if there was nothing to do."""
     lead = await database.fetch_one(
         "SELECT client_budget, is_booking FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    if lead and lead["is_booking"]:
+        try:
+            await _copy_sales_line_quotes(lead_id, who)
+        except Exception:
+            logger.exception(f"Lead #{lead_id}: couldn't copy the item-wise sales quote")
     if not lead or not lead["is_booking"] or lead["client_budget"] is None:
         return None
     agreed = float(lead["client_budget"])

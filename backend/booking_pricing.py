@@ -320,6 +320,48 @@ def compute_adjustments(lead: dict, snap: dict, cur: dict, removed: set) -> dict
 
 # ─── NEW: from-scratch calculation (drives Grand Total everywhere) ───────
 
+# ─── Line-wise sales quote (2026-10-12, per Shruti) ───────────────────────
+# "the line break quote feature in sales quote is really nice ... replicate
+# the same in bookings." Each Total MRP line gets a stable key; the booking's
+# per-line quotes live in the bill_line_quotes override as JSON {key: ₹}.
+# The total discount still decides the Grand Total — saving the line quotes
+# (admin.py save_line_quotes) sets that discount to the line-wise gap.
+_LINE_PREFIX_KEYS = {"decor": "decor", "host": "host", "music": "music", "photography": "photography",
+                     "piñata": "pinata", "pinata": "pinata", "e-invite": "einvite", "cake": "cake"}
+
+
+def line_key(label: str) -> str:
+    """Stable key for a Total MRP line, e.g. "Activity: Slime Making (30 kids
+    × ₹400)" -> "activity:slime making", "Decor: Premium Decor" -> "decor"."""
+    lab = re.sub(r"\s*\(.*$", "", str(label or "")).strip().lower()
+    if lab.startswith("activity:"):
+        return "activity:" + lab[len("activity:"):].strip()
+    if lab.startswith("custom activity:"):
+        return "activity:" + lab[len("custom activity:"):].strip()
+    if lab == "e-invite: save the date":
+        return "save_the_date"
+    if ":" in lab:
+        pre = lab.split(":", 1)[0].strip()
+        if pre in _LINE_PREFIX_KEYS:
+            return _LINE_PREFIX_KEYS[pre]
+    return lab
+
+
+def line_quotes(cur: dict, removed: set) -> dict:
+    raw = _resolved(cur, "bill_line_quotes", removed)
+    try:
+        d = json.loads(raw) if raw else {}
+    except (TypeError, ValueError):
+        return {}
+    out = {}
+    for k, v in (d.items() if isinstance(d, dict) else []):
+        try:
+            out[str(k)] = round(float(v), 2)
+        except (TypeError, ValueError):
+            pass
+    return out
+
+
 def _resolved(cur: dict, key: str, removed: set) -> Optional[str]:
     """The value actually in effect for this field right now — None if the
     admin removed it or nothing is selected."""
@@ -640,6 +682,7 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
     except ValueError:
         quote_adj = 0.0
     grand_total = max(0.0, round(total_mrp - discount_amt + extra_total + quote_adj, 2))
+    _lq = line_quotes(cur, removed)
 
     return {
         "total_mrp": total_mrp,
@@ -648,7 +691,9 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
         "extra_total": extra_total,
         "grand_total": grand_total,
         "quote_adjustment": round(quote_adj, 2),
-        "items": [{"label": l, "amount": a} for l, a in items],
+        "items": [{"label": l, "amount": a, "key": line_key(l),
+                   "quote": _lq.get(line_key(l), a)} for l, a in items],
+        "line_quotes_set": bool(_lq),
         "extra_items": [{"label": l, "amount": a} for l, a in extra_items],
         "unpriced": unpriced,
         # Return Gifts billed separately (2026-10-02) — NOT in grand_total.
