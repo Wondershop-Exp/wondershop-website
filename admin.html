@@ -631,6 +631,15 @@ body.role-sales .admin-only{display:none!important}
 .sugg-item b{color:#5C4610}
 .disc-edit .pct-wrap{max-width:220px}
 .lq-wide{grid-column:1 / -1}
+@media(min-width:761px){
+  table.fields tr[data-key="svc_activities"] td:nth-child(2){grid-column:1 / 3}
+  table.fields tr[data-key="svc_activities"] td:nth-child(3){display:none}
+}
+.aq-inline{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px;margin-left:6px}
+.aq-mrp,.aq-qlbl{color:var(--gy)}
+.aq-inline input.aq-in{width:84px!important;padding:6px 8px!important;min-height:0!important;text-align:right;border:1px solid var(--li2);border-radius:8px;font:inherit}
+.aq-eq{font-weight:700;color:#6B4FA0;white-space:nowrap}
+.aq-eq.neg{color:#B42318}
 .aq-wrap{display:flex;flex-direction:column;gap:10px}
 .aq-card{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 16px;background:var(--li3);border:1px solid var(--li2);border-radius:14px;padding:14px 18px}
 .aq-name{flex:1 1 220px;min-width:0;align-self:center}
@@ -3793,7 +3802,8 @@ function mpRowsHtml(rid){
     const opt = (MP_OPTIONS[rid]||[]).find(o => o.value === r.v);
     const totalHtml = (opt && opt.price != null && !opt.flat && MP_KIDS_COUNT)
       ? '<span class="mp-line-total">= '+bdRupees(opt.price * MP_KIDS_COUNT)+' ('+MP_KIDS_COUNT+' kids × '+bdRupees(opt.price)+')</span>' : '';
-    return '<div class="mp-row">'+sel+qtyHtml+totalHtml+'<button type="button" class="mini-btn remove" onclick="mpRemove('+attrJson(rid)+','+i+')">✕</button></div>';
+    const aq = rid==='fld_svc_activities' ? activityQuoteInline(r.v) : '';
+    return '<div class="mp-row">'+sel+qtyHtml+(aq || totalHtml)+'<button type="button" class="mini-btn remove" onclick="mpRemove('+attrJson(rid)+','+i+')">✕</button></div>';
   }).join('');
 }
 
@@ -4659,6 +4669,23 @@ function actQuoteCardsHtml(locked){
   }).join('');
   return '<div class="aq-wrap">'+cards+'<div class="aq-sum">Activities total (sales quote): <b>'+_inr(tot)+'</b></div></div>';
 }
+// Sales quote on each activity row of the picker (2026-10-12, per Shruti —
+// "why are we repeating the activity twice?"): list price × kids, then the
+// quote ₹/child and the line total, like the sales panel.
+function activityQuoteInline(name){
+  if(!name || !CURRENT_DETAIL || !CURRENT_DETAIL.is_booking) return '';
+  const it = _lqItems('svc_activities').find(i => i.key === 'activity:'+String(name).trim().toLowerCase());
+  if(!it) return '';
+  const m = Number(it.amount||0), q = Number(it.quote==null?m:it.quote);
+  const qu = _lqQtyUnit(it.label, m), perKid = qu.qty > 1;
+  const qVal = perKid ? Math.round(q/qu.qty*100)/100 : q;
+  const locked = !!CURRENT_DETAIL.locked;
+  const inp = locked ? '<b>'+_inr(qVal)+'</b>'
+    : '<input type="number" min="0" step="1" class="aq-in" value="'+qVal+'" data-k="'+esc(it.key)+'" data-q="'+qu.qty+'" data-pk="'+(perKid?1:0)+'" data-old="'+qVal+'" onblur="saveOneQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()">';
+  return '<span class="aq-inline"><span class="aq-mrp">'+(perKid?'List '+_inr(qu.unit)+' × '+qu.qty:'List '+_inr(m))+'</span>'
+    + '<span class="aq-qlbl">Quote ₹</span>'+inp+(perKid?'<span class="aq-mrp">/child</span>':'')
+    + '<span class="aq-eq'+(q<m?' neg':'')+'">= '+_inr(q)+'</span></span>';
+}
 function quoteStripHtml(f, locked){
   if(!CURRENT_DETAIL || !CURRENT_DETAIL.is_booking) return '';
   if(f.field_key==='svc_activities') return '';
@@ -4701,7 +4728,7 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(f.field_key==='bill_discount_type') return discountRowHtml(f, locked);
   if(f.field_key==='svc_activities' && !f._withReq){
     const base = fieldRowHtml(Object.assign({}, f, {_withReq:true}), isCustEvent, locked);
-    const cards = actQuoteCardsHtml(locked);
+    const cards = '';   // 2026-10-12: quotes now sit on each activity row (mpRowsHtml)
     return (cards ? base.replace(/<\/tr>\s*$/, '<td class="lq-wide">'+cards+'</td></tr>') : base) + salesActivityRequestsRow();
   }
   const rid = 'fld_'+f.field_key;
