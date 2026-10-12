@@ -1043,7 +1043,28 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
         # generic field-table editor for everything else).
         "origin": "Sales" if row.get("lead_origin") == "sales_module" else "Website",
         "tbc_pending": row.get("_tbc_pending", 0),
+        # 2026-10-12, per Shruti — Bookings list columns + filters.
+        "venue": row.get("venue"), "theme": row.get("theme"),
+        "child_ages": row.get("child_ages"), "child_genders": row.get("child_genders"),
+        "sales_lead": row.get("event_sales_lead"),
     } for row in ordered]
+    if is_booking and out:
+        # Grand Total as on the booking page (live pricing), a few at a time.
+        sem = asyncio.Semaphore(4)
+
+        async def _gt(r):
+            async with sem:
+                try:
+                    d = await get_booking_detail(r["lead_id"], x_admin_password)
+                    for s_ in d.get("sections") or []:
+                        for f_ in s_.get("fields") or []:
+                            if f_.get("field_key") == "bill_grand_total":
+                                v = str(f_.get("customer_choice") or "").replace(",", "").replace("₹", "").strip()
+                                r["grand_total"] = float(v) if v else None
+                except Exception:
+                    logger.exception(f"Lead #{r['lead_id']}: couldn't compute grand total for the list")
+                    r["grand_total"] = None
+        await asyncio.gather(*[_gt(r) for r in out])
     return {"rows": out, "new_count": new_count}
 
 

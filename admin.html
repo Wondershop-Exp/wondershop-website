@@ -680,6 +680,13 @@ body.role-sales .admin-only{display:none!important}
 .gt-breakup .lq-other td{color:var(--gy);font-style:italic}
 .gt-breakup .lq-note{font-size:11.5px;color:var(--gy);margin-top:6px}
 .gt-breakup input.lq-in{width:110px!important;max-width:110px!important;display:inline-block!important;min-height:0!important;text-align:right;padding:3px 7px;border:1px solid var(--li2);border-radius:6px;font:inherit}
+.bf-bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;padding:14px 16px 6px}
+.bf-bar label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px}
+.bf-bar select{font:inherit;font-size:13px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--bk);padding:7px 10px;border:1px solid var(--li2);border-radius:8px;background:#fff;min-width:120px}
+.linkbtn-plain{border:0;background:none;color:#3B82F6;text-decoration:underline;cursor:pointer;font:inherit;font-size:13px;padding:0 0 8px}
+.bf-count{margin-left:auto;font-size:12.5px;color:var(--gy);padding-bottom:8px}
+.bf-total{margin:6px 16px 10px;padding:10px 14px;background:var(--li3);border-radius:10px;font-size:13.5px}
+.bf-total b{font-size:17px}.bf-total span{color:var(--gy);margin-left:10px}
 </style>
 <style id="ws-no-caret">/* hide stray text cursor on non-editable text (2026-10-03) */body{caret-color:transparent}input,textarea,select,[contenteditable],[contenteditable] *{caret-color:auto}</style><style id="ws-select-arrow">/* every dropdown: own chevron with room from the edge (2026-10-05) */select:not([multiple]):not([size]){-webkit-appearance:none;appearance:none;padding-right:36px;background-repeat:no-repeat;background-position:right 14px center;background-size:10px 6px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}select::-ms-expand{display:none}</style>
 </head>
@@ -749,19 +756,35 @@ body.role-sales .admin-only{display:none!important}
       <div class="empty-state" id="leadEmpty" data-hint="New enquiries from the website and your sales team will show up here." style="display:none"><div class="es-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l2.6-7.2A2 2 0 0 1 7.5 4.5h9a2 2 0 0 1 1.9 1.3L21 13"/><path d="M3 13v5a1.5 1.5 0 0 0 1.5 1.5h15A1.5 1.5 0 0 0 21 18v-5h-5.5a3.5 3.5 0 0 1-7 0H3z"/></svg></div><div class="empty-t">No leads found</div><div class="empty-s"></div></div>
     </div>
     <div id="bookingTableWrap" style="display:none">
+      <!-- 2026-10-12, per Shruti: filters (applied in the browser) -->
+      <div class="bf-bar" id="bfBar">
+        <label>Origin<select id="bf_origin" onchange="renderRows('booking')"><option value="">All</option><option>Website</option><option>Sales</option></select></label>
+        <label>Event month<select id="bf_month" onchange="renderRows('booking')"><option value="">All</option></select></label>
+        <label>Status<select id="bf_status" onchange="renderRows('booking')"><option value="">All</option></select></label>
+        <label>Locality<select id="bf_loc" onchange="renderRows('booking')"><option value="">All</option></select></label>
+        <label>City<select id="bf_city" onchange="renderRows('booking')"><option value="">All</option></select></label>
+        <label>Sales lead<select id="bf_lead" onchange="renderRows('booking')"><option value="">All</option></select></label>
+        <label>Age/Gender<select id="bf_ag" onchange="renderRows('booking')"><option value="">All</option><option value="B">Boys</option><option value="G">Girls</option>
+          <option value="0-4">Age up to 4</option><option value="5-7">Age 5 – 7</option><option value="8-10">Age 8 – 10</option><option value="11-99">Age 11+</option></select></label>
+        <label>Booking amount<select id="bf_amt" onchange="renderRows('booking')"><option value="">All</option><option value="0-30000">Up to ₹30k</option>
+          <option value="30000-50000">₹30k – 50k</option><option value="50000-100000">₹50k – 1 lakh</option><option value="100000-">Above ₹1 lakh</option></select></label>
+        <button class="linkbtn-plain" onclick="clearBookingFilters()">Clear filters</button>
+        <span class="bf-count" id="bfCount"></span>
+      </div>
+      <div class="bf-total" id="bfTotal"></div>
+      <div style="overflow-x:auto">
       <table class="list">
         <thead><tr>
-          <th>ID</th><th>Parent</th><th>Phone</th>
+          <th>ID</th><th>Parent</th><th>Mobile</th>
           <th class="sortable" onclick="toggleSort('booking','event_date')">Event Date<span class="sort-arrow" id="arrow-booking-event_date"></span></th>
-          <th>City</th>
-          <th>Origin</th>
+          <th>Grand Total</th>
           <th class="sortable" onclick="toggleSort('booking','status')">Status<span class="sort-arrow" id="arrow-booking-status"></span></th>
-          <th class="sortable" onclick="toggleSort('booking','created')">Created<span class="sort-arrow" id="arrow-booking-created"></span></th>
-          <th class="sortable" onclick="toggleSort('booking','modified')">Modified<span class="sort-arrow" id="arrow-booking-modified"></span></th>
-          <th></th>
+          <th>Locality</th><th>Age/Gender</th><th>Theme</th><th>Origin</th><th>Sales Lead</th>
+          <th></th><th></th><th></th>
         </tr></thead>
         <tbody id="bookingBody"></tbody>
       </table>
+      </div>
       <div class="empty-state" id="bookingEmpty" data-hint="Confirmed bookings will show up here." style="display:none"><div class="es-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l2.6-7.2A2 2 0 0 1 7.5 4.5h9a2 2 0 0 1 1.9 1.3L21 13"/><path d="M3 13v5a1.5 1.5 0 0 0 1.5 1.5h15A1.5 1.5 0 0 0 21 18v-5h-5.5a3.5 3.5 0 0 1-7 0H3z"/></svg></div><div class="empty-t">No bookings found</div><div class="empty-s"></div></div>
     </div>
     <div id="vendorTableWrap" style="display:none">
@@ -3209,8 +3232,10 @@ function renderRows(kind){
   if(kind==='lead' && LEAD_ORIGIN_FILTER!=='all'){
     rows = rows.filter(r => (LEAD_ORIGIN_FILTER==='sales') === (r.origin==='Sales'));
   }
+  if(kind==='booking'){ fillBookingFilters(); rows = rows.filter(bookingPassesFilters); updateBookingTotals(rows); }
   if(!rows.length){ body.innerHTML=''; setEmptyHint(empty); empty.style.display='block'; return; }
   empty.style.display='none';
+  if(kind==='booking'){ body.innerHTML = rows.map(bookingRowHtml).join(''); return; }
   body.innerHTML = rows.map(r=>{
     // Sales-origin LEADS (not yet converted) open the sales module's own
     // detail page in a new tab — it has the full playbook (decor/host/DJ/
@@ -3242,6 +3267,81 @@ function renderRows(kind){
   }).join('');
 }
 
+// ── Bookings list (2026-10-12, per Shruti) ─────────────────────────────
+function _bkLocality(v){ const p = String(v||'').split(',').map(x=>x.trim()).filter(Boolean); return p.length ? p[p.length-1] : ''; }
+function _bkAgeGender(r){ const g=(r.child_genders||'').toString().trim(); return ((g?g[0].toUpperCase():'')+(r.child_ages||'').toString().trim()) || '—'; }
+function _bkMoney(n){ return n==null ? '—' : '₹'+Math.round(Number(n)).toLocaleString('en-IN'); }
+const _BK_MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function _bkFill(id, vals){
+  const el = document.getElementById(id); if(!el) return;
+  const cur = el.value;
+  el.innerHTML = '<option value="">All</option>' + vals.map(v=>'<option value="'+esc(v[0])+'">'+esc(v[1])+'</option>').join('');
+  if(vals.some(v=>v[0]===cur)) el.value = cur;
+}
+function fillBookingFilters(){
+  const rows = LAST_ROWS.booking || [];
+  const uniq = f => Array.from(new Set(rows.map(f).filter(Boolean))).sort();
+  _bkFill('bf_month', uniq(r=>(r.event_date||'').slice(0,7)).map(m=>[m, _BK_MON[+m.slice(5,7)-1]+' '+m.slice(0,4)]));
+  _bkFill('bf_status', uniq(r=>r.status).map(x=>[x,x]));
+  _bkFill('bf_loc', uniq(r=>_bkLocality(r.venue)).map(x=>[x,x]));
+  _bkFill('bf_city', uniq(r=>(r.city||'').trim()).map(x=>[x,x]));
+  _bkFill('bf_lead', uniq(r=>(r.sales_lead||'').trim()).map(x=>[x,x]));
+}
+function clearBookingFilters(){
+  ['bf_origin','bf_month','bf_status','bf_loc','bf_city','bf_lead','bf_ag','bf_amt'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  renderRows('booking');
+}
+function bookingPassesFilters(r){
+  const v = id => (document.getElementById(id)||{}).value || '';
+  if(v('bf_origin') && r.origin !== v('bf_origin')) return false;
+  if(v('bf_month') && (r.event_date||'').slice(0,7) !== v('bf_month')) return false;
+  if(v('bf_status') && r.status !== v('bf_status')) return false;
+  if(v('bf_loc') && _bkLocality(r.venue) !== v('bf_loc')) return false;
+  if(v('bf_city') && (r.city||'').trim() !== v('bf_city')) return false;
+  if(v('bf_lead') && (r.sales_lead||'').trim() !== v('bf_lead')) return false;
+  const ag = v('bf_ag');
+  if(ag){
+    if(ag==='B'||ag==='G'){ if(((r.child_genders||'').trim()[0]||'').toUpperCase()!==ag) return false; }
+    else{ const a=parseInt(r.child_ages,10), [lo,hi]=ag.split('-').map(Number); if(isNaN(a)||a<lo||a>hi) return false; }
+  }
+  const amt = v('bf_amt');
+  if(amt){ const [lo,hi]=amt.split('-'); const g=r.grand_total; if(g==null||g<+lo||(hi&&g>+hi)) return false; }
+  return true;
+}
+function updateBookingTotals(rows){
+  const all = (LAST_ROWS.booking||[]).length;
+  const c = document.getElementById('bfCount'); if(c) c.textContent = rows.length+' of '+all+' bookings';
+  const t = document.getElementById('bfTotal');
+  if(t){ const sum = rows.filter(r=>r.status!=='Cancelled').reduce((s,r)=>s+(Number(r.grand_total)||0),0);
+    t.innerHTML = 'Total booking value: <b>'+_bkMoney(sum)+'</b> <span>'+rows.length+' booking'+(rows.length===1?'':'s')+' shown · cancelled not counted</span>'; }
+}
+function bookingRowHtml(r){
+  const pack = '<a class="mini-btn admin-only" href="packaging.html?lead_id='+r.lead_id+'&title='+encodeURIComponent((r.parent_name||('Booking #'+r.lead_id))+"'s Party")+'&event_lead=" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">📦 Pack list</a>';
+  const print = '<button class="mini-btn" onclick="event.stopPropagation();printBooking('+r.lead_id+')">🖨 Print</button>';
+  const cancel = r.status==='Cancelled' ? '' : '<button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button>';
+  return '<tr onclick="openBooking('+r.lead_id+')">'
+    +'<td>#'+r.lead_id+'</td>'
+    +'<td>'+esc(r.parent_name||'')+'</td>'
+    +'<td>'+esc(r.phone||'')+'</td>'
+    +'<td style="white-space:nowrap">'+fmtEventDate(r.event_date)+'</td>'
+    +'<td style="white-space:nowrap">'+_bkMoney(r.grand_total)+'</td>'
+    +'<td>'+listStatusCellHtml(r, 'booking')+(r.tbc_pending?'<span class="tbc-badge" title="Items to be confirmed by ops">⚠ '+r.tbc_pending+' to confirm</span>':'')+'</td>'
+    +'<td title="'+esc(r.venue||'')+'">'+esc(_bkLocality(r.venue)||'—')+'</td>'
+    +'<td>'+esc(_bkAgeGender(r))+'</td>'
+    +'<td>'+esc(r.theme||'—')+'</td>'
+    +'<td>'+originBadgeHtml(r.origin)+'</td>'
+    +'<td>'+esc(r.sales_lead||'—')+'</td>'
+    +'<td>'+pack+'</td><td>'+print+'</td><td>'+cancel+'</td>'
+    +'</tr>';
+}
+async function printBooking(id){
+  try{
+    const res = await fetch(API+'/api/admin/bookings/'+id+'/quotation.pdf', {headers:{'X-Admin-Password':getPw()}});
+    if(!res.ok){ showToast('Could not open the quotation.'); return; }
+    const url = URL.createObjectURL(await res.blob());
+    window.open(url, '_blank'); setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }catch(e){ showToast('Could not open the quotation: '+e.message); }
+}
 function setLeadOriginFilter(val){
   LEAD_ORIGIN_FILTER = val;
   document.querySelectorAll('#leadOriginChips .pill').forEach(c=>c.classList.toggle('active', c.dataset.val===val));
