@@ -1668,7 +1668,7 @@ function teamRowHtml(r, i){
     + '<td><input type="text" class="tm-name" list="vendorNamesList" value="'+esc(r.partner||'')+'" placeholder="Partner / payee"></td>'
     + '<td><input type="text" class="tm-cat" list="teamCatsList" value="'+esc(r.category||'')+'" placeholder="Category"></td>'
     + '<td><input type="text" class="tm-det" list="teamJobsList" value="'+esc(r.details||'')+'" placeholder="Activity / station / what for"></td>'
-    + '<td style="width:136px"><input type="date" class="tm-date" value="'+esc(r.bill_date||'')+'"></td>'
+    + '<td style="width:136px"><input type="date" class="tm-date" value="'+esc(r.bill_date||_teamEventDate())+'"></td>'
     + '<td style="width:100px"><input type="number" class="tm-amt" min="0" step="1" value="'+(r.amount==null?'':r.amount)+'" placeholder="₹"></td>'
     + '<td style="width:118px"><select class="tm-via" onchange="this.closest(\'tr\').classList.toggle(\'paid\', this.value!==\'Pending\')">'+viaOpts+'</select>'
     + '</td>'
@@ -1703,6 +1703,8 @@ function drawTeamBlock(d){
     + '<select class="fb-btn gh" style="padding-right:30px" onchange="teamAddStations(this.value);this.value=\'\'"><option value="">+ Add spy stations…</option>'+[4,5,6,7,8].map(n=>'<option value="'+n+'">'+n+' stations</option>').join('')+'</select>'
     + '<button class="fb-btn pk" onclick="saveTeam(this)">Save</button></div>';
 }
+// 2026-10-12: bill date defaults to the event date.
+function _teamEventDate(){ const f=(typeof _billField==='function'&&_billField('event_date'))||{}; const v=String(f.customer_choice||(typeof CURRENT_DETAIL!=='undefined'&&CURRENT_DETAIL&&CURRENT_DETAIL.event_date)||''); return /^\d{4}-\d{2}-\d{2}/.test(v)?v.slice(0,10):''; }
 function teamAdd(){ TEAM = readTeamRows(); TEAM.push({partner:'', category:'', paid_via:'Pending'}); drawTeamBlock(); }
 function teamRemove(i){ TEAM = readTeamRows(); TEAM.splice(i,1); drawTeamBlock(); }
 function teamAddStations(v){

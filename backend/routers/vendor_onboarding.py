@@ -684,6 +684,9 @@ async def submit_vendor_onboarding(
     alternate_mobile = _checked_mobile(alternate_mobile, "alternate mobile number")
     whatsapp_number = _checked_mobile(whatsapp_number, "WhatsApp number")
     email = _clean(email)
+    # 2026-10-12, per Shruti: email is mandatory for volunteers and internal team members.
+    if not email and any(k in (_clean(deals_in) or "").lower() for k in (VOLUNTEER, "wondershop team member")):
+        raise HTTPException(status_code=400, detail="Please enter your email address.")
     if email:
         if len(email) > 254 or not _EMAIL_RE.match(email):
             raise HTTPException(status_code=400, detail="Please enter a valid email address.")

@@ -164,6 +164,7 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
           <select id="f_deals">
             <option value="">Select...</option>
             <option value="Event Volunteer">Event Volunteer</option>
+            <option value="Wondershop Team Member">Wondershop Team Member (internal)</option>
             <option value="Photographer">Photographer</option>
             <option value="Decorator">Decorator</option>
             <option value="Baker">Baker</option>
@@ -213,7 +214,7 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
         </div>
       </div>
       <div class="fld">
-        <label>Email <span class="opt">(optional)</span></label>
+        <label>Email <span class="opt" id="f_email_opt">(optional)</span></label>
         <input type="email" id="f_email">
           <div class="f-err" id="f_email_err"></div>
       </div>
@@ -415,12 +416,15 @@ dealsSelect.addEventListener('change', () => {
   if(window.WSDecor) WSDecor.toggle(dealsSelect.value === 'Decorator');
   const vol = isVolunteer();
   document.body.classList.toggle('is-volunteer', vol);
+  { const o=document.getElementById('f_email_opt'); if(o) o.hidden = emailRequired(); }
   if(window.WSVolunteer) WSVolunteer.toggle(vol);
   ['f_alt_mobile', 'f_address'].forEach(id => setFieldErr(id, ''));
 });
 // Event Volunteer (2026-10-10, per Shruti): address and an alternate number
 // are mandatory, and the volunteer questions + T&C must be filled in.
 function isVolunteer(){ return dealsSelect.value === 'Event Volunteer'; }
+// 2026-10-12, per Shruti: email is mandatory for volunteers and internal team members.
+function emailRequired(){ return isVolunteer() || dealsSelect.value === 'Wondershop Team Member'; }
 
 // ── Field validation (2026-09-30, per Shruti: "add validations on mobile
 // no. (10 digits), email (should be valid) and show errors accordingly") ──
@@ -440,7 +444,7 @@ const FIELD_RULES = {
   f_whatsapp:   {kind:'mobile', label:'WhatsApp number'},
   f_alt_mobile: {kind:'mobile', label:'alternate mobile number', volRequired:true},
   f_address:    {kind:'address', label:'address', volRequired:true},
-  f_email:      {kind:'email'},
+  f_email:      {kind:'email', label:'email address', emailRequired:true},
   f_city:       {kind:'city'},
   f_locality:   {kind:'locality'},
   f_pincode:    {kind:'pincode'},
@@ -448,7 +452,7 @@ const FIELD_RULES = {
 function fieldError(id){
   const rule = FIELD_RULES[id];
   const raw = document.getElementById(id).value.trim();
-  if(!raw) return (rule.required || (rule.volRequired && isVolunteer())) ? 'Please enter your ' + rule.label + '.' : '';
+  if(!raw) return (rule.required || (rule.volRequired && isVolunteer()) || (rule.emailRequired && emailRequired())) ? 'Please enter your ' + rule.label + '.' : '';
   if(rule.kind === 'address' && isVolunteer() && raw.length < 10) return 'Please enter your full address.';
   if(id === 'f_alt_mobile' && isVolunteer() && normMobile(raw) === normMobile(document.getElementById('f_mobile').value))
     return 'Please give a different number from your mobile number.';
