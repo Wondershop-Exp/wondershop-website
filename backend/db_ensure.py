@@ -31,6 +31,7 @@ SAFE_MIGRATIONS = [
     "051_vendor_bank_account_type.sql",
     "052_vendor_mobile_placeholder.sql",
     "053_carnival_partners.sql",
+    "054_mascot_name.sql",
 ]
 
 

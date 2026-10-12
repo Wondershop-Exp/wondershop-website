@@ -687,6 +687,13 @@ body.role-sales .admin-only{display:none!important}
 .bf-count{margin-left:auto;font-size:12.5px;color:var(--gy);padding-bottom:8px}
 .bf-total{margin:6px 16px 10px;padding:10px 14px;background:var(--li3);border-radius:10px;font-size:13.5px}
 .bf-total b{font-size:17px}.bf-total span{color:var(--gy);margin-left:10px}
+#bookingTable{border-collapse:separate;border-spacing:0}
+#bookingTable th:nth-child(-n+3),#bookingTable td:nth-child(-n+3){position:sticky;z-index:2;background:#fff}
+#bookingTable thead th:nth-child(-n+3){background:var(--li3)}
+#bookingTable th:nth-child(1),#bookingTable td:nth-child(1){left:0}
+#bookingTable th:nth-child(2),#bookingTable td:nth-child(2){left:var(--bk2,0px)}
+#bookingTable th:nth-child(3),#bookingTable td:nth-child(3){left:var(--bk3,0px);border-right:1px solid var(--li2)}
+#bookingTable tbody tr:hover td:nth-child(-n+3){background:var(--li3)}
 </style>
 <style id="ws-no-caret">/* hide stray text cursor on non-editable text (2026-10-03) */body{caret-color:transparent}input,textarea,select,[contenteditable],[contenteditable] *{caret-color:auto}</style><style id="ws-select-arrow">/* every dropdown: own chevron with room from the edge (2026-10-05) */select:not([multiple]):not([size]){-webkit-appearance:none;appearance:none;padding-right:36px;background-repeat:no-repeat;background-position:right 14px center;background-size:10px 6px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}select::-ms-expand{display:none}</style>
 </head>
@@ -773,7 +780,7 @@ body.role-sales .admin-only{display:none!important}
       </div>
       <div class="bf-total" id="bfTotal"></div>
       <div style="overflow-x:auto">
-      <table class="list">
+      <table class="list" id="bookingTable">
         <thead><tr>
           <th>ID</th><th>Parent</th><th>Mobile</th>
           <th class="sortable" onclick="toggleSort('booking','event_date')">Event Date<span class="sort-arrow" id="arrow-booking-event_date"></span></th>
@@ -881,6 +888,7 @@ body.role-sales .admin-only{display:none!important}
 <datalist id="themeOptionsList"><option value="Among Us"><option value="Art &amp; Paint Party"><option value="Cricket Party"><option value="Football Party"><option value="Frozen"><option value="Harry Potter"><option value="Imposter"><option value="Indian Craft Bazaar"><option value="Indian Palace"><option value="Indian Railways"><option value="Jungle Safari"><option value="K-Pop Party"><option value="Katseye"><option value="Lilo &amp; Stitch"><option value="Malgudi Days"><option value="Mithai Theme"><option value="Mystery &amp; Spy"><option value="Nani ka Ghar"><option value="Paw Patrol"><option value="Race Track &amp; Cars"><option value="Science Party"><option value="Space Explorer"><option value="Superhero"><option value="The Great Ancient Indian Treasure"><option value="Unicorn Magic"></datalist>
 
 <script src="js/volunteer-data.js"></script>
+<script src="js/locality.js"></script>
 <script>
 const API = 'https://wondershop-website-production.up.railway.app';
 let CURRENT_LEAD_ID = null;
@@ -3247,7 +3255,7 @@ function renderRows(kind){
   if(kind==='booking'){ fillBookingFilters(); rows = rows.filter(bookingPassesFilters); updateBookingTotals(rows); }
   if(!rows.length){ body.innerHTML=''; setEmptyHint(empty); empty.style.display='block'; return; }
   empty.style.display='none';
-  if(kind==='booking'){ body.innerHTML = rows.map(bookingRowHtml).join(''); return; }
+  if(kind==='booking'){ body.innerHTML = rows.map(bookingRowHtml).join(''); freezeBookingCols(); return; }
   body.innerHTML = rows.map(r=>{
     // Sales-origin LEADS (not yet converted) open the sales module's own
     // detail page in a new tab — it has the full playbook (decor/host/DJ/
@@ -3280,7 +3288,7 @@ function renderRows(kind){
 }
 
 // ── Bookings list (2026-10-12, per Shruti) ─────────────────────────────
-function _bkLocality(v){ const p = String(v||'').split(',').map(x=>x.trim()).filter(Boolean); return p.length ? p[p.length-1] : ''; }
+function _bkLocality(v){ if(window.wsLocality) return wsLocality(v); const p = String(v||'').split(',').map(x=>x.trim()).filter(Boolean); return p.length ? p[p.length-1] : ''; }
 function _bkAgeGender(r){ const g=(r.child_genders||'').toString().trim(); return ((g?g[0].toUpperCase():'')+(r.child_ages||'').toString().trim()) || '—'; }
 function _bkMoney(n){ return n==null ? '—' : '₹'+Math.round(Number(n)).toLocaleString('en-IN'); }
 const _BK_MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -3346,6 +3354,23 @@ function bookingRowHtml(r){
     +'<td>'+pack+'</td><td>'+print+'</td><td>'+cancel+'</td>'
     +'</tr>';
 }
+// ID, Parent and Mobile stay put while scrolling sideways (2026-10-12),
+// offsets measured from the real column widths so nothing shows between.
+function freezeBookingCols(){
+  const t = document.getElementById('bookingTable'); if(!t) return;
+  const ths = t.querySelectorAll('thead th');
+  if(ths.length < 3) return;
+  const w1 = ths[0].getBoundingClientRect().width, w2 = ths[1].getBoundingClientRect().width;
+  if(!w1) return;
+  t.style.setProperty('--bk2', w1+'px'); t.style.setProperty('--bk3', (w1+w2)+'px');
+}
+window.addEventListener('resize', freezeBookingCols);
+// The table is laid out while its tab is hidden (zero widths) — re-measure
+// whenever it actually gets a size.
+document.addEventListener('DOMContentLoaded', ()=>{
+  const t = document.getElementById('bookingTable');
+  if(t && window.ResizeObserver) new ResizeObserver(()=>freezeBookingCols()).observe(t);
+});
 async function printBooking(id){
   try{
     const res = await fetch(API+'/api/admin/bookings/'+id+'/quotation.pdf', {headers:{'X-Admin-Password':getPw()}});

@@ -445,6 +445,7 @@ body.role-sales .admin-only{display:none!important}
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="js/locality.js"></script>
 <script>
 const API = 'https://wondershop-website-production.up.railway.app';
 let CATALOGUE = null;
@@ -796,6 +797,7 @@ function rowPassesFilters(r){
 // Location = the locality: the last comma-separated part of the venue
 // ("Lodha, Lower Parel" -> "Lower Parel"); the full venue shows on hover.
 function localityOf(v){
+  if(window.wsLocality) return wsLocality(v);
   const parts = String(v||'').split(',').map(x=>x.trim()).filter(Boolean);
   return parts.length ? parts[parts.length-1] : '';
 }
