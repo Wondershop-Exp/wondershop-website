@@ -2481,9 +2481,14 @@ class LineQuotesRequest(BaseModel):
 
 @router.post("/bookings/{lead_id}/line-quotes")
 async def save_line_quotes(lead_id: int, body: LineQuotesRequest, x_admin_password: Optional[str] = Header(None)):
-    """Save the booking's per-item sales quotes and set the total discount to
-    the line-wise gap: discount = Total MRP − Σ quotes (a total above Total
-    MRP goes to 'Above list price' instead). Grand Total = Σ quotes + fees."""
+    """Save sales quotes for one or more items (2026-10-12, per Shruti — the
+    "Sales quote" box under each service on the booking). Merged into the
+    booking's bill_line_quotes; a null quote resets that item to its MRP.
+
+    Discount = sum of the item discounts (MRP − quote) + whatever extra
+    discount the user had added on top, which is kept as is. E.g. decor
+    11,000 → 10,000 and spy 30,000 → 20,000 gives 14,000; if the user had
+    raised it to 15,000 the extra 1,000 stays."""
     _require_admin(x_admin_password)
     who = (body.changed_by or "").strip()
     if not who:
@@ -2493,27 +2498,41 @@ async def save_line_quotes(lead_id: int, body: LineQuotesRequest, x_admin_passwo
     if not pricing:
         raise HTTPException(status_code=400, detail="This booking has no priced items yet.")
     lines = {i["key"]: i for i in pricing["items"]}
-    clean = {}
+
+    def gap_of(quotes):
+        return round(sum(float(i["amount"]) - float(quotes.get(k, i["amount"])) for k, i in lines.items()), 2)
+
+    old_q = {k: float(i["quote"]) for k, i in lines.items() if i.get("quote") is not None and float(i["quote"]) != float(i["amount"])}
+    old_gap = gap_of(old_q)
+    old_disc = float(pricing.get("discount_amt") or 0) - float(pricing.get("quote_adjustment") or 0)
+    extra = round(old_disc - old_gap, 2)          # discount the user added on top of the items
+    new_q = dict(old_q)
     for k, v in (body.quotes or {}).items():
-        if k in lines and v is not None:
-            if v < 0:
-                raise HTTPException(status_code=400, detail="A sales quote can't be negative.")
-            clean[k] = round(float(v), 2)
-    mrp = round(sum(float(i["amount"]) for i in pricing["items"]), 2)
-    quote_total = round(sum(clean.get(k, float(i["amount"])) for k, i in lines.items()), 2)
-    gap = round(mrp - quote_total, 2)
-    discount, above = max(0.0, gap), max(0.0, -gap)
+        if k not in lines:
+            continue
+        if v is None:
+            new_q.pop(k, None)
+            continue
+        if v < 0:
+            raise HTTPException(status_code=400, detail="A sales quote can't be negative.")
+        new_q[k] = round(float(v), 2)
+    new_q = {k: v for k, v in new_q.items() if abs(v - float(lines[k]["amount"])) >= 0.005}
+    total = round(gap_of(new_q) + extra, 2)
+    mrp = round(sum(float(i["amount"]) for i in lines.values()), 2)
+    discount = round(min(max(0.0, total), mrp), 2)
+    above = round(max(0.0, -total), 2)
     await update_booking_field(lead_id, FieldUpdateRequest(
-        field_key="bill_line_quotes", customer_choice_override=json.dumps(clean), changed_by=who), x_admin_password)
+        field_key="bill_line_quotes", customer_choice_override=json.dumps(new_q) if new_q else "", changed_by=who), x_admin_password)
     await update_booking_field(lead_id, FieldUpdateRequest(
         field_key="bill_discount_type", customer_choice_override="value", changed_by=who), x_admin_password)
     await update_booking_field(lead_id, FieldUpdateRequest(
         field_key="bill_discount_value", customer_choice_override=_num_str(discount),
-        remarks=f"[{who}, {_to_ist_short_str(datetime.utcnow())}] Set from the item-wise sales quote", changed_by=who), x_admin_password)
+        remarks=f"[{who}, {_to_ist_short_str(datetime.utcnow())}] Sum of the item discounts"
+                + (f" + ₹{_num_str(extra)} extra" if extra >= 1 else ""), changed_by=who), x_admin_password)
     await update_booking_field(lead_id, FieldUpdateRequest(
         field_key="bill_quote_adjustment", customer_choice_override=_num_str(above) if above else "",
         changed_by=who), x_admin_password)
-    return {"success": True, "discount": discount, "above_list": above, "quote_total": quote_total}
+    return {"success": True, "discount": discount, "above_list": above, "extra": extra}
 
 
 async def _sync_discount_to_agreed_total(lead_id: int, who: str, x_admin_password: Optional[str]) -> Optional[float]:

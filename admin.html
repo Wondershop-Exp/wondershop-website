@@ -630,6 +630,15 @@ body.role-sales .admin-only{display:none!important}
 .sugg-item{font-size:12.5px;background:#FFF7EC;border:1px solid #F3DFB0;color:#8A6A1E;border-radius:9px;padding:8px 11px}
 .sugg-item b{color:#5C4610}
 .disc-edit .pct-wrap{max-width:220px}
+.lq-strip{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.lq-line{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:12.5px;color:var(--gy);background:var(--li3);border-radius:8px;padding:7px 10px}
+.lq-line b{color:var(--bk)}
+.lq-line .neg{color:#B42318}
+.lq-q{display:inline-flex;align-items:center;gap:6px}
+.lq-inp{display:inline-flex;align-items:center;gap:3px;background:#fff;border:1px solid var(--li2);border-radius:7px;padding:0 7px}
+.lq-inp input{width:90px!important;max-width:90px!important;border:0!important;padding:4px 0!important;min-height:0!important;font:inherit;text-align:right;background:transparent!important;box-shadow:none!important}
+.lq-off{font-weight:700;color:#B42318}
+.lq-off.up{color:#166534}
 .gt-breakup{margin:4px 0 0;border:1px solid var(--li2);border-radius:8px;padding:6px 12px 8px;background:#fff;overflow-x:auto;max-width:720px}
 .gt-breakup .gb-hd{font-size:12px;font-weight:700;color:#6B4FA0;padding:6px 0 2px}
 .gt-breakup .lq-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -4597,11 +4606,61 @@ async function saveLineQuotes(btn){
   }catch(e){ if(e.message!=='unauthorized') showToast('Save failed: '+e.message); }
   finally{ btn.disabled = false; }
 }
+// ── Sales quote under each service (2026-10-12, per Shruti) ─────────────
+// Like the sales panel: MRP and a "Sales quote" box under Decor, Host,
+// Music, each activity, etc. The booking's Discount = sum of the item
+// discounts (+ anything added on top). Saved on leaving the box.
+const LQ_FIELD_KEYS = {svc_decor:'decor', svc_host:'host', svc_dj:'music', svc_photo:'photography',
+  svc_pinata:'pinata', svc_einvite:'einvite', svc_cake:'cake'};
+function _lqItems(fieldKey){
+  const P = (CURRENT_DETAIL && CURRENT_DETAIL.pricing) || null;
+  if(!P) return [];
+  if(fieldKey==='svc_activities') return (P.items||[]).filter(i=>String(i.key||'').startsWith('activity:'));
+  const k = LQ_FIELD_KEYS[fieldKey];
+  return k ? (P.items||[]).filter(i=>i.key===k) : [];
+}
+function _lqQtyUnit(label, amount){
+  const m = String(label||'').match(/\((\d+)\s*kids?\s*×\s*₹\s*([\d,]+(?:\.\d+)?)\)/);
+  return m ? {qty:Number(m[1]), unit:Number(m[2].replace(/,/g,''))} : {qty:1, unit:Number(amount||0)};
+}
+function quoteStripHtml(f, locked){
+  if(!CURRENT_DETAIL || !CURRENT_DETAIL.is_booking) return '';
+  const items = _lqItems(f.field_key);
+  if(!items.length) return '';
+  return '<div class="lq-strip">' + items.map(i=>{
+    const m = Number(i.amount||0), q = Number(i.quote==null?m:i.quote);
+    const qu = _lqQtyUnit(i.label, m), perKid = qu.qty > 1;
+    const name = f.field_key==='svc_activities' ? '<b>'+esc(String(i.label).replace(/^Activity:\s*/,'').replace(/\s*\(.*$/,''))+'</b> · ' : '';
+    const mrpTxt = perKid ? _inr(qu.unit)+' × '+qu.qty+' = '+_inr(m) : _inr(m);
+    const qVal = perKid ? Math.round(q/qu.qty*100)/100 : q;
+    const box = locked ? '<b'+(q<m?' class="neg"':'')+'>'+_inr(q)+'</b>'
+      : '<span class="lq-inp"><span>₹</span><input type="number" min="0" step="1" value="'+qVal+'" data-k="'+esc(i.key)+'" data-q="'+qu.qty+'" data-pk="'+(perKid?1:0)+'" data-old="'+qVal+'" onblur="saveOneQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()"></span>'
+        + (perKid ? '<span class="lq-per">/child = <b'+(q<m?' class="neg"':'')+'>'+_inr(q)+'</b></span>' : '');
+    return '<div class="lq-line">'+name+'<span class="lq-mrp">MRP '+mrpTxt+'</span><span class="lq-q">Sales quote '+box+'</span>'
+      + (m-q>0 ? '<span class="lq-off">−'+_inr(m-q)+'</span>' : (q>m ? '<span class="lq-off up">+'+_inr(q-m)+'</span>' : '')) + '</div>';
+  }).join('') + '</div>';
+}
+async function saveOneQuote(el){
+  if(el.value === el.dataset.old) return;
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); el.value = el.dataset.old; return; }
+  const v = el.value.trim()==='' ? null : Number(el.value) * (el.dataset.pk==='1' ? Number(el.dataset.q) : 1);
+  try{
+    const r = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/line-quotes', {method:'POST', body: JSON.stringify({quotes:{[el.dataset.k]: v}, changed_by: who})});
+    el.dataset.old = el.value;
+    if(document.querySelectorAll('#sectionsContainer tr.dirty').length){
+      showToast('✓ Quote saved — discount is now '+_inr(r.discount)+'. Save your other changes, then refresh to see it.');
+    }else{
+      showToast('✓ Quote saved — discount is now '+_inr(r.discount));
+      await loadDetail();
+    }
+  }catch(e){ if(e.message!=='unauthorized') showToast('Save failed: '+e.message); el.value = el.dataset.old; }
+}
 function fieldRowHtml(f, isCustEvent, locked){
   if(f.field_key==='einvite_save_the_date') return einviteCardHtml(locked);
   if(EI_FIELDS.some(x=>x.key===f.field_key)) return '';
   if(f.field_key==='bill_discount_pct' || f.field_key==='bill_discount_value') return '';
-  if(f.field_key==='bill_line_quotes') return lineQuotesRowHtml(locked);
+  if(f.field_key==='bill_line_quotes') return '';
   if(f.field_key==='bill_discount_type') return discountRowHtml(f, locked);
   if(f.field_key==='svc_activities' && !f._withReq){
     return fieldRowHtml(Object.assign({}, f, {_withReq:true}), isCustEvent, locked) + salesActivityRequestsRow();
@@ -4666,7 +4725,7 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(locked){
     return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
-      +'<td data-label="Current value"><span class="readonly-cell" style="'+(['event_photos_link','terms_conditions'].includes(f.field_key)?'white-space:pre-line':'')+'">'+(f.field_key==='event_schedule_text'?scheduleReadOnlyHtml(f.customer_choice||''):esc(f.customer_choice||'—'))+'</span></td>'
+      +'<td data-label="Current value"><span class="readonly-cell" style="'+(['event_photos_link','terms_conditions'].includes(f.field_key)?'white-space:pre-line':'')+'">'+(f.field_key==='event_schedule_text'?scheduleReadOnlyHtml(f.customer_choice||''):esc(f.customer_choice||'—'))+'</span>'+quoteStripHtml(f, true)+'</td>'
       +((noPartner || ['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','bill_quote_adjustment'].includes(f.field_key)) ? '<td></td>' : '<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>')
       +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
@@ -4803,7 +4862,7 @@ function fieldRowHtml(f, isCustEvent, locked){
 
   return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
-    +'<td data-label="Current value">'+ccCell+'</td>'
+    +'<td data-label="Current value">'+ccCell+quoteStripHtml(f, locked)+'</td>'
     +'<td'+((noPartner || ['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','bill_quote_adjustment'].includes(f.field_key))?'':' data-label="'+col3+'"')+'>'+avCell+'</td>'
     +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
