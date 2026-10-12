@@ -645,7 +645,7 @@ body.role-sales .admin-only{display:none!important}
 .aq-tot{font-weight:700;color:#6B4FA0;font-size:15px;padding-bottom:9px;min-width:90px}
 .aq-sum{font-size:13px;color:var(--gy)}
 .aq-sum b{color:var(--bk)}
-.lq-strip{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.lq-strip{display:flex;flex-direction:column;gap:6px;margin-top:22px}
 .lq-line{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:12.5px;color:var(--gy);background:var(--li3);border-radius:8px;padding:7px 10px}
 .lq-line b{color:var(--bk)}
 .lq-line .neg{color:#B42318}
@@ -4764,8 +4764,8 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(locked){
     return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
-      +'<td data-label="Current value"><span class="readonly-cell" style="'+(['event_photos_link','terms_conditions'].includes(f.field_key)?'white-space:pre-line':'')+'">'+(f.field_key==='event_schedule_text'?scheduleReadOnlyHtml(f.customer_choice||''):esc(f.customer_choice||'—'))+'</span>'+quoteStripHtml(f, true)+'</td>'
-      +((noPartner || ['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','bill_quote_adjustment'].includes(f.field_key)) ? '<td></td>' : '<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>')
+      +'<td data-label="Current value"><span class="readonly-cell" style="'+(['event_photos_link','terms_conditions'].includes(f.field_key)?'white-space:pre-line':'')+'">'+(f.field_key==='event_schedule_text'?scheduleReadOnlyHtml(f.customer_choice||''):esc(f.customer_choice||'—'))+'</span></td>'
+      +((noPartner || ['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','bill_quote_adjustment'].includes(f.field_key)) ? '<td>'+quoteStripHtml(f, true)+'</td>' : '<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>')
       +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
       +'</tr>';
@@ -4901,8 +4901,8 @@ function fieldRowHtml(f, isCustEvent, locked){
 
   return '<tr id="'+rid+'" class="'+removedCls.trim()+'" data-key="'+esc(f.field_key)+'">'
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
-    +'<td data-label="Current value">'+ccCell+quoteStripHtml(f, locked)+'</td>'
-    +'<td'+((noPartner || ['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','bill_quote_adjustment'].includes(f.field_key))?'':' data-label="'+col3+'"')+'>'+avCell+'</td>'
+    +'<td data-label="Current value">'+ccCell+(noPartner?'':quoteStripHtml(f, locked))+'</td>'
+    +'<td'+((noPartner || ['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','bill_quote_adjustment'].includes(f.field_key))?'':' data-label="'+col3+'"')+'>'+(noPartner?quoteStripHtml(f, locked):'')+avCell+'</td>'
     +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
       // 2026-09-24, per Shruti — "i clicked on remove - then it was striked
