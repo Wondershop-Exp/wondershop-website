@@ -106,7 +106,10 @@ async def _defaults(lead_id: int, pw: Optional[str]) -> dict:
         cats.append("photography")
     if val("svc_gifts"):
         cats.append("return_gifts")
-    host_names = ((f.get("svc_host") or {}).get("assigned_value") or "").strip() or None
+    # Host name(s): the Event Team card's Host rows first, else the Host
+    # row's assigned partner on the booking.
+    from routers.event_team import host_names as _team_hosts
+    host_names = (await _team_hosts(lead_id)) or ((f.get("svc_host") or {}).get("assigned_value") or "").strip() or None
     return {"categories": [k for k in CAT_KEYS if k in cats], "host_names": host_names}
 
 

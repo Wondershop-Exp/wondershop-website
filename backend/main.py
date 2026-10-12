@@ -8,7 +8,7 @@ from security import security_middleware
 import re
 import sheet_sync
 from database import connect_db, disconnect_db
-from routers import catalogue, cart, leads, config, admin, instagram, packaging, vendors, dashboard, sales_leads, vendor_onboarding, spy_registration, decor_refs, feedback
+from routers import catalogue, cart, leads, config, admin, instagram, packaging, vendors, dashboard, sales_leads, vendor_onboarding, spy_registration, decor_refs, feedback, event_team
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -84,6 +84,7 @@ app.include_router(vendor_onboarding.router, prefix="/api/vendor-onboarding", ta
 app.include_router(spy_registration.router, prefix="/api/spy-registration", tags=["Spy Agent Registration"])
 app.include_router(decor_refs.router, prefix="/api", tags=["Decor Reference Images"])
 app.include_router(feedback.router, prefix="/api", tags=["Event Feedback"])
+app.include_router(event_team.router, prefix="/api", tags=["Event Team"])
 import booking_quote
 app.include_router(booking_quote.router, prefix="/api", tags=["Booking Quotation"])
 

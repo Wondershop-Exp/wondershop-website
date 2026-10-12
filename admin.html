@@ -150,6 +150,14 @@ table.list th.sortable:hover{color:var(--bk)}
 .spy-reg-card .sr-btn.primary{background:var(--pk);color:#fff}
 .spy-reg-card .sr-btn.ghost{background:#fff;border:1px solid var(--li2);color:var(--plum)}
 .spy-reg-card .sr-status{font-size:12px;color:var(--gr);font-weight:600}
+.team-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.team-tbl th{text-align:left;font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;padding:4px 6px}
+.team-tbl td{padding:4px 6px;vertical-align:middle}
+.team-tbl input[type=text],.team-tbl input[type=number],.team-tbl select{width:100%;box-sizing:border-box;padding:7px 8px;border:1px solid var(--li2);border-radius:8px;font:inherit;font-size:13px;background:#fff}
+.team-tbl tr.paid td{background:#F3FBF5}
+.team-sum{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;margin:10px 0}
+.team-sum b{font-size:14px}
+@media(max-width:760px){.team-tbl thead{display:none}.team-tbl tr{display:grid;grid-template-columns:1fr 1fr;gap:4px;border:1px solid var(--li2);border-radius:10px;padding:6px;margin-bottom:8px}.team-tbl td{padding:2px}}
 .fb-cats{display:flex;flex-wrap:wrap;gap:8px 14px;margin:8px 0 12px}
 .fb-cats label{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
 .fb-btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -762,6 +770,11 @@ body.role-sales .admin-only{display:none!important}
     <div id="preMsgBlock"></div>
     <div id="sectionsContainer"></div>
     <div id="giftOrderBlock"></div>
+    <!-- Event team + payments (2026-10-12, per Shruti) -->
+    <div class="log-section" id="teamSection" style="display:none">
+      <h3>👥 Event Team &amp; Payments</h3>
+      <div id="teamBlock"></div>
+    </div>
     <!-- Post-event feedback (2026-10-12, per Shruti) -->
     <div class="log-section" id="fbSection" style="display:none">
       <h3>⭐ Client Feedback</h3>
@@ -1618,6 +1631,93 @@ function renderBookingBar(d){
 // (spy-agent-registration.html?t=...) the first time, and just swaps the
 // image (keeping the same link) after that.
 let SPY_REG_LEAD_ID = null;
+
+// ── Event team & payments (2026-10-12, per Shruti) ─────────────────────
+// "one activity can have many volunteers ... for spy, we have 4-8 stations,
+// every station can have 1-2 volunteers ... we can also add payment". One
+// row per person per job: who, role, activity / station, hours (optional),
+// amount (varies by person) and paid / pending. Saved as a whole list
+// (backend/routers/event_team.py). Host rows also name the host(s) on the
+// feedback form.
+let TEAM = null, TEAM_ROLES = [];
+async function renderTeamBlock(d){
+  const sec = document.getElementById('teamSection'), block = document.getElementById('teamBlock');
+  if(!sec || !block) return;
+  if(!d.is_booking){ sec.style.display = 'none'; block.innerHTML = ''; return; }
+  sec.style.display = 'block';
+  block.innerHTML = '<div style="font-size:12.5px;color:var(--gy)">Loading…</div>';
+  try{ const r = await apiCall('/api/admin/event-team/'+d.lead_id); TEAM = r.rows||[]; TEAM_ROLES = r.roles||[]; }
+  catch(e){ block.innerHTML = '<div style="font-size:12.5px;color:var(--gy)">'+esc(e.message||'Could not load the team.')+'</div>'; return; }
+  drawTeamBlock(d);
+}
+function teamJobOptions(d){
+  const acts = String((_billField('svc_activities')||{}).customer_choice||'').split(',').map(x=>x.replace(/\s+x\d+$/i,'').trim()).filter(Boolean);
+  const customs = (d.to_be_confirmed||[]).filter(t=>t.kind==='custom').map(t=>t.name);
+  const stations = Array.from({length:8},(_, i)=>'Station '+(i+1));
+  return Array.from(new Set(acts.concat(customs, stations, ['Hosting','Decor setup','Music','Photography','Return gifts','Floater / support'])));
+}
+function teamRowHtml(r, i, locked){
+  const dis = locked ? ' disabled' : '';
+  const roles = '<option value="">—</option>' + TEAM_ROLES.map(x=>'<option'+(x===r.role?' selected':'')+'>'+esc(x)+'</option>').join('');
+  return '<tr class="'+(r.paid?'paid':'')+'" data-i="'+i+'">'
+    + '<td><input type="text" class="tm-name" list="vendorNamesList" value="'+esc(r.person_name||'')+'" placeholder="Name"'+dis+'></td>'
+    + '<td><select class="tm-role"'+dis+'>'+roles+'</select></td>'
+    + '<td><input type="text" class="tm-to" list="teamJobsList" value="'+esc(r.assigned_to||'')+'" placeholder="Activity / station"'+dis+'></td>'
+    + '<td style="width:74px"><input type="number" class="tm-hours" min="0" step="0.5" value="'+(r.hours==null?'':r.hours)+'" placeholder="Hrs"'+dis+'></td>'
+    + '<td style="width:110px"><input type="number" class="tm-amt" min="0" step="1" value="'+(r.amount==null?'':r.amount)+'" placeholder="₹"'+dis+'></td>'
+    + '<td style="white-space:nowrap"><label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="tm-paid"'+(r.paid?' checked':'')+dis+'> Paid</label>'
+    +   (r.paid && r.paid_at ? '<div style="font-size:10.5px;color:var(--gy)">'+esc(r.paid_at)+'</div>' : '') + '</td>'
+    + '<td style="width:30px">'+(locked?'':'<button type="button" class="icon-btn" title="Remove" onclick="teamRemove('+i+')">✕</button>')+'</td></tr>';
+}
+function readTeamRows(){
+  return Array.from(document.querySelectorAll('#teamBlock tbody tr')).map(tr=>({
+    person_name: tr.querySelector('.tm-name').value.trim(), role: tr.querySelector('.tm-role').value,
+    assigned_to: tr.querySelector('.tm-to').value.trim(),
+    hours: tr.querySelector('.tm-hours').value===''?null:Number(tr.querySelector('.tm-hours').value),
+    amount: tr.querySelector('.tm-amt').value===''?null:Number(tr.querySelector('.tm-amt').value),
+    paid: tr.querySelector('.tm-paid').checked,
+    paid_at: (TEAM[+tr.dataset.i]||{}).paid_at || null,
+  }));
+}
+function drawTeamBlock(d){
+  d = d || CURRENT_DETAIL;
+  const block = document.getElementById('teamBlock'); if(!block) return;
+  const locked = !!(d && d.locked);
+  const total = TEAM.reduce((t,r)=>t+(Number(r.amount)||0),0), paid = TEAM.reduce((t,r)=>t+(r.paid?(Number(r.amount)||0):0),0);
+  const people = new Set(TEAM.map(r=>(r.person_name||'').trim().toLowerCase()).filter(Boolean)).size;
+  block.innerHTML = '<datalist id="teamJobsList">'+teamJobOptions(d||{}).map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist>'
+    + '<div style="font-size:12.5px;color:var(--gy);margin-bottom:8px">Everyone working this event — one row per person per job (e.g. 2 volunteers on Slime Making, 1–2 per spy station). Pick names from your partners list or type a new one.</div>'
+    + '<table class="team-tbl"><thead><tr><th>Person</th><th>Role</th><th>Activity / station</th><th>Hours</th><th>Amount (₹)</th><th>Payment</th><th></th></tr></thead><tbody>'
+    + (TEAM.length ? TEAM.map((r,i)=>teamRowHtml(r,i,locked)).join('') : '')
+    + '</tbody></table>'
+    + (TEAM.length ? '' : '<div style="font-size:12.5px;color:var(--gy);padding:6px 0">No one added yet.</div>')
+    + '<div class="team-sum"><span>People: <b>'+people+'</b></span><span>Team cost: <b>'+_inr(total)+'</b></span>'
+    + '<span style="color:#166534">Paid: <b>'+_inr(paid)+'</b></span><span style="color:#B4232C">Pending: <b>'+_inr(total-paid)+'</b></span></div>'
+    + (locked ? '' : '<div class="fb-btns"><button class="fb-btn gh" onclick="teamAdd()">+ Add person</button>'
+        + '<select class="fb-btn gh" style="padding-right:30px" onchange="teamAddStations(this.value);this.value=\'\'"><option value="">+ Add spy stations…</option>'+[4,5,6,7,8].map(n=>'<option value="'+n+'">'+n+' stations</option>').join('')+'</select>'
+        + '<button class="fb-btn pk" onclick="saveTeam(this)">Save team</button></div>');
+}
+function teamAdd(role){ TEAM = readTeamRows(); TEAM.push({person_name:'', role: role||'Volunteer', paid:false}); drawTeamBlock(); }
+function teamRemove(i){ TEAM = readTeamRows(); TEAM.splice(i,1); drawTeamBlock(); }
+function teamAddStations(v){
+  const n = Number(v);
+  if(!n || n < 1 || n > 12) return;
+  TEAM = readTeamRows();
+  for(let k=1;k<=n;k++) TEAM.push({person_name:'', role:'Station volunteer', assigned_to:'Station '+k, paid:false});
+  drawTeamBlock();
+  showToast('Added '+n+' station rows — fill in the names (blank rows are skipped when saving).');
+}
+async function saveTeam(btn){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); highlightWhoName(); return; }
+  const rows = readTeamRows();
+  btn.disabled = true;
+  try{
+    const r = await apiCall('/api/admin/event-team/'+CURRENT_LEAD_ID, {method:'POST', body: JSON.stringify({rows, changed_by:who})});
+    TEAM = r.rows||[]; drawTeamBlock();
+    showToast('✓ Event team saved');
+  }catch(e){ btn.disabled = false; if(e.message!=='unauthorized') showToast('Could not save: '+e.message); }
+}
 
 // ── Post-event feedback (2026-10-12, per Shruti) ──────────────────────
 // "feedback form for our events ... send a whatsapp and mail both". One
@@ -3389,6 +3489,7 @@ function renderDetail(d){
   }
 
   renderSpyRegistrationBlock(d);
+  renderTeamBlock(d);
   renderFeedbackBlock(d);
   document.getElementById('giftOrderBlock').innerHTML = giftOrderHtml(d.gift_order, d.lead_id, loadDetail);
   document.getElementById('tbcBlock').innerHTML = tbcHtml(d);
