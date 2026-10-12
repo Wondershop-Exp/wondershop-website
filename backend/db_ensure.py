@@ -27,6 +27,7 @@ SAFE_MIGRATIONS = [
     "047_partner_update_link.sql",
     "048_party_feedback.sql",
     "049_event_team.sql",
+    "050_feedback_category_remarks.sql",
 ]
 
 

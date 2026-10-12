@@ -1757,7 +1757,7 @@ function drawFeedbackBlock(locked){
   if(!FB.exists){
     h += '<div class="fb-btns"><button class="fb-btn pk" onclick="saveFeedbackSetup()">Create feedback link</button></div>';
   }else{
-    const waMsg = 'Hi'+(FB.client_name?' '+FB.client_name.split(' ')[0]:'')+'! Thank you for celebrating '+(FB.child_name?FB.child_name+'\u2019s birthday ':'')+'with Wondershop Experiences 💜 We\'d love to hear how it went — it takes a minute: '+FB.url;
+    const waMsg = 'Hi'+(FB.client_first_name?' '+FB.client_first_name:'')+'! Thank you for celebrating '+(FB.child_name?FB.child_name+'\u2019s birthday ':'')+'with Wondershop Experiences 💜 We\'d love to hear how it went — it takes a minute: '+FB.url;
     const phone = String(FB.phone||'').replace(/\D/g,'').replace(/^0+/,'');
     const waNum = phone.length===10 ? '91'+phone : phone;
     h += '<div class="fb-btns">'
@@ -1775,7 +1775,7 @@ function drawFeedbackBlock(locked){
         ].filter(Boolean).join(' · ')+'</div>';
     if(FB.submitted_at){
       const labels = {}; (FB.all_categories||[]).forEach(c=>labels[c.key]=c.label);
-      const rows = Object.keys(FB.ratings||{}).map(k=>'<tr><td>'+esc(labels[k]||k)+'</td><td>'+fbStars(FB.ratings[k])+'</td></tr>').join('');
+      const rows = Object.keys(FB.ratings||{}).map(k=>'<tr><td>'+esc(labels[k]||k)+'</td><td>'+fbStars(FB.ratings[k])+((FB.category_remarks||{})[k]?'<div style="font-size:12.5px;color:#555;white-space:pre-wrap">“'+esc(FB.category_remarks[k])+'”</div>':'')+'</td></tr>').join('');
       h += '<div class="fb-res"><b>Received '+esc(FB.submitted_at)+'</b>'+(FB.respondent?' from '+esc(FB.respondent):'')
         + '<table><tr><td><b>Overall</b></td><td>'+fbStars(FB.overall)+'</td></tr>'+rows+'</table>'
         + (FB.remarks ? '<div style="margin-top:8px;white-space:pre-wrap">“'+esc(FB.remarks)+'”</div>' : '')

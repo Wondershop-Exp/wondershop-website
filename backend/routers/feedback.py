@@ -42,6 +42,7 @@ from config import settings
 from database import database
 from routers.admin import _require_admin, _to_ist_str
 
+from catalogue_data import greeting_name
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
@@ -126,6 +127,7 @@ def _row_out(r) -> dict:
         "google_clicked_at": _to_ist_str(r["google_clicked_at"]),
         "overall": r["overall"], "ratings": _j(r["ratings"]) or {},
         "remarks": r["remarks"], "respondent": r["respondent"],
+        "category_remarks": _j(r.get("category_remarks")) or {},
     }
 
 
@@ -157,7 +159,7 @@ async def admin_get_feedback(lead_id: int, x_admin_password: Optional[str] = Hea
         "all_categories": [{"key": k, "label": l} for k, l in CATEGORIES],
         "default_categories": defaults["categories"],
         "default_host_names": defaults["host_names"],
-        "client_name": lead["parent_name"], "child_name": _first(lead["child_names"]),
+        "client_name": lead["parent_name"], "client_first_name": greeting_name(lead["parent_name"]) if lead["parent_name"] else "", "child_name": _first(lead["child_names"]),
         "phone": lead["phone"], "email": lead["email"],
     })
     return out
@@ -288,6 +290,7 @@ async def public_feedback(token: str):
         "categories": cats,
         "submitted": bool(row["submitted_at"]),
         "overall": row["overall"], "ratings": _j(row["ratings"]) or {}, "remarks": row["remarks"],
+        "category_remarks": _j(dict(row).get("category_remarks")) or {},
         "google_review_url": (settings.GOOGLE_REVIEW_URL or "").strip() or None,
     }
 
@@ -296,6 +299,7 @@ class FeedbackIn(BaseModel):
     overall: int
     ratings: Dict[str, Optional[int]] = {}
     remarks: Optional[str] = None
+    category_remarks: Dict[str, Optional[str]] = {}
     respondent: Optional[str] = None
 
 
@@ -307,10 +311,11 @@ async def submit_feedback(token: str, body: FeedbackIn):
     allowed = set(_j(row["categories"]) or [])
     ratings = {k: int(v) for k, v in (body.ratings or {}).items() if k in allowed and v and 1 <= int(v) <= 5}
     remarks = (body.remarks or "").strip()[:3000] or None
+    cat_rm = {k: v.strip()[:1000] for k, v in (body.category_remarks or {}).items() if k in allowed and v and v.strip()}
     await database.execute(
         """UPDATE party_feedback SET overall = :o, ratings = CAST(:r AS JSONB), remarks = :rm,
-                  respondent = :who, submitted_at = NOW() WHERE id = :id""",
-        values={"o": int(body.overall), "r": json.dumps(ratings), "rm": remarks,
+                  category_remarks = CAST(:crm AS JSONB), respondent = :who, submitted_at = NOW() WHERE id = :id""",
+        values={"o": int(body.overall), "r": json.dumps(ratings), "rm": remarks, "crm": json.dumps(cat_rm),
                 "who": (body.respondent or "").strip()[:80] or None, "id": row["id"]})
     logger.info(f"Lead #{row['lead_id']}: feedback received ({body.overall}★)")
     return {"success": True, "google_review_url": (settings.GOOGLE_REVIEW_URL or "").strip() or None}
