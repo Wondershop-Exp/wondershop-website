@@ -157,6 +157,8 @@ table.list th.sortable:hover{color:var(--bk)}
 .team-tbl tr.paid td{background:#F3FBF5}
 .team-sum{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;margin:10px 0}
 .team-sum b{font-size:14px}
+.team-sum2{font-size:13.5px;margin:12px 0;display:flex;flex-direction:column;gap:5px}
+.team-sum2 b{font-size:14px}
 @media(max-width:760px){.team-tbl thead{display:none}.team-tbl tr{display:grid;grid-template-columns:1fr 1fr;gap:4px;border:1px solid var(--li2);border-radius:10px;padding:6px;margin-bottom:8px}.team-tbl td{padding:2px}}
 .fb-cats{display:flex;flex-wrap:wrap;gap:8px 14px;margin:8px 0 12px}
 .fb-cats label{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
@@ -1711,9 +1713,12 @@ function drawTeamBlock(d){
     + TEAM.map((r,i)=>teamRowHtml(r,i)).join('')
     + '</tbody></table></div>'
     + (TEAM.length ? '' : '<div style="font-size:12.5px;color:var(--gy);padding:6px 0">Nothing added yet.</div>')
-    + '<div class="team-sum"><span>Total expenses: <b>'+_inr(total)+'</b></span>'
-    + '<span style="color:#166534">Paid: <b>'+_inr(paid)+'</b></span><span style="color:#B4232C">Pending: <b>'+_inr(total-paid)+'</b></span>'
-    + (gt ? '<span>'+gtLabel+' '+_inr(gt)+' − expenses = <b>'+_inr(gt-total)+'</b></span>' : '') + '</div>'
+    + '<div class="team-sum2">'
+      + '<div><span>Total Expenses: <b>'+_inr(total)+'</b></span>; <span style="color:#166534">Paid: <b>'+_inr(paid)+'</b></span>; <span style="color:#B4232C">Pending: <b>'+_inr(total-paid)+'</b></span></div>'
+      + (gt ? '<div>Total Revenue ('+(received?'Amount Received':'Grand Total — final payment not in yet')+'): <b>'+_inr(gt)+'</b></div>'
+        + '<div>Margin: <b style="color:'+(gt-total<0?'#B4232C':'#166534')+'">'+_inr(gt-total)+'</b></div>'
+        + '<div>Margin %: <b style="color:'+(gt-total<0?'#B4232C':'#166534')+'">'+(Math.round((gt-total)/gt*1000)/10)+'%</b></div>' : '')
+    + '</div>'
     + '<div class="fb-btns"><button class="fb-btn gh" onclick="teamAdd()">+ Add row</button>'
     + '<select class="fb-btn gh" style="padding-right:30px" onchange="teamAddStations(this.value);this.value=\'\'"><option value="">+ Add spy stations…</option>'+[4,5,6,7,8].map(n=>'<option value="'+n+'">'+n+' stations</option>').join('')+'</select>'
     + '<button class="fb-btn pk" onclick="saveTeam(this)">Save</button></div>';
