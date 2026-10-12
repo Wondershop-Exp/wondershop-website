@@ -370,12 +370,12 @@ body.role-sales .admin-only{display:none!important}
         <th>ID</th>
         <th>Client</th>
         <th class="th-sort" id="th_birthday" onclick="setSort('birthday')">Birthday</th>
-        <th>Theme</th>
+        <th class="th-sort" id="th_status" onclick="setSort('status')">Status</th>
         <th>Location</th>
         <th class="th-sort" id="th_quote" onclick="setSort('quote')">Sales Quote</th>
         <th>Age/Gender</th>
         <th class="th-sort" id="th_followup" onclick="setSort('followup')">Follow-up</th>
-        <th class="th-sort" id="th_status" onclick="setSort('status')">Status</th>
+        <th>Theme</th>
         <th class="th-sort" id="th_modified" onclick="setSort('modified')">Last Modified</th>
         <th>Sales Lead</th>
         <th></th>
@@ -788,12 +788,12 @@ function renderListRows(){
       +'<td style="color:var(--gy);font-size:12.5px">#'+r.lead_id+'</td>'
       +'<td><strong>'+esc(r.client_name||'(no name yet)')+'</strong>'+suggPill+'<br><span style="color:var(--gy);font-size:12px">'+esc(r.mobile||'')+'</span></td>'
       +'<td>'+fmtDateStr(r.event_date)+'</td>'
-      +'<td>'+esc(r.theme||'—')+'</td>'
+      +'<td>'+statusCellHtml(r)+'</td>'
       +'<td title="'+esc(r.venue||'')+'">'+esc(localityOf(r.venue)||'—')+'</td>'
       +'<td>'+(money(r.revenue_potential)||'—')+'</td>'
       +'<td>'+esc(ageGender(r))+'</td>'
       +'<td>'+followupHtml(r.next_followup)+'</td>'
-      +'<td>'+statusCellHtml(r)+'</td>'
+      +'<td>'+esc(r.theme||'—')+'</td>'
       +'<td>'+fmtTs(r.updated_at_ts)+'</td>'
       +'<td>'+esc(r.sales_lead||'—')+'</td>'
       +'<td>'+(r.is_blank ? '<a href="#" onclick="event.stopPropagation();askDeleteLead('+r.lead_id+');return false" class="linkbtn" style="color:#B42318">Delete</a>' : '')+'</td>'
