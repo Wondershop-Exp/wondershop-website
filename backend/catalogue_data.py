@@ -447,7 +447,7 @@ ACTIVITIES = [
     ("a27", "Dark Room", 25000, True),   # 2026-10-05, per Shruti (was 15,000)
     ("a28", "Spy Treasure Hunt", 1500, False),
     ("hit-the-cans", "Hit the Cans", 5000, True),   # 2026-10-02, BAB + Unicorn
-    ("mascot", "Mascot (3 hours)", 5000, True),     # 2026-10-12, per Shruti — flat Rs 5,000 for 3 hours
+    ("mascot", "Mascot (1 character, 3 hours)", 5000, True),   # 2026-10-12, per Shruti — Rs 5,000 per mascot for 3 hours
     # 2026-10-03 — package-page activities now also in Build-a-Birthday.
     # Banded ones are listed at their base (smallest-group) price.
     ("face-painting", "Face Painting", 4500, True),
