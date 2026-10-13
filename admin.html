@@ -4859,6 +4859,7 @@ function activityQuoteInline(name){
   // Same key as booking_pricing.line_key(): lower-case, anything from " (" dropped.
   const key = 'activity:'+String(name).replace(/\s*\(.*$/,'').trim().toLowerCase();
   const it = _lqItems('svc_activities').find(i => i.key === key);
+  const por = porActQuoteHtml(name); if(por !== null) return por;
   if(!it) return pendingActQuoteHtml(name, key);
   const m = Number(it.amount||0), q = Number(it.quote==null?m:it.quote);
   const qu = _lqQtyUnit(it.label, m), perKid = /kids?\s*×/.test(it.label);
@@ -4871,6 +4872,38 @@ function activityQuoteInline(name){
     + '<input type="number" min="0" step="1" class="aq-in aq-price" value="'+qVal+'" data-old="'+qVal+'" onblur="saveActQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()">'
     + (perKid ? '<span class="aq-qlbl">/child</span>' : '')
     + '<span class="aq-eq'+(q<m?' neg':'')+'">= '+_inr(q)+'</span></span>';
+}
+// Price-on-request activities (2026-10-13, per Shruti — "provide option to
+// add pricing for cases where we don't have pricing on the website"): a flat
+// ₹ box on the row. It's the same price as on the To be confirmed card
+// (POST /tbc, key "act:<name>"), so it's added to the total from there.
+function porActQuoteHtml(name){
+  const opt = (MP_OPTIONS['fld_svc_activities']||[]).find(o => o.value === name);
+  if(!opt || opt.price) return null;          // priced in the catalogue (or unknown)
+  const t = (CURRENT_DETAIL.to_be_confirmed||[]).find(x => x.key === 'act:'+name);
+  const price = t && t.price != null && t.price !== '' ? Number(t.price) : null;
+  if(CURRENT_DETAIL.locked) return price==null ? '' : '<span class="aq-inline"><b>'+_inr(price)+'</b></span>';
+  return '<span class="aq-inline'+(t?'':' por-pending')+'" data-act="'+esc(name)+'">'
+    + '<span class="aq-qlbl">₹</span><input type="number" min="0" step="1" class="aq-in aq-price" placeholder="Price" value="'+(price==null?'':price)+'" data-old="'+(price==null?'':price)+'"'
+    + (t ? ' onblur="savePorPrice(this)" onkeydown="if(event.key===\'Enter\')this.blur()"' : '') + '>'
+    + '<span class="aq-qlbl">'+(price==null?'not on website':'flat')+'</span></span>';
+}
+async function _postPorPrice(name, val){
+  const t = (CURRENT_DETAIL.to_be_confirmed||[]).find(x => x.key === 'act:'+name);
+  const body = {changed_by: getName(), key: 'act:'+name, status: (t && t.status) || 'pending',
+                price: val==='' ? null : Number(val), note: (t && t.note) || null};
+  return apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/tbc', {method:'POST', body: JSON.stringify(body)});
+}
+async function savePorPrice(el){
+  if(el.value === el.dataset.old) return;
+  if(!getName()){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); el.value = el.dataset.old; return; }
+  const name = el.closest('.aq-inline').dataset.act;
+  try{
+    await _postPorPrice(name, el.value.trim());
+    el.dataset.old = el.value;
+    if(document.querySelectorAll('#sectionsContainer tr.dirty').length) showToast('✓ Price saved. Save your other changes, then refresh to see the total.');
+    else{ showToast('✓ Price saved — added to the total'); await loadDetail(); }
+  }catch(e){ if(e.message!=='unauthorized') showToast('Save failed: '+e.message); el.value = el.dataset.old; }
 }
 // Not saved yet (just picked): the list price from the dropdown, editable,
 // saved together with the row's Save (2026-10-12, per Shruti).
@@ -4904,6 +4937,13 @@ async function savePendingQuotes(key){
     if(k) quotes['kids:'+w.dataset.k] = kids;
   });
   row.querySelectorAll('input.lq-pending').forEach(i=>{ quotes[i.dataset.k] = i.value.trim()==='' ? null : Number(i.value); });
+  // Price-on-request activities just picked: the row is saved now, so the
+  // To be confirmed item exists — reload it, then store the typed price.
+  const por = Array.from(row.querySelectorAll('.aq-inline.por-pending')).map(w=>[w.dataset.act, w.querySelector('.aq-price').value.trim()]).filter(x=>x[1]!=='');
+  if(por.length){
+    try{ CURRENT_DETAIL.to_be_confirmed = (await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID)).to_be_confirmed || []; }catch(e){}
+    for(const [n, v] of por){ try{ await _postPorPrice(n, v); }catch(e){ showToast('Price for '+n+' not saved: '+e.message); } }
+  }
   if(!Object.keys(quotes).length) return null;
   return apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/line-quotes', {method:'POST', body: JSON.stringify({quotes, changed_by: getName()})});
 }
