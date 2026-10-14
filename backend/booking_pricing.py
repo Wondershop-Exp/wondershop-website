@@ -98,6 +98,8 @@ EINVITE_FLAT_CHARGE = 500
 def einvite_price(name: Optional[str]) -> float:
     """Static designs ₹500; any Video + Reminder invite (sales panel tier,
     or a homepage package's "<Theme> Video + Reminder") ₹2,000."""
+    if name and name.strip().lower().startswith("custom"):
+        return float(cat.EINVITE_CUSTOM_PRICE)   # website's Custom Design tier
     if name and "video" in name.lower():
         return float(cat.EINVITE_TIER_PRICES["Video + Reminder"])
     return float(cat.EINVITE_TIER_PRICES.get(name or "", EINVITE_FLAT_CHARGE))

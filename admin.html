@@ -331,6 +331,7 @@ table.list.static tr:hover td{background:inherit}
 .field-label{font-weight:600;font-size:13px}
 .field-label small{display:block;font-weight:400;color:var(--gy);font-size:10px;white-space:normal;word-break:break-word}
 .einvite-combo{position:relative}
+.einvite-combo-search{width:100%;box-sizing:border-box;border:1px solid var(--li2);border-radius:6px;padding:7px 9px;font:inherit;font-size:13px;margin-bottom:6px;position:sticky;top:0;background:#fff;z-index:1}
 .einvite-combo-btn{width:100%;display:flex;align-items:center;gap:8px;border:1px solid var(--li2);border-radius:6px;padding:5px 8px;background:#fff;font-size:13px;font-family:inherit;cursor:pointer;text-align:left;color:var(--bk)}
 .einvite-combo-thumb{width:26px;height:26px;object-fit:cover;border-radius:4px;flex-shrink:0}
 .einvite-combo-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -874,6 +875,11 @@ body.role-sales .admin-only{display:none!important}
     </div>
     <!-- 2026-10-02, per Shruti — "move spy registration page section at the
          end before modification trail, as a collapsible module". -->
+    <!-- 2026-10-14, per Shruti — final e-invite (record) + "show on website". -->
+    <div class="log-section" id="invSection" style="display:none">
+      <h3>💌 Final E-Invite</h3>
+      <div id="invBlock"></div>
+    </div>
     <div class="log-section" id="spySection" style="display:none">
       <h3>🕵️ Spy Agent Registration Page</h3>
       <div id="spyRegBlock"></div>
@@ -1935,6 +1941,82 @@ function markFeedbackWhatsapp(){
     .then(()=>apiCall('/api/admin/feedback/'+CURRENT_LEAD_ID)).then(r=>{ FB = r; drawFeedbackBlock(false); }).catch(()=>{});
 }
 
+// ── Final E-Invite (2026-10-14, per Shruti) ──────────────────────────────
+// "we'll upload the final invite on the bookings page for our record
+// keeping. if it's a new invite, we'll add it to our website as well ...
+// For spy, we don't need to ask to reupload ... just add the checkbox."
+// Spy bookings use the invite from the Spy Agent Registration section.
+// The website tick is admin-only; a ticked invite shows on Build-a-Birthday's
+// E-Invite step straight away (routers/booking_invites.py).
+let INV_LEAD_ID = null;
+async function renderInviteBlock(d){
+  const sec = document.getElementById('invSection'), block = document.getElementById('invBlock');
+  if(!sec || !block) return;
+  if(!d || !d.is_booking){ sec.style.display='none'; block.innerHTML=''; return; }
+  sec.style.display = 'block';
+  INV_LEAD_ID = d.lead_id;
+  block.innerHTML = '<div class="spy-reg-card"><div class="srb"><span class="sr-status" style="color:var(--gy)">Loading…</span></div></div>';
+  let st;
+  try{ st = await apiCall('/api/admin/bookings/'+d.lead_id+'/invite'); }
+  catch(e){ block.innerHTML = '<div style="color:var(--pk)">Could not load: '+esc(e.message)+'</div>'; return; }
+  if(INV_LEAD_ID !== d.lead_id) return;
+  const spy = !!d.is_spy_booking, isAdmin = ROLE !== 'sales';
+  let thumb = '';
+  if(st.has_invite){
+    try{
+      const r = await fetch(API+'/api/admin/bookings/'+d.lead_id+'/invite/image', {headers:{'X-Admin-Password': getPw()}});
+      if(r.ok) thumb = URL.createObjectURL(await r.blob());
+    }catch(e){}
+  }
+  if(INV_LEAD_ID !== d.lead_id) return;
+  const img = thumb ? '<a href="'+thumb+'" target="_blank" rel="noopener"><img src="'+thumb+'" alt="Invite" style="width:140px;border-radius:10px;border:1px solid var(--li2);display:block"></a>' : '';
+  const info = st.has_invite
+    ? '<span class="sr-status">✓ '+(st.source==='spy' ? 'Using the Spy registration invite' : 'Invite uploaded')+(st.name?' ('+esc(st.name)+')':'')+(st.uploaded_by?' · '+esc(st.uploaded_by):'')+(st.uploaded_at?' · '+esc(st.uploaded_at):'')+'</span>'
+    : '<span class="sr-status" style="color:var(--gy)">'+(spy ? 'Upload the invite in the Spy Agent Registration section below — it’s used here too.' : 'No invite uploaded yet.')+'</span>';
+  const upload = spy ? '' : '<label class="sr-btn primary" style="display:inline-block;cursor:pointer">'+(st.source==='booking'?'Replace Invite':'Upload Invite')
+    + '<input type="file" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="uploadFinalInvite('+d.lead_id+',this)"></label>';
+  let web = '';
+  if(st.has_invite || st.show_on_website){
+    if(isAdmin){
+      web = '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">'
+        + '<label style="display:flex;gap:8px;align-items:center;font-weight:600;cursor:pointer"><input type="checkbox" id="invWeb"'+(st.show_on_website?' checked':'')+' onchange="document.getElementById(\'invWebF\').style.display=this.checked?\'flex\':\'none\'"> New design — show this invite on the website</label>'
+        + '<div id="invWebF" style="display:'+(st.show_on_website?'flex':'none')+';gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">'
+        +   '<div><label style="display:block;font-size:11.5px;font-weight:700;color:var(--gy);text-transform:uppercase;margin-bottom:4px">Design name on website</label><input type="text" id="invWebName" style="font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--li2);border-radius:8px;width:220px" maxlength="120" placeholder="e.g. Unicorn Pastel" value="'+esc(st.website_name||'')+'"></div>'
+        +   '<div><label style="display:block;font-size:11.5px;font-weight:700;color:var(--gy);text-transform:uppercase;margin-bottom:4px">Theme tag (optional)</label><input type="text" id="invWebTheme" style="font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--li2);border-radius:8px;width:220px" list="invThemeTags" maxlength="60" placeholder="e.g. spy, kpop, frozen" value="'+esc(st.website_theme||'')+'">'
+        +   '<datalist id="invThemeTags">'+['spy','kpop','frozen','hero','uni','stitch','imposter','hp','football','art','nanighar'].map(t=>'<option value="'+t+'">').join('')+'</datalist></div>'
+        + '</div>'
+        + '<div style="font-size:11.5px;color:var(--gy);margin-top:8px">⚠ The website is public — tick this only for a design without the family’s phone number or home address on it.</div>'
+        + '<button type="button" class="sr-btn ghost" style="margin-top:10px" onclick="saveInviteWebsite('+d.lead_id+')">Save</button>'
+        + (st.show_on_website ? '<span class="sr-status">✓ On the website'+(st.website_by?' · '+esc(st.website_by):'')+(st.website_at?' · '+esc(st.website_at):'')+'</span>' : '')
+        + '</div>';
+    }else if(st.show_on_website){
+      web = '<div class="sr-status" style="margin-top:10px">✓ Shown on the website as “'+esc(st.website_name||'')+'”</div>';
+    }
+  }
+  block.innerHTML = '<div class="spy-reg-card"><div class="srb" style="align-items:flex-start;gap:14px;flex-wrap:wrap">'+img+'<div>'+upload+info+'</div></div>'+web+'</div>';
+}
+async function uploadFinalInvite(leadId, inputEl){
+  const file = inputEl.files && inputEl.files[0]; if(!file) return;
+  const fd = new FormData(); fd.append('invite_image', file); fd.append('changed_by', getName()||'');
+  try{
+    const res = await fetch(API+'/api/admin/bookings/'+leadId+'/invite', {method:'POST', headers:{'X-Admin-Password': getPw()}, body: fd});
+    if(!res.ok){ const b = await res.json().catch(()=>({})); throw new Error(b.detail || ('Upload failed ('+res.status+')')); }
+    showToast('✓ Invite uploaded');
+    renderInviteBlock(CURRENT_DETAIL);
+  }catch(e){ showToast('Could not upload: '+e.message); }
+  finally{ inputEl.value=''; }
+}
+async function saveInviteWebsite(leadId){
+  const show = document.getElementById('invWeb').checked;
+  const body = {show, name: document.getElementById('invWebName').value.trim(),
+                theme: document.getElementById('invWebTheme').value.trim(), changed_by: getName()||''};
+  try{
+    await apiCall('/api/admin/bookings/'+leadId+'/invite/website', {method:'POST', body: JSON.stringify(body)});
+    showToast(show ? '✓ Invite added to the website' : '✓ Invite taken off the website');
+    renderInviteBlock(CURRENT_DETAIL);
+  }catch(e){ if(e.message!=='unauthorized') showToast('⚠ '+e.message); }
+}
+
 function renderSpyRegistrationBlock(d){
   const block = document.getElementById('spyRegBlock');
   if(!block) return;
@@ -2089,6 +2171,7 @@ async function uploadSpyInvite(leadId, inputEl){
     }
     await res.json();
     showToast('Invite uploaded \u2014 link is live');
+    if(CURRENT_DETAIL) renderInviteBlock(CURRENT_DETAIL);
     const status = await apiCall('/api/spy-registration/admin/'+leadId);
     renderSpyRegistrationBody(leadId, status);
   }catch(e){
@@ -3787,6 +3870,7 @@ function renderDetail(d){
   }
 
   renderSpyRegistrationBlock(d);
+  renderInviteBlock(d);
   renderTeamBlock(d);
   renderFeedbackBlock(d);
   document.getElementById('giftOrderBlock').innerHTML = giftOrderHtml(d.gift_order, d.lead_id, loadDetail);
@@ -4175,10 +4259,25 @@ function einviteComboHtml(rid, options, current){
       +'<span class="einvite-combo-chev">\u25be</span>'
     +'</button>'
     +'<div class="einvite-combo-panel" id="'+rid+'_combopanel" hidden>'
+      +'<input type="text" class="einvite-combo-search" placeholder="Type to search…" oninput="einviteComboFilter(this)" onclick="event.stopPropagation()" onkeydown="einviteComboKey(event,'+attrJson(rid)+')">'
       + opts.map(o=>einviteComboOptRowHtml(rid, o, o.value===current)).join('')
     +'</div>'
     +'<input type="hidden" id="'+rid+'_cc" value="'+esc(current||'')+'">'
   +'</div>';
+}
+// Type to search (2026-10-14, per Shruti — "make this also typed dropdown box").
+function einviteComboFilter(inp){
+  const q = inp.value.trim().toLowerCase();
+  inp.parentElement.querySelectorAll('.einvite-combo-opt').forEach(el=>{
+    el.style.display = !q || el.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+function einviteComboKey(e, rid){
+  if(e.key==='Escape'){ document.getElementById(rid+'_combopanel').hidden = true; return; }
+  if(e.key!=='Enter') return;
+  e.preventDefault();
+  const first = Array.from(e.target.parentElement.querySelectorAll('.einvite-combo-opt')).find(el=>el.style.display!=='none');
+  if(first) first.click();
 }
 function einviteComboToggle(rid){
   const panel = document.getElementById(rid+'_combopanel');
@@ -4192,6 +4291,8 @@ function einviteComboToggle(rid){
     panel.style.top = (r.bottom+4)+'px';
     panel.style.width = Math.max(r.width, 240)+'px';
     panel.hidden = false;
+    const se = panel.querySelector('.einvite-combo-search');
+    if(se){ se.value=''; einviteComboFilter(se); setTimeout(()=>se.focus({preventScroll:true}), 0); }
   }
 }
 // A fixed-position panel stays put while the page scrolls out from under
@@ -4199,7 +4300,8 @@ function einviteComboToggle(rid){
 // capture:true so this also catches scrolling inside a nested container
 // (scroll events don't bubble, but the capture phase still reaches it).
 ['scroll','resize'].forEach(evt=>{
-  window.addEventListener(evt, ()=>{
+  window.addEventListener(evt, (e)=>{
+    if(e.target && e.target.closest && e.target.closest('.einvite-combo-panel')) return;   // scrolling the list itself
     document.querySelectorAll('.einvite-combo-panel').forEach(p=>{ p.hidden = true; });
   }, true);
 });

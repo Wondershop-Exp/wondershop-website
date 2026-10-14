@@ -8,7 +8,7 @@ from security import security_middleware
 import re
 import sheet_sync
 from database import connect_db, disconnect_db
-from routers import catalogue, cart, leads, config, admin, instagram, packaging, vendors, dashboard, sales_leads, vendor_onboarding, spy_registration, decor_refs, feedback, event_team, aisensy_webhook
+from routers import catalogue, cart, leads, config, admin, instagram, packaging, vendors, dashboard, sales_leads, vendor_onboarding, spy_registration, decor_refs, feedback, event_team, aisensy_webhook, booking_invites
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -87,6 +87,8 @@ app.include_router(feedback.router, prefix="/api", tags=["Event Feedback"])
 app.include_router(event_team.router, prefix="/api", tags=["Event Team"])
 # 2026-10-12 — Instagram ad leads from AiSensy (webhook) -> Leads.
 app.include_router(aisensy_webhook.router, prefix="/api", tags=["AiSensy Leads"])
+# 2026-10-14 — final e-invite on a booking (+ "show on the website").
+app.include_router(booking_invites.router, prefix="/api", tags=["Booking Invites"])
 import booking_quote
 app.include_router(booking_quote.router, prefix="/api", tags=["Booking Quotation"])
 

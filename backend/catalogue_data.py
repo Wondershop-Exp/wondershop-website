@@ -322,6 +322,8 @@ PINATA_TIER_PRICES = {
 # spy-basic.html / turf-basic.html's EINVITE_TIERS), since that is what
 # actually offers a video option. Keep in sync by hand if those change.
 EINVITE_TIER_PRICES = {"Static": 500, "Video + Reminder": 2000}
+# Custom Design e-invite — same ₹1,000 as builder.html's #inv-custom (2026-10-14).
+EINVITE_CUSTOM_PRICE = 1000
 # 2026-10-01, per Shruti — "einvite and save the date, by default show 500
 # rs." Save the Date's list price (was quoted per lead with no list price).
 SAVE_THE_DATE_PRICE = 500

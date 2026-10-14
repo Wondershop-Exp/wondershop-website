@@ -3000,6 +3000,26 @@ const THEME_TIERS=THEMES.reduce((acc,t)=>acc.concat(themeTierEntries(t)),[]);
 // on website" (2026-10-06, per Shruti) — added to the themed decor grid at
 // their own cost. Ids are "ref-<n>"; the photo URL travels with the order
 // (snapshot decor.img) so the confirmation email can show it.
+// Final invites marked "show on the website" on a booking (2026-10-14, per
+// Shruti — routers/booking_invites.py): added to the E-Invite step at the
+// usual Static E-Invite price. Ids are "bi-<n>".
+function invSrc(inv){return inv.url||('einvites/'+inv.file);}
+async function loadSiteInvites(){
+  if(!window.WS_API_BASE)return;
+  try{
+    const r=await fetch(window.WS_API_BASE+'/api/booking-invites/website');
+    if(!r.ok)return;
+    const items=((await r.json())||{}).items||[];
+    const p=(INVITES[0]&&INVITES[0].p)||500;
+    let added=0;
+    items.forEach(it=>{
+      if(!it.image_url||INVITES.some(x=>x.id==='bi-'+it.id))return;
+      INVITES.push({id:'bi-'+it.id,n:it.name||'New design',p,url:window.WS_API_BASE+it.image_url,t:it.theme||''});
+      added++;
+    });
+    if(added&&document.getElementById('invCards')&&typeof buildInvs==='function')buildInvs();
+  }catch(e){}
+}
 async function loadRefDecor(){
   if(!window.WS_API_BASE)return;
   try{
@@ -3662,7 +3682,7 @@ function thumbFor(cat,id){
   if(cat==='Host'){const map={Premium:'host-classic',Signature:'host-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎤');}
   if(cat==='DJ'){const map={Classic:'dj-classic',Premium:'dj-premium',Signature:'dj-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('🎧');}
   if(cat==='Pinata'){if(id==='custom')return e('🪅');const p=PINATAS.find(x=>x.id===id);if(!p)return e('🪅');return p.realImg?{type:'img',src:'img/'+p.img+'.jpg'}:e(p.e);}
-  if(cat==='E-Invite'){const inv=INVITES.find(x=>x.id===id);return inv?{type:'img',src:'einvites/'+inv.file}:e('💌');}
+  if(cat==='E-Invite'){const inv=INVITES.find(x=>x.id===id);return inv?{type:'img',src:invSrc(inv)}:e('💌');}
   if(cat==='Photographer'){const map={Classic:'photo-classic',Premium:'photo-premium',Signature:'photo-signature'};return map[id]?{type:'img',src:'img/'+map[id]+'.jpg'}:e('📷');}
   if(cat==='Return Gifts'){
     if(id==='prop-pr1')return{type:'img',src:'img/packages/spy/spy-prop-sunglasses.jpg'};
@@ -4923,7 +4943,7 @@ function galMediaFor(kind,obj){
   let items;
   if(obj.gallery&&obj.gallery.length)items=obj.gallery.slice();
   else{
-    const src=kind==='theme'?('img/theme-'+obj.id+'.jpg'):kind==='gift'?('img/'+obj.img):kind==='invite'?('einvites/'+obj.file):('img/'+obj.img+'.jpg');
+    const src=kind==='theme'?('img/theme-'+obj.id+'.jpg'):kind==='gift'?('img/'+obj.img):kind==='invite'?invSrc(obj):('img/'+obj.img+'.jpg');
     items=[{type:'img',src}];
   }
   // Any item with its own `info` HTML (e.g. Live T-shirt Printing) gets the
@@ -5133,7 +5153,7 @@ function makeInvCard(inv){
   const isFree=rawNoInv()>=S.FIT;
   const priceText=isFree?'<img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> Unlocked!':'₹'+inv.p;
   const added=S.einvite&&S.einvite.id===inv.id;
-  return '<div class="pcard psm'+(added?' sel':'')+'" id="inv-'+inv.id+'"><div class="sel-badge">✓</div><div style="position:relative;overflow:hidden;border-radius:var(--r) var(--r) 0 0;background:var(--li2);aspect-ratio:3/4;cursor:pointer" onclick="openGallery(\'invite\',\''+inv.id+'\')"><img src="einvites/'+inv.file+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+inv.n+'"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.58);padding:12px 10px;text-align:center;backdrop-filter:blur(2px)"><div style="font-family:var(--fd);font-size:15px;font-weight:700;color:#fff;line-height:1.2">'+inv.n+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:600;margin-top:3px">'+priceText+'</div></div></div><div style="padding:8px 10px"><button class="card-btn inv-sel-btn'+(added?' added':'')+'" style="width:100%;text-align:center" onclick="event.stopPropagation();selInv(this.closest(\'.pcard\'),\''+inv.id+'\','+inv.p+',\''+inv.n+'\')">'+(added?'✓ Selected':'Select')+'</button></div></div>';
+  return '<div class="pcard psm'+(added?' sel':'')+'" id="inv-'+inv.id+'"><div class="sel-badge">✓</div><div style="position:relative;overflow:hidden;border-radius:var(--r) var(--r) 0 0;background:var(--li2);aspect-ratio:3/4;cursor:pointer" onclick="openGallery(\'invite\',\''+inv.id+'\')"><img src="'+invSrc(inv)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+inv.n+'"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.58);padding:12px 10px;text-align:center;backdrop-filter:blur(2px)"><div style="font-family:var(--fd);font-size:15px;font-weight:700;color:#fff;line-height:1.2">'+inv.n+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:600;margin-top:3px">'+priceText+'</div></div></div><div style="padding:8px 10px"><button class="card-btn inv-sel-btn'+(added?' added':'')+'" style="width:100%;text-align:center" onclick="event.stopPropagation();selInv(this.closest(\'.pcard\'),\''+inv.id+'\','+inv.p+',\''+inv.n+'\')">'+(added?'✓ Selected':'Select')+'</button></div></div>';
 }
 function buildInvs(){
   const w=document.getElementById('invCards');w.innerHTML='';
@@ -7108,6 +7128,7 @@ function referWS(){
 // HOMEPAGE JS
 // ══════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',()=>{
+  loadSiteInvites(); // final invites marked "show on website" on a booking (2026-10-14)
   loadRefDecor();   // website decor designs from the sales/bookings panels (2026-10-06)
   populateThemeCatalogSelects();
   makeAssistedSelect('f-theme');

@@ -93,6 +93,9 @@ SALES_ALLOWED = [(m, re.compile(p)) for m, p in [
     ("*",    r"/api/admin/sales-leads(/.*)?"),
     # Spy-party registration panel inside a booking.
     ("*",    rf"/api/spy-registration/admin/{_ID}(/.*)?"),
+    # Final e-invite on a booking (2026-10-14). The "show on website" switch
+    # is checked for admin inside routers/booking_invites.py.
+    ("*",    rf"/api/admin/bookings/{_ID}/invite(/.*)?"),
 ]]
 
 
