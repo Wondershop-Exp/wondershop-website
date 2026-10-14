@@ -2187,6 +2187,7 @@ function renderSpyRegistrationBody(leadId, status){
     +   (status.exists && status.has_invite ? '<span class="sr-status">\u2713 Invite uploaded'+(status.invite_image_name ? ' ('+esc(status.invite_image_name)+')' : '')+'</span>' : '')
     + '</div>'
     + helpText
+    + (status.exists ? spyInviteMsgHtml(shareUrl) : '')
     + '<div class="sr-pickup-drop" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">'
     +   '<div style="font-size:12px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Drop-off / Pick-up Time</div>'
     +   '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">'
@@ -2240,6 +2241,46 @@ async function saveSpyPickupDrop(leadId){
   }
 }
 
+// WhatsApp invite for the guests' parents (2026-10-14, per Shruti — "give
+// a whatsapp message to share with the parents to invite. it should mention
+// the child's name, age, date, venue, registration link, rsvp number. make
+// the text on theme."). Built from the booking; editable before copying.
+function _bkVal(key){ const f = _billField(key); return String(f.customer_choice || f.original_value || '').trim(); }
+function spyInviteMsg(link){
+  const kid = (_bkVal('child_names').split(/,|&| and /i)[0] || '').trim() || '';
+  const ageN = parseInt(_bkVal('child_ages'), 10);
+  const raw = _bkVal('event_date'); let date = raw;
+  const dt = /^\d{4}-\d{2}-\d{2}/.test(raw) ? new Date(raw.slice(0,10)+'T00:00:00') : null;
+  if(dt && !isNaN(dt)) date = dt.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  const time = _bkVal('einvite_pickup_time') || _bkVal('event_time');
+  const venue = _bkVal('einvite_venue') || _bkVal('venue');
+  let rsvp = _bkVal('einvite_rsvp');
+  if(!rsvp){ const n = _bkVal('parent_name'), ph = _bkVal('phone'); rsvp = [n, ph].filter(Boolean).join(', '); }
+  const L = [];
+  L.push('🕵️ *TOP SECRET — AGENT ALERT* 🕵️', '');
+  L.push('Attention, Agent! You have been recruited for a classified mission:');
+  L.push((kid ? '*Agent '+kid+'*' : 'Our birthday agent')+' '+(isNaN(ageN) ? 'is celebrating a birthday' : 'is turning *'+ageN+'*')+' and needs the best spies in town to crack the birthday case! 🎂🔍', '');
+  if(date) L.push('📅 *Mission date:* '+date);
+  if(time) L.push('⏰ *Report at:* '+time);
+  if(venue) L.push('📍 *HQ:* '+venue);
+  L.push('', '🔐 *Get your agent clearance* — register your little agent here (needed for the mission ID card):', link, '');
+  if(rsvp) L.push('📞 *RSVP to the mission handler:* '+rsvp, '');
+  L.push('This message will self-destruct… just kidding 😉 See you on the mission, Agent! 🕶️');
+  return L.join('\n');
+}
+function spyInviteMsgHtml(link){
+  return '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">'
+    + '<div style="font-size:13px;font-weight:700;margin-bottom:6px">WhatsApp message for the guests’ parents</div>'
+    + '<div style="font-size:11.5px;color:var(--gy);margin-bottom:8px">Built from this booking — edit anything before copying. Send it with the invite image.</div>'
+    + '<textarea id="srWaMsg" rows="14" style="width:100%;box-sizing:border-box;font:inherit;font-size:13px;line-height:1.5;padding:10px 12px;border:1px solid var(--li2);border-radius:10px">'+esc(spyInviteMsg(link))+'</textarea>'
+    + '<div style="margin-top:8px"><button type="button" class="sr-btn primary" onclick="copySpyWaMsg()">Copy WhatsApp message</button></div></div>';
+}
+function copySpyWaMsg(){
+  const el = document.getElementById('srWaMsg'); if(!el) return;
+  (navigator.clipboard ? navigator.clipboard.writeText(el.value) : Promise.reject())
+    .then(()=>showToast('✓ Message copied — paste it in WhatsApp'))
+    .catch(()=>{ el.select(); showToast('Select all and copy the message'); });
+}
 function copySpyRegLink(){
   const el = document.getElementById('srLinkText');
   if(!el) return;
