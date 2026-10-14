@@ -1689,11 +1689,15 @@ async function goSave(send){
 let TBC_ITEMS = [];
 function tbcHtml(d){
   TBC_ITEMS = d.to_be_confirmed || [];
-  if(!TBC_ITEMS.length) return '';
+  // 2026-10-14, per Shruti: once an item is confirmed it leaves the card, and
+  // the card disappears when nothing is pending (no green "all done" box) —
+  // the confirmed price still counts and still shows in the Activities section.
   const pending = TBC_ITEMS.filter(t=>t.status!=='confirmed').length;
+  if(!pending) return '';
   const ro = !!d.locked;
   const rows = TBC_ITEMS.map((t,i)=>{
     const done = t.status==='confirmed';
+    if(done) return '';
     const meta = t.updated_by ? (done?'Confirmed':'Updated')+' by '+esc(t.updated_by)+(t.updated_at?' · '+esc(t.updated_at):'') : '';
     return '<div class="tbc-row'+(done?' done':'')+'">'
       + '<div><div class="tbc-name">'+esc(t.label)+'<span class="tbc-pill '+(done?'c':'p')+'">'+(done?'✓ Confirmed':'To be confirmed')+'</span></div>'
@@ -1707,8 +1711,8 @@ function tbcHtml(d){
           + '</div>')
       + '</div>';
   }).join('');
-  return '<div class="tbc-card'+(pending?'':' all-done')+'" id="tbcSection">'
-    + '<div class="tbc-hd">'+(pending?'⚠️ To be confirmed — '+pending+' pending':'✓ To be confirmed — all done')+'</div>'
+  return '<div class="tbc-card" id="tbcSection">'
+    + '<div class="tbc-hd">⚠️ To be confirmed — '+pending+' pending</div>'
     + '<div class="tbc-sub">Price-on-request activities and custom designs. Enter the price quoted to the client (Save price) — it is added to the Total MRP — then Mark confirmed once the vendor confirms.</div>'
     + rows + '</div>';
 }
