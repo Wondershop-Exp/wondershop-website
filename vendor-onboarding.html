@@ -267,7 +267,7 @@ body.is-host .req-host{display:inline}
 
       <div class="sec-h">Payment Details</div>
       <div class="upd-bank" id="updBank" hidden>✓ We already have your bank details. Leave this section blank unless they have changed.</div>
-      <div class="sec-sub">We need your bank details so we can pay you correctly.</div>
+      <div class="sec-sub" id="bankSub">We need your bank details so we can pay you correctly.</div>
 
       <div class="fld">
         <label>Preferred Payment Mode <span class="opt">(optional)</span></label>
@@ -439,6 +439,8 @@ const dealsSelect = document.getElementById('f_deals');
 const dealsOtherFld = document.getElementById('dealsOtherFld');
 dealsSelect.addEventListener('change', () => {
   dealsOtherFld.style.display = dealsSelect.value === 'Others' ? 'block' : 'none';
+  // 2026-10-14: bank details optional for "Others" — say so on the form.
+  const bs=document.getElementById('bankSub'); if(bs) bs.textContent = dealsSelect.value === 'Others' ? 'Bank details are optional — add them if we will pay you by bank transfer.' : 'We need your bank details so we can pay you correctly.';
   if(window.WSDecor) WSDecor.toggle(dealsSelect.value === 'Decorator');
   const vol = isVolunteer();
   document.body.classList.toggle('is-volunteer', vol);
