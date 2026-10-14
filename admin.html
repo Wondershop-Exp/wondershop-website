@@ -2021,7 +2021,11 @@ async function renderInviteBlock(d){
     }
   }
   INV_HAS_WEB_COPY = !!st.has_website_image;
-  block.innerHTML = '<div class="inv-card"><div class="inv-top">'+img+'<div class="inv-info">'+info+upload+'</div></div>'+web+'</div>';
+  // Spy bookings: the registration link goes into the message.
+  let regLink = '';
+  if(spy){ try{ const ss = await apiCall('/api/spy-registration/admin/'+d.lead_id); if(ss && ss.exists) regLink = window.location.origin + ss.share_url; }catch(e){} }
+  if(INV_LEAD_ID !== d.lead_id) return;
+  block.innerHTML = '<div class="inv-card"><div class="inv-top">'+img+'<div class="inv-info">'+info+upload+'</div></div>'+web+inviteMsgHtml(regLink)+'</div>';
   if(thumb && isAdmin) invMaskInit();
 }
 // ── Website copy: drag boxes over the phone number / venue (2026-10-14,
@@ -2187,7 +2191,6 @@ function renderSpyRegistrationBody(leadId, status){
     +   (status.exists && status.has_invite ? '<span class="sr-status">\u2713 Invite uploaded'+(status.invite_image_name ? ' ('+esc(status.invite_image_name)+')' : '')+'</span>' : '')
     + '</div>'
     + helpText
-    + (status.exists ? spyInviteMsgHtml(shareUrl) : '')
     + '<div class="sr-pickup-drop" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">'
     +   '<div style="font-size:12px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Drop-off / Pick-up Time</div>'
     +   '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">'
@@ -2246,8 +2249,40 @@ async function saveSpyPickupDrop(leadId){
 // the child's name, age, date, venue, registration link, rsvp number. make
 // the text on theme."). Built from the booking; editable before copying.
 function _bkVal(key){ const f = _billField(key); return String(f.customer_choice || f.original_value || '').trim(); }
-function spyInviteMsg(link){
-  const kid = (_bkVal('child_names').split(/,|&| and /i)[0] || '').trim() || '';
+// Themed opener / closer per theme (2026-10-14, per Shruti — "make it
+// generic with the invite upload ... applicable for any theme"). Matched on
+// the booking's Theme, then the Decor and E-Invite names; falls back to a
+// general party message.
+const WA_THEMES = [
+  {re:/spy|detective|agent|imposter|mystery/i, head:'🕵️ *TOP SECRET — AGENT ALERT* 🕵️', intro:'Attention, Agent! You have been recruited for a classified mission:',
+   kid:k=>'*Agent '+k+'*', line:'needs the best spies in town to crack the birthday case! 🎂🔍', date:'📅 *Mission date:*', time:'⏰ *Report at:*', venue:'📍 *HQ:*', rsvp:'📞 *RSVP to the mission handler:*',
+   reg:'🔐 *Get your agent clearance* — register your little agent here (needed for the mission ID card):', end:'This message will self-destruct… just kidding 😉 See you on the mission, Agent! 🕶️'},
+  {re:/unicorn|rainbow/i, head:'🦄✨ *A Magical Unicorn Invitation* ✨🦄', intro:'Sprinkle on some glitter — you’re invited to a magical celebration!',
+   line:'and we’d love for you to join the rainbow fun! 🌈🎂', date:'📅 *Date:*', time:'⏰ *Time:*', venue:'🏰 *Where the magic happens:*', rsvp:'💌 *RSVP to:*', end:'See you there for a sparkly good time! 🌟'},
+  {re:/frozen|elsa|anna|snow/i, head:'❄️ *You’re Invited to a Frozen Celebration* ❄️', intro:'Bundle up for a snowy, magical day!',
+   line:'and the kingdom of Arendelle is throwing a party! ⛄🎂', date:'📅 *Date:*', time:'⏰ *Time:*', venue:'🏰 *Venue:*', rsvp:'💌 *RSVP to:*', end:'Let it go… and come celebrate with us! ❄️💙'},
+  {re:/super ?hero|avenger|spider|batman|marvel|hero/i, head:'💥 *CALLING ALL SUPERHEROES!* 💥', intro:'Suit up — a super mission awaits!',
+   line:'and needs a league of heroes to celebrate! 🦸🎂', date:'📅 *Mission date:*', time:'⏰ *Assemble at:*', venue:'📍 *Hero HQ:*', rsvp:'📞 *RSVP to:*', end:'Capes optional, fun guaranteed! ⚡'},
+  {re:/k-?pop|idol|blackpink|bts|katseye|demon hunter/i, head:'🎤✨ *It’s Time to Shine!* ✨🎤', intro:'Get ready for music, dance and K-Pop vibes!',
+   line:'and we’re throwing a star-studded party! 💜🎂', date:'📅 *Date:*', time:'⏰ *Showtime:*', venue:'📍 *Stage:*', rsvp:'💌 *RSVP to:*', end:'Come ready to sing, dance & sparkle! 🌟'},
+  {re:/foot ?ball|cricket|soccer|sport|turf/i, head:'⚽🏆 *Game On — You’re Invited!* 🏆⚽', intro:'Lace up — it’s match day!',
+   line:'and we need the best team on the field to celebrate! 🎂', date:'📅 *Match day:*', time:'⏰ *Kick-off:*', venue:'🏟️ *Ground:*', rsvp:'📞 *RSVP to the coach:*', end:'See you on the field, champ! 🥇'},
+  {re:/harry|potter|wizard|hogwarts|magic/i, head:'🪄 *Your Letter Has Arrived!* 🪄', intro:'You have been chosen for a magical celebration.',
+   line:'and the wizarding world is celebrating! ⚡🎂', date:'📅 *Date:*', time:'⏰ *Time:*', venue:'🏰 *Venue:*', rsvp:'🦉 *Owl your RSVP to:*', end:'Mischief managed — see you there! ✨'},
+  {re:/movie|cinema|film/i, head:'🎬🍿 *Lights, Camera, Celebrate!* 🍿🎬', intro:'Grab your popcorn — you’re invited to a movie party!',
+   line:'and it’s going to be a blockbuster! 🎂', date:'📅 *Date:*', time:'⏰ *Showtime:*', venue:'📍 *Venue:*', rsvp:'🎟️ *RSVP to:*', end:'See you on the red carpet! 🌟'},
+  {re:/art|paint|craft/i, head:'🎨 *It’s Art Time — You’re Invited!* 🖌️', intro:'Come splash some colour with us!',
+   line:'and we’re celebrating with a colourful art party! 🎂', date:'📅 *Date:*', time:'⏰ *Time:*', venue:'📍 *Venue:*', rsvp:'💌 *RSVP to:*', end:'Get ready to get creative! 🌈'},
+  {re:/stitch|lilo|tropical|aloha|hawai/i, head:'🌺 *Aloha! You’re Invited!* 🌺', intro:'Join us for a tropical adventure!',
+   line:'and we’re throwing a fun-filled island party! 🌴🎂', date:'📅 *Date:*', time:'⏰ *Time:*', venue:'📍 *Venue:*', rsvp:'💌 *RSVP to:*', end:'Ohana means family — see you there! 💙'},
+];
+const WA_GENERIC = {head:'🎉 *You’re Invited!* 🎉', intro:'Join us for a fun-filled birthday celebration!',
+  line:'and we’d love for you to celebrate with us! 🎂🎈', date:'📅 *Date:*', time:'⏰ *Time:*', venue:'📍 *Venue:*', rsvp:'💌 *RSVP to:*',
+  reg:'📝 *Register here:*', end:'See you there! 🥳'};
+function inviteMsg(link){
+  const themeText = [_bkVal('theme'), _bkVal('svc_decor'), _bkVal('svc_einvite')].join(' ');
+  const T = Object.assign({}, WA_GENERIC, WA_THEMES.find(t=>t.re.test(themeText)) || {});
+  const kid = (_bkVal('child_names').split(/,|&| and /i)[0] || '').trim();
   const ageN = parseInt(_bkVal('child_ages'), 10);
   const raw = _bkVal('event_date'); let date = raw;
   const dt = /^\d{4}-\d{2}-\d{2}/.test(raw) ? new Date(raw.slice(0,10)+'T00:00:00') : null;
@@ -2256,24 +2291,22 @@ function spyInviteMsg(link){
   const venue = _bkVal('einvite_venue') || _bkVal('venue');
   let rsvp = _bkVal('einvite_rsvp');
   if(!rsvp){ const n = _bkVal('parent_name'), ph = _bkVal('phone'); rsvp = [n, ph].filter(Boolean).join(', '); }
-  const L = [];
-  L.push('🕵️ *TOP SECRET — AGENT ALERT* 🕵️', '');
-  L.push('Attention, Agent! You have been recruited for a classified mission:');
-  L.push((kid ? '*Agent '+kid+'*' : 'Our birthday agent')+' '+(isNaN(ageN) ? 'is celebrating a birthday' : 'is turning *'+ageN+'*')+' and needs the best spies in town to crack the birthday case! 🎂🔍', '');
-  if(date) L.push('📅 *Mission date:* '+date);
-  if(time) L.push('⏰ *Report at:* '+time);
-  if(venue) L.push('📍 *HQ:* '+venue);
-  L.push('', '🔐 *Get your agent clearance* — register your little agent here (needed for the mission ID card):', link, '');
-  if(rsvp) L.push('📞 *RSVP to the mission handler:* '+rsvp, '');
-  L.push('This message will self-destruct… just kidding 😉 See you on the mission, Agent! 🕶️');
+  const who = kid ? (T.kid ? T.kid(kid) : '*'+kid+'*') : 'Our birthday star';
+  const L = [T.head, '', T.intro, who+' '+(isNaN(ageN) ? 'is celebrating a birthday' : 'is turning *'+ageN+'*')+' '+T.line, ''];
+  if(date) L.push(T.date+' '+date);
+  if(time) L.push(T.time+' '+time);
+  if(venue) L.push(T.venue+' '+venue);
+  if(link) L.push('', T.reg, link);
+  if(rsvp) L.push('', T.rsvp+' '+rsvp);
+  L.push('', T.end);
   return L.join('\n');
 }
-function spyInviteMsgHtml(link){
-  return '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">'
-    + '<div style="font-size:13px;font-weight:700;margin-bottom:6px">WhatsApp message for the guests’ parents</div>'
-    + '<div style="font-size:11.5px;color:var(--gy);margin-bottom:8px">Built from this booking — edit anything before copying. Send it with the invite image.</div>'
-    + '<textarea id="srWaMsg" rows="14" style="width:100%;box-sizing:border-box;font:inherit;font-size:13px;line-height:1.5;padding:10px 12px;border:1px solid var(--li2);border-radius:10px">'+esc(spyInviteMsg(link))+'</textarea>'
-    + '<div style="margin-top:8px"><button type="button" class="sr-btn primary" onclick="copySpyWaMsg()">Copy WhatsApp message</button></div></div>';
+function inviteMsgHtml(link){
+  return '<div class="inv-web">'
+    + '<div style="font-size:13px;font-weight:700;margin-bottom:4px">WhatsApp message for the guests’ parents</div>'
+    + '<div class="inv-meta" style="margin-bottom:8px">Built from this booking and its theme — edit anything before copying. Send it with the invite image.</div>'
+    + '<textarea id="srWaMsg" rows="14" style="width:100%;box-sizing:border-box;font:inherit;font-size:13px;line-height:1.5;padding:10px 12px;border:1px solid var(--li2);border-radius:10px">'+esc(inviteMsg(link))+'</textarea>'
+    + '<div class="inv-act" style="margin-top:8px"><button type="button" class="sr-btn primary" onclick="copySpyWaMsg()">Copy WhatsApp message</button></div></div>';
 }
 function copySpyWaMsg(){
   const el = document.getElementById('srWaMsg'); if(!el) return;
