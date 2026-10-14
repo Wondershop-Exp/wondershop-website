@@ -27,3 +27,6 @@ CREATE TABLE IF NOT EXISTS finance_snapshot (
 -- Who the cost was paid to, from the Partners list (vendor_master.name) - e.g.
 -- the office landlord, each staff member. Same free-text style as event_team.
 ALTER TABLE finance_costs ADD COLUMN IF NOT EXISTS partner VARCHAR(200);
+-- How it was paid (same choices as Partners & Expenses on a booking) - for bank/cash recon.
+-- 'Pending' = not paid yet. `paid` is kept in step (paid = paid_via <> 'Pending').
+ALTER TABLE finance_costs ADD COLUMN IF NOT EXISTS paid_via VARCHAR(30);

@@ -5,6 +5,7 @@ Backs finance.html: P&L, EBITDA, cash flow, event GM%, revenue per FTE.
   GET    /api/admin/finance/costs              all hand-entered costs
   POST   /api/admin/finance/costs              add one
   DELETE /api/admin/finance/costs/{id}         remove one
+  POST   /api/admin/finance/costs/{id}/paid    change payment mode (Pending = unpaid)
   GET    /api/admin/finance/snapshot           latest MIS summary (months + events)
   PUT    /api/admin/finance/snapshot           replace it (after uploading a new MIS .xlsx)
 
@@ -25,6 +26,7 @@ from routers.admin import _require_admin
 
 router = APIRouter()
 
+PAID_VIA = ["Pending", "Gpay", "Cash", "Bank transfer", "UPI (other)", "Card"]   # same as event_team
 CATEGORIES = {"man", "rent", "elec", "wifi", "mkt", "shopx", "other"}
 START_YM = "202610"   # finance tracking starts Oct 2026 (per Shruti)
 
@@ -39,7 +41,7 @@ class CostIn(BaseModel):
     category: str
     description: Optional[str] = Field(None, max_length=300)
     amount: float = Field(..., gt=0, lt=1e9)
-    paid: bool = True
+    paid_via: str = "Pending"
     partner: Optional[str] = Field(None, max_length=200)
     by: Optional[str] = Field(None, max_length=100)
 
@@ -54,7 +56,7 @@ class SnapshotIn(BaseModel):
 async def list_costs(x_admin_password: Optional[str] = Header(None)):
     _admin_only(x_admin_password)
     rows = await database.fetch_all(
-        "SELECT id, ym, category, partner, description, amount, paid, created_by, created_on "
+        "SELECT id, ym, category, partner, description, amount, paid, COALESCE(paid_via, CASE WHEN paid THEN 'Paid' ELSE 'Pending' END) AS paid_via, created_by, created_on "
         "FROM finance_costs ORDER BY ym DESC, id DESC")
     return [{**dict(r), "amount": float(r["amount"]), "created_on": r["created_on"].isoformat()} for r in rows]
 
@@ -66,11 +68,13 @@ async def add_cost(body: CostIn, x_admin_password: Optional[str] = Header(None))
         raise HTTPException(status_code=400, detail="Month must be Oct 2026 or later.")
     if body.category not in CATEGORIES:
         raise HTTPException(status_code=400, detail="Unknown category.")
+    if body.paid_via not in PAID_VIA:
+        raise HTTPException(status_code=400, detail="Unknown payment mode.")
     new_id = await database.execute(
-        "INSERT INTO finance_costs (ym, category, partner, description, amount, paid, created_by) "
-        "VALUES (:ym, :c, :pt, :d, :a, :p, :by) RETURNING id",
+        "INSERT INTO finance_costs (ym, category, partner, description, amount, paid, paid_via, created_by) "
+        "VALUES (:ym, :c, :pt, :d, :a, :p, :pv, :by) RETURNING id",
         {"ym": body.ym, "c": body.category, "pt": (body.partner or "").strip() or None, "d": (body.description or "").strip() or None,
-         "a": body.amount, "p": body.paid, "by": (body.by or "").strip() or None})
+         "a": body.amount, "p": body.paid_via != "Pending", "pv": body.paid_via, "by": (body.by or "").strip() or None})
     return {"id": new_id}
 
 
@@ -148,3 +152,18 @@ async def finance_bookings(x_admin_password: Optional[str] = Header(None)):
         "revenue": float(r["revenue"] or 0), "paid_amount": f(r["paid_amount"]), "paid_mode": r["paid_mode"],
         "cost": float(r["cost"] or 0), "cost_unpaid": float(r["cost_unpaid"] or 0), "cost_lines": r["cost_lines"],
     } for r in rows]
+
+
+class PaidIn(BaseModel):
+    paid_via: str
+
+
+@router.post("/finance/costs/{cost_id}/paid")
+async def set_cost_paid(cost_id: int, body: PaidIn, x_admin_password: Optional[str] = Header(None)):
+    """Change how a cost was paid ('Pending' = unpaid)."""
+    _admin_only(x_admin_password)
+    if body.paid_via not in PAID_VIA:
+        raise HTTPException(status_code=400, detail="Unknown payment mode.")
+    await database.execute("UPDATE finance_costs SET paid_via = :v, paid = :p WHERE id = :id",
+                           {"v": body.paid_via, "p": body.paid_via != "Pending", "id": cost_id})
+    return {"ok": True}
