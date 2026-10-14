@@ -11,7 +11,7 @@
   if (!host) return;
   var ZONES = (window.WS_VOLUNTEER && window.WS_VOLUNTEER.zones) || [];
   var STRENGTHS = ['Spy / mystery parties', 'Turf & sports games', 'Art & craft activities', 'Party games',
-    'Treasure hunts', 'Science activities', 'Magic', 'Storytelling', 'Dance & music games',
+    'Treasure hunts', 'Science show', 'Science activities', 'Magic', 'Storytelling', 'Dance & music games',
     'Tambola / Housie', 'Team-building games'];
   var YES3 = [{ v: 'yes', l: 'Yes' }, { v: 'maybe', l: 'Maybe' }, { v: 'no', l: 'No' }];
   var MAX_PHOTOS = 6, MAX_VIDEOS = 5;
