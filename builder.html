@@ -1142,6 +1142,7 @@ body.browse-mode .browse-cta{display:flex}
 .nudge-highlight{border-radius:12px;animation:nudgePulse 1.1s ease-out 2}
 </style>
 <script src="js/return-gifts.js"></script>
+<script src="js/spy-pricing.js"></script>
 <style id="ws-no-caret">/* hide stray text cursor on non-editable text (2026-10-03) */body{caret-color:transparent}input,textarea,select,[contenteditable],[contenteditable] *{caret-color:auto}</style><style id="ws-select-arrow">/* every dropdown: own chevron with room from the edge (2026-10-05) */select:not([multiple]):not([size]){-webkit-appearance:none;appearance:none;padding-right:36px;background-repeat:no-repeat;background-position:right 14px center;background-size:10px 6px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}select::-ms-expand{display:none}</style>
 </head>
 <body>
@@ -2308,7 +2309,7 @@ body.browse-mode .browse-cta{display:flex}
     <div id="coPkgExtras" style="display:none">
       <div class="row2">
         <div class="ig"><label>Child's Date of Birth<span class="req">*</span></label><input type="date" id="co-child-dob"><div class="err-msg" id="co-child-dob-err">Please enter date of birth</div></div>
-        <div class="ig"><label>Pincode</label><input type="text" id="co-pincode" placeholder="e.g. 400001" maxlength="6" inputmode="numeric"></div>
+        <div class="ig"><label>Pincode</label><input type="text" id="co-pincode" placeholder="e.g. 400001" maxlength="6" inputmode="numeric" oninput="coPinChanged(this)"></div>
       </div>
     </div>
   </div>
@@ -3077,7 +3078,11 @@ function spyStationTier(kids){
   if(kids<=50)return{stations:7,rate:1200};
   return{stations:8,rate:1150};
 }
-function spyStationsPrice(kids){return Math.max(25000,kids*spyStationTier(kids).rate);}
+// Minimum bill by area (2026-10-14, per Shruti): ₹25,000, or ₹30,000 for
+// Bandra / South Bombay / Lower Parel etc. — off S.pincode (the homepage
+// pincode, or the one typed in Step 0 / checkout). See js/spy-pricing.js.
+function spyMinBill(){return window.wsSpyMinBill?wsSpyMinBill(S.pincode):25000;}
+function spyStationsPrice(kids){return Math.max(spyMinBill(),kids*spyStationTier(kids).rate);}
 // Price of a real ACTS catalogue activity by id, independent of actPrice()'s
 // spy special-casing — used to compare/borrow generic-catalogue pricing.
 function genericActPrice(actId,kids){
@@ -3128,7 +3133,14 @@ const POR_NOTE='Pricing will be confirmed by the party lead post order confirmat
 function isPOR(a){if(!a)return false;if(a.por)return true;const c=ACTS.find(x=>x.id===a.id);return !!(c&&c.por);}
 function actPrice(a,kids){
   const p=actPriceRaw(a,kids);
-  return a.minPrice!=null?Math.max(a.minPrice,p):p;
+  // Spy Treasure Hunt: area-based minimum (spyMinBill above), 2026-10-14.
+  if(a.id==='a28'&&!isPOR(a))return Math.max(spyMinBill(),p);
+  // The minimum comes from the ACTS catalogue entry too — the copies kept in
+  // S.activities don't carry minPrice, which is how a 10-kid Spy Treasure
+  // Hunt was charged ₹15,000 instead of the ₹25,000 minimum (booking #10).
+  const c=a.minPrice!=null?a:(a.id?ACTS.find(x=>x.id===a.id):null);
+  const mp=c?c.minPrice:null;
+  return mp!=null?Math.max(mp,p):p;
 }
 function actPriceRaw(a,kids){
   // Generic escape hatch: an activity explicitly flagged free (no current
@@ -4857,7 +4869,7 @@ function renderActs(list){
     const tagHtml=a.tag?TAG_MAP[a.tag]:'';
     const persHtml=a.pers?'<span class="tag" style="background:#F0FDF4;color:#1a6630">✦ Take-home</span>':'';
     const flatTag=a.flat?'<span class="tag" style="background:#FEF9C3;color:#92400E">Flat rate</span>':'';
-    const priceNote=isPOR(a)?POR_NOTE:(a.id==='eng90'||a.id==='eng120'||a.id==='a21'||a.id==='glitter'||a.banded)?('for '+k+' kids · scales with headcount'):a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child'+(a.minNote?' · '+a.minNote:'');
+    const priceNote=isPOR(a)?POR_NOTE:(a.id==='eng90'||a.id==='eng120'||a.id==='a21'||a.id==='glitter'||a.banded)?('for '+k+' kids · scales with headcount'):a.flat?'(flat, any group size)':'for '+k+' kids · ₹'+(k<=12?a.r1:k<=25?a.r2:a.r3)+'/child'+(a.minNote?' · '+a.minNote:'')+(a.id==='a28'&&window.WS_SPY_PRICE_NOTE?' · '+WS_SPY_PRICE_NOTE:'');
     // 2026-08-24, per Shruti — once this card is the actual claimed Tattoo/
     // ₹5k-credit freebie, its price here shows the live discount too (not
     // just the Review page/mini-list) — same activityFreebiePrice() basis.
@@ -5613,6 +5625,12 @@ function updCoUrgent(){
   const balRow=document.getElementById('coBalRow');if(balRow)balRow.style.display=urgent?'none':'flex';
   const noAdvNote=document.getElementById('coNoAdvNote');if(noAdvNote)noAdvNote.style.display=urgent?'flex':'none';
   updBB(S.screen);
+}
+// Checkout pincode (package orders) re-prices Spy live — its minimum bill
+// depends on the area (spyMinBill, 2026-10-14).
+function coPinChanged(el){
+  const v=(el.value||'').replace(/\D/g,'').slice(0,6);if(el.value!==v)el.value=v;
+  if(v.length===6&&v!==S.pincode){S.pincode=v;try{updCoAmt();}catch(e){}try{updBB(S.screen);}catch(e){}}
 }
 function updCoAmt(){
   const gt=rawT();const dpv=dp();const tpv=tp();const advv=adv();const fee=collectFee();const sep=giftsSep();const pkg=sep?0:packagingCost();const tag=sep?0:tagFee();const payv=payTotal();

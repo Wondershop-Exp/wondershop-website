@@ -292,6 +292,7 @@ button{cursor:pointer;font-family:var(--fb)}
 }
 </script>
 <script src="js/return-gifts.js"></script>
+<script src="js/spy-pricing.js"></script>
 <style id="ws-no-caret">/* hide stray text cursor on non-editable text (2026-10-03) */body{caret-color:transparent}input,textarea,select,[contenteditable],[contenteditable] *{caret-color:auto}</style>
 </head>
 <body>
@@ -364,7 +365,8 @@ button{cursor:pointer;font-family:var(--fb)}
               <span class="pkg-price" id="heroPrice">₹25,000</span>
               <span class="pkg-discount-badge" id="heroDiscountBadge"></span>
             </div>
-            <div class="pkg-price-sub">Mission stations priced per child · decor priced separately · min. bill ₹25,000</div>
+            <div class="pkg-price-sub">Mission stations priced per child · decor priced separately</div>
+            <div class="pkg-price-sub" style="margin-top:4px;font-weight:600">Starting from ₹25,000 · pricing will be confirmed once you enter the venue address</div>
           </div>
           <div class="pkg-cta-row">
             <button class="btn-pkg" onclick="proceedToBuilder()">Build This Package →</button>
@@ -447,7 +449,7 @@ button{cursor:pointer;font-family:var(--fb)}
   <section class="sec">
     <div class="container">
       <h2 class="sec-h2">How many <em>kids?</em></h2>
-      <p class="sec-sub">Mission stations are priced per child, with a minimum bill of ₹25,000. Guest count range: 12–60 kids.</p>
+      <p class="sec-sub">Mission stations are priced per child, starting from ₹25,000 — pricing will be confirmed once you enter the venue address. Guest count range: 12–60 kids.</p>
       <div class="kids-wrap">
         <div class="kids-stepper">
           <button class="kids-btn" onclick="changeKids(-1)">−</button>
@@ -808,7 +810,10 @@ const PHOTO_TIERS = [
   {id:'ph3', name:'Signature', price:18000, bullets:['1 photographer + 1 videographer', 'Photo + video content shoot', 'Output: edited photos, full event video (captured moments), candid photos']},
 ];
 
-const MIN_KIDS = 12, MAX_KIDS = 60, MIN_BILL = 25000;
+const MIN_KIDS = 12, MAX_KIDS = 60;
+// Minimum bill: ₹25,000, or ₹30,000 in Bandra / South Bombay / Lower Parel etc.
+// — read from the pincode entered on the homepage (js/spy-pricing.js, 2026-10-14).
+function minBill() { return window.wsSpyMinBill ? wsSpyMinBill() : 25000; }
 
 // ── STATE ──
 let kidsCount = 15;
@@ -892,7 +897,7 @@ function stationTier(kids) {
 }
 function stationsPrice(kids) {
   const t = stationTier(kids);
-  return Math.max(MIN_BILL, kids * t.rate);
+  return Math.max(minBill(), kids * t.rate);
 }
 
 function fmtINR(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
