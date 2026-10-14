@@ -37,6 +37,7 @@ details summary{cursor:pointer}
 <header><h1>Wondershop Finance<small id="gen"></small></h1>
 <div class="ctl">
 <label>Period <select id="fy"></select></label>
+<label title="Where birthday revenue & costs come from">Birthdays from <select id="bsrc"><option value="bookings">Bookings (admin)</option><option value="mis">MIS sheet</option></select></label>
 <label title="Full-time employees used for revenue per FTE">FTEs <input id="fte" type="number" step="0.5" min="0.5" style="width:70px"></label>
 <label><input type="checkbox" id="estf"> Estimate missing rent/electricity/wifi</label>
 <button id="logout">Log out</button><button class="pri" id="loadbtn">Load latest MIS (.xlsx)</button><input id="file" type="file" accept=".xlsx" hidden>
@@ -75,7 +76,7 @@ function build(wb, opts) {
   for (const r of pi) { const id = str(r['Item ID']).replace(/\.0$/, ''); const u = num(r['Unit CP']); if (id && u) unitCP[id] = u; }
   let cpFilled = 0;
   let funds = []; try { funds = rows(wb, 'Funds Transfer'); } catch (e) {}
-  const M = {}; const mo = k => M[k] || (M[k] = { ym: k, sales: 0, net: 0, cogs: 0, mat: 0, evCost: 0, stall: 0, mkt: 0, man: 0, rent: 0, elec: 0, wifi: 0, shopx: 0, other: 0, capex: 0, inv: 0, ch: {}, cashIn: 0, cashOut: 0, recv: 0, pay: 0, ownerIn: 0, estimated: {} });
+  const M = {}; const mo = k => M[k] || (M[k] = { ym: k, sales: 0, net: 0, cogs: 0, mat: 0, evCost: 0, stall: 0, mkt: 0, man: 0, rent: 0, elec: 0, wifi: 0, shopx: 0, other: 0, capex: 0, inv: 0, ch: {}, bd: { sales: 0, net: 0, cogs: 0, cashIn: 0, recv: 0, vendor: 0, vendorPaid: 0 }, cashIn: 0, cashOut: 0, recv: 0, pay: 0, ownerIn: 0, estimated: {} });
 
   // ---- Sales ----
   const evSales = {}; const matByName = {};
@@ -95,6 +96,7 @@ function build(wb, opts) {
       const sp = num(r['SP']), sold = num(r['Sold For']);
       m.sales += sp; m.net += sold; m.cogs += cp;
       m.ch[ch] = (m.ch[ch] || 0) + sold;
+      if (ch === 'Birthday') { m.bd.sales += sp; m.bd.net += sold; m.bd.cogs += cp; if (NOCASH_IN.test(str(r['Payment Mode']))) { if (/pending/i.test(str(r['Payment Mode']))) m.bd.recv += sold; } else m.bd.cashIn += sold; }
       const pmode = str(r['Payment Mode']);
       if (NOCASH_IN.test(pmode)) { if (/pending/i.test(pmode)) m.recv += sold; } else m.cashIn += sold;
       const ekey = (ch === 'Workshop' && (wsItems[name] || new Set()).size <= 1) ? item : name;
@@ -151,7 +153,7 @@ function build(wb, opts) {
       const score = s - Math.min(gap, 60) / 200;
       if (gap <= 45 && score > bs) { bs = score; best = e; }
     }
-    if (best) { best.direct += c.amt; best.vendors.push(c); } else unmatched.push(c);
+    if (best) { best.direct += c.amt; best.vendors.push(c); if (best.ch === 'Birthday') { M[c.ym].bd.vendor += c.amt; if (!c.unpaid) M[c.ym].bd.vendorPaid += c.amt; } } else unmatched.push(c);
   }
   for (const [n, cp] of Object.entries(matByName)) {
     const t = toks(n); let best = null, bs = 0;
@@ -176,10 +178,11 @@ function build(wb, opts) {
 }
 root.FinEngine = { build };
 })(typeof window !== 'undefined' ? window : globalThis);
+
 </script>
 <script>
 const API='https://wondershop-website-production.up.railway.app';
-let DATA=null, WB=null, META=null;
+let DATA=null, WB=null, META=null, BOOK=[], PARTNERS=[];
 const getPw=()=>{try{return localStorage.getItem('ws_admin_pw')||''}catch(e){return ''}};
 const getName=()=>{try{return localStorage.getItem('ws_admin_name')||''}catch(e){return ''}};
 async function api(path,opts={}){opts.headers={'Content-Type':'application/json','X-Admin-Password':getPw()};
@@ -188,7 +191,7 @@ async function api(path,opts={}){opts.headers={'Content-Type':'application/json'
  if(!r.ok){const b=await r.json().catch(()=>({}));throw new Error(b.detail||('Request failed ('+r.status+')'))}return r.json()}
 function showGate(msg){$('#gate').style.display='flex';$('#gateErr').textContent=msg||''}
 async function boot(){if(!getPw()){showGate();return}
- try{const [s,c]=await Promise.all([api('/snapshot'),api('/costs')]);$('#gate').style.display='none';
+ try{const [s,c,bk]=await Promise.all([api('/snapshot'),api('/costs'),api('/bookings').catch(e=>{if(e.message==='auth')throw e;console.warn(e);return []})]);BOOK=bk;fetch(API+'/api/admin/vendors/names',{headers:{'X-Admin-Password':getPw()}}).then(r=>r.ok?r.json():{names:[]}).then(j=>{PARTNERS=j.names||[];if(tab==='costs')render()}).catch(()=>{});$('#gate').style.display='none';
   DATA=s.data;META=s;COSTS=c;setupFY();render()}catch(e){if(e.message!=='auth')$('#app').innerHTML='<div class="card neg">'+e.message+'</div>'}}
 const $=s=>document.querySelector(s);
 const inr=v=>{if(v==null||isNaN(v))return'–';const n=Math.round(v),s=Math.abs(n).toLocaleString('en-IN');return(n<0?'-₹':'₹')+s};
@@ -206,6 +209,8 @@ $('#tabs').innerHTML=TABS.map(([k,l])=>`<button data-k="${k}">${l}</button>`).jo
 $('#tabs').onclick=e=>{const k=e.target.dataset.k;if(k){tab=k;store.set('tab',k);render()}};
 $('#fte').oninput=()=>{store.set('fte',+$('#fte').value);render()};
 $('#fy').onchange=render;
+$('#bsrc').value=store.get('bsrc','bookings');$('#bsrc').onchange=()=>{store.set('bsrc',$('#bsrc').value);setupFY();render()};
+const useBook=()=>$('#bsrc').value==='bookings';
 $('#estf').onchange=()=>{if(WB){DATA=FinEngine.build(WB,{estimateFixed:$('#estf').checked});render()}else{alert('Load the MIS .xlsx to change this.');$('#estf').checked=!$('#estf').checked}};
 $('#loadbtn').onclick=()=>$('#file').click();
 $('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('#loadbtn').textContent='Reading…';
@@ -219,9 +224,14 @@ function setupFY(){const ks=allMonths().map(m=>m.ym);if(!ks.length)ks.push('2026
  $('#fy').value=prev||String(fys[0]);$('#gen').textContent=META&&META.updated_on?'MIS loaded '+new Date(META.updated_on).toLocaleDateString('en-IN')+(META.updated_by?' by '+META.updated_by:''):'no MIS loaded yet'}
 const CATS={man:'Manpower',rent:'Rent',elec:'Electricity',wifi:'Wifi',mkt:'Marketing & ads',shopx:'Shop expenses',other:'Other (transport, cleaning, misc.)'};
 let COSTS=[];
-function withManual(m){const x={...m,estimated:m.estimated||{},manual:{}};for(const c of COSTS){if(c.ym!==m.ym)continue;x[c.category]=(x[c.category]||0)+c.amount;x.manual[c.category]=1;if(c.paid)x.cashOut+=c.amount;else x.pay+=c.amount}
+const ZERO=ym=>({ym,sales:0,net:0,cogs:0,mat:0,evCost:0,stall:0,mkt:0,man:0,rent:0,elec:0,wifi:0,shopx:0,other:0,capex:0,inv:0,ch:{},bd:{sales:0,net:0,cogs:0,cashIn:0,recv:0,vendor:0,vendorPaid:0},cashIn:0,cashOut:0,recv:0,pay:0,ownerIn:0,estimated:{}});
+function withManual(m){const x={...m,ch:{...m.ch},estimated:m.estimated||{},manual:{}};
+ if(useBook()){const b=m.bd||ZERO().bd;x.sales-=b.sales;x.net-=b.net;x.cogs-=b.cogs;x.cashIn-=b.cashIn;x.recv-=b.recv;x.evCost-=b.vendor;x.cashOut-=b.vendorPaid;x.pay-=(b.vendor-b.vendorPaid);delete x.ch.Birthday;
+  for(const k of BOOK){if(k.ym!==m.ym)continue;x.sales+=k.revenue;x.net+=k.revenue;x.ch['Birthday (bookings)']=(x.ch['Birthday (bookings)']||0)+k.revenue;x.evCost+=k.cost;x.cashOut+=k.cost-k.cost_unpaid;x.pay+=k.cost_unpaid;x.cashIn+=Math.min(k.paid_amount,k.revenue)||0;x.recv+=Math.max(0,k.revenue-(k.paid_amount||0))}}
+ for(const c of COSTS){if(c.ym!==m.ym)continue;x[c.category]=(x[c.category]||0)+c.amount;x.manual[c.category]=1;if(c.paid)x.cashOut+=c.amount;else x.pay+=c.amount}
  x.direct=x.cogs+x.mat+x.evCost+x.stall;x.gm=x.net-x.direct;x.fixed=x.man+x.rent+x.elec+x.wifi+x.shopx+x.other;x.ebitda=x.gm-x.mkt-x.fixed;x.netCash=x.cashIn-x.cashOut;return x}
-function allMonths(){const base=(DATA?DATA.months:[]).slice();for(const c of COSTS)if(!base.some(m=>m.ym===c.ym))base.push({ym:c.ym,sales:0,net:0,cogs:0,mat:0,evCost:0,stall:0,mkt:0,man:0,rent:0,elec:0,wifi:0,shopx:0,other:0,capex:0,inv:0,ch:{},cashIn:0,cashOut:0,recv:0,pay:0,ownerIn:0,estimated:{}});return base.sort((a,b)=>a.ym<b.ym?-1:1).map(withManual)}
+function allMonths(){const base=(DATA?DATA.months:[]).slice();const extra=COSTS.map(c=>c.ym).concat(useBook()?BOOK.map(b=>b.ym).filter(Boolean):[]);
+ for(const k of extra)if(!base.some(m=>m.ym===k))base.push(ZERO(k));return base.sort((a,b)=>a.ym<b.ym?-1:1).map(withManual)}
 function months(){const v=$('#fy').value;let ms=allMonths().filter(m=>m.net||m.cashOut||m.fixed||m.mkt);
  if(v==='last12')return ms.slice(-12);const y=+v;return ms.filter(m=>m.ym>=y+'04'&&m.ym<=(y+1)+'03')}
 const sum=(ms,f)=>ms.reduce((a,m)=>a+(typeof f==='function'?f(m):m[f]),0);
@@ -241,14 +251,14 @@ function table(ms,rowsDef,opts={}){const tot=opts.total!==false;
 
 const V={
 overview(ms){const net=sum(ms,'net'),gm=sum(ms,'gm'),eb=sum(ms,'ebitda'),cash=sum(ms,'netCash'),fte=+$('#fte').value||1;
- const evs=DATA.events.filter(e=>ms.some(m=>m.ym===e.ym)&&e.vendor+e.mat>0);const egm=evs.reduce((a,e)=>a+e.gm,0)/Math.max(1,evs.reduce((a,e)=>a+e.rev,0));
+ const evs=useBook()?BOOK.filter(b=>ms.some(m=>m.ym===b.ym)&&b.cost>0).map(b=>({rev:b.revenue,gm:b.revenue-b.cost})):(DATA?DATA.events:[]).filter(e=>ms.some(m=>m.ym===e.ym)&&e.vendor+e.mat>0);const egm=evs.reduce((a,e)=>a+e.gm,0)/Math.max(1,evs.reduce((a,e)=>a+e.rev,0));
  return kpis([['Net sales',lakh(net),ms.length+' months'],['Gross margin',pct(gm/net),inr(gm)],['EBITDA',lakh(eb),pct(eb/net)+' of net sales',cls(eb)],['Net cash flow',lakh(cash),'operating, excl. owner funding',cls(cash)],['Event GM%',pct(egm),evs.length+' costed events'],['Revenue / FTE / month',inr(net/ms.length/fte),fte+' FTE']])
  +`<div class="grid2"><div class="card"><h2>Monthly EBITDA</h2>${bars(ms,m=>m.ebitda,v=>Math.round(v/1000)+'k')}</div><div class="card"><h2>Net sales</h2>${bars(ms,m=>m.net,v=>Math.round(v/1000)+'k')}</div></div>`
  +`<div class="card"><h2>Sales by channel</h2>${channelTable(ms)}</div>`},
 pl(ms){return `<div class="card"><h2>Profit & Loss</h2><p class="note">Workbooks (Amazon) excluded. Inventory purchases are not expensed — stock hits the P&L as COGS when sold or used at an event. <span class="est">*</span> = includes an estimate or a cost you added on the Other costs tab.</p>`+table(ms,[
  {l:'Sales (at SP)',f:m=>m.sales},{l:'Discount',f:m=>m.sales-m.net},{l:'Discount %',f:m=>(m.sales-m.net)/m.sales,pct:1,tot:x=>(sum(x,'sales')-sum(x,'net'))/sum(x,'sales')},
  {l:'Net sales',f:m=>m.net,b:1},
- {sec:'Direct costs'},{l:'COGS – products sold',f:m=>m.cogs},{l:'Materials used at events (WSR 3)',f:m=>m.mat},{l:'Event vendors (Workshop)',f:m=>m.evCost},{l:'Stalls',f:m=>m.stall},
+ {sec:'Direct costs'},{l:'COGS – products sold',f:m=>m.cogs},{l:'Materials used at events (WSR 3)',f:m=>m.mat},{l:'Event costs (vendors, partners & expenses)',f:m=>m.evCost},{l:'Stalls',f:m=>m.stall},
  {l:'Total direct costs',f:m=>m.direct,b:1},{l:'Gross margin',f:m=>m.gm,b:1},{l:'GM %',f:m=>m.gm/m.net,pct:1,tot:x=>sum(x,'gm')/sum(x,'net')},
  {sec:'Operating expenses'},{l:'Marketing & ads',f:m=>m.mkt,e:m=>m.manual.mkt},{l:'Manpower',f:m=>m.man,e:m=>m.manual.man},{l:'Rent',f:m=>m.rent,e:m=>m.estimated.rent||m.manual.rent},{l:'Electricity',f:m=>m.elec,e:m=>m.estimated.elec||m.manual.elec},{l:'Wifi',f:m=>m.wifi,e:m=>m.estimated.wifi||m.manual.wifi},{l:'Shop expenses',f:m=>m.shopx,e:m=>m.manual.shopx},{l:'Other (transport, cleaning, misc.)',f:m=>m.other},
  {l:'EBITDA',f:m=>m.ebitda,b:1},{l:'EBITDA %',f:m=>m.ebitda/m.net,pct:1,tot:x=>sum(x,'ebitda')/sum(x,'net')}])+'</div>'},
@@ -262,41 +272,49 @@ cash(ms){let run=0;const cum=ms.map(m=>run+=m.netCash);
  {l:'Cumulative',f:(m,i)=>cum[ms.indexOf(m)],tot:()=>null},
  {sec:'Financing'},{l:'Owner funds transferred in',f:m=>m.ownerIn},
  {sec:'Not yet cash (by month booked)'},{l:'Sales still pending from customers',f:m=>m.recv},{l:'Bills still pending to vendors',f:m=>m.pay}])+'</div>'},
-events(ms){const evs=DATA.events.filter(e=>ms.some(m=>m.ym===e.ym));const costed=evs.filter(e=>e.vendor+e.mat>0);
+events(ms){const evs=(DATA?DATA.events:[]).filter(e=>ms.some(m=>m.ym===e.ym)&&!(useBook()&&e.ch==='Birthday'));const bks=useBook()?BOOK.filter(b=>ms.some(m=>m.ym===b.ym)):[];const costed=evs.filter(e=>e.vendor+e.mat>0);
  const rev=costed.reduce((a,e)=>a+e.rev,0),gm=costed.reduce((a,e)=>a+e.gm,0);
- const un=DATA.unmatched.filter(u=>ms.some(m=>m.ym===u.ym));
- return kpis([['Events',evs.length,costed.length+' with costs recorded'],['Event revenue',lakh(evs.reduce((a,e)=>a+e.rev,0))],['Event GM% (costed)',pct(gm/rev),inr(gm)],['Unlinked vendor costs',inr(un.reduce((a,u)=>a+u.amt,0)),un.length+' bills – see below']])
- +`<div class="card"><h2>Event-level gross margin</h2><p class="note">Revenue = Birthday/Workshop sales for the event. Cost = vendor bills (Purchase Group, Tag matched to event name) + materials used (WSR 3, at CP) + CP of items sold. <span class="tag">no costs</span> = nothing tagged yet (often an upcoming event).</p>
+ const un=(DATA?DATA.unmatched:[]).filter(u=>ms.some(m=>m.ym===u.ym));
+ const bkC=bks.filter(b=>b.cost>0),bkRev=bkC.reduce((a,b)=>a+b.revenue,0),bkGm=bkC.reduce((a,b)=>a+b.revenue-b.cost,0);
+ const bkHtml=useBook()?`<div class="card"><h2>Birthday bookings</h2><p class="note">From the admin Bookings page: revenue = booking value (client budget or order total); cost = everything in that booking's Partners &amp; Expenses. Cancelled bookings are left out. <span class="tag">no costs yet</span> = nothing logged in Partners &amp; Expenses.</p>${bks.length?`<table><thead><tr><th>Booking</th><th>Event date</th><th>Revenue</th><th>Costs</th><th>Gross margin</th><th>GM%</th><th>Costs unpaid</th><th>Client paid</th></tr></thead><tbody>${bks.map(b=>{const gm=b.revenue-b.cost;return `<tr><td>#${b.lead_id} ${esc(b.child||'')}${b.parent?' <span style="color:var(--mute)">('+esc(b.parent)+')</span>':''}</td><td>${b.date?new Date(b.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''}</td><td>${inr(b.revenue)}</td><td>${inr(b.cost)}</td><td class="${cls(gm)}">${inr(gm)}</td><td class="${cls(gm)}">${b.cost>0?pct(gm/b.revenue):'<span class="tag">no costs yet</span>'}</td><td>${b.cost_unpaid?inr(b.cost_unpaid):''}</td><td>${b.paid_amount?inr(b.paid_amount)+(b.paid_mode?' · '+esc(b.paid_mode):''):''}</td></tr>`}).join('')}</tbody></table>`:'<p class="note">No bookings in this period.</p>'}</div>`:'';
+ return (useBook()?kpis([['Birthday bookings',bks.length,bkC.length+' with costs logged'],['Booking revenue',lakh(bks.reduce((a,b)=>a+b.revenue,0))],['Birthday GM% (costed)',pct(bkGm/bkRev),inr(bkGm)],['Costs still unpaid',inr(bks.reduce((a,b)=>a+b.cost_unpaid,0))]]):'')+bkHtml
+ +(evs.length||!useBook()?kpis([['Events',evs.length,costed.length+' with costs recorded'],['Event revenue',lakh(evs.reduce((a,e)=>a+e.rev,0))],['Event GM% (costed)',pct(gm/rev),inr(gm)],['Unlinked vendor costs',inr(un.reduce((a,u)=>a+u.amt,0)),un.length+' bills – see below']]):'')
+ +`<div class="card"><h2>${useBook()?'Workshops & other events (MIS sheet)':'Event-level gross margin'}</h2><p class="note">Revenue = Birthday/Workshop sales for the event. Cost = vendor bills (Purchase Group, Tag matched to event name) + materials used (WSR 3, at CP) + CP of items sold. <span class="tag">no costs</span> = nothing tagged yet (often an upcoming event).</p>
  <table><thead><tr><th>Event</th><th>Month</th><th>Channel</th><th>Revenue</th><th>Vendors</th><th>Materials</th><th>Items CP</th><th>Gross margin</th><th>GM%</th><th>Pending from client</th></tr></thead><tbody>${evs.map(e=>`<tr><td title="${esc(e.vendors.map(v=>v.s+' '+inr(v.a)).join(', '))}">${esc(e.name)}${e.n>1&&e.ch==='Workshop'?` <span class="tag">${e.n} sales</span>`:''}</td><td>${lbl(e.ym)}</td><td>${e.ch}</td><td>${inr(e.rev)}</td><td>${inr(e.vendor)}</td><td>${inr(e.mat)}</td><td>${inr(e.cp)}</td><td class="${cls(e.gm)}">${inr(e.gm)}</td><td class="${cls(e.gm)}">${e.vendor+e.mat>0?pct(e.gm/e.rev):'<span class="tag">no costs</span>'}</td><td>${e.pending?inr(e.pending):''}</td></tr>`).join('')}</tbody></table></div>
  <div class="card"><details><summary><b>Vendor bills that didn't match an event (${un.length})</b> — rename the Tag to match the event's Customer Name in Sales</summary><table style="margin-top:10px"><thead><tr><th>Tag</th><th>Month</th><th>Supplier</th><th>Amount</th></tr></thead><tbody>${un.map(u=>`<tr><td>${esc(u.tag||'(blank)')}</td><td>${lbl(u.ym)}</td><td>${esc(u.supplier)}</td><td>${inr(u.amt)}</td></tr>`).join('')}</tbody></table></details></div>`},
 team(ms){const fte=+$('#fte').value||1;return kpis([['FTEs',fte,'set at top'],['Avg revenue / FTE / month',inr(sum(ms,'net')/ms.length/fte)],['Avg GM / FTE / month',inr(sum(ms,'gm')/ms.length/fte)],['Manpower % of net sales',pct(sum(ms,'man')/sum(ms,'net'))]])
  +`<div class="card"><h2>Revenue per full-time employee</h2>${bars(ms,m=>m.net/fte,v=>Math.round(v/1000)+'k')}`+table(ms,[{l:'Net sales',f:m=>m.net},{l:'Revenue per FTE',f:m=>m.net/fte,b:1},{l:'Gross margin per FTE',f:m=>m.gm/fte},{l:'Manpower cost',f:m=>m.man},{l:'Revenue per ₹1 of manpower',f:m=>m.man?m.net/m.man:0,tot:x=>sum(x,'net')/sum(x,'man')}])+'<p class="note" style="margin-top:10px">Team: sales (₹21k + incentives), admin (₹15k), cleaner (₹1.5k, part-time) → default 2 FTE. Change it above if the team changes.</p></div>'}
 };
 V.costs=function(){const now=new Date();const dm=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
- const rowsH=COSTS.map(c=>`<tr><td>${lbl(c.ym)}</td><td style="text-align:left">${CATS[c.category]||c.category}</td><td style="text-align:left">${esc(c.description||'')}</td><td>${inr(c.amount)}</td><td>${c.paid?'Paid':'<span class="est">Unpaid</span>'}</td><td style="color:var(--mute)">${c.created_by||''}</td><td><button data-del="${c.id}">Remove</button></td></tr>`).join('');
- return `<div class="card"><h2>Add a cost</h2><p class="note">For costs that aren't in the MIS sheet — salaries, rent, cleaning, transport, ad spend, etc. They flow straight into P&L, EBITDA and cash flow, and are saved to the Wondershop database.</p>
+ const rowsH=COSTS.map(c=>`<tr><td>${lbl(c.ym)}</td><td style="text-align:left">${CATS[c.category]||c.category}</td><td style="text-align:left">${esc(c.partner||'')}${c.partner&&PARTNERS.length&&!PARTNERS.includes(c.partner)?' <span class="est">not in Partners</span>':''}${!c.partner?'<span class="est">no partner</span>':''}</td><td style="text-align:left">${esc(c.description||'')}</td><td>${inr(c.amount)}</td><td>${c.paid?'Paid':'<span class="est">Unpaid</span>'}</td><td style="color:var(--mute)">${c.created_by||''}</td><td><button data-del="${c.id}">Remove</button></td></tr>`).join('');
+ return `<div class="card"><h2>Add a cost</h2><p class="note">For costs that aren't in the MIS sheet — salaries, rent, cleaning, transport, ad spend, etc. Rent, salaries, wifi, electricity, cleaning, transport, ads. They flow straight into P&L, EBITDA and cash flow, and are saved to the Wondershop database.</p>
  <form id="cf" style="display:flex;flex-wrap:wrap;gap:10px;align-items:end">
  <label>Month<br><input type="month" name="m" value="${dm}" min="2026-10" required></label>
  <label>Category<br><select name="cat">${Object.entries(CATS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
+ <label style="min-width:200px">Partner (paid to)<br><input name="partner" list="plist" placeholder="e.g. office owner, staff name" style="width:100%" required><datalist id="plist">${PARTNERS.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></label>
  <label style="flex:1;min-width:180px">Description<br><input name="desc" placeholder="e.g. Sales exec salary + incentive" style="width:100%"></label>
  <label>Amount (₹)<br><input name="amt" type="number" min="0" step="1" required style="width:120px"></label>
  <label><input type="checkbox" name="paid" checked> Paid</label>
  <button class="pri">Add</button></form>
- <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button id="tmpl">Add monthly fixed team (₹21,000 sales · ₹15,000 admin · ₹1,500 cleaner)</button></div></div>
- <div class="card"><h2>Costs you've added (${COSTS.length})</h2>${COSTS.length?`<table><thead><tr><th>Month</th><th style="text-align:left">Category</th><th style="text-align:left">Description</th><th>Amount</th><th>Status</th><th>Added by</th><th></th></tr></thead><tbody>${rowsH}</tbody></table>`:'<p class="note">Nothing added yet.</p>'}</div>`};
+ <p class="note" style="margin-top:10px">Every cost is paid to a partner from the Partners list on the admin page — add the office owner and each staff member there once (any category). A name not on the list still saves, but shows <span class="est">not in Partners</span>.</p>
+ <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="tmpl">Copy last month's recurring costs into the selected month</button></div></div>
+ <div class="card"><h2>Costs you've added (${COSTS.length})</h2>${COSTS.length?`<table><thead><tr><th>Month</th><th style="text-align:left">Category</th><th style="text-align:left">Partner</th><th style="text-align:left">Description</th><th>Amount</th><th>Status</th><th>Added by</th><th></th></tr></thead><tbody>${rowsH}</tbody></table>`:'<p class="note">Nothing added yet.</p>'}</div>`};
 async function reloadCosts(){COSTS=await api('/costs');setupFY();render()}
 async function addCosts(list){try{for(const c of list)await api('/costs',{method:'POST',body:JSON.stringify({...c,by:getName()})});await reloadCosts()}catch(e){if(e.message!=='auth')alert(e.message)}}
 document.addEventListener('submit',e=>{if(e.target.id==='gateF'){e.preventDefault();try{localStorage.setItem('ws_admin_pw',$('#gatePw').value.trim());localStorage.setItem('ws_admin_name',$('#gateName').value.trim())}catch(err){}boot();return}
  if(e.target.id!=='cf')return;e.preventDefault();const f=new FormData(e.target);
- addCosts([{ym:f.get('m').replace('-',''),category:f.get('cat'),description:f.get('desc').trim(),amount:+f.get('amt'),paid:!!f.get('paid')}])});
+ addCosts([{ym:f.get('m').replace('-',''),category:f.get('cat'),partner:f.get('partner').trim(),description:f.get('desc').trim(),amount:+f.get('amt'),paid:!!f.get('paid')}])});
 document.addEventListener('click',async e=>{const t=e.target;
  if(t.dataset.del!=null){if(!confirm('Remove this cost?'))return;try{await api('/costs/'+t.dataset.del,{method:'DELETE'});await reloadCosts()}catch(err){if(err.message!=='auth')alert(err.message)}}
- if(t.id==='tmpl'){const m=document.querySelector('#cf [name=m]').value.replace('-','');addCosts([{ym:m,category:'man',description:'Sales executive salary',amount:21000,paid:true},{ym:m,category:'man',description:'Admin salary',amount:15000,paid:true},{ym:m,category:'other',description:'Cleaner',amount:1500,paid:true}])}
+ if(t.id==='tmpl'){const m=document.querySelector('#cf [name=m]').value.replace('-','');const y=+m.slice(0,4),mo=+m.slice(4);const prev=mo===1?(y-1)+'12':y+String(mo-1).padStart(2,'0');
+  const src=COSTS.filter(c=>c.ym===prev);if(!src.length){alert('Nothing was added for '+lbl(prev)+' to copy.');return}
+  if(COSTS.some(c=>c.ym===m)&&!confirm(lbl(m)+' already has costs. Copy '+src.length+' more from '+lbl(prev)+'?'))return;
+  addCosts(src.map(c=>({ym:m,category:c.category,partner:c.partner,description:c.description,amount:c.amount,paid:false})))}
  if(t.id==='logout'){try{localStorage.removeItem('ws_admin_pw')}catch(err){}location.reload()}});
 function channelTable(ms){const chs=[...new Set(ms.flatMap(m=>Object.keys(m.ch)))].sort((a,b)=>sum(ms,m=>m.ch[b]||0)-sum(ms,m=>m.ch[a]||0));
  return table(ms,chs.map(c=>({l:c,f:m=>m.ch[c]||0})).concat([{l:'Total',f:m=>m.net,b:1}]))}
 function render(){document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.k===tab));
- if(!DATA&&tab!=='costs'&&!COSTS.length){$('#app').innerHTML='<div class="card">No data yet. Click <b>Load latest MIS</b> and choose your WSR MIS .xlsx — the summary is saved so you won\'t need to load it again until the next update.</div>';return}
+ if(!DATA&&tab!=='costs'&&!COSTS.length&&!BOOK.length){$('#app').innerHTML='<div class="card">No data yet. Click <b>Load latest MIS</b> and choose your WSR MIS .xlsx — the summary is saved so you won\'t need to load it again until the next update.</div>';return}
  if(tab==='costs'){$('#app').innerHTML=V.costs();return}
  const ms=months();$('#app').innerHTML=ms.length?V[tab](ms):'<div class="card">No data for this period.</div>'}
 render();boot();
