@@ -810,6 +810,16 @@ async def lookup_pincode(pin: str):
 # "there are some volunteers who have filled in some details, but left some
 # open. how can I ask them to update the missing fields?" Shown in the Partners
 # tab and on the private update link, so both list the same things.
+_LISTED_TYPES = {"event volunteer", "carnival stalls & mascots", "wondershop team member", "photographer", "decorator",
+                 "baker", "stationery store", "personalization store", "gift shop", "packaging store", "art & craft store",
+                 "host", "dj", "magician", "bubble show artist", "science show artist", "puppet show artist", "other entertainer"}
+
+
+def _is_other_partner(row) -> bool:
+    d = (row.get("deals_in") or "").strip().lower()
+    return bool(d) and d not in _LISTED_TYPES
+
+
 def _has_bank(row) -> bool:
     # 2026-10-12, per Shruti: every bank field is mandatory (account holder,
     # bank, account number, IFSC and account type); the cheque photo alone
@@ -914,7 +924,9 @@ def partner_missing(row) -> List[str]:
         out += [label for label, ok in checks if not ok]
         if not row.get("volunteer_tnc_accepted_at"):
             out.append("Terms & conditions")
-    if not _has_bank(row):
+    # 2026-10-14, per Shruti: bank details optional for "Others" partners (office
+    # owner, staff, utilities ...) - i.e. anything not one of the form's listed types.
+    if not _has_bank(row) and not _is_other_partner(row):
         if all((row.get(f) or "").strip() for f in _BANK_FIELDS[:4]):
             out.append("Bank account type (savings / current)")
         else:

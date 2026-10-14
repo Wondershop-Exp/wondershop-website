@@ -561,7 +561,8 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   const hasFile = fileInput.files.length > 0;
 
   // 2026-10-12, per Shruti: all bank fields are mandatory; the cheque photo is optional.
-  if(!hasFullBankDetails && !UPD.hasBank){
+  // 2026-10-14, per Shruti: not for "Others" (office owner, staff, utilities...) — optional there.
+  if(!hasFullBankDetails && !UPD.hasBank && dealsSelect.value !== 'Others'){
     showErr('Please fill in all bank details: account holder name, bank name, account number, IFSC code and account type.');
     return;
   }
