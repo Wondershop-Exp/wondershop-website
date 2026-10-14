@@ -13,6 +13,7 @@ ADMIN password only. security.py already blocks the sales login from any
 future edit to that list can't open finance up by accident.
 """
 import json
+from datetime import date
 import re
 from typing import Optional
 
@@ -39,6 +40,7 @@ class CostIn(BaseModel):
     description: Optional[str] = Field(None, max_length=300)
     amount: float = Field(..., gt=0, lt=1e9)
     paid: bool = True
+    partner: Optional[str] = Field(None, max_length=200)
     by: Optional[str] = Field(None, max_length=100)
 
 
@@ -52,7 +54,7 @@ class SnapshotIn(BaseModel):
 async def list_costs(x_admin_password: Optional[str] = Header(None)):
     _admin_only(x_admin_password)
     rows = await database.fetch_all(
-        "SELECT id, ym, category, description, amount, paid, created_by, created_on "
+        "SELECT id, ym, category, partner, description, amount, paid, created_by, created_on "
         "FROM finance_costs ORDER BY ym DESC, id DESC")
     return [{**dict(r), "amount": float(r["amount"]), "created_on": r["created_on"].isoformat()} for r in rows]
 
@@ -65,9 +67,9 @@ async def add_cost(body: CostIn, x_admin_password: Optional[str] = Header(None))
     if body.category not in CATEGORIES:
         raise HTTPException(status_code=400, detail="Unknown category.")
     new_id = await database.execute(
-        "INSERT INTO finance_costs (ym, category, description, amount, paid, created_by) "
-        "VALUES (:ym, :c, :d, :a, :p, :by) RETURNING id",
-        {"ym": body.ym, "c": body.category, "d": (body.description or "").strip() or None,
+        "INSERT INTO finance_costs (ym, category, partner, description, amount, paid, created_by) "
+        "VALUES (:ym, :c, :pt, :d, :a, :p, :by) RETURNING id",
+        {"ym": body.ym, "c": body.category, "pt": (body.partner or "").strip() or None, "d": (body.description or "").strip() or None,
          "a": body.amount, "p": body.paid, "by": (body.by or "").strip() or None})
     return {"id": new_id}
 
@@ -102,3 +104,47 @@ async def put_snapshot(body: SnapshotIn, x_admin_password: Optional[str] = Heade
         "updated_by = EXCLUDED.updated_by, updated_on = now()",
         {"d": json.dumps(body.data), "s": body.source_name, "by": (body.by or "").strip() or None})
     return {"ok": True}
+
+
+@router.get("/finance/bookings")
+async def finance_bookings(x_admin_password: Optional[str] = Header(None)):
+    """Birthday bookings from the admin system (Oct 2026 on, not cancelled) with
+    their revenue and every cost logged against them in Partners & Expenses
+    (event_team). Feeds the finance dashboard's event GM% and P&L."""
+    _admin_only(x_admin_password)
+    rows = await database.fetch_all(
+        """
+        SELECT l.lead_id, l.parent_name, l.child_names, l.event_date,
+               COALESCE(l.client_budget, l.order_grand_total, 0) AS revenue,
+               amt.customer_choice_override AS paid_amount,
+               mode.customer_choice_override AS paid_mode,
+               COALESCE(t.cost, 0) AS cost, COALESCE(t.cost_unpaid, 0) AS cost_unpaid, COALESCE(t.n, 0) AS cost_lines
+        FROM leads l
+        LEFT JOIN booking_field_overrides amt
+          ON amt.lead_id = l.lead_id AND amt.field_key = 'event_payment_confirmed_amount'
+        LEFT JOIN booking_field_overrides mode
+          ON mode.lead_id = l.lead_id AND mode.field_key = 'event_payment_confirmed_mode'
+        LEFT JOIN (
+            SELECT lead_id, SUM(COALESCE(amount, 0)) AS cost,
+                   SUM(CASE WHEN COALESCE(paid_via, '') IN ('', 'Pending') AND NOT paid THEN COALESCE(amount, 0) ELSE 0 END) AS cost_unpaid,
+                   COUNT(*) AS n
+            FROM event_team GROUP BY lead_id
+        ) t ON t.lead_id = l.lead_id
+        WHERE l.is_booking = TRUE AND l.status != 'Cancelled'
+          AND l.event_date >= :start
+        ORDER BY l.event_date DESC
+        """,
+        values={"start": date(int(START_YM[:4]), int(START_YM[4:]), 1)})
+
+    def f(v):
+        try:
+            return float(str(v).replace(",", "").replace("₹", "").strip()) if v not in (None, "") else 0.0
+        except ValueError:
+            return 0.0
+    return [{
+        "lead_id": r["lead_id"], "parent": r["parent_name"], "child": r["child_names"],
+        "date": r["event_date"].isoformat() if r["event_date"] else None,
+        "ym": r["event_date"].strftime("%Y%m") if r["event_date"] else None,
+        "revenue": float(r["revenue"] or 0), "paid_amount": f(r["paid_amount"]), "paid_mode": r["paid_mode"],
+        "cost": float(r["cost"] or 0), "cost_unpaid": float(r["cost_unpaid"] or 0), "cost_lines": r["cost_lines"],
+    } for r in rows]

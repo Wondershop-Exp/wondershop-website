@@ -23,3 +23,7 @@ CREATE TABLE IF NOT EXISTS finance_snapshot (
     updated_by  VARCHAR(100),
     updated_on  TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
+
+-- Who the cost was paid to, from the Partners list (vendor_master.name) - e.g.
+-- the office landlord, each staff member. Same free-text style as event_team.
+ALTER TABLE finance_costs ADD COLUMN IF NOT EXISTS partner VARCHAR(200);
