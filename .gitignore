@@ -110,3 +110,7 @@ unused/
 blogs/*.docx
 # Word/Office lock files
 ~$*
+
+# Finance / MIS data and finance dashboard — confidential P&L, salaries,
+# customer data. Public repo, so never commit. (2026-10-14, per Shruti)
+/Finance/
