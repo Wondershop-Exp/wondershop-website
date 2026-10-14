@@ -3243,7 +3243,18 @@ function hostSectionHtml(v){
   return '<div class="vol-card"><h3>🎤 Host Profile</h3>'
     + (v.host_profile ? '' : '<div class="vol-note">The host hasn\u2019t filled in the hosting questions yet — send them an update link.</div>')
     + (v.host_profile
-      ? '<h4>Experience &amp; strengths</h4>' + row('Years of experience', p.years) + row('Strengths', strengths.join(', ')) + row('What makes them different', p.unique)
+      ? '<h4>For their host page</h4>'
+        + row('Headshot', p.has_headshot ? '✓ Uploaded (in Photos below, file name starts with \u201cheadshot\u201d)' : 'Not uploaded yet')
+        + row('Name on page', p.display_name) + row('Home town', p.home_town)
+        + row('Languages', (p.languages||[]).concat(p.languages_other ? [p.languages_other] : []).join(', '))
+        + row('About', p.about) + row('Their story', p.story) + row('What they love about hosting', p.love)
+        + row('Signature move / game', p.signature) + row('Catchphrase', p.catchphrase)
+        + row('Events hosted', (p.event_types||[]).concat(p.event_types_other ? [p.event_types_other] : []).join(', '))
+        + row('Best age groups', (p.age_groups||[]).join(', '))
+        + row('Reviews from clients', p.reviews)
+        + (/^https?:\/\//i.test(p.review_link||'') ? '<div style="margin-top:6px"><b style="font-size:12px;color:var(--gy);text-transform:uppercase;letter-spacing:.3px">Reviews link</b><div><a href="'+esc(p.review_link)+'" target="_blank" rel="noopener noreferrer">'+esc(p.review_link)+'</a></div></div>' : '')
+        + row('Permission to use on website / social media', p.consent ? 'Yes'+(p.consent_on ? ' (given '+String(p.consent_on).slice(0,10)+')' : '') : 'Not given')
+      + '<h4>Experience &amp; strengths</h4>' + row('Years of experience', p.years) + row('Strengths', strengths.join(', ')) + row('What makes them different', p.unique)
       + '<h4>Comfort level</h4>' + row('With kids', sc(p.comfort_kids)) + row('Large kids\u2019 events', sc(p.comfort_large_kids))
         + row('Open to adult events (corporate, functions)', yn[p.adult_events]) + row('Large corporate events', sc(p.comfort_corporate))
       + '<h4>Training &amp; props</h4>' + row('Open to training on new themes / games', yn[p.open_to_training])

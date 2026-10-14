@@ -13,6 +13,12 @@
   var STRENGTHS = ['Spy / mystery parties', 'Turf & sports games', 'Art & craft activities', 'Party games',
     'Treasure hunts', 'Science show', 'Science activities', 'Magic', 'Storytelling', 'Dance & music games',
     'Tambola / Housie', 'Team-building games'];
+  var LANGS = ['English', 'Hindi', 'Marathi', 'Gujarati', 'Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Bengali', 'Punjabi'];
+  var EVENT_TYPES = ['Birthday parties', 'Weddings', 'Engagements', 'Baby showers', 'School events', 'Corporate events',
+    'Society / community events', 'Stage shows', 'Festivals'];
+  var AGES = ['Toddlers (2-4)', '5-8 years', '9-12 years', 'Teens (13+)', 'Adults'];
+  var hasHeadshot = false;   // already on file (update link)
+  var headshot = null;       // shrunk File
   var YES3 = [{ v: 'yes', l: 'Yes' }, { v: 'maybe', l: 'Maybe' }, { v: 'no', l: 'No' }];
   var MAX_PHOTOS = 6, MAX_VIDEOS = 5;
   var photos = [];         // shrunk File objects
@@ -38,14 +44,39 @@
       (hint ? '<div class="f-hint">' + hint + '</div>' : '') + '</div>';
   }
 
+  function chipGroup(name, list) {
+    return '<div class="vl-chips">' + list.map(function (s) {
+      return '<label class="vl-chip"><input type="checkbox" name="' + name + '" value="' + esc(s) + '"><span><b>' + esc(s) + '</b></span></label>';
+    }).join('') + '</div>';
+  }
+
   host.innerHTML =
     '<div class="sec-h">About you as a host</div>' +
-    '<div class="sec-sub">Help us match you to the right parties and events.</div>' +
+    '<div class="sec-sub">Help us match you to the right parties and events. We also use these answers to build your host page on our website.</div>' +
+    fld('Your headshot *', '<label class="upload-box" for="h_headshot" id="h_headshot_box" style="margin-top:0"><input type="file" id="h_headshot" accept="image/jpeg,image/png,image/webp">' +
+      '<div class="ic">🙂</div><div class="txt" id="h_headshot_txt">Tap to add a clear photo of your face</div></label>', 'h_headshot_fld',
+      'A recent, well-lit photo of just you, smiling. This is the main photo on your host page.') +
+    '<div class="row2">' +
+      fld('Name to show on your page <span class="opt">(optional)</span>', '<input type="text" id="h_display" maxlength="60" placeholder="e.g. Sunny">') +
+      fld('Home town <span class="opt">(optional)</span>', '<input type="text" id="h_hometown" maxlength="60" placeholder="e.g. Mumbai">') +
+    '</div>' +
+    fld('Languages you speak *', chipGroup('h_lang', LANGS) +
+      '<input type="text" id="h_lang_other" class="vl-other" maxlength="100" placeholder="Others (type here)">', 'h_lang_fld', 'Pick all that apply.') +
+    fld('About you (2-3 lines) *', '<textarea id="h_about" maxlength="600" placeholder="e.g. A high-energy host from Mumbai who has hosted 500+ kids\u2019 parties..."></textarea>') +
+    fld('Your story <span class="opt">(optional)</span>', '<textarea id="h_story" maxlength="2000" placeholder="How you got into hosting, what you have learnt, what a party with you feels like..."></textarea>', '', 'A short paragraph in your own words.') +
+    fld('What do you love most about hosting? <span class="opt">(optional)</span>', '<input type="text" id="h_love" maxlength="200" placeholder="e.g. Seeing the whole room laugh together">') +
+    '<div class="row2">' +
+      fld('Your signature move or game <span class="opt">(optional)</span>', '<input type="text" id="h_signature" maxlength="120" placeholder="e.g. Instant ice-breakers">') +
+      fld('Your catchphrase or tagline <span class="opt">(optional)</span>', '<input type="text" id="h_catch" maxlength="100" placeholder="e.g. Energy on. Smiles guaranteed!">') +
+    '</div>' +
     fld('Years of hosting experience *', '<input type="text" id="h_years" inputmode="numeric" maxlength="2" placeholder="e.g. 3">') +
     fld('Your strengths *', '<div class="vl-chips" id="h_strengths">' + STRENGTHS.map(function (s) {
       return '<label class="vl-chip"><input type="checkbox" name="h_strength" value="' + esc(s) + '"><span><b>' + esc(s) + '</b></span></label>';
     }).join('') + '</div><input type="text" id="h_strengths_other" class="vl-other" maxlength="200" placeholder="Others (type here)">',
       'h_strengths_fld', 'Pick all that apply.') +
+    fld('Types of events you have hosted <span class="opt">(optional)</span>', chipGroup('h_evt', EVENT_TYPES) +
+      '<input type="text" id="h_evt_other" class="vl-other" maxlength="200" placeholder="Others (type here)">') +
+    fld('Age groups you are best with <span class="opt">(optional)</span>', chipGroup('h_age', AGES)) +
     fld('What makes you different from other hosts? *', '<textarea id="h_unique" maxlength="1500" placeholder="Your style, signature games, how you keep kids engaged..."></textarea>') +
 
     '<div class="vl-sub">Comfort level</div>' +
@@ -75,8 +106,12 @@
       '<textarea id="h_videos" maxlength="2000" placeholder="https://www.instagram.com/reel/...\nhttps://drive.google.com/..."></textarea>', 'h_videos_fld',
       'Video files are too big to upload here, so please share links. For Google Drive, set the link to “anyone with the link can view”.') +
 
+    fld('Reviews from clients <span class="opt">(optional)</span>', '<textarea id="h_reviews" maxlength="2000" placeholder="Paste a couple of messages or reviews from parents / clients, with their name"></textarea>') +
+    fld('Link to your Google or other reviews <span class="opt">(optional)</span>', '<input type="text" id="h_review_link" maxlength="500" placeholder="https://...">') +
+
     '<div class="vl-sub">Growing with us</div>' +
-    fld('How can Wondershop Experiences help you grow as a host? <span class="opt">(optional)</span>', '<textarea id="h_grow" maxlength="1500"></textarea>');
+    fld('How can Wondershop Experiences help you grow as a host? <span class="opt">(optional)</span>', '<textarea id="h_grow" maxlength="1500"></textarea>') +
+    '<label class="vl-accept" id="h_consent_lbl"><input type="checkbox" id="h_consent"><span>I allow Wondershop Experiences to use my name, photos, videos and the details above on its website and social media, including a host page about me. *</span></label>';
 
   function $(id) { return document.getElementById(id); }
   function radio(name) { var r = host.querySelector('input[name="' + name + '"]:checked'); return r ? r.value : ''; }
@@ -139,6 +174,19 @@
     });
   });
 
+  var hsBox = $('h_headshot_box'), hsTxt = $('h_headshot_txt');
+  function drawHeadshot() {
+    hsBox.style.borderColor = headshot ? 'var(--gr)' : '';
+    hsTxt.textContent = headshot ? '\u2713 ' + headshot.name + ' (tap to change)'
+      : (hasHeadshot ? 'We already have your headshot. Tap to replace it' : 'Tap to add a clear photo of your face');
+  }
+  $('h_headshot').addEventListener('change', function () {
+    var f = this.files[0]; this.value = '';
+    if (!f) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { if (window.showErr) window.showErr('Your headshot must be a JPG or PNG photo.'); return; }
+    shrink(f).then(function (small) { headshot = small; drawHeadshot(); });
+  });
+
   function collect() {
     var adult = radio('h_adult');
     return {
@@ -156,7 +204,22 @@
       zones: picked('h_zone').map(Number),
       instagram: val('h_ig'),
       videos: videoLinks(),
-      grow: val('h_grow')
+      grow: val('h_grow'),
+      display_name: val('h_display'),
+      home_town: val('h_hometown'),
+      languages: picked('h_lang'),
+      languages_other: val('h_lang_other'),
+      about: val('h_about'),
+      story: val('h_story'),
+      love: val('h_love'),
+      signature: val('h_signature'),
+      catchphrase: val('h_catch'),
+      event_types: picked('h_evt'),
+      event_types_other: val('h_evt_other'),
+      age_groups: picked('h_age'),
+      reviews: val('h_reviews'),
+      review_link: val('h_review_link'),
+      consent: $('h_consent').checked
     };
   }
 
@@ -165,6 +228,9 @@
     validate: function () {
       var p = collect();
       function bad(msg, el) { return { error: msg, el: el }; }
+      if (!headshot && !hasHeadshot) return bad('Please add a clear photo of your face (headshot).', $('h_headshot_fld'));
+      if (!p.languages.length && !p.languages_other) return bad('Please pick the languages you speak.', $('h_lang_fld'));
+      if (p.about.length < 20) return bad('Please write 2-3 lines about yourself.', $('h_about'));
       if (p.years === null || p.years > 50) return bad('Please enter your years of hosting experience.', $('h_years'));
       if (!p.strengths.length && !p.strengths_other) return bad('Please pick at least one of your strengths.', $('h_strengths_fld'));
       if (p.unique.length < 10) return bad('Please tell us what makes you different from other hosts.', $('h_unique'));
@@ -180,14 +246,18 @@
       for (var i = 0; i < p.videos.length; i++) {
         if (!/^https?:\/\/[^\s.]+\.[^\s]+$/i.test(p.videos[i])) return bad('Please check your video links — each one should start with https://', $('h_videos'));
       }
+      if (p.review_link && !/^https?:\/\/[^\s.]+\.[^\s]+$/i.test(p.review_link)) return bad('Please check your reviews link \u2014 it should start with https://', $('h_review_link'));
+      if (!p.consent) return bad('Please allow us to use your details on our website (tick the box at the end).', $('h_consent_lbl'));
       return {};
     },
     appendTo: function (fd) {
       fd.append('host_profile', JSON.stringify(collect()));
+      if (headshot) fd.append('host_headshot', headshot, headshot.name);
       photos.forEach(function (f) { fd.append('host_photos', f, f.name); });
     },
     fill: function (p, photoCount) {
       onFile = photoCount || 0; drawPhotos();
+      hasHeadshot = !!(p && p.has_headshot); drawHeadshot();
       if (!p) return;
       function setVal(id, v) { if (v != null && v !== '') $(id).value = v; }
       function check(name, values) {
@@ -212,6 +282,13 @@
       setVal('h_ig', p.instagram);
       setVal('h_videos', (p.videos || []).join('\n'));
       setVal('h_grow', p.grow);
+      setVal('h_display', p.display_name); setVal('h_hometown', p.home_town);
+      check('h_lang', p.languages); setVal('h_lang_other', p.languages_other);
+      setVal('h_about', p.about); setVal('h_story', p.story); setVal('h_love', p.love);
+      setVal('h_signature', p.signature); setVal('h_catch', p.catchphrase);
+      check('h_evt', p.event_types); setVal('h_evt_other', p.event_types_other);
+      check('h_age', p.age_groups);
+      setVal('h_reviews', p.reviews); setVal('h_review_link', p.review_link);
     }
   };
 })();

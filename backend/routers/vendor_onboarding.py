@@ -542,6 +542,15 @@ _YES3 = ("yes", "maybe", "no")
 _URL_RE = re.compile(r"^https?://[^\s.]+\.[^\s]+$", re.I)
 
 
+def _as_dict(v):
+    if isinstance(v, (str, bytes)):
+        try:
+            v = json.loads(v)
+        except ValueError:
+            return None
+    return v if isinstance(v, dict) else None
+
+
 def _scale(v) -> Optional[int]:
     try:
         n = int(v)
@@ -586,7 +595,27 @@ def clean_host_profile(p: dict, strict: bool) -> dict:
         "instagram": _txt(p.get("instagram"), 100),
         "videos": videos,
         "grow": _para(p.get("grow"), 1500),
+        # For the host's page on the website (2026-10-14, per Shruti).
+        "display_name": _txt(p.get("display_name"), 60),
+        "home_town": _txt(p.get("home_town"), 60),
+        "languages": _str_list(p.get("languages"), 15, 40),
+        "languages_other": _txt(p.get("languages_other"), 100),
+        "about": _para(p.get("about"), 600),
+        "story": _para(p.get("story"), 2000),
+        "love": _txt(p.get("love"), 200),
+        "signature": _txt(p.get("signature"), 120),
+        "catchphrase": _txt(p.get("catchphrase"), 100),
+        "event_types": _str_list(p.get("event_types")),
+        "event_types_other": _txt(p.get("event_types_other"), 200),
+        "age_groups": _str_list(p.get("age_groups"), 10, 40),
+        "reviews": _para(p.get("reviews"), 2000),
+        "review_link": "",
+        "consent": p.get("consent") is True,
+        "has_headshot": p.get("has_headshot") is True,
     }
+    link = _txt(p.get("review_link"), 500)
+    if link and _URL_RE.match(link):
+        out["review_link"] = link
     if not strict:
         return out
 
@@ -604,6 +633,9 @@ def clean_host_profile(p: dict, strict: bool) -> dict:
     need(out["has_props"], "Please tell us if you have your own game props.")
     need(out["has_props"] == "no" or out["props"], "Please list the props you have.")
     need(out["zones"], "Please pick at least one zone you are comfortable working in.")
+    need(out["languages"] or out["languages_other"], "Please pick the languages you speak.")
+    need(len(out["about"]) >= 20, "Please write 2-3 lines about yourself.")
+    need(out["consent"], "Please allow us to use your details on our website.")
     return out
 
 
@@ -637,7 +669,22 @@ async def _read_host_photos(files) -> list:
     return out
 
 
-async def _save_host(profile: dict, photos: list, mobile: str, vendor_id: Optional[int] = None) -> None:
+async def _read_headshot(f: Optional[UploadFile]):
+    if f is None or not getattr(f, "filename", None):
+        return None
+    raw = await f.read(MAX_FILE_BYTES + 1)
+    if len(raw) > MAX_FILE_BYTES:
+        raise HTTPException(status_code=400, detail="Your headshot is too large — please keep it under 5MB.")
+    if not raw:
+        return None
+    kind = _sniff_file_type(raw)
+    if kind not in _IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Your headshot must be a JPG, PNG or WEBP photo.")
+    return raw, kind, "headshot-" + _safe_filename(f.filename)
+
+
+async def _save_host(profile: dict, photos: list, mobile: str, vendor_id: Optional[int] = None,
+                     headshot=None) -> None:
     prim, alt = _DIGITS.format(c="primary_mobile"), _DIGITS.format(c="alternate_mobile")
     if vendor_id is None:
         vendor_id = await database.fetch_val(
@@ -648,7 +695,22 @@ async def _save_host(profile: dict, photos: list, mobile: str, vendor_id: Option
     if not vendor_id:
         logger.warning(f"Host profile for {mobile}: no partner row found")
         return
+    old = await database.fetch_val("SELECT host_profile FROM vendor_master WHERE vendor_id = :id", {"id": vendor_id})
+    if isinstance(old, (str, bytes)):
+        try:
+            old = json.loads(old)
+        except ValueError:
+            old = None
+    profile = dict(profile)
+    profile["has_headshot"] = bool(headshot) or bool(isinstance(old, dict) and old.get("has_headshot"))
+    if profile.get("consent"):
+        profile["consent_on"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    if headshot:
+        photos = [headshot] + list(photos)
     async with database.transaction():
+        if headshot:   # one current headshot: the new one replaces any earlier one
+            await database.execute(
+                "DELETE FROM vendor_catalogues WHERE vendor_id = :v AND filename LIKE 'headshot-%'", {"v": vendor_id})
         await database.execute(
             "UPDATE vendor_master SET host_profile = CAST(:p AS JSONB), onboarding_reviewed = FALSE WHERE vendor_id = :id",
             {"id": vendor_id, "p": json.dumps(profile, ensure_ascii=False)})
@@ -817,6 +879,10 @@ def partner_missing(row) -> List[str]:
             ("Open to training on new themes and games", hp.get("open_to_training")),
             ("Own game props", hp.get("has_props")),
             ("Zones you can work in", hp.get("zones")),
+            ("Headshot", hp.get("has_headshot")),
+            ("Languages you speak", hp.get("languages") or hp.get("languages_other")),
+            ("About you", hp.get("about")),
+            ("Permission to use your details on our website", hp.get("consent")),
         ]
         out += [label for label, ok in checks if not ok]
     is_vol = VOLUNTEER in (row.get("deals_in") or "").lower() or bool(row.get("volunteer_profile"))
@@ -931,7 +997,8 @@ async def prefill(token: str):
     out.update({
         "host_profile": hp if isinstance(hp, dict) else None,
         "host_photo_count": await database.fetch_val(
-            "SELECT COUNT(*) FROM vendor_catalogues WHERE vendor_id = :v", {"v": d["vendor_id"]}) or 0,
+            "SELECT COUNT(*) FROM vendor_catalogues WHERE vendor_id = :v AND filename NOT LIKE 'headshot-%'",
+            {"v": d["vendor_id"]}) or 0,
         "carnival_profile": cp if isinstance(cp, dict) else None,
         "volunteer_profile": d["volunteer_profile"],
         "has_bank": _has_bank(d),
@@ -971,6 +1038,7 @@ async def submit_vendor_onboarding(
     catalogues: Optional[List[UploadFile]] = File(None),
     host_profile: Optional[str] = Form(None),
     host_photos: Optional[List[UploadFile]] = File(None),
+    host_headshot: Optional[UploadFile] = File(None),
     update_token: Optional[str] = Form(None),
 ):
     # Sent through a private update link? Then this is that partner, and the
@@ -1125,7 +1193,7 @@ async def submit_vendor_onboarding(
 
     # Host (2026-10-14): address and pincode mandatory, hosting questions complete.
     is_host = (_clean(deals_in) or "").lower() == HOST
-    host_prof, host_pics = None, []
+    host_prof, host_pics, host_head = None, [], None
     if is_host:
         if len(_clean(address) or "") < 10:
             raise HTTPException(status_code=400, detail="Please enter your full address.")
@@ -1133,6 +1201,11 @@ async def submit_vendor_onboarding(
             raise HTTPException(status_code=400, detail="Please enter your pincode.")
         host_prof = _parse_host_profile(host_profile)
         host_pics = await _read_host_photos(host_photos)
+        host_head = await _read_headshot(host_headshot)
+        had_head = bool(link_row and isinstance(_as_dict(link_row["host_profile"]), dict)
+                        and _as_dict(link_row["host_profile"]).get("has_headshot"))
+        if not host_head and not had_head:
+            raise HTTPException(status_code=400, detail="Please add a clear photo of your face (headshot).")
 
     # 2026-09-30, per Shruti: "by default, save the mobile no. as the whatsapp
     # no. in the database. if the user inputs something on whatsapp no - then
@@ -1184,7 +1257,7 @@ async def submit_vendor_onboarding(
         if carn_profile is not None:
             await _save_carnival(carn_profile, carn_files, mobile, vendor_id=link_id)
         if host_prof is not None:
-            await _save_host(host_prof, host_pics, mobile, vendor_id=link_id)
+            await _save_host(host_prof, host_pics, mobile, vendor_id=link_id, headshot=host_head)
         return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}
     if matched:   # number shared by several partners and the name didn't pick one
         values["remarks"] = (
@@ -1210,5 +1283,5 @@ async def submit_vendor_onboarding(
     if carn_profile is not None:
         await _save_carnival(carn_profile, carn_files, mobile)
     if host_prof is not None:
-        await _save_host(host_prof, host_pics, mobile)
+        await _save_host(host_prof, host_pics, mobile, headshot=host_head)
     return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}
