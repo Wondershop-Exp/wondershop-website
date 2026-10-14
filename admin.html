@@ -146,9 +146,9 @@ table.list th.sortable:hover{color:var(--bk)}
 .spy-reg-card .srh{display:flex;align-items:center;gap:8px;font-family:var(--fd);font-size:15px;color:var(--plum);margin-bottom:10px;font-weight:700}
 .spy-reg-card .srb{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 .spy-reg-card .sr-link{flex:1;min-width:220px;padding:9px 12px;background:var(--lgy);border-radius:var(--rs);font-size:12.5px;color:var(--gy);word-break:break-all}
-.spy-reg-card .sr-btn{padding:9px 16px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
-.spy-reg-card .sr-btn.primary{background:var(--pk);color:#fff}
-.spy-reg-card .sr-btn.ghost{background:#fff;border:1px solid var(--li2);color:var(--plum)}
+.spy-reg-card .sr-btn,.inv-card .sr-btn{padding:9px 16px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
+.spy-reg-card .sr-btn.primary,.inv-card .sr-btn.primary{background:var(--pk);color:#fff}
+.spy-reg-card .sr-btn.ghost,.inv-card .sr-btn.ghost{background:#fff;border:1px solid var(--li2);color:var(--plum)}
 .spy-reg-card .sr-status{font-size:12px;color:var(--gr);font-weight:600}
 .team-tbl{width:100%;border-collapse:collapse;font-size:13px}
 .team-tbl th{text-align:left;font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;padding:4px 6px}
@@ -331,6 +331,25 @@ table.list.static tr:hover td{background:inherit}
 .field-label{font-weight:600;font-size:13px}
 .field-label small{display:block;font-weight:400;color:var(--gy);font-size:10px;white-space:normal;word-break:break-word}
 .einvite-combo{position:relative}
+/* Final E-Invite card (2026-10-14) */
+.inv-card{background:#fff;border:1px solid var(--li2);border-radius:14px;padding:18px}
+.inv-top{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.inv-thumb img{width:120px;border-radius:10px;border:1px solid var(--li2);display:block}
+.inv-info{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:200px}
+.inv-info .inv-up{display:inline-block;cursor:pointer;margin-top:6px}
+.inv-ok{font-size:12.5px;font-weight:600;color:#16A34A}
+.inv-meta{font-size:12px;color:var(--gy)}
+.inv-web{margin-top:16px;padding-top:16px;border-top:1px solid var(--li2)}
+.inv-chk{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:600;cursor:pointer}
+.inv-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px}
+.inv-f{display:flex;flex-direction:column;gap:5px}
+.inv-f label{font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px}
+.inv-f input{font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--li2);border-radius:8px;width:230px;max-width:100%;box-sizing:border-box}
+.inv-mask{margin-top:16px}
+.inv-mask-h{font-size:12.5px;color:var(--bk);margin-bottom:8px}
+#invMaskCv{max-width:100%;border:1px solid var(--li2);border-radius:10px;cursor:crosshair;touch-action:none;display:block}
+.inv-mask-act,.inv-act{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.inv-act{margin-top:16px}
 .einvite-combo-search{width:100%;box-sizing:border-box;border:1px solid var(--li2);border-radius:6px;padding:7px 9px;font:inherit;font-size:13px;margin-bottom:6px;position:sticky;top:0;background:#fff;z-index:1}
 .einvite-combo-btn{width:100%;display:flex;align-items:center;gap:8px;border:1px solid var(--li2);border-radius:6px;padding:5px 8px;background:#fff;font-size:13px;font-family:inherit;cursor:pointer;text-align:left;color:var(--bk)}
 .einvite-combo-thumb{width:26px;height:26px;object-fit:cover;border-radius:4px;flex-shrink:0}
@@ -877,7 +896,7 @@ body.role-sales .admin-only{display:none!important}
          end before modification trail, as a collapsible module". -->
     <!-- 2026-10-14, per Shruti — final e-invite (record) + "show on website". -->
     <div class="log-section" id="invSection" style="display:none">
-      <h3>💌 Final E-Invite</h3>
+      <h3>Final E-Invite</h3>
       <div id="invBlock"></div>
     </div>
     <div class="log-section" id="spySection" style="display:none">
@@ -1955,7 +1974,7 @@ async function renderInviteBlock(d){
   if(!d || !d.is_booking){ sec.style.display='none'; block.innerHTML=''; return; }
   sec.style.display = 'block';
   INV_LEAD_ID = d.lead_id;
-  block.innerHTML = '<div class="spy-reg-card"><div class="srb"><span class="sr-status" style="color:var(--gy)">Loading…</span></div></div>';
+  block.innerHTML = '<div class="inv-card"><span class="inv-meta">Loading…</span></div>';
   let st;
   try{ st = await apiCall('/api/admin/bookings/'+d.lead_id+'/invite'); }
   catch(e){ block.innerHTML = '<div style="color:var(--pk)">Could not load: '+esc(e.message)+'</div>'; return; }
@@ -1969,31 +1988,100 @@ async function renderInviteBlock(d){
     }catch(e){}
   }
   if(INV_LEAD_ID !== d.lead_id) return;
-  const img = thumb ? '<a href="'+thumb+'" target="_blank" rel="noopener"><img src="'+thumb+'" alt="Invite" style="width:140px;border-radius:10px;border:1px solid var(--li2);display:block"></a>' : '';
+  INV_IMG_URL = thumb; INV_BOXES = [];
+  const img = thumb ? '<a href="'+thumb+'" target="_blank" rel="noopener" class="inv-thumb"><img src="'+thumb+'" alt="Invite"></a>' : '';
   const info = st.has_invite
-    ? '<span class="sr-status">✓ '+(st.source==='spy' ? 'Using the Spy registration invite' : 'Invite uploaded')+(st.name?' ('+esc(st.name)+')':'')+(st.uploaded_by?' · '+esc(st.uploaded_by):'')+(st.uploaded_at?' · '+esc(st.uploaded_at):'')+'</span>'
-    : '<span class="sr-status" style="color:var(--gy)">'+(spy ? 'Upload the invite in the Spy Agent Registration section below — it’s used here too.' : 'No invite uploaded yet.')+'</span>';
-  const upload = spy ? '' : '<label class="sr-btn primary" style="display:inline-block;cursor:pointer">'+(st.source==='booking'?'Replace Invite':'Upload Invite')
+    ? '<div class="inv-ok">✓ '+(st.source==='spy' ? 'Using the Spy registration invite' : 'Invite uploaded')+'</div>'
+      + '<div class="inv-meta">'+[st.name, st.uploaded_by, st.uploaded_at].filter(Boolean).map(esc).join(' · ')+'</div>'
+    : '<div class="inv-meta">'+(spy ? 'Upload the invite in the Spy Agent Registration section below — it’s used here too.' : 'No invite uploaded yet.')+'</div>';
+  const upload = spy ? '' : '<label class="sr-btn primary inv-up">'+(st.source==='booking'?'Replace Invite':'Upload Invite')
     + '<input type="file" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="uploadFinalInvite('+d.lead_id+',this)"></label>';
   let web = '';
   if(st.has_invite || st.show_on_website){
     if(isAdmin){
-      web = '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">'
-        + '<label style="display:flex;gap:8px;align-items:center;font-weight:600;cursor:pointer"><input type="checkbox" id="invWeb"'+(st.show_on_website?' checked':'')+' onchange="document.getElementById(\'invWebF\').style.display=this.checked?\'flex\':\'none\'"> New design — show this invite on the website</label>'
-        + '<div id="invWebF" style="display:'+(st.show_on_website?'flex':'none')+';gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">'
-        +   '<div><label style="display:block;font-size:11.5px;font-weight:700;color:var(--gy);text-transform:uppercase;margin-bottom:4px">Design name on website</label><input type="text" id="invWebName" style="font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--li2);border-radius:8px;width:220px" maxlength="120" placeholder="e.g. Unicorn Pastel" value="'+esc(st.website_name||'')+'"></div>'
-        +   '<div><label style="display:block;font-size:11.5px;font-weight:700;color:var(--gy);text-transform:uppercase;margin-bottom:4px">Theme tag (optional)</label><input type="text" id="invWebTheme" style="font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--li2);border-radius:8px;width:220px" list="invThemeTags" maxlength="60" placeholder="e.g. spy, kpop, frozen" value="'+esc(st.website_theme||'')+'">'
-        +   '<datalist id="invThemeTags">'+['spy','kpop','frozen','hero','uni','stitch','imposter','hp','football','art','nanighar'].map(t=>'<option value="'+t+'">').join('')+'</datalist></div>'
+      const on = !!st.show_on_website;
+      web = '<div class="inv-web">'
+        + '<label class="inv-chk"><input type="checkbox" id="invWeb"'+(on?' checked':'')+' onchange="document.getElementById(\'invWebF\').style.display=this.checked?\'block\':\'none\'"> New design — show this invite on the website</label>'
+        + '<div id="invWebF" style="display:'+(on?'block':'none')+'">'
+        +   '<div class="inv-row">'
+        +     '<div class="inv-f"><label>Design name on website</label><input type="text" id="invWebName" maxlength="120" placeholder="e.g. Unicorn Pastel" value="'+esc(st.website_name||'')+'"></div>'
+        +     '<div class="inv-f"><label>Theme tag (optional)</label><input type="text" id="invWebTheme" list="invThemeTags" maxlength="60" placeholder="e.g. spy, kpop, frozen" value="'+esc(st.website_theme||'')+'">'
+        +     '<datalist id="invThemeTags">'+['spy','kpop','frozen','hero','uni','stitch','imposter','hp','football','art','nanighar'].map(t=>'<option value="'+t+'">').join('')+'</datalist></div>'
+        +   '</div>'
+        +   (thumb ? '<div class="inv-mask"><div class="inv-mask-h">Hide the parent’s number and the venue: drag a box over each — it’s blurred on the website copy only.</div>'
+        +     '<canvas id="invMaskCv"></canvas>'
+        +     '<div class="inv-mask-act"><button type="button" class="sr-btn ghost" onclick="invMaskUndo()">Undo box</button><button type="button" class="sr-btn ghost" onclick="invMaskClear()">Clear</button>'
+        +     (st.has_website_image ? '<span class="inv-ok">✓ Website copy saved — draw again to replace it</span>' : '')+'</div></div>' : '')
         + '</div>'
-        + '<div style="font-size:11.5px;color:var(--gy);margin-top:8px">⚠ The website is public — tick this only for a design without the family’s phone number or home address on it.</div>'
-        + '<button type="button" class="sr-btn ghost" style="margin-top:10px" onclick="saveInviteWebsite('+d.lead_id+')">Save</button>'
-        + (st.show_on_website ? '<span class="sr-status">✓ On the website'+(st.website_by?' · '+esc(st.website_by):'')+(st.website_at?' · '+esc(st.website_at):'')+'</span>' : '')
+        + '<div class="inv-act"><button type="button" class="sr-btn primary" onclick="saveInviteWebsite('+d.lead_id+')">Save</button>'
+        + (on ? '<span class="inv-ok">✓ On the website'+(st.website_by?' · '+esc(st.website_by):'')+(st.website_at?' · '+esc(st.website_at):'')+'</span>' : '')+'</div>'
         + '</div>';
     }else if(st.show_on_website){
-      web = '<div class="sr-status" style="margin-top:10px">✓ Shown on the website as “'+esc(st.website_name||'')+'”</div>';
+      web = '<div class="inv-web"><span class="inv-ok">✓ Shown on the website as “'+esc(st.website_name||'')+'”</span></div>';
     }
   }
-  block.innerHTML = '<div class="spy-reg-card"><div class="srb" style="align-items:flex-start;gap:14px;flex-wrap:wrap">'+img+'<div>'+upload+info+'</div></div>'+web+'</div>';
+  INV_HAS_WEB_COPY = !!st.has_website_image;
+  block.innerHTML = '<div class="inv-card"><div class="inv-top">'+img+'<div class="inv-info">'+info+upload+'</div></div>'+web+'</div>';
+  if(thumb && isAdmin) invMaskInit();
+}
+// ── Website copy: drag boxes over the phone number / venue (2026-10-14,
+// per Shruti — "please hide/mask all parent numbers and venues from our
+// website einvites"). Boxes are pixelated + blurred in the browser and only
+// that copy is uploaded for the website; the original stays as the record.
+let INV_IMG_URL = '', INV_BOXES = [], INV_IMG = null, INV_HAS_WEB_COPY = false;
+function invMaskInit(){
+  const cv = document.getElementById('invMaskCv'); if(!cv) return;
+  const im = new Image();
+  im.onload = ()=>{
+    INV_IMG = im;
+    const w = Math.min(360, im.naturalWidth); cv.width = w; cv.height = Math.round(im.naturalHeight * w / im.naturalWidth);
+    invMaskDraw();
+    let start = null;
+    const pt = e=>{ const r = cv.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e;
+      return [Math.max(0,Math.min(1,(t.clientX-r.left)/r.width)), Math.max(0,Math.min(1,(t.clientY-r.top)/r.height))]; };
+    const down = e=>{ e.preventDefault(); start = pt(e); };
+    const move = e=>{ if(!start) return; e.preventDefault(); const p = pt(e); invMaskDraw([start, p]); };
+    const up = e=>{ if(!start) return; const p = e.changedTouches ? (()=>{ const r=cv.getBoundingClientRect(),t=e.changedTouches[0]; return [Math.max(0,Math.min(1,(t.clientX-r.left)/r.width)),Math.max(0,Math.min(1,(t.clientY-r.top)/r.height))]; })() : pt(e);
+      const b = [Math.min(start[0],p[0]), Math.min(start[1],p[1]), Math.max(start[0],p[0]), Math.max(start[1],p[1])];
+      if(b[2]-b[0] > 0.01 && b[3]-b[1] > 0.005) INV_BOXES.push(b);
+      start = null; invMaskDraw(); };
+    cv.onmousedown = down; cv.onmousemove = move; window.addEventListener('mouseup', up);
+    cv.ontouchstart = down; cv.ontouchmove = move; cv.ontouchend = up;
+  };
+  im.src = INV_IMG_URL;
+}
+function _invPixelate(ctx, im, W, H, b){
+  const x = Math.round(b[0]*W), y = Math.round(b[1]*H), w = Math.max(1,Math.round((b[2]-b[0])*W)), h = Math.max(1,Math.round((b[3]-b[1])*H));
+  const t = document.createElement('canvas'), k = Math.max(1, Math.round(Math.min(w,h)/4));
+  t.width = Math.max(1, Math.round(w/k)); t.height = Math.max(1, Math.round(h/k));
+  t.getContext('2d').drawImage(im, b[0]*im.naturalWidth, b[1]*im.naturalHeight, (b[2]-b[0])*im.naturalWidth, (b[3]-b[1])*im.naturalHeight, 0, 0, t.width, t.height);
+  // Solid average colour first, so nothing of the original shows through
+  // where the blur fades at the edges; then the soft mosaic on top.
+  const one = document.createElement('canvas'); one.width = one.height = 1;
+  one.getContext('2d').drawImage(t, 0, 0, 1, 1);
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.drawImage(one, x, y, w, h);
+  ctx.imageSmoothingEnabled = true; ctx.filter = 'blur('+Math.max(2, Math.round(Math.min(w,h)/5))+'px)';
+  ctx.drawImage(t, x, y, w, h); ctx.restore();
+}
+function invMaskDraw(live){
+  const cv = document.getElementById('invMaskCv'); if(!cv || !INV_IMG) return;
+  const ctx = cv.getContext('2d'); ctx.drawImage(INV_IMG, 0, 0, cv.width, cv.height);
+  INV_BOXES.forEach(b=>_invPixelate(ctx, INV_IMG, cv.width, cv.height, b));
+  ctx.strokeStyle = '#E8559A'; ctx.lineWidth = 2;
+  INV_BOXES.forEach(b=>ctx.strokeRect(b[0]*cv.width, b[1]*cv.height, (b[2]-b[0])*cv.width, (b[3]-b[1])*cv.height));
+  if(live){ const [a,p] = live; ctx.setLineDash([5,4]); ctx.strokeRect(a[0]*cv.width, a[1]*cv.height, (p[0]-a[0])*cv.width, (p[1]-a[1])*cv.height); ctx.setLineDash([]); }
+}
+function invMaskUndo(){ INV_BOXES.pop(); invMaskDraw(); }
+function invMaskClear(){ INV_BOXES = []; invMaskDraw(); }
+function invMaskBlob(){
+  return new Promise(res=>{
+    const im = INV_IMG, c = document.createElement('canvas');
+    const sc = Math.min(1, 1600/im.naturalWidth); c.width = Math.round(im.naturalWidth*sc); c.height = Math.round(im.naturalHeight*sc);
+    const ctx = c.getContext('2d'); ctx.drawImage(im, 0, 0, c.width, c.height);
+    INV_BOXES.forEach(b=>_invPixelate(ctx, im, c.width, c.height, b));
+    c.toBlob(res, 'image/jpeg', 0.88);
+  });
 }
 async function uploadFinalInvite(leadId, inputEl){
   const file = inputEl.files && inputEl.files[0]; if(!file) return;
@@ -2010,7 +2098,15 @@ async function saveInviteWebsite(leadId){
   const show = document.getElementById('invWeb').checked;
   const body = {show, name: document.getElementById('invWebName').value.trim(),
                 theme: document.getElementById('invWebTheme').value.trim(), changed_by: getName()||''};
+  if(show && !INV_BOXES.length && !INV_HAS_WEB_COPY){
+    showToast('⚠ Drag a box over the parent’s number and the venue first.'); return;
+  }
   try{
+    if(show && INV_BOXES.length){
+      const fd = new FormData(); fd.append('website_image', await invMaskBlob(), 'website.jpg');
+      const r = await fetch(API+'/api/admin/bookings/'+leadId+'/invite/website-image', {method:'POST', headers:{'X-Admin-Password': getPw()}, body: fd});
+      if(!r.ok){ const b = await r.json().catch(()=>({})); throw new Error(b.detail || ('Upload failed ('+r.status+')')); }
+    }
     await apiCall('/api/admin/bookings/'+leadId+'/invite/website', {method:'POST', body: JSON.stringify(body)});
     showToast(show ? '✓ Invite added to the website' : '✓ Invite taken off the website');
     renderInviteBlock(CURRENT_DETAIL);
@@ -4325,6 +4421,8 @@ function einviteComboPick(rid, value){
     panel.hidden = true;
   }
   checkRowDirty(rid);  // hidden-input value change isn't a real DOM event, so nudge dirty-tracking directly
+  const tr = ccEl.closest('tr[data-key]');
+  if(tr && LQ_FIELD_KEYS[tr.dataset.key]) lqPendingStrip(tr, _einviteListPrice(value));
 }
 // Close any open combo panel on an outside click (delegated once, not
 // re-attached per render — same pattern as initDirtyTracking() below).
@@ -5097,14 +5195,25 @@ function _optListPrice(sel){
 document.addEventListener('change', e=>{
   const tr = e.target.closest && e.target.closest('tr[data-key]');
   if(!tr || !LQ_FIELD_KEYS[tr.dataset.key] || !e.target.id || !e.target.id.endsWith('_cc')) return;
+  lqPendingStrip(tr, e.target.value ? _optListPrice(e.target) : null);
+});
+// E-Invite picker (thumbnail combo, no <select>): list price by type —
+// Custom Design ₹1,000, Video + Reminder ₹2,000, any design ₹500
+// (booking_pricing.einvite_price). 2026-10-14, per Shruti — "invites also
+// should have an option for revised rate".
+function _einviteListPrice(v){
+  if(!v || v==='No selection') return null;
+  const l = v.toLowerCase();
+  return l.startsWith('custom') ? 1000 : (l.includes('video') ? 2000 : 500);
+}
+function lqPendingStrip(tr, price){
   const td = tr.children[2]; if(!td) return;
   const old = td.querySelector('.lq-strip'); if(old) old.remove();
-  const price = e.target.value ? _optListPrice(e.target) : null;
   if(price == null) return;
   td.insertAdjacentHTML('afterbegin', '<div class="lq-strip"><div class="lq-line"><span class="lq-q">Sales quote '
     + '<span class="lq-inp"><span>₹</span><input type="number" min="0" step="1" class="lq-pending" data-k="'+LQ_FIELD_KEYS[tr.dataset.key]+'" value="'+price+'"></span></span>'
     + '<span style="font-size:11.5px">saved with Save</span></div></div>');
-});
+}
 async function saveOneQuote(el){
   if(el.value === el.dataset.old) return;
   const who = getName();

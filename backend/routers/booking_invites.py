@@ -16,6 +16,7 @@ checkbox so that this design can be updated on the website as well."
   GET  /api/admin/bookings/{id}/invite           status
   GET  /api/admin/bookings/{id}/invite/image     the image (admin view)
   POST /api/admin/bookings/{id}/invite           upload (multipart: invite_image)
+  POST /api/admin/bookings/{id}/invite/website-image  masked copy (admin only)
   POST /api/admin/bookings/{id}/invite/website   {show, name, theme}  (admin only)
   GET  /api/booking-invites/website              list for the website
   GET  /api/booking-invites/website/{id}/image   image, only while it's on the website
@@ -38,6 +39,7 @@ router = APIRouter()
 async def _row(lead_id: int):
     r = await database.fetch_one(
         """SELECT lead_id, (invite_image IS NOT NULL) AS has_img, invite_image_name, uploaded_by, uploaded_at,
+                  (website_image IS NOT NULL) AS has_web,
                   show_on_website, website_name, website_theme, website_by, website_at
            FROM booking_invites WHERE lead_id = :id""", values={"id": lead_id})
     return dict(r) if r else None
@@ -77,6 +79,7 @@ async def invite_status(lead_id: int, x_admin_password: Optional[str] = Header(N
         "uploaded_by": r.get("uploaded_by") if has_own else None,
         "uploaded_at": _to_ist_str(r.get("uploaded_at")) if has_own else None,
         "show_on_website": bool(r.get("show_on_website")),
+        "has_website_image": bool(r.get("has_web")),
         "website_name": r.get("website_name"),
         "website_theme": r.get("website_theme"),
         "website_by": r.get("website_by"),
@@ -112,10 +115,34 @@ async def upload_invite(lead_id: int, invite_image: UploadFile = File(...), chan
            VALUES (:id, :img, :type, :name, :by, :at)
            ON CONFLICT (lead_id) DO UPDATE SET invite_image = EXCLUDED.invite_image,
                invite_image_type = EXCLUDED.invite_image_type, invite_image_name = EXCLUDED.invite_image_name,
-               uploaded_by = EXCLUDED.uploaded_by, uploaded_at = EXCLUDED.uploaded_at""",
+               uploaded_by = EXCLUDED.uploaded_by, uploaded_at = EXCLUDED.uploaded_at,
+               website_image = NULL, website_image_type = NULL, show_on_website = FALSE""",
         values={"id": lead_id, "img": raw, "type": kind, "name": (invite_image.filename or "")[:200] or None,
                 "by": (changed_by or "").strip()[:100] or None, "at": datetime.utcnow()})
     logger.info(f"Lead #{lead_id}: final invite uploaded")
+    return {"success": True}
+
+
+@router.post("/admin/bookings/{lead_id}/invite/website-image")
+async def upload_website_copy(lead_id: int, website_image: UploadFile = File(...),
+                              x_admin_password: Optional[str] = Header(None)):
+    """The masked copy (phone numbers / venue blurred in the browser) — the
+    only version the public website ever gets (2026-10-14, per Shruti)."""
+    if _require_admin(x_admin_password) != "admin":
+        raise HTTPException(status_code=403, detail="Only the admin can put an invite on the website.")
+    if not await _image(lead_id):
+        raise HTTPException(status_code=400, detail="Upload the invite first.")
+    raw = await website_image.read(MAX_FILE_BYTES + 1)
+    if not raw or len(raw) > MAX_FILE_BYTES:
+        raise HTTPException(status_code=400, detail="The website copy must be under 5MB.")
+    kind = _sniff_file_type(raw)
+    if not kind:
+        raise HTTPException(status_code=400, detail="The website copy must be a JPG, PNG or WEBP image.")
+    await database.execute(
+        """INSERT INTO booking_invites (lead_id, website_image, website_image_type) VALUES (:id, :img, :type)
+           ON CONFLICT (lead_id) DO UPDATE SET website_image = EXCLUDED.website_image,
+               website_image_type = EXCLUDED.website_image_type""",
+        values={"id": lead_id, "img": raw, "type": kind})
     return {"success": True}
 
 
@@ -135,6 +162,10 @@ async def set_website(lead_id: int, body: WebsiteBody, x_admin_password: Optiona
     if body.show:
         if not await _image(lead_id):
             raise HTTPException(status_code=400, detail="Upload the invite first.")
+        has_web = await database.fetch_one(
+            "SELECT 1 FROM booking_invites WHERE lead_id = :id AND website_image IS NOT NULL", values={"id": lead_id})
+        if not has_web:
+            raise HTTPException(status_code=400, detail="Hide the phone number and venue first (Save website copy).")
         if not name:
             raise HTTPException(status_code=400, detail="Give the design a name for the website (e.g. \"Unicorn Pastel\").")
     await database.execute(
@@ -151,7 +182,7 @@ async def set_website(lead_id: int, body: WebsiteBody, x_admin_password: Optiona
 @router.get("/booking-invites/website")
 async def website_invites():
     rows = await database.fetch_all(
-        "SELECT lead_id, website_name, website_theme FROM booking_invites WHERE show_on_website "
+        "SELECT lead_id, website_name, website_theme FROM booking_invites WHERE show_on_website AND website_image IS NOT NULL "
         "ORDER BY website_at DESC NULLS LAST")
     return {"items": [{"id": r["lead_id"], "name": r["website_name"], "theme": r["website_theme"] or "",
                        "image_url": f"/api/booking-invites/website/{r['lead_id']}/image"} for r in rows]}
@@ -159,10 +190,11 @@ async def website_invites():
 
 @router.get("/booking-invites/website/{lead_id}/image")
 async def website_invite_image(lead_id: int):
-    r = await database.fetch_one("SELECT show_on_website FROM booking_invites WHERE lead_id = :id",
-                                 values={"id": lead_id})
-    img = await _image(lead_id) if r and r["show_on_website"] else None
-    if not img:
+    # Only the masked website copy — never the original with phone/venue.
+    r = await database.fetch_one(
+        "SELECT website_image, website_image_type FROM booking_invites "
+        "WHERE lead_id = :id AND show_on_website AND website_image IS NOT NULL", values={"id": lead_id})
+    if not r:
         raise HTTPException(status_code=404, detail="Not on the website.")
-    return Response(content=img[0], media_type=img[1] or "image/jpeg",
+    return Response(content=bytes(r["website_image"]), media_type=r["website_image_type"] or "image/jpeg",
                     headers={"Cache-Control": "public, max-age=3600"})
