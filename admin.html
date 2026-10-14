@@ -3224,12 +3224,44 @@ function carnivalSectionHtml(v){
     + '<h4>Catalogues &amp; photos</h4><div id="vendorCatalogues" style="font-size:13px;color:var(--gy)">Loading…</div>'
     + '</div>';
 }
-async function loadVendorCatalogues(vendorId){
+// ── Host partner (2026-10-14, per Shruti) ───────────────────────────────
+// Answers from the partner form (js/host-form.js). Their event photos are in
+// the same files list carnival partners' catalogues use.
+function isHostVendor(v){ return /^host$/i.test((v.deals_in||'').trim()) || !!v.host_profile; }
+function hostSectionHtml(v){
+  const p = v.host_profile || {};
+  const zones = (window.WS_VOLUNTEER && WS_VOLUNTEER.zones) || [];
+  const yn = {yes:'Yes', maybe:'Maybe', no:'No'};
+  const row = (k, val) => (val || val === 0) ? '<div style="margin-top:6px"><b style="font-size:12px;color:var(--gy);text-transform:uppercase;letter-spacing:.3px">'+esc(k)+'</b><div style="white-space:pre-wrap">'+esc(val)+'</div></div>' : '';
+  const sc = n => n ? n+' / 5' : '';
+  const strengths = (p.strengths||[]).concat(p.strengths_other ? [p.strengths_other] : []);
+  const zoneNames = (p.zones||[]).map(n=>{ const z = zones.find(x=>x.n===n); return 'Zone '+n+' · '+(z?z.en:''); });
+  const ig = (p.instagram||'').replace(/^@/,'').trim();
+  const igLink = /^[A-Za-z0-9._]{1,30}$/.test(ig) ? '<div style="margin-top:6px"><b style="font-size:12px;color:var(--gy);text-transform:uppercase;letter-spacing:.3px">Instagram</b><div><a href="https://www.instagram.com/'+esc(ig)+'/" target="_blank" rel="noopener">@'+esc(ig)+'</a></div></div>' : row('Instagram', p.instagram);
+  const vids = (p.videos||[]).filter(u=>/^https?:\/\//i.test(u));
+  setTimeout(()=>loadVendorCatalogues(v.vendor_id, 'No photos uploaded.'), 0);
+  return '<div class="vol-card"><h3>🎤 Host Profile</h3>'
+    + (v.host_profile ? '' : '<div class="vol-note">The host hasn\u2019t filled in the hosting questions yet — send them an update link.</div>')
+    + (v.host_profile
+      ? '<h4>Experience &amp; strengths</h4>' + row('Years of experience', p.years) + row('Strengths', strengths.join(', ')) + row('What makes them different', p.unique)
+      + '<h4>Comfort level</h4>' + row('With kids', sc(p.comfort_kids)) + row('Large kids\u2019 events', sc(p.comfort_large_kids))
+        + row('Open to adult events (corporate, functions)', yn[p.adult_events]) + row('Large corporate events', sc(p.comfort_corporate))
+      + '<h4>Training &amp; props</h4>' + row('Open to training on new themes / games', yn[p.open_to_training])
+        + row('Own game props', yn[p.has_props]) + row('Props', p.props)
+      + '<h4>Zones</h4>' + row('Comfortable working in', zoneNames.join('\n'))
+      + '<h4>Their work</h4>' + igLink
+        + (vids.length ? '<div style="margin-top:6px"><b style="font-size:12px;color:var(--gy);text-transform:uppercase;letter-spacing:.3px">Videos</b>'+vids.map(u=>'<div><a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u.length>70?u.slice(0,67)+'…':u)+'</a></div>').join('')+'</div>' : '')
+      + row('How Wondershop can help them grow', p.grow)
+      : '')
+    + '<h4>Photos</h4><div id="vendorCatalogues" style="font-size:13px;color:var(--gy)">Loading…</div>'
+    + '</div>';
+}
+async function loadVendorCatalogues(vendorId, emptyText){
   const el = document.getElementById('vendorCatalogues'); if(!el) return;
   try{
     const r = await apiCall('/api/admin/vendors/'+vendorId+'/catalogues');
     const files = r.files||[];
-    el.innerHTML = files.length ? files.map(f=>'<div style="display:flex;gap:10px;align-items:center;margin-top:6px"><button class="mini-btn" onclick="viewVendorCatalogue('+vendorId+','+f.id+')">📎 '+esc(f.filename||'File')+'</button><span>'+(f.size_bytes?Math.max(1,Math.round(f.size_bytes/1024))+' KB':'')+'</span></div>').join('') : 'No catalogues uploaded.';
+    el.innerHTML = files.length ? files.map(f=>'<div style="display:flex;gap:10px;align-items:center;margin-top:6px"><button class="mini-btn" onclick="viewVendorCatalogue('+vendorId+','+f.id+')">📎 '+esc(f.filename||'File')+'</button><span>'+(f.size_bytes?Math.max(1,Math.round(f.size_bytes/1024))+' KB':'')+'</span></div>').join('') : (emptyText || 'No catalogues uploaded.');
   }catch(e){ el.textContent = 'Could not load the catalogues.'; }
 }
 async function viewVendorCatalogue(vendorId, fileId){
@@ -3279,6 +3311,7 @@ function renderVendorForm(v){
     + '<div class="status-card" style="align-items:flex-start">'+fieldsHtml+'</div>'
     + (isVolunteerVendor(v) ? volunteerSectionHtml(v) : '')
     + (isCarnivalVendor(v) ? carnivalSectionHtml(v) : '')
+    + (isHostVendor(v) ? hostSectionHtml(v) : '')
     + '<div class="section-block" style="padding:16px 18px;margin-top:14px">'
       + '<h3>Bank / Payment Details</h3>'
       + '<div class="status-card" style="align-items:flex-start;margin-top:10px">'+bankFieldsHtml+'</div>'
@@ -3378,7 +3411,7 @@ async function makeUpdateLink(vendorId){
     const url = 'https://www.wondershopexperiences.com/vendor-onboarding.html?u='+encodeURIComponent(r.token);
     const first = String(v.primary_contact_name||v.name||'').trim().split(/\s+/)[0] || 'there';
     const miss = r.missing||[];
-    const role = /volunteer/i.test(v.deals_in||'') ? 'a volunteer' : (/team member/i.test(v.deals_in||'') ? 'a team member' : 'a partner');
+    const role = /volunteer/i.test(v.deals_in||'') ? 'a volunteer' : (/team member/i.test(v.deals_in||'') ? 'a team member' : (/^host$/i.test((v.deals_in||'').trim()) ? 'a host' : 'a partner'));
     const msg = 'Hi '+first+'! Thank you for registering as '+role+' with Wondershop Experiences.\n\n'
       + 'A few details are still missing from your profile:\n'+miss.map(m=>'• '+m).join('\n')+'\n\n'
       + 'Please complete them using this link (your earlier answers are already filled in):\n'+url+'\n\n'

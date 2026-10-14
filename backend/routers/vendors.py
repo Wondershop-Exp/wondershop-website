@@ -68,6 +68,8 @@ VENDOR_READ_COLUMNS = VENDOR_FIELDS + [
     "resume_filename", "resume_content_type",
     # Carnival Stalls & Mascots answers (2026-10-12, migrations/053).
     "carnival_profile",
+    # Host answers (2026-10-14, migrations/059); photos are in vendor_catalogues.
+    "host_profile",
 ]
 
 # Fields a pending update is allowed to write when approved (never is_active,
@@ -149,6 +151,13 @@ def _row_out(r) -> dict:
         except ValueError:
             cp = None
     d["carnival_profile"] = cp if isinstance(cp, dict) else None
+    hp = d.get("host_profile")
+    if isinstance(hp, (str, bytes)):
+        try:
+            hp = json.loads(hp)
+        except ValueError:
+            hp = None
+    d["host_profile"] = hp if isinstance(hp, dict) else None
     return d
 
 

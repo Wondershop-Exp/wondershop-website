@@ -530,6 +530,136 @@ async def _save_carnival(profile: dict, catalogues: list, mobile: str, vendor_id
     logger.info(f"Carnival profile saved on partner {vendor_id} ({mobile}), {len(catalogues)} catalogue file(s)")
 
 
+# ─── Host (2026-10-14, per Shruti) ──────────────────────────────────────────
+# Years of experience (mandatory), strengths, what makes them different,
+# comfort with kids / large kids' events / large corporate events, open to
+# adult events and to training, own game props, zones, Instagram, video links,
+# photos and how we can help them grow. Address and pincode are mandatory for
+# hosts. See js/host-form.js.
+HOST = "host"
+MAX_HOST_PHOTOS = 6
+_YES3 = ("yes", "maybe", "no")
+_URL_RE = re.compile(r"^https?://[^\s.]+\.[^\s]+$", re.I)
+
+
+def _scale(v) -> Optional[int]:
+    try:
+        n = int(v)
+    except (TypeError, ValueError):
+        return None
+    return n if 1 <= n <= 5 else None
+
+
+def clean_host_profile(p: dict, strict: bool) -> dict:
+    if not isinstance(p, dict):
+        raise HTTPException(status_code=400, detail="We could not read your hosting details — please try again.")
+    try:
+        years = int(p.get("years"))
+    except (TypeError, ValueError):
+        years = None
+    if years is not None and not 0 <= years <= 50:
+        years = None
+    adult = _txt(p.get("adult_events"), 5)
+    adult = adult if adult in _YES3 else ""
+    props = _txt(p.get("has_props"), 5)
+    props = props if props in ("yes", "no") else ""
+    training = _txt(p.get("open_to_training"), 5)
+    zones = sorted({int(z) for z in (p.get("zones") or []) if str(z).isdigit() and 1 <= int(z) <= 6})
+    videos = []
+    for v in (p.get("videos") or [])[:5]:
+        v = _txt(v, 500)
+        if v and _URL_RE.match(v) and v not in videos:
+            videos.append(v)
+    out = {
+        "years": years,
+        "strengths": _str_list(p.get("strengths")),
+        "strengths_other": _txt(p.get("strengths_other"), 200),
+        "unique": _para(p.get("unique"), 1500),
+        "comfort_kids": _scale(p.get("comfort_kids")),
+        "comfort_large_kids": _scale(p.get("comfort_large_kids")),
+        "adult_events": adult,
+        "comfort_corporate": _scale(p.get("comfort_corporate")) if adult != "no" else None,
+        "open_to_training": training if training in _YES3 else "",
+        "has_props": props,
+        "props": _para(p.get("props"), 1000) if props == "yes" else "",
+        "zones": zones,
+        "instagram": _txt(p.get("instagram"), 100),
+        "videos": videos,
+        "grow": _para(p.get("grow"), 1500),
+    }
+    if not strict:
+        return out
+
+    def need(ok, msg):
+        if not ok:
+            raise HTTPException(status_code=400, detail=msg)
+    need(out["years"] is not None, "Please enter your years of hosting experience.")
+    need(out["strengths"] or out["strengths_other"], "Please pick at least one of your strengths.")
+    need(len(out["unique"]) >= 10, "Please tell us what makes you different from other hosts.")
+    need(out["comfort_kids"], "Please rate how comfortable you are with kids (1 to 5).")
+    need(out["comfort_large_kids"], "Please rate how comfortable you are hosting large kids' events (1 to 5).")
+    need(out["adult_events"], "Please tell us if you are open to hosting adult events.")
+    need(out["adult_events"] == "no" or out["comfort_corporate"], "Please rate how comfortable you are hosting large corporate events (1 to 5).")
+    need(out["open_to_training"], "Please tell us if you are open to training on new themes and games.")
+    need(out["has_props"], "Please tell us if you have your own game props.")
+    need(out["has_props"] == "no" or out["props"], "Please list the props you have.")
+    need(out["zones"], "Please pick at least one zone you are comfortable working in.")
+    return out
+
+
+def _parse_host_profile(raw: Optional[str]) -> dict:
+    raw = (raw or "").strip()
+    if not raw or len(raw) > 30_000:
+        raise HTTPException(status_code=400, detail="Please fill in your hosting details.")
+    try:
+        p = json.loads(raw)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="We could not read your hosting details — please try again.")
+    return clean_host_profile(p, strict=True)
+
+
+async def _read_host_photos(files) -> list:
+    out = []
+    for f in files or []:
+        if f is None or not getattr(f, "filename", None):
+            continue
+        if len(out) >= MAX_HOST_PHOTOS:
+            raise HTTPException(status_code=400, detail=f"Please add at most {MAX_HOST_PHOTOS} photos.")
+        raw = await f.read(MAX_FILE_BYTES + 1)
+        if len(raw) > MAX_FILE_BYTES:
+            raise HTTPException(status_code=400, detail="One of the photos is too large — please keep each under 5MB.")
+        if not raw:
+            continue
+        kind = _sniff_file_type(raw)
+        if kind not in _IMAGE_TYPES:
+            raise HTTPException(status_code=400, detail="Photos must be JPG, PNG or WEBP images.")
+        out.append((raw, kind, _safe_filename(f.filename)))
+    return out
+
+
+async def _save_host(profile: dict, photos: list, mobile: str, vendor_id: Optional[int] = None) -> None:
+    prim, alt = _DIGITS.format(c="primary_mobile"), _DIGITS.format(c="alternate_mobile")
+    if vendor_id is None:
+        vendor_id = await database.fetch_val(
+            f"SELECT vendor_id FROM vendor_master WHERE duplicate_of_id IS NULL AND ({prim} = :m OR {alt} = :m) "
+            f"ORDER BY ({prim} = :m) DESC, vendor_id DESC LIMIT 1",
+            {"m": mobile},
+        )
+    if not vendor_id:
+        logger.warning(f"Host profile for {mobile}: no partner row found")
+        return
+    async with database.transaction():
+        await database.execute(
+            "UPDATE vendor_master SET host_profile = CAST(:p AS JSONB), onboarding_reviewed = FALSE WHERE vendor_id = :id",
+            {"id": vendor_id, "p": json.dumps(profile, ensure_ascii=False)})
+        for raw, kind, fname in photos:
+            await database.execute(
+                """INSERT INTO vendor_catalogues (vendor_id, filename, content_type, size_bytes, file_data)
+                   VALUES (:v, :n, :t, :s, :d)""",
+                {"v": vendor_id, "n": fname, "t": kind, "s": len(raw), "d": raw})
+    logger.info(f"Host profile saved on partner {vendor_id} ({mobile}), {len(photos)} photo(s)")
+
+
 def _clean(s: Optional[str]) -> Optional[str]:
     s = (s or "").strip()
     return s or None
@@ -663,6 +793,32 @@ def partner_missing(row) -> List[str]:
             out.append("Heads-up time")
         if not cp.get("zones"):
             out.append("Service areas")
+    is_host = deals == HOST or bool(row.get("host_profile"))
+    if is_host:
+        if len((row.get("address") or "").strip()) < 10:
+            out.append("Address")
+        if not (row.get("pincode") or "").strip():
+            out.append("Pincode")
+        hp = row.get("host_profile") or {}
+        if isinstance(hp, (str, bytes)):
+            try:
+                hp = json.loads(hp)
+            except ValueError:
+                hp = {}
+        hp = hp if isinstance(hp, dict) else {}
+        checks = [
+            ("Years of experience", hp.get("years") is not None),
+            ("Your strengths", hp.get("strengths") or hp.get("strengths_other")),
+            ("What makes you different", hp.get("unique")),
+            ("Comfort with kids (1 to 5)", hp.get("comfort_kids")),
+            ("Comfort with large kids' events (1 to 5)", hp.get("comfort_large_kids")),
+            ("Open to hosting adult events", hp.get("adult_events")),
+            ("Comfort with large corporate events (1 to 5)", hp.get("adult_events") == "no" or hp.get("comfort_corporate")),
+            ("Open to training on new themes and games", hp.get("open_to_training")),
+            ("Own game props", hp.get("has_props")),
+            ("Zones you can work in", hp.get("zones")),
+        ]
+        out += [label for label, ok in checks if not ok]
     is_vol = VOLUNTEER in (row.get("deals_in") or "").lower() or bool(row.get("volunteer_profile"))
     if is_vol:
         if len((row.get("address") or "").strip()) < 10:
@@ -733,7 +889,7 @@ async def _vendor_by_token(token: Optional[str]):
         return None
     cols = ", ".join(_PLAIN_FIELDS + _BANK_FIELDS + [
         "vendor_id", "primary_mobile", "cancelled_cheque_filename", "volunteer_profile",
-        "volunteer_tnc_accepted_at", "resume_filename", "carnival_profile"])
+        "volunteer_tnc_accepted_at", "resume_filename", "carnival_profile", "host_profile"])
     return await database.fetch_one(
         f"SELECT {cols} FROM vendor_master WHERE update_token_hash = :h AND update_token_expires > NOW()",
         {"h": _token_hash(token)},
@@ -766,7 +922,16 @@ async def prefill(token: str):
             cp = json.loads(cp)
         except ValueError:
             cp = None
+    hp = d.get("host_profile")
+    if isinstance(hp, (str, bytes)):
+        try:
+            hp = json.loads(hp)
+        except ValueError:
+            hp = None
     out.update({
+        "host_profile": hp if isinstance(hp, dict) else None,
+        "host_photo_count": await database.fetch_val(
+            "SELECT COUNT(*) FROM vendor_catalogues WHERE vendor_id = :v", {"v": d["vendor_id"]}) or 0,
         "carnival_profile": cp if isinstance(cp, dict) else None,
         "volunteer_profile": d["volunteer_profile"],
         "has_bank": _has_bank(d),
@@ -804,6 +969,8 @@ async def submit_vendor_onboarding(
     resume: Optional[UploadFile] = File(None),
     carnival_profile: Optional[str] = Form(None),
     catalogues: Optional[List[UploadFile]] = File(None),
+    host_profile: Optional[str] = Form(None),
+    host_photos: Optional[List[UploadFile]] = File(None),
     update_token: Optional[str] = Form(None),
 ):
     # Sent through a private update link? Then this is that partner, and the
@@ -956,6 +1123,17 @@ async def submit_vendor_onboarding(
         carn_profile = _parse_carnival_profile(carnival_profile)
         carn_files = await _read_catalogues(catalogues)
 
+    # Host (2026-10-14): address and pincode mandatory, hosting questions complete.
+    is_host = (_clean(deals_in) or "").lower() == HOST
+    host_prof, host_pics = None, []
+    if is_host:
+        if len(_clean(address) or "") < 10:
+            raise HTTPException(status_code=400, detail="Please enter your full address.")
+        if not pincode:
+            raise HTTPException(status_code=400, detail="Please enter your pincode.")
+        host_prof = _parse_host_profile(host_profile)
+        host_pics = await _read_host_photos(host_photos)
+
     # 2026-09-30, per Shruti: "by default, save the mobile no. as the whatsapp
     # no. in the database. if the user inputs something on whatsapp no - then
     # update accordingly".
@@ -1005,6 +1183,8 @@ async def submit_vendor_onboarding(
             await _save_volunteer(vol_profile, vol_resume, mobile, vendor_id=link_id)
         if carn_profile is not None:
             await _save_carnival(carn_profile, carn_files, mobile, vendor_id=link_id)
+        if host_prof is not None:
+            await _save_host(host_prof, host_pics, mobile, vendor_id=link_id)
         return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}
     if matched:   # number shared by several partners and the name didn't pick one
         values["remarks"] = (
@@ -1029,4 +1209,6 @@ async def submit_vendor_onboarding(
         await _save_volunteer(vol_profile, vol_resume, mobile)
     if carn_profile is not None:
         await _save_carnival(carn_profile, carn_files, mobile)
+    if host_prof is not None:
+        await _save_host(host_prof, host_pics, mobile)
     return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}

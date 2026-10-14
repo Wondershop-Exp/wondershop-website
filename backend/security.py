@@ -35,6 +35,10 @@ ADMIN_FAIL_WINDOW_S = 15 * 60
 ADMIN_LOCK_S = 15 * 60
 
 MAX_BODY_BYTES = 12 * 1024 * 1024  # partner form: cheque (5MB) + volunteer resume (5MB); JSON bodies are tiny
+# The partner form carries files: carnival catalogues (up to 50MB in all) or a
+# host's photos, plus the cheque. Only that one (rate-limited) path gets the
+# bigger cap (2026-10-14).
+PARTNER_FORM_MAX_BYTES = 60 * 1024 * 1024
 
 # (method, path, path_is_prefix, max_requests, window_seconds)
 PUBLIC_LIMITS = [
@@ -145,7 +149,7 @@ async def security_middleware(request: Request, call_next):
         _sweep(now)
 
     cl = request.headers.get("content-length", "")
-    if cl.isdigit() and int(cl) > MAX_BODY_BYTES:
+    if cl.isdigit() and int(cl) > (PARTNER_FORM_MAX_BYTES if path == "/api/vendor-onboarding/submit" else MAX_BODY_BYTES):
         return JSONResponse({"detail": "That upload is too large."}, status_code=413)
 
     for i, (method, rule_path, is_prefix, max_req, window) in enumerate(PUBLIC_LIMITS):

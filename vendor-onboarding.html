@@ -139,6 +139,7 @@ body.is-carnival .opt-vol{display:none}
 .cv-svc{border:1px solid var(--li2);border-radius:12px;padding:12px;margin-top:10px}
 .cv-svc-h{font-size:13.5px;font-weight:700;margin-bottom:6px}
 .cv-svc textarea{width:100%;min-height:64px;padding:10px 12px;border:1.5px solid var(--li2);border-radius:10px;font-family:var(--fb);font-size:14px;background:var(--wh);resize:vertical}
+body.is-host .req-host{display:inline}
 .cv-files{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:6px}
 .cv-files li{display:flex;justify-content:space-between;gap:10px;font-size:13px;background:var(--li3);border-radius:8px;padding:7px 10px;word-break:break-all}
 .cv-files button{border:0;background:none;color:var(--gy);cursor:pointer;margin-left:6px;font-size:13px}
@@ -231,13 +232,13 @@ body.is-carnival .opt-vol{display:none}
           <div class="f-err" id="f_email_err"></div>
       </div>
       <div class="fld">
-        <label>Address <span class="req-vol">*</span></label>
+        <label>Address <span class="req-vol req-host">*</span></label>
         <textarea id="f_address"></textarea>
         <div class="f-err" id="f_address_err"></div>
       </div>
       <div class="row2">
         <div class="fld">
-          <label>Pincode <span class="req-car">*</span></label>
+          <label>Pincode <span class="req-car req-host">*</span></label>
           <input type="text" id="f_pincode" inputmode="numeric" maxlength="6" autocomplete="postal-code">
           <div class="f-err" id="f_pincode_err"></div>
           <div class="f-hint" id="pinHint"></div>
@@ -259,6 +260,8 @@ body.is-carnival .opt-vol{display:none}
       <div id="decorSection" hidden></div>
       <!-- Carnival Stalls & Mascots (2026-10-12) - filled in by js/carnival-form.js -->
       <div id="carnivalSection" hidden></div>
+      <!-- Host questions (2026-10-14) - filled in by js/host-form.js -->
+      <div id="hostSection" hidden></div>
       <!-- Event Volunteer questions (2026-10-10) - filled in by js/volunteer-form.js -->
       <div id="volunteerSection" hidden></div>
 
@@ -330,6 +333,7 @@ body.is-carnival .opt-vol{display:none}
 <script src="js/volunteer-data.js"></script>
 <script src="js/volunteer-form.js"></script>
 <script src="js/carnival-form.js"></script>
+<script src="js/host-form.js"></script>
 <script>
 const WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -442,6 +446,8 @@ dealsSelect.addEventListener('change', () => {
   if(window.WSVolunteer) WSVolunteer.toggle(vol);
   document.body.classList.toggle('is-carnival', isCarnival());
   if(window.WSCarnival) WSCarnival.toggle(isCarnival());
+  document.body.classList.toggle('is-host', isHost());
+  if(window.WSHost) WSHost.toggle(isHost());
   ['f_alt_mobile', 'f_address', 'f_locality', 'f_pincode'].forEach(id => setFieldErr(id, ''));
 });
 // Event Volunteer (2026-10-10, per Shruti): address and an alternate number
@@ -451,6 +457,8 @@ function isVolunteer(){ return dealsSelect.value === 'Event Volunteer'; }
 // and pincode are mandatory too.
 function isCarnival(){ return dealsSelect.value === 'Carnival Stalls & Mascots'; }
 function extrasRequired(){ return isVolunteer() || isCarnival(); }
+// Host (2026-10-14, per Shruti): address and pincode are mandatory.
+function isHost(){ return dealsSelect.value === 'Host'; }
 // WhatsApp starts as the mobile number; once edited by hand it stays as typed.
 (function(){
   const m = document.getElementById('f_mobile'), w = document.getElementById('f_whatsapp');
@@ -477,17 +485,17 @@ const FIELD_RULES = {
   f_mobile:     {required:true, kind:'mobile', label:'mobile number'},
   f_whatsapp:   {kind:'mobile', label:'WhatsApp number'},
   f_alt_mobile: {kind:'mobile', label:'alternate mobile number', volRequired:true},
-  f_address:    {kind:'address', label:'address', volRequired:true},
+  f_address:    {kind:'address', label:'address', volRequired:true, hostRequired:true},
   f_email:      {kind:'email', label:'email address', emailRequired:true},
   f_city:       {kind:'city'},
   f_locality:   {kind:'locality', label:'locality', carRequired:true},
-  f_pincode:    {kind:'pincode', label:'pincode', carRequired:true},
+  f_pincode:    {kind:'pincode', label:'pincode', carRequired:true, hostRequired:true},
 };
 function fieldError(id){
   const rule = FIELD_RULES[id];
   const raw = document.getElementById(id).value.trim();
-  if(!raw) return (rule.required || (rule.volRequired && extrasRequired()) || (rule.carRequired && isCarnival()) || (rule.emailRequired && emailRequired())) ? 'Please enter your ' + rule.label + '.' : '';
-  if(rule.kind === 'address' && extrasRequired() && raw.length < 10) return 'Please enter your full address.';
+  if(!raw) return (rule.required || (rule.volRequired && extrasRequired()) || (rule.carRequired && isCarnival()) || (rule.hostRequired && isHost()) || (rule.emailRequired && emailRequired())) ? 'Please enter your ' + rule.label + '.' : '';
+  if(rule.kind === 'address' && (extrasRequired() || isHost()) && raw.length < 10) return 'Please enter your full address.';
   if(id === 'f_alt_mobile' && extrasRequired() && normMobile(raw) === normMobile(document.getElementById('f_mobile').value))
     return 'Please give a different number from your mobile number.';
   if(rule.kind === 'mobile'){
@@ -602,6 +610,17 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
     }
   }
 
+  const isHostForm = deals === 'Host' && window.WSHost;
+  if(isHostForm){
+    const check = WSHost.validate();
+    if(check.error){
+      showErr(check.error);
+      if(check.el && check.el.scrollIntoView) setTimeout(() => check.el.scrollIntoView({behavior:'smooth', block:'center'}), 400);
+      if(check.el && check.el.focus) check.el.focus({preventScroll:true});
+      return;
+    }
+  }
+
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
   btn.textContent = 'Submitting…';
@@ -630,6 +649,7 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   if(isDecorator) await WSDecor.appendTo(fd);
   if(isVol) WSVolunteer.appendTo(fd);
   if(isCarn) WSCarnival.appendTo(fd);
+  if(isHostForm) WSHost.appendTo(fd);
   if(isVol){ fd.set('primary_contact_name', ''); fd.set('gst_number', ''); }
 
   try{
@@ -689,6 +709,7 @@ const UPD = {token: new URLSearchParams(location.search).get('u') || '', ok: fal
     }
     if(window.WSVolunteer && isVolunteer()) WSVolunteer.fill(d.volunteer_profile, d.has_resume);
     if(window.WSCarnival && isCarnival()) WSCarnival.fill(d.carnival_profile);
+    if(window.WSHost && isHost()) WSHost.fill(d.host_profile, d.host_photo_count);
     document.getElementById('updBank').hidden = !UPD.hasBank;
     const missing = (d.missing || []).filter(m => !(m === 'Bank details' && UPD.hasBank));
     box.innerHTML = '<b>Hi ' + escH(d.name || '') + '!</b> Your earlier answers are filled in below. '
