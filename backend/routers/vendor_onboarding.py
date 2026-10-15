@@ -926,7 +926,8 @@ def partner_missing(row) -> List[str]:
             out.append("Terms & conditions")
     # 2026-10-14, per Shruti: bank details optional for "Others" partners (office
     # owner, staff, utilities ...) - i.e. anything not one of the form's listed types.
-    if not _has_bank(row) and not _is_other_partner(row):
+    # 2026-10-15, per Shruti: only Host and Event Volunteer must have bank details.
+    if not _has_bank(row) and deals in (HOST, VOLUNTEER):
         if all((row.get(f) or "").strip() for f in _BANK_FIELDS[:4]):
             out.append("Bank account type (savings / current)")
         else:
@@ -1162,7 +1163,10 @@ async def submit_vendor_onboarding(
     # must give at least one of the two, or there's nothing to pay them
     # against.
     # 2026-10-12, per Shruti: all bank fields are mandatory (the cheque photo is extra, optional).
-    if not has_full_bank_details and not (link_row and _has_bank(dict(link_row))):
+    # 2026-10-15, per Shruti: mandatory ONLY for Host and Event Volunteer —
+    # optional for every other category "until I say so".
+    _bank_required = (_clean(deals_in) or "").lower() in (HOST, VOLUNTEER)
+    if _bank_required and not has_full_bank_details and not (link_row and _has_bank(dict(link_row))):
         raise HTTPException(
             status_code=400,
             detail="Please fill in all bank details: account holder name, bank name, account number, IFSC code and account type.",
