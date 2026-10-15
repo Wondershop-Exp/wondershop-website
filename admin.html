@@ -770,7 +770,7 @@ body.role-sales .admin-only{display:none!important}
         <button class="pill active" data-val="all" onclick="setLeadOriginFilter('all')">All leads</button>
         <button class="pill" data-val="website" onclick="setLeadOriginFilter('website')">🌐 Website</button>
         <button class="pill" data-val="sales" onclick="setLeadOriginFilter('sales')">📞 Sales team</button>
-        <button class="pill" data-val="insta" onclick="setLeadOriginFilter('insta')" title="Leads from Instagram ads, sent in by AiSensy (number in the bubble = still New)">📸 Instagram leads<span class="pill-bubble" id="instaBubble"></span></button>
+        <button class="pill" data-val="insta" onclick="setLeadOriginFilter('insta')" title="Leads from Instagram ads, sent in by AiSensy (number in the bubble = still New)">Instagram leads<span class="pill-bubble" id="instaBubble"></span></button>
         <button class="add-field-btn admin-only" style="margin-left:auto" id="sheetSyncBtn" onclick="syncSheetAll()" title="Rewrite every lead/booking row in the Google Sheet (rows also update by themselves after each change)">↻ Sync Google Sheet</button>
         <button class="add-field-btn" onclick="registerSalesLead()">+ Register a lead (sales)</button>
       </div>
@@ -3559,7 +3559,7 @@ function updateInstaBubble(){
 }
 function sourceCellHtml(r){
   if(!r.lead_source && !r.lead_source_platform) return '—';
-  const src = isInstaLead(r) ? '<span class="src-insta">📸 '+esc(r.lead_source)+'</span>' : esc(r.lead_source||'');
+  const src = isInstaLead(r) ? '<span class="src-insta">'+esc(r.lead_source)+'</span>' : esc(r.lead_source||'');
   const plat = r.lead_source_platform ? ' <span style="color:var(--gy)">· '+esc(r.lead_source_platform)+'</span>' : '';
   const ad = r.ad_shown ? '<div class="src-ad" title="Ad shown: '+esc(r.ad_shown)+'">Ad: '+esc(r.ad_shown)+'</div>' : '';
   return '<div class="src-cell">'+src+plat+ad+'</div>';

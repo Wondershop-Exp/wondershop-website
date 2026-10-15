@@ -386,7 +386,7 @@ body.role-sales .admin-only{display:none!important}
          the number = Instagram leads still New, waiting to be picked up. -->
     <div class="chip-row src-filter" id="srcFilter">
       <button type="button" class="sel" data-val="all" onclick="setSrcFilter('all')">All leads</button>
-      <button type="button" data-val="insta" onclick="setSrcFilter('insta')" title="Leads from Instagram ads, sent in by AiSensy">📸 Instagram leads<span class="pill-bubble" id="instaBubble"></span></button>
+      <button type="button" data-val="insta" onclick="setSrcFilter('insta')" title="Leads from Instagram ads, sent in by AiSensy">Instagram leads<span class="pill-bubble" id="instaBubble"></span></button>
       <button type="button" data-val="wsr" onclick="setSrcFilter('wsr')" title="Past customers of the Wondershop retail store whose birthday or party is coming up">WSR Repeat<span class="pill-bubble" id="wsrBubble"></span></button>
     </div>
     <!-- 2026-10-12, per Shruti: list filters (all applied in the browser). -->
@@ -919,7 +919,7 @@ function renderListRows(){
     return '<tr onclick="openDetail('+r.lead_id+')" style="cursor:pointer">'
       +'<td style="color:var(--gy);font-size:12.5px">#'+r.lead_id+'</td>'
       +'<td><strong>'+esc(r.client_name||'(no name yet)')+'</strong>'+suggPill+'<br><span style="color:var(--gy);font-size:12px">'+esc(r.mobile||'')+'</span>'
-        +(isInstaLead(r) ? '<br><span class="src-tag" title="'+esc('Instagram ad lead via '+(r.lead_source_platform||'AISensy')+(r.lead_generated_at?' · '+r.lead_generated_at:'')+(r.ad_shown?' · Ad: '+r.ad_shown:''))+'">📸 Insta'+(r.ad_shown?' · '+esc(r.ad_shown):'')+'</span>' : '')
+        +(isInstaLead(r) ? '<br><span class="src-tag" title="'+esc('Instagram ad lead via '+(r.lead_source_platform||'AISensy')+(r.lead_generated_at?' · '+r.lead_generated_at:'')+(r.ad_shown?' · Ad: '+r.ad_shown:''))+'">Insta'+(r.ad_shown?' · '+esc(r.ad_shown):'')+'</span>' : '')
         +(isWsrLead(r) ? '<br><span class="wsr-tag">WSR Repeat · '+esc(r.occasion||'Birthday')+(r.child_name&&r.child_name!=='—'?' · '+esc(r.child_name):'')+'</span>'+wsrTags(r)
           : (r.occasion && r.occasion!=='Birthday' ? '<br><span class="wsr-tag">'+esc(r.occasion)+'</span>' : '')+(r.lead_highlights||r.date_precision ? '<br>'+wsrTags(r) : ''))
       +'</td>'
@@ -1815,7 +1815,7 @@ function sectionClientDetails(){
   const srcBox = (d.lead_source_platform || isInstaLead(d))
     ? '<div class="src-box">'
       + '<div><span class="k">Lead generated</span>'+esc(d.lead_generated_at||d.created_at||'—')+'</div>'
-      + '<div><span class="k">Lead source</span>📸 '+esc(d.lead_source||'—')+'</div>'
+      + '<div><span class="k">Lead source</span>'+esc(d.lead_source||'—')+'</div>'
       + '<div><span class="k">Lead source platform</span>'+esc(d.lead_source_platform||'—')+'</div>'
       + '<div style="grid-column:1/-1"><span class="k">Ad shown</span>'
       +   '<input type="text" id="f_ad_shown" value="'+esc(d.ad_shown==null?'':d.ad_shown)+'" placeholder="Not sent by AiSensy — copy the ad name from AiSensy Ad Manager" onblur="saveField(\'ad_shown\', this.value, this.type)" style="width:100%">'
