@@ -106,6 +106,15 @@ table.list tr:hover td{background:var(--li3)}
 #listTable th:nth-child(1),#listTable td:nth-child(1){position:sticky;left:0;z-index:2;background:var(--wh)}
 #listTable th:nth-child(2),#listTable td:nth-child(2){position:sticky;left:var(--c2left,0px);z-index:2;background:var(--wh);border-right:1px solid var(--li2)}
 #listTable tr:hover td:nth-child(1),#listTable tr:hover td:nth-child(2){background:var(--li3)}
+/* 2026-10-15, per Shruti — narrower Client column with wrapping so Status and
+   Location fit without scrolling. Cols: 2 Client, 3 Lead Source, 6 Status,
+   7 Location, 11 Theme, 13 Sales Lead. */
+#listTable td:nth-child(2){white-space:normal;min-width:150px;max-width:190px;width:190px;line-height:1.35}
+#listTable td:nth-child(2) strong{word-break:break-word}
+#listTable td:nth-child(2) .src-tag,#listTable td:nth-child(2) .wsr-tag{max-width:170px;white-space:normal}
+#listTable td:nth-child(2) .hl-tag{margin-left:0;margin-right:4px}
+#listTable td:nth-child(3),#listTable td:nth-child(7),#listTable td:nth-child(11){white-space:normal;max-width:130px;line-height:1.35}
+#listTable td{padding-left:8px;padding-right:8px}
 th.th-sort{cursor:pointer;user-select:none}
 th.th-sort:hover{color:var(--pk)}
 .sort-arrow{margin-left:4px;font-size:10px;display:inline-block;min-width:8px;opacity:.4}
@@ -1792,9 +1801,19 @@ function timeSelectHtml(attrs, value, placeholder){
   return '<select '+attrs+'><option value="">'+(placeholder || '— select time —')+'</option>'
     + slots.map(t=>'<option value="'+t+'"'+(t===curN?' selected':'')+'>'+to12h(t)+'</option>').join('') + '</select>';
 }
+// 2026-10-15, per Shruti — Sales Lead is a dropdown of the sales team, not free text.
+const SALES_LEADS = ['Mitika', 'Shruti', 'Sidhant'];
 function salesLeadField(){
-  const v = (DATA && DATA.sales_lead_name) || getName() || '';
-  return '<div class="fld"><label>Sales Lead</label><input type="text" id="f_sales_lead_name" value="'+esc(v)+'" onblur="saveField(\'sales_lead_name\', this.value, this.type)"></div>';
+  let v = String((DATA && DATA.sales_lead_name) || '').trim();
+  // Older free-text values like "Shruti Admin" map onto the matching name.
+  const hit = SALES_LEADS.find(n => v.toLowerCase().startsWith(n.toLowerCase()));
+  if(hit) v = hit;
+  const opts = SALES_LEADS.slice();
+  if(v && !opts.includes(v)) opts.push(v);   // keep an old value visible rather than lose it
+  return '<div class="fld"><label>Sales Lead</label><select id="f_sales_lead_name" onchange="saveField(\'sales_lead_name\', this.value)">'
+    + '<option value="">— select —</option>'
+    + opts.map(n=>'<option value="'+esc(n)+'"'+(n===v?' selected':'')+'>'+esc(n)+'</option>').join('')
+    + '</select></div>';
 }
 // ── 1. Client & Event Details ───────────────────────────────────────────
 function sectionClientDetails(){
