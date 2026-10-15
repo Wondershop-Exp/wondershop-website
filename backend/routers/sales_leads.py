@@ -270,6 +270,9 @@ LEAD_FIELD_MAP = {
     "event_date": "event_date",
     "event_start_time": "event_time",
     "venue": "venue",
+    # 2026-10-15, per Shruti — same column the admin booking's "Venue Maps
+    # Link" uses (migration 006), so it carries over when the lead converts.
+    "venue_maps_link": "venue_maps_link",
     "theme": "theme",
     "kids_count": "kids_count",
     # 010_order_form.sql already added this column for exactly this purpose
@@ -844,6 +847,7 @@ async def _full_detail(lead_row) -> dict:
         "event_date": str(lead["event_date"]) if lead.get("event_date") else None,
         "event_start_time": lead.get("event_time"),
         "venue": lead.get("venue"),
+        "venue_maps_link": lead.get("venue_maps_link"),
         "theme": lead.get("theme"),
         "kids_count": lead.get("kids_count"),
         "sales_lead_name": lead.get("event_sales_lead"),
