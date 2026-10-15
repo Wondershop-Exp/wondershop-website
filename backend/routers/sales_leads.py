@@ -834,6 +834,9 @@ async def _full_detail(lead_row) -> dict:
         "occasion": lead.get("occasion"),
         "lead_highlights": lead.get("lead_highlights"),
         "past_customer_note": lead.get("past_customer_note"),
+        # 2026-10-15 — old leads import: earlier conversations + month-only dates.
+        "earlier_conversations": lead.get("earlier_conversations"),
+        "date_precision": lead.get("date_precision"),
         "mobile": lead.get("phone"),
         "child_name": lead.get("child_names"),
         "child_age": lead.get("child_ages"),
@@ -916,26 +919,31 @@ VISIBLE_TO_TEAM_SQL = "({t}show_from IS NULL OR {t}show_from <= CURRENT_DATE) AN
 
 
 async def _roll_wsr_repeat_leads():
-    """A WSR Repeat birthday/party that passed (a week's grace) without a
-    booking comes back next year: date +1 year, child's age +1, status back
-    to New, show_from re-worked out (3 months ahead if the new age is a
-    milestone, else 2). DND / Cancelled leads are left alone."""
+    """Every scheduled lead (WSR Repeat, old Instagram/Wonderfest/Powai/Google
+    leads — anything with a show_from) whose birthday/party passed without a
+    booking comes back next year: date +1 year, child's age +1, status back to
+    New, visible again 90 days before (3 months before for a month-only date).
+    An exact date rolls a week after it passes; a month-only one a week after
+    that month ends. DND / Cancelled leads are left alone.
+    (2026-10-15, per Shruti: one rule for all, and "even for leads shown as
+    uninterested, let's connect with them next year".)"""
     try:
         await database.execute(
             """UPDATE leads SET
                  event_date = (event_date + INTERVAL '1 year')::date,
                  child_ages = CASE WHEN child_ages ~ '^[0-9]+$' THEN (child_ages::int + 1)::text ELSE child_ages END,
-                 show_from = ((event_date + INTERVAL '1 year')::date
-                              - CASE WHEN child_ages ~ '^[0-9]+$' AND (child_ages::int + 1) IN (1, 5, 10)
-                                     THEN 90 ELSE 60 END),
+                 show_from = CASE WHEN date_precision = 'month'
+                                  THEN ((event_date + INTERVAL '1 year') - INTERVAL '3 months')::date
+                                  ELSE (event_date + INTERVAL '1 year')::date - 90 END,
                  status = 'New'
-               WHERE lead_source = :src AND lead_origin = 'sales_module' AND is_booking = FALSE
-                 AND event_date IS NOT NULL AND event_date < CURRENT_DATE - 7
-                 AND status NOT IN ('DND', 'Cancelled')""",
-            values={"src": WSR_REPEAT_SOURCE},
+               WHERE show_from IS NOT NULL AND lead_origin = 'sales_module' AND is_booking = FALSE
+                 AND event_date IS NOT NULL
+                 AND (CASE WHEN date_precision = 'month' THEN (event_date + INTERVAL '1 month')::date ELSE event_date END)
+                     < CURRENT_DATE - 7
+                 AND status NOT IN ('DND', 'Cancelled')"""
         )
     except Exception:
-        logger.exception("WSR Repeat: couldn't roll past leads over to next year")
+        logger.exception("Scheduled leads: couldn't roll past leads over to next year")
 
 
 class WsrRepeatLead(BaseModel):
@@ -949,6 +957,12 @@ class WsrRepeatLead(BaseModel):
     lead_highlights: Optional[str] = None
     past_customer_note: Optional[str] = None
     hidden_from_team: bool = False
+    # 2026-10-15 — old leads import (same endpoint shape, more fields).
+    child_genders: Optional[str] = None
+    lead_source: Optional[str] = None
+    lead_date: Optional[str] = None
+    earlier_conversations: Optional[str] = None
+    date_precision: Optional[str] = None
 
 
 class WsrRepeatImport(BaseModel):
@@ -998,6 +1012,55 @@ async def import_wsr_repeat(body: WsrRepeatImport, x_admin_password: Optional[st
     return {"created": created, "skipped": skipped}
 
 
+@router.post("/admin/old-leads/import")
+async def import_old_leads(body: WsrRepeatImport, x_admin_password: Optional[str] = Header(None)):
+    """One-time load of old / existing leads (Instagram, Wonderfest Feb 2026,
+    Powai Rotary Christmas Stall 2025, Google) — 2026-10-15, per Shruti.
+    Admin password only (not on the sales login's allow-list). Anyone whose
+    phone is already in the Sales module before this load is skipped ("skip
+    anyone already in the sales module"); re-running skips what was loaded."""
+    _require_admin(x_admin_password)
+    rows = await database.fetch_all(
+        "SELECT DISTINCT RIGHT(regexp_replace(COALESCE(phone, ''), '[^0-9]', '', 'g'), 10) AS p "
+        "FROM leads WHERE lead_origin = 'sales_module'")
+    existing = {r["p"] for r in rows if r["p"]}
+    created, skipped, skipped_phones = 0, 0, []
+    for l in body.leads:
+        ph = re.sub(r"[^0-9]", "", l.phone or "")[-10:]
+        if ph in existing:
+            skipped += 1
+            skipped_phones.append(ph)
+            continue
+        lead_date = _to_date(l.lead_date) if l.lead_date else None
+        lead_id = await database.execute(
+            """INSERT INTO leads
+                 (parent_name, phone, child_names, child_ages, child_genders, event_date, theme, lead_origin,
+                  lead_source, status, is_booking, show_from, hidden_from_team, occasion, lead_highlights,
+                  earlier_conversations, date_precision, lead_generated_at)
+               VALUES
+                 (:parent_name, :phone, :child_names, :child_ages, :child_genders, :event_date, :theme, 'sales_module',
+                  :src, 'New', FALSE, :show_from, :hidden, :occasion, :hl, :conv, :prec, :lead_date)
+               RETURNING lead_id""",
+            values={
+                "parent_name": (l.parent_name or "").strip() or "(confirm)", "phone": ph,
+                "child_names": l.child_names, "child_ages": l.child_ages, "child_genders": l.child_genders,
+                "event_date": _to_date(l.event_date), "show_from": _to_date(l.show_from),
+                "theme": None if l.occasion == "Birthday" else l.occasion,
+                "src": (l.lead_source or "").strip() or None, "hidden": l.hidden_from_team,
+                "occasion": l.occasion, "hl": l.lead_highlights, "conv": l.earlier_conversations,
+                "prec": l.date_precision if l.date_precision in ("exact", "month") else "exact",
+                "lead_date": datetime.combine(lead_date, datetime.min.time()) if lead_date else None,
+            },
+        )
+        playbook_id = await database.execute(
+            "INSERT INTO lead_sales_playbook (lead_id, requirements, created_by) VALUES (:id, '{}', :by) RETURNING id",
+            values={"id": lead_id, "by": body.created_by},
+        )
+        await _log(playbook_id, body.created_by, "created", "Old leads import")
+        created += 1
+    return {"created": created, "skipped_already_in_sales_module": skipped, "skipped_phones": sorted(set(skipped_phones))}
+
+
 @router.get("/admin/sales-leads")
 async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
@@ -1015,7 +1078,7 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
                    p.id AS playbook_id, p.playbook_stage, p.created_by, p.created_at,
                    p.updated_by, p.updated_at, p.new_activity_suggestions, p.call_log,
                    l.lead_source, l.lead_source_platform, l.ad_shown, l.lead_generated_at,
-                   l.occasion, l.lead_highlights, l.past_customer_note, l.child_names
+                   l.occasion, l.lead_highlights, l.past_customer_note, l.child_names, l.date_precision
             FROM leads l
             JOIN lead_sales_playbook p ON p.lead_id = l.lead_id
             WHERE {where}
@@ -1078,6 +1141,7 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
             "lead_highlights": d.get("lead_highlights"),
             "past_customer_note": d.get("past_customer_note"),
             "child_name": d.get("child_names"),
+            "date_precision": d.get("date_precision"),
         })
     return {"sheets": out}
 

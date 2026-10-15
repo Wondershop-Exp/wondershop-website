@@ -38,6 +38,7 @@ SAFE_MIGRATIONS = [
     "058_booking_invite_website_image.sql",
     "059_host_profile.sql",
     "060_finance.sql",
+    "061_old_leads_import.sql",
 ]
 
 

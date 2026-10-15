@@ -334,6 +334,11 @@ body.role-sales .admin-only{display:none!important}
 .hl-mile{background:#FFE58A;color:#6B4E00}
 .hl-reg{background:#D9F2DC;color:#1E6B2A}
 .hl-high{background:#E3ECFB;color:#1F4E9B}
+.hl-past{background:#FCE4EC;color:#9C2252}
+.conv-box{background:#FAFAF7;border:1px solid #E5E1F5;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.5}
+.conv-box .k{display:block;font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
+.conv-box .conv-meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin-bottom:8px}
+.conv-box .conv-text{white-space:pre-wrap;max-height:340px;overflow:auto;background:#fff;border:1px solid #EEE;border-radius:8px;padding:8px 10px}
 .wsr-box{background:#F6F2FD;border:1px solid #D9CCF1;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.5}
 .wsr-box .k{display:block;font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}
 .wsr-box .wsr-note{white-space:pre-wrap;margin-top:8px}
@@ -398,6 +403,9 @@ body.role-sales .admin-only{display:none!important}
       <div class="lf-ms"><span class="lf-ms-l">Status</span>
         <button type="button" class="lf-ms-btn" id="lf_status_btn" onclick="msToggle(event,'lf_status')">All</button>
         <div class="lf-ms-panel" id="lf_status" hidden onclick="event.stopPropagation()"></div></div>
+      <div class="lf-ms"><span class="lf-ms-l">Lead source</span>
+        <button type="button" class="lf-ms-btn" id="lf_src_btn" onclick="msToggle(event,'lf_src')">All</button>
+        <div class="lf-ms-panel" id="lf_src" hidden onclick="event.stopPropagation()"></div></div>
       <div class="lf-ms"><span class="lf-ms-l">Age/Gender</span>
         <button type="button" class="lf-ms-btn" id="lf_ag_btn" onclick="msToggle(event,'lf_ag')">All</button>
         <div class="lf-ms-panel" id="lf_ag" hidden onclick="event.stopPropagation()"></div></div>
@@ -411,6 +419,8 @@ body.role-sales .admin-only{display:none!important}
       <thead><tr>
         <th>ID</th>
         <th>Client</th>
+        <th>Lead Source</th>
+        <th class="th-sort" id="th_leaddate" onclick="setSort('leaddate')">Lead Date</th>
         <th class="th-sort" id="th_birthday" onclick="setSort('birthday')">Birthday</th>
         <th class="th-sort" id="th_status" onclick="setSort('status')">Status</th>
         <th>Location</th>
@@ -507,14 +517,23 @@ function setSrcFilter(val){
 }
 function isWsrLead(r){ return String(r.lead_source||'').trim().toLowerCase()==='wsr repeat'; }
 // Milestone (1st/5th/10th birthday) is worked out from the age, so it stays right each year.
+function srcLabel(r){ return String(r.lead_source||'').trim() || 'Not set'; }
+// Lead date: when the lead first came in (enquiry date for imported/Instagram leads, else when it was registered).
+function leadDateTs(r){ return r.lead_generated_at_ts || r.created_at_ts || null; }
+function leadDateStr(r){ const t=leadDateTs(r); if(!t) return '—'; const d=new Date(t); return d.getDate()+' '+MONTH_ABBR[d.getMonth()]+' '+d.getFullYear(); }
+function birthdayStr(r){
+  if(r.date_precision==='month' && r.event_date){ const p=r.event_date.split('-'); return (MONTH_ABBR[+p[1]-1]||'')+' '+p[0]+' <span style="color:var(--gy);font-size:11.5px">(month)</span>'; }
+  return fmtDateStr(r.event_date);
+}
 function wsrTags(r){
-  if(!isWsrLead(r)) return '';
+  if(!r.lead_highlights && !isWsrLead(r) && !r.date_precision) return '';
   const age = parseInt(r.child_age,10);
   const hl = String(r.lead_highlights||'').toUpperCase();
   let out = '';
   if((r.occasion||'Birthday')==='Birthday' && [1,5,10].includes(age)) out += '<span class="hl-tag hl-mile">MILESTONE '+age+(age===1?'st':'th')+'</span>';
   if(hl.includes('REGULAR')) out += '<span class="hl-tag hl-reg">REGULAR</span>';
   if(hl.includes('HIGH SPENDER')) out += '<span class="hl-tag hl-high">HIGH SPENDER</span>';
+  if(hl.includes('PAST CUSTOMER')) out += '<span class="hl-tag hl-past">BOOKED BEFORE</span>';
   return out;
 }
 function updateWsrBubble(){
@@ -705,6 +724,7 @@ const STAGE_LABEL = {sales_intake:'Sales — in progress', sent_to_ops:'Sent to 
 const STAGE_PILL   = {sales_intake:'pill-intake', sent_to_ops:'pill-ops', ops_ready:'pill-ready'};
 const SORT_ACCESSORS = {
   created:  r => r.created_at_ts || 0,
+  leaddate: r => leadDateTs(r) || 0,
   quote:    r => r.revenue_potential == null ? -1 : r.revenue_potential,
   birthday: r => r.event_date || '',
   modified: r => r.updated_at_ts || 0,
@@ -712,7 +732,7 @@ const SORT_ACCESSORS = {
   // No follow-up sorts last when ascending (soonest first).
   followup: r => r.next_followup || (SORT_DIR==='asc' ? '9999' : ''),
 };
-const SORT_LABELS = {birthday:'Birthday', quote:'Sales Quote', followup:'Follow-up', status:'Status', modified:'Last Modified'};
+const SORT_LABELS = {leaddate:'Lead Date', birthday:'Birthday', quote:'Sales Quote', followup:'Follow-up', status:'Status', modified:'Last Modified'};
 
 function setSort(key){
   if(SORT_KEY===key){ SORT_DIR = SORT_DIR==='desc'?'asc':'desc'; }
@@ -801,7 +821,7 @@ async function doSearch(){
 }
 const _MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function _todayStr(){ const t=new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
-const LF_IDS = ['lf_month','lf_quote','lf_lead','lf_status','lf_ag'];
+const LF_IDS = ['lf_month','lf_quote','lf_lead','lf_status','lf_src','lf_ag'];
 const LF_QUOTE_OPTS = [['0-20000','Below ₹20k'],['20000-30000','₹20k – 30k'],['30000-50000','₹30k – 50k'],['30000-','Above ₹30k'],['50000-','Above ₹50k'],['100000-','Above ₹1 lakh'],['none','Not quoted']];
 const LF_AG_OPTS = [['B','Boys'],['G','Girls'],['0-4','Age up to 4'],['5-7','Age 5 – 7'],['8-10','Age 8 – 10'],['11-99','Age 11+']];
 // Multi-select checkbox popover (same look as Status). Keeps ticks across refills.
@@ -829,6 +849,10 @@ function fillListFilters(){
   msBuild('lf_lead', leads.map(x=>[x,x]));
   const sts = Array.from(new Set(LIST_ROWS.map(r=>(r.is_booking?'Booking · ':'')+(r.status||'')).filter(Boolean))).sort();
   msBuild('lf_status', sts.map(x=>[x,x]));
+  // 2026-10-15 — Lead source filter (Instagram, Wonderfest Feb 2026, Powai
+  // Rotary Christmas Stall 2025, Google, WSR Repeat, Sales Team ...).
+  const srcs = Array.from(new Set(LIST_ROWS.map(srcLabel))).sort();
+  msBuild('lf_src', srcs.map(x=>[x,x]));
   msBuild('lf_ag', LF_AG_OPTS);
 }
 function clearListFilters(){
@@ -853,6 +877,7 @@ function rowPassesFilters(r){
   }
   const sl = msSel('lf_lead'); if(sl.length && !sl.includes((r.sales_lead||'').trim())) return false;
   const sts = msSel('lf_status'); if(sts.length && !sts.includes((r.is_booking?'Booking · ':'')+(r.status||''))) return false;
+  const ls = msSel('lf_src'); if(ls.length && !ls.includes(srcLabel(r))) return false;
   const ag = msSel('lf_ag');
   const gs = ag.filter(x=>x==='B'||x==='G'), ages = ag.filter(x=>x!=='B'&&x!=='G');
   if(gs.length && !gs.includes(((r.child_gender||'').trim()[0]||'').toUpperCase())) return false;
@@ -886,7 +911,7 @@ function renderListRows(){
   }
   if(!rows.length){
     const fu = (document.getElementById('lf_fu')||{}).checked;
-    body.innerHTML = '<tr><td colspan="12" style="padding:16px;color:#6B7280">'+(fu ? 'No follow-ups due today.' : 'No leads match these filters.')+'</td></tr>';
+    body.innerHTML = '<tr><td colspan="14" style="padding:16px;color:#6B7280">'+(fu ? 'No follow-ups due today.' : 'No leads match these filters.')+'</td></tr>';
     updateSortHeaders(); return;
   }
   body.innerHTML = rows.map(r=>{
@@ -895,9 +920,12 @@ function renderListRows(){
       +'<td style="color:var(--gy);font-size:12.5px">#'+r.lead_id+'</td>'
       +'<td><strong>'+esc(r.client_name||'(no name yet)')+'</strong>'+suggPill+'<br><span style="color:var(--gy);font-size:12px">'+esc(r.mobile||'')+'</span>'
         +(isInstaLead(r) ? '<br><span class="src-tag" title="'+esc('Instagram ad lead via '+(r.lead_source_platform||'AISensy')+(r.lead_generated_at?' · '+r.lead_generated_at:'')+(r.ad_shown?' · Ad: '+r.ad_shown:''))+'">📸 Insta'+(r.ad_shown?' · '+esc(r.ad_shown):'')+'</span>' : '')
-        +(isWsrLead(r) ? '<br><span class="wsr-tag">WSR Repeat · '+esc(r.occasion||'Birthday')+(r.child_name&&r.child_name!=='—'?' · '+esc(r.child_name):'')+'</span>'+wsrTags(r) : '')
+        +(isWsrLead(r) ? '<br><span class="wsr-tag">WSR Repeat · '+esc(r.occasion||'Birthday')+(r.child_name&&r.child_name!=='—'?' · '+esc(r.child_name):'')+'</span>'+wsrTags(r)
+          : (r.occasion && r.occasion!=='Birthday' ? '<br><span class="wsr-tag">'+esc(r.occasion)+'</span>' : '')+(r.lead_highlights||r.date_precision ? '<br>'+wsrTags(r) : ''))
       +'</td>'
-      +'<td>'+fmtDateStr(r.event_date)+'</td>'
+      +'<td style="font-size:12.5px">'+esc(r.lead_source||'—')+'</td>'
+      +'<td style="font-size:12.5px;white-space:nowrap">'+leadDateStr(r)+'</td>'
+      +'<td>'+birthdayStr(r)+'</td>'
       +'<td>'+statusCellHtml(r)+'</td>'
       +'<td title="'+esc(r.venue||'')+'">'+esc(localityOf(r.venue)||'—')+'</td>'
       +'<td>'+(money(r.revenue_potential)||'—')+'</td>'
@@ -1806,8 +1834,21 @@ function sectionClientDetails(){
       + (d.past_customer_note ? '<div class="wsr-note">'+esc(d.past_customer_note)+'</div>' : '')
       + '</div>'
     : '';
+  // 2026-10-15 — Earlier Conversations: everything discussed with this lead
+  // before it came into the Sales module (old sheet / other sources).
+  const convBox = (d.earlier_conversations || (d.lead_source && !isInstaLead(d) && !isWsrLead(d)))
+    ? '<div class="conv-box">'
+      + '<div class="conv-meta">'
+      +   '<div><span class="k">Lead source</span>'+esc(d.lead_source||'—')+'</div>'
+      +   (d.lead_generated_at ? '<div><span class="k">Lead date</span>'+esc(String(d.lead_generated_at).split(',')[0])+'</div>' : '')
+      +   (d.date_precision==='month' ? '<div><span class="k">Birthday</span>Month only &ndash; confirm the date</div>' : '')
+      +   (wsrTags(d) ? '<div>'+wsrTags(d)+'</div>' : '')
+      + '</div>'
+      + (d.earlier_conversations ? '<span class="k">Earlier conversations</span><div class="conv-text">'+esc(d.earlier_conversations)+'</div>' : '')
+      + '</div>'
+    : '';
   return '<div class="card"><h3>1 · Client &amp; Event Details</h3>'
-    + srcBox + wsrBox
+    + srcBox + wsrBox + convBox
     + '<div class="grid2">' + f('client_name','Client Name','text') + f('mobile','Mobile No.','tel') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('email','Email','email','placeholder="name@example.com"') + salesLeadField() + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('child_name',"Child's Name",'text') + f('child_age','Celebrating Age','text') + '</div>'
