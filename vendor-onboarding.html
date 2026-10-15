@@ -134,6 +134,9 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
 /* Carnival Stalls & Mascots (2026-10-12) */
 .req-car{display:none}
 body.is-carnival .req-vol,body.is-carnival .req-car{display:inline}
+/* Decorator (2026-10-15): alternate number mandatory */
+body.is-decorator .req-dec{display:inline}
+body.is-decorator .opt-dec{display:none}
 body.is-carnival .opt-vol{display:none}
 .cv-add-btn{flex:0 0 auto;padding:0 18px;border:0;border-radius:10px;background:var(--pk);color:#fff;font:inherit;font-weight:700;cursor:pointer}
 .cv-svc{border:1px solid var(--li2);border-radius:12px;padding:12px;margin-top:10px}
@@ -217,7 +220,7 @@ body.is-host .req-host{display:inline}
       </div>
       <div class="row2">
         <div class="fld">
-          <label>Alternate Mobile Number <span class="opt opt-vol">(optional)</span><span class="req-vol">*</span></label>
+          <label>Alternate Mobile Number <span class="opt opt-vol opt-dec">(optional)</span><span class="req-vol req-dec">*</span></label>
           <input type="tel" id="f_alt_mobile" inputmode="numeric">
           <div class="f-err" id="f_alt_mobile_err"></div>
         </div>
@@ -448,6 +451,7 @@ dealsSelect.addEventListener('change', () => {
   { const o=document.getElementById('f_email_opt'); if(o) o.hidden = emailRequired(); }
   if(window.WSVolunteer) WSVolunteer.toggle(vol);
   document.body.classList.toggle('is-carnival', isCarnival());
+  document.body.classList.toggle('is-decorator', isDecoratorSel());
   if(window.WSCarnival) WSCarnival.toggle(isCarnival());
   document.body.classList.toggle('is-host', isHost());
   if(window.WSHost) WSHost.toggle(isHost());
@@ -460,6 +464,8 @@ function isVolunteer(){ return dealsSelect.value === 'Event Volunteer'; }
 // and pincode are mandatory too.
 function isCarnival(){ return dealsSelect.value === 'Carnival Stalls & Mascots'; }
 function extrasRequired(){ return isVolunteer() || isCarnival(); }
+// Decorator (2026-10-15, per Shruti): alternate number is mandatory.
+function isDecoratorSel(){ return dealsSelect.value === 'Decorator'; }
 // Host (2026-10-14, per Shruti): address and pincode are mandatory.
 function isHost(){ return dealsSelect.value === 'Host'; }
 // WhatsApp starts as the mobile number; once edited by hand it stays as typed.
@@ -487,7 +493,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
 const FIELD_RULES = {
   f_mobile:     {required:true, kind:'mobile', label:'mobile number'},
   f_whatsapp:   {kind:'mobile', label:'WhatsApp number'},
-  f_alt_mobile: {kind:'mobile', label:'alternate mobile number', volRequired:true},
+  f_alt_mobile: {kind:'mobile', label:'alternate mobile number', volRequired:true, decRequired:true},
   f_address:    {kind:'address', label:'address', volRequired:true, hostRequired:true},
   f_email:      {kind:'email', label:'email address', emailRequired:true},
   f_city:       {kind:'city'},
@@ -497,9 +503,9 @@ const FIELD_RULES = {
 function fieldError(id){
   const rule = FIELD_RULES[id];
   const raw = document.getElementById(id).value.trim();
-  if(!raw) return (rule.required || (rule.volRequired && extrasRequired()) || (rule.carRequired && isCarnival()) || (rule.hostRequired && isHost()) || (rule.emailRequired && emailRequired())) ? 'Please enter your ' + rule.label + '.' : '';
+  if(!raw) return (rule.required || (rule.volRequired && extrasRequired()) || (rule.carRequired && isCarnival()) || (rule.hostRequired && isHost()) || (rule.decRequired && isDecoratorSel()) || (rule.emailRequired && emailRequired())) ? 'Please enter your ' + rule.label + '.' : '';
   if(rule.kind === 'address' && (extrasRequired() || isHost()) && raw.length < 10) return 'Please enter your full address.';
-  if(id === 'f_alt_mobile' && extrasRequired() && normMobile(raw) === normMobile(document.getElementById('f_mobile').value))
+  if(id === 'f_alt_mobile' && (extrasRequired() || isDecoratorSel()) && normMobile(raw) === normMobile(document.getElementById('f_mobile').value))
     return 'Please give a different number from your mobile number.';
   if(rule.kind === 'mobile'){
     const d = normMobile(raw);

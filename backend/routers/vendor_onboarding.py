@@ -842,6 +842,8 @@ def partner_missing(row) -> List[str]:
         out.append("What you deal in")
     if deals in (VOLUNTEER, "wondershop team member") and not (row.get("email") or "").strip():
         out.append("Email")
+    if deals == "decorator" and not (row.get("alternate_mobile") or "").strip():
+        out.append("Alternate mobile number")
     is_carn = deals == CARNIVAL or bool(row.get("carnival_profile"))
     if is_carn:
         if len((row.get("address") or "").strip()) < 10:
@@ -1176,6 +1178,12 @@ async def submit_vendor_onboarding(
     # bad card or photo is reported to the vendor instead of half-saving.
     rate_card = _parse_rate_card(decor_rate_card) if (_clean(deals_in) or "").lower() == "decorator" else None
     work = await _read_work_photos(work_photos) if rate_card is not None else []
+    # 2026-10-15, per Shruti: alternate number is mandatory for decorators.
+    if (_clean(deals_in) or "").lower() == "decorator":
+        if not alternate_mobile:
+            raise HTTPException(status_code=400, detail="Please enter an alternate mobile number.")
+        if alternate_mobile == mobile:
+            raise HTTPException(status_code=400, detail="Your alternate number must be different from your mobile number.")
 
     # Event Volunteer (2026-10-10): address + alternate number mandatory, the
     # volunteer questions complete, and the volunteer T&C accepted.
