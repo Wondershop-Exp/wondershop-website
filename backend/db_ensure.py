@@ -41,6 +41,8 @@ SAFE_MIGRATIONS = [
     "061_old_leads_import.sql",
     "062_call_disposition_rename.sql",
     "063_normalize_sales_lead.sql",
+    "064_status_reengage_later.sql",
+    "065_next_year_from_booking.sql",
 ]
 
 

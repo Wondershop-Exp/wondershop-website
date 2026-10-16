@@ -842,6 +842,8 @@ async def _full_detail(lead_row) -> dict:
         # 2026-10-15 — old leads import: earlier conversations + month-only dates.
         "earlier_conversations": lead.get("earlier_conversations"),
         "date_precision": lead.get("date_precision"),
+        "show_from": str(lead["show_from"]) if lead.get("show_from") else None,
+        "hidden_from_team": bool(lead.get("hidden_from_team")),
         "mobile": lead.get("phone"),
         "child_name": lead.get("child_names"),
         "child_age": lead.get("child_ages"),
@@ -924,32 +926,159 @@ MILESTONE_AGES = (1, 5, 10)
 VISIBLE_TO_TEAM_SQL = "({t}show_from IS NULL OR {t}show_from <= CURRENT_DATE) AND NOT COALESCE({t}hidden_from_team, FALSE)"
 
 
+ROLL_SKIP_STATUSES = ("DND", "Did not Enquire", "Cancelled")
+
+
 async def _roll_wsr_repeat_leads():
-    """Every scheduled lead (WSR Repeat, old Instagram/Wonderfest/Powai/Google
-    leads — anything with a show_from) whose birthday/party passed without a
-    booking comes back next year: date +1 year, child's age +1, status back to
-    New, visible again 90 days before (3 months before for a month-only date).
-    An exact date rolls a week after it passes; a month-only one a week after
-    that month ends. DND / Cancelled leads are left alone.
-    (2026-10-15, per Shruti: one rule for all, and "even for leads shown as
-    uninterested, let's connect with them next year".)"""
+    """Next-year re-engagement, run whenever the sales list loads.
+
+    1. Every Sales-module LEAD (uploaded or registered by the team, Instagram
+       ad leads too) whose event date passed a week ago without a booking
+       comes back next year: date +1 year, child's age +1, status
+       "Re-engage later", shown under "Upcoming birthday" 90 days ahead (3
+       months for a month-only date). DND / Did not Enquire / Cancelled leads
+       are left alone. (2026-10-16, per Shruti — Not Interested rolls over too.)
+    2. Every BOOKING (completed or cancelled) a week after its party gets a
+       new lead for the child's next birthday — see _next_year_from_bookings()."""
     try:
-        await database.execute(
-            """UPDATE leads SET
-                 event_date = (event_date + INTERVAL '1 year')::date,
-                 child_ages = CASE WHEN child_ages ~ '^[0-9]+$' THEN (child_ages::int + 1)::text ELSE child_ages END,
-                 show_from = CASE WHEN date_precision = 'month'
-                                  THEN ((event_date + INTERVAL '1 year') - INTERVAL '3 months')::date
-                                  ELSE (event_date + INTERVAL '1 year')::date - 90 END,
-                 status = 'New'
-               WHERE show_from IS NOT NULL AND lead_origin = 'sales_module' AND is_booking = FALSE
-                 AND event_date IS NOT NULL
-                 AND (CASE WHEN date_precision = 'month' THEN (event_date + INTERVAL '1 month')::date ELSE event_date END)
-                     < CURRENT_DATE - 7
-                 AND status NOT IN ('DND', 'Cancelled')"""
-        )
+        for _ in range(4):   # a lead several years old moves one year per pass
+            n = await database.execute(
+                """UPDATE leads SET
+                     event_date = (event_date + INTERVAL '1 year')::date,
+                     child_ages = CASE WHEN child_ages ~ '^[0-9]+$' THEN (child_ages::int + 1)::text ELSE child_ages END,
+                     show_from = CASE WHEN date_precision = 'month'
+                                      THEN ((event_date + INTERVAL '1 year') - INTERVAL '3 months')::date
+                                      ELSE (event_date + INTERVAL '1 year')::date - 90 END,
+                     status = 'Re-engage later'
+                   WHERE lead_origin = 'sales_module' AND is_booking = FALSE
+                     AND event_date IS NOT NULL
+                     AND (CASE WHEN date_precision = 'month' THEN (event_date + INTERVAL '1 month')::date ELSE event_date END)
+                         < CURRENT_DATE - 7
+                     AND status NOT IN ('DND', 'Did not Enquire', 'Cancelled')
+                   RETURNING lead_id"""
+            )
+            if not n:
+                break
     except Exception:
         logger.exception("Scheduled leads: couldn't roll past leads over to next year")
+    try:
+        await _next_year_from_bookings()
+    except Exception:
+        logger.exception("Next-year leads from bookings failed")
+
+
+def _next_birthday(d: date) -> date:
+    today = date.today()
+    y = today.year if (d.month, d.day) >= (today.month, today.day) else today.year + 1
+    try:
+        return d.replace(year=y)
+    except ValueError:      # 29 Feb
+        return date(y, 2, 28)
+
+
+async def _next_year_from_bookings():
+    """A week after a booking's party (completed OR cancelled), create one lead
+    for the child's next birthday: same parent / phone / child (age +1),
+    status "Re-engage later", BOOKED BEFORE (+ HIGH SPENDER at Rs 40,000+), and
+    a summary of the booking in Earlier conversations. Plus a Christmas pitch
+    lead for high spenders. Created once per booking (source_booking_id).
+    Skipped as a duplicate when: a cancelled booking has another booking for
+    the same phone within 45 days, or the phone already has an open lead
+    around that next birthday."""
+    rows = await database.fetch_all(
+        """SELECT b.* FROM leads b
+           WHERE b.is_booking = TRUE AND b.event_date IS NOT NULL AND b.event_date < CURRENT_DATE - 7
+             AND COALESCE(b.phone, '') <> ''
+             AND NOT COALESCE(b.next_year_done, FALSE)
+           ORDER BY b.event_date"""
+    )
+    for b in rows:
+        b = dict(b)
+        ph = re.sub(r"[^0-9]", "", b["phone"] or "")[-10:]
+        cancelled = (b.get("status") or "") == "Cancelled"
+        if cancelled:
+            dup = await database.fetch_val(
+                """SELECT 1 FROM leads o WHERE o.is_booking = TRUE AND o.lead_id <> :id AND COALESCE(o.status,'') <> 'Cancelled'
+                     AND RIGHT(regexp_replace(o.phone, '[^0-9]', '', 'g'), 10) = :ph
+                     AND o.event_date BETWEEN CAST(:d AS DATE) - 45 AND CAST(:d AS DATE) + 45 LIMIT 1""",
+                values={"id": b["lead_id"], "ph": ph, "d": b["event_date"]})
+            if dup:
+                await _mark_booking_done(b, "duplicate cancelled booking")
+                continue
+        nxt = _next_birthday(b["event_date"])
+        open_lead = await database.fetch_val(
+            """SELECT lead_id FROM leads o WHERE o.is_booking = FALSE AND o.lead_origin = 'sales_module'
+                 AND RIGHT(regexp_replace(o.phone, '[^0-9]', '', 'g'), 10) = :ph
+                 AND COALESCE(o.occasion, 'Birthday') = 'Birthday'
+                 AND o.event_date BETWEEN CAST(:d AS DATE) - 60 AND CAST(:d AS DATE) + 60 LIMIT 1""",
+            values={"ph": ph, "d": nxt})
+        total = b.get("client_budget") if b.get("client_budget") is not None else b.get("order_grand_total")
+        total = float(total or 0)
+        hl = "PAST CUSTOMER" + (", HIGH SPENDER" if total >= 40000 else "")
+        age = b.get("child_ages")
+        if age and re.fullmatch(r"\s*\d{1,2}\s*", str(age)):
+            age = str(int(age) + (nxt.year - b["event_date"].year))
+        bits = [f"Booking #{b['lead_id']} on {b['event_date'].strftime('%d %b %Y')}" + (" - CANCELLED" if cancelled else "")]
+        for k, lab in (("theme", "Theme"), ("kids_count", "Kids"), ("venue", "Venue"), ("child_names", "Child"),
+                       ("event_sales_lead", "Sales lead")):
+            if b.get(k) not in (None, ""):
+                bits.append(f"{lab}: {b[k]}")
+        if total:
+            bits.append(f"Total: Rs {total:,.0f}")
+        summary = ("SUMMARY (booked with us): " if not cancelled else "SUMMARY (booking was cancelled): ") + " · ".join(bits)
+        if open_lead:
+            await database.execute(
+                """UPDATE leads SET earlier_conversations = CONCAT_WS(E'\n\n', :s, earlier_conversations),
+                     lead_highlights = COALESCE(NULLIF(lead_highlights, ''), :hl), source_booking_id = COALESCE(source_booking_id, :bid)
+                   WHERE lead_id = :id""",
+                values={"s": summary, "hl": hl, "bid": b["lead_id"], "id": open_lead})
+            await _mark_booking_done(b)
+            continue
+        await _create_reengage_lead(b, ph, nxt, age, "Birthday", hl, summary)
+        if total >= 40000 and not cancelled:
+            xmas = date(date.today().year, 12, 20)
+            if xmas < date.today():
+                xmas = date(xmas.year + 1, 12, 20)
+            has_xmas = await database.fetch_val(
+                """SELECT 1 FROM leads o WHERE RIGHT(regexp_replace(o.phone, '[^0-9]', '', 'g'), 10) = :ph
+                     AND o.occasion = 'Christmas party' AND o.event_date >= CURRENT_DATE LIMIT 1""", values={"ph": ph})
+            if not has_xmas:
+                await _create_reengage_lead(b, ph, xmas, None, "Christmas party", hl,
+                                            f"Pitch a Christmas party - high-spending customer (booked about Rs {total:,.0f}).\n\n" + summary,
+                                            link=False)
+        await _mark_booking_done(b)
+
+
+async def _mark_booking_done(b, why=None):
+    await database.execute("UPDATE leads SET next_year_done = TRUE WHERE lead_id = :id", values={"id": b["lead_id"]})
+
+
+async def _create_reengage_lead(b, ph, when, age, occasion, hl, summary, link=True):
+    lead_id = await database.execute(
+        """INSERT INTO leads
+             (parent_name, phone, email, child_names, child_ages, child_genders, event_date, theme, venue,
+              lead_origin, lead_source, status, is_booking, show_from, occasion, lead_highlights,
+              earlier_conversations, date_precision, event_sales_lead, source_booking_id)
+           VALUES
+             (:parent_name, :phone, :email, :child_names, :child_ages, :child_genders, :event_date, :theme, :venue,
+              'sales_module', :src, 'Re-engage later', FALSE, :show_from, :occasion, :hl,
+              :conv, 'exact', :sl, :bid)
+           RETURNING lead_id""",
+        values={
+            "parent_name": b.get("parent_name") or "(confirm)", "phone": ph, "email": b.get("email"),
+            "child_names": b.get("child_names") if occasion == "Birthday" else None,
+            "child_ages": age if occasion == "Birthday" else None,
+            "child_genders": b.get("child_genders") if occasion == "Birthday" else None,
+            "event_date": when, "theme": None if occasion == "Birthday" else occasion,
+            "venue": None, "src": b.get("lead_source") or ("Sales Team" if b.get("lead_origin") == "sales_module" else "Website"),
+            "show_from": when - timedelta(days=90), "occasion": occasion, "hl": hl, "conv": summary,
+            "sl": b.get("event_sales_lead"), "bid": b["lead_id"] if link else None,
+        },
+    )
+    pid = await database.execute(
+        "INSERT INTO lead_sales_playbook (lead_id, requirements, created_by) VALUES (:id, '{}', 'System') RETURNING id",
+        values={"id": lead_id})
+    await _log(pid, "System", "created", f"Next-year lead from booking #{b['lead_id']}")
 
 
 class WsrRepeatLead(BaseModel):
@@ -1073,7 +1202,11 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
     await _roll_wsr_repeat_leads()
     # 2026-10-12 — WSR Repeat leads: only once their show_from date arrives,
     # and never the ones the owner has hidden.
-    where = "l.lead_origin = 'sales_module' AND " + VISIBLE_TO_TEAM_SQL.replace("{t}", "l.")
+    # 2026-10-16, per Shruti — "don't hide anything from the sales portal":
+    # every lead is listed (show_from / hidden_from_team are no longer a
+    # filter; show_from now only drives the "Due now" view in the page and
+    # hidden_from_team shows as a "Do not call" tag).
+    where = "l.lead_origin = 'sales_module'"
     values: Dict[str, Any] = {}
     if search:
         where += " AND (l.parent_name ILIKE :q OR l.phone ILIKE :q OR l.child_names ILIKE :q OR l.lead_source ILIKE :q)"
@@ -1084,7 +1217,7 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
                    p.id AS playbook_id, p.playbook_stage, p.created_by, p.created_at,
                    p.updated_by, p.updated_at, p.new_activity_suggestions, p.call_log,
                    l.lead_source, l.lead_source_platform, l.ad_shown, l.lead_generated_at,
-                   l.occasion, l.lead_highlights, l.past_customer_note, l.child_names, l.date_precision
+                   l.occasion, l.lead_highlights, l.past_customer_note, l.child_names, l.date_precision, l.show_from, l.hidden_from_team
             FROM leads l
             JOIN lead_sales_playbook p ON p.lead_id = l.lead_id
             WHERE {where}
@@ -1148,6 +1281,8 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
             "past_customer_note": d.get("past_customer_note"),
             "child_name": d.get("child_names"),
             "date_precision": d.get("date_precision"),
+            "show_from": str(d["show_from"]) if d.get("show_from") else None,
+            "hidden_from_team": bool(d.get("hidden_from_team")),
         })
     return {"sheets": out}
 

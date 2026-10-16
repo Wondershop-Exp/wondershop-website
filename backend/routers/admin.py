@@ -451,7 +451,8 @@ DISCOUNT_TYPE_OPTIONS = [_opt("%", "% (Percentage)"), _opt("value", "₹ (Flat A
 #   that function) — Upcoming/Complete are derived from event_date on every
 #   read, so they can never go stale.
 # "Did not Enquire" added 2026-10-07, per Shruti (migration 042).
-LEAD_STATUSES = ["New", "Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing", "Not Interested", "DND", "Did not Enquire"]
+# "Re-engage later" added 2026-10-16, per Shruti (migration 064).
+LEAD_STATUSES = ["New", "Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing", "Not Interested", "DND", "Did not Enquire", "Re-engage later"]
 # "Converted" (2026-08-19, per Shruti follow-up: "add converted to the status
 # dropdown for leads") is a DROPDOWN-ONLY value — it is never written to the
 # `status` column (the leads_status_check constraint from migration 018
@@ -460,7 +461,7 @@ LEAD_STATUSES = ["New", "Initial Discussions Done", "Proposal Sent", "Negotiatio
 # same conversion as the old dedicated Convert button (see _do_convert_lead())
 # — hence LEAD_STATUSES (the real, storable set) stays separate from the
 # dropdown's full option list.
-LEAD_STATUS_DROPDOWN_VALUES = ["New", "Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing", "Converted", "Not Interested", "DND", "Did not Enquire"]
+LEAD_STATUS_DROPDOWN_VALUES = ["New", "Re-engage later", "Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing", "Converted", "Not Interested", "DND", "Did not Enquire"]
 LEAD_STATUS_OPTIONS = [_opt(x) for x in LEAD_STATUS_DROPDOWN_VALUES]
 BOOKING_DISPLAY_STATUSES = ["New", "Upcoming", "Complete", "Cancelled"]
 
@@ -924,7 +925,7 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
     # 2026-10-12 — WSR Repeat (past store customer) leads appear only from
     # their show_from date, and never the ones hidden from the team — same
     # rule as the Sales Leads list (routers/sales_leads.py).
-    where.append("(show_from IS NULL OR show_from <= CURRENT_DATE) AND NOT COALESCE(hidden_from_team, FALSE)")
+    # 2026-10-16, per Shruti — show everything; no scheduled hiding any more.
     if q:
         where.append("(parent_name ILIKE :like OR phone ILIKE :like OR email ILIKE :like OR CAST(lead_id AS TEXT) = :q)")
         values["like"] = f"%{q}%"

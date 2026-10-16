@@ -343,6 +343,7 @@ body.role-sales .admin-only{display:none!important}
 .hl-mile{background:#FFE58A;color:#6B4E00}
 .hl-reg{background:#D9F2DC;color:#1E6B2A}
 .hl-high{background:#E3ECFB;color:#1F4E9B}
+.hl-dnc{background:#F4CCCC;color:#8A1C1C}
 .hl-past{background:#FCE4EC;color:#9C2252}
 .conv-box{background:#FAFAF7;border:1px solid #E5E1F5;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.5}
 .conv-box .k{display:block;font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
@@ -397,6 +398,7 @@ body.role-sales .admin-only{display:none!important}
       <button type="button" class="sel" data-val="all" onclick="setSrcFilter('all')">All leads</button>
       <button type="button" data-val="insta" onclick="setSrcFilter('insta')" title="Leads from Instagram ads, sent in by AiSensy">Instagram leads<span class="pill-bubble" id="instaBubble"></span></button>
       <button type="button" data-val="wsr" onclick="setSrcFilter('wsr')" title="Past customers of the Wondershop retail store whose birthday or party is coming up">WSR Repeat<span class="pill-bubble" id="wsrBubble"></span></button>
+      <button type="button" data-val="upcoming" onclick="setSrcFilter('upcoming')" title="Old / repeat leads whose birthday (or Christmas party) is coming up: within 90 days, or 3 months for a month-only birthday">Upcoming birthday<span class="pill-bubble" id="upcomingBubble"></span></button>
     </div>
     <!-- 2026-10-12, per Shruti: list filters (all applied in the browser). -->
     <div class="lf-bar" id="lfBar">
@@ -520,7 +522,7 @@ function hasPendingChanges(){
     || PENDING_PATCH.event_schedule !== undefined || PENDING_PATCH.activities !== undefined);
 }
 let LIST_ROWS = [];
-let SRC_FILTER = 'all';   // 'all' | 'insta' | 'wsr' — 2026-10-12, Instagram ad leads (AiSensy)
+let SRC_FILTER = 'all';   // 'all' | 'insta' | 'wsr' | 'upcoming' — 2026-10-12, Instagram ad leads (AiSensy)
 function isInstaLead(r){ return ['insta','instagram'].includes(String(r.lead_source||'').trim().toLowerCase()); }
 function setSrcFilter(val){
   SRC_FILTER = val;
@@ -538,15 +540,28 @@ function birthdayStr(r){
   return fmtDateStr(r.event_date);
 }
 function wsrTags(r){
+  if(r.hidden_from_team && !r.lead_highlights && !r.date_precision && !isWsrLead(r)) return '<span class="hl-tag hl-dnc">DO NOT CALL – OWNER REVIEW</span>';
   if(!r.lead_highlights && !isWsrLead(r) && !r.date_precision) return '';
   const age = parseInt(r.child_age,10);
   const hl = String(r.lead_highlights||'').toUpperCase();
-  let out = '';
+  let out = r.hidden_from_team ? '<span class="hl-tag hl-dnc">DO NOT CALL – OWNER REVIEW</span>' : '';
   if((r.occasion||'Birthday')==='Birthday' && [1,5,10].includes(age)) out += '<span class="hl-tag hl-mile">MILESTONE '+age+(age===1?'st':'th')+'</span>';
   if(hl.includes('REGULAR')) out += '<span class="hl-tag hl-reg">REGULAR</span>';
   if(hl.includes('HIGH SPENDER')) out += '<span class="hl-tag hl-high">HIGH SPENDER</span>';
   if(hl.includes('PAST CUSTOMER')) out += '<span class="hl-tag hl-past">BOOKED BEFORE</span>';
   return out;
+}
+// 2026-10-16, per Shruti — "Upcoming birthday": scheduled leads (old sheet /
+// WSR Repeat) now inside their window, not yet booked or closed.
+function isUpcoming(r){
+  if(!r.show_from || r.is_booking) return false;
+  const today = new Date().toISOString().slice(0,10);
+  return r.show_from <= today && ['New','Re-engage later'].includes(r.status||'');
+}
+function updateUpcomingBubble(){
+  const el = document.getElementById('upcomingBubble'); if(!el) return;
+  const n = LIST_ROWS.filter(isUpcoming).length;
+  el.textContent = n; el.classList.toggle('show', n>0);
 }
 function updateWsrBubble(){
   const el = document.getElementById('wsrBubble'); if(!el) return;
@@ -826,6 +841,7 @@ async function doSearch(){
     fillListFilters();
     updateInstaBubble();
     updateWsrBubble();
+    updateUpcomingBubble();
     renderListRows();
   }catch(e){
     body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:var(--pk)">'+esc(e.message)+'</td></tr>';
@@ -903,6 +919,7 @@ function rowPassesFilters(r){
   const sl = msSel('lf_lead'); if(sl.length && !sl.includes(_leadName(r.sales_lead))) return false;
   const sts = msSel('lf_status'); if(sts.length && !sts.includes((r.is_booking?'Booking · ':'')+(r.status||''))) return false;
   const ls = msSel('lf_src'); if(ls.length && !ls.includes(srcLabel(r))) return false;
+  if(SRC_FILTER==='upcoming' && !isUpcoming(r)) return false;
   const cs = msSel('lf_call');
   if(cs.length){
     const d = (r.last_disposition||'').trim(), n = Number(r.calls||0);

@@ -62,7 +62,7 @@ logger = logging.getLogger(__name__)
 
 IST_OFFSET = timedelta(hours=5, minutes=30)
 CREATED_BY = "AISensy (Instagram ad)"
-CLOSED_STATUSES = ("Not Interested", "DND", "Did not Enquire", "Completed", "Cancelled")
+CLOSED_STATUSES = ("Not Interested", "DND", "Did not Enquire", "Completed", "Cancelled", "Re-engage later")
 RECENT_DAYS = 30            # any lead this recent with the same number = same person
 LOG_KEEP_DAYS = 60
 
