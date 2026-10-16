@@ -40,6 +40,7 @@ SAFE_MIGRATIONS = [
     "060_finance.sql",
     "061_old_leads_import.sql",
     "062_call_disposition_rename.sql",
+    "063_normalize_sales_lead.sql",
 ]
 
 
