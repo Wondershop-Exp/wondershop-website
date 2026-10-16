@@ -418,6 +418,9 @@ body.role-sales .admin-only{display:none!important}
       <div class="lf-ms"><span class="lf-ms-l">Age/Gender</span>
         <button type="button" class="lf-ms-btn" id="lf_ag_btn" onclick="msToggle(event,'lf_ag')">All</button>
         <div class="lf-ms-panel" id="lf_ag" hidden onclick="event.stopPropagation()"></div></div>
+      <div class="lf-ms"><span class="lf-ms-l">Call status</span>
+        <button type="button" class="lf-ms-btn" id="lf_call_btn" onclick="msToggle(event,'lf_call')">All</button>
+        <div class="lf-ms-panel" id="lf_call" hidden onclick="event.stopPropagation()"></div></div>
 <label class="lf-chk"><input type="checkbox" id="lf_fu" onchange="renderListRows()"> Follow-ups due today</label>
       <button class="linkbtn" onclick="clearListFilters()">Clear filters</button>
       <span class="lf-count" id="lfCount"></span>
@@ -830,7 +833,7 @@ async function doSearch(){
 }
 const _MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function _todayStr(){ const t=new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
-const LF_IDS = ['lf_month','lf_quote','lf_lead','lf_status','lf_src','lf_ag'];
+const LF_IDS = ['lf_month','lf_quote','lf_lead','lf_status','lf_src','lf_ag','lf_call'];
 const LF_QUOTE_OPTS = [['0-20000','Below ₹20k'],['20000-30000','₹20k – 30k'],['30000-50000','₹30k – 50k'],['30000-','Above ₹30k'],['50000-','Above ₹50k'],['100000-','Above ₹1 lakh'],['none','Not quoted']];
 const LF_AG_OPTS = [['B','Boys'],['G','Girls'],['0-4','Age up to 4'],['5-7','Age 5 – 7'],['8-10','Age 8 – 10'],['11-99','Age 11+']];
 // Multi-select checkbox popover (same look as Status). Keeps ticks across refills.
@@ -863,6 +866,12 @@ function fillListFilters(){
   const srcs = Array.from(new Set(LIST_ROWS.map(srcLabel))).sort();
   msBuild('lf_src', srcs.map(x=>[x,x]));
   msBuild('lf_ag', LF_AG_OPTS);
+  // Call status = disposition of the LAST logged call (2026-10-16, per Shruti).
+  const disps = (DATA && DATA.call_dispositions) || ['Unanswered','Call back later','Wrong number'];
+  const seen = Array.from(new Set(LIST_ROWS.map(r=>(r.last_disposition||'').trim()).filter(Boolean)));
+  const callOpts = Array.from(new Set(disps.concat(seen))).map(x=>[x,x]);
+  callOpts.push(['__logged','Call logged, no disposition'], ['__none','No calls yet']);
+  msBuild('lf_call', callOpts);
 }
 function clearListFilters(){
   LF_IDS.forEach(id=>{ document.querySelectorAll('#'+id+' input').forEach(i=>i.checked=false); msBtn(id); });
@@ -887,6 +896,12 @@ function rowPassesFilters(r){
   const sl = msSel('lf_lead'); if(sl.length && !sl.includes((r.sales_lead||'').trim())) return false;
   const sts = msSel('lf_status'); if(sts.length && !sts.includes((r.is_booking?'Booking · ':'')+(r.status||''))) return false;
   const ls = msSel('lf_src'); if(ls.length && !ls.includes(srcLabel(r))) return false;
+  const cs = msSel('lf_call');
+  if(cs.length){
+    const d = (r.last_disposition||'').trim(), n = Number(r.calls||0);
+    const key = d || (n > 0 ? '__logged' : '__none');
+    if(!cs.includes(key)) return false;
+  }
   const ag = msSel('lf_ag');
   const gs = ag.filter(x=>x==='B'||x==='G'), ages = ag.filter(x=>x!=='B'&&x!=='G');
   if(gs.length && !gs.includes(((r.child_gender||'').trim()[0]||'').toUpperCase())) return false;
