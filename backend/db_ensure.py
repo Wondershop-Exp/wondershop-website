@@ -39,6 +39,7 @@ SAFE_MIGRATIONS = [
     "059_host_profile.sql",
     "060_finance.sql",
     "061_old_leads_import.sql",
+    "062_call_disposition_rename.sql",
 ]
 
 

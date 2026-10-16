@@ -707,7 +707,7 @@ def _is_blank_sheet(lead, pb) -> bool:
 # ─── Call log (2026-10-07, per Shruti) ──────────────────────────────────────
 # Replaces the sales team's Google Sheet columns: call date (+ first call),
 # disposition, follow-up date/time, remarks — one entry per call.
-CALL_DISPOSITIONS = ["Unanswered", "Call back later", "Wrong number"]
+CALL_DISPOSITIONS = ["Unanswered", "Follow-up required", "Wrong number"]   # "Call back later" renamed 2026-10-16 (migration 062)
 
 
 def _clean_call_log(entries: list, by: str) -> list:
@@ -719,6 +719,8 @@ def _clean_call_log(entries: list, by: str) -> list:
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_s):
             raise HTTPException(status_code=400, detail="Each call needs a call date.")
         disp = (e.get("disposition") or "").strip() or None
+        if disp == "Call back later":   # old label (an open page from before the rename)
+            disp = "Follow-up required"
         if disp and disp not in CALL_DISPOSITIONS:
             raise HTTPException(status_code=400, detail=f"Disposition must be one of {', '.join(CALL_DISPOSITIONS)}.")
         fu = str(e.get("followup_at") or "").strip()[:16] or None

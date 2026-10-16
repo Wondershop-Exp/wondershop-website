@@ -44,7 +44,7 @@ async def main(path, dry):
                     if any(e.get("id") == "sheet-fu" for e in log):
                         continue
                     log.append({"id": "sheet-fu", "date": d.get("last_call") or d["followup"], "first_call": False,
-                                "disposition": "Call back later", "followup_at": d["followup"] + "T11:00",
+                                "disposition": "Follow-up required", "followup_at": d["followup"] + "T11:00",
                                 "remarks": d.get("remarks"), "by": d.get("sales_lead"), "at": None})
                     fups.append((json.dumps(log), r["pid"], r["lead_id"]))
         print(f"Sales Lead to set: {len(owner)} leads - follow-ups to add: {len(fups)} leads")
