@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Wondershop — Sales Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* 2026-10-16, per Shruti — leads funnel, lead sources, daily work summary per
+   sales person, month summary and sales person x status. Admin and sales
+   logins; marketing spend / CPL / CAC / ROAS / ACOS are admin only. */
+:root{--li2:#EDE6FA;--li3:#F5F0FF;--pk:#E65A96;--plum:#2E2438;--bk:#191919;--gy:#6B7280;--wh:#FAFAFA;
+  --gr:#1E6B2A;--sgr:#D9F2DC;--rd:#8A1C1C;--srd:#F8DADA;--yl:#FFF4C2;--fd:'Lora',serif;--fb:'DM Sans',sans-serif}
+*{box-sizing:border-box}
+body{font-family:var(--fb);color:var(--bk);background:var(--wh);margin:0}
+h1,h2{font-family:var(--fd);margin:0}
+a{color:#3B6FC4}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
+.top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--li2);padding-bottom:12px;margin-bottom:16px}
+.top h1{font-size:24px}
+.top .links{display:flex;gap:14px;font-size:14px;align-items:center}
+.role{font-size:11px;font-weight:700;border-radius:20px;padding:3px 10px;background:var(--li3);color:var(--gy)}
+.filters{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;margin-bottom:18px}
+.filters label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px}
+.filters input,.filters select{font:inherit;font-size:14px;padding:8px 10px;border:1px solid #DDD6EE;border-radius:8px;background:#fff;min-width:160px;text-transform:none;letter-spacing:0;color:#111;font-weight:500}
+.card{background:#fff;border:1px solid var(--li2);border-radius:14px;padding:16px;margin-bottom:18px}
+.card h2{font-size:18px;margin-bottom:4px}
+.card .sub{color:var(--gy);font-size:12.5px;margin:0 0 12px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);padding:7px 8px;border-bottom:2px solid var(--li2);white-space:nowrap}
+td{text-align:right;padding:7px 8px;border-bottom:1px solid #F0ECF7;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+tr.sel td{background:var(--yl)}
+tr.tot td{font-weight:700;border-top:2px solid var(--li2)}
+.muted{color:var(--gy)}
+.pct{color:var(--gy);font-size:12px;margin-left:4px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--li3);border-radius:10px;padding:10px 12px}
+.kpi .k{font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px}
+.kpi .v{font-size:22px;font-weight:700;margin-top:2px}
+.kpi .s{font-size:12px;color:var(--gy)}
+.bad{color:var(--rd);font-weight:700}
+.good{color:var(--gr);font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+details{border-bottom:1px solid #F0ECF7;padding:6px 0}
+summary{cursor:pointer;font-weight:700;display:flex;justify-content:space-between;gap:10px}
+.names{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:2px 16px;margin:8px 0 4px;font-size:13px}
+.names a{text-decoration:none;color:var(--bk)}
+.names span.v{color:var(--gy);float:right}
+.err{color:var(--rd);margin:20px 0}
+.btn{font:inherit;font-weight:700;border:0;border-radius:8px;padding:8px 14px;background:var(--pk);color:#fff;cursor:pointer}
+.spend input{width:110px;text-align:right;padding:6px 8px;border:1px solid #DDD6EE;border-radius:6px;font:inherit}
+.note{font-size:12px;color:var(--gy);margin-top:8px}
+#gate{max-width:380px;margin:80px auto;text-align:center}
+</style>
+</head>
+<body>
+<div id="gate" hidden>
+  <h1 style="font-size:22px;margin-bottom:10px">Please log in</h1>
+  <p class="muted">Log in on the <a href="sales-leads.html">Sales Leads</a> page first, then come back here.</p>
+</div>
+<div class="wrap" id="app" hidden>
+  <div class="top">
+    <h1>Sales Dashboard</h1>
+    <div class="links"><span class="role" id="roleBadge"></span><a href="sales-leads.html">Sales leads</a><a href="admin.html" class="admin-only">Admin</a></div>
+  </div>
+  <div class="filters">
+    <label>Lead month<input type="month" id="fMonth" onchange="load()"></label>
+    <label>Lead source<select id="fSource" onchange="load()"><option value="">All sources</option></select></label>
+    <label>Daily summary for<input type="date" id="fDay" onchange="load()"></label>
+  </div>
+  <div id="err" class="err" hidden></div>
+  <div id="content"></div>
+</div>
+<script>
+const API = 'https://wondershop-website-production.up.railway.app';
+let ROLE = 'sales', DATA = null, SPEND = null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const num = v => v==null ? '—' : Number(v).toLocaleString('en-IN');
+const money = v => v==null ? '—' : '₹'+Math.round(Number(v)).toLocaleString('en-IN');
+const pct = v => v==null ? '—' : v+'%';
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const monthLabel = m => MON[+m.slice(5,7)-1]+' '+m.slice(0,4);
+function pw(){ try{ return localStorage.getItem('ws_admin_pw')||''; }catch(e){ return ''; } }
+function who(){ try{ return localStorage.getItem('ws_admin_name')||''; }catch(e){ return ''; } }
+async function api(path, opts){
+  opts = opts||{};
+  opts.headers = Object.assign({'Content-Type':'application/json','X-Admin-Password':pw()}, opts.headers||{});
+  const r = await fetch(API+path, opts);
+  if(r.status===401){ $('app').hidden=true; $('gate').hidden=false; throw new Error('unauthorized'); }
+  if(!r.ok){ const b = await r.json().catch(()=>({})); throw new Error(b.detail||('Request failed ('+r.status+')')); }
+  return r.json();
+}
+function todayIST(){ return new Date(Date.now()+5.5*3600e3).toISOString().slice(0,10); }
+
+async function load(){
+  const m = $('fMonth').value, s = $('fSource').value, d = $('fDay').value;
+  const q = new URLSearchParams(); if(m) q.set('month', m); if(s) q.set('source', s); if(d) q.set('day', d);
+  $('err').hidden = true;
+  try{
+    DATA = await api('/api/admin/sales-dashboard?'+q.toString());
+    ROLE = DATA.role;
+    $('roleBadge').textContent = ROLE==='admin' ? 'Admin login' : 'Sales login';
+    document.querySelectorAll('.admin-only').forEach(e=>e.hidden = ROLE!=='admin');
+    const sel = $('fSource'), cur = sel.value;
+    sel.innerHTML = '<option value="">All sources</option>' + DATA.sources.map(x=>'<option'+(x===cur?' selected':'')+'>'+esc(x)+'</option>').join('');
+    if(ROLE==='admin' && !SPEND) SPEND = await api('/api/admin/sales-dashboard/spend?months=12').catch(()=>null);
+    render();
+  }catch(e){ if(e.message!=='unauthorized'){ $('err').textContent = e.message; $('err').hidden = false; } }
+}
+
+function render(){
+  const A = ROLE==='admin', D = DATA;
+  let h = '';
+  // KPI strip for the selected month
+  const cur = D.funnel[D.funnel.length-1];
+  h += '<div class="kpis">'
+    + kpi('Leads received', num(cur.received), monthLabel(cur.month)+(D.source?' · '+esc(D.source):''))
+    + kpi('Leads called', num(cur.called), pct(cur.called_pct)+' of received')
+    + kpi('Converted', num(cur.converted), pct(cur.converted_pct)+' of received')
+    + kpi('Revenue', money(cur.revenue), 'from converted leads')
+    + (A ? kpi('Marketing spend', money(cur.spend), 'CPL '+money(cur.cpl)+' · CAC '+money(cur.cac)) + kpi('ROAS', cur.roas==null?'—':cur.roas+'x', 'ACOS '+pct(cur.acos_pct)) : '')
+    + '</div>';
+  // 1. Funnel
+  h += '<div class="card"><h2>Leads funnel</h2><p class="sub">By lead month (when the enquiry came in), last 12 months'+(D.source?' · '+esc(D.source):' · all sources')+'.</p><div class="tw"><table><thead><tr>'
+    + '<th>Month</th><th>Received</th><th>Called</th><th>Converted</th><th>Revenue</th>'
+    + (A ? '<th>Spend</th><th>CPL</th><th>Cost / customer</th><th>ROAS</th><th>ACOS</th>' : '') + '</tr></thead><tbody>'
+    + D.funnel.slice().reverse().map(r=>'<tr'+(r.month===D.month?' class="sel"':'')+'><td>'+monthLabel(r.month)+'</td><td>'+num(r.received)+'</td>'
+      +'<td>'+num(r.called)+'<span class="pct">'+pct(r.called_pct)+'</span></td><td>'+num(r.converted)+'<span class="pct">'+pct(r.converted_pct)+'</span></td><td>'+money(r.revenue)+'</td>'
+      +(A ? '<td>'+money(r.spend)+'</td><td>'+money(r.cpl)+'</td><td>'+money(r.cac)+'</td><td>'+(r.roas==null?'—':r.roas+'x')+'</td><td>'+pct(r.acos_pct)+'</td>' : '')+'</tr>').join('')
+    + '</tbody></table></div></div>';
+  // 2. Lead sources
+  const LS = D.lead_sources, tl = LS.reduce((t,r)=>t+r.leads,0), tc = LS.reduce((t,r)=>t+r.converted,0), trv = LS.reduce((t,r)=>t+r.revenue,0), tsp = LS.reduce((t,r)=>t+(r.spend||0),0);
+  h += '<div class="card"><h2>Lead source distribution</h2><p class="sub">'+monthLabel(D.month)+' · all sources.</p><div class="tw"><table><thead><tr>'
+    + '<th>Lead source</th><th>Leads</th><th>% of leads</th><th>Converted</th><th>% conversion</th><th>Revenue</th>' + (A ? '<th>Spend</th><th>CPL</th><th>CAC</th>' : '') + '</tr></thead><tbody>'
+    + (LS.length ? LS.map(r=>'<tr><td>'+esc(r.source)+'</td><td>'+num(r.leads)+'</td><td>'+pct(r.share_pct)+'</td><td>'+num(r.converted)+'</td><td>'+pct(r.conversion_pct)+'</td><td>'+money(r.revenue)+'</td>'
+        + (A ? '<td>'+money(r.spend)+'</td><td>'+money(r.cpl)+'</td><td>'+money(r.cac)+'</td>' : '')+'</tr>').join('')
+      + '<tr class="tot"><td>Total</td><td>'+num(tl)+'</td><td>100%</td><td>'+num(tc)+'</td><td>'+pct(tl?Math.round(1000*tc/tl)/10:null)+'</td><td>'+money(trv)+'</td>'
+        + (A ? '<td>'+money(tsp)+'</td><td>'+money(tl?tsp/tl:null)+'</td><td>'+money(tc?tsp/tc:null)+'</td>' : '')+'</tr>'
+      : '<tr><td colspan="9" class="muted">No leads this month.</td></tr>')
+    + '</tbody></table></div></div>';
+  h += renderDaily(D.daily);
+  h += '<div class="grid2">' + renderMonthSummary(D) + renderRepStatus(D) + '</div>';
+  if(A) h += renderSpend();
+  $('content').innerHTML = h;
+}
+function kpi(k,v,s){ return '<div class="kpi"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+s+'</div></div>'; }
+// Daily summary: metric rows x sales person columns (+ team). Every lead called
+// that day lands in exactly one outcome, so outcomes add up to "Called".
+function renderDaily(dl){
+  const cols = dl.reps.concat([dl.total]);
+  const head = '<tr><th>'+'</th>'+cols.map(c=>'<th>'+esc(c.rep)+'</th>').join('')+'</tr>';
+  const cell = (v, base) => '<td>'+num(v)+(base!=null && base>0 ? '<span class="pct">'+Math.round(100*v/base)+'%</span>' : '')+'</td>';
+  const row = (label, fn, baseFn, cls) => '<tr'+(cls?' class="'+cls+'"':'')+'><td>'+label+'</td>'+cols.map(c=>cell(fn(c), baseFn?baseFn(c):null)).join('')+'</tr>';
+  const outRows = g => dl.outcomes.map(o=>row('&nbsp;&nbsp;'+o, c=>c[g][o], c=>c[g==='new'?'new_called':'existing_called'])).join('');
+  const d = new Date(dl.day+'T00:00:00');
+  let h = '<div class="card"><h2>Daily summary</h2><p class="sub">'+d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear()
+    + ' · by sales person. Counted from calls logged in each lead\'s call log, so every call must be logged. Outcome uses the lead\'s current status. % = share of leads called.</p>';
+  h += '<div class="grid2"><div class="tw"><table><thead>'+head.replace('<th></th>','<th>New leads (received this day)</th>')+'</thead><tbody>'
+    + row('Leads received', c=>c.received)
+    + row('Leads called', c=>c.new_called, c=>c.received, 'tot')
+    + outRows('new')
+    + '<tr><td>Speed to lead (median hrs)</td>'+cols.map(c=>'<td>'+(c.speed_to_lead_hours==null?'—':c.speed_to_lead_hours)+'</td>').join('')+'</tr>'
+    + '</tbody></table></div>';
+  h += '<div class="tw"><table><thead>'+head.replace('<th></th>','<th>Existing leads</th>')+'</thead><tbody>'
+    + row('Leads called', c=>c.existing_called, null, 'tot')
+    + outRows('existing')
+    + row('Re-engage / upcoming birthday calls', c=>c.reengage_called)
+    + '</tbody></table></div></div>';
+  h += '<div class="tw" style="margin-top:14px"><table><thead>'+head.replace('<th></th>','<th>Follow-up discipline</th>')+'</thead><tbody>'
+    + row('Follow-ups due this day', c=>c.fu_due)
+    + row('Done', c=>c.fu_done, c=>c.fu_due)
+    + '<tr><td>Missed</td>'+cols.map(c=>'<td class="'+(c.fu_missed?'bad':'')+'">'+num(c.fu_missed)+'</td>').join('')+'</tr>'
+    + (dl.day===todayIST() ? '<tr><td>Overdue (older follow-ups not yet done)</td>'+cols.map(c=>'<td class="'+(c.overdue?'bad':'')+'">'+num(c.overdue)+'</td>').join('')+'</tr>' : '')
+    + row('Calls logged (all)', c=>c.calls)
+    + '</tbody></table></div></div>';
+  return h;
+}
+function renderMonthSummary(D){
+  const S = D.month_summary;
+  let h = '<div class="card"><h2>Month summary</h2><p class="sub">Leads received in '+monthLabel(D.month)+(D.source?' · '+esc(D.source):'')+', by current status. Value = Sales Quote.</p>';
+  if(!S.length) return h+'<p class="muted">No leads.</p></div>';
+  const grand = S.reduce((t,s)=>t+s.total_value,0);
+  h += S.map(s=>'<details'+(s.status==='Converted'?' open':'')+'><summary><span>'+esc(s.status)+' <span class="muted">('+s.leads.length+')</span></span><span>'+money(s.total_value)+'</span></summary><div class="names">'
+      + s.leads.map(l=>'<div><a href="sales-leads.html?lead_id='+l.lead_id+'" target="_blank" title="'+esc(l.source+' · '+l.rep)+'">'+esc(l.name||'(no name)')+'</a><span class="v">'+(l.value?money(l.value):'')+'</span></div>').join('')
+      + '</div></details>').join('')
+    + '<div style="display:flex;justify-content:space-between;font-weight:700;margin-top:8px"><span>Grand total</span><span>'+money(grand)+'</span></div></div>';
+  return h;
+}
+function renderRepStatus(D){
+  const R = D.rep_status;
+  let h = '<div class="card"><h2>Sales person x status</h2><p class="sub">Leads received in '+monthLabel(D.month)+(D.source?' · '+esc(D.source):'')+', by assigned sales lead.</p>';
+  if(!R.rows.length) return h+'<p class="muted">No leads.</p></div>';
+  const tot = {}; let gt=0;
+  R.rows.forEach(r=>{ R.statuses.forEach(s=>tot[s]=(tot[s]||0)+(r.counts[s]||0)); gt+=r.total; });
+  h += '<div class="tw"><table><thead><tr><th>Sales lead</th>'+R.statuses.map(s=>'<th>'+esc(s)+'</th>').join('')+'<th>Total</th><th>Conversion</th></tr></thead><tbody>'
+    + R.rows.map(r=>'<tr><td>'+esc(r.rep)+'</td>'+R.statuses.map(s=>'<td>'+(r.counts[s]||'')+'</td>').join('')+'<td>'+r.total+'</td><td>'+pct(r.conversion_pct)+'</td></tr>').join('')
+    + '<tr class="tot"><td>Total</td>'+R.statuses.map(s=>'<td>'+(tot[s]||'')+'</td>').join('')+'<td>'+gt+'</td><td>'+pct(gt?Math.round(1000*(tot['Converted']||0)/gt)/10:null)+'</td></tr>'
+    + '</tbody></table></div></div>';
+  return h;
+}
+// Admin only: marketing spend by month x source.
+function renderSpend(){
+  if(!SPEND) return '';
+  const months = SPEND.months.slice().reverse().slice(0,6);
+  const srcs = SPEND.sources;
+  const val = (m,s) => { const r = SPEND.spend.find(x=>x.month===m && x.source===s); return r ? r.amount : ''; };
+  let h = '<div class="card spend"><h2>Marketing spend (admin only)</h2><p class="sub">Enter what was spent on each lead source per month. Drives CPL, cost per customer, ROAS and ACOS. Not shown to the sales login.</p><div class="tw"><table><thead><tr><th>Lead source</th>'
+    + months.map(m=>'<th>'+monthLabel(m)+'</th>').join('')+'</tr></thead><tbody>'
+    + srcs.map(s=>'<tr><td>'+esc(s)+'</td>'+months.map(m=>'<td><input type="number" min="0" step="1" data-m="'+m+'" data-s="'+esc(s)+'" value="'+val(m,s)+'"></td>').join('')+'</tr>').join('')
+    + '<tr><td><input type="text" id="newSrc" placeholder="Other source" style="width:150px;text-align:left"></td>'+months.map(m=>'<td><input type="number" min="0" step="1" data-m="'+m+'" data-new="1"></td>').join('')+'</tr>'
+    + '<tr class="tot"><td>Allocated</td>'+months.map(m=>'<td>'+money(SPEND.spend.filter(x=>x.month===m).reduce((t,x)=>t+x.amount,0))+'</td>').join('')+'</tr>'
+    + '<tr><td class="muted">Finance page marketing total</td>'+months.map(m=>'<td class="muted">'+money(SPEND.finance_marketing_total[m]||null)+'</td>').join('')+'</tr>'
+    + '</tbody></table></div><div style="margin-top:10px"><button class="btn" onclick="saveSpend()">Save spend</button> <span id="spendMsg" class="note"></span></div>'
+    + '<p class="note">The last row is the marketing cost entered on the Finance page for that month, for reference, so you can split it across sources.</p></div>';
+  return h;
+}
+async function saveSpend(){
+  const rows = [];
+  const ns = ($('newSrc')||{}).value ? $('newSrc').value.trim() : '';
+  document.querySelectorAll('.spend input[data-m]').forEach(i=>{
+    const src = i.dataset.new ? ns : i.dataset.s;
+    if(!src) return;
+    if(i.dataset.new && i.value==='') return;
+    rows.push({month:i.dataset.m, source:src, amount: Number(i.value||0)});
+  });
+  try{
+    await api('/api/admin/sales-dashboard/spend', {method:'PUT', body: JSON.stringify({rows, updated_by: who()})});
+    $('spendMsg').textContent = 'Saved.';
+    SPEND = await api('/api/admin/sales-dashboard/spend?months=12');
+    await load();
+  }catch(e){ $('spendMsg').textContent = e.message; }
+}
+(function init(){
+  if(!pw()){ $('gate').hidden=false; return; }
+  $('app').hidden=false;
+  const t = todayIST(); $('fMonth').value = t.slice(0,7); $('fDay').value = t;
+  load();
+})();
+</script>
+</body>
+</html>

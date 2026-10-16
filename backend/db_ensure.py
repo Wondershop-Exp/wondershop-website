@@ -43,6 +43,7 @@ SAFE_MIGRATIONS = [
     "063_normalize_sales_lead.sql",
     "064_status_reengage_later.sql",
     "065_next_year_from_booking.sql",
+    "066_marketing_spend.sql",
 ]
 
 
