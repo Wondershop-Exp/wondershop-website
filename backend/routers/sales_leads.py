@@ -1074,7 +1074,7 @@ async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[s
     where = "l.lead_origin = 'sales_module' AND " + VISIBLE_TO_TEAM_SQL.replace("{t}", "l.")
     values: Dict[str, Any] = {}
     if search:
-        where += " AND (l.parent_name ILIKE :q OR l.phone ILIKE :q OR l.child_names ILIKE :q)"
+        where += " AND (l.parent_name ILIKE :q OR l.phone ILIKE :q OR l.child_names ILIKE :q OR l.lead_source ILIKE :q)"
         values["q"] = f"%{search}%"
     rows = await database.fetch_all(
         f"""SELECT l.lead_id, l.parent_name, l.phone, l.event_date, l.is_booking, l.status,
