@@ -79,6 +79,13 @@ const useBook=()=>true;
 function setupFY(){const ks=allMonths().map(m=>m.ym);if(!ks.length)ks.push('202610');const fys0=[...new Set(ks.map(k=>{const y=+k.slice(0,4),m=+k.slice(4);return m>=4?y:y-1}))].sort().reverse();const fys=fys0;
  const prev=$('#fy').value;$('#fy').innerHTML=`<option value="last12">Last 12 months</option>`+fys.map(y=>`<option value="${y}">FY ${y}-${String(y+1).slice(2)}</option>`).join('');
  $('#fy').value=prev||String(fys[0]);$('#gen').textContent='from Bookings + costs entered here'}
+// 2026-10-16 — marketing costs carry a lead source; payment mode as on bookings.
+const PAY_MODES=['Pending','Gpay','Cash','Bank transfer','UPI (other)','Card'];
+const LEAD_SOURCES=['Instagram','Google','Wonderfest Feb 2026','Powai Rotary Christmas Stall 2025','Brand / general'];
+const LS_RULES=[[/facebook|instagram|meta|aisensy/i,'Instagram'],[/google/i,'Google'],[/wonderfest/i,'Wonderfest Feb 2026'],[/rotary/i,'Powai Rotary Christmas Stall 2025']];
+const defLS=p=>{for(const [rx,s] of LS_RULES)if(rx.test(p||''))return s;return ''};
+const todayIST=()=>new Date(Date.now()+5.5*3600e3).toISOString().slice(0,10);
+const dlbl=c=>c.spent_on?new Date(c.spent_on+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'}):lbl(c.ym);
 const CATS={man:'Manpower',rent:'Rent',elec:'Electricity',wifi:'Wifi',mkt:'Marketing & ads',shopx:'Shop expenses',other:'Other (transport, cleaning, misc.)'};
 let COSTS=[];
 const ZERO=ym=>({ym,sales:0,net:0,cogs:0,mat:0,evCost:0,stall:0,mkt:0,man:0,rent:0,elec:0,wifi:0,shopx:0,other:0,capex:0,inv:0,ch:{},bd:{sales:0,net:0,cogs:0,cashIn:0,recv:0,vendor:0,vendorPaid:0},cashIn:0,cashOut:0,recv:0,pay:0,ownerIn:0,estimated:{}});
@@ -140,31 +147,39 @@ team(ms){const fte=+$('#fte').value||1;return kpis([['FTEs',fte,'set at top'],['
  +`<div class="card"><h2>Revenue per full-time employee</h2>${bars(ms,m=>m.net/fte,v=>Math.round(v/1000)+'k')}`+table(ms,[{l:'Net sales',f:m=>m.net},{l:'Revenue per FTE',f:m=>m.net/fte,b:1},{l:'Gross margin per FTE',f:m=>m.gm/fte},{l:'Manpower cost',f:m=>m.man},{l:'Revenue per ₹1 of manpower',f:m=>m.man?m.net/m.man:0,tot:x=>sum(x,'net')/sum(x,'man')}])+'<p class="note" style="margin-top:10px">Team: sales (₹21k + incentives), admin (₹15k), cleaner (₹1.5k, part-time) → default 2 FTE. Change it above if the team changes.</p></div>'}
 };
 V.costs=function(){const now=new Date();const dm=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
- const rowsH=COSTS.map(c=>`<tr><td>${lbl(c.ym)}</td><td style="text-align:left">${CATS[c.category]||c.category}</td><td style="text-align:left">${esc(c.partner||'')}${c.partner&&PARTNERS.length&&!PARTNERS.includes(c.partner)?' <span class="est">not in Partners</span>':''}${!c.partner?'<span class="est">no partner</span>':''}</td><td style="text-align:left">${esc(c.description||'')}</td><td>${inr(c.amount)}</td><td>${c.paid?'Paid':'<span class="est">Unpaid</span>'} <button data-pay="${c.id}" data-v="${c.paid?0:1}" style="padding:2px 8px;font-size:12px">${c.paid?'Mark unpaid':'Mark paid'}</button></td><td style="color:var(--mute)">${c.created_by||''}</td><td><button data-del="${c.id}">Remove</button></td></tr>`).join('');
+ const rowsH=COSTS.map(c=>`<tr><td>${dlbl(c)}</td><td style="text-align:left">${CATS[c.category]||c.category}${c.category==='mkt'?`<br><select data-ls="${c.id}" style="font-size:12px;padding:2px 6px;margin-top:3px">${['',...LEAD_SOURCES.filter(x=>x!=='Brand / general')].map(x=>`<option value="${esc(x)}"${(c.lead_source||'')===x?' selected':''}>${x?esc(x):'Brand / general'}</option>`).join('')}${c.lead_source&&!LEAD_SOURCES.includes(c.lead_source)?`<option selected>${esc(c.lead_source)}</option>`:''}</select>`:''}</td><td style="text-align:left">${esc(c.partner||'')}${c.partner&&PARTNERS.length&&!PARTNERS.includes(c.partner)?' <span class="est">not in Partners</span>':''}${!c.partner?'<span class="est">no partner</span>':''}</td><td style="text-align:left">${esc(c.description||'')}</td><td>${inr(c.amount)}</td><td><select data-pv="${c.id}" style="font-size:12px;padding:2px 6px">${PAY_MODES.map(m=>`<option${(c.paid_via||(c.paid?'':'Pending'))===m?' selected':''}>${m}</option>`).join('')}${c.paid_via&&!PAY_MODES.includes(c.paid_via)?`<option selected>${esc(c.paid_via)}</option>`:''}</select></td><td style="color:var(--mute)">${c.created_by||''}</td><td><button data-del="${c.id}">Remove</button></td></tr>`).join('');
  return `<div class="card"><h2>Add a cost</h2><p class="note">Rent, salaries, wifi, electricity, cleaning, transport, ads, materials — Everything except event partner costs (those go on the booking's Partners & Expenses). They flow straight into P&L, EBITDA and cash flow, and are saved to the Wondershop database.</p>
  <form id="cf" style="display:flex;flex-wrap:wrap;gap:10px;align-items:end">
- <label>Month<br><input type="month" name="m" value="${dm}" min="2026-10" required></label>
- <label>Category<br><select name="cat">${Object.entries(CATS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
- <label style="min-width:200px">Partner (paid to)<br><input name="partner" list="plist" placeholder="e.g. office owner, staff name" style="width:100%" required><datalist id="plist">${PARTNERS.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></label>
+ <label>Date<br><input type="date" name="d" value="${todayIST()}" min="2026-10-01" required></label>
+ <label>Category<br><select name="cat" id="cfCat">${Object.entries(CATS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
+ <label style="min-width:200px">Partner (paid to)<br><input name="partner" id="cfPartner" list="plist" placeholder="e.g. office owner, staff name" style="width:100%" required><datalist id="plist">${PARTNERS.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></label>
  <label style="flex:1;min-width:180px">Description<br><input name="desc" placeholder="e.g. Sales exec salary + incentive" style="width:100%"></label>
  <label>Amount (₹)<br><input name="amt" type="number" min="0" step="1" required style="width:120px"></label>
- <label><input type="checkbox" name="paid"> Paid</label>
+ <label id="cfLSWrap" style="display:none">Lead source<br><input name="ls" id="cfLS" list="lslist" placeholder="Brand / general" style="width:220px"><datalist id="lslist">${LEAD_SOURCES.map(x=>`<option value="${esc(x)}">`).join('')}</datalist></label>
+ <label>Payment mode<br><select name="pv">${PAY_MODES.map(m=>`<option>${m}</option>`).join('')}</select></label>
  <button class="pri">Add</button></form>
  <p class="note" style="margin-top:10px">Every cost is paid to a partner from the Partners list on the admin page — add the office owner and each staff member there once (any category). A name not on the list still saves, but shows <span class="est">not in Partners</span>.</p>
  <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="tmpl">Copy last month's recurring costs into the selected month</button></div></div>
- <div class="card"><h2>Costs you've added (${COSTS.length})</h2>${COSTS.length?`<table><thead><tr><th>Month</th><th style="text-align:left">Category</th><th style="text-align:left">Partner</th><th style="text-align:left">Description</th><th>Amount</th><th>Status</th><th>Added by</th><th></th></tr></thead><tbody>${rowsH}</tbody></table>`:'<p class="note">Nothing added yet.</p>'}</div>`};
+ <div class="card"><h2>Costs you've added (${COSTS.length})</h2>${COSTS.length?`<table><thead><tr><th>Date</th><th style="text-align:left">Category / lead source</th><th style="text-align:left">Partner</th><th style="text-align:left">Description</th><th>Amount</th><th>Payment mode</th><th>Added by</th><th></th></tr></thead><tbody>${rowsH}</tbody></table>`:'<p class="note">Nothing added yet.</p>'}</div>`};
 async function reloadCosts(){COSTS=await api('/costs');setupFY();render()}
 async function addCosts(list){try{for(const c of list)await api('/costs',{method:'POST',body:JSON.stringify({...c,by:getName()})});await reloadCosts()}catch(e){if(e.message!=='auth')alert(e.message)}}
 document.addEventListener('submit',e=>{if(e.target.id==='gateF'){e.preventDefault();try{localStorage.setItem('ws_admin_pw',$('#gatePw').value.trim());localStorage.setItem('ws_admin_name',$('#gateName').value.trim())}catch(err){}boot();return}
  if(e.target.id!=='cf')return;e.preventDefault();const f=new FormData(e.target);
- addCosts([{ym:f.get('m').replace('-',''),category:f.get('cat'),partner:f.get('partner').trim(),description:f.get('desc').trim(),amount:+f.get('amt'),paid:!!f.get('paid')}])});
+ const ls=(f.get('ls')||'').trim();
+ addCosts([{spent_on:f.get('d'),category:f.get('cat'),partner:f.get('partner').trim(),description:f.get('desc').trim(),amount:+f.get('amt'),paid_via:f.get('pv')||'Pending',lead_source:f.get('cat')==='mkt'&&ls!=='Brand / general'?ls:null}])});
+// Lead source: only for Marketing; defaults from an obvious partner (Facebook/IG -> Instagram, Google Ads -> Google), can be overridden.
+let LS_TOUCHED=false;
+document.addEventListener('input',e=>{if(e.target.id==='cfLS')LS_TOUCHED=true;if(e.target.id==='cfPartner'&&!LS_TOUCHED){const ls=document.getElementById('cfLS');if(ls)ls.value=defLS(e.target.value)}});
+document.addEventListener('change',async e=>{const t=e.target;
+ if(t.id==='cfCat'){const w=document.getElementById('cfLSWrap');if(w)w.style.display=t.value==='mkt'?'':'none';if(t.value==='mkt'&&!LS_TOUCHED){document.getElementById('cfLS').value=defLS(document.getElementById('cfPartner').value)}return}
+ if(t.dataset&&t.dataset.pv!=null){try{await api('/costs/'+t.dataset.pv+'/paid',{method:'POST',body:JSON.stringify({paid_via:t.value})});await reloadCosts()}catch(err){if(err.message!=='auth')alert(err.message)}return}
+ if(t.dataset&&t.dataset.ls!=null){try{await api('/costs/'+t.dataset.ls+'/lead-source',{method:'POST',body:JSON.stringify({lead_source:t.value||null})});await reloadCosts()}catch(err){if(err.message!=='auth')alert(err.message)}}});
 document.addEventListener('click',async e=>{const t=e.target;
- if(t.dataset.pay!=null){try{await api('/costs/'+t.dataset.pay+'/paid',{method:'POST',body:JSON.stringify({paid:t.dataset.v==='1'})});await reloadCosts()}catch(err){if(err.message!=='auth')alert(err.message)}return}
- if(t.dataset.del!=null){if(!confirm('Remove this cost?'))return;try{await api('/costs/'+t.dataset.del,{method:'DELETE'});await reloadCosts()}catch(err){if(err.message!=='auth')alert(err.message)}}
- if(t.id==='tmpl'){const m=document.querySelector('#cf [name=m]').value.replace('-','');const y=+m.slice(0,4),mo=+m.slice(4);const prev=mo===1?(y-1)+'12':y+String(mo-1).padStart(2,'0');
+  if(t.dataset.del!=null){if(!confirm('Remove this cost?'))return;try{await api('/costs/'+t.dataset.del,{method:'DELETE'});await reloadCosts()}catch(err){if(err.message!=='auth')alert(err.message)}}
+ if(t.id==='tmpl'){const m=document.querySelector('#cf [name=d]').value.slice(0,7).replace('-','');const y=+m.slice(0,4),mo=+m.slice(4);const prev=mo===1?(y-1)+'12':y+String(mo-1).padStart(2,'0');
   const src=COSTS.filter(c=>c.ym===prev);if(!src.length){alert('Nothing was added for '+lbl(prev)+' to copy.');return}
   if(COSTS.some(c=>c.ym===m)&&!confirm(lbl(m)+' already has costs. Copy '+src.length+' more from '+lbl(prev)+'?'))return;
-  addCosts(src.map(c=>({ym:m,category:c.category,partner:c.partner,description:c.description,amount:c.amount,paid:false})))}
+  addCosts(src.map(c=>({spent_on:m.slice(0,4)+'-'+m.slice(4)+'-'+String(Math.min(28,+(c.spent_on||'').slice(8,10)||1)).padStart(2,'0'),category:c.category,partner:c.partner,lead_source:c.lead_source,description:c.description,amount:c.amount,paid_via:'Pending'})))}
  if(t.id==='logout'){try{localStorage.removeItem('ws_admin_pw')}catch(err){}location.reload()}});
 function channelTable(ms){const chs=[...new Set(ms.flatMap(m=>Object.keys(m.ch)))].sort((a,b)=>sum(ms,m=>m.ch[b]||0)-sum(ms,m=>m.ch[a]||0));
  return table(ms,chs.map(c=>({l:c,f:m=>m.ch[c]||0})).concat([{l:'Total',f:m=>m.net,b:1}]))}

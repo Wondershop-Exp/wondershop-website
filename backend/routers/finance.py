@@ -36,8 +36,24 @@ def _admin_only(pw: Optional[str]):
         raise HTTPException(status_code=403, detail="Finance is available to the admin login only.")
 
 
+# 2026-10-16 — marketing costs carry a lead source (Finance = single source of
+# truth for the Sales Dashboard's spend). Default from an obvious partner.
+LEAD_SOURCE_RULES = [(r"facebook|instagram|meta|aisensy", "Instagram"), (r"google", "Google"),
+                     (r"wonderfest", "Wonderfest Feb 2026"), (r"rotary", "Powai Rotary Christmas Stall 2025")]
+
+
+def default_lead_source(partner: Optional[str]) -> Optional[str]:
+    for rx, src in LEAD_SOURCE_RULES:
+        if partner and re.search(rx, partner, re.I):
+            return src
+    return None
+
+
 class CostIn(BaseModel):
-    ym: str = Field(..., min_length=6, max_length=6)
+    ym: Optional[str] = Field(None, min_length=6, max_length=6)
+    spent_on: Optional[str] = None          # YYYY-MM-DD (2026-10-16); ym is derived from it
+    lead_source: Optional[str] = Field(None, max_length=100)
+    paid: Optional[bool] = None             # older page versions sent a tick instead of paid_via
     category: str
     description: Optional[str] = Field(None, max_length=300)
     amount: float = Field(..., gt=0, lt=1e9)
@@ -56,24 +72,38 @@ class SnapshotIn(BaseModel):
 async def list_costs(x_admin_password: Optional[str] = Header(None)):
     _admin_only(x_admin_password)
     rows = await database.fetch_all(
-        "SELECT id, ym, category, partner, description, amount, paid, COALESCE(paid_via, CASE WHEN paid THEN 'Paid' ELSE 'Pending' END) AS paid_via, created_by, created_on "
-        "FROM finance_costs ORDER BY ym DESC, id DESC")
-    return [{**dict(r), "amount": float(r["amount"]), "created_on": r["created_on"].isoformat()} for r in rows]
+        "SELECT id, ym, spent_on, category, partner, lead_source, description, amount, paid, COALESCE(paid_via, CASE WHEN paid THEN 'Paid' ELSE 'Pending' END) AS paid_via, created_by, created_on "
+        "FROM finance_costs ORDER BY COALESCE(spent_on, to_date(ym || '01', 'YYYYMMDD')) DESC, id DESC")
+    return [{**dict(r), "amount": float(r["amount"]), "created_on": r["created_on"].isoformat(),
+             "spent_on": r["spent_on"].isoformat() if r["spent_on"] else None} for r in rows]
 
 
 @router.post("/finance/costs")
 async def add_cost(body: CostIn, x_admin_password: Optional[str] = Header(None)):
     _admin_only(x_admin_password)
-    if not re.fullmatch(r"20\d{2}(0[1-9]|1[0-2])", body.ym) or body.ym < START_YM:
+    spent_on = None
+    if body.spent_on:
+        try:
+            spent_on = date.fromisoformat(body.spent_on[:10])
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Date must be YYYY-MM-DD.")
+        body.ym = spent_on.strftime("%Y%m")
+    elif body.ym and re.fullmatch(r"20\d{2}(0[1-9]|1[0-2])", body.ym):
+        spent_on = date(int(body.ym[:4]), int(body.ym[4:]), 1)
+    if body.paid is not None and body.paid_via == "Pending" and body.paid:
+        body.paid_via = "Bank transfer"
+    if not body.ym or not re.fullmatch(r"20\d{2}(0[1-9]|1[0-2])", body.ym) or body.ym < START_YM:
         raise HTTPException(status_code=400, detail="Month must be Oct 2026 or later.")
     if body.category not in CATEGORIES:
         raise HTTPException(status_code=400, detail="Unknown category.")
     if body.paid_via not in PAID_VIA:
         raise HTTPException(status_code=400, detail="Unknown payment mode.")
     new_id = await database.execute(
-        "INSERT INTO finance_costs (ym, category, partner, description, amount, paid, paid_via, created_by) "
-        "VALUES (:ym, :c, :pt, :d, :a, :p, :pv, :by) RETURNING id",
-        {"ym": body.ym, "c": body.category, "pt": (body.partner or "").strip() or None, "d": (body.description or "").strip() or None,
+        "INSERT INTO finance_costs (ym, spent_on, category, partner, lead_source, description, amount, paid, paid_via, created_by) "
+        "VALUES (:ym, :so, :c, :pt, :ls, :d, :a, :p, :pv, :by) RETURNING id",
+        {"ym": body.ym, "so": spent_on,
+         "ls": ((body.lead_source or "").strip() or default_lead_source(body.partner)) if body.category == "mkt" else None,
+         "c": body.category, "pt": (body.partner or "").strip() or None, "d": (body.description or "").strip() or None,
          "a": body.amount, "p": body.paid_via != "Pending", "pv": body.paid_via, "by": (body.by or "").strip() or None})
     return {"id": new_id}
 
@@ -166,4 +196,17 @@ async def set_cost_paid(cost_id: int, body: PaidIn, x_admin_password: Optional[s
         raise HTTPException(status_code=400, detail="Unknown payment mode.")
     await database.execute("UPDATE finance_costs SET paid_via = :v, paid = :p WHERE id = :id",
                            {"v": body.paid_via, "p": body.paid_via != "Pending", "id": cost_id})
+    return {"ok": True}
+
+
+class LeadSourceIn(BaseModel):
+    lead_source: Optional[str] = Field(None, max_length=100)
+
+
+@router.post("/finance/costs/{cost_id}/lead-source")
+async def set_cost_lead_source(cost_id: int, body: LeadSourceIn, x_admin_password: Optional[str] = Header(None)):
+    """Set / change the lead source of a marketing cost (2026-10-16). Empty = brand / general."""
+    _admin_only(x_admin_password)
+    await database.execute("UPDATE finance_costs SET lead_source = :s WHERE id = :id AND category = 'mkt'",
+                           {"s": (body.lead_source or "").strip() or None, "id": cost_id})
     return {"ok": True}

@@ -32,6 +32,7 @@ from routers.admin import _require_admin
 router = APIRouter()
 IST = timezone(timedelta(hours=5, minutes=30))
 REPS = ["Mitika", "Sidhant", "Shruti"]
+FOUNDERS = {"Shruti", "Sidhant"}
 INTERESTED = {"Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing"}
 
 
@@ -120,8 +121,17 @@ def _months_back(n: int, end: date) -> List[str]:
     return list(reversed(res))
 
 
+BRAND = "Brand / general"
+
+
 async def _spend(yms: List[str]) -> Dict[str, Dict[str, float]]:
-    rows = await database.fetch_all("SELECT ym, source, amount FROM marketing_spend WHERE ym = ANY(:yms)", values={"yms": yms})
+    """Marketing spend by month and lead source - read from the Finance page's
+    marketing costs (finance_costs, category 'mkt'), the single source of truth
+    (2026-10-16, per Shruti). A cost with no lead source = Brand / general."""
+    rows = await database.fetch_all(
+        """SELECT ym, COALESCE(NULLIF(TRIM(lead_source), ''), :b) AS source, SUM(amount) AS amount
+           FROM finance_costs WHERE category = 'mkt' AND ym = ANY(:yms) GROUP BY 1, 2""",
+        values={"yms": yms, "b": BRAND})
     out: Dict[str, Dict[str, float]] = {}
     for r in rows:
         out.setdefault(r["ym"], {})[r["source"]] = float(r["amount"] or 0)
@@ -201,7 +211,10 @@ def _daily(leads, day: date, today: date) -> dict:
             if fu and fu < ds:
                 R(d["rep"] if d["rep"] != "Unassigned" else _rep(log[-1].get("by")))["overdue"] += 1
     rows = []
-    for name in REPS + sorted(k for k in reps if k not in REPS):
+    # 2026-10-16, per Shruti — co-founders (Shruti, Sidhant) also talk to and
+    # convert customers but have no daily targets: left out of the daily
+    # summary (columns AND team total). Every other team member shows.
+    for name in [r for r in REPS if r not in FOUNDERS] + sorted(k for k in reps if k not in REPS):
         if name not in reps:
             R(name)
         r = reps[name]
@@ -293,51 +306,14 @@ async def sales_dashboard(month: Optional[str] = None, source: Optional[str] = N
     }
 
 
-class SpendRow(BaseModel):
-    month: str          # YYYY-MM
-    source: str
-    amount: float
-
-
-class SpendIn(BaseModel):
-    rows: List[SpendRow]
-    updated_by: Optional[str] = None
-
-
 @router.get("/sales-dashboard/spend")
 async def get_spend(months: int = 12, x_admin_password: Optional[str] = Header(None)):
+    """Read-only: marketing spend per month x lead source, from the Finance page."""
     if _require_admin(x_admin_password) != "admin":
         raise HTTPException(status_code=403, detail="Admin only.")
     today = datetime.now(IST).date()
     yms = _months_back(max(1, min(months, 36)), today.replace(day=1))
-    rows = await database.fetch_all("SELECT ym, source, amount FROM marketing_spend WHERE ym = ANY(:y) ORDER BY ym, source", values={"y": yms})
-    fin = {}
-    try:   # monthly marketing total from the finance page, for reference
-        for r in await database.fetch_all(
-                "SELECT ym, SUM(amount) AS a FROM finance_costs WHERE category = 'mkt' AND ym = ANY(:y) GROUP BY ym", values={"y": yms}):
-            fin[r["ym"]] = float(r["a"] or 0)
-    except Exception:
-        pass
-    leads = await _load()
+    sp = await _spend(yms)
     return {"months": [f"{y[:4]}-{y[4:]}" for y in yms],
-            "sources": sorted({d["src"] for d in leads if d["counted"]} | {r["source"] for r in rows}),
-            "spend": [{"month": f"{r['ym'][:4]}-{r['ym'][4:]}", "source": r["source"], "amount": float(r["amount"])} for r in rows],
-            "finance_marketing_total": {f"{k[:4]}-{k[4:]}": v for k, v in fin.items()}}
-
-
-@router.put("/sales-dashboard/spend")
-async def put_spend(body: SpendIn, x_admin_password: Optional[str] = Header(None)):
-    if _require_admin(x_admin_password) != "admin":
-        raise HTTPException(status_code=403, detail="Admin only.")
-    for r in body.rows:
-        if not re.fullmatch(r"\d{4}-\d{2}", r.month) or not r.source.strip():
-            raise HTTPException(status_code=400, detail="Each row needs month YYYY-MM and a source.")
-        ym = r.month.replace("-", "")
-        if r.amount and r.amount > 0:
-            await database.execute(
-                """INSERT INTO marketing_spend (ym, source, amount, updated_by, updated_on) VALUES (:ym, :s, :a, :by, now())
-                   ON CONFLICT (ym, source) DO UPDATE SET amount = EXCLUDED.amount, updated_by = EXCLUDED.updated_by, updated_on = now()""",
-                values={"ym": ym, "s": r.source.strip(), "a": r.amount, "by": body.updated_by})
-        else:
-            await database.execute("DELETE FROM marketing_spend WHERE ym = :ym AND source = :s", values={"ym": ym, "s": r.source.strip()})
-    return {"ok": True}
+            "sources": sorted({s for v in sp.values() for s in v}, key=lambda x: (x == BRAND, x)),
+            "spend": [{"month": f"{k[:4]}-{k[4:]}", "source": s, "amount": a} for k, v in sp.items() for s, a in v.items()]}

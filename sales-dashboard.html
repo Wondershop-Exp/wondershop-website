@@ -204,37 +204,20 @@ function renderRepStatus(D){
     + '</tbody></table></div></div>';
   return h;
 }
-// Admin only: marketing spend by month x source.
+// Admin only: marketing spend by month x lead source - read only, from the
+// Finance page (single source of truth). Add / tag costs there.
 function renderSpend(){
   if(!SPEND) return '';
   const months = SPEND.months.slice().reverse().slice(0,6);
-  const srcs = SPEND.sources;
-  const val = (m,s) => { const r = SPEND.spend.find(x=>x.month===m && x.source===s); return r ? r.amount : ''; };
-  let h = '<div class="card spend"><h2>Marketing spend (admin only)</h2><p class="sub">Enter what was spent on each lead source per month. Drives CPL, cost per customer, ROAS and ACOS. Not shown to the sales login.</p><div class="tw"><table><thead><tr><th>Lead source</th>'
-    + months.map(m=>'<th>'+monthLabel(m)+'</th>').join('')+'</tr></thead><tbody>'
-    + srcs.map(s=>'<tr><td>'+esc(s)+'</td>'+months.map(m=>'<td><input type="number" min="0" step="1" data-m="'+m+'" data-s="'+esc(s)+'" value="'+val(m,s)+'"></td>').join('')+'</tr>').join('')
-    + '<tr><td><input type="text" id="newSrc" placeholder="Other source" style="width:150px;text-align:left"></td>'+months.map(m=>'<td><input type="number" min="0" step="1" data-m="'+m+'" data-new="1"></td>').join('')+'</tr>'
-    + '<tr class="tot"><td>Allocated</td>'+months.map(m=>'<td>'+money(SPEND.spend.filter(x=>x.month===m).reduce((t,x)=>t+x.amount,0))+'</td>').join('')+'</tr>'
-    + '<tr><td class="muted">Finance page marketing total</td>'+months.map(m=>'<td class="muted">'+money(SPEND.finance_marketing_total[m]||null)+'</td>').join('')+'</tr>'
-    + '</tbody></table></div><div style="margin-top:10px"><button class="btn" onclick="saveSpend()">Save spend</button> <span id="spendMsg" class="note"></span></div>'
-    + '<p class="note">The last row is the marketing cost entered on the Finance page for that month, for reference, so you can split it across sources.</p></div>';
+  const amt = (m,s) => { const r = SPEND.spend.find(x=>x.month===m && x.source===s); return r ? r.amount : null; };
+  const colTot = m => SPEND.spend.filter(x=>x.month===m).reduce((t,x)=>t+x.amount,0);
+  let h = '<div class="card"><h2>Marketing spend (admin only)</h2><p class="sub">From marketing costs on the <a href="finance.html" target="_blank">Finance page</a>, by the lead source each cost is tagged with. Untagged costs show as Brand / general. Not shown to the sales login.</p>';
+  if(!SPEND.sources.length) return h+'<p class="muted">No marketing costs entered on the Finance page for these months yet.</p></div>';
+  h += '<div class="tw"><table><thead><tr><th>Lead source</th>'+months.map(m=>'<th>'+monthLabel(m)+'</th>').join('')+'</tr></thead><tbody>'
+    + SPEND.sources.map(s=>'<tr><td>'+esc(s)+'</td>'+months.map(m=>'<td>'+(amt(m,s)==null?'<span class="muted">—</span>':money(amt(m,s)))+'</td>').join('')+'</tr>').join('')
+    + '<tr class="tot"><td>Total</td>'+months.map(m=>'<td>'+money(colTot(m))+'</td>').join('')+'</tr>'
+    + '</tbody></table></div></div>';
   return h;
-}
-async function saveSpend(){
-  const rows = [];
-  const ns = ($('newSrc')||{}).value ? $('newSrc').value.trim() : '';
-  document.querySelectorAll('.spend input[data-m]').forEach(i=>{
-    const src = i.dataset.new ? ns : i.dataset.s;
-    if(!src) return;
-    if(i.dataset.new && i.value==='') return;
-    rows.push({month:i.dataset.m, source:src, amount: Number(i.value||0)});
-  });
-  try{
-    await api('/api/admin/sales-dashboard/spend', {method:'PUT', body: JSON.stringify({rows, updated_by: who()})});
-    $('spendMsg').textContent = 'Saved.';
-    SPEND = await api('/api/admin/sales-dashboard/spend?months=12');
-    await load();
-  }catch(e){ $('spendMsg').textContent = e.message; }
 }
 (function init(){
   if(!pw()){ $('gate').hidden=false; return; }
