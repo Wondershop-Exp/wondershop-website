@@ -63,6 +63,16 @@ BUSINESS_WEB = "www.wondershopexperiences.com"
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ASSETS = os.path.join(_HERE, "assets")
 _LOGO_PATH = os.path.join(_ASSETS, "logo-horizontal.png")
+# Payment details + UPI QR (2026-10-16, per Shruti) — shown until the advance is paid.
+_QR_PATH = os.path.join(_ASSETS, "payment-qr.png")
+BANK_DETAILS = [
+    ("Account name", "Wondershop Collective LLP"),
+    ("Account no.", "18050200006539"),
+    ("IFSC", "FDRL0001805"),
+    ("Bank", "The Federal Bank Ltd"),
+    ("Branch", "Mumbai Ghatkopar"),
+    ("UPI ID", "wondershopcol26qr@fbl"),
+]
 # Repo root when running from a full checkout (local dev) — lets
 # fetch_images() read img/... straight off disk instead of over HTTP. On
 # Railway only backend/ is deployed, so this simply doesn't exist there.
@@ -524,6 +534,29 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
         story.append(Spacer(1, 7 * mm))
     else:
         _totals_block(story, notes, tt, tw, W)
+
+    # ── how to pay (until the advance is paid) ─────────────────────────────
+    if not data.get("advance_paid") and os.path.exists(_QR_PATH):
+        s_lab = _style("bkl", size=8.6, color=MUTED, leading=12)
+        s_val = _style("bkv", font=BODY_BOLD, size=9.2, color=INK, leading=12)
+        rows = [[Paragraph(_x(k), s_lab), Paragraph(_x(v), s_val)] for k, v in BANK_DETAILS]
+        bank = Table(rows, colWidths=[26 * mm, None])
+        bank.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                                  ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                                  ("TOPPADDING", (0, 0), (-1, -1), 0.8 * mm), ("BOTTOMPADDING", (0, 0), (-1, -1), 0.8 * mm)]))
+        head = Paragraph("PAY THE ADVANCE TO CONFIRM YOUR BOOKING" if booked else "HOW TO PAY", _style("payh", font=BODY_BOLD, size=8.6, color=PINK_DARK, leading=11))
+        note = Paragraph("Scan with any UPI app (GPay, PhonePe, Paytm, BHIM) or pay by bank transfer, "
+                         "then share the screenshot with us on WhatsApp.", _style("payn", size=8.2, color=MUTED, leading=11))
+        qr_w = 34 * mm
+        inner = Table([[head, ""], [[bank, Spacer(1, 2 * mm), note], Image(_QR_PATH, width=qr_w, height=qr_w)]],
+                      colWidths=[W - qr_w - 14 * mm, qr_w + 7 * mm])
+        inner.setStyle(TableStyle([
+            ("SPAN", (0, 0), (1, 0)), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("ALIGN", (1, 1), (1, 1), "RIGHT"),
+            ("BOX", (0, 0), (-1, -1), 0.8, LAV_RULE), ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FCFAFF")),
+            ("LEFTPADDING", (0, 0), (-1, -1), 3.5 * mm), ("RIGHTPADDING", (0, 0), (-1, -1), 3.5 * mm),
+            ("TOPPADDING", (0, 0), (-1, 0), 3 * mm), ("BOTTOMPADDING", (0, -1), (-1, -1), 3 * mm),
+        ]))
+        story.append(KeepTogether([inner, Spacer(1, 5 * mm)]))
 
     # ── terms ────────────────────────────────────────────────────────────
     terms = [

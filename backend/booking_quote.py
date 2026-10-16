@@ -350,6 +350,8 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
             "gift_mrp": 0, "has_unpriced": has_unpriced["any"],
         },
         "extra_terms": cust_val("terms_conditions"),
+        # Payment box (bank details + UPI QR) only until the advance is paid (2026-10-16).
+        "advance_paid": bool((_money(val("bill_advance")) or 0) > 0),
     }
     paths = [MASCOT_PATH] + list(SECTION_ICONS.values())
     for s in sections:
