@@ -351,7 +351,10 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         },
         "extra_terms": cust_val("terms_conditions"),
         # Payment box (bank details + UPI QR) only until the advance is paid (2026-10-16).
-        "advance_paid": bool((_money(val("bill_advance")) or 0) > 0),
+        # "Advance Paid" holds the advance the client is EXPECTED to pay (filled
+        # from checkout / the sales panel), so it can't tell us it was received —
+        # hide the box only once Payment Status confirms it (2026-10-16 fix).
+        "advance_paid": bool((fields.get("bill_advance") or {}).get("advance_confirmed")),
     }
     paths = [MASCOT_PATH] + list(SECTION_ICONS.values())
     for s in sections:
