@@ -891,7 +891,7 @@ function fillListFilters(){
   msBuild('lf_src', srcs.map(x=>[x,x]));
   msBuild('lf_ag', LF_AG_OPTS);
   // Call status = disposition of the LAST logged call (2026-10-16, per Shruti).
-  const disps = (DATA && DATA.call_dispositions) || ['Unanswered','Follow-up required','Wrong number'];
+  const disps = (DATA && DATA.call_dispositions) || ['Answered','Unanswered','Follow-up required','Wrong number'];
   const seen = Array.from(new Set(LIST_ROWS.map(r=>(r.last_disposition||'').trim()).filter(Boolean)));
   const callOpts = Array.from(new Set(disps.concat(seen))).map(x=>[x,x]);
   callOpts.push(['__logged','Call logged, no disposition'], ['__none','No calls yet']);
@@ -1679,7 +1679,7 @@ async function flushPendingSave(){
 function todayIso(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function sectionCalls(){
   const calls = (DATA.call_log||[]).slice().sort((a,b)=>((b.date||'')+(b.at||'')).localeCompare((a.date||'')+(a.at||'')));
-  const disps = DATA.call_dispositions || ['Unanswered','Follow-up required','Wrong number'];
+  const disps = DATA.call_dispositions || ['Answered','Unanswered','Follow-up required','Wrong number'];
   const inp = 'padding:9px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px;background-color:#fff';
   const list = calls.length ? calls.map(c=>
       '<div class="call-row"><div class="call-main">'

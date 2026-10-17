@@ -721,7 +721,7 @@ def _is_blank_sheet(lead, pb) -> bool:
 # ─── Call log (2026-10-07, per Shruti) ──────────────────────────────────────
 # Replaces the sales team's Google Sheet columns: call date (+ first call),
 # disposition, follow-up date/time, remarks — one entry per call.
-CALL_DISPOSITIONS = ["Unanswered", "Follow-up required", "Wrong number"]   # "Call back later" renamed 2026-10-16 (migration 062)
+CALL_DISPOSITIONS = ["Answered", "Unanswered", "Follow-up required", "Wrong number"]   # "Answered" added 2026-10-17   # "Call back later" renamed 2026-10-16 (migration 062)
 
 
 def _clean_call_log(entries: list, by: str) -> list:
@@ -969,6 +969,17 @@ async def _roll_wsr_repeat_leads():
                      AND (CASE WHEN date_precision = 'month' THEN (event_date + INTERVAL '1 month')::date ELSE event_date END)
                          < CURRENT_DATE - 7
                      AND status NOT IN ('DND', 'Did not Enquire', 'Cancelled')
+                     -- 2026-10-17 fix: never roll a lead the team is working on.
+                     -- Without this, a lead whose (old) event date had passed was
+                     -- flipped back to "Re-engage later" on every list load, so a
+                     -- status the team had just set seemed not to save.
+                     AND NOT EXISTS (SELECT 1 FROM booking_change_log c
+                                     WHERE c.lead_id = leads.lead_id AND c.field_key = 'status'
+                                       AND c.changed_at > NOW() - INTERVAL '30 days')
+                     AND NOT EXISTS (SELECT 1 FROM lead_sales_playbook p
+                                     WHERE p.lead_id = leads.lead_id AND jsonb_typeof(p.call_log) = 'array'
+                                       AND EXISTS (SELECT 1 FROM jsonb_array_elements(p.call_log) e
+                                                   WHERE e->>'date' >= to_char(CURRENT_DATE - 30, 'YYYY-MM-DD')))
                    RETURNING lead_id"""
             )
             if not n:

@@ -155,6 +155,8 @@ def _outcome(d, last) -> str:
     disp = (last.get("disposition") or "").lower()
     if disp == "unanswered":
         return "Unanswered"
+    if disp == "answered":
+        return "Answered"
     if disp == "wrong number":
         return "Wrong number"
     if last.get("followup_at"):
@@ -162,7 +164,7 @@ def _outcome(d, last) -> str:
     return "Other"
 
 
-OUTCOMES = ["Unanswered", "Follow-up set", "Interested", "Converted", "Not interested", "Wrong number", "Other"]
+OUTCOMES = ["Unanswered", "Answered", "Follow-up set", "Interested", "Converted", "Not interested", "Wrong number", "Other"]
 
 
 def _daily(leads, day: date, today: date) -> dict:
