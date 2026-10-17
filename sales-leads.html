@@ -1859,6 +1859,16 @@ function salesLeadField(){
     + '</select></div>';
 }
 // ── 1. Client & Event Details ───────────────────────────────────────────
+// Lead source, editable (2026-10-17, per Shruti). Pick from the usual
+// sources or type a new one; the list also offers every source already used.
+const LEAD_SOURCES = ['Insta', 'Website', 'Referral', 'Repeat client', 'WSR Repeat', 'Google', 'Facebook', 'Walk-in', 'Event / Stall', 'Other'];
+function leadSourceField(d){
+  const seen = (typeof LIST_ROWS !== 'undefined' ? LIST_ROWS : []).map(r=>String(r.lead_source||'').trim()).filter(Boolean);
+  const opts = Array.from(new Set(LEAD_SOURCES.concat(seen)));
+  return '<div class="fld"><label>Lead Source</label>'
+    + '<input type="text" id="f_lead_source" list="leadSourceList" value="'+esc(d.lead_source||'')+'" placeholder="Pick or type, e.g. Insta, Referral" onchange="saveField(\'lead_source\', this.value.trim(), this.type)">'
+    + '<datalist id="leadSourceList">'+opts.map(o=>'<option value="'+esc(o)+'">').join('')+'</datalist></div>';
+}
 function sectionClientDetails(){
   const d = DATA;
   const f = (key,label,type,extra) => '<div class="fld"><label>'+label+'</label>'
@@ -1913,6 +1923,7 @@ function sectionClientDetails(){
     + srcBox + wsrBox + convBox
     + '<div class="grid2">' + f('client_name','Client Name','text') + f('mobile','Mobile No.','tel') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('email','Email','email','placeholder="name@example.com"') + salesLeadField() + '</div>'
+    + '<div class="grid2" style="margin-top:10px">' + leadSourceField(d) + '<div></div></div>'
     + '<div class="grid2" style="margin-top:10px">' + f('child_name',"Child's Name",'text') + f('child_age','Celebrating Age','text') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + genderSel + f('kids_count','# Kids','number') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('event_date','Event Date','date') + themeField() + '</div>'

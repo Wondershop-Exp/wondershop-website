@@ -290,6 +290,8 @@ LEAD_FIELD_MAP = {
     # is filled from AiSensy when it sends the ad's details; editable so the
     # team can fill it in from AiSensy's Ad Manager when it doesn't.
     "ad_shown": "ad_shown",
+    # 2026-10-17, per Shruti — "let the user edit lead source as well".
+    "lead_source": "lead_source",
 }
 
 # LEAD_FIELD_MAP keys whose target `leads` column is a real numeric type
