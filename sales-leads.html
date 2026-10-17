@@ -1867,13 +1867,18 @@ function salesLeadField(){
 // ── 1. Client & Event Details ───────────────────────────────────────────
 // Lead source, editable (2026-10-17, per Shruti). Pick from the usual
 // sources or type a new one; the list also offers every source already used.
-const LEAD_SOURCES = ['Insta', 'Website', 'Referral', 'Repeat client', 'WSR Repeat', 'Google', 'Facebook', 'Walk-in', 'Event / Stall', 'Other'];
+// Approved values only (2026-10-17, per Shruti — "new values cannot be
+// entered, I'll approve the values"). Keep in step with catalogue_data.LEAD_SOURCES.
+const LEAD_SOURCES = ['Insta','Website','Referral','Repeat client','WSR Repeat','Google','Facebook','Walk-in','Event / Stall','Other'];
 function leadSourceField(d){
-  const seen = (typeof LIST_ROWS !== 'undefined' ? LIST_ROWS : []).map(r=>String(r.lead_source||'').trim()).filter(Boolean);
-  const opts = Array.from(new Set(LEAD_SOURCES.concat(seen)));
+  const cur = String(d.lead_source||'').trim();
+  const opts = LEAD_SOURCES.slice();
+  if(cur && !opts.includes(cur)) opts.unshift(cur);   // an old value stays visible until changed
   return '<div class="fld"><label>Lead Source</label>'
-    + '<input type="text" id="f_lead_source" list="leadSourceList" value="'+esc(d.lead_source||'')+'" placeholder="Pick or type, e.g. Insta, Referral" onchange="saveField(\'lead_source\', this.value.trim(), this.type)">'
-    + '<datalist id="leadSourceList">'+opts.map(o=>'<option value="'+esc(o)+'">').join('')+'</datalist></div>';
+    + '<select id="f_lead_source" onchange="saveField(\'lead_source\', this.value)">'
+    + '<option value="">— Select —</option>'
+    + opts.map(o=>'<option value="'+esc(o)+'"'+(o===cur?' selected':'')+'>'+esc(o)+(LEAD_SOURCES.includes(o)?'':' (old value)')+'</option>').join('')
+    + '</select></div>';
 }
 function sectionClientDetails(){
   const d = DATA;

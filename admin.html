@@ -1475,6 +1475,8 @@ function bdMoney(s){
 }
 function bdRupees(n){ return n === null ? '—' : '₹'+Math.round(n).toLocaleString('en-IN'); }
 
+// Approved Lead Source values — keep in step with catalogue_data.LEAD_SOURCES (2026-10-17).
+const LEAD_SOURCES = ['Insta','Website','Referral','Repeat client','WSR Repeat','Google','Facebook','Walk-in','Event / Stall','Other'];
 async function saveLeadSource(el){
   const who = getName();
   if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
@@ -1504,8 +1506,9 @@ function renderBookingHead(d){
     ['Phone', phone ? '<a href="tel:'+esc(phone.replace(/[^0-9+]/g, ''))+'">'+esc(phone)+'</a>' : ''],
     ['Theme', esc(bdVal(d, 'theme'))],
     // Editable (2026-10-17, per Shruti): pick or type, saved on change.
-    ['Lead source', '<input type="text" id="bdLeadSource" list="bdLeadSourceList" value="'+esc(d.lead_source||'')+'" placeholder="e.g. WSR Repeat" onchange="saveLeadSource(this)" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--li2);border-radius:6px;width:150px">'
-      + '<datalist id="bdLeadSourceList">'+['Insta','Website','Referral','Repeat client','WSR Repeat','Google','Facebook','Walk-in','Event / Stall','Other'].map(o=>'<option value="'+o+'">').join('')+'</datalist>'],
+    ['Lead source', (()=>{ const cur=String(d.lead_source||'').trim(), L=LEAD_SOURCES.slice(); if(cur && !L.includes(cur)) L.unshift(cur);
+      return '<select id="bdLeadSource" onchange="saveLeadSource(this)" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--li2);border-radius:6px">'
+        + '<option value="">— Select —</option>' + L.map(o=>'<option value="'+esc(o)+'"'+(o===cur?' selected':'')+'>'+esc(o)+(LEAD_SOURCES.includes(o)?'':' (old value)')+'</option>').join('') + '</select>'; })()],
   ];
   // 2026-09-25, per Shruti -- "if I choose the Custom Pinata design option,
   // it should be flagged in red ... as a task to be completed in the admin

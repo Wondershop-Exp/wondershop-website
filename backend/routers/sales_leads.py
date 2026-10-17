@@ -59,7 +59,7 @@ from catalogue_data import (
     PACKAGING_LABELS, ACTIVITIES, GIFTS, ACTIVE_GIFTS, EINVITE_TIER_PRICES, SAVE_THE_DATE_PRICE,
     THEME_PREFERENCE_NAMES,
     SPY_HOST_INCLUDED_IDS, SPY_HOST_INCLUDED_NAMES, SPY_INCLUDED_HOST_TIER,
-    host_tier_for_quote, spy_host_included_by, banded_activity_price, engagement_from_price, activity_venue_note, greeting_name,
+    host_tier_for_quote, spy_host_included_by, banded_activity_price, engagement_from_price, LEAD_SOURCES, activity_venue_note, greeting_name,
 )
 
 router = APIRouter()
@@ -1423,6 +1423,9 @@ async def patch_sheet(lead_id: int, body: PatchIn, x_admin_password: Optional[st
     for key, val in body.fields.items():
         if key in LEAD_FIELD_MAP:
             col = LEAD_FIELD_MAP[key]
+            # Lead source: approved values only (2026-10-17, per Shruti).
+            if key == "lead_source" and val not in (None, "") and str(val).strip() not in LEAD_SOURCES:
+                raise HTTPException(status_code=400, detail="Pick a lead source from the list.")
             # `fields` is Dict[str, Any] with no per-key type coercion —
             # a value straight from a JS `<input type="number">` (whose
             # .value is always a string) was going straight into a raw

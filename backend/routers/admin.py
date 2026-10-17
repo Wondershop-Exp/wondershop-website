@@ -3057,6 +3057,8 @@ async def set_lead_source(lead_id: int, body: LeadSourceRequest, x_admin_passwor
     if not row:
         raise HTTPException(status_code=404, detail="Not found.")
     new = (body.lead_source or "").strip()[:100] or None
+    if new and new not in cat.LEAD_SOURCES and new != row["lead_source"]:
+        raise HTTPException(status_code=400, detail="Pick a lead source from the list.")
     if new == row["lead_source"]:
         return {"success": True, "lead_source": new}
     await database.execute("UPDATE leads SET lead_source = :v WHERE lead_id = :id", values={"v": new, "id": lead_id})
