@@ -979,7 +979,9 @@ async def _roll_wsr_repeat_leads():
                      AND NOT EXISTS (SELECT 1 FROM lead_sales_playbook p
                                      WHERE p.lead_id = leads.lead_id AND jsonb_typeof(p.call_log) = 'array'
                                        AND EXISTS (SELECT 1 FROM jsonb_array_elements(p.call_log) e
-                                                   WHERE e->>'date' >= to_char(CURRENT_DATE - 30, 'YYYY-MM-DD')))
+                                                   WHERE e->>'date' >= to_char(CURRENT_DATE - 30, 'YYYY-MM-DD')
+                                                      -- or a follow-up still to come (2026-10-17)
+                                                      OR e->>'followup_at' >= to_char(CURRENT_DATE, 'YYYY-MM-DD')))
                    RETURNING lead_id"""
             )
             if not n:
