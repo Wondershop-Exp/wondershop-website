@@ -1271,9 +1271,12 @@ function renderDetail(){
     + sectionStatus()
     + sectionCalls()
     + sectionClientDetails()
+    // Same order as Build-a-Birthday and the booking page (2026-10-17, per
+    // Shruti): Decor, Activities, Host, Music, Pinata, Invite, Photo, Gifts.
+    + sectionDecor()
+    + sectionActivities()
     + sectionRequirements()
     + sectionSchedule()
-    + sectionActivities()
     + sectionNotes()
     + sectionBilling()
     // Post-Event Notes moved to the booking page (2026-10-12, per Shruti —
@@ -2666,21 +2669,23 @@ async function onPinataBagsPick(val){
   renderDetail();
 }
 
+function sectionDecor(){
+  return '<div class="card"><h3>2 · Decor</h3>' + reqDecorRow() + '</div>';
+}
 function sectionRequirements(){
-  let html = '<div class="card"><h3>2 · Event Requirements</h3>';
-  html += reqDecorRow();
+  let html = '<div class="card"><h3>4 · Event Requirements</h3>';
   html += reqHostRow();
   html += reqTextRow('host_gifts', 'Host Gifts (Add-on)');
   html += reqMusicRow();
-  html += reqReturnGiftsRow();
-  html += reqReturnGiftTagsRow();
-  html += reqPackagingRow();
   html += reqPinataRow();
   html += reqPinataBagsRow();
   html += reqYesNoRow('pinata_fillings', 'Pinata — Fillings (Add-on)', (CATALOGUE.pinata_fillings||{}).note||'');
-  html += reqTextRow('cake', 'Cake', CATALOGUE.cake_note||'');
-  html += reqPhotographerRow();
   html += reqEinviteRow();
+  html += reqPhotographerRow();
+  html += reqReturnGiftsRow();
+  html += reqReturnGiftTagsRow();
+  html += reqPackagingRow();
+  html += reqTextRow('cake', 'Cake', CATALOGUE.cake_note||'');
   html += '</div>';
   return html;
 }
@@ -2709,7 +2714,7 @@ async function onMusicAddonChange(name, price, checked){
 let SCHEDULE = [];
 function sectionSchedule(){
   SCHEDULE = (DATA.event_schedule || []).map(r=>Object.assign({time:'',item:''},r));
-  return '<div class="card"><h3>3 · Event Schedule</h3><div id="schedRows"></div>'
+  return '<div class="card"><h3>5 · Event Schedule</h3><div id="schedRows"></div>'
     + '<button type="button" class="add-dash" onpointerdown="event.preventDefault()" onclick="addSchedRow()">+ Add row</button></div>';
 }
 let SCHED_REBUILDING = false;
@@ -2780,7 +2785,7 @@ function saveSched(){ stageSched(); }
 // behaves identically on desktop and mobile since it doesn't rely on any
 // browser-native autocomplete UI.
 function sectionActivities(){
-  return '<div class="card"><h3>4 · Activities <a href="builder.html?browse=activities" target="_blank" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">Open Build-a-Birthday (activities) ↗</a></h3>'
+  return '<div class="card"><h3>3 · Activities <a href="builder.html?browse=activities" target="_blank" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">Open Build-a-Birthday (activities) ↗</a></h3>'
     + '<div class="pick-row" style="margin-top:0">'
       + '<div class="pick-wrap">'
         + '<input type="text" id="actPickInput" autocomplete="off" placeholder="Search activities to add…" '
@@ -3103,7 +3108,7 @@ function submitNewActivity(){
 // ── 5. Notes ─────────────────────────────────────────────────────────────
 function sectionNotes(){
   const d = DATA;
-  return '<div class="card"><h3>5 · Notes / Client Special Instructions</h3>'
+  return '<div class="card"><h3>6 · Notes / Client Special Instructions</h3>'
     + '<div class="fld"><label>Notes / Special Instructions</label><textarea onblur="saveField(\'notes_special_instructions\', this.value)">'+esc(d.notes_special_instructions||'')+'</textarea></div>'
     + '<div class="fld" style="margin-top:10px"><label>Changes / Last-Minute Updates</label><textarea onblur="saveField(\'notes_changes_updates\', this.value)">'+esc(d.notes_changes_updates||'')+'</textarea></div>'
     + '</div>';
@@ -3242,7 +3247,7 @@ function sectionBilling(){
   const d = DATA;
   const LB = listBreakdown();
   const pmOpts = '<option value="">— select —</option>' + PAYMENT_METHODS.map(m=>'<option '+(m===d.payment_method?'selected':'')+'>'+m+'</option>').join('');
-  return '<div class="card"><h3>6 · Confirm Booking &amp; Balance</h3>'
+  return '<div class="card"><h3>7 · Confirm Booking &amp; Balance</h3>'
     + (d.kids_count?'':'<div class="ref-note">Activities priced per child use ×1 until # Kids is filled in above.</div>')
     + '<div class="grid4">'
       + '<div class="fld"><label>Grand Total (from selections)</label><div class="readonly-amt" id="bill_est_total">'+(money(LB.total)||'₹0')+'</div></div>'
