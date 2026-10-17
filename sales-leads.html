@@ -1359,9 +1359,9 @@ function estimateTotalLocal(){
     }
   });
   (DATA.activities || []).forEach(function(a){
-    let price = Number((a && a.price) || 0);
+    let price = Number((a && actEffPrice(a)) || 0);
     if(isNaN(price)) price = 0;
-    total += a.flat ? price : price * actQty(a);
+    total += (a.flat || engBandPrice(a)!=null) ? price : price * actQty(a);
   });
   return Math.round(total * 100) / 100;
 }
@@ -1511,8 +1511,10 @@ function listBreakdown(){
     const flat = catA ? !!catA.flat : !!a.flat;
     // Price-on-request activities (catalogue price 0) count at the price the
     // sales person typed in (2026-10-03) — twin of _list_breakdown().
-    const qUnit = num(a.price), cUnit = (catA && Number(catA.price)) ? Number(catA.price) : qUnit;
-    const mult = flat ? 1 : actQty(a);   // per-activity kids count (2026-10-05)
+    let qUnit = num(a.price), cUnit = (catA && Number(catA.price)) ? Number(catA.price) : qUnit;
+    let mult = flat ? 1 : actQty(a);   // per-activity kids count (2026-10-05)
+    const band = engBandPrice(a);       // Sports Engagement: headcount band (2026-10-17)
+    if(band != null){ if(qUnit === engCatPrice(a)) qUnit = null; cUnit = band; mult = 1; }
     items.push({label:'Activity: '+a.name+(a.custom?' (custom'+(qUnit?'':', price to be confirmed')+')':'')+(flat?'':' ('+mult+' × '+money(cUnit||0)+')'),
                 mrp: (cUnit||0)*mult, quote: (qUnit===null ? cUnit||0 : qUnit)*mult});
   });
@@ -1525,7 +1527,7 @@ function breakupHtml(b){
   return '<div class="gt-breakup"><table>'
     + '<thead><tr><th>Item</th><th>MRP</th><th>Sales quote</th></tr></thead><tbody>'
     + b.items.map(i=>'<tr><td>'+esc(i.label)+'</td><td>'+(i.noMrp ? '<span title="No list price — the sales quote counts in the MRP total">—</span>' : money(i.mrp))+'</td>'
-        + '<td'+(i.quote < i.mrp ? ' class="neg"' : '')+'>'+money(i.quote)+'</td></tr>').join('')
+        + '<td'+(i.quote < i.mrp ? ' class="neg"' : '')+'>'+(i.quote < i.mrp && !i.noMrp ? '<s style="color:var(--gy);font-weight:400">'+money(i.mrp)+'</s> ' : '')+money(i.quote)+'</td></tr>').join('')
     + '</tbody><tfoot><tr><td>Total</td><td>'+money(b.total)+'</td><td>'+money(b.quoteTotal)+'</td></tr></tfoot>'
     + '</table></div>'
     + giftBreakupHtml(b);
@@ -2953,6 +2955,16 @@ function renderActivities(){
       const inp = 'padding:7px 9px;border:1px solid var(--li2);border-radius:8px;font-size:13px';
       const nameJs = esc(a.name).replace(/\'/g,"\\'");
       const rm = '<button type="button" class="icon-btn" onclick="toggleActivity(\''+a.id+'\',\''+nameJs+'\',null,null)" title="Remove">✕</button>';
+      const band = engBandPrice(a);
+      if(band != null){
+        const eff = actEffPrice(a);
+        return '<div class="act-item sel"><div class="act-main" style="cursor:default;flex-wrap:wrap;gap:8px">'
+          + '<div class="an">'+esc(a.name)+'<div class="act-ref">List price '+money(band)+' for '+actQty(a)+' kids (by headcount)</div>'+venueNote(a)+'</div>'
+          + '<label class="act-fld">Kids<input type="number" min="0" step="1" style="width:72px;'+inp+'" value="'+actQty(a)+'" onblur="onActField(\''+idJs+'\',\'qty\',this.value)"></label>'
+          + '<label class="act-fld">Sales Quote (₹)<input type="number" min="0" step="1" style="width:120px;'+inp+'" value="'+eff+'" onblur="onActField(\''+idJs+'\',\'price\',this.value)"></label>'
+          + '<div class="ap"'+(eff<band?' style="color:var(--pk)"':'')+'>'+(eff<band?'<s style="color:var(--gy);font-weight:400">'+money(band)+'</s> ':'')+money(eff)+'</div>'
+          + rm + '</div></div>';
+      }
       if(a.flat){
         return '<div class="act-item sel"><div class="act-main" style="cursor:default;flex-wrap:wrap;gap:8px">'
           + '<div class="an">'+esc(a.name)+(a.custom ? customActTag(a) : '<div class="act-ref">Flat · list price '+(listPrice!=null?money(listPrice):'—')+'</div>')+venueNote(a)+'</div>'
@@ -2971,7 +2983,7 @@ function renderActivities(){
         + '<div class="ap" title="Kids × Sales Quote per child">= '+money(lineTotal)+'</div>'
         + rm + '</div></div>';
     }).join('');
-    const activitiesTotal = chosen.reduce((sum,a)=> sum + (Number(a.price)||0) * (a.flat ? 1 : actQty(a)), 0);
+    const activitiesTotal = chosen.reduce((sum,a)=> sum + (Number(actEffPrice(a))||0) * ((a.flat || engBandPrice(a)!=null) ? 1 : actQty(a)), 0);
     listEl.innerHTML += '<div class="ref-note" style="margin-top:8px">Activities total (sales quote): <b style="color:var(--bk)">'+money(activitiesTotal)+'</b></div>';
   }
 
@@ -2989,6 +3001,28 @@ function renderActivities(){
 // patchSheet() above.
 // This activity's own kids count (2026-10-05): a.qty when the sales person set
 // one, otherwise the party's overall # Kids (×1 until that's filled in).
+// Sports Engagement (turf) is priced by headcount band, not flat (2026-10-17,
+// per Shruti) — twin of catalogue_data.banded_activity_price() / builder.html.
+const ENG_BANDS=[[10,14500,18500],[20,35000,42000],[30,35000,46000],[40,44000,57000],[50,50000,64500]];
+const ENG_ACTS={eng90:90,eng120:120,'90 Min Sports Engagement':90,'120 Min Sports Engagement':120};
+function engBandPrice(a){
+  const dur = ENG_ACTS[a && a.id] || ENG_ACTS[String((a&&a.name)||'').replace(/\s*\(.*$/,'').trim()];
+  if(!dur) return null;
+  const k = Math.max(1, Number(actQty(a))||1), col = dur===90 ? 1 : 2;
+  for(const b of ENG_BANDS){ if(k <= b[0]) return b[col]; }
+  return ENG_BANDS[ENG_BANDS.length-1][col] + (k-50)*(dur===90?600:750);
+}
+function engCatPrice(a){
+  const c = ((typeof CATALOGUE!=='undefined' && CATALOGUE && CATALOGUE.activities) || []).find(x=>(a.id && x.id===a.id) || x.name===a.name);
+  return c && c.price!=null ? Number(c.price) : null;
+}
+// The price that counts: the band price unless the sales person typed a quote
+// (a saved price equal to the catalogue "from" figure means untouched).
+function actEffPrice(a){
+  const band = engBandPrice(a), p = (a && a.price!=null && a.price!=='') ? Number(a.price) : null;
+  if(band == null) return p;
+  return (p == null || p === engCatPrice(a)) ? band : p;
+}
 function actQty(a){
   const q = (a && a.qty!=null && a.qty!=='') ? Number(a.qty) : NaN;
   return !isNaN(q) ? q : ((DATA && DATA.kids_count) || 1);

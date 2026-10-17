@@ -5234,7 +5234,12 @@ function pendingActQuoteHtml(name, key){
   if(CURRENT_DETAIL.locked) return '';
   const opt = (MP_OPTIONS['fld_svc_activities']||[]).find(o => o.value === name);
   if(!opt || !opt.price) return '';
-  const perKid = !opt.flat, kids = MP_KIDS_COUNT || 1, unit = Number(opt.price);
+  const perKid = !opt.flat, kids = MP_KIDS_COUNT || 1;
+  // Sports Engagement: list price by headcount band (2026-10-17), not the flat "from" price.
+  const _engB=[[10,14500,18500],[20,35000,42000],[30,35000,46000],[40,44000,57000],[50,50000,64500]];
+  const _dur={'90 Min Sports Engagement':90,'120 Min Sports Engagement':120}[String(name).replace(/\s*\(.*$/,'').trim()];
+  let unit = Number(opt.price);
+  if(_dur){ const c=_dur===90?1:2, b=_engB.find(x=>kids<=x[0]); unit = b ? b[c] : _engB[4][c] + (kids-50)*(_dur===90?600:750); }
   return '<span class="aq-inline lq-pending" data-k="'+esc(key)+'" data-pk="'+(perKid?1:0)+'">'
     + (perKid ? '<span class="aq-qlbl">Kids</span><input type="number" min="1" step="1" class="aq-in aq-kids" value="'+kids+'" oninput="pendingActTotal(this)"><span class="aq-qlbl">× ₹</span>'
               : '<span class="aq-qlbl">₹</span>')

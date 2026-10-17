@@ -565,6 +565,44 @@ SPY_HOST_INCLUDED_NAMES = {"Spy Treasure Hunt"}
 SPY_INCLUDED_HOST_TIER = "Signature"
 # 2026-10-17, per Shruti — "for turf activity, like spy, show signature host is
 # included": the Turf package's Sports Engagement brings the same free host.
+# Sports Engagement is priced by headcount band, not flat (2026-10-17, per
+# Shruti — "for turf, the price is 44k for 40 kids"). Same table as
+# ENGAGEMENT_BANDS in builder.html / turf-basic.html; above 50 kids each extra
+# child adds 600 (90 min) / 750 (120 min). The ACTIVITIES price below is only
+# the catalogue's "from" figure.
+ENGAGEMENT_BANDS = [(10, 14500, 18500), (20, 35000, 42000), (30, 35000, 46000), (40, 44000, 57000), (50, 50000, 64500)]
+_ENGAGEMENT_ACTS = {"eng90": 90, "eng120": 120, "90 Min Sports Engagement": 90, "120 Min Sports Engagement": 120}
+
+
+def banded_activity_price(id_or_name, kids) -> Optional[float]:
+    """Headcount-band price for a Sports Engagement activity (by id or name,
+    "(…)" suffix ignored), else None — callers fall back to the normal price."""
+    key = re.sub(r"\s*\(.*\)\s*$", "", str(id_or_name or "").strip())
+    dur = _ENGAGEMENT_ACTS.get(key)
+    if not dur:
+        return None
+    try:
+        k = max(1, int(float(kids or 0)))
+    except (TypeError, ValueError):
+        k = 1
+    col = 1 if dur == 90 else 2
+    for band in ENGAGEMENT_BANDS:
+        if k <= band[0]:
+            return float(band[col])
+    last = ENGAGEMENT_BANDS[-1]
+    return float(last[col] + (k - 50) * (600 if dur == 90 else 750))
+
+
+def engagement_from_price(id_or_name) -> Optional[float]:
+    """The catalogue's flat "from" price for a Sports Engagement (what an
+    untouched pick saves as its price), else None."""
+    key = re.sub(r"\s*\(.*\)\s*$", "", str(id_or_name or "").strip())
+    for aid, n, p, _f in ACTIVITIES:
+        if key in (aid, n) and aid in _ENGAGEMENT_ACTS:
+            return float(p)
+    return None
+
+
 TURF_HOST_INCLUDED = {"eng90": "90 Min Sports Engagement", "eng120": "120 Min Sports Engagement"}
 
 

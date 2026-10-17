@@ -1968,6 +1968,8 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
     req = _j(pb["requirements"]) or {}
     activities = _j(pb["activities"]) or []
     schedule = _j(pb["event_schedule"]) or []
+    _kc = await database.fetch_one("SELECT kids_count FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    kids_count_for_band = (_kc and _kc["kids_count"]) or 0
 
     existing_rows = await database.fetch_all(
         "SELECT field_key FROM booking_field_overrides WHERE lead_id = :id", values={"id": lead_id},
@@ -2009,6 +2011,12 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
             cat_price = ACTIVITY_PRICES.get(name)
             standard = cat_price[0] if isinstance(cat_price, tuple) else cat_price
             sales_price = a.get("price")
+            # Sports Engagement: list price by headcount band (2026-10-17).
+            _band = cat.banded_activity_price(name, a.get("qty") or kids_count_for_band)
+            if _band:
+                if sales_price is not None and cat.engagement_from_price(name) == float(sales_price or 0):
+                    sales_price = None
+                standard = _band
             # Price-on-request activities have no standard price (0) — their
             # quoted price goes to the To be confirmed card instead (below).
             if standard and sales_price is not None:

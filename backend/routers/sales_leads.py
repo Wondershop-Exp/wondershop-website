@@ -59,7 +59,7 @@ from catalogue_data import (
     PACKAGING_LABELS, ACTIVITIES, GIFTS, ACTIVE_GIFTS, EINVITE_TIER_PRICES, SAVE_THE_DATE_PRICE,
     THEME_PREFERENCE_NAMES,
     SPY_HOST_INCLUDED_IDS, SPY_HOST_INCLUDED_NAMES, SPY_INCLUDED_HOST_TIER,
-    host_tier_for_quote, spy_host_included_by, activity_venue_note, greeting_name,
+    host_tier_for_quote, spy_host_included_by, banded_activity_price, engagement_from_price, activity_venue_note, greeting_name,
 )
 
 router = APIRouter()
@@ -594,6 +594,14 @@ def _list_breakdown(requirements: dict, activities: list, kids_count: Optional[i
         except (TypeError, ValueError):
             own_qty = None
         mult = 1 if flat else (own_qty if own_qty is not None else kids)
+        # Sports Engagement: price by headcount band (2026-10-17). A quote equal
+        # to the old flat catalogue figure means nobody changed it.
+        band = banded_activity_price(a.get("id") or a.get("name"), own_qty if own_qty is not None else kids) \
+            or banded_activity_price(a.get("name"), own_qty if own_qty is not None else kids)
+        if band:
+            if q_unit is not None and cat_a and cat_a.get("price") and q_unit == float(cat_a["price"]):
+                q_unit = None
+            flat, mult, c_unit = True, 1, band
         items.append({
             "key": "activity", "label": a.get("name"), "no_mrp": False,
             "mrp": (c_unit or 0) * mult, "quote": ((c_unit or 0) if q_unit is None else q_unit) * mult,
@@ -635,7 +643,11 @@ def _estimate_total(requirements: dict, activities: list, kids_count: Optional[i
             qty = None if a.get("qty") in (None, "") else float(a.get("qty"))
         except (TypeError, ValueError):
             qty = None
-        if a.get("flat"):
+        band = banded_activity_price(a.get("id") or a.get("name"), qty if qty is not None else kids_count) \
+            or banded_activity_price(a.get("name"), qty if qty is not None else kids_count)
+        if band and (not price or price == engagement_from_price(a.get("id") or a.get("name")) or price == engagement_from_price(a.get("name"))):
+            total += band
+        elif a.get("flat"):
             total += price
         else:
             total += price * (qty if qty is not None else (kids_count or 1))

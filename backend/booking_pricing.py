@@ -264,7 +264,7 @@ def compute_adjustments(lead: dict, snap: dict, cur: dict, removed: set) -> dict
                     unpriced.append(f"Activity: {name}")
                     continue
                 p, flat = p_flat
-                add(sub, f"Activity added: {name}", p if flat else p * kids)
+                add(sub, f"Activity added: {name}", cat.banded_activity_price(name, kids) or (p if flat else p * kids))
         for name, paid in orig_acts.items():
             if name not in cur_names:
                 add(sub, f"Activity removed: {name}", -paid)
@@ -456,6 +456,9 @@ def _price_activities(names_csv: Optional[str], kids: int, kids_by: Optional[dic
         n = int((kids_by or {}).get("kids:" + line_key("Activity: " + name)) or kids or 0)
         amount = p if flat else p * max(n, 1)
         detail = "" if flat else f" ({n} kids × ₹{p:g})"
+        band = cat.banded_activity_price(name, n)   # Sports Engagement by headcount (2026-10-17)
+        if band:
+            amount, detail = band, f" ({n} kids)"
         items.append((f"Activity: {name}{detail}", amount))
     return items, unpriced
 
