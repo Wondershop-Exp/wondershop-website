@@ -1869,7 +1869,7 @@ function salesLeadField(){
 // sources or type a new one; the list also offers every source already used.
 // Approved values only (2026-10-17, per Shruti — "new values cannot be
 // entered, I'll approve the values"). Keep in step with catalogue_data.LEAD_SOURCES.
-const LEAD_SOURCES = ['Insta','Website','Referral','Repeat client','WSR Repeat','Google','Facebook','Walk-in','Event / Stall','Other'];
+const LEAD_SOURCES = ['Instagram','Facebook','Google','Repeat','Stall','Referral','Website'];
 function leadSourceField(d){
   const cur = String(d.lead_source||'').trim();
   const opts = LEAD_SOURCES.slice();

@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     AISENSY_WEBHOOK_TOKEN: str = ""
     # What every AiSensy webhook lead is tagged with (shown in the Lead
     # Source / Lead Source Platform columns, and the "Instagram" filter).
-    AISENSY_LEAD_SOURCE: str = "Insta"
+    AISENSY_LEAD_SOURCE: str = "Instagram"   # approved Lead Source value (2026-10-17)
     AISENSY_LEAD_PLATFORM: str = "AISensy"
     # true = only messages that came from a click on an ad (AiSensy passes
     # the ad's details along) become leads; false (default) = every NEW

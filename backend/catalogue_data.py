@@ -607,7 +607,7 @@ def engagement_from_price(id_or_name) -> Optional[float]:
 # Approved Lead Source values (2026-10-17, per Shruti — "make lead source a
 # dropdown ... new values cannot be entered, I'll approve the values"). Add a
 # value here (and in LEAD_SOURCES in sales-leads.html / admin.html) to approve it.
-LEAD_SOURCES = ["Insta", "Website", "Referral", "Repeat client", "WSR Repeat", "Google", "Facebook", "Walk-in", "Event / Stall", "Other"]
+LEAD_SOURCES = ["Instagram", "Facebook", "Google", "Repeat", "Stall", "Referral", "Website"]   # approved 2026-10-17
 
 
 TURF_HOST_INCLUDED = {"eng90": "90 Min Sports Engagement", "eng120": "120 Min Sports Engagement"}
