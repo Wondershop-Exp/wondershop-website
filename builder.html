@@ -3182,6 +3182,8 @@ function actPriceRaw(a,kids){
   if(a.id==='face-painting')return 4500;
   // Bracelet Making — ₹350/child, minimum bill ₹5,000 (2026-10-03).
   if(a.id==='bracelet')return Math.max(5000,kids*350);
+  // Rock Painting — ₹500/child, minimum bill ₹5,000 (2026-10-17, per Shruti).
+  if(a.id==='rock-painting')return Math.max(5000,kids*500);
   if(a.id==='hit-the-cans')return 5000;
   // MDF Spy Badge — same as the Spy package's station s3: ₹9,000 up to 30
   // kids, then ₹300 per extra child.
@@ -3311,6 +3313,7 @@ const ACTS=[
   {id:'photoframe-decor',n:'Photo Frame Decoration',e:'🖼️',img:'activity/act-photo-frame',realImg:true,cat:'craft',age:'4-12',dur:'20-30 min',req:'Tables & chairs (arranged by client)',r1:400,r2:400,r3:400,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#B59DDE)'],tag:'new',pers:true,rating:4.7,cnt:1},
   {id:'mirror-decor',n:'Mirror Decoration',e:'🪞',img:'activity/act-mirror-decoration',realImg:true,cat:'craft',age:'4-12',dur:'20-30 min',req:'Tables & chairs (arranged by client)',r1:750,r2:750,r3:750,flat:false,bgs:['linear-gradient(135deg,#EDE6FA,#E65A96)'],tag:'new',pers:true,rating:4.8,cnt:1},
   {id:'bracelet',n:'Bracelet Making',e:'📿',img:'activity/act-bracelet-making',realImg:true,cat:'craft',age:'4-14',dur:'20-30 min',req:'Tables & chairs (arranged by client)',r1:350,r2:350,r3:350,flat:false,minNote:'Minimum ₹5,000',bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)'],tag:'new',pers:true,rating:4.8,cnt:1},
+  {id:'rock-painting',n:'Rock Painting',e:'🪨',img:'activity/act-rock-painting',realImg:true,cat:'art',age:'4+',dur:'20-30 min',req:'Tables & chairs (arranged by client)',r1:500,r2:500,r3:500,flat:false,minNote:'Minimum ₹5,000',bgs:['linear-gradient(135deg,#F2D147,#5B8EDD)'],tag:'new',pers:true,rating:4.8,cnt:1},
   {id:'spy-badge',n:'MDF Spy Badge',e:'🕵️',img:'packages/spy/spy-badge-mdf-sq',realImg:true,cat:'mystery',age:'5-14',dur:'15-20 min',req:'Tables & chairs (arranged by client)',r1:9000,r2:9000,r3:9000,flat:true,banded:true,bgs:['linear-gradient(135deg,#374151,#5B8EDD)'],tag:'new',pers:true,rating:4.7,cnt:1},
   {id:'snatch-game',n:'Snatch Game',e:'🎯',img:'activity/act-snatch-game',realImg:true,cat:'carnival',age:'5-14',dur:'Throughout the party',req:'A table-top stall with power point nearby',r1:13000,r2:13000,r3:13000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
   {id:'street-fighter',n:'Street Fighter',e:'🕹️',img:'activity/act-street-fighter',realImg:true,cat:'carnival',age:'5-14',dur:'Throughout the party',req:'A table-top stall with power point nearby',r1:13000,r2:13000,r3:13000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},

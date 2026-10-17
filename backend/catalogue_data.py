@@ -457,6 +457,7 @@ ACTIVITIES = [
     ("slime", "Slime Making", 400, False),   # min bill Rs 6,000
     ("jelly-swimbags", "Personalized Jelly Tote Bags", 450, False),
     ("bracelet", "Bracelet Making", 350, False),   # min bill Rs 5,000
+    ("rock-painting", "Rock Painting", 500, False),   # min bill Rs 5,000 (2026-10-17, per Shruti)
     ("hairbrush-decor", "Hairbrush Decoration", 400, False),
     ("photoframe-decor", "Photo Frame Decoration", 400, False),
     ("mirror-decor", "Mirror Decoration", 750, False),
@@ -807,6 +808,7 @@ ACTIVITY_IMAGES = {
     "face-painting": "img/activity/act-face-painting-v2.jpg",
     "a25": "img/activity/act-colouring-station.jpg",
     "slime": "img/activity/act-slime.jpg",
+    "rock-painting": "img/activity/act-rock-painting.jpg",
     "mascot": "img/activity/act-mascots.jpg",
     "jelly-swimbags": "img/activity/act-jelly-tote-bag.jpg",
     "hairbrush-decor": "img/act-hairbrush-decor.jpg",
