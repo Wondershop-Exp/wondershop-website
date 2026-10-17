@@ -1437,6 +1437,7 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
         "lead_id": lead_id,
         "is_booking": is_booking,
         "is_spy_booking": is_spy_booking,
+        "lead_source": lead.get("lead_source"),   # editable on the booking page (2026-10-17)
         "pending_custom_pinata": pending_custom_pinata,
         # Read-only computed status for a booking (New/Upcoming/Complete/
         # Cancelled); the raw editable pipeline status for a lead.
@@ -3038,6 +3039,32 @@ async def sync_all_to_sheet(x_admin_password: Optional[str] = Header(None)):
         raise HTTPException(status_code=503, detail="GOOGLE_SHEET_WEBHOOK_URL isn't set on the server.")
     import sheet_sync
     return await sheet_sync.sync_all()
+
+
+# ─── Lead source, editable on a booking (2026-10-17, per Shruti — "Neha #11 -
+# the lead source is WSR Repeat") ─────────────────────────────────────────────
+class LeadSourceRequest(ChangedByRequest):
+    lead_source: Optional[str] = None
+
+
+@router.post("/bookings/{lead_id}/lead-source")
+async def set_lead_source(lead_id: int, body: LeadSourceRequest, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    who = (body.changed_by or "").strip()
+    if not who:
+        raise HTTPException(status_code=400, detail="changed_by is required.")
+    row = await database.fetch_one("SELECT lead_source FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    if not row:
+        raise HTTPException(status_code=404, detail="Not found.")
+    new = (body.lead_source or "").strip()[:100] or None
+    if new == row["lead_source"]:
+        return {"success": True, "lead_source": new}
+    await database.execute("UPDATE leads SET lead_source = :v WHERE lead_id = :id", values={"v": new, "id": lead_id})
+    await database.execute(
+        """INSERT INTO booking_change_log (lead_id, field_key, field_label, change_type, old_value, new_value, changed_by, changed_at)
+           VALUES (:id, 'lead_source', 'Lead Source', 'field_value', :o, :n, :by, :ts)""",
+        values={"id": lead_id, "o": row["lead_source"], "n": new, "by": who, "ts": datetime.utcnow()})
+    return {"success": True, "lead_source": new}
 
 
 # ─── TO BE CONFIRMED (2026-10-03, per Shruti) ───────────────────────────────
