@@ -563,6 +563,9 @@ SPY_HOST_INCLUDED_NAMES = {"Spy Treasure Hunt"}
 # sales/bookings]. we have 2 tiers - so choose the higher one": Signature,
 # same as the Spy package hand-off in builder.html (S.host={tier:'Signature',p:0}).
 SPY_INCLUDED_HOST_TIER = "Signature"
+# 2026-10-17, per Shruti — "for turf activity, like spy, show signature host is
+# included": the Turf package's Sports Engagement brings the same free host.
+TURF_HOST_INCLUDED = {"eng90": "90 Min Sports Engagement", "eng120": "120 Min Sports Engagement"}
 
 
 def spy_host_included_by(activities) -> Optional[str]:
@@ -583,6 +586,8 @@ def spy_host_included_by(activities) -> Optional[str]:
             return "Spy Mission"
         if aid in SPY_HOST_INCLUDED_IDS or name in SPY_HOST_INCLUDED_NAMES:
             return "Spy Treasure Hunt"
+        if aid in TURF_HOST_INCLUDED or name in TURF_HOST_INCLUDED.values():
+            return TURF_HOST_INCLUDED.get(aid) or name
     return None
 
 # ─── Return Gifts ────────────────────────────────────────────────────────

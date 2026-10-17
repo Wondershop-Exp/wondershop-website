@@ -1411,6 +1411,10 @@ function spyHostIncludedBy(){
     const name = String(a.name||'').replace(/\s*\(.*\)\s*$/,'').trim();
     if(a.id==='spy-mission' || /mission station/i.test(name)) return 'Spy Mission';
     if(sh.ids.includes(a.id) || sh.names.includes(name)) return 'Spy Treasure Hunt';
+    // Turf: Sports Engagement brings the same free Signature host (2026-10-17).
+    const turf = {eng90:'90 Min Sports Engagement', eng120:'120 Min Sports Engagement'};
+    if(turf[a.id]) return turf[a.id];
+    if(Object.values(turf).includes(name)) return name;
   }
   return null;
 }

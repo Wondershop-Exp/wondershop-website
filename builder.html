@@ -1858,6 +1858,7 @@ body.browse-mode .browse-cta{display:flex}
        unicorn-basic.html's own HOST_TIERS mirror) — 'Classic' no longer
        exists as a host tier value. -->
   <div class="sec-blk">
+    <div id="hostInclNote" style="display:none;margin:0 0 12px;padding:10px 14px;border-radius:10px;background:#EAF7EE;color:#1E7A3C;font-size:14px"></div>
     <div class="tier-cards" id="hostCards">
       <div class="tier-card" onclick="selTier(this,'host','Premium',10000)">
         <img class="tc-img" src="img/host-classic.jpg" alt="Premium Host">
@@ -4892,7 +4893,19 @@ function renderActs(list){
 }
 function sortActs(){renderActs(currentActsList());}
 function fActs(cat,btn){document.querySelectorAll('#aChips .chip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');actFilter=cat;renderActs(currentActsList());}
-function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.activities.splice(idx,1);else{const a=ACTS.find(x=>x.id===id);if(a)S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat,wasP:a.wasP,por:a.por});}renderActs(currentActsList());updSelActs();updBB(S.screen);}
+// Spy Treasure Hunt / Spy Mission and the Turf Sports Engagement include a
+// Signature host at no extra cost (2026-10-17, per Shruti — same rule as the
+// sales panel and bookings, catalogue_data.spy_host_included_by()).
+const HOST_INCL_ACTS={'a28':'Spy Treasure Hunt','spy-mission':'Spy Mission','eng90':'90 Min Sports Engagement','eng120':'120 Min Sports Engagement'};
+function hostIncludedBy(){const a=S.activities.find(x=>HOST_INCL_ACTS[x.id]);return a?HOST_INCL_ACTS[a.id]:null;}
+function syncIncludedHost(){
+  const by=hostIncludedBy();
+  if(by){S.host={tier:'Signature',p:0,auto:true};if(typeof syncHostDom==='function')syncHostDom();}
+  else if(S.host&&S.host.auto){S.host=null;document.querySelectorAll('#hostCards .tier-card').forEach(c=>c.classList.remove('sel'));}
+  const n=document.getElementById('hostInclNote');
+  if(n){n.style.display=by?'block':'none';n.innerHTML=by?'✓ <b>Signature Host included</b> with '+by+' — no extra cost.':'';}
+}
+function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.activities.splice(idx,1);else{const a=ACTS.find(x=>x.id===id);if(a)S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat,wasP:a.wasP,por:a.por});}syncIncludedHost();renderActs(currentActsList());updSelActs();updBB(S.screen);}
 // 2026-08-24, per Shruti — the Step-2 "selected activities" mini-list now
 // reflects a claimed Tattoo/₹5k-credit freebie too (struck-through original
 // + the discounted/free price), not just the Review page — same
@@ -5509,7 +5522,7 @@ function buildRev(){
 // jump back into that step.
 function rmRevItem(cat,id){
   if(cat==='Decor')S.decor=null;
-  else if(cat==='Activities')S.activities=S.activities.filter(a=>a.id!==id);
+  else if(cat==='Activities'){S.activities=S.activities.filter(a=>a.id!==id);syncIncludedHost();}
   else if(cat==='Host')S.host=null;
   else if(cat==='DJ')S.dj=null;
   else if(cat==='Pinata')S.pinata=null;
