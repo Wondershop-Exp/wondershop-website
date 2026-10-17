@@ -94,7 +94,7 @@ function withManual(m){const x={...m,ch:{...m.ch},estimated:m.estimated||{},manu
   for(const k of BOOK){if(k.ym!==m.ym)continue;x.sales+=k.revenue;x.net+=k.revenue;x.ch['Birthday (bookings)']=(x.ch['Birthday (bookings)']||0)+k.revenue;x.evCost+=k.cost;x.cashOut+=k.cost-k.cost_unpaid;x.pay+=k.cost_unpaid;x.cashIn+=Math.min(k.paid_amount,k.revenue)||0;x.recv+=Math.max(0,k.revenue-(k.paid_amount||0))}}
  for(const c of COSTS){if(c.ym!==m.ym)continue;x[c.category]=(x[c.category]||0)+c.amount;x.manual[c.category]=1;if(c.paid)x.cashOut+=c.amount;else x.pay+=c.amount}
  x.direct=x.cogs+x.mat+x.evCost+x.stall;x.gm=x.net-x.direct;x.fixed=x.man+x.rent+x.elec+x.wifi+x.shopx+x.other;x.ebitda=x.gm-x.mkt-x.fixed;x.netCash=x.cashIn-x.cashOut;return x}
-function allMonths(){const base=(DATA?DATA.months:[]).slice();const extra=COSTS.map(c=>c.ym).concat(useBook()?BOOK.map(b=>b.ym).filter(Boolean):[]);
+function allMonths(){const base=(DATA?DATA.months:[]).slice();const extra=COSTS.filter(c=>c.ym>='202610').map(c=>c.ym)/* 2026-10-17: pre-Oct-2026 marketing history (for the Sales Dashboard) stays out of the P&L, which starts Oct 2026 */.concat(useBook()?BOOK.map(b=>b.ym).filter(Boolean):[]);
  for(const k of extra)if(!base.some(m=>m.ym===k))base.push(ZERO(k));return base.sort((a,b)=>a.ym<b.ym?-1:1).map(withManual)}
 function months(){const v=$('#fy').value;let ms=allMonths().filter(m=>m.net||m.cashOut||m.fixed||m.mkt);
  if(v==='last12')return ms.slice(-12);const y=+v;return ms.filter(m=>m.ym>=y+'04'&&m.ym<=(y+1)+'03')}
