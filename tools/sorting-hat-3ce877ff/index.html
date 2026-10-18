@@ -102,8 +102,8 @@ td,th{padding:6px;border-bottom:1px solid #b89a5a;text-align:left}
 <div id="gate" class="modal" style="z-index:50;background:radial-gradient(ellipse at 50% 30%,#2b2238,#07060a)">
   <div class="card center" style="max-width:380px">
     <h2>Wondershop Staff Only</h2>
-    <p style="margin:0 0 12px">Enter the passcode to open the Sorting Hat.</p>
-    <input id="gatePw" type="password" placeholder="Passcode" autocomplete="off">
+    <p style="margin:0 0 12px">Sign in with the admin or sales password.</p>
+    <input id="gatePw" type="password" placeholder="Admin or sales password" autocomplete="current-password">
     <div id="gateMsg" class="warn"></div>
     <button class="btn" id="gateBtn" style="margin-top:12px;width:100%">Unlock</button>
   </div>
@@ -116,14 +116,25 @@ td,th{padding:6px;border-bottom:1px solid #b89a5a;text-align:left}
 
   <div class="card">
     <h2>Booking</h2>
-    <div class="row" style="margin-bottom:12px">
-      <select id="savedBookings" style="flex:1;min-width:200px"><option value="">— Load a saved booking —</option></select>
-      <button class="btn small" id="newBooking">New booking</button>
-    </div>
+    <label>Pick a booking from the system
+    <div class="row" style="margin:4px 0 4px">
+      <select id="dbBookings" style="flex:1;min-width:240px;margin-top:0"><option value="">Loading bookings…</option></select>
+      <button class="btn small" id="refreshDb" title="Refresh list">↻ Refresh</button>
+    </div></label>
+    <div id="dbMsg" style="font-size:13px;margin-bottom:12px;color:#5a3a12"></div>
+    <details style="margin-bottom:12px;font-size:14px"><summary style="cursor:pointer;color:#5a3a12">Other options: bookings saved on this tablet, or enter details by hand</summary>
+      <div class="row" style="margin-top:8px">
+        <select id="savedBookings" style="flex:1;min-width:200px"><option value="">— Saved on this tablet —</option></select>
+        <button class="btn small" id="newBooking">Enter by hand</button>
+        <button class="btn small ghost" id="signOut">Sign out</button>
+      </div>
+    </details>
     <div class="grid">
-      <label>Booking ID<input id="bookingId" placeholder="e.g. WS-2026-1042"></label>
+      <label>Booking ID<input id="bookingId" placeholder="e.g. 1042"></label>
       <label>Birthday child's name<input id="childName" placeholder="e.g. Aarav"></label>
       <label>Turning (age)<input id="childAge" type="number" min="1" max="18" placeholder="8"></label>
+      <label>Gender<input id="childGender" placeholder="Girl / Boy"></label>
+      <label>Location<input id="location" placeholder="Venue / area"></label>
       <label>Party date<input id="partyDate" type="date"></label>
       <label>Number of children<input id="kidCount" type="number" min="1" max="200" placeholder="20"></label>
       <label>Number of teams<input id="teamCount" type="number" min="2" max="8" value="4"></label>
@@ -135,7 +146,17 @@ td,th{padding:6px;border-bottom:1px solid #b89a5a;text-align:left}
     <h2>Teams</h2>
     <div class="row"><button class="btn small ghost" id="autoSplit">Auto-split children evenly</button><span id="capMsg"></span></div>
     <div id="teams"></div>
-    <p style="font-size:13px;color:#5a3a12;margin-top:10px">Audio: upload 1–2 recordings per team (mp3, m4a, wav). One is picked at random on each sorting. If none is uploaded, the hat announces the team in a spoken voice.</p>
+    <p style="font-size:13px;color:#5a3a12;margin-top:10px">Teams and audio are remembered on this tablet for each booking ID. Audio: upload 1–2 recordings per team (mp3, m4a, wav). One is picked at random on each sorting. If none is uploaded, the hat announces the team in a spoken voice.</p>
+  </div>
+
+  <div class="card">
+    <h2>The Hat</h2>
+    <p style="margin:0 0 10px;font-size:14px">Use the drawn hat, or upload a photo of your own Sorting Hat prop. A cut-out PNG with a transparent background looks best. It's saved on this tablet for every party.</p>
+    <div class="row">
+      <label class="btn small" style="color:#f5e8c8;display:inline-block">📷 Upload hat photo<input type="file" accept="image/*" id="hatFile" class="hidden"></label>
+      <button class="btn small ghost" id="hatReset">Use drawn hat</button>
+      <span id="hatMsg" style="font-size:14px"></span>
+    </div>
   </div>
 
   <div class="center">
@@ -160,27 +181,50 @@ td,th{padding:6px;border-bottom:1px solid #b89a5a;text-align:left}
     <button class="iconbtn" id="logBtn">📜 Log</button>
   </div>
   <div id="hatWrap">
-    <svg viewBox="0 0 300 260" xmlns="http://www.w3.org/2000/svg" aria-label="A talking wizard hat">
+    <svg viewBox="0 0 320 300" xmlns="http://www.w3.org/2000/svg" aria-label="An old talking wizard hat">
       <defs>
-        <linearGradient id="hg" x1="0" x2="1"><stop offset="0" stop-color="#3d2b1a"/><stop offset=".5" stop-color="#6b4a2b"/><stop offset="1" stop-color="#2e2014"/></linearGradient>
-        <radialGradient id="eye"><stop offset="0" stop-color="#fff6c8"/><stop offset=".5" stop-color="#f5c542"/><stop offset="1" stop-color="#f5c54200"/></radialGradient>
+        <linearGradient id="hc" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#1f150c"/><stop offset=".35" stop-color="#5a3f24"/><stop offset=".55" stop-color="#6e4e2e"/><stop offset=".8" stop-color="#3a2815"/><stop offset="1" stop-color="#1a1109"/></linearGradient>
+        <linearGradient id="hb" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#5e4226"/><stop offset="1" stop-color="#1c130a"/></linearGradient>
+        <radialGradient id="eye"><stop offset="0" stop-color="#fff2b0"/><stop offset=".45" stop-color="#e9a92a"/><stop offset="1" stop-color="#e9a92a00"/></radialGradient>
+        <filter id="worn" x="-10%" y="-10%" width="120%" height="120%">
+          <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3" seed="7" result="n"/>
+          <feColorMatrix in="n" type="matrix" values="0 0 0 0 .1  0 0 0 0 .07  0 0 0 0 .03  0 0 0 .55 0" result="grain"/>
+          <feComposite in="grain" in2="SourceGraphic" operator="in" result="g2"/>
+          <feTurbulence type="turbulence" baseFrequency=".02" numOctaves="2" seed="3" result="w"/>
+          <feDisplacementMap in="SourceGraphic" in2="w" scale="6" result="d"/>
+          <feMerge><feMergeNode in="d"/><feMergeNode in="g2"/></feMerge>
+        </filter>
       </defs>
-      <!-- brim -->
-      <ellipse cx="150" cy="222" rx="140" ry="30" fill="#2a1c10"/>
-      <ellipse cx="150" cy="216" rx="132" ry="24" fill="url(#hg)"/>
-      <!-- cone with a bent tip -->
-      <path d="M70 214 C80 160 98 120 118 90 C132 66 140 40 168 22 C186 12 214 18 222 34 C204 30 186 36 178 52 C170 70 182 120 196 150 C206 172 222 196 232 214 Z" fill="url(#hg)" stroke="#1e140b" stroke-width="3"/>
-      <!-- patches & stitches -->
-      <path d="M150 150 l22 -4 l4 20 l-22 4z" fill="#52391f" stroke="#1e140b" stroke-width="1.5"/>
-      <path d="M152 152 l20 -3 M154 168 l18 -3" stroke="#c9a46a" stroke-width="1" stroke-dasharray="3 3"/>
-      <!-- brows / creases -->
-      <path class="brow" d="M98 138 q22 -14 40 0" stroke="#1e140b" stroke-width="5" fill="none" stroke-linecap="round"/>
-      <path class="brow" d="M168 136 q20 -14 38 2" stroke="#1e140b" stroke-width="5" fill="none" stroke-linecap="round"/>
-      <!-- eyes -->
-      <ellipse cx="120" cy="152" rx="13" ry="7" fill="#120b05"/><ellipse cx="120" cy="152" rx="14" ry="9" fill="url(#eye)" opacity=".9"><animate attributeName="opacity" values=".9;.3;.9" dur="3.2s" repeatCount="indefinite"/></ellipse>
-      <ellipse cx="186" cy="152" rx="13" ry="7" fill="#120b05"/><ellipse cx="186" cy="152" rx="14" ry="9" fill="url(#eye)" opacity=".9"><animate attributeName="opacity" values=".9;.3;.9" dur="3.2s" repeatCount="indefinite"/></ellipse>
-      <!-- mouth -->
-      <g transform="translate(152 190)"><path class="mouth" style="transform-origin:center" d="M-38 0 q38 18 76 0 q-38 6 -76 0z" fill="#0d0804" stroke="#1e140b" stroke-width="3"/></g>
+      <g filter="url(#worn)">
+        <!-- crumpled brim -->
+        <path d="M14 246 C30 226 70 222 104 226 C140 214 186 216 214 224 C252 218 296 228 308 246 C298 266 250 276 200 274 C168 282 124 282 96 274 C50 276 20 266 14 246Z" fill="url(#hb)" stroke="#120c06" stroke-width="3"/>
+        <path d="M40 244 C80 236 120 240 160 236 C200 240 250 234 284 244" stroke="#7a5a36" stroke-width="2" fill="none" opacity=".6"/>
+        <!-- slumped cone, tip folded over -->
+        <path d="M66 240 C70 200 86 168 100 140 C112 116 118 90 132 68 C144 48 158 30 182 22 C206 14 232 22 246 40 C256 54 262 72 258 92 C246 78 230 70 214 72 C200 76 194 92 196 112 C198 140 214 176 228 200 C238 218 248 230 254 240 C210 252 110 252 66 240Z" fill="url(#hc)" stroke="#120c06" stroke-width="3"/>
+        <!-- tip underside shadow -->
+        <path d="M214 72 C232 70 250 80 258 92 C252 100 240 98 230 92 C222 86 214 80 214 72Z" fill="#140d07" opacity=".8"/>
+        <!-- deep folds -->
+        <path d="M120 100 C140 108 170 104 196 96" stroke="#140d07" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M122 104 C142 112 170 108 194 101" stroke="#8a6a44" stroke-width="1.5" fill="none" opacity=".6"/>
+        <path d="M96 176 C120 170 150 174 170 168" stroke="#140d07" stroke-width="3" fill="none" opacity=".7"/>
+        <path d="M84 214 C100 206 118 210 130 204" stroke="#140d07" stroke-width="3" fill="none" opacity=".7"/>
+        <path d="M200 206 C214 200 226 206 236 214" stroke="#140d07" stroke-width="3" fill="none" opacity=".7"/>
+        <!-- heavy brow fold -->
+        <path d="M92 138 C110 122 136 124 152 136 C166 126 194 122 214 140 C200 134 184 134 170 144 C160 150 146 150 136 144 C124 136 108 134 92 138Z" fill="#2a1c0f" stroke="#0e0904" stroke-width="2.5"/>
+        <!-- patches with stitches -->
+        <path d="M150 54 l20 -6 l6 18 l-20 6z" fill="#4a3219" stroke="#120c06" stroke-width="1.5"/>
+        <path d="M152 56 l20 -6 M156 70 l18 -5" stroke="#c9a46a" stroke-width="1" stroke-dasharray="3 3"/>
+        <path d="M78 222 l28 -4 l2 16 l-28 3z" fill="#432d17" stroke="#120c06" stroke-width="1.5"/>
+        <path d="M80 224 l26 -3 M81 236 l26 -3" stroke="#c9a46a" stroke-width="1" stroke-dasharray="3 3"/>
+      </g>
+      <!-- eye creases with faint glow -->
+      <ellipse cx="124" cy="156" rx="18" ry="9" fill="url(#eye)" opacity=".75"><animate attributeName="opacity" values=".75;.25;.75" dur="3.6s" repeatCount="indefinite"/></ellipse>
+      <ellipse cx="184" cy="156" rx="18" ry="9" fill="url(#eye)" opacity=".75"><animate attributeName="opacity" values=".75;.25;.75" dur="3.6s" repeatCount="indefinite"/></ellipse>
+      <path d="M108 156 C116 150 132 150 140 157 C132 160 116 160 108 156Z" fill="#0b0703"/>
+      <path d="M168 157 C176 150 192 150 200 156 C192 160 176 160 168 157Z" fill="#0b0703"/>
+      <!-- the rip that speaks -->
+      <g transform="translate(156 198)"><path class="mouth" style="transform-origin:center" d="M-46 0 C-30 -6 -12 -2 0 -4 C14 -6 32 -4 46 2 C30 12 12 10 0 12 C-14 12 -32 10 -46 0Z" fill="#070402" stroke="#120c06" stroke-width="3"/>
+      <path d="M-44 0 C-28 -4 -12 0 0 -2 C14 -4 30 -2 44 2" stroke="#7a5a36" stroke-width="1.5" fill="none" opacity=".7"/></g>
     </svg>
   </div>
   <div id="speech">Place your hand upon the mark, and the Hat shall decide…</div>
@@ -230,14 +274,14 @@ const memAudio={}; // fallback if IDB unavailable
 
 /* ---------- state ---------- */
 let cfg=blank();
-function blank(){return{bookingId:"",childName:"",childAge:"",partyDate:"",kidCount:"",askNames:false,teams:[0,1,2,3].map(i=>mkTeam(i)),sorted:[]}}
+function blank(){return{bookingId:"",childName:"",childAge:"",childGender:"",location:"",partyDate:"",kidCount:"",askNames:false,teams:[0,1,2,3].map(i=>mkTeam(i)),sorted:[]}}
 function mkTeam(i){const p=PALETTE[i%PALETTE.length];return{name:p[0],color:p[1],cap:0,audio:[]}}
 function bookings(){return store.get("sh_bookings",{})}
 function save(){if(!cfg.bookingId)return;const b=bookings();b[cfg.bookingId]=cfg;store.set("sh_bookings",b);store.set("sh_last",cfg.bookingId);fillSaved()}
 
 /* ---------- setup UI ---------- */
-const F=["bookingId","childName","childAge","partyDate","kidCount"];
-function fillSaved(){const s=$("#savedBookings"),b=bookings();s.innerHTML='<option value="">— Load a saved booking —</option>'+Object.keys(b).map(k=>`<option ${k===cfg.bookingId?"selected":""} value="${esc(k)}">${esc(k)} · ${esc(b[k].childName||"")}</option>`).join("")}
+const F=["bookingId","childName","childAge","childGender","location","partyDate","kidCount"];
+function fillSaved(){const s=$("#savedBookings"),b=bookings();s.innerHTML='<option value="">— Saved on this tablet —</option>'+Object.keys(b).map(k=>`<option ${k===cfg.bookingId?"selected":""} value="${esc(k)}">${esc(k)} · ${esc(b[k].childName||"")}</option>`).join("")}
 function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 function renderSetup(){
   F.forEach(f=>$("#"+f).value=cfg[f]||"");$("#askNames").checked=!!cfg.askNames;$("#teamCount").value=cfg.teams.length;
@@ -266,7 +310,43 @@ F.forEach(f=>$("#"+f).addEventListener("input",e=>{const old=cfg.bookingId;cfg[f
 $("#askNames").onchange=e=>{cfg.askNames=e.target.checked;save()};
 $("#teamCount").addEventListener("change",e=>{let n=Math.min(8,Math.max(2,parseInt(e.target.value)||2));while(cfg.teams.length<n)cfg.teams.push(mkTeam(cfg.teams.length));cfg.teams.length=n;renderSetup();save()});
 $("#autoSplit").onclick=()=>{const n=parseInt(cfg.kidCount)||0;if(!n){$("#capMsg").innerHTML='<span class="warn">Enter the number of children first</span>';return}const k=cfg.teams.length;cfg.teams.forEach((t,i)=>t.cap=Math.floor(n/k)+(i<n%k?1:0));renderSetup();save()};
-$("#newBooking").onclick=()=>{cfg=blank();renderSetup();fillSaved()};
+$("#newBooking").onclick=()=>{cfg=blank();$("#dbBookings").value="";renderSetup();fillSaved()};
+
+/* ---------- bookings from the Wondershop database ---------- */
+const API="https://wondershop-website-production.up.railway.app";
+function pw(){try{return localStorage.getItem("ws_admin_pw")||""}catch(e){return""}}
+let dbRows=[];
+function fmtDate(d){if(!d)return"no date";const x=new Date(d+"T00:00:00");return isNaN(x)?d:x.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}
+function dbLabel(r){const ag=[r.child_ages,r.child_genders].filter(Boolean).join("/");
+  return["#"+r.lead_id,r.parent_name||"—",r.child_names||"—",ag||"—",r.venue||r.city||"—",fmtDate(r.event_date)].join("  -  ")}
+function fillDb(rows,note){dbRows=rows;const today=new Date().toISOString().slice(0,10);
+  const up=rows.filter(r=>r.event_date&&r.event_date>=today).sort((a,b)=>a.event_date<b.event_date?-1:1);
+  const past=rows.filter(r=>!(r.event_date&&r.event_date>=today)).sort((a,b)=>(b.event_date||"")<(a.event_date||"")?-1:1);
+  const opt=r=>`<option value="${r.lead_id}" ${String(r.lead_id)===String(cfg.bookingId)?"selected":""}>${esc(dbLabel(r))}</option>`;
+  $("#dbBookings").innerHTML=`<option value="">— Select a booking (${rows.length}) —</option>`+(up.length?`<optgroup label="Upcoming">${up.map(opt).join("")}</optgroup>`:"")+(past.length?`<optgroup label="Past / no date">${past.map(opt).join("")}</optgroup>`:"");
+  $("#dbMsg").textContent=note||""}
+async function loadDb(){$("#dbMsg").textContent="Loading bookings…";
+  try{const r=await fetch(API+"/api/admin/bookings?kind=booking&sort=event_date&dir=asc",{headers:{"X-Admin-Password":pw()}});
+    if(r.status===401||r.status===403){showGate("Please sign in again.");return}
+    if(!r.ok)throw new Error(r.status);
+    const j=await r.json();const rows=(j.rows||[]).filter(x=>x.status!=="Cancelled");
+    store.set("sh_dbcache",{at:Date.now(),rows});fillDb(rows,"")}
+  catch(e){const c=store.get("sh_dbcache",null);
+    if(c)fillDb(c.rows,`Offline: showing the list saved on ${new Date(c.at).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}. Bookings made after that won't appear.`);
+    else{$("#dbBookings").innerHTML='<option value="">Couldn\'t load bookings</option>';$("#dbMsg").textContent="Couldn't reach the booking system. Check the internet, or enter details by hand below."}}}
+$("#refreshDb").onclick=loadDb;
+$("#dbBookings").onchange=e=>{const r=dbRows.find(x=>String(x.lead_id)===e.target.value);if(!r)return;
+  const id=String(r.lead_id),saved=bookings()[id];cfg=saved||blank();
+  Object.assign(cfg,{bookingId:id,childName:r.child_names||"",childAge:(String(r.child_ages||"").match(/\d+/)||[""])[0],childGender:r.child_genders||"",location:[r.venue,r.city].filter(Boolean).join(", "),partyDate:r.event_date||"",kidCount:r.kids_count?String(r.kids_count):cfg.kidCount});
+  if(!saved&&cfg.kidCount){const n=+cfg.kidCount,k=cfg.teams.length;cfg.teams.forEach((t,i)=>t.cap=Math.floor(n/k)+(i<n%k?1:0))}
+  save();renderSetup();$("#setupMsg").innerHTML=r.kids_count?"":'<p class="warn">This booking has no kids count yet. Please enter it above.</p>'};
+$("#signOut").onclick=()=>{try{localStorage.removeItem("ws_admin_pw")}catch(e){}showGate("")};
+
+/* ---------- hat photo ---------- */
+async function applyHat(){const b=await getAudio("hat_photo");const w=$("#hatWrap");const old=w.querySelector("img.hatphoto");if(old)old.remove();
+  const svg=w.querySelector("svg");if(b){svg.style.display="none";const i=document.createElement("img");i.className="hatphoto";i.src=URL.createObjectURL(b);i.style.width="100%";w.appendChild(i);$("#hatMsg").textContent="✓ Using your hat photo"}else{svg.style.display="";$("#hatMsg").textContent="Using the drawn hat"}}
+$("#hatFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;await putAudio("hat_photo",f);applyHat()};
+$("#hatReset").onclick=async()=>{await delAudio("hat_photo");setTimeout(applyHat,100)};
 $("#savedBookings").onchange=e=>{const b=bookings()[e.target.value];if(b){cfg=b;renderSetup()}};
 $("#begin").onclick=()=>{
   const m=$("#setupMsg");
@@ -363,12 +443,16 @@ const fx=$("#fx"),fc=fx.getContext("2d");fx.width=innerWidth;fx.height=innerHeig
 function burst(col){const cx=fx.width/2,cy=fx.height*.42;for(let i=0;i<180;i++){const a=rnd()*Math.PI*2,v=2+rnd()*9;parts.push({x:cx,y:cy,vx:Math.cos(a)*v,vy:Math.sin(a)*v-2,l:1,c:rnd()<.5?col:(rnd()<.5?"#f5d77a":"#ffffff"),r:1+rnd()*3})}if(parts.length===180)animFx()}
 function animFx(){fc.clearRect(0,0,fx.width,fx.height);parts=parts.filter(p=>p.l>0);for(const p of parts){p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.vx*=.985;p.l-=.009;fc.globalAlpha=Math.max(0,p.l);fc.fillStyle=p.c;fc.beginPath();fc.arc(p.x,p.y,p.r,0,7);fc.fill()}if(parts.length)requestAnimationFrame(animFx);else fc.clearRect(0,0,fx.width,fx.height)}
 
-/* ---------- passcode gate (deterrent; page is unlisted + noindex) ---------- */
-const PASS_HASH="5a2fed03b537f681bf54c10792e25e0090b65e5e61c1cd60fa4bcaa92dab1674";
-async function sha(s){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch(e){return""}}
-if(store.get("sh_unlocked",false)===PASS_HASH)$("#gate").remove();
-else{const go=async()=>{const v=$("#gatePw").value.trim().toUpperCase();if(await sha(v)===PASS_HASH){store.set("sh_unlocked",PASS_HASH);$("#gate").remove()}else $("#gateMsg").textContent="That passcode isn't right."};
-  $("#gateBtn").onclick=go;$("#gatePw").addEventListener("keydown",e=>{if(e.key==="Enter")go()})}
+/* ---------- staff sign-in (same password + storage as admin.html; checked by the server) ---------- */
+function showGate(m){$("#gate").classList.remove("hidden");$("#gateMsg").textContent=m||""}
+async function login(){const v=$("#gatePw").value.trim();if(!v)return;$("#gateMsg").textContent="Checking…";
+  try{const r=await fetch(API+"/api/admin/whoami",{headers:{"X-Admin-Password":v}});
+    if(r.ok){try{localStorage.setItem("ws_admin_pw",v)}catch(e){}$("#gatePw").value="";$("#gate").classList.add("hidden");loadDb()}
+    else $("#gateMsg").textContent=r.status===429?"Too many tries. Please wait a few minutes.":"That password isn't right."}
+  catch(e){$("#gateMsg").textContent="No internet. Sign in once while online; after that the app works offline."}}
+$("#gateBtn").onclick=login;$("#gatePw").addEventListener("keydown",e=>{if(e.key==="Enter")login()});
+if(pw()){$("#gate").classList.add("hidden");loadDb()}else showGate("");
+applyHat();
 
 /* ---------- offline (service worker) ---------- */
 function offMsg(t){const o=$("#offStatus");if(o)o.innerHTML=t}

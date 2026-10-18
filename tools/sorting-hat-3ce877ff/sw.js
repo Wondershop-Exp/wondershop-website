@@ -1,5 +1,5 @@
 // Sorting Hat offline cache. Bump VERSION when index.html changes.
-const VERSION = "sh-v1";
+const VERSION = "sh-v2";
 const CORE = ["./", "index.html", "manifest.json", "icon.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));

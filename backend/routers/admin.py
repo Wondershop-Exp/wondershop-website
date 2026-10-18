@@ -1053,6 +1053,8 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
         # 2026-10-12, per Shruti — Bookings list columns + filters.
         "venue": row.get("venue"), "theme": row.get("theme"),
         "child_ages": row.get("child_ages"), "child_genders": row.get("child_genders"),
+        # 2026-10-18 — Sorting Hat party app picks the booking from this list.
+        "child_names": row.get("child_names"), "kids_count": row.get("kids_count"),
         "sales_lead": row.get("event_sales_lead"),
         # 2026-10-12, per Shruti — Instagram ad leads from AiSensy
         # (routers/aisensy_webhook.py): source columns + "Instagram" filter.
