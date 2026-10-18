@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Sorting Hat Setup</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=IM+Fell+English&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#2a1d0e;--brown:#5a3a12;--line:#b89a5a;--bg:#1a1420}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at 50% 0,#2b2238,#0d0a12) fixed;color:var(--ink);font-family:'IM Fell English',Georgia,serif}
+.wrap{max-width:900px;margin:0 auto;padding:24px 16px 80px}
+h1{font-family:'Cinzel Decorative',serif;color:#f5d77a;text-align:center;margin:0 0 4px;font-size:clamp(24px,5vw,36px)}
+.sub{color:#bfae8a;text-align:center;font-style:italic;margin:0 0 20px}
+.card{background:linear-gradient(#f1e6c6,#e2d2a6);border-radius:6px;padding:18px;margin-bottom:16px;border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.card h2{margin:0 0 12px;font-size:19px;color:var(--brown);border-bottom:1px solid var(--line);padding-bottom:6px}
+label{display:block;font-size:14px;color:var(--brown)}
+input,select{width:100%;margin-top:4px;padding:9px 10px;font:inherit;font-size:16px;border:1px solid #a88a4a;border-radius:4px;background:#fbf5e2;color:var(--ink)}
+input[type=color]{padding:2px;height:42px}
+.btn{border:1px solid #8a6a2a;background:var(--brown);color:#f5e8c8;padding:9px 16px;border-radius:4px;font:inherit;font-size:15px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--brown)}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn.big{font-size:18px;padding:12px 26px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 16px}
+.kv b{display:block;font-size:13px;color:var(--brown);font-weight:normal}
+.team{border:1px dashed #a88a4a;border-radius:6px;padding:12px;margin-top:10px;background:rgba(255,255,255,.25)}
+.tg{display:grid;grid-template-columns:2fr 80px 100px;gap:10px}
+@media(max-width:560px){.tg{grid-template-columns:1fr 1fr}.tg .full{grid-column:1/-1}}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--brown);color:#f5e8c8;border-radius:20px;padding:4px 10px;font-size:13px;margin:6px 6px 0 0}
+.chip button{background:none;border:0;color:#f5d77a;cursor:pointer;font-size:14px;padding:0}
+.code{font-family:'Cinzel Decorative',serif;font-size:clamp(34px,8vw,52px);letter-spacing:.18em;color:var(--brown);text-align:center;margin:6px 0}
+.warn{color:#8b1a1a;font-size:14px}.ok{color:#2d5a1a;font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:15px}td,th{padding:6px;border-bottom:1px solid var(--line);text-align:left}
+.sw{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:4px}
+.hidden{display:none!important}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:grid;place-items:center;padding:16px;z-index:9}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Sorting Hat Setup</h1>
+  <p class="sub">Admin only · set up teams for a confirmed booking and get its event code</p>
+
+  <div class="card">
+    <h2>Booking</h2>
+    <select id="bk"><option>Loading confirmed bookings…</option></select>
+    <div id="bkInfo" class="grid" style="margin-top:12px"></div>
+  </div>
+
+  <div id="main" class="hidden">
+    <div class="card" id="codeCard">
+      <h2>Event code</h2>
+      <div id="codeBox"></div>
+    </div>
+
+    <div class="card">
+      <h2>Teams</h2>
+      <div class="row">
+        <label style="width:150px">Number of children<input id="kids" type="number" min="1"></label>
+        <label style="width:130px">Number of teams<input id="nteams" type="number" min="2" max="8"></label>
+        <button class="btn small ghost" id="split" style="margin-top:18px">Split evenly</button>
+        <span id="capMsg" style="margin-top:18px"></span>
+      </div>
+      <p style="font-size:13px;margin:8px 0 0">Number of children comes from the booking; change it here if the guest list changed. It's only used for this setup.</p>
+      <div id="teams"></div>
+      <label style="margin-top:14px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="askNames" style="width:auto;margin:0">Volunteer types each child's name before sorting (names are saved in the split)</label>
+      <p style="font-size:13px;margin:10px 0 0">Audio: up to 2 clips per team (mp3, m4a, wav · under 7 MB). One plays at random at each sorting. With no clip, the Hat says the team name in its own voice.</p>
+      <div class="row" style="margin-top:16px;justify-content:center"><button class="btn big" id="save">Save setup</button></div>
+      <div id="saveMsg" style="text-align:center;margin-top:8px"></div>
+    </div>
+
+  </div>
+</div>
+
+<div id="login" class="modal hidden"><div class="card" style="max-width:380px;width:100%">
+  <h2>Admin sign-in</h2>
+  <input id="pw" type="password" placeholder="Admin password">
+  <div id="pwMsg" class="warn"></div>
+  <button class="btn" id="pwBtn" style="margin-top:10px;width:100%">Sign in</button>
+</div></div>
+
+<script>
+const API="https://wondershop-website-production.up.railway.app";
+const APP_URL=location.origin+"/tools/sorting-hat-3ce877ff/";
+const PALETTE=[["Emberclaw","#ae0001"],["Tidewing","#1f4fa3"],["Thornmoss","#2a623d"],["Goldmane","#e0a800"],["Nightveil","#5b2a86"],["Stoneheart","#6b6b6b"],["Dawnfire","#d9620f"],["Frostfang","#3fa7c4"]];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function pw(){try{return localStorage.getItem("ws_admin_pw")||""}catch(e){return""}}
+async function api(path,opt={}){opt.headers=Object.assign({"X-Admin-Password":pw()},opt.headers||{});
+  const r=await fetch(API+path,opt);if(r.status===401){showLogin("Please sign in.");throw new Error("auth")}
+  if(r.status===403){showLogin("This page needs the admin password (not sales).");throw new Error("auth")}
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.detail||("Error "+r.status));return j}
+function showLogin(m){$("#login").classList.remove("hidden");$("#pwMsg").textContent=m||""}
+$("#pwBtn").onclick=async()=>{const v=$("#pw").value.trim();const r=await fetch(API+"/api/admin/whoami",{headers:{"X-Admin-Password":v}}).catch(()=>null);
+  if(!r||!r.ok){$("#pwMsg").textContent="That password isn't right.";return}const j=await r.json();if(j.role!=="admin"){$("#pwMsg").textContent="Please use the admin password.";return}
+  try{localStorage.setItem("ws_admin_pw",v)}catch(e){}$("#login").classList.add("hidden");boot()};
+$("#pw").addEventListener("keydown",e=>{if(e.key==="Enter")$("#pwBtn").click()});
+
+let rows=[],cur=null,audio=[],teams=[];
+function fmtDate(d){if(!d)return"no date";const x=new Date(d+"T00:00:00");return x.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}
+function label(r){return["#"+r.lead_id,r.parent_name||"—",r.child_names||"—",[r.child_ages,r.child_genders].filter(Boolean).join("/")||"—",r.venue||r.city||"—",fmtDate(r.event_date)].join("  -  ")}
+async function boot(){if(!pw()){showLogin("");return}
+  try{const j=await api("/api/admin/bookings?kind=booking&sort=event_date&dir=asc");rows=(j.rows||[]).filter(r=>r.status!=="Cancelled")}catch(e){return}
+  const today=new Date().toISOString().slice(0,10);
+  const up=rows.filter(r=>r.event_date&&r.event_date>=today).sort((a,b)=>a.event_date<b.event_date?-1:1),past=rows.filter(r=>!(r.event_date&&r.event_date>=today));
+  const o=r=>`<option value="${r.lead_id}">${esc(label(r))}</option>`;
+  $("#bk").innerHTML=`<option value="">— Select a confirmed booking —</option>`+(up.length?`<optgroup label="Upcoming">${up.map(o).join("")}</optgroup>`:"")+(past.length?`<optgroup label="Past / no date">${past.map(o).join("")}</optgroup>`:"");
+  const q=new URLSearchParams(location.search).get("lead_id");if(q){$("#bk").value=q;load(q)}}
+$("#bk").onchange=e=>{if(e.target.value){history.replaceState(null,"","?lead_id="+e.target.value);load(e.target.value)}};
+
+async function load(id){let j;try{j=await api("/api/admin/sorting-hat/"+id)}catch(e){$("#bkInfo").innerHTML=`<p class="warn">${esc(e.message)}</p>`;return}
+  cur=j;audio=j.audio||[];const b=j.booking;
+  $("#bkInfo").innerHTML=[["Client",b.parent_name],["Birthday child",b.child_names],["Age / gender",[b.child_ages,b.child_genders].filter(Boolean).join(" / ")],["Location",[b.venue,b.city].filter(Boolean).join(", ")],["Date",fmtDate(b.event_date)],["Kids (booking)",b.kids_count]].map(([k,v])=>`<div class="kv"><b>${k}</b>${esc(v||"—")}</div>`).join("");
+  const cfg=j.event?j.event.config:null;
+  $("#kids").value=(cfg&&cfg.kids)||b.kids_count||"";
+  teams=cfg&&cfg.teams?cfg.teams.map(t=>({...t,audio:(t.audio||[]).filter(a=>audio.some(x=>x.id===a))})):[0,1,2,3].map(i=>({name:PALETTE[i][0],color:PALETTE[i][1],cap:0,audio:[]}));
+  if(!cfg&&b.kids_count)evenSplit();
+  $("#askNames").checked=!!(cfg&&cfg.ask_names);$("#nteams").value=teams.length;
+  $("#main").classList.remove("hidden");renderCode();renderTeams()}
+function evenSplit(){const n=parseInt($("#kids").value)||0,k=teams.length;teams.forEach((t,i)=>t.cap=Math.floor(n/k)+(i<n%k?1:0))}
+$("#split").onclick=()=>{evenSplit();renderTeams()};
+$("#kids").oninput=capCheck;
+$("#nteams").onchange=e=>{const n=Math.min(8,Math.max(2,parseInt(e.target.value)||2));while(teams.length<n){const p=PALETTE[teams.length%8];teams.push({name:p[0],color:p[1],cap:0,audio:[]})}teams.length=n;e.target.value=n;renderTeams()};
+function capCheck(){const n=parseInt($("#kids").value)||0,s=teams.reduce((a,t)=>a+(+t.cap||0),0),m=$("#capMsg");
+  m.innerHTML=!n?"":s===n?`<span class="ok">✓ ${s} of ${n} places</span>`:`<span class="warn">Places add up to ${s}, children = ${n}</span>`;return n&&s===n}
+function renderTeams(){const w=$("#teams");w.innerHTML="";
+  teams.forEach((t,i)=>{const d=document.createElement("div");d.className="team";
+    d.innerHTML=`<div class="tg"><label class="full">Team ${i+1} name<input data-k="name" value="${esc(t.name)}"></label><label>Colour<input type="color" data-k="color" value="${t.color}"></label><label>Children<input type="number" min="0" data-k="cap" value="${t.cap||""}"></label></div>
+    <div>${t.audio.map(id=>{const a=audio.find(x=>x.id===id);return`<span class="chip">🔊 ${esc(a?a.name:"clip")}<button data-del="${id}" title="Remove">✕</button></span>`}).join("")}
+    ${t.audio.length<2?`<label class="btn small" style="display:inline-block;margin-top:6px;color:#f5e8c8">+ Add audio<input type="file" accept="audio/*" class="hidden"></label>`:""}<span class="up"></span></div>`;
+    d.querySelectorAll("input[data-k]").forEach(inp=>inp.oninput=()=>{const k=inp.dataset.k;t[k]=k==="cap"?Math.max(0,parseInt(inp.value)||0):inp.value;capCheck()});
+    const f=d.querySelector("input[type=file]");if(f)f.onchange=async()=>{const file=f.files[0];if(!file)return;d.querySelector(".up").textContent=" Uploading…";
+      const fd=new FormData();fd.append("file",file);try{const r=await api(`/api/admin/sorting-hat/${cur.booking.lead_id}/audio`,{method:"POST",body:fd});audio.push(r);t.audio.push(r.id);renderTeams();$("#saveMsg").innerHTML='<span class="warn">Audio added. Press Save setup to keep it.</span>'}catch(e){d.querySelector(".up").textContent=" "+e.message}};
+    d.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{t.audio=t.audio.filter(x=>x!==+b.dataset.del);renderTeams();$("#saveMsg").innerHTML='<span class="warn">Press Save setup to apply.</span>'});
+    w.appendChild(d)});capCheck()}
+$("#save").onclick=async()=>{if(!capCheck()){$("#saveMsg").innerHTML='<span class="warn">Team places must add up to the number of children.</span>';return}
+  if(teams.some(t=>!t.name.trim())){$("#saveMsg").innerHTML='<span class="warn">Every team needs a name.</span>';return}
+  const id=cur.booking.lead_id;$("#saveMsg").textContent="Saving…";
+  try{cur=await api("/api/admin/sorting-hat/"+id,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({teams:teams.map(t=>({name:t.name.trim(),color:t.color,cap:+t.cap,audio:t.audio})),ask_names:$("#askNames").checked,kids:+$("#kids").value})});
+    // remove clips no longer used by any team
+    const used=new Set(teams.flatMap(t=>t.audio));for(const a of audio.filter(a=>!used.has(a.id)))await api(`/api/admin/sorting-hat/audio/${a.id}/remove`,{method:"POST"}).catch(()=>{});
+    audio=audio.filter(a=>used.has(a.id));$("#saveMsg").innerHTML='<span class="ok">✓ Saved. A tablet that already loaded this event picks up changes the next time it opens the code online.</span>';renderCode()}
+  catch(e){$("#saveMsg").innerHTML=`<span class="warn">${esc(e.message)}</span>`}};
+
+function renderCode(){const ev=cur.event,b=cur.booking;
+  if(!ev){$("#codeBox").innerHTML='<p>No code yet. Set up the teams below and press <b>Save setup</b> to create one.</p>';return}
+  const msg=`Sorting Hat for ${b.child_names||b.parent_name}'s party (${fmtDate(b.event_date)})\n\nOpen: ${APP_URL}\nEvent code: ${ev.code}\n\nOpen the link once with internet before the party, enter the code, then add it to the home screen. It works offline after that.`;
+  $("#codeBox").innerHTML=`<div class="code">${ev.code}</div><div class="row" style="justify-content:center">
+   <button class="btn small" id="cp">Copy message</button><a class="btn small" style="text-decoration:none" target="_blank" href="https://wa.me/?text=${encodeURIComponent(msg)}">Share on WhatsApp</a>
+   <button class="btn small ghost" id="nc">Make a new code</button></div><p style="font-size:13px;text-align:center;margin:8px 0 0">The code doesn't expire. Make a new one if it was shared with the wrong person; the old code stops working.</p>`;
+  $("#cp").onclick=()=>{navigator.clipboard.writeText(msg).then(()=>$("#cp").textContent="✓ Copied")};
+  $("#nc").onclick=async()=>{if($("#nc").dataset.c!=="1"){$("#nc").dataset.c="1";$("#nc").textContent="Tap again: old code stops working";return}cur=await api(`/api/admin/sorting-hat/${b.lead_id}/new-code`,{method:"POST"});renderCode()}}
+boot();
+</script>
+</body>
+</html>

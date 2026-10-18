@@ -46,6 +46,7 @@ SAFE_MIGRATIONS = [
     "066_marketing_spend.sql",
     "067_finance_cost_date_lead_source.sql",
     "068_lead_source_instagram.sql",
+    "069_sorting_hat.sql",
 ]
 
 

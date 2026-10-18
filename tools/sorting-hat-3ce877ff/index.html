@@ -101,52 +101,28 @@ td,th{padding:6px;border-bottom:1px solid #b89a5a;text-align:left}
 
 <div id="gate" class="modal" style="z-index:50;background:radial-gradient(ellipse at 50% 30%,#2b2238,#07060a)">
   <div class="card center" style="max-width:380px">
-    <h2>Wondershop Staff Only</h2>
-    <p style="margin:0 0 12px">Sign in with the admin or sales password.</p>
-    <input id="gatePw" type="password" placeholder="Admin or sales password" autocomplete="current-password">
+    <h2>The Sorting Hat</h2>
+    <p style="margin:0 0 12px">Enter the party code from Wondershop.</p>
+    <input id="gatePw" placeholder="e.g. HX7Q2M" autocomplete="off" autocapitalize="characters" spellcheck="false" style="text-align:center;font-size:24px;letter-spacing:.2em;text-transform:uppercase">
     <div id="gateMsg" class="warn"></div>
-    <button class="btn" id="gateBtn" style="margin-top:12px;width:100%">Unlock</button>
+    <button class="btn" id="gateBtn" style="margin-top:12px;width:100%">Open party</button>
   </div>
 </div>
 
 <!-- ================= SETUP ================= -->
 <section id="setup" class="screen">
   <h1 class="title">The Sorting Hat</h1>
-  <p class="sub">Party setup · fill in once per booking, then hand the device to the children</p>
+  <p class="sub">Check the party details, then hand the tablet to the children</p>
 
   <div class="card">
-    <h2>Booking</h2>
-    <label>Pick a booking from the system
-    <div class="row" style="margin:4px 0 4px">
-      <select id="dbBookings" style="flex:1;min-width:240px;margin-top:0"><option value="">Loading bookings…</option></select>
-      <button class="btn small" id="refreshDb" title="Refresh list">↻ Refresh</button>
-    </div></label>
-    <div id="dbMsg" style="font-size:13px;margin-bottom:12px;color:#5a3a12"></div>
-    <details style="margin-bottom:12px;font-size:14px"><summary style="cursor:pointer;color:#5a3a12">Other options: bookings saved on this tablet, or enter details by hand</summary>
-      <div class="row" style="margin-top:8px">
-        <select id="savedBookings" style="flex:1;min-width:200px"><option value="">— Saved on this tablet —</option></select>
-        <button class="btn small" id="newBooking">Enter by hand</button>
-        <button class="btn small ghost" id="signOut">Sign out</button>
-      </div>
-    </details>
-    <div class="grid">
-      <label>Booking ID<input id="bookingId" placeholder="e.g. 1042"></label>
-      <label>Birthday child's name<input id="childName" placeholder="e.g. Aarav"></label>
-      <label>Turning (age)<input id="childAge" type="number" min="1" max="18" placeholder="8"></label>
-      <label>Gender<input id="childGender" placeholder="Girl / Boy"></label>
-      <label>Location<input id="location" placeholder="Venue / area"></label>
-      <label>Party date<input id="partyDate" type="date"></label>
-      <label>Number of children<input id="kidCount" type="number" min="1" max="200" placeholder="20"></label>
-      <label>Number of teams<input id="teamCount" type="number" min="2" max="8" value="4"></label>
+    <h2>Party</h2>
+    <div id="evInfo" class="grid"></div>
+    <div id="evTeams" style="margin-top:14px"></div>
+    <div id="evWarn"></div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn small" id="refreshEv">↻ Reload from Wondershop</button>
+      <button class="btn small ghost" id="changeEv">Use a different code</button>
     </div>
-    <label style="margin-top:12px"><input type="checkbox" id="askNames" style="width:auto;margin-right:6px">Type each child's name before they're sorted (adds name to the reveal & the log)</label>
-  </div>
-
-  <div class="card">
-    <h2>Teams</h2>
-    <div class="row"><button class="btn small ghost" id="autoSplit">Auto-split children evenly</button><span id="capMsg"></span></div>
-    <div id="teams"></div>
-    <p style="font-size:13px;color:#5a3a12;margin-top:10px">Teams and audio are remembered on this tablet for each booking ID. Audio: upload 1–2 recordings per team (mp3, m4a, wav). One is picked at random on each sorting. If none is uploaded, the hat announces the team in a spoken voice.</p>
   </div>
 
   <div class="card">
@@ -157,6 +133,13 @@ td,th{padding:6px;border-bottom:1px solid #b89a5a;text-align:left}
       <button class="btn small ghost" id="hatReset">Use drawn hat</button>
       <span id="hatMsg" style="font-size:14px"></span>
     </div>
+    <h3 style="font-size:16px;color:#5a3a12;margin:16px 0 6px">The Hat's voice</h3>
+    <div class="row">
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="voiceOn" style="width:auto;margin:0">Hat speaks every line aloud</label>
+      <select id="voiceSel" style="flex:1;min-width:200px;margin-top:0"></select>
+      <button class="btn small" id="voiceTest">▶ Test voice</button>
+    </div>
+    <p style="font-size:13px;margin:6px 0 0">Uses the tablet's built-in voices, which work offline. On iPad, the deeper British voices (e.g. Daniel or Arthur) suit the Hat best. More can be downloaded in Settings → Accessibility → Spoken Content → Voices.</p>
   </div>
 
   <div class="center">
@@ -167,7 +150,7 @@ td,th{padding:6px;border-bottom:1px solid #b89a5a;text-align:left}
   <div class="card" style="margin-top:22px">
     <h2>Offline use</h2>
     <p id="offStatus" style="margin:0 0 10px">Checking…</p>
-    <p style="font-size:14px;margin:0 0 10px"><b>Tablet:</b> open this page once with internet, then <b>Share → Add to Home Screen</b> (iPad, Safari) or <b>⋮ → Install app</b> (Android, Chrome). The home-screen icon then works with no internet. Set up the booking and upload audio on that same tablet.</p>
+    <p style="font-size:14px;margin:0 0 10px"><b>Tablet:</b> open this page and enter the party code once with internet (this downloads the teams and audio), then <b>Share → Add to Home Screen</b> (iPad, Safari) or <b>⋮ → Install app</b> (Android, Chrome). The home-screen icon then works with no internet.</p>
     <p style="font-size:14px;margin:0 0 10px"><b>Laptop:</b> download a copy and double-click it to open in Chrome or Safari, no internet needed.</p>
     <a class="btn small" id="dlCopy" href="index.html" download="wondershop-sorting-hat.html" style="text-decoration:none;display:inline-block">⬇ Download offline copy</a>
   </div>
@@ -272,88 +255,49 @@ async function getAudio(id){try{const d=await db();return new Promise(r=>{const 
 async function delAudio(id){try{const d=await db();d.transaction("audio","readwrite").objectStore("audio").delete(id)}catch(e){}}
 const memAudio={}; // fallback if IDB unavailable
 
-/* ---------- state ---------- */
-let cfg=blank();
-function blank(){return{bookingId:"",childName:"",childAge:"",childGender:"",location:"",partyDate:"",kidCount:"",askNames:false,teams:[0,1,2,3].map(i=>mkTeam(i)),sorted:[]}}
-function mkTeam(i){const p=PALETTE[i%PALETTE.length];return{name:p[0],color:p[1],cap:0,audio:[]}}
-function bookings(){return store.get("sh_bookings",{})}
-function save(){if(!cfg.bookingId)return;const b=bookings();b[cfg.bookingId]=cfg;store.set("sh_bookings",b);store.set("sh_last",cfg.bookingId);fillSaved()}
-
-/* ---------- setup UI ---------- */
-const F=["bookingId","childName","childAge","childGender","location","partyDate","kidCount"];
-function fillSaved(){const s=$("#savedBookings"),b=bookings();s.innerHTML='<option value="">— Saved on this tablet —</option>'+Object.keys(b).map(k=>`<option ${k===cfg.bookingId?"selected":""} value="${esc(k)}">${esc(k)} · ${esc(b[k].childName||"")}</option>`).join("")}
-function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
-function renderSetup(){
-  F.forEach(f=>$("#"+f).value=cfg[f]||"");$("#askNames").checked=!!cfg.askNames;$("#teamCount").value=cfg.teams.length;
-  const w=$("#teams");w.innerHTML="";
-  cfg.teams.forEach((t,i)=>{
-    const d=document.createElement("div");d.className="team";
-    d.innerHTML=`<div class="team-head"><span class="swatch" style="background:${t.color}"></span><b>Team ${i+1}</b></div>
-    <div class="team-grid"><label class="full">Team name<input data-k="name" value="${esc(t.name)}"></label>
-    <label>Colour<input type="color" data-k="color" value="${t.color}"></label>
-    <label>Children<input type="number" min="0" data-k="cap" value="${t.cap||""}"></label></div>
-    <div class="audio-row"><span>Audio:</span>${t.audio.map((a,j)=>`<span class="chip">▶ <span data-play="${j}" style="cursor:pointer">${esc(a.name)}</span><button data-del="${j}" title="Remove">✕</button></span>`).join("")}
-    ${t.audio.length<2?`<label class="btn small" style="color:#f5e8c8;display:inline-block">+ Add audio<input type="file" accept="audio/*" class="hidden"></label>`:""}</div>`;
-    d.querySelectorAll("input[data-k]").forEach(inp=>inp.addEventListener("input",()=>{const k=inp.dataset.k;t[k]=k==="cap"?Math.max(0,parseInt(inp.value)||0):inp.value;if(k==="color")d.querySelector(".swatch").style.background=inp.value;capCheck();save()}));
-    const fi=d.querySelector('input[type=file]');
-    if(fi)fi.addEventListener("change",async()=>{const f=fi.files[0];if(!f)return;const id="a_"+Date.now()+"_"+Math.random().toString(36).slice(2,7);memAudio[id]=f;await putAudio(id,f);t.audio.push({id,name:f.name.slice(0,28)});save();renderSetup()});
-    d.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const a=t.audio.splice(+b.dataset.del,1)[0];delAudio(a.id);save();renderSetup()});
-    d.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>playClip(t.audio[+b.dataset.play].id));
-    w.appendChild(d)});
-  capCheck();
-}
-function capCheck(){const n=parseInt(cfg.kidCount)||0,s=cfg.teams.reduce((a,t)=>a+(t.cap||0),0),m=$("#capMsg");
-  if(!n){m.innerHTML="";return true}
-  if(s===n){m.innerHTML=`<span class="ok">✓ ${s} of ${n} places assigned</span>`;return true}
-  m.innerHTML=`<span class="warn">Team places add up to ${s}, but there are ${n} children</span>`;return false}
-F.forEach(f=>$("#"+f).addEventListener("input",e=>{const old=cfg.bookingId;cfg[f]=e.target.value.trim?e.target.value:e.target.value;if(f==="bookingId"&&old&&old!==cfg.bookingId){const b=bookings();delete b[old];store.set("sh_bookings",b)}if(f==="kidCount")capCheck();save()}));
-$("#askNames").onchange=e=>{cfg.askNames=e.target.checked;save()};
-$("#teamCount").addEventListener("change",e=>{let n=Math.min(8,Math.max(2,parseInt(e.target.value)||2));while(cfg.teams.length<n)cfg.teams.push(mkTeam(cfg.teams.length));cfg.teams.length=n;renderSetup();save()});
-$("#autoSplit").onclick=()=>{const n=parseInt(cfg.kidCount)||0;if(!n){$("#capMsg").innerHTML='<span class="warn">Enter the number of children first</span>';return}const k=cfg.teams.length;cfg.teams.forEach((t,i)=>t.cap=Math.floor(n/k)+(i<n%k?1:0));renderSetup();save()};
-$("#newBooking").onclick=()=>{cfg=blank();$("#dbBookings").value="";renderSetup();fillSaved()};
-
-/* ---------- bookings from the Wondershop database ---------- */
+/* ---------- party, loaded by its event code ---------- */
 const API="https://wondershop-website-production.up.railway.app";
-function pw(){try{return localStorage.getItem("ws_admin_pw")||""}catch(e){return""}}
-let dbRows=[];
-function fmtDate(d){if(!d)return"no date";const x=new Date(d+"T00:00:00");return isNaN(x)?d:x.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}
-function dbLabel(r){const ag=[r.child_ages,r.child_genders].filter(Boolean).join("/");
-  return["#"+r.lead_id,r.parent_name||"—",r.child_names||"—",ag||"—",r.venue||r.city||"—",fmtDate(r.event_date)].join("  -  ")}
-function fillDb(rows,note){dbRows=rows;const today=new Date().toISOString().slice(0,10);
-  const up=rows.filter(r=>r.event_date&&r.event_date>=today).sort((a,b)=>a.event_date<b.event_date?-1:1);
-  const past=rows.filter(r=>!(r.event_date&&r.event_date>=today)).sort((a,b)=>(b.event_date||"")<(a.event_date||"")?-1:1);
-  const opt=r=>`<option value="${r.lead_id}" ${String(r.lead_id)===String(cfg.bookingId)?"selected":""}>${esc(dbLabel(r))}</option>`;
-  $("#dbBookings").innerHTML=`<option value="">— Select a booking (${rows.length}) —</option>`+(up.length?`<optgroup label="Upcoming">${up.map(opt).join("")}</optgroup>`:"")+(past.length?`<optgroup label="Past / no date">${past.map(opt).join("")}</optgroup>`:"");
-  $("#dbMsg").textContent=note||""}
-async function loadDb(){$("#dbMsg").textContent="Loading bookings…";
-  try{const r=await fetch(API+"/api/admin/bookings?kind=booking&sort=event_date&dir=asc",{headers:{"X-Admin-Password":pw()}});
-    if(r.status===401||r.status===403){showGate("Please sign in again.");return}
-    if(!r.ok)throw new Error(r.status);
-    const j=await r.json();const rows=(j.rows||[]).filter(x=>x.status!=="Cancelled");
-    store.set("sh_dbcache",{at:Date.now(),rows});fillDb(rows,"")}
-  catch(e){const c=store.get("sh_dbcache",null);
-    if(c)fillDb(c.rows,`Offline: showing the list saved on ${new Date(c.at).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}. Bookings made after that won't appear.`);
-    else{$("#dbBookings").innerHTML='<option value="">Couldn\'t load bookings</option>';$("#dbMsg").textContent="Couldn't reach the booking system. Check the internet, or enter details by hand below."}}}
-$("#refreshDb").onclick=loadDb;
-$("#dbBookings").onchange=e=>{const r=dbRows.find(x=>String(x.lead_id)===e.target.value);if(!r)return;
-  const id=String(r.lead_id),saved=bookings()[id];cfg=saved||blank();
-  Object.assign(cfg,{bookingId:id,childName:r.child_names||"",childAge:(String(r.child_ages||"").match(/\d+/)||[""])[0],childGender:r.child_genders||"",location:[r.venue,r.city].filter(Boolean).join(", "),partyDate:r.event_date||"",kidCount:r.kids_count?String(r.kids_count):cfg.kidCount});
-  if(!saved&&cfg.kidCount){const n=+cfg.kidCount,k=cfg.teams.length;cfg.teams.forEach((t,i)=>t.cap=Math.floor(n/k)+(i<n%k?1:0))}
-  save();renderSetup();$("#setupMsg").innerHTML=r.kids_count?"":'<p class="warn">This booking has no kids count yet. Please enter it above.</p>'};
-$("#signOut").onclick=()=>{try{localStorage.removeItem("ws_admin_pw")}catch(e){}showGate("")};
+let cfg=null;
+const DEV=store.get("sh_device",null)||(()=>{const d=Math.random().toString(36).slice(2)+Date.now().toString(36);store.set("sh_device",d);return d})();
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function fmtDate(d){if(!d)return"—";const x=new Date(d+"T00:00:00");return isNaN(x)?d:x.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}
+function persist(){if(cfg){store.set("sh_ev_"+cfg.code,cfg);store.set("sh_code",cfg.code)}}
+function save(){persist()}
+function renderSync(){}
+async function loadEvent(code){code=code.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");
+  const r=await fetch(API+"/api/sorting-hat/event/"+encodeURIComponent(code));
+  if(r.status===404){const e=new Error("No party with that code. Please check it and try again.");e.code=404;throw e}
+  if(r.status===410)throw new Error("This booking has been cancelled.");
+  if(r.status===429)throw new Error("Too many tries. Please wait a few minutes.");
+  if(!r.ok)throw new Error("Couldn't load the party. Please try again.");
+  const j=await r.json(),b=j.booking,c=j.config||{};
+  for(const a of j.audio||[]){if(!(await getAudio("ev_"+a.id))){try{const ar=await fetch(API+"/api/sorting-hat/event/"+code+"/audio/"+a.id);if(ar.ok)await putAudio("ev_"+a.id,await ar.blob())}catch(e){}}}
+  const prev=store.get("sh_ev_"+code,null); // the running count lives only on this tablet
+  cfg={code,bookingId:String(b.lead_id),childName:b.child_names||"",childAge:(String(b.child_ages||"").match(/\d+/)||[""])[0],childGender:b.child_genders||"",
+    location:[b.venue,b.city].filter(Boolean).join(", "),partyDate:b.event_date||"",kidCount:c.kids||b.kids_count||0,askNames:!!c.ask_names,
+    teams:(c.teams||[]).map(t=>({name:t.name,color:t.color,cap:+t.cap||0,audio:(t.audio||[]).map(id=>({id:"ev_"+id}))})),
+    sorted:(prev&&prev.sorted)||[],loadedAt:Date.now()};
+  persist();return cfg}
+function renderEvent(){if(!cfg)return;
+  $("#evInfo").innerHTML=[["Party code",cfg.code],["Booking","#"+cfg.bookingId],["Birthday child",cfg.childName],["Age / gender",[cfg.childAge,cfg.childGender].filter(Boolean).join(" / ")],["Location",cfg.location],["Date",fmtDate(cfg.partyDate)],["Children",cfg.kidCount]]
+    .map(([k,v])=>`<div><span style="display:block;font-size:13px;color:#5a3a12">${k}</span>${esc(v||"—")}</div>`).join("");
+  const done=cfg.sorted.length,total=cfg.teams.reduce((a,t)=>a+t.cap,0);
+  $("#evTeams").innerHTML=cfg.teams.length?`<div class="row">${cfg.teams.map((t,i)=>`<span class="chip" style="background:${t.color}">${esc(t.name)} · ${cfg.sorted.filter(s=>s.team===i).length}/${t.cap}${t.audio.length?" · 🔊":""}</span>`).join("")}</div><p style="margin:8px 0 0;font-size:14px">${done} of ${total} children sorted</p>`:"";
+  const w=[];if(!cfg.teams.length)w.push("This party has no teams set up yet. Please ask Wondershop to finish the Sorting Hat setup.");
+  $("#evWarn").innerHTML=w.map(x=>`<p class="warn">${x}</p>`).join("");
+  $("#begin").disabled=!cfg.teams.length}
+$("#refreshEv").onclick=async()=>{const b=$("#refreshEv");b.textContent="Loading…";try{await loadEvent(cfg.code);renderEvent();b.textContent="✓ Up to date"}catch(e){b.textContent="↻ Reload from Wondershop";$("#evWarn").innerHTML=`<p class="warn">${esc(navigator.onLine?e.message:"No internet. Using the copy saved on this tablet.")}</p>`}};
+$("#changeEv").onclick=()=>{$("#gatePw").value="";showGate("")};
 
 /* ---------- hat photo ---------- */
 async function applyHat(){const b=await getAudio("hat_photo");const w=$("#hatWrap");const old=w.querySelector("img.hatphoto");if(old)old.remove();
   const svg=w.querySelector("svg");if(b){svg.style.display="none";const i=document.createElement("img");i.className="hatphoto";i.src=URL.createObjectURL(b);i.style.width="100%";w.appendChild(i);$("#hatMsg").textContent="✓ Using your hat photo"}else{svg.style.display="";$("#hatMsg").textContent="Using the drawn hat"}}
 $("#hatFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;await putAudio("hat_photo",f);applyHat()};
 $("#hatReset").onclick=async()=>{await delAudio("hat_photo");setTimeout(applyHat,100)};
-$("#savedBookings").onchange=e=>{const b=bookings()[e.target.value];if(b){cfg=b;renderSetup()}};
 $("#begin").onclick=()=>{
   const m=$("#setupMsg");
-  if(!cfg.bookingId||!cfg.childName){m.innerHTML='<p class="warn">Please add a booking ID and the birthday child\'s name.</p>';return}
-  if(!cfg.kidCount){m.innerHTML='<p class="warn">Please enter the number of children.</p>';return}
-  if(!capCheck()){m.innerHTML='<p class="warn">Team places must add up to the number of children.</p>';return}
-  m.innerHTML="";save();startSorting()};
+  if(!cfg||!cfg.teams.length){m.innerHTML='<p class="warn">This party has no teams set up yet.</p>';return}
+  m.innerHTML="";startSorting()};
 
 /* ---------- sorting ---------- */
 let busy=false,pendingName="";
@@ -375,7 +319,21 @@ function lighten(h){const n=parseInt(h.slice(1),16);let r=n>>16,g=n>>8&255,b=n&2
 const IDLE=["Place your hand upon the mark, and the Hat shall decide…","Step forward, young one. Don't be shy…","Who dares come next? Hand on the mark, please…","I have sorted a thousand heads. Yours is next…"];
 const THINK=[["Hmm… a curious mind…","Plenty of courage, I see…","And a spark of mischief too…"],["Ahh, now let me see…","Clever… very clever…","But loyal to the core…"],["Oh my, a tricky one!","Bold… quick-thinking…","I know just the place…"],["Hmmm, interesting…","A good heart, a sharp eye…","Yes… yes, I'm quite sure…"],["Goodness, what's in here?","Ambition… kindness… daring…","There's only one place for you…"]];
 function idleSpeech(){say(IDLE[Math.floor(rnd()*IDLE.length)])}
-function say(t){const s=$("#speech");s.style.opacity=0;setTimeout(()=>{s.textContent=t;s.style.opacity=1},250)}
+function say(t,quiet){const s=$("#speech");s.style.opacity=0;setTimeout(()=>{s.textContent=t;s.style.opacity=1},250);return quiet?Promise.resolve():speak(t)}
+/* ---------- the Hat's voice (on-device text-to-speech) ---------- */
+let VOICE=store.get("sh_voice",{on:true,name:""});
+function enVoices(){try{return speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang))}catch(e){return[]}}
+function pickVoice(){const vs=enVoices();return vs.find(v=>v.name===VOICE.name)||vs.find(v=>/Daniel|Arthur|Rishi|UK English Male/i.test(v.name))||vs.find(v=>/en-GB/i.test(v.lang))||vs[0]}
+function speak(t){return new Promise(res=>{if(!VOICE.on||!window.speechSynthesis)return res();
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/…/g,"... "));const v=pickVoice();if(v){u.voice=v;u.lang=v.lang}
+    u.rate=.82;u.pitch=.55;let done=false;const fin=()=>{if(!done){done=true;$("#hatWrap").classList.remove("talk");res()}};
+    u.onstart=()=>$("#hatWrap").classList.add("talk");u.onend=fin;u.onerror=fin;setTimeout(fin,Math.max(3000,t.length*120));speechSynthesis.speak(u)}catch(e){res()}})}
+function fillVoices(){const sel=$("#voiceSel");if(!sel)return;const vs=enVoices(),cur=pickVoice();
+  sel.innerHTML=vs.length?vs.map(v=>`<option ${cur&&v.name===cur.name?"selected":""}>${esc(v.name)}</option>`).join(""):"<option>Default voice</option>";$("#voiceOn").checked=VOICE.on}
+try{speechSynthesis.onvoiceschanged=fillVoices}catch(e){}
+$("#voiceSel").onchange=e=>{VOICE.name=e.target.value;store.set("sh_voice",VOICE)};
+$("#voiceOn").onchange=e=>{VOICE.on=e.target.checked;store.set("sh_voice",VOICE)};
+$("#voiceTest").onclick=()=>{const o=VOICE.on;VOICE.on=true;speak("Hmm... another head to sort. Place your hand upon the mark!");VOICE.on=o};
 
 /* hold-to-sort */
 const pad=$("#pad"),ringC=$("#ring circle"),HOLD=1800;let t0=0,raf=0,holding=false;
@@ -388,7 +346,7 @@ function tick(){const p=Math.min(1,(performance.now()-t0)/HOLD);ringC.style.stro
 async function runSort(){
   busy=true;const team=pickTeam();if(team<0){busy=false;return}
   const lines=THINK[Math.floor(rnd()*THINK.length)];$("#hatWrap").classList.add("talk");
-  for(const l of lines){say(l);await wait(1100+rnd()*500)}
+  for(const l of lines){await say(l);await wait(250+rnd()*350)}
   hum(false);$("#hatWrap").classList.remove("talk");ringC.style.strokeDashoffset=289;
   const name=pendingName;pendingName="";
   cfg.sorted.push({team,name,at:new Date().toISOString()});save();
@@ -403,21 +361,22 @@ function reveal(i,name){
   <text x="100" y="140" text-anchor="middle" font-family="Cinzel Decorative" font-size="84" font-weight="700" fill="#f5d77a" stroke="#00000055" stroke-width="2">${esc((t.name||"?")[0].toUpperCase())}</text></svg>
   ${name?`<div class="kname">${esc(name)}, you belong in…</div>`:`<div class="kname">You belong in…</div>`}
   <div class="tname">${esc(t.name)}!</div><div class="tap">Tap anywhere to continue</div>`;
-  R.classList.remove("hidden");burst(t.color);announce(t);
+  R.classList.remove("hidden");burst(t.color);announce(t,name);
   let can=false;setTimeout(()=>can=true,1500);
   R.onclick=()=>{if(!can)return;stopAudio();R.classList.add("hidden");busy=false;renderTally();if(remaining().some(v=>v>0))idleSpeech()}}
 
 /* ---------- audio ---------- */
 let AC=null,cur=null,humNode=null;
 function unlockAudio(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume()}catch(e){}}
+$("#begin").addEventListener("click",unlockAudio);
 function hum(on){if(!AC)return;if(on&&!humNode){const o=AC.createOscillator(),o2=AC.createOscillator(),g=AC.createGain();o.type="sine";o.frequency.value=110;o2.type="triangle";o2.frequency.value=165;g.gain.value=0;g.gain.linearRampToValueAtTime(.06,AC.currentTime+.4);o.connect(g);o2.connect(g);g.connect(AC.destination);o.start();o2.start();humNode={o,o2,g}}
   else if(!on&&humNode){const h=humNode;humNode=null;h.g.gain.linearRampToValueAtTime(0,AC.currentTime+.3);setTimeout(()=>{h.o.stop();h.o2.stop()},400)}}
 function fanfare(){if(!AC)return;[523,659,784,1047].forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=f;const s=AC.currentTime+i*.12;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(.12,s+.03);g.gain.exponentialRampToValueAtTime(.001,s+1.2);o.connect(g);g.connect(AC.destination);o.start(s);o.stop(s+1.3)})}
 async function playClip(id){stopAudio();let b=memAudio[id]||await getAudio(id);if(!b)return false;const a=new Audio(URL.createObjectURL(b));cur=a;try{await a.play();return true}catch(e){return false}}
 function stopAudio(){if(cur){cur.pause();cur=null}try{speechSynthesis.cancel()}catch(e){}}
-async function announce(t){fanfare();
+async function announce(t,name){fanfare();
   if(t.audio.length){const a=t.audio[Math.floor(rnd()*t.audio.length)];await wait(500);if(await playClip(a.id))return}
-  try{await wait(700);const u=new SpeechSynthesisUtterance(t.name+"!");u.rate=.8;u.pitch=.6;const v=speechSynthesis.getVoices().find(v=>/en-GB/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u)}catch(e){}}
+  await wait(600);const o=VOICE.on;VOICE.on=true;await speak((name&&name.trim()?name.trim()+"! ":"")+"You belong in... "+t.name+"!");VOICE.on=o}
 
 /* ---------- name modal ---------- */
 function openName(){$("#kidName").value="";$("#nameModal").classList.remove("hidden");setTimeout(()=>$("#kidName").focus(),50)}
@@ -432,7 +391,7 @@ $("#closeLog").onclick=()=>$("#logModal").classList.add("hidden");
 $("#undoBtn").onclick=()=>{cfg.sorted.pop();save();renderLog();renderTally()};
 $("#resetBtn").onclick=()=>{if(!$("#resetBtn").dataset.c){$("#resetBtn").dataset.c=1;$("#resetBtn").textContent="Tap again to confirm";setTimeout(()=>{delete $("#resetBtn").dataset.c;$("#resetBtn").textContent="Reset sorting"},3000);return}cfg.sorted=[];save();renderLog();renderTally();idleSpeech()};
 $("#csvBtn").onclick=()=>{const rows=[["Booking ID","Birthday child","#","Child","Team","Time"],...cfg.sorted.map((s,i)=>[cfg.bookingId,cfg.childName,i+1,s.name.trim(),cfg.teams[s.team]?.name,s.at])];const csv=rows.map(r=>r.map(c=>`"${String(c??"").replace(/"/g,'""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`sorting-${cfg.bookingId}.csv`;a.click()};
-$("#backBtn").onclick=()=>{$("#sort").classList.add("hidden");$("#setup").classList.remove("hidden");renderSetup()};
+$("#backBtn").onclick=()=>{$("#sort").classList.add("hidden");$("#setup").classList.remove("hidden");renderEvent()};
 
 /* ---------- visuals ---------- */
 const st=$("#stars"),sx=st.getContext("2d");let stars=[];
@@ -443,16 +402,17 @@ const fx=$("#fx"),fc=fx.getContext("2d");fx.width=innerWidth;fx.height=innerHeig
 function burst(col){const cx=fx.width/2,cy=fx.height*.42;for(let i=0;i<180;i++){const a=rnd()*Math.PI*2,v=2+rnd()*9;parts.push({x:cx,y:cy,vx:Math.cos(a)*v,vy:Math.sin(a)*v-2,l:1,c:rnd()<.5?col:(rnd()<.5?"#f5d77a":"#ffffff"),r:1+rnd()*3})}if(parts.length===180)animFx()}
 function animFx(){fc.clearRect(0,0,fx.width,fx.height);parts=parts.filter(p=>p.l>0);for(const p of parts){p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.vx*=.985;p.l-=.009;fc.globalAlpha=Math.max(0,p.l);fc.fillStyle=p.c;fc.beginPath();fc.arc(p.x,p.y,p.r,0,7);fc.fill()}if(parts.length)requestAnimationFrame(animFx);else fc.clearRect(0,0,fx.width,fx.height)}
 
-/* ---------- staff sign-in (same password + storage as admin.html; checked by the server) ---------- */
-function showGate(m){$("#gate").classList.remove("hidden");$("#gateMsg").textContent=m||""}
-async function login(){const v=$("#gatePw").value.trim();if(!v)return;$("#gateMsg").textContent="Checking…";
-  try{const r=await fetch(API+"/api/admin/whoami",{headers:{"X-Admin-Password":v}});
-    if(r.ok){try{localStorage.setItem("ws_admin_pw",v)}catch(e){}$("#gatePw").value="";$("#gate").classList.add("hidden");loadDb()}
-    else $("#gateMsg").textContent=r.status===429?"Too many tries. Please wait a few minutes.":"That password isn't right."}
-  catch(e){$("#gateMsg").textContent="No internet. Sign in once while online; after that the app works offline."}}
-$("#gateBtn").onclick=login;$("#gatePw").addEventListener("keydown",e=>{if(e.key==="Enter")login()});
-if(pw()){$("#gate").classList.add("hidden");loadDb()}else showGate("");
-applyHat();
+/* ---------- party code gate ---------- */
+function showGate(m){$("#gate").classList.remove("hidden");$("#gateMsg").textContent=m||"";setTimeout(()=>$("#gatePw").focus(),50)}
+async function openCode(){const v=$("#gatePw").value.trim();if(!v)return;$("#gateMsg").textContent="Opening the party… (downloading teams and audio)";
+  try{await loadEvent(v);$("#gate").classList.add("hidden");$("#setup").classList.remove("hidden");$("#sort").classList.add("hidden");renderEvent()}
+  catch(e){$("#gateMsg").textContent=navigator.onLine?e.message:"No internet. Enter the code once while online; after that the party works offline."}}
+$("#gateBtn").onclick=openCode;$("#gatePw").addEventListener("keydown",e=>{if(e.key==="Enter")openCode()});
+(()=>{const last=store.get("sh_code",null),saved=last&&store.get("sh_ev_"+last,null);
+  if(saved){cfg=saved;$("#gate").classList.add("hidden");renderEvent();
+    if(navigator.onLine)loadEvent(last).then(renderEvent).catch(e=>{if(e.code===404){cfg=null;showGate("This party's code was changed. Please enter the new code.")}})}
+  else showGate("")})();
+applyHat();fillVoices();
 
 /* ---------- offline (service worker) ---------- */
 function offMsg(t){const o=$("#offStatus");if(o)o.innerHTML=t}
@@ -461,8 +421,6 @@ else if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").
 else offMsg("Offline saving isn't available in this browser. Use the download below.");
 
 /* ---------- boot ---------- */
-const last=store.get("sh_last",null),b=bookings();if(last&&b[last])cfg=b[last];
-renderSetup();fillSaved();
 try{speechSynthesis.getVoices()}catch(e){}
 })();
 </script>

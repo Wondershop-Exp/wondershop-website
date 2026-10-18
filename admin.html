@@ -3810,8 +3810,10 @@ function listActionsCellHtml(r, kind){
   // 2026-09-08, per Shruti — packaging assist module: quick jump from a
   // confirmed booking row straight into a pre-filled packing-list composer.
   const packLink = '<a class="mini-btn admin-only" href="packaging.html?lead_id='+r.lead_id+'&title='+encodeURIComponent((r.parent_name||('Booking #'+r.lead_id))+"'s Party")+'&event_lead=" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">📦 Pack list</a>';
+  // 2026-10-18 — Sorting Hat event code for this booking (admin only).
+  const hatLink = '<a class="mini-btn admin-only" href="sorting-hat-admin.html?lead_id='+r.lead_id+'" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">🎩 Sorting Hat</a>';
   if(r.status==='Cancelled') return '<div style="display:flex">'+packLink+'</div>';
-  return '<div style="display:flex;flex-wrap:wrap;gap:8px">'+packLink+'<button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button></div>';
+  return '<div style="display:flex;flex-wrap:wrap;gap:8px">'+packLink+hatLink+'<button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button></div>';
 }
 async function quickSetStatus(leadId, newStatus){
   const who = getName();
