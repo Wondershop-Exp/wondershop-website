@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>The Sorting Hat</title>
+<meta name="robots" content="noindex,nofollow,noarchive">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sorting Hat">
+<meta name="theme-color" content="#0b0a10">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0a10;--parch:#e9dcb8;--ink:#2a1d0e;--gold:#d4af37;--gold2:#f5d77a;--muted:#a89a7a;--panel:rgba(20,16,12,.82);--team:#d4af37}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0a10}}
+:root[data-theme="dark"]{--bg:#0b0a10}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--parch);font-family:'IM Fell English',Georgia,serif;overflow-x:hidden}
+body{background:radial-gradient(ellipse at 50% 20%,#2b2238 0%,#120f18 55%,#07060a 100%) fixed}
+h1,h2,h3,.fancy{font-family:'Cinzel Decorative',serif;letter-spacing:.04em}
+button{font-family:inherit;cursor:pointer}
+.hidden{display:none!important}
+/* stars */
+#stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+.screen{position:relative;z-index:1;min-height:100vh}
+/* ---------- SETUP ---------- */
+#setup{max-width:860px;margin:0 auto;padding:28px 16px 80px}
+.title{text-align:center;color:var(--gold2);font-size:clamp(26px,5vw,44px);margin:6px 0 2px;text-shadow:0 0 18px rgba(212,175,55,.45)}
+.sub{text-align:center;color:var(--muted);font-style:italic;margin:0 0 24px}
+.card{background:linear-gradient(#f1e6c6,#e2d2a6);color:var(--ink);border-radius:6px;padding:20px;margin-bottom:18px;box-shadow:0 10px 30px rgba(0,0,0,.5),inset 0 0 40px rgba(120,80,30,.25);border:1px solid #b89a5a}
+.card h2{margin:0 0 14px;font-size:20px;color:#5a3a12;border-bottom:1px solid #b89a5a;padding-bottom:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+label{display:block;font-size:14px;color:#5a3a12}
+input,select{width:100%;margin-top:4px;padding:9px 10px;font:inherit;font-size:16px;border:1px solid #a88a4a;border-radius:4px;background:#fbf5e2;color:var(--ink)}
+input[type=color]{padding:2px;height:42px}
+.team{border:1px dashed #a88a4a;border-radius:6px;padding:12px;margin-top:12px;background:rgba(255,255,255,.25)}
+.team-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.swatch{width:18px;height:18px;border-radius:50%;border:2px solid #5a3a12}
+.team-grid{display:grid;grid-template-columns:2fr 80px 1fr;gap:10px}
+@media(max-width:560px){.team-grid{grid-template-columns:1fr 1fr}.team-grid .full{grid-column:1/-1}}
+.audio-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;font-size:14px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#5a3a12;color:#f5e8c8;border-radius:20px;padding:4px 10px;font-size:13px}
+.chip button{background:none;border:0;color:#f5d77a;font-size:15px;padding:0}
+.btn{border:1px solid #8a6a2a;background:#5a3a12;color:#f5e8c8;padding:9px 16px;border-radius:4px;font-size:15px}
+.btn.ghost{background:transparent;color:#5a3a12}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn.gold{background:linear-gradient(#f5d77a,#c89b2a);color:#2a1d0e;border-color:#8a6a2a;font-family:'Cinzel Decorative',serif;font-weight:700;font-size:18px;padding:14px 28px;box-shadow:0 0 24px rgba(212,175,55,.4)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.warn{color:#8b1a1a;font-size:14px;margin-top:8px}
+.ok{color:#2d5a1a;font-size:14px;margin-top:8px}
+.center{text-align:center}
+/* ---------- SORT ---------- */
+#sort{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:18px 16px 30px;transition:background 1.2s}
+.topbar{width:100%;max-width:1100px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.topbar .who{color:var(--gold2);font-size:clamp(16px,2.6vw,24px)}
+.iconbtn{background:rgba(0,0,0,.35);border:1px solid rgba(212,175,55,.4);color:var(--gold2);border-radius:20px;padding:6px 14px;font-size:14px}
+#hatWrap{margin-top:8px;width:min(46vw,300px);filter:drop-shadow(0 18px 30px rgba(0,0,0,.7));animation:bob 5s ease-in-out infinite}
+#hatWrap.talk svg .mouth{animation:talk .22s ease-in-out infinite alternate}
+#hatWrap.talk{animation:wobble .5s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-10px) rotate(1.5deg)}}
+@keyframes wobble{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg) translateY(-4px)}}
+@keyframes talk{from{transform:scaleY(.5)}to{transform:scaleY(1.4)}}
+#speech{min-height:3.2em;max-width:720px;text-align:center;font-style:italic;font-size:clamp(18px,3vw,28px);color:var(--parch);margin:6px 0 10px;text-shadow:0 2px 8px #000;transition:opacity .4s}
+#pad{position:relative;width:min(70vw,300px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;touch-action:none;user-select:none;-webkit-user-select:none;
+  background:radial-gradient(circle,rgba(212,175,55,.18),rgba(212,175,55,.04) 60%,transparent 70%);}
+#pad::before{content:"";position:absolute;inset:6%;border-radius:50%;border:2px solid rgba(212,175,55,.55);box-shadow:0 0 30px rgba(212,175,55,.35),inset 0 0 30px rgba(212,175,55,.2);animation:pulse 2.4s ease-in-out infinite}
+#pad.disabled{opacity:.25;pointer-events:none}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.05);opacity:1}}
+#pad svg.hand{width:58%;opacity:.85;filter:drop-shadow(0 0 10px rgba(245,215,122,.7))}
+#ring{position:absolute;inset:0;transform:rotate(-90deg)}
+#ring circle{fill:none;stroke:var(--gold2);stroke-width:5;stroke-linecap:round;filter:drop-shadow(0 0 8px var(--gold2))}
+#pad.holding svg.hand{animation:glow .6s ease-in-out infinite alternate}
+@keyframes glow{to{filter:drop-shadow(0 0 26px #fff3c4);opacity:1}}
+.padlabel{margin-top:10px;color:var(--muted);font-size:clamp(15px,2.4vw,20px);font-style:italic}
+#tally{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:18px;max-width:1000px}
+.tl{background:rgba(0,0,0,.4);border:1px solid;border-radius:6px;padding:6px 12px;font-size:15px;min-width:110px;text-align:center}
+.tl b{font-family:'Cinzel Decorative',serif;display:block;font-size:14px}
+/* reveal */
+#reveal{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px;
+  background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--team) 70%,#fff 0%) 0%,color-mix(in srgb,var(--team) 55%,#000) 45%,#050308 100%);animation:fadein .8s}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+#reveal .crest{width:min(46vw,240px);animation:crestIn 1.2s cubic-bezier(.2,1.4,.4,1)}
+@keyframes crestIn{from{transform:scale(.1) rotate(-30deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+#reveal .kname{font-size:clamp(20px,3.6vw,34px);color:#fff;margin-top:14px;font-style:italic;text-shadow:0 2px 10px #000}
+#reveal .tname{font-family:'Cinzel Decorative',serif;font-weight:700;font-size:clamp(40px,10vw,110px);color:#fff;line-height:1.05;text-shadow:0 0 30px var(--team),0 4px 0 rgba(0,0,0,.4),0 0 80px #fff6;animation:crestIn 1s .3s both}
+#reveal .tap{margin-top:26px;color:#fff;opacity:.75;font-size:18px}
+canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:6}
+/* name modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10;display:grid;place-items:center;padding:16px}
+.modal .card{max-width:460px;width:100%}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td,th{padding:6px;border-bottom:1px solid #b89a5a;text-align:left}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<div id="gate" class="modal" style="z-index:50;background:radial-gradient(ellipse at 50% 30%,#2b2238,#07060a)">
+  <div class="card center" style="max-width:380px">
+    <h2>Wondershop Staff Only</h2>
+    <p style="margin:0 0 12px">Enter the passcode to open the Sorting Hat.</p>
+    <input id="gatePw" type="password" placeholder="Passcode" autocomplete="off">
+    <div id="gateMsg" class="warn"></div>
+    <button class="btn" id="gateBtn" style="margin-top:12px;width:100%">Unlock</button>
+  </div>
+</div>
+
+<!-- ================= SETUP ================= -->
+<section id="setup" class="screen">
+  <h1 class="title">The Sorting Hat</h1>
+  <p class="sub">Party setup · fill in once per booking, then hand the device to the children</p>
+
+  <div class="card">
+    <h2>Booking</h2>
+    <div class="row" style="margin-bottom:12px">
+      <select id="savedBookings" style="flex:1;min-width:200px"><option value="">— Load a saved booking —</option></select>
+      <button class="btn small" id="newBooking">New booking</button>
+    </div>
+    <div class="grid">
+      <label>Booking ID<input id="bookingId" placeholder="e.g. WS-2026-1042"></label>
+      <label>Birthday child's name<input id="childName" placeholder="e.g. Aarav"></label>
+      <label>Turning (age)<input id="childAge" type="number" min="1" max="18" placeholder="8"></label>
+      <label>Party date<input id="partyDate" type="date"></label>
+      <label>Number of children<input id="kidCount" type="number" min="1" max="200" placeholder="20"></label>
+      <label>Number of teams<input id="teamCount" type="number" min="2" max="8" value="4"></label>
+    </div>
+    <label style="margin-top:12px"><input type="checkbox" id="askNames" style="width:auto;margin-right:6px">Type each child's name before they're sorted (adds name to the reveal & the log)</label>
+  </div>
+
+  <div class="card">
+    <h2>Teams</h2>
+    <div class="row"><button class="btn small ghost" id="autoSplit">Auto-split children evenly</button><span id="capMsg"></span></div>
+    <div id="teams"></div>
+    <p style="font-size:13px;color:#5a3a12;margin-top:10px">Audio: upload 1–2 recordings per team (mp3, m4a, wav). One is picked at random on each sorting. If none is uploaded, the hat announces the team in a spoken voice.</p>
+  </div>
+
+  <div class="center">
+    <button class="btn gold" id="begin">Begin the Sorting</button>
+    <div id="setupMsg"></div>
+  </div>
+
+  <div class="card" style="margin-top:22px">
+    <h2>Offline use</h2>
+    <p id="offStatus" style="margin:0 0 10px">Checking…</p>
+    <p style="font-size:14px;margin:0 0 10px"><b>Tablet:</b> open this page once with internet, then <b>Share → Add to Home Screen</b> (iPad, Safari) or <b>⋮ → Install app</b> (Android, Chrome). The home-screen icon then works with no internet. Set up the booking and upload audio on that same tablet.</p>
+    <p style="font-size:14px;margin:0 0 10px"><b>Laptop:</b> download a copy and double-click it to open in Chrome or Safari, no internet needed.</p>
+    <a class="btn small" id="dlCopy" href="index.html" download="wondershop-sorting-hat.html" style="text-decoration:none;display:inline-block">⬇ Download offline copy</a>
+  </div>
+</section>
+
+<!-- ================= SORTING ================= -->
+<section id="sort" class="screen hidden">
+  <div class="topbar">
+    <button class="iconbtn" id="backBtn" title="Back to setup">⚙ Setup</button>
+    <div class="who fancy" id="whoLine"></div>
+    <button class="iconbtn" id="logBtn">📜 Log</button>
+  </div>
+  <div id="hatWrap">
+    <svg viewBox="0 0 300 260" xmlns="http://www.w3.org/2000/svg" aria-label="A talking wizard hat">
+      <defs>
+        <linearGradient id="hg" x1="0" x2="1"><stop offset="0" stop-color="#3d2b1a"/><stop offset=".5" stop-color="#6b4a2b"/><stop offset="1" stop-color="#2e2014"/></linearGradient>
+        <radialGradient id="eye"><stop offset="0" stop-color="#fff6c8"/><stop offset=".5" stop-color="#f5c542"/><stop offset="1" stop-color="#f5c54200"/></radialGradient>
+      </defs>
+      <!-- brim -->
+      <ellipse cx="150" cy="222" rx="140" ry="30" fill="#2a1c10"/>
+      <ellipse cx="150" cy="216" rx="132" ry="24" fill="url(#hg)"/>
+      <!-- cone with a bent tip -->
+      <path d="M70 214 C80 160 98 120 118 90 C132 66 140 40 168 22 C186 12 214 18 222 34 C204 30 186 36 178 52 C170 70 182 120 196 150 C206 172 222 196 232 214 Z" fill="url(#hg)" stroke="#1e140b" stroke-width="3"/>
+      <!-- patches & stitches -->
+      <path d="M150 150 l22 -4 l4 20 l-22 4z" fill="#52391f" stroke="#1e140b" stroke-width="1.5"/>
+      <path d="M152 152 l20 -3 M154 168 l18 -3" stroke="#c9a46a" stroke-width="1" stroke-dasharray="3 3"/>
+      <!-- brows / creases -->
+      <path class="brow" d="M98 138 q22 -14 40 0" stroke="#1e140b" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path class="brow" d="M168 136 q20 -14 38 2" stroke="#1e140b" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <!-- eyes -->
+      <ellipse cx="120" cy="152" rx="13" ry="7" fill="#120b05"/><ellipse cx="120" cy="152" rx="14" ry="9" fill="url(#eye)" opacity=".9"><animate attributeName="opacity" values=".9;.3;.9" dur="3.2s" repeatCount="indefinite"/></ellipse>
+      <ellipse cx="186" cy="152" rx="13" ry="7" fill="#120b05"/><ellipse cx="186" cy="152" rx="14" ry="9" fill="url(#eye)" opacity=".9"><animate attributeName="opacity" values=".9;.3;.9" dur="3.2s" repeatCount="indefinite"/></ellipse>
+      <!-- mouth -->
+      <g transform="translate(152 190)"><path class="mouth" style="transform-origin:center" d="M-38 0 q38 18 76 0 q-38 6 -76 0z" fill="#0d0804" stroke="#1e140b" stroke-width="3"/></g>
+    </svg>
+  </div>
+  <div id="speech">Place your hand upon the mark, and the Hat shall decide…</div>
+  <div id="pad">
+    <svg id="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" stroke-dasharray="289" stroke-dashoffset="289"/></svg>
+    <svg class="hand" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg"><path fill="none" stroke="#f5d77a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M30 112 C18 96 12 80 10 66 C8 56 18 54 22 62 L28 74 L28 26 C28 18 38 18 38 26 L38 58 L40 14 C40 6 51 6 51 14 L52 56 L56 18 C57 10 67 10 67 18 L66 58 L72 30 C74 22 83 24 82 32 L78 76 C76 92 72 104 66 112 Z"/><circle cx="50" cy="86" r="5" fill="#f5d77a" opacity=".6"/></svg>
+  </div>
+  <div class="padlabel" id="padLabel">Press and hold</div>
+  <div id="tally"></div>
+</section>
+
+<div id="reveal" class="hidden"></div>
+<canvas id="fx"></canvas>
+
+<div id="nameModal" class="modal hidden">
+  <div class="card">
+    <h2>Who comes forward?</h2>
+    <input id="kidName" placeholder="Child's first name" autocomplete="off">
+    <div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn ghost" id="skipName">Skip</button><button class="btn" id="okName">Ready</button></div>
+  </div>
+</div>
+
+<div id="logModal" class="modal hidden">
+  <div class="card" style="max-height:85vh;overflow:auto">
+    <h2>Sorting log</h2>
+    <div id="logBody"></div>
+    <div class="row" style="margin-top:14px;justify-content:space-between">
+      <div class="row"><button class="btn small ghost" id="undoBtn">Undo last</button><button class="btn small ghost" id="resetBtn">Reset sorting</button><button class="btn small ghost" id="csvBtn">Download CSV</button></div>
+      <button class="btn small" id="closeLog">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const PALETTE=[["Emberclaw","#ae0001"],["Tidewing","#1f4fa3"],["Thornmoss","#2a623d"],["Goldmane","#e0a800"],["Nightveil","#5b2a86"],["Stoneheart","#6b6b6b"],["Dawnfire","#d9620f"],["Frostfang","#3fa7c4"]];
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- IndexedDB for audio blobs ---------- */
+let dbp=null;
+function db(){if(dbp)return dbp;dbp=new Promise((res,rej)=>{try{const r=indexedDB.open("sortinghat",1);r.onupgradeneeded=()=>r.result.createObjectStore("audio");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}});return dbp}
+async function putAudio(id,blob){try{const d=await db();return new Promise(r=>{const t=d.transaction("audio","readwrite");t.objectStore("audio").put(blob,id);t.oncomplete=r;t.onerror=r})}catch(e){}}
+async function getAudio(id){try{const d=await db();return new Promise(r=>{const q=d.transaction("audio").objectStore("audio").get(id);q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)})}catch(e){return null}}
+async function delAudio(id){try{const d=await db();d.transaction("audio","readwrite").objectStore("audio").delete(id)}catch(e){}}
+const memAudio={}; // fallback if IDB unavailable
+
+/* ---------- state ---------- */
+let cfg=blank();
+function blank(){return{bookingId:"",childName:"",childAge:"",partyDate:"",kidCount:"",askNames:false,teams:[0,1,2,3].map(i=>mkTeam(i)),sorted:[]}}
+function mkTeam(i){const p=PALETTE[i%PALETTE.length];return{name:p[0],color:p[1],cap:0,audio:[]}}
+function bookings(){return store.get("sh_bookings",{})}
+function save(){if(!cfg.bookingId)return;const b=bookings();b[cfg.bookingId]=cfg;store.set("sh_bookings",b);store.set("sh_last",cfg.bookingId);fillSaved()}
+
+/* ---------- setup UI ---------- */
+const F=["bookingId","childName","childAge","partyDate","kidCount"];
+function fillSaved(){const s=$("#savedBookings"),b=bookings();s.innerHTML='<option value="">— Load a saved booking —</option>'+Object.keys(b).map(k=>`<option ${k===cfg.bookingId?"selected":""} value="${esc(k)}">${esc(k)} · ${esc(b[k].childName||"")}</option>`).join("")}
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function renderSetup(){
+  F.forEach(f=>$("#"+f).value=cfg[f]||"");$("#askNames").checked=!!cfg.askNames;$("#teamCount").value=cfg.teams.length;
+  const w=$("#teams");w.innerHTML="";
+  cfg.teams.forEach((t,i)=>{
+    const d=document.createElement("div");d.className="team";
+    d.innerHTML=`<div class="team-head"><span class="swatch" style="background:${t.color}"></span><b>Team ${i+1}</b></div>
+    <div class="team-grid"><label class="full">Team name<input data-k="name" value="${esc(t.name)}"></label>
+    <label>Colour<input type="color" data-k="color" value="${t.color}"></label>
+    <label>Children<input type="number" min="0" data-k="cap" value="${t.cap||""}"></label></div>
+    <div class="audio-row"><span>Audio:</span>${t.audio.map((a,j)=>`<span class="chip">▶ <span data-play="${j}" style="cursor:pointer">${esc(a.name)}</span><button data-del="${j}" title="Remove">✕</button></span>`).join("")}
+    ${t.audio.length<2?`<label class="btn small" style="color:#f5e8c8;display:inline-block">+ Add audio<input type="file" accept="audio/*" class="hidden"></label>`:""}</div>`;
+    d.querySelectorAll("input[data-k]").forEach(inp=>inp.addEventListener("input",()=>{const k=inp.dataset.k;t[k]=k==="cap"?Math.max(0,parseInt(inp.value)||0):inp.value;if(k==="color")d.querySelector(".swatch").style.background=inp.value;capCheck();save()}));
+    const fi=d.querySelector('input[type=file]');
+    if(fi)fi.addEventListener("change",async()=>{const f=fi.files[0];if(!f)return;const id="a_"+Date.now()+"_"+Math.random().toString(36).slice(2,7);memAudio[id]=f;await putAudio(id,f);t.audio.push({id,name:f.name.slice(0,28)});save();renderSetup()});
+    d.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const a=t.audio.splice(+b.dataset.del,1)[0];delAudio(a.id);save();renderSetup()});
+    d.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>playClip(t.audio[+b.dataset.play].id));
+    w.appendChild(d)});
+  capCheck();
+}
+function capCheck(){const n=parseInt(cfg.kidCount)||0,s=cfg.teams.reduce((a,t)=>a+(t.cap||0),0),m=$("#capMsg");
+  if(!n){m.innerHTML="";return true}
+  if(s===n){m.innerHTML=`<span class="ok">✓ ${s} of ${n} places assigned</span>`;return true}
+  m.innerHTML=`<span class="warn">Team places add up to ${s}, but there are ${n} children</span>`;return false}
+F.forEach(f=>$("#"+f).addEventListener("input",e=>{const old=cfg.bookingId;cfg[f]=e.target.value.trim?e.target.value:e.target.value;if(f==="bookingId"&&old&&old!==cfg.bookingId){const b=bookings();delete b[old];store.set("sh_bookings",b)}if(f==="kidCount")capCheck();save()}));
+$("#askNames").onchange=e=>{cfg.askNames=e.target.checked;save()};
+$("#teamCount").addEventListener("change",e=>{let n=Math.min(8,Math.max(2,parseInt(e.target.value)||2));while(cfg.teams.length<n)cfg.teams.push(mkTeam(cfg.teams.length));cfg.teams.length=n;renderSetup();save()});
+$("#autoSplit").onclick=()=>{const n=parseInt(cfg.kidCount)||0;if(!n){$("#capMsg").innerHTML='<span class="warn">Enter the number of children first</span>';return}const k=cfg.teams.length;cfg.teams.forEach((t,i)=>t.cap=Math.floor(n/k)+(i<n%k?1:0));renderSetup();save()};
+$("#newBooking").onclick=()=>{cfg=blank();renderSetup();fillSaved()};
+$("#savedBookings").onchange=e=>{const b=bookings()[e.target.value];if(b){cfg=b;renderSetup()}};
+$("#begin").onclick=()=>{
+  const m=$("#setupMsg");
+  if(!cfg.bookingId||!cfg.childName){m.innerHTML='<p class="warn">Please add a booking ID and the birthday child\'s name.</p>';return}
+  if(!cfg.kidCount){m.innerHTML='<p class="warn">Please enter the number of children.</p>';return}
+  if(!capCheck()){m.innerHTML='<p class="warn">Team places must add up to the number of children.</p>';return}
+  m.innerHTML="";save();startSorting()};
+
+/* ---------- sorting ---------- */
+let busy=false,pendingName="";
+function remaining(){return cfg.teams.map((t,i)=>t.cap-cfg.sorted.filter(s=>s.team===i).length)}
+function rnd(){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]/4294967296}
+// Weighted by places left: identical odds to drawing a hidden token from a bag. No visible rotation.
+function pickTeam(){const r=remaining();const tot=r.reduce((a,b)=>a+Math.max(0,b),0);if(!tot)return -1;let x=rnd()*tot;for(let i=0;i<r.length;i++){if(r[i]<=0)continue;if(x<r[i])return i;x-=r[i]}return r.findIndex(v=>v>0)}
+function startSorting(){
+  $("#setup").classList.add("hidden");$("#sort").classList.remove("hidden");
+  $("#whoLine").textContent=`${cfg.childName}'s ${ordinal(cfg.childAge)} Birthday`;
+  idleSpeech();renderTally();window.scrollTo(0,0)}
+function ordinal(n){n=parseInt(n);if(!n)return"";const s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0])}
+function renderTally(){const r=remaining();
+  $("#tally").innerHTML=cfg.teams.map((t,i)=>`<div class="tl" style="border-color:${t.color};box-shadow:0 0 12px ${t.color}55"><b style="color:${lighten(t.color)}">${esc(t.name)}</b>${t.cap-r[i]} / ${t.cap}</div>`).join("");
+  const left=r.reduce((a,b)=>a+b,0);$("#pad").classList.toggle("disabled",left<=0);
+  $("#padLabel").textContent=left<=0?"Every child has been sorted!":`Press and hold · ${left} still to sort`;
+  if(left<=0)say("The Sorting is complete. Let the games begin!")}
+function lighten(h){const n=parseInt(h.slice(1),16);let r=n>>16,g=n>>8&255,b=n&255;r=Math.min(255,r+90);g=Math.min(255,g+90);b=Math.min(255,b+90);return`rgb(${r},${g},${b})`}
+const IDLE=["Place your hand upon the mark, and the Hat shall decide…","Step forward, young one. Don't be shy…","Who dares come next? Hand on the mark, please…","I have sorted a thousand heads. Yours is next…"];
+const THINK=[["Hmm… a curious mind…","Plenty of courage, I see…","And a spark of mischief too…"],["Ahh, now let me see…","Clever… very clever…","But loyal to the core…"],["Oh my, a tricky one!","Bold… quick-thinking…","I know just the place…"],["Hmmm, interesting…","A good heart, a sharp eye…","Yes… yes, I'm quite sure…"],["Goodness, what's in here?","Ambition… kindness… daring…","There's only one place for you…"]];
+function idleSpeech(){say(IDLE[Math.floor(rnd()*IDLE.length)])}
+function say(t){const s=$("#speech");s.style.opacity=0;setTimeout(()=>{s.textContent=t;s.style.opacity=1},250)}
+
+/* hold-to-sort */
+const pad=$("#pad"),ringC=$("#ring circle"),HOLD=1800;let t0=0,raf=0,holding=false;
+pad.addEventListener("pointerdown",e=>{if(busy)return;e.preventDefault();
+  if(cfg.askNames&&!pendingName){openName();return}
+  holding=true;t0=performance.now();pad.classList.add("holding");unlockAudio();hum(true);tick()});
+["pointerup","pointerleave","pointercancel"].forEach(ev=>pad.addEventListener(ev,()=>{if(!holding)return;holding=false;cancelAnimationFrame(raf);pad.classList.remove("holding");ringC.style.strokeDashoffset=289;hum(false);if(!busy)say("Keep your hand still a little longer…")}));
+function tick(){const p=Math.min(1,(performance.now()-t0)/HOLD);ringC.style.strokeDashoffset=289*(1-p);if(p>=1){holding=false;pad.classList.remove("holding");runSort();return}raf=requestAnimationFrame(tick)}
+
+async function runSort(){
+  busy=true;const team=pickTeam();if(team<0){busy=false;return}
+  const lines=THINK[Math.floor(rnd()*THINK.length)];$("#hatWrap").classList.add("talk");
+  for(const l of lines){say(l);await wait(1100+rnd()*500)}
+  hum(false);$("#hatWrap").classList.remove("talk");ringC.style.strokeDashoffset=289;
+  const name=pendingName;pendingName="";
+  cfg.sorted.push({team,name,at:new Date().toISOString()});save();
+  reveal(team,name)}
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+function reveal(i,name){
+  const t=cfg.teams[i],R=$("#reveal");R.style.setProperty("--team",t.color);
+  R.innerHTML=`<svg class="crest" viewBox="0 0 200 230"><defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lighten(t.color)}"/><stop offset="1" stop-color="${t.color}"/></linearGradient></defs>
+  <path d="M100 8 L186 36 C186 120 160 184 100 222 C40 184 14 120 14 36 Z" fill="url(#cg)" stroke="#f5d77a" stroke-width="8"/>
+  <path d="M100 30 L166 52 C164 118 144 166 100 196 C56 166 36 118 34 52 Z" fill="none" stroke="#f5d77a" stroke-width="2" opacity=".7"/>
+  <text x="100" y="140" text-anchor="middle" font-family="Cinzel Decorative" font-size="84" font-weight="700" fill="#f5d77a" stroke="#00000055" stroke-width="2">${esc((t.name||"?")[0].toUpperCase())}</text></svg>
+  ${name?`<div class="kname">${esc(name)}, you belong in…</div>`:`<div class="kname">You belong in…</div>`}
+  <div class="tname">${esc(t.name)}!</div><div class="tap">Tap anywhere to continue</div>`;
+  R.classList.remove("hidden");burst(t.color);announce(t);
+  let can=false;setTimeout(()=>can=true,1500);
+  R.onclick=()=>{if(!can)return;stopAudio();R.classList.add("hidden");busy=false;renderTally();if(remaining().some(v=>v>0))idleSpeech()}}
+
+/* ---------- audio ---------- */
+let AC=null,cur=null,humNode=null;
+function unlockAudio(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume()}catch(e){}}
+function hum(on){if(!AC)return;if(on&&!humNode){const o=AC.createOscillator(),o2=AC.createOscillator(),g=AC.createGain();o.type="sine";o.frequency.value=110;o2.type="triangle";o2.frequency.value=165;g.gain.value=0;g.gain.linearRampToValueAtTime(.06,AC.currentTime+.4);o.connect(g);o2.connect(g);g.connect(AC.destination);o.start();o2.start();humNode={o,o2,g}}
+  else if(!on&&humNode){const h=humNode;humNode=null;h.g.gain.linearRampToValueAtTime(0,AC.currentTime+.3);setTimeout(()=>{h.o.stop();h.o2.stop()},400)}}
+function fanfare(){if(!AC)return;[523,659,784,1047].forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=f;const s=AC.currentTime+i*.12;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(.12,s+.03);g.gain.exponentialRampToValueAtTime(.001,s+1.2);o.connect(g);g.connect(AC.destination);o.start(s);o.stop(s+1.3)})}
+async function playClip(id){stopAudio();let b=memAudio[id]||await getAudio(id);if(!b)return false;const a=new Audio(URL.createObjectURL(b));cur=a;try{await a.play();return true}catch(e){return false}}
+function stopAudio(){if(cur){cur.pause();cur=null}try{speechSynthesis.cancel()}catch(e){}}
+async function announce(t){fanfare();
+  if(t.audio.length){const a=t.audio[Math.floor(rnd()*t.audio.length)];await wait(500);if(await playClip(a.id))return}
+  try{await wait(700);const u=new SpeechSynthesisUtterance(t.name+"!");u.rate=.8;u.pitch=.6;const v=speechSynthesis.getVoices().find(v=>/en-GB/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u)}catch(e){}}
+
+/* ---------- name modal ---------- */
+function openName(){$("#kidName").value="";$("#nameModal").classList.remove("hidden");setTimeout(()=>$("#kidName").focus(),50)}
+$("#okName").onclick=()=>{pendingName=$("#kidName").value.trim()||" ";$("#nameModal").classList.add("hidden");say("Now, place your hand upon the mark…")};
+$("#skipName").onclick=()=>{pendingName=" ";$("#nameModal").classList.add("hidden")};
+$("#kidName").addEventListener("keydown",e=>{if(e.key==="Enter")$("#okName").click()});
+
+/* ---------- log ---------- */
+function renderLog(){$("#logBody").innerHTML=cfg.sorted.length?`<table><tr><th>#</th><th>Child</th><th>Team</th><th>Time</th></tr>${cfg.sorted.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.name.trim()||"—")}</td><td><span class="swatch" style="display:inline-block;vertical-align:middle;background:${cfg.teams[s.team]?.color}"></span> ${esc(cfg.teams[s.team]?.name)}</td><td>${new Date(s.at).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</td></tr>`).join("")}</table>`:"<p>No one has been sorted yet.</p>"}
+$("#logBtn").onclick=()=>{renderLog();$("#logModal").classList.remove("hidden")};
+$("#closeLog").onclick=()=>$("#logModal").classList.add("hidden");
+$("#undoBtn").onclick=()=>{cfg.sorted.pop();save();renderLog();renderTally()};
+$("#resetBtn").onclick=()=>{if(!$("#resetBtn").dataset.c){$("#resetBtn").dataset.c=1;$("#resetBtn").textContent="Tap again to confirm";setTimeout(()=>{delete $("#resetBtn").dataset.c;$("#resetBtn").textContent="Reset sorting"},3000);return}cfg.sorted=[];save();renderLog();renderTally();idleSpeech()};
+$("#csvBtn").onclick=()=>{const rows=[["Booking ID","Birthday child","#","Child","Team","Time"],...cfg.sorted.map((s,i)=>[cfg.bookingId,cfg.childName,i+1,s.name.trim(),cfg.teams[s.team]?.name,s.at])];const csv=rows.map(r=>r.map(c=>`"${String(c??"").replace(/"/g,'""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`sorting-${cfg.bookingId}.csv`;a.click()};
+$("#backBtn").onclick=()=>{$("#sort").classList.add("hidden");$("#setup").classList.remove("hidden");renderSetup()};
+
+/* ---------- visuals ---------- */
+const st=$("#stars"),sx=st.getContext("2d");let stars=[];
+function sizeStars(){st.width=innerWidth;st.height=innerHeight;stars=Array.from({length:Math.round(innerWidth*innerHeight/9000)},()=>({x:rnd()*st.width,y:rnd()*st.height,r:rnd()*1.4+.2,p:rnd()*6}))}
+function drawStars(t){sx.clearRect(0,0,st.width,st.height);for(const s of stars){sx.globalAlpha=.3+.7*Math.abs(Math.sin(t/1400+s.p));sx.fillStyle="#fff4d6";sx.beginPath();sx.arc(s.x,s.y,s.r,0,7);sx.fill()}requestAnimationFrame(drawStars)}
+sizeStars();addEventListener("resize",()=>{sizeStars();fx.width=innerWidth;fx.height=innerHeight});requestAnimationFrame(drawStars);
+const fx=$("#fx"),fc=fx.getContext("2d");fx.width=innerWidth;fx.height=innerHeight;let parts=[];
+function burst(col){const cx=fx.width/2,cy=fx.height*.42;for(let i=0;i<180;i++){const a=rnd()*Math.PI*2,v=2+rnd()*9;parts.push({x:cx,y:cy,vx:Math.cos(a)*v,vy:Math.sin(a)*v-2,l:1,c:rnd()<.5?col:(rnd()<.5?"#f5d77a":"#ffffff"),r:1+rnd()*3})}if(parts.length===180)animFx()}
+function animFx(){fc.clearRect(0,0,fx.width,fx.height);parts=parts.filter(p=>p.l>0);for(const p of parts){p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.vx*=.985;p.l-=.009;fc.globalAlpha=Math.max(0,p.l);fc.fillStyle=p.c;fc.beginPath();fc.arc(p.x,p.y,p.r,0,7);fc.fill()}if(parts.length)requestAnimationFrame(animFx);else fc.clearRect(0,0,fx.width,fx.height)}
+
+/* ---------- passcode gate (deterrent; page is unlisted + noindex) ---------- */
+const PASS_HASH="5a2fed03b537f681bf54c10792e25e0090b65e5e61c1cd60fa4bcaa92dab1674";
+async function sha(s){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch(e){return""}}
+if(store.get("sh_unlocked",false)===PASS_HASH)$("#gate").remove();
+else{const go=async()=>{const v=$("#gatePw").value.trim().toUpperCase();if(await sha(v)===PASS_HASH){store.set("sh_unlocked",PASS_HASH);$("#gate").remove()}else $("#gateMsg").textContent="That passcode isn't right."};
+  $("#gateBtn").onclick=go;$("#gatePw").addEventListener("keydown",e=>{if(e.key==="Enter")go()})}
+
+/* ---------- offline (service worker) ---------- */
+function offMsg(t){const o=$("#offStatus");if(o)o.innerHTML=t}
+if(location.protocol==="file:"){offMsg("✓ You're using the downloaded copy, which works without internet.");$("#dlCopy").remove()}
+else if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").then(()=>navigator.serviceWorker.ready).then(()=>offMsg("✓ Saved for offline use on this device.")).catch(()=>offMsg("Offline saving isn't available in this browser. Use the download below."))}
+else offMsg("Offline saving isn't available in this browser. Use the download below.");
+
+/* ---------- boot ---------- */
+const last=store.get("sh_last",null),b=bookings();if(last&&b[last])cfg=b[last];
+renderSetup();fillSaved();
+try{speechSynthesis.getVoices()}catch(e){}
+})();
+</script>
+</body>
+</html>
