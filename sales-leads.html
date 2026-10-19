@@ -1677,13 +1677,24 @@ async function flushPendingSave(){
 // Each call: date (+ first call), disposition, follow-up date/time, remarks.
 // Saved straight away (not with the page's Save button).
 function todayIso(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+// Call time defaults to now — the team logs a call as soon as it ends
+// (2026-10-19, per Shruti); editable for one logged later.
+function nowLocalIso(){ const d=new Date(); return todayIso()+'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+// "17:38" -> "5:38 PM"; older calls without a time use when they were logged.
+function callTimeStr(c){
+  let t = c.time;
+  if(!t && c.at){ const d = new Date(c.at); if(!isNaN(d) && (c.date||'') === (d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'))) t = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+  if(!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  return ' '+((h%12)||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM');
+}
 function sectionCalls(){
-  const calls = (DATA.call_log||[]).slice().sort((a,b)=>((b.date||'')+(b.at||'')).localeCompare((a.date||'')+(a.at||'')));
+  const calls = (DATA.call_log||[]).slice().sort((a,b)=>((b.date||'')+(b.time||'')+(b.at||'')).localeCompare((a.date||'')+(a.time||'')+(a.at||'')));
   const disps = DATA.call_dispositions || ['Answered','Unanswered','Follow-up required','Wrong number'];
   const inp = 'padding:9px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px;background-color:#fff';
   const list = calls.length ? calls.map(c=>
       '<div class="call-row"><div class="call-main">'
-      + '<b>'+fmtDateStr(c.date)+'</b>'+(c.first_call?' <span class="pill pill-intake" style="font-size:10.5px;padding:2px 8px">First call</span>':'')
+      + '<b>'+fmtDateStr(c.date)+esc(callTimeStr(c))+'</b>'+(c.first_call?' <span class="pill pill-intake" style="font-size:10.5px;padding:2px 8px">First call</span>':'')
       + (c.disposition?' · '+esc(c.disposition):'')
       + (c.followup_at?' · <span style="color:var(--gy)">Follow-up</span> '+followupHtml(c.followup_at):'')
       + (c.remarks?'<div class="call-rm">'+esc(c.remarks)+'</div>':'')
@@ -1692,7 +1703,7 @@ function sectionCalls(){
     ).join('') : '<div style="font-size:12.5px;color:var(--gy)">No calls logged yet.</div>';
   return '<div class="card"><h3>Calls</h3>'
     + '<div class="call-form">'
-      + '<label class="act-fld">Call date<input type="date" id="callDate" value="'+todayIso()+'" style="'+inp+'"></label>'
+      + '<label class="act-fld">Call date &amp; time<input type="datetime-local" id="callDate" value="'+nowLocalIso()+'" style="'+inp+'"></label>'
       + '<label class="call-first"><input type="checkbox" id="callFirst" '+((DATA.call_log||[]).length?'':'checked')+'> First call</label>'
       + '<label class="act-fld">Disposition<select id="callDisp" style="'+inp+'"><option value="">—</option>'+disps.map(x=>'<option>'+esc(x)+'</option>').join('')+'</select></label>'
       + '<label class="act-fld">Follow-up date &amp; time<input type="datetime-local" id="callFollowup" step="900" style="'+inp+'"></label>'
@@ -1711,7 +1722,7 @@ async function saveCallLog(newLog, okMsg){
 async function addCall(){
   const g = id => document.getElementById(id);
   const entry = {
-    id: 'c'+Date.now(), date: g('callDate').value, first_call: g('callFirst').checked,
+    id: 'c'+Date.now(), date: (g('callDate').value||'').slice(0,10), time: (g('callDate').value||'').slice(11,16) || null, first_call: g('callFirst').checked,
     disposition: g('callDisp').value || null, followup_at: g('callFollowup').value || null,
     remarks: g('callRemarks').value.trim() || null, by: getName() || null, at: new Date().toISOString(),
   };

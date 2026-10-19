@@ -742,7 +742,10 @@ def _clean_call_log(entries: list, by: str) -> list:
             raise HTTPException(status_code=400, detail="Follow-up must be a date and time.")
         out.append({
             "id": str(e.get("id") or "")[:40] or f"c{len(out) + 1}",
-            "date": date_s, "first_call": bool(e.get("first_call")),
+            "date": date_s,
+            # Time of the call, HH:MM (2026-10-19) — defaults to "now" on the page.
+            "time": (lambda t: t if re.fullmatch(r"\d{2}:\d{2}", t) else None)(str(e.get("time") or "").strip()[:5]),
+            "first_call": bool(e.get("first_call")),
             "disposition": disp, "followup_at": fu,
             "remarks": (str(e.get("remarks") or "").strip()[:2000]) or None,
             "by": (str(e.get("by") or by or "").strip()[:80]) or None,
@@ -757,7 +760,7 @@ def _call_summary(call_log) -> dict:
     calls = [c for c in calls if isinstance(c, dict) and c.get("date")]
     if not calls:
         return {"calls": 0, "last_call_date": None, "last_disposition": None, "next_followup": None}
-    ordered = sorted(calls, key=lambda c: (c.get("date") or "", c.get("at") or ""))
+    ordered = sorted(calls, key=lambda c: (c.get("date") or "", c.get("time") or "", c.get("at") or ""))
     last = ordered[-1]
     # The most recently set follow-up (a later call without one keeps it).
     fu = next((c.get("followup_at") for c in reversed(ordered) if c.get("followup_at")), None)
