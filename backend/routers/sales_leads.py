@@ -41,7 +41,7 @@ module, unlike packaging's staff share-links) — this is an internal sales
 import json
 import re
 import logging
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 from typing import Optional, Dict, Any, List
 
 from fastapi import APIRouter, Header, HTTPException, Response
@@ -853,6 +853,11 @@ async def _full_detail(lead_row) -> dict:
         "ad_shown": lead.get("ad_shown"),
         "ad_source_url": lead.get("ad_source_url"),
         "lead_generated_at": _to_ist_str(lead.get("lead_generated_at")),
+        # Lead date & time, editable (2026-10-19, per Shruti): when the lead was
+        # actually generated (AiSensy / sheet / manual). Defaults to when it was
+        # created in the system, which stays as its own read-only timestamp.
+        "lead_generated_input": ((lead.get("lead_generated_at") or pb.get("created_at")) + IST_OFFSET).strftime("%Y-%m-%dT%H:%M")
+                                if (lead.get("lead_generated_at") or pb.get("created_at")) else None,
         "occasion": lead.get("occasion"),
         "lead_highlights": lead.get("lead_highlights"),
         "past_customer_note": lead.get("past_customer_note"),
@@ -1342,10 +1347,10 @@ async def create_sheet(body: SheetIn, x_admin_password: Optional[str] = Header(N
     lead_id = await database.execute(
         """INSERT INTO leads
              (parent_name, phone, child_names, child_ages, child_genders, event_date, event_time,
-              venue, kids_count, event_sales_lead, lead_origin, lead_source, status, is_booking)
+              venue, kids_count, event_sales_lead, lead_origin, lead_source, status, is_booking, lead_generated_at)
            VALUES
              (:parent_name, :phone, :child_names, :child_ages, :child_genders, :event_date, :event_time,
-              :venue, :kids_count, :event_sales_lead, 'sales_module', 'Sales Team', 'New', FALSE)
+              :venue, :kids_count, :event_sales_lead, 'sales_module', NULL, 'New', FALSE, NOW())
            RETURNING lead_id""",
         values=lead_values,
     )
@@ -1424,6 +1429,15 @@ async def patch_sheet(lead_id: int, body: PatchIn, x_admin_password: Optional[st
     changed = []
 
     for key, val in body.fields.items():
+        if key == "lead_generated_at":   # "YYYY-MM-DDTHH:MM" in IST (2026-10-19)
+            v = str(val or "").strip()[:16]
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}", v):
+                raise HTTPException(status_code=400, detail="Lead date & time is needed.")
+            dt = datetime.strptime(v, "%Y-%m-%dT%H:%M").replace(tzinfo=timezone(IST_OFFSET))
+            lead_sets.append("lead_generated_at = :lga")
+            lead_values["lga"] = dt
+            changed.append(key)
+            continue
         if key in LEAD_FIELD_MAP:
             col = LEAD_FIELD_MAP[key]
             # Lead source: approved values only (2026-10-17, per Shruti).

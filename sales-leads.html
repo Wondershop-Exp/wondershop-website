@@ -1945,7 +1945,13 @@ function sectionClientDetails(){
     + srcBox + wsrBox + convBox
     + '<div class="grid2">' + f('client_name','Client Name','text') + f('mobile','Mobile No.','tel') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('email','Email','email','placeholder="name@example.com"') + salesLeadField() + '</div>'
-    + '<div class="grid2" style="margin-top:10px">' + leadSourceField(d) + '<div></div></div>'
+    + '<div class="grid2" style="margin-top:10px">' + leadSourceField(d)
+    // Lead date & time — when the lead was really generated (e.g. on AiSensy),
+    // editable; the system's own created time is shown under it (2026-10-19).
+    +   '<div class="fld"><label>Lead Date &amp; Time</label>'
+    +     '<input type="datetime-local" id="f_lead_generated_at" value="'+esc(d.lead_generated_input||'')+'" onchange="if(this.value){ DATA.lead_generated_input=this.value; saveField(\'lead_generated_at\', this.value); }">'
+    +     '<div style="font-size:11.5px;color:var(--gy);margin-top:4px">Created in system: '+esc(d.created_at||'—')+'</div></div>'
+    + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('child_name',"Child's Name",'text') + f('child_age','Celebrating Age','text') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + genderSel + f('kids_count','# Kids','number') + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('event_date','Event Date','date') + themeField() + '</div>'
