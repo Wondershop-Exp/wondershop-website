@@ -649,6 +649,8 @@ function onSaveBtnClick(){
     return;
   }
   flushPendingSave();
+  // A call typed in the Calls form but not added yet is saved too.
+  if(callDraftHasContent() && document.getElementById('addCallBtn')) addCall();
 }
 const CHECK_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1688,8 +1690,23 @@ function callTimeStr(c){
   const [h, m] = t.split(':').map(Number);
   return ' '+((h%12)||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM');
 }
+// Unsaved call form (2026-10-19, per Shruti — "remarks are not saving"): the
+// page re-renders after every save, which used to wipe a call typed but not
+// yet added. The form is kept in CALL_DRAFT and restored; the page Save
+// button also adds a filled-in call.
+let CALL_DRAFT = null;
+function callDraftCapture(){
+  const g = id => document.getElementById(id);
+  if(!g('callDate')) return;
+  CALL_DRAFT = {lead: CURRENT_ID, date: g('callDate').value, first: g('callFirst').checked,
+                disp: g('callDisp').value, fu: g('callFollowup').value, rm: g('callRemarks').value};
+}
+function callDraftHasContent(){ return !!(CALL_DRAFT && CALL_DRAFT.lead===CURRENT_ID && (CALL_DRAFT.disp || CALL_DRAFT.fu || (CALL_DRAFT.rm||'').trim())); }
+document.addEventListener('input', e=>{ if(e.target && e.target.closest && e.target.closest('.call-form')) callDraftCapture(); });
+document.addEventListener('change', e=>{ if(e.target && e.target.closest && e.target.closest('.call-form')) callDraftCapture(); });
 function sectionCalls(){
   const calls = (DATA.call_log||[]).slice().sort((a,b)=>((b.date||'')+(b.time||'')+(b.at||'')).localeCompare((a.date||'')+(a.time||'')+(a.at||'')));
+  const _cd = (CALL_DRAFT && CALL_DRAFT.lead===CURRENT_ID ? CALL_DRAFT : null);
   const disps = DATA.call_dispositions || ['Answered','Unanswered','Follow-up required','Wrong number'];
   const inp = 'padding:9px 10px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px;background-color:#fff';
   const list = calls.length ? calls.map(c=>
@@ -1703,11 +1720,11 @@ function sectionCalls(){
     ).join('') : '<div style="font-size:12.5px;color:var(--gy)">No calls logged yet.</div>';
   return '<div class="card"><h3>Calls</h3>'
     + '<div class="call-form">'
-      + '<label class="act-fld">Call date &amp; time<input type="datetime-local" id="callDate" value="'+nowLocalIso()+'" style="'+inp+'"></label>'
-      + '<label class="call-first"><input type="checkbox" id="callFirst" '+((DATA.call_log||[]).length?'':'checked')+'> First call</label>'
-      + '<label class="act-fld">Disposition<select id="callDisp" style="'+inp+'"><option value="">—</option>'+disps.map(x=>'<option>'+esc(x)+'</option>').join('')+'</select></label>'
-      + '<label class="act-fld">Follow-up date &amp; time<input type="datetime-local" id="callFollowup" step="900" style="'+inp+'"></label>'
-      + '<label class="act-fld call-rm-fld">Remarks<textarea id="callRemarks" rows="2" style="'+inp+';resize:vertical" placeholder="What was discussed / next step"></textarea></label>'
+      + '<label class="act-fld">Call date &amp; time<input type="datetime-local" id="callDate" value="'+esc((_cd && _cd.date)||nowLocalIso())+'" style="'+inp+'"></label>'
+      + '<label class="call-first"><input type="checkbox" id="callFirst" '+((_cd ? _cd.first : !(DATA.call_log||[]).length)?'checked':'')+'> First call</label>'
+      + '<label class="act-fld">Disposition<select id="callDisp" style="'+inp+'"><option value="">—</option>'+disps.map(x=>'<option'+(_cd && _cd.disp===x?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></label>'
+      + '<label class="act-fld">Follow-up date &amp; time<input type="datetime-local" id="callFollowup" step="900" value="'+esc((_cd && _cd.fu)||'')+'" style="'+inp+'"></label>'
+      + '<label class="act-fld call-rm-fld">Remarks<textarea id="callRemarks" rows="2" style="'+inp+';resize:vertical" placeholder="What was discussed / next step">'+esc((_cd && _cd.rm)||'')+'</textarea></label>'
       + '<button type="button" class="btn pk" id="addCallBtn" onclick="addCall()">+ Add call</button>'
     + '</div>'
     + '<div class="call-list">'+list+'</div></div>';
@@ -1729,8 +1746,8 @@ async function addCall(){
   if(!entry.date){ showToast('Pick the call date.'); return; }
   if(!entry.disposition && !entry.followup_at && !entry.remarks){ showToast('Add a disposition, follow-up or remarks for this call.'); return; }
   const btn = g('addCallBtn'); btn.disabled = true;
-  try{ await saveCallLog((DATA.call_log||[]).concat([entry]), 'Call saved.'); }
-  catch(e){ showToast(e.message || 'Could not save the call.'); btn.disabled = false; }
+  try{ CALL_DRAFT = null; await saveCallLog((DATA.call_log||[]).concat([entry]), 'Call saved.'); }
+  catch(e){ callDraftCapture(); showToast(e.message || 'Could not save the call.'); btn.disabled = false; }
 }
 async function deleteCall(id){
   if(!confirm('Delete this call from the log?')) return;
