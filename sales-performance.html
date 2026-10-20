@@ -180,6 +180,7 @@ function render(){
     + K(null, 'Answer rate', pct(S.answer_rate.value), num(S.answer_rate.answered)+' of '+num(S.answer_rate.calls)+' calls answered')
     + '</div></div>';
   if(D.earnings) o += earningsHtml(D.earnings);
+  else if(ROLE==='admin') o += '<div class="card"><h2>Earnings</h2><p class="note" style="margin:6px 0 0">Earnings, commission and targets are per person — pick a name in <b>Sales person</b> above to see them.</p></div>';
   // Funnel
   const top = Math.max(1, D.funnel[0].value), cols = ['#C9B8EC','#A98BE0','#8E6AD3','#6C4AB6','#D6457F'];
   o += '<div class="card"><h2>Where these leads are</h2>'
