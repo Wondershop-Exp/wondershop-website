@@ -385,6 +385,7 @@ body.role-sales .admin-only{display:none!important}
       <button type="button" class="save-status" id="saveStatus" onclick="onSaveBtnClick()">💾 <span id="saveStatusText">Save</span></button>
       <span class="role-badge" id="roleBadge"></span>
       <a class="linkbtn" href="admin.html">Leads &amp; Bookings</a>
+      <a class="linkbtn" href="sales-performance.html">My performance</a>
       <a class="linkbtn" href="sales-dashboard.html" target="_blank">Sales Dashboard</a>
       <a class="linkbtn" href="admin.html#cal">📅 Calendar</a>
       <a class="linkbtn admin-only" href="packaging.html">Packing lists</a>
@@ -407,6 +408,8 @@ body.role-sales .admin-only{display:none!important}
       <button type="button" data-val="wsr" onclick="setSrcFilter('wsr')" title="Past customers of the Wondershop retail store whose birthday or party is coming up">WSR Repeat<span class="pill-bubble" id="wsrBubble"></span></button>
       <button type="button" data-val="upcoming" onclick="setSrcFilter('upcoming')" title="Old / repeat leads whose birthday (or Christmas party) is coming up: within 90 days, or 3 months for a month-only birthday">Upcoming birthday<span class="pill-bubble" id="upcomingBubble"></span></button>
     </div>
+    <!-- 2026-10-20: opened from the performance page with the exact leads behind a number. -->
+    <div id="idsBanner" style="display:none;margin:0 0 12px;padding:10px 14px;border-radius:10px;background:#F3EEFB;font-size:14px"></div>
     <!-- 2026-10-12, per Shruti: list filters (all applied in the browser). -->
     <div class="lf-bar" id="lfBar">
       <div class="lf-ms"><span class="lf-ms-l">Birthday month</span>
@@ -537,6 +540,21 @@ function hasPendingChanges(){
 let LIST_ROWS = [];
 let SRC_FILTER = 'all';   // 'all' | 'insta' | 'wsr' | 'upcoming' — 2026-10-12, Instagram ad leads (AiSensy)
 function isInstaLead(r){ return ['insta','instagram'].includes(String(r.lead_source||'').trim().toLowerCase()); }
+// ?ids=1,2,3&title=... — the leads behind a number on the performance page
+// (2026-10-20, per Shruti — "if she clicks on leads in followup, it should
+// open up the list of leads in followup in that duration").
+let URL_IDS = (function(){ const v = new URLSearchParams(location.search).get('ids'); return v ? new Set(v.split(',').map(Number).filter(Boolean)) : null; })();
+function renderIdsBanner(){
+  const el = document.getElementById('idsBanner'); if(!el) return;
+  if(!URL_IDS){ el.style.display='none'; return; }
+  const title = new URLSearchParams(location.search).get('title') || 'Selected leads';
+  const shown = (LIST_ROWS||[]).filter(r=>URL_IDS.has(r.lead_id)).length;
+  el.style.display='block';
+  el.innerHTML = '<b>'+esc(title)+'</b> · '+URL_IDS.size+' lead'+(URL_IDS.size===1?'':'s')
+    + (shown < URL_IDS.size ? ' <span style="color:var(--gy)">('+shown+' in this list — others may be hidden, e.g. re-engage later)</span>' : '')
+    + ' · <a href="#" onclick="clearUrlIds();return false">Show all leads</a> · <a href="sales-performance.html">Back to performance</a>';
+}
+function clearUrlIds(){ URL_IDS = null; history.replaceState(null,'','sales-leads.html'); renderIdsBanner(); renderListRows(); }
 function setSrcFilter(val){
   SRC_FILTER = val;
   document.querySelectorAll('#srcFilter button').forEach(b=>b.classList.toggle('sel', b.dataset.val===val));
@@ -750,6 +768,8 @@ async function tryLogin(){
     err.textContent = e.message==='unauthorized' ? 'Incorrect password.' : e.message;
     return;
   }
+  // Sales login lands on the performance page (2026-10-20, per Shruti).
+  try{ if(((await apiCall('/api/admin/whoami')).role) === 'sales'){ location.href = 'sales-performance.html'; return; } }catch(e){}
   enterApp();
 }
 async function enterApp(){
@@ -951,6 +971,7 @@ function clearListFilters(){
 // Within a filter: any ticked option matches (OR). Across filters: all must match (AND).
 // Age/Gender: ticked genders and ticked age bands are checked separately (e.g. Girls + 5–7 = girls aged 5–7).
 function rowPassesFilters(r){
+  if(URL_IDS && !URL_IDS.has(r.lead_id)) return false;
   if(SRC_FILTER==='insta' && !isInstaLead(r)) return false;
   if(SRC_FILTER==='broadcast' && !isBroadcastLead(r)) return false;
   if(SRC_FILTER==='wsr' && !isWsrLead(r)) return false;
@@ -1000,6 +1021,7 @@ function localityOf(v){
   return parts.length ? parts[parts.length-1] : '';
 }
 function renderListRows(){
+  renderIdsBanner();
   const body = document.getElementById('listBody');
   const all = sortedRows();
   const rows = all.filter(rowPassesFilters);

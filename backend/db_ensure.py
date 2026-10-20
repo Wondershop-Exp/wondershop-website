@@ -48,6 +48,7 @@ SAFE_MIGRATIONS = [
     "068_lead_source_instagram.sql",
     "069_sorting_hat.sql",
     "070_slack_lead_posts.sql",
+    "071_sales_targets.sql",
 ]
 
 

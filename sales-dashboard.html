@@ -66,7 +66,7 @@ summary{cursor:pointer;font-weight:700;display:flex;justify-content:space-betwee
 <div class="wrap" id="app" hidden>
   <div class="top">
     <h1>Sales Dashboard</h1>
-    <div class="links"><span class="role" id="roleBadge"></span><a href="sales-leads.html">Sales leads</a><a href="admin.html" class="admin-only">Admin</a></div>
+    <div class="links"><span class="role" id="roleBadge"></span><a href="sales-performance.html">My performance</a><a href="sales-leads.html">Sales leads</a><a href="admin.html" class="admin-only">Admin</a></div>
   </div>
   <div class="filters">
     <label>Lead month<input type="month" id="fMonth" onchange="load()"></label>
@@ -85,6 +85,8 @@ const num = v => v==null ? '—' : Number(v).toLocaleString('en-IN');
 const money = v => v==null ? '—' : '₹'+Math.round(Number(v)).toLocaleString('en-IN');
 const pct = v => v==null ? '—' : v+'%';
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const hrs = v => v==null ? '—' : (v<1 ? Math.round(v*60)+'m' : Math.floor(v)+'h '+String(Math.round((v%1)*60)).padStart(2,'0')+'m');
+const days = v => v==null ? '—' : v+' days';
 const monthLabel = m => MON[+m.slice(5,7)-1]+' '+m.slice(0,4);
 function pw(){ try{ return localStorage.getItem('ws_admin_pw')||''; }catch(e){ return ''; } }
 function who(){ try{ return localStorage.getItem('ws_admin_name')||''; }catch(e){ return ''; } }
@@ -124,14 +126,16 @@ function render(){
     + kpi('Leads called', num(cur.called), pct(cur.called_pct)+' of received')
     + kpi('Converted', num(cur.converted), pct(cur.converted_pct)+' of received')
     + kpi('Revenue', money(cur.revenue), 'from converted leads')
+    + kpi('Avg first response', hrs(cur.avg_frt_hours), 'lead generated → first call')
+    + kpi('Avg days to convert', days(cur.avg_drt_days), 'lead generated → booking')
     + (A ? kpi('Marketing spend', money(cur.spend), 'CPL '+money(cur.cpl)+' · CAC '+money(cur.cac)) + kpi('ROAS', cur.roas==null?'—':cur.roas+'x', 'ACOS '+pct(cur.acos_pct)) : '')
     + '</div>';
   // 1. Funnel
   h += '<div class="card"><h2>Leads funnel</h2><p class="sub">By lead month (when the enquiry came in), last 12 months'+(D.source?' · '+esc(D.source):' · all sources')+'.</p><div class="tw"><table><thead><tr>'
-    + '<th>Month</th><th>Received</th><th>Called</th><th>Converted</th><th>Revenue</th>'
+    + '<th>Month</th><th>Received</th><th>Called</th><th>Converted</th><th>Revenue</th><th>Avg first response</th><th>Avg days to convert</th>'
     + (A ? '<th>Spend</th><th>CPL</th><th>Cost / customer</th><th>ROAS</th><th>ACOS</th>' : '') + '</tr></thead><tbody>'
     + D.funnel.slice().reverse().map(r=>'<tr'+(r.month===D.month?' class="sel"':'')+'><td>'+monthLabel(r.month)+'</td><td>'+num(r.received)+'</td>'
-      +'<td>'+num(r.called)+'<span class="pct">'+pct(r.called_pct)+'</span></td><td>'+num(r.converted)+'<span class="pct">'+pct(r.converted_pct)+'</span></td><td>'+money(r.revenue)+'</td>'
+      +'<td>'+num(r.called)+'<span class="pct">'+pct(r.called_pct)+'</span></td><td>'+num(r.converted)+'<span class="pct">'+pct(r.converted_pct)+'</span></td><td>'+money(r.revenue)+'</td><td>'+hrs(r.avg_frt_hours)+'</td><td>'+days(r.avg_drt_days)+'</td>'
       +(A ? '<td>'+money(r.spend)+'</td><td>'+money(r.cpl)+'</td><td>'+money(r.cac)+'</td><td>'+(r.roas==null?'—':r.roas+'x')+'</td><td>'+pct(r.acos_pct)+'</td>' : '')+'</tr>').join('')
     + '</tbody></table></div></div>';
   // 2. Lead sources
@@ -146,6 +150,13 @@ function render(){
     + '</tbody></table></div></div>';
   h += renderDaily(D.daily);
   h += '<div class="grid2">' + renderMonthSummary(D) + renderRepStatus(D) + '</div>';
+  // Why leads didn't book (2026-10-20, per Shruti): the not-converted reason
+  // on leads of the month marked Not Interested / DND / Did not Enquire.
+  const LR = D.lost_reasons || [];
+  h += '<div class="card"><h2>Why leads didn\'t book</h2><p class="sub">Leads received in '+monthLabel(D.month)+(D.source?' · '+esc(D.source):'')+' that were marked not converted, by reason.</p>'
+    + (LR.length ? '<div class="tw"><table><thead><tr><th>Reason</th><th>Leads</th></tr></thead><tbody>'
+        + LR.map(r=>'<tr><td>'+esc(r.reason)+'</td><td><a href="sales-leads.html?ids='+r.ids.join(',')+'&amp;title='+encodeURIComponent('Not booked: '+r.reason)+'" target="_blank">'+r.count+'</a></td></tr>').join('')
+        + '</tbody></table></div>' : '<p class="muted">None this month.</p>') + '</div>';
   if(A) h += renderSpend();
   $('content').innerHTML = h;
 }

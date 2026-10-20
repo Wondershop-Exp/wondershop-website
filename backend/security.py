@@ -99,6 +99,7 @@ SALES_ALLOWED = [(m, re.compile(p)) for m, p in [
     # Sales Dashboard (2026-10-16) - read only; spend stays admin-only (the
     # /spend endpoints are not listed, and the API strips spend for sales).
     ("GET",  r"/api/admin/sales-dashboard"),
+    ("GET",  r"/api/admin/sales-performance"),   # sales landing page (2026-10-20)
     # Spy-party registration panel inside a booking.
     ("*",    rf"/api/spy-registration/admin/{_ID}(/.*)?"),
     # Final e-invite on a booking (2026-10-14). The "show on website" switch

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Wondershop — Sales Performance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* 2026-10-20, per Shruti — landing page for the sales login: one person's
+   numbers (admin: anyone's or the whole team's) for leads whose lead date
+   falls in the chosen range. Every number opens exactly those leads in the
+   sales list (sales-leads.html?ids=...). Data: GET /api/admin/sales-performance. */
+:root{--ink:#1F1A2E;--mut:#5E5670;--line:#ECE5F7;--bg:#FAF7FD;--pk:#D6457F;--pkd:#B8336A;--pl:#6C4AB6;--gr:#1A7F4B;--rd:#B42318;--or:#B54708;--fd:'Lora',Georgia,serif;--fb:'DM Sans',system-ui,sans-serif}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+body{margin:0;background:var(--bg);font-family:var(--fb);color:var(--ink)}
+a{color:var(--pkd);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:1240px;margin:0 auto;padding:24px 16px 48px;display:flex;flex-direction:column;gap:22px}
+.top{display:flex;flex-wrap:wrap;gap:10px 16px;justify-content:space-between;align-items:center;font-size:14px}
+.top nav{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.head{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+.hello{font-size:13px;color:var(--mut);font-weight:500}
+h1{margin:4px 0 0;font-family:var(--fd);font-size:30px}
+h2{margin:0;font-family:var(--fd);font-size:20px}
+.ctl{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
+.ctl select,.ctl input{font:inherit;font-size:14px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink);padding:10px 12px;border:1px solid #DDD3F0;border-radius:10px;background:#fff;min-height:44px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{font:inherit;font-size:14px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;min-height:44px;border:1px solid #DDD3F0;background:#fff;color:var(--ink)}
+.chip.on{background:var(--pk);border-color:var(--pk);color:#fff}
+.range{font-size:13px;color:var(--mut);margin-top:-10px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px}
+.today{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center}
+.today .t{font-family:var(--fd);font-size:18px;font-weight:700;min-width:120px}
+.today a{display:flex;align-items:baseline;gap:8px;color:var(--ink)}
+.today b{font-size:26px}
+.cta{margin-left:auto;background:var(--pk);color:#fff !important;padding:12px 18px;border-radius:10px;font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:10px}
+.kpi{display:flex;flex-direction:column;gap:6px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;color:var(--ink)}
+a.kpi:hover{border-color:var(--pk);box-shadow:0 6px 18px rgba(108,74,182,.12);text-decoration:none}
+.kpi .l{font-size:13px;font-weight:500;color:var(--mut)}
+.kpi .v{font-size:30px;font-weight:700;line-height:1.1}
+.kpi .s{font-size:12.5px;color:var(--mut)}
+.kpi .go{font-size:12px;font-weight:700;color:var(--pkd)}
+.fn{display:grid;grid-template-columns:150px minmax(0,1fr) 110px;gap:12px;align-items:center;color:var(--ink);margin-top:10px}
+.fn .bar{background:#F3EEFB;border-radius:8px;height:26px;overflow:hidden}
+.fn .bar span{display:block;height:26px;border-radius:8px}
+.fn b{text-align:right}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
+th{text-align:right;color:var(--mut);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{text-align:right;padding:10px 8px;border-bottom:1px solid #F3EEFB;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td a{font-weight:700}
+tfoot td{font-weight:700;background:var(--bg)}
+.good{color:var(--gr);font-weight:700}.bad{color:var(--rd);font-weight:700}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #F3EEFB;color:var(--ink)}
+.muted{color:var(--mut)}
+.note{font-size:12.5px;color:var(--mut)}
+.err{color:var(--rd)}
+#gate{max-width:380px;margin:80px auto;text-align:center}
+@media(max-width:640px){.fn{grid-template-columns:110px minmax(0,1fr) 50px}.cta{margin-left:0}}
+</style>
+</head>
+<body>
+<div id="gate" hidden>
+  <h1 style="font-size:22px;margin-bottom:10px">Please log in</h1>
+  <p class="muted">Log in on the <a href="sales-leads.html">Sales Leads</a> page first.</p>
+</div>
+<div class="wrap" id="app" hidden>
+  <div class="top">
+    <strong style="font-family:var(--fd);font-size:16px">Wondershop · Sales</strong>
+    <nav><a href="sales-leads.html">Sales leads</a><a href="sales-dashboard.html">Sales Dashboard</a><a href="admin.html" class="admin-only">Admin</a></nav>
+  </div>
+  <div class="head">
+    <div><div class="hello" id="hello"></div><h1 id="title">Your sales performance</h1></div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+      <label class="ctl admin-only">Sales person<select id="fRep" onchange="load()"></select></label>
+      <div class="ctl">Lead date
+        <div class="chips">
+          <button type="button" class="chip" data-p="month" onclick="preset('month')">This month</button>
+          <button type="button" class="chip" data-p="last" onclick="preset('last')">Last month</button>
+          <button type="button" class="chip" data-p="7d" onclick="preset('7d')">Last 7 days</button>
+          <input type="date" id="fFrom" aria-label="From" onchange="custom()">
+          <input type="date" id="fTo" aria-label="To" onchange="custom()">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="range" id="range"></div>
+  <div id="err" class="err" hidden></div>
+  <div id="content" style="display:flex;flex-direction:column;gap:22px"></div>
+</div>
+<script>
+const API = 'https://wondershop-website-production.up.railway.app';
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const num = v => v==null ? '—' : Number(v).toLocaleString('en-IN');
+const money = v => v==null ? '—' : '₹'+Math.round(Number(v)).toLocaleString('en-IN');
+const pct = v => v==null ? '—' : v+'%';
+const hrs = v => v==null ? '—' : (v<1 ? Math.round(v*60)+'m' : Math.floor(v)+'h '+String(Math.round((v%1)*60)).padStart(2,'0')+'m');
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const fmtD = s => { const d = new Date(s+'T00:00:00'); return d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear(); };
+const fmtDay = s => { const d = new Date(s+'T00:00:00'); return DOW[d.getDay()]+', '+d.getDate()+' '+MON[d.getMonth()]; };
+function pw(){ try{ return localStorage.getItem('ws_admin_pw')||''; }catch(e){ return ''; } }
+function who(){ try{ return localStorage.getItem('ws_admin_name')||''; }catch(e){ return ''; } }
+async function api(path){
+  const r = await fetch(API+path, {headers:{'X-Admin-Password':pw()}});
+  if(r.status===401){ $('app').hidden=true; $('gate').hidden=false; throw new Error('unauthorized'); }
+  if(!r.ok){ const b = await r.json().catch(()=>({})); throw new Error(b.detail||('Request failed ('+r.status+')')); }
+  return r.json();
+}
+function todayIST(){ return new Date(Date.now()+5.5*3600e3).toISOString().slice(0,10); }
+function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+let ROLE = null, D = null, PRESET = 'month';
+function preset(p){
+  PRESET = p;
+  const t = new Date(todayIST()+'T00:00:00');
+  let a, b = t;
+  if(p==='month') a = new Date(t.getFullYear(), t.getMonth(), 1);
+  else if(p==='last'){ a = new Date(t.getFullYear(), t.getMonth()-1, 1); b = new Date(t.getFullYear(), t.getMonth(), 0); }
+  else { a = new Date(t); a.setDate(a.getDate()-6); }
+  $('fFrom').value = iso(a); $('fTo').value = iso(b);
+  load();
+}
+function custom(){ PRESET = 'custom'; if($('fFrom').value && $('fTo').value) load(); }
+// A link to the sales list showing exactly these leads.
+function L(ids, title){ return 'sales-leads.html?ids='+(ids||[]).join(',')+'&title='+encodeURIComponent(title); }
+function A(m, title, text){ return m && m.ids && m.ids.length ? '<a href="'+L(m.ids, title)+'">'+(text==null?num(m.value):text)+'</a>' : (text==null?num(m?m.value:0):text); }
+
+async function load(){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on', c.dataset.p===PRESET));
+  const q = new URLSearchParams({start: $('fFrom').value, end: $('fTo').value});
+  const rep = ROLE==='admin' ? $('fRep').value : who();
+  if(rep) q.set('rep', rep);
+  $('err').hidden = true;
+  try{
+    D = await api('/api/admin/sales-performance?'+q.toString());
+    ROLE = D.role;
+    document.querySelectorAll('.admin-only').forEach(e=>e.hidden = ROLE!=='admin');
+    if(ROLE==='admin'){
+      const sel = $('fRep'), cur = sel.value;
+      sel.innerHTML = '<option value="">Whole team</option>'+D.reps.map(r=>'<option'+(r===cur?' selected':'')+'>'+esc(r)+'</option>').join('');
+    }
+    render();
+  }catch(e){ if(e.message!=='unauthorized'){ $('err').textContent = e.message; $('err').hidden = false; $('content').innerHTML=''; } }
+}
+function render(){
+  const S = D.summary, T = D.today, me = D.rep;
+  const h = new Date(Date.now()+5.5*3600e3).getUTCHours();
+  $('hello').textContent = (h<12?'Good morning':h<17?'Good afternoon':'Good evening')+(who()?', '+who():'');
+  $('title').textContent = me ? (ROLE==='admin' && me!==who() ? me+'’s sales performance' : 'Your sales performance') : 'Team sales performance';
+  const rng = fmtD(D.start)+' – '+fmtD(D.end);
+  $('range').innerHTML = 'Leads with a lead date from <b style="color:var(--ink)">'+rng+'</b>'+(me?' · '+esc(me):' · whole team')+' · click any number to see those leads';
+  const lab = t => t+' ('+rng+(me?', '+me:'')+')';
+  let o = '';
+  // Today's to-do
+  o += '<div class="card today"><div class="t">Today</div>'
+    + '<a href="'+L(T.overdue.ids,'Overdue follow-ups')+'"><b style="color:var(--rd)">'+T.overdue.value+'</b><span>overdue follow-ups</span></a>'
+    + '<a href="'+L(T.due_today.ids,'Follow-ups due today')+'"><b style="color:var(--pkd)">'+T.due_today.value+'</b><span>follow-ups due today</span></a>'
+    + '<a href="'+L(T.not_called.ids,'New leads not called yet')+'"><b style="color:var(--pl)">'+T.not_called.value+'</b><span>leads not called yet</span></a>'
+    + '<a class="cta" href="'+L([...new Set([...T.overdue.ids,...T.due_today.ids,...T.not_called.ids])],'Today’s call list')+'">Open today’s call list</a></div>';
+  // KPIs
+  const K = (m, label, value, sub, color, title) => (m && m.ids && m.ids.length)
+    ? '<a class="kpi" href="'+L(m.ids, lab(title||label))+'"><span class="l">'+label+'</span><span class="v" style="color:'+(color||'var(--ink)')+'">'+value+'</span><span class="s">'+sub+'</span><span class="go">View leads →</span></a>'
+    : '<div class="kpi"><span class="l">'+label+'</span><span class="v" style="color:'+(color||'var(--ink)')+'">'+value+'</span><span class="s">'+sub+'</span></div>';
+  o += '<div><h2>At a glance</h2><div class="kpis">'
+    + K(S.received, 'Leads received', num(S.received.value), 'by lead date')
+    + K(S.called, 'Leads called', num(S.called.value), pct(S.called.pct)+' of leads received')
+    + K(S.followup, 'In follow-up', num(S.followup.value), 'open, with a follow-up date', 'var(--pl)')
+    + K(S.converted, 'Converted', num(S.converted.value), 'became bookings', 'var(--gr)')
+    + K(S.revenue, 'Revenue converted', money(S.revenue.value), S.revenue.avg ? 'avg '+money(S.revenue.avg)+' per booking' : 'from converted leads', 'var(--gr)')
+    + K(S.conversion_pct, 'Conversion rate', pct(S.conversion_pct.value), 'converted ÷ leads received', null, 'Converted')
+    + K(S.avg_frt_hours, 'Avg first response (FRT)', hrs(S.avg_frt_hours.value), 'lead generated → first call', S.avg_frt_hours.value>4?'var(--rd)':S.avg_frt_hours.value!=null&&S.avg_frt_hours.value<1?'var(--gr)':null, 'Leads with a first call')
+    + K(S.avg_drt_days, 'Avg days to convert (DRT)', S.avg_drt_days.value==null?'—':S.avg_drt_days.value+' days', 'lead generated → booking', null, 'Converted')
+    + K(S.pipeline, 'Pipeline value', money(S.pipeline.value), 'open leads with a quote, in discussion', 'var(--pl)')
+    + K(null, 'Answer rate', pct(S.answer_rate.value), num(S.answer_rate.answered)+' of '+num(S.answer_rate.calls)+' calls answered')
+    + '</div></div>';
+  if(D.earnings) o += earningsHtml(D.earnings);
+  // Funnel
+  const top = Math.max(1, D.funnel[0].value), cols = ['#C9B8EC','#A98BE0','#8E6AD3','#6C4AB6','#D6457F'];
+  o += '<div class="card"><h2>Where these leads are</h2>'
+    + '<p class="note" style="margin:4px 0 0">% = share of leads received</p>'
+    + D.funnel.map((f,i)=>'<a class="fn" href="'+L(f.ids, lab(f.label))+'"><span>'+f.label+'</span><span class="bar"><span style="width:'+Math.round(100*f.value/top)+'%;background:'+cols[i]+'"></span></span><b>'+num(f.value)+(i?' <span class="muted" style="font-weight:500">'+Math.round(100*f.value/top)+'%</span>':'')+'</b></a>').join('')
+    + '</div>';
+  // Day by day
+  const tot = {new:0,called:0,answered:0,followup:0,converted:0};
+  D.days.forEach(d=>{ for(const k in tot) tot[k]+=d[k].value; });
+  const cls = (v, lo, hi, inv) => v==null ? '' : (inv ? (v>hi?'bad':v<lo?'good':'') : (v<lo?'bad':v>hi?'good':''));
+  o += '<div class="card"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline"><h2>Day by day</h2>'
+    + '<span class="note">New leads by lead date · calls by the day they were made · click a number to see those leads</span></div>'
+    + '<div class="tw" style="margin-top:10px"><table><thead><tr><th>Day</th><th>New leads</th><th>Called</th><th>Answered</th><th>Answer %</th><th>Follow-ups set</th><th>Converted</th><th>Conversion %</th><th>Avg first response</th></tr></thead><tbody>'
+    + D.days.map(d=>'<tr><td>'+fmtDay(d.day)+'</td>'
+        +'<td>'+A(d.new, 'New leads '+fmtD(d.day))+'</td>'
+        +'<td>'+A(d.called, 'Called on '+fmtD(d.day))+'</td>'
+        +'<td>'+A(d.answered, 'Answered on '+fmtD(d.day))+'</td>'
+        +'<td class="'+cls(d.answer_pct,60,80)+'">'+pct(d.answer_pct)+'</td>'
+        +'<td>'+A(d.followup, 'Follow-ups set on '+fmtD(d.day))+'</td>'
+        +'<td>'+A(d.converted, 'Converted (leads of '+fmtD(d.day)+')')+'</td>'
+        +'<td>'+pct(d.conversion_pct)+'</td>'
+        +'<td class="'+cls(d.avg_frt_hours,1,4,true)+'">'+hrs(d.avg_frt_hours)+'</td></tr>').join('')
+    + '</tbody><tfoot><tr><td>Total</td><td>'+A(S.received,lab('Leads received'))+'</td><td>'+num(tot.called)+'</td><td>'+num(tot.answered)+'</td><td>'+pct(tot.called?Math.round(1000*tot.answered/tot.called)/10:null)+'</td><td>'+num(tot.followup)+'</td><td>'+A(S.converted,lab('Converted'))+'</td><td>'+pct(S.conversion_pct.value)+'</td><td>'+hrs(S.avg_frt_hours.value)+'</td></tr></tfoot></table></div>'
+    + '<p class="note">Answer % turns <span class="bad">red</span> below 60% and <span class="good">green</span> above 80%; first response turns red above 4 hours and green under 1 hour. Day totals for calls count a lead once per day.</p></div>';
+  // Lost reasons + sources
+  o += '<div class="two"><div class="card"><h2>Why leads didn’t book</h2>'
+    + (D.lost_reasons.length ? D.lost_reasons.map(r=>'<a class="li" href="'+L(r.ids, lab('Not booked: '+r.reason))+'"><span>'+esc(r.reason)+'</span><b>'+r.count+'</b></a>').join('') : '<p class="muted">None of these leads were marked not converted.</p>')
+    + '</div><div class="card"><h2>By lead source</h2>'
+    + (D.sources.length ? D.sources.map(r=>'<a class="li" href="'+L(r.ids, lab(r.source+' leads'))+'"><span>'+esc(r.source)+'</span><span><b>'+r.leads+'</b> leads · <b>'+r.converted+'</b> booked</span></a>').join('') : '<p class="muted">No leads.</p>')
+    + '</div></div>';
+  $('content').innerHTML = o;
+}
+// ── Earnings, commission ladder and targets (2026-10-20, per Shruti) ──────
+function earningsHtml(E){
+  const T = E.target, isAdmin = ROLE==='admin';
+  const bar = (v, t, col) => '<div style="background:#F3EEFB;border-radius:8px;height:14px;overflow:hidden;margin:6px 0 4px"><div style="height:14px;border-radius:8px;background:'+col+';width:'+Math.min(100, t ? Math.round(100*v/t) : 0)+'%"></div></div>';
+  const rev = E.lines.reduce((t,l)=>t+l.value,0);
+  let o = '<div class="card"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:baseline"><h2>Your earnings</h2>'
+    + '<span class="note">Bookings converted in this period · volunteering at events in this period</span></div>'
+    + '<div class="kpis">'
+    +   '<div class="kpi" style="background:#F1FAF4;border-color:#CDEBD8"><span class="l">Total earned</span><span class="v" style="color:var(--gr)">'+money(E.total_earnings)+'</span><span class="s">commission + volunteering</span></div>'
+    +   '<div class="kpi"><span class="l">Sales commission</span><span class="v">'+money(E.commission)+'</span><span class="s">on '+E.bookings+' booking'+(E.bookings===1?'':'s')+' worth '+money(rev)+'</span></div>'
+    +   '<div class="kpi"><span class="l">Volunteering</span><span class="v">'+money(E.volunteer.total)+'</span><span class="s">'+E.volunteer.events+' event'+(E.volunteer.events===1?'':'s')+' · '+money(E.volunteer.paid)+' paid · '+money(E.volunteer.pending)+' pending</span></div>'
+    + '</div>';
+  // slab ladder
+  o += '<div style="margin-top:16px"><div style="font-weight:700;margin-bottom:8px">Commission per booking</div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">'
+    + E.slabs.map(sl=>{ const here = E.bookings+1 >= sl.from && (sl.to==null || E.bookings+1 <= sl.to);
+        return '<div style="border-radius:12px;padding:12px;border:2px solid '+(here?'var(--pk)':'var(--line)')+';background:'+(here?'#FDF0F5':'#fff')+'">'
+          + '<div style="font-size:12.5px;color:var(--mut)">Bookings '+sl.from+(sl.to?'–'+sl.to:'+')+'</div><div style="font-size:22px;font-weight:700">'+sl.rate_pct+'%</div>'
+          + (here?'<div style="font-size:12px;font-weight:700;color:var(--pkd)">Your next booking</div>':'')+'</div>'; }).join('')
+    + '</div></div>';
+  // motivation
+  const lines = ['<b>Convert 1 more booking</b> and earn about <b style="color:var(--gr)">'+money(E.next_booking_commission)+'</b> more ('+E.next_rate_pct+'% of a '+money(E.avg_booking)+' booking).'];
+  if(E.to_next_slab) lines.push('<b>'+E.to_next_slab+' more booking'+(E.to_next_slab===1?'':'s')+'</b> and every booking after that pays <b>'+(E.next_rate_pct===5?'7.5':'10')+'%</b>.');
+  if(T.bookings){
+    const left = Math.max(0, T.bookings - E.bookings);
+    let extra = 0; for(let i=E.bookings+1;i<=T.bookings;i++) extra += E.avg_booking * (i<=5?0.05:i<=10?0.075:0.10);
+    lines.push(left ? '<b>'+left+' more booking'+(left===1?'':'s')+'</b> to reach this month’s target of '+T.bookings+' — that’s about <b style="color:var(--gr)">'+money(extra)+'</b> more in commission.' : '<b style="color:var(--gr)">Booking target reached!</b> Every extra booking still adds commission.');
+  }
+  o += '<div style="margin-top:16px;padding:14px 16px;border-radius:12px;background:#FFF8E6;display:flex;flex-direction:column;gap:6px;font-size:14.5px">'+lines.map(l=>'<div>'+l+'</div>').join('')+'</div>';
+  // targets
+  o += '<div style="margin-top:16px"><div style="font-weight:700">Targets for '+(T.ym?MON[+T.ym.slice(5,7)-1]+' '+T.ym.slice(0,4):'')+'</div>'
+    + (T.bookings ? '<div style="margin-top:8px">Bookings <b>'+E.bookings+'</b> of '+T.bookings+bar(E.bookings,T.bookings,'var(--pk)')+'</div>' : '')
+    + (T.revenue ? '<div style="margin-top:8px">Revenue <b>'+money(rev)+'</b> of '+money(T.revenue)+bar(rev,T.revenue,'var(--gr)')+'</div>' : '')
+    + (!T.bookings && !T.revenue ? '<p class="note">No target set for this month yet.</p>' : '')
+    + (isAdmin ? '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:10px"><label class="ctl">Bookings target<input type="number" min="0" id="tgB" value="'+(T.bookings??'')+'" style="width:140px"></label>'
+        + '<label class="ctl">Revenue target (₹)<input type="number" min="0" id="tgR" value="'+(T.revenue??'')+'" style="width:160px"></label>'
+        + '<button type="button" class="chip on" onclick="saveTarget()">Save target</button></div>' : '')
+    + '</div>';
+  o += '<p class="note" style="margin-top:12px">Commission: bookings 1–5 in the period earn 5% of the booking value each, 6–10 earn 7.5% each, 11 and up earn 10% each.</p></div>';
+  return o;
+}
+async function saveTarget(){
+  const b = document.getElementById('tgB').value, r = document.getElementById('tgR').value;
+  try{
+    const res = await fetch(API+'/api/admin/sales-performance/target', {method:'PUT', headers:{'Content-Type':'application/json','X-Admin-Password':pw()},
+      body: JSON.stringify({rep: D.rep, month: D.earnings.target.ym, bookings: b===''?null:Number(b), revenue: r===''?null:Number(r), changed_by: who()})});
+    if(!res.ok){ const x = await res.json().catch(()=>({})); throw new Error(x.detail||'Save failed'); }
+    load();
+  }catch(e){ $('err').textContent = e.message; $('err').hidden = false; }
+}
+(async function init(){
+  if(!pw()){ $('gate').hidden=false; return; }
+  $('app').hidden=false;
+  try{ ROLE = (await api('/api/admin/whoami')).role || 'admin'; }catch(e){ if(e.message==='unauthorized') return; ROLE='admin'; }
+  if(ROLE==='admin'){ $('fRep').innerHTML = '<option value="">Whole team</option>'; }
+  preset('month');
+})();
+</script>
+</body>
+</html>
