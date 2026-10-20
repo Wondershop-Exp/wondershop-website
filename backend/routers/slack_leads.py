@@ -37,9 +37,13 @@ Slack lead bot (2026-10-20, per Shruti).
      WhatsApp Broadcast   -> Source "WhatsApp Broadcast"
      others               -> Source "Facebook" / "Google" / "Referral" / ...
 
-  Same person = same lead (rules of routers/aisensy_webhook.py: an open lead,
-  an upcoming booking or any lead from the last 30 days with that number).
-  Partner (vendor) numbers are skipped. The bot replies in the thread with
+  Same mobile number with a lead generated within the last 90 days = the same
+  lead (per Shruti, counted from the lead generation date): blanks get
+  filled in, and anything DIFFERENT (name, source, venue, ...) is added to the
+  lead's "Changes / Updates" note instead of overwriting. Over 90 days after
+  the lead generation date a new lead is made, linked to (noting) the earlier one. Lead Source only ever takes a
+  value from the approved list (catalogue_data.LEAD_SOURCES); anything else
+  is asked about. Partner (vendor) numbers are skipped. The bot replies in the thread with
   what it did and links to each lead.
 
 Set-up: TASKS.md + docs/slack_leads_app_manifest.yml. Needs SLACK_SIGNING_SECRET
@@ -89,8 +93,15 @@ SOURCES = {
     "stall":     ("Stall",              None),
     "website":   ("Website",            None),
 }
-SOURCE_HELP = ("Instagram ad · Instagram DM · WhatsApp broadcast · Facebook · Google · "
-               "Referral (referred by …) · Repeat · WSR Repeat · Stall · Website")
+_HELP_LABELS = [("ad", "Instagram ad"), ("dm", "Instagram DM"), ("broadcast", "WhatsApp broadcast"),
+                ("facebook", "Facebook"), ("google", "Google"), ("referral", "Referral (referred by …)"),
+                ("repeat", "Repeat"), ("wsr", "WSR Repeat"), ("stall", "Stall"), ("website", "Website")]
+
+
+def source_help() -> str:
+    """The sources the team may use — only those on the approved list."""
+    from catalogue_data import LEAD_SOURCES
+    return " · ".join(lbl for k, lbl in _HELP_LABELS if SOURCES[k][0] in LEAD_SOURCES)
 
 MONTHS = {m: i for i, m in enumerate(
     ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], start=1)}
@@ -372,27 +383,79 @@ DETAIL_LABELS = {"child_ages": "age", "child_genders": "gender", "venue": "venue
                  "theme": "theme", "event_date": "event date"}
 
 
+SAME_LEAD_DAYS = 90   # 2026-10-20, per Shruti: same mobile, lead generated within 90 days = same lead
+
+# Counted from the LEAD GENERATION DATE (when the person first enquired),
+# falling back to when the lead was created for older leads without one.
+LAST_TOUCH_SQL = "COALESCE(l.lead_generated_at, l.created_on)"
+
+
+def _last10(phone: str) -> str:
+    return re.sub(r"\D", "", phone or "")[-10:]
+
+
 async def _find_existing(phone: Optional[str], name: Optional[str], handle: Optional[str]):
+    """The lead this post belongs to: same mobile number (last 10 digits)
+    whose lead generation date is within the last 90 days. Instagram DMs without a number match
+    on the @handle, else the exact name, by the same rule."""
     if phone:
-        return await _existing_lead(phone)
-    # Instagram DMs without a number: match on the handle, else the exact
-    # name, among leads from the last 30 days.
-    if handle:
-        return await database.fetch_one(
-            "SELECT lead_id, lead_origin, lead_source_platform, ad_shown FROM leads "
-            "WHERE lead_source_detail ILIKE :h AND created_on >= NOW() - INTERVAL '30 days' "
-            "ORDER BY created_on DESC LIMIT 1", values={"h": f"%@{handle}%"})
-    if name:
-        return await database.fetch_one(
-            "SELECT lead_id, lead_origin, lead_source_platform, ad_shown FROM leads "
-            "WHERE lower(parent_name) = lower(:n) AND created_on >= NOW() - INTERVAL '30 days' "
-            "ORDER BY created_on DESC LIMIT 1", values={"n": name})
-    return None
+        where, vals = "RIGHT(regexp_replace(COALESCE(l.phone,''), '\\D', '', 'g'), 10) = :p", {"p": _last10(phone)}
+    elif handle:
+        where, vals = "l.lead_source_detail ILIKE :h", {"h": f"%@{handle}%"}
+    elif name:
+        where, vals = "lower(l.parent_name) = lower(:n)", {"n": name}
+    else:
+        return None
+    return await database.fetch_one(
+        f"SELECT * FROM (SELECT l.lead_id, {LAST_TOUCH_SQL} AS last_touch FROM leads l "
+        f"LEFT JOIN lead_sales_playbook p ON p.lead_id = l.lead_id WHERE {where}) x "
+        f"WHERE last_touch >= NOW() - INTERVAL '{SAME_LEAD_DAYS} days' ORDER BY last_touch DESC LIMIT 1",
+        values=vals)
+
+
+async def _earlier_lead(phone: Optional[str]):
+    if not phone:
+        return None
+    return await database.fetch_one(
+        f"SELECT l.lead_id, l.status, l.is_booking, {LAST_TOUCH_SQL} AS last_touch FROM leads l "
+        "LEFT JOIN lead_sales_playbook p ON p.lead_id = l.lead_id "
+        "WHERE RIGHT(regexp_replace(COALESCE(l.phone,''), '\\D', '', 'g'), 10) = :p ORDER BY last_touch DESC LIMIT 1",
+        values={"p": _last10(phone)})
+
+
+def approved_source(source: Optional[str]) -> bool:
+    """Only the pre-decided Lead Source list (catalogue_data.LEAD_SOURCES) —
+    per Shruti 2026-10-20: never a new value without her confirmation."""
+    from catalogue_data import LEAD_SOURCES
+    return bool(source) and source in LEAD_SOURCES
+
+
+def _show(v) -> str:
+    if v is None or v == "":
+        return "—"
+    if isinstance(v, date):
+        return v.strftime("%d %b %Y")
+    return str(v)
+
+
+def _same(a, b) -> bool:
+    norm = lambda v: re.sub(r"\s+", " ", str(v)).strip().lower() if v not in (None, "") else ""
+    return norm(a) == norm(b)
+
+
+async def _append_change_note(lead_id: int, text: str) -> None:
+    """Changed values go into the lead's "Changes / Updates" notes (Sales
+    module, Notes section) — the lead itself keeps what the team has."""
+    await database.execute(
+        "UPDATE lead_sales_playbook SET notes_changes_updates = "
+        "CASE WHEN COALESCE(notes_changes_updates, '') = '' THEN :t ELSE notes_changes_updates || E'\\n' || :t END "
+        "WHERE lead_id = :id", values={"t": text, "id": lead_id})
 
 
 async def intake(item: Dict[str, Any], who: str, how: str) -> Dict[str, Any]:
-    """Create the lead, or fill in blanks on the existing one. Returns a
-    result dict for the Slack reply."""
+    """Create the lead, or update the one with the same mobile generated in
+    the last 90 days: blanks are filled in, anything DIFFERENT is added as a note (the
+    lead keeps its value). Returns a result dict for the Slack reply."""
     phone, name, handle = item.get("phone"), item.get("name"), item.get("handle")
     if not phone and not handle and not name:
         return {"outcome": "skipped", "why": "no name or number"}
@@ -400,59 +463,90 @@ async def intake(item: Dict[str, Any], who: str, how: str) -> Dict[str, Any]:
         return {"outcome": "skipped", "why": "partner (vendor) number", "phone": phone, "name": name}
     skey = item.get("source")
     source, platform = SOURCES[skey] if skey else (None, None)
+    if source and not approved_source(source):
+        source, platform = None, None     # not on the approved list -> ask instead
     referred_by = item.get("referred_by")
     gen: datetime = item.get("generated_at") or datetime.now(IST)
     fields = {k: v for k, v in (item.get("fields") or {}).items() if v not in (None, "")}
     note = item.get("note")
     actor = f"{who} (Slack)"
+    stamp = datetime.now(IST).strftime("%d %b, %I:%M %p")
 
     async with database.transaction():
         await database.execute("SELECT pg_advisory_xact_lock(hashtext(:k))",
-                               values={"k": "lead-intake:" + (phone or handle or (name or "").lower())})
+                               values={"k": "lead-intake:" + (_last10(phone) if phone else (handle or (name or "").lower()))})
         existing = await _find_existing(phone, name, handle)
         if existing:
             lead_id = existing["lead_id"]
             row = dict(await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id}))
-            sets, vals, filled = [], {"id": lead_id}, []
+            sets, vals, filled, changes = [], {"id": lead_id}, [], []
+
+            def take(col, new, label, setter=None):
+                cur = row.get(col)
+                if new in (None, ""):
+                    return
+                if cur in (None, "") or (isinstance(cur, str) and not cur.strip()):
+                    if setter:
+                        setter()
+                    else:
+                        sets.append(f"{col} = :{col}"); vals[col] = new
+                    filled.append(label)
+                elif not _same(cur, new):
+                    changes.append(f"{label}: {_show(cur)} → {_show(new)}")
+
             for col, v in fields.items():
-                if row.get(col) in (None, "") :
-                    sets.append(f"{col} = :{col}"); vals[col] = v; filled.append(DETAIL_LABELS.get(col, col))
-            if name and (row.get("parent_name") or "").startswith(("Instagram lead", "New Sales Lead")):
+                take(col, v, DETAIL_LABELS.get(col, col))
+            placeholder = (row.get("parent_name") or "").startswith(("Instagram lead", "New lead", "New Sales Lead", "@"))
+            if name and placeholder:
                 sets.append("parent_name = :pn"); vals["pn"] = name[:255]; filled.append("name")
-            if item.get("ad_shown") and not row.get("ad_shown"):
-                sets += ["ad_shown = :ad", "ad_id = COALESCE(ad_id, :adid)"]
-                vals.update(ad=item["ad_shown"][:500], adid=item.get("ad_id")); filled.append("ad shown")
+            elif name and not _same(name, row.get("parent_name")):
+                changes.append(f"name: {_show(row.get('parent_name'))} → {name}")
+            take("ad_shown", (item.get("ad_shown") or "")[:500] or None, "ad shown",
+                 lambda: (sets.extend(["ad_shown = :ad", "ad_id = COALESCE(ad_id, :adid)"]),
+                          vals.update(ad=item["ad_shown"][:500], adid=item.get("ad_id"))))
+            if source:
+                cur_label = row.get("lead_source_platform") or row.get("lead_source")
+                if not (row.get("lead_source") or "").strip():
+                    sets += ["lead_source = :src", "lead_source_platform = :plat"]
+                    vals.update(src=source, plat=platform); filled.append(f"source → {platform or source}")
+                elif not _same(row.get("lead_source"), source) or (platform and row.get("lead_source_platform")
+                                                                   and not _same(row.get("lead_source_platform"), platform)):
+                    changes.append(f"source: {cur_label} → {platform or source}")
+            take("referred_by", referred_by, "referred by")
             moved = None
-            from_bot = (row.get("lead_source_detail") or "").startswith("Slack")
-            if from_bot:
+            if (row.get("lead_source_detail") or "").startswith("Slack"):
                 # A screenshot shows the exact first-message time: correct
                 # the lead time if it's earlier than what the list gave us.
                 cur = row.get("lead_generated_at")
                 if item.get("generated_at") and (cur is None or item["generated_at"] < cur):
                     sets += ["lead_generated_at = :gen", "created_on = :gen"]; vals["gen"] = item["generated_at"]
                     moved = item["generated_at"]
-            if source and (not (row.get("lead_source") or "").strip() or
-                           (from_bot and platform and platform != row.get("lead_source_platform"))):
-                sets += ["lead_source = :src", "lead_source_platform = :plat"]
-                vals.update(src=source, plat=platform); filled.append(f"source → {platform or source}")
-            if referred_by and not row.get("referred_by"):
-                sets.append("referred_by = :rb"); vals["rb"] = referred_by[:255]; filled.append("referred by")
             if sets:
                 await database.execute(f"UPDATE leads SET {', '.join(sets)} WHERE lead_id = :id", values=vals)
+            # A note that only names the source ("google", "insta ad") isn't news.
+            just_source = bool(note) and len(re.findall(r"\w+", note)) <= 3 and bool(source_from_text(note)[0])
+            new_note = bool(note) and not just_source and note.lower() not in (await _playbook_text(lead_id)).lower()
+            if changes or new_note:
+                parts = changes + ([f"note: {note}"] if new_note else [])
+                await _append_change_note(lead_id, f"[{stamp} · {who} via Slack] " + "; ".join(parts))
             bits = [f"Posted again on Slack by {who}"]
             if filled:
                 bits.append("filled in: " + ", ".join(filled))
+            if changes:
+                bits.append("different values added as a note: " + "; ".join(changes))
             if moved:
                 bits.append("lead time set to " + moved.astimezone(IST).strftime("%d %b %Y, %I:%M %p"))
-            if note:
+            if new_note:
                 bits.append(f"Note: {note}")
             await _playbook_log(await _playbook_id(lead_id), "updated", " · ".join(bits))
-            result = {"outcome": "updated" if (filled or moved) else "duplicate", "lead_id": lead_id,
-                      "name": row.get("parent_name"), "phone": row.get("phone"), "filled": filled, "moved": moved,
+            result = {"outcome": "updated" if (filled or moved or changes or new_note) else "duplicate",
+                      "lead_id": lead_id, "name": row.get("parent_name"), "phone": row.get("phone"),
+                      "filled": filled, "changes": changes, "moved": moved,
                       "needs_source": not (source or (row.get("lead_source") or "").strip())}
         else:
+            earlier = await _earlier_lead(phone)
             # "Slack · ..." marks bot-made leads (later screenshots may
-            # correct their time/source; nothing else is touched).
+            # correct their lead time; nothing else is overwritten).
             detail = "Slack" + (f" · {platform}" if platform else "") + (f" · @{handle}" if handle else "") \
                 + (f" · Ad: {item['ad_shown']}" if item.get("ad_shown") else "")
             cols = {
@@ -469,15 +563,30 @@ async def intake(item: Dict[str, Any], who: str, how: str) -> Dict[str, Any]:
                 "INSERT INTO lead_sales_playbook (lead_id, created_by, notes_special_instructions) "
                 "VALUES (:id, :by, :n) RETURNING id", values={"id": lead_id, "by": actor, "n": note})
             label = platform or source
+            earlier_txt = None
+            if earlier:
+                earlier_txt = (f"Earlier lead #{earlier['lead_id']} with this number "
+                               f"(lead generated {earlier['last_touch'].astimezone(IST).strftime('%d %b %Y')}, "
+                               f"{'booking' if earlier['is_booking'] else earlier['status']})")
+                await _append_change_note(lead_id, f"[{stamp}] {earlier_txt}")
             await _playbook_log(pid, "created",
                                 f"New {label + ' ' if label else ''}lead, posted on Slack by {who} ({how})"
-                                + (f" · referred by {referred_by}" if referred_by else "") + (f" · {note}" if note else ""))
+                                + (f" · referred by {referred_by}" if referred_by else "") + (f" · {note}" if note else "")
+                                + (f" · {earlier_txt}" if earlier_txt else ""))
             result = {"outcome": "created", "lead_id": lead_id, "name": cols["parent_name"], "phone": phone,
                       "platform": label, "generated_at": gen, "needs_source": not source,
+                      "earlier": earlier["lead_id"] if earlier else None,
                       "filled": [DETAIL_LABELS[k] for k in fields if k in DETAIL_LABELS]}
     if result["outcome"] in ("created", "updated"):
         sheet_sync.schedule_sync(result["lead_id"])
     return result
+
+
+async def _playbook_text(lead_id: int) -> str:
+    r = await database.fetch_one(
+        "SELECT COALESCE(notes_special_instructions, '') || ' ' || COALESCE(notes_changes_updates, '') AS t "
+        "FROM lead_sales_playbook WHERE lead_id = :id", values={"id": lead_id})
+    return (r["t"] if r else "") or ""
 
 
 # ─── Slack plumbing ────────────────────────────────────────────────────────
@@ -557,14 +666,17 @@ def format_reply(results: List[Dict[str, Any]], errors: List[str]) -> str:
     for r in created:
         when = r["generated_at"].astimezone(IST).strftime("%d %b, %I:%M %p")
         extra = f" · filled: {', '.join(r['filled'])}" if r.get("filled") else ""
-        lines.append(f"• {link(r)} {r['name']} · {_fmt_phone(r['phone'])} · {r['platform'] or 'source ❓'} · {when}{extra}")
+        lines.append(f"• {link(r)} {r['name']} · {_fmt_phone(r['phone'])} · {r['platform'] or 'source ❓'} · {when}{extra}"
+                     + (f" · earlier lead #{r['earlier']}" if r.get('earlier') else ""))
     for r in updated:
-        extra = ", ".join(r.get("filled") or [])
+        extra = ("filled " + ", ".join(r["filled"])) if r.get("filled") else ""
+        if r.get("changes"):
+            extra = (extra + "; " if extra else "") + "noted changes: " + "; ".join(r["changes"])
         if r.get("moved"):
             extra = (extra + ", " if extra else "") + "lead time → " + r["moved"].astimezone(IST).strftime("%d %b, %I:%M %p")
-        lines.append(f"• {link(r)} {r['name']} — updated: {extra}")
+        lines.append(f"• {link(r)} {r['name']} — same lead (generated within {SAME_LEAD_DAYS} days): {extra or 'note added'}")
     for r in dup:
-        lines.append(f"• {link(r)} {r['name']} — already a lead, nothing new to add")
+        lines.append(f"• {link(r)} {r['name']} — same lead (generated within {SAME_LEAD_DAYS} days), nothing new")
     for r in skipped:
         lines.append(f"• {r.get('name') or _fmt_phone(r.get('phone'))} — skipped ({r['why']})")
     lines += [f"⚠️ {e}" for e in errors]
@@ -573,7 +685,7 @@ def format_reply(results: List[Dict[str, Any]], errors: List[str]) -> str:
         who = ", ".join(f"*{r.get('pos') or ''}* {r['name']}".replace("** ", "") for r in ask)
         lines.append(f"\n❓ *Lead source?* Not mentioned for: {who}.\n"
                      f"Reply in this thread — one word sets them all (e.g. `referral by Neha`), or one per line "
-                     f"with the number or name (e.g. `2 stall`, `Saloni insta ad`).\nSources: {SOURCE_HELP}")
+                     f"with the number or name (e.g. `2 stall`, `Saloni insta ad`).\nSources: {source_help()}")
     if not lines:
         lines.append("I couldn't find any leads in that. I look for lines like "
                      "`1. NAME (+919800000000) - source/note` under a heading like `19 Oct Leads:`, or chat screenshots.")
@@ -581,6 +693,16 @@ def format_reply(results: List[Dict[str, Any]], errors: List[str]) -> str:
 
 
 _seen: Dict[str, float] = {}
+
+_SLACK_LINK = re.compile(r"<(?:tel:|mailto:|https?://)[^|>]*\|([^>]*)>|<(?:tel:|mailto:)([^>|]*)>|<(https?://[^>|]*)>")
+
+
+def clean_slack_text(text: str) -> str:
+    """Slack sends phone numbers / links as <tel:+9198...|+9198...> and
+    escapes & < >. Turn it back into what the person typed."""
+    t = _SLACK_LINK.sub(lambda m: m.group(1) or m.group(2) or m.group(3) or "", text or "")
+    t = re.sub(r"<[@#!][^>]*>", "", t)
+    return t.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
 
 LEAD_REF_RE = re.compile(r"#(\d{1,7})\b")
 POS_RE = re.compile(r"^\s*(\d{1,2})\s*(?:[.)\-–:]|\s)")
@@ -596,7 +718,7 @@ async def handle_reply(ev: Dict[str, Any], post: Dict[str, Any]) -> None:
     items = post["items"]
     items = json.loads(items) if isinstance(items, str) else (items or [])
     by_id = {i["lead_id"]: i for i in items}
-    lines = [l.strip() for l in (ev.get("text") or "").splitlines() if l.strip()]
+    lines = [l.strip() for l in clean_slack_text(ev.get("text") or "").splitlines() if l.strip()]
     plan: Dict[int, Tuple[str, Optional[str]]] = {}
     general = None
     for line in lines:
@@ -631,11 +753,14 @@ async def handle_reply(ev: Dict[str, Any], post: Dict[str, Any]) -> None:
         if not lines or not missing:
             return
         await slack_api("chat.postMessage", channel=channel, thread_ts=thread, unfurl_links=False,
-                        text=f"I didn't catch a source there. Try e.g. `referral by Neha`, `2 stall` or `Saloni insta ad`.\nSources: {SOURCE_HELP}")
+                        text=f"I didn't catch a source there. Try e.g. `referral by Neha`, `2 stall` or `Saloni insta ad`.\n"
+                             f"Sources: {source_help()}\nOnly these approved sources can be used — a new one needs Shruti's OK first.")
         return
     done = []
     for lead_id, (key, ref) in plan.items():
         source, platform = SOURCES[key]
+        if not approved_source(source):
+            continue
         sets = ["lead_source = :s", "lead_source_platform = :p"]
         vals = {"s": source, "p": platform, "id": lead_id}
         if ref:
@@ -657,7 +782,7 @@ async def handle_reply(ev: Dict[str, Any], post: Dict[str, Any]) -> None:
 
 async def handle_message(ev: Dict[str, Any]) -> None:
     channel, ts = ev.get("channel"), ev.get("ts")
-    text = ev.get("text") or ""
+    text = clean_slack_text(ev.get("text") or "")
     posted_at = datetime.fromtimestamp(float(ts), tz=timezone.utc) if ts else datetime.now(timezone.utc)
     who = await slack_user_name(ev.get("user") or "")
     results, errors = [], []
