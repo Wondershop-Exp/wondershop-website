@@ -8,7 +8,7 @@ from security import security_middleware
 import re
 import sheet_sync
 from database import connect_db, disconnect_db
-from routers import catalogue, cart, leads, config, admin, instagram, packaging, vendors, dashboard, sales_leads, vendor_onboarding, spy_registration, decor_refs, feedback, event_team, aisensy_webhook, slack_leads, booking_invites, finance, sales_dashboard, sorting_hat
+from routers import catalogue, cart, leads, config, admin, instagram, packaging, vendors, dashboard, sales_leads, vendor_onboarding, spy_registration, decor_refs, feedback, event_team, aisensy_webhook, slack_leads, booking_invites, finance, sales_dashboard, sorting_hat, daily_report
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,7 +24,10 @@ async def lifespan(app: FastAPI):
     await connect_db()
     from db_ensure import ensure_schema
     await ensure_schema()   # idempotent column/table top-ups (2026-10-06)
+    import asyncio
+    _report_task = asyncio.create_task(daily_report.scheduler())   # daily Slack update (2026-10-20)
     yield
+    _report_task.cancel()
     await disconnect_db()
 
 app = FastAPI(
@@ -79,6 +82,7 @@ app.include_router(instagram.router, prefix="/api/instagram", tags=["Instagram"]
 app.include_router(packaging.router,  prefix="/api",           tags=["Packaging"])
 app.include_router(vendors.router,    prefix="/api/admin",     tags=["Vendors"])
 app.include_router(dashboard.router,  prefix="/api/admin",     tags=["Dashboard"])
+app.include_router(daily_report.router, prefix="/api/admin", tags=["Daily Report"])
 app.include_router(finance.router,    prefix="/api/admin",     tags=["Finance"])  # 2026-10-14 finance dashboard (admin only)
 app.include_router(sales_dashboard.router, prefix="/api/admin", tags=["Sales Dashboard"])  # 2026-10-16 funnel / daily summary (spend admin-only)
 app.include_router(sales_leads.router, prefix="/api",           tags=["Sales Leads"])

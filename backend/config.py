@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     SLACK_SIGNING_SECRET: str = ""
     SLACK_BOT_TOKEN: str = ""
     SLACK_LEADS_CHANNEL: str = ""
+    # Daily business update (routers/daily_report.py, 2026-10-20): channel ID to post
+    # to (name or ID), and the IST time (HH:MM) to post at. Blank channel = off.
+    SLACK_REPORT_CHANNEL: str = "#business-performance"
+    DAILY_REPORT_TIME: str = "21:00"
     # Claude API key (console.anthropic.com) — only for reading screenshots
     # posted to the Slack lead bot; text lists work without it.
     ANTHROPIC_API_KEY: str = ""
