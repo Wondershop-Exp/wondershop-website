@@ -514,6 +514,7 @@ body.role-sales .admin-only{display:none!important}
 <div class="toast" id="toast"></div>
 
 <script src="js/locality.js"></script>
+<script src="js/celebrate.js"></script>
 <script>
 const API = 'https://wondershop-website-production.up.railway.app';
 let CATALOGUE = null;
@@ -881,6 +882,7 @@ async function quickSetStatus(leadId, newStatus){
     });
     if(result && result.is_booking){
       showToast('✓ Converted to booking — moved to the Bookings tab.');
+      if(window.WSCelebrate) WSCelebrate.booking('Booking converted!', 'Brilliant work, '+(who||'team')+'!');
     }else{
       showToast('✓ Status updated to '+newStatus+(NON_CONVERT_STATUSES.includes(newStatus) ? ' — open the lead to record a reason.' : '.'));
     }
@@ -1884,6 +1886,7 @@ async function saveDetailStatus(){
       }),
     });
     showToast(result && result.is_booking ? '✓ Converted to booking — moved to the Bookings tab.' : ('✓ Status set to '+status+'.'));
+    if(result && result.is_booking && window.WSCelebrate) WSCelebrate.booking('Booking converted!', 'Brilliant work, team!');
     DATA = await apiCall('/api/admin/sales-leads/'+CURRENT_ID);
     renderDetail();
   }catch(e){
@@ -1912,6 +1915,7 @@ async function convertLeadDetail(){
         payment_method: pm||null,
       })});
     showToast('✓ Converted to booking and sent to ops.');
+    if(window.WSCelebrate) WSCelebrate.booking('Booking converted!', 'Brilliant work, '+(who||'team')+'!');
     renderDetail();
   }catch(e){
     showToast(e.message||"Couldn't save that.");

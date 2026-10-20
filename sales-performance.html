@@ -93,6 +93,7 @@ tfoot td{font-weight:700;background:var(--bg)}
   <div id="err" class="err" hidden></div>
   <div id="content" style="display:flex;flex-direction:column;gap:22px"></div>
 </div>
+<script src="js/celebrate.js"></script>
 <script>
 const API = 'https://wondershop-website-production.up.railway.app';
 const $ = id => document.getElementById(id);
@@ -212,13 +213,39 @@ function render(){
     + (D.sources.length ? D.sources.map(r=>'<a class="li" href="'+L(r.ids, lab(r.source+' leads'))+'"><span>'+esc(r.source)+'</span><span><b>'+r.leads+'</b> leads · <b>'+r.converted+'</b> booked</span></a>').join('') : '<p class="muted">No leads.</p>')
     + '</div></div>';
   $('content').innerHTML = o;
+  afterRender();
 }
 // ── Earnings, commission ladder and targets (2026-10-20, per Shruti) ──────
+// Fun layer (2026-10-20, per Shruti): numbers count up, rupee notes rain on
+// the earnings card, and a full celebration when new conversions appear
+// since this person last opened the page.
+function afterRender(){
+  if(!window.WSCelebrate) return;
+  document.querySelectorAll('#content .kpi .v').forEach(el => {
+    const t = el.textContent, m = t.match(/[\d,]+(\.\d+)?/);
+    if(!m) return;
+    const end = Number(m[0].replace(/,/g,'')); if(!end) return;
+    const dec = m[1] ? m[1].length-1 : 0, pre = t.slice(0, m.index), post = t.slice(m.index+m[0].length);
+    const t0 = performance.now();
+    (function tick(n){ const k = Math.min(1,(n-t0)/900), e = 1-Math.pow(1-k,3);
+      el.textContent = pre + (end*e).toLocaleString('en-IN',{minimumFractionDigits:dec,maximumFractionDigits:dec}) + post;
+      if(k<1) requestAnimationFrame(tick); else el.textContent = t; })(t0);
+  });
+  const ec = $('earnCard');
+  if(ec && D.earnings && D.earnings.total_earnings > 0) setTimeout(() => WSCelebrate.money(ec), 500);
+  try{
+    const ids = (D.summary.converted && D.summary.converted.ids) || [];
+    const key = 'ws_seen_conv_'+(D.rep||'team'), seen = JSON.parse(localStorage.getItem(key) || 'null');
+    localStorage.setItem(key, JSON.stringify(Array.from(new Set((seen||[]).concat(ids)))));
+    if(seen){ const fresh = ids.filter(i => !seen.includes(i)).length;
+      if(fresh) setTimeout(() => WSCelebrate.booking(fresh+' new booking'+(fresh>1?'s':'')+'!', 'Converted since you last looked. Brilliant work!'), 700); }
+  }catch(e){}
+}
 function earningsHtml(E){
   const T = E.target, isAdmin = ROLE==='admin';
   const bar = (v, t, col) => '<div style="background:#F3EEFB;border-radius:8px;height:14px;overflow:hidden;margin:6px 0 4px"><div style="height:14px;border-radius:8px;background:'+col+';width:'+Math.min(100, t ? Math.round(100*v/t) : 0)+'%"></div></div>';
   const rev = E.lines.reduce((t,l)=>t+l.value,0);
-  let o = '<div class="card"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:baseline"><h2>Your earnings</h2>'
+  let o = '<div class="card" id="earnCard"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:baseline"><h2>Your earnings <img src="img/brand-mascots/shape-5.png" alt="" class="wsc-wiggle" style="height:34px;vertical-align:middle"><img src="img/brand-mascots/kid-jump-1.png" alt="" class="wsc-wiggle" style="height:38px;vertical-align:middle;animation-delay:.4s"></h2>'
     + '<span class="note">Bookings converted in this period · volunteering at events in this period</span></div>'
     + '<div class="kpis">'
     +   '<div class="kpi" style="background:#F1FAF4;border-color:#CDEBD8"><span class="l">Total earned</span><span class="v" style="color:var(--gr)">'+money(E.total_earnings)+'</span><span class="s">commission + volunteering</span></div>'
