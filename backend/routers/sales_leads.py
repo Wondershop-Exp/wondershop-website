@@ -1231,6 +1231,29 @@ async def import_old_leads(body: WsrRepeatImport, x_admin_password: Optional[str
     return {"created": created, "skipped_already_in_sales_module": skipped, "skipped_phones": sorted(set(skipped_phones))}
 
 
+@router.get("/admin/sales-leads/check-phone")
+async def check_phone(phone: str, exclude: Optional[int] = None, x_admin_password: Optional[str] = Header(None)):
+    """2026-10-20, per Shruti — duplicate check when a lead's mobile is entered:
+    every other lead / booking (any origin) with the same last 10 digits."""
+    _require_admin(x_admin_password)
+    p = re.sub(r"[^0-9]", "", phone or "")[-10:]
+    if len(p) < 10:
+        return {"matches": []}
+    rows = await database.fetch_all(
+        """SELECT lead_id, parent_name, child_names, status, is_booking, lead_origin, lead_source, event_date, event_sales_lead
+           FROM leads
+           WHERE RIGHT(regexp_replace(COALESCE(phone, ''), '[^0-9]', '', 'g'), 10) = :p
+             AND (CAST(:ex AS INTEGER) IS NULL OR lead_id <> :ex)
+           ORDER BY lead_id DESC LIMIT 10""",
+        values={"p": p, "ex": exclude})
+    return {"matches": [{
+        "lead_id": r["lead_id"], "name": r["parent_name"], "child": r["child_names"],
+        "status": ("Booking" + (" (cancelled)" if r["status"] == "Cancelled" else "")) if r["is_booking"] else r["status"],
+        "is_booking": bool(r["is_booking"]), "origin": r["lead_origin"], "source": r["lead_source"],
+        "event_date": str(r["event_date"]) if r["event_date"] else None, "sales_lead": r["event_sales_lead"],
+    } for r in rows]}
+
+
 @router.get("/admin/sales-leads")
 async def list_sheets(search: Optional[str] = None, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)

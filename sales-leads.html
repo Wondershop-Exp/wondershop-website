@@ -343,6 +343,11 @@ body.role-sales .admin-only{display:none!important}
 .hl-mile{background:#FFE58A;color:#6B4E00}
 .hl-reg{background:#D9F2DC;color:#1E6B2A}
 .hl-high{background:#E3ECFB;color:#1F4E9B}
+.dup-warn{background:#FFF4E5;border:1px solid #F5C08A;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:13px}
+.dup-warn ul,.dup-card ul{margin:6px 0 0;padding-left:18px}
+#dupModal{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;display:none;align-items:center;justify-content:center;padding:16px}
+.dup-card{background:#fff;border-radius:14px;padding:18px 20px;max-width:520px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+.dup-card h3{margin:0 0 6px}
 .hl-dnc{background:#F4CCCC;color:#8A1C1C}
 .hl-past{background:#FCE4EC;color:#9C2252}
 .conv-box{background:#FAFAF7;border:1px solid #E5E1F5;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.5}
@@ -595,6 +600,32 @@ function getPw(){ return localStorage.getItem('ws_admin_pw') || ''; }
 function getName(){ return localStorage.getItem('ws_admin_name') || ''; }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 function money(n){ return (n===null||n===undefined||n==='') ? '' : ('₹'+Number(n).toLocaleString('en-IN')); }
+// 2026-10-20, per Shruti — duplicate check on the mobile number: if another
+// lead / booking already has it, show a prompt with links to it.
+let DUP_LAST = '', DUP_HTML = '';
+async function checkDupPhone(v, prompt){
+  const digits = String(v||'').replace(/\D/g,'').slice(-10);
+  const box = document.getElementById('dupBox');
+  if(digits.length<10){ DUP_HTML=''; if(box) box.innerHTML=''; return; }
+  try{
+    const r = await apiCall('/api/admin/sales-leads/check-phone?phone='+digits+'&exclude='+(CURRENT_ID||''));
+    const m = r.matches||[];
+    const items = m.map(x=>'<li><a href="#" onclick="closeDupModal();openDetail('+x.lead_id+');return false">#'+x.lead_id+' '+esc(x.name||'(no name)')+'</a>'
+      +' <span style="color:var(--gy)">· '+esc(x.status||'')+(x.child?' · '+esc(x.child):'')+(x.source?' · '+esc(x.source):'')+(x.sales_lead?' · '+esc(x.sales_lead):'')+(x.event_date?' · '+fmtDateStr(x.event_date):'')+'</span></li>').join('');
+    DUP_HTML = m.length ? '<div class="dup-warn"><b>This number is already in the system</b> ('+m.length+' other lead'+(m.length>1?'s':'')+'):<ul>'+items+'</ul></div>' : '';
+    if(box) box.innerHTML = DUP_HTML;
+    if(prompt && m.length && digits!==DUP_LAST){
+      DUP_LAST = digits;
+      let ov = document.getElementById('dupModal');
+      if(!ov){ ov=document.createElement('div'); ov.id='dupModal'; document.body.appendChild(ov); }
+      ov.innerHTML = '<div class="dup-card"><h3>Possible duplicate lead</h3><p>'+digits+' already belongs to:</p><ul>'+items+'</ul>'
+        + '<p style="color:var(--gy);font-size:13px">Open the existing lead to continue there. If this new lead is a duplicate, go back to the list and delete it (blank leads show a Delete link).</p>'
+        + '<div style="text-align:right"><button class="btn bk" onclick="closeDupModal()">Keep working on this lead</button></div></div>';
+      ov.style.display='flex';
+    }
+  }catch(e){}
+}
+function closeDupModal(){ const o=document.getElementById('dupModal'); if(o) o.style.display='none'; }
 function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
@@ -1140,6 +1171,8 @@ async function openDetail(id, preloaded){
   try{
     DATA = preloaded || await apiCall('/api/admin/sales-leads/'+id);
     renderDetail();
+    DUP_HTML = ''; DUP_LAST = String(DATA.mobile||'').replace(/\D/g,'').slice(-10);   // banner only on open; prompt when the number is typed/changed
+    checkDupPhone(DATA.mobile, false);
   }catch(e){
     document.getElementById('detailBody').innerHTML = '<div class="empty" style="color:var(--pk)">'+esc(e.message)+'</div>';
   }
@@ -1982,7 +2015,9 @@ function sectionClientDetails(){
     : '';
   return '<div class="card"><h3>1 · Client &amp; Event Details</h3>'
     + srcBox + wsrBox + convBox
-    + '<div class="grid2">' + f('client_name','Client Name','text') + f('mobile','Mobile No.','tel') + '</div>'
+    + '<div class="grid2">' + f('client_name','Client Name','text')
+    +   '<div class="fld"><label>Mobile No.</label><input type="tel" id="f_mobile" value="'+esc(d.mobile==null?'':d.mobile)+'" onblur="saveField(\'mobile\', this.value, this.type); checkDupPhone(this.value, true)"></div>'
+    + '</div><div id="dupBox">'+(DUP_HTML||'')+'</div>'
     + '<div class="grid2" style="margin-top:10px">' + f('email','Email','email','placeholder="name@example.com"') + salesLeadField() + '</div>'
     + '<div class="grid2" style="margin-top:10px">' + leadSourceField(d)
     // Lead date & time — when the lead was really generated (e.g. on AiSensy),
