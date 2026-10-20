@@ -863,6 +863,14 @@ async def slack_events(request: Request):
     _seen[eid] = now
     if ev.get("type") != "message" or ev.get("bot_id") or ev.get("subtype") not in (None, "file_share"):
         return {"ok": True}
+    # On-demand business summary (2026-10-20, per Shruti): "summary",
+    # "summary yesterday", "summary 19 Oct" in any channel the bot is in
+    # (meant for #business-performance) -> the daily update, as a thread reply.
+    from routers import daily_report
+    sday = daily_report.parse_summary_request(ev.get("text") or "")
+    if sday is not None:
+        asyncio.get_running_loop().create_task(_safe(daily_report.reply_in_thread(ev.get("channel"), ev.get("ts"), sday)))
+        return {"ok": True}
     if settings.SLACK_LEADS_CHANNEL and ev.get("channel") != settings.SLACK_LEADS_CHANNEL:
         return {"ok": True}
     if ev.get("thread_ts") and ev.get("thread_ts") != ev.get("ts"):

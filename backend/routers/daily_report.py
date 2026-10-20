@@ -23,6 +23,7 @@ monthly admin dashboard (routers/dashboard.py), so the numbers agree:
 """
 import asyncio
 import logging
+import re
 from datetime import date, datetime, timedelta
 from typing import Optional
 
@@ -169,9 +170,10 @@ async def preview(day: Optional[str] = None, x_admin_password: Optional[str] = H
 
 
 @router.post("/daily-report/send")
-async def send_now(x_admin_password: Optional[str] = Header(None)):
+async def send_now(day: Optional[str] = None, x_admin_password: Optional[str] = Header(None)):
+    """Post now; ?day=YYYY-MM-DD posts the summary for that day (e.g. yesterday, to check)."""
     _admin_only(x_admin_password)
-    return await send_report()
+    return await send_report(date.fromisoformat(day) if day else None)
 
 
 async def scheduler():
@@ -191,3 +193,44 @@ async def scheduler():
         except Exception as exc:
             logger.warning(f"Daily Slack report failed: {exc}")
         await asyncio.sleep(60)
+
+
+# ─── On-demand in Slack (2026-10-20, per Shruti) ─────────────────────────────
+# Type in #business-performance (or any channel the bot is in):
+#   summary | summary today | summary yesterday | summary 19 Oct | summary 2026-10-19
+_MONTHS = {m: i for i, m in enumerate(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], 1)}
+
+
+def parse_summary_request(text: str):
+    """The day asked for, or None if the message isn't a summary request."""
+    t = re.sub(r"<@[A-Z0-9]+>", "", text or "").strip().lower()
+    m = re.fullmatch(r"(?:daily\s+)?(?:summary|update|report)\s*(.*)", t)
+    if not m:
+        return None
+    arg = m.group(1).strip(" ?.!")
+    today = datetime.now(IST).date()
+    if arg in ("", "today", "now"):
+        return today
+    if arg == "yesterday":
+        return today - timedelta(days=1)
+    try:
+        return date.fromisoformat(arg)
+    except ValueError:
+        pass
+    m2 = re.fullmatch(r"(\d{1,2})\s*([a-z]{3})[a-z]*(?:\s+(\d{4}))?", arg)
+    if m2 and m2.group(2) in _MONTHS:
+        try:
+            d = date(int(m2.group(3) or today.year), _MONTHS[m2.group(2)], int(m2.group(1)))
+            return d if d <= today or m2.group(3) else d.replace(year=d.year - 1)
+        except ValueError:
+            return None
+    return None
+
+
+async def reply_in_thread(channel: str, ts: str, day: date) -> None:
+    try:
+        text = await build_report(day)
+    except Exception as exc:
+        logger.exception("On-demand summary failed")
+        text = f"Sorry, I couldn't build the summary ({exc})."
+    await slack_api("chat.postMessage", channel=channel, thread_ts=ts, text=text, unfurl_links=False, mrkdwn=True)
