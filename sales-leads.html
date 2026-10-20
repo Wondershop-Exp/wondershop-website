@@ -398,6 +398,7 @@ body.role-sales .admin-only{display:none!important}
     <div class="chip-row src-filter" id="srcFilter">
       <button type="button" class="sel" data-val="all" onclick="setSrcFilter('all')">All leads</button>
       <button type="button" data-val="insta" onclick="setSrcFilter('insta')" title="Leads from Instagram ads, sent in by AiSensy">Instagram leads<span class="pill-bubble" id="instaBubble"></span></button>
+      <button type="button" data-val="broadcast" onclick="setSrcFilter('broadcast')" title="People who replied to our WhatsApp broadcast messages">WhatsApp Broadcast<span class="pill-bubble" id="bcBubble"></span></button>
       <button type="button" data-val="wsr" onclick="setSrcFilter('wsr')" title="Past customers of the Wondershop retail store whose birthday or party is coming up">WSR Repeat<span class="pill-bubble" id="wsrBubble"></span></button>
       <button type="button" data-val="upcoming" onclick="setSrcFilter('upcoming')" title="Old / repeat leads whose birthday (or Christmas party) is coming up: within 90 days, or 3 months for a month-only birthday">Upcoming birthday<span class="pill-bubble" id="upcomingBubble"></span></button>
     </div>
@@ -575,10 +576,14 @@ function updateWsrBubble(){
   const n = LIST_ROWS.filter(r=>isWsrLead(r) && !r.is_booking && r.status==='New').length;
   el.textContent = n; el.classList.toggle('show', n>0);
 }
+// 2026-10-20 — replies to our AiSensy broadcasts, posted via the Slack lead bot.
+function isBroadcastLead(r){ return String(r.lead_source||'').trim().toLowerCase()==='whatsapp broadcast'; }
 function updateInstaBubble(){
   const el = document.getElementById('instaBubble'); if(!el) return;
   const n = LIST_ROWS.filter(r=>isInstaLead(r) && !r.is_booking && r.status==='New').length;
   el.textContent = n; el.classList.toggle('show', n>0);
+  const b = document.getElementById('bcBubble');
+  if(b){ const m = LIST_ROWS.filter(r=>isBroadcastLead(r) && !r.is_booking && r.status==='New').length; b.textContent = m; b.classList.toggle('show', m>0); }
 }
 let SORT_KEY = 'modified';
 let SORT_DIR = 'desc';
@@ -916,6 +921,7 @@ function clearListFilters(){
 // Age/Gender: ticked genders and ticked age bands are checked separately (e.g. Girls + 5–7 = girls aged 5–7).
 function rowPassesFilters(r){
   if(SRC_FILTER==='insta' && !isInstaLead(r)) return false;
+  if(SRC_FILTER==='broadcast' && !isBroadcastLead(r)) return false;
   if(SRC_FILTER==='wsr' && !isWsrLead(r)) return false;
   const m = msSel('lf_month'); if(m.length && !m.includes((r.event_date||'').slice(0,7))) return false;
   const q = msSel('lf_quote');
@@ -1913,7 +1919,7 @@ function salesLeadField(){
 // sources or type a new one; the list also offers every source already used.
 // Approved values only (2026-10-17, per Shruti — "new values cannot be
 // entered, I'll approve the values"). Keep in step with catalogue_data.LEAD_SOURCES.
-const LEAD_SOURCES = ['Instagram','Facebook','Google','Repeat','WSR Repeat','Stall','Referral','Website'];
+const LEAD_SOURCES = ['Instagram','Facebook','Google','Repeat','WSR Repeat','Stall','Referral','Website','WhatsApp Broadcast'];
 function leadSourceField(d){
   const cur = String(d.lead_source||'').trim();
   const opts = LEAD_SOURCES.slice();

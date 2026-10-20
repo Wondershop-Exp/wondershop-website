@@ -772,6 +772,7 @@ body.role-sales .admin-only{display:none!important}
         <button class="pill" data-val="website" onclick="setLeadOriginFilter('website')">🌐 Website</button>
         <button class="pill" data-val="sales" onclick="setLeadOriginFilter('sales')">📞 Sales team</button>
         <button class="pill" data-val="insta" onclick="setLeadOriginFilter('insta')" title="Leads from Instagram ads, sent in by AiSensy (number in the bubble = still New)">Instagram leads<span class="pill-bubble" id="instaBubble"></span></button>
+        <button class="pill" data-val="broadcast" onclick="setLeadOriginFilter('broadcast')" title="People who replied to our WhatsApp broadcast messages (number in the bubble = still New)">WhatsApp Broadcast<span class="pill-bubble" id="bcBubble"></span></button>
         <button class="add-field-btn admin-only" style="margin-left:auto" id="sheetSyncBtn" onclick="syncSheetAll()" title="Rewrite every lead/booking row in the Google Sheet (rows also update by themselves after each change)">↻ Sync Google Sheet</button>
         <button class="add-field-btn" onclick="registerSalesLead()">+ Register a lead (sales)</button>
       </div>
@@ -1476,7 +1477,7 @@ function bdMoney(s){
 function bdRupees(n){ return n === null ? '—' : '₹'+Math.round(n).toLocaleString('en-IN'); }
 
 // Approved Lead Source values — keep in step with catalogue_data.LEAD_SOURCES (2026-10-17).
-const LEAD_SOURCES = ['Instagram','Facebook','Google','Repeat','WSR Repeat','Stall','Referral','Website'];
+const LEAD_SOURCES = ['Instagram','Facebook','Google','Repeat','WSR Repeat','Stall','Referral','Website','WhatsApp Broadcast'];
 async function saveLeadSource(el){
   const who = getName();
   if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
@@ -3568,10 +3569,14 @@ async function loadTable(kind, q){
 // with how many are still New, and a Source column (Insta · AISensy + the
 // ad that was shown).
 function isInstaLead(r){ return ['insta','instagram'].includes(String(r.lead_source||'').trim().toLowerCase()); }
+// 2026-10-20 — replies to our AiSensy broadcasts, posted via the Slack lead bot.
+function isBroadcastLead(r){ return String(r.lead_source||'').trim().toLowerCase()==='whatsapp broadcast'; }
 function updateInstaBubble(){
   const el = document.getElementById('instaBubble'); if(!el) return;
   const n = (LAST_ROWS.lead||[]).filter(r=>isInstaLead(r) && r.status==='New').length;
   el.textContent = n; el.classList.toggle('show', n>0);
+  const b = document.getElementById('bcBubble');
+  if(b){ const m = (LAST_ROWS.lead||[]).filter(r=>isBroadcastLead(r) && r.status==='New').length; b.textContent = m; b.classList.toggle('show', m>0); }
 }
 function sourceCellHtml(r){
   if(!r.lead_source && !r.lead_source_platform) return '—';
@@ -3595,6 +3600,8 @@ function renderRows(kind){
   let rows = LAST_ROWS[kind];
   if(kind==='lead' && LEAD_ORIGIN_FILTER==='insta'){
     rows = rows.filter(isInstaLead);
+  }else if(kind==='lead' && LEAD_ORIGIN_FILTER==='broadcast'){
+    rows = rows.filter(isBroadcastLead);
   }else if(kind==='lead' && LEAD_ORIGIN_FILTER!=='all'){
     rows = rows.filter(r => (LEAD_ORIGIN_FILTER==='sales') === (r.origin==='Sales'));
   }

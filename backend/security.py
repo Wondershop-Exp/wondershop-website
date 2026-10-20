@@ -55,6 +55,7 @@ PUBLIC_LIMITS = [
     # AiSensy calls this once per WhatsApp event, all from its own servers —
     # generous, just a ceiling against a runaway sender (2026-10-12).
     ("POST", "/api/integrations/aisensy/webhook", False, 5000, 3600),
+    ("POST", "/api/integrations/slack/events", False, 2000, 3600),
 ]
 
 # ─── Roles (2026-10-01, per Shruti: "separate out logins for the sales team.

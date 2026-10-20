@@ -1,0 +1,28 @@
+# Slack app for the lead bot (backend/routers/slack_leads.py), 2026-10-20.
+# api.slack.com/apps -> Create New App -> From a manifest -> pick your
+# workspace -> paste this whole file (YAML tab) -> Create.
+display_information:
+  name: Wondershop Leads
+  description: Adds leads posted in #leads (any source) to the Wondershop Admin Panel.
+  background_color: "#2c2337"
+features:
+  bot_user:
+    display_name: Wondershop Leads
+    always_online: true
+oauth_config:
+  scopes:
+    bot:
+      - channels:history   # read messages in public channels it's added to
+      - groups:history     # ...and private channels
+      - files:read         # open the screenshots
+      - chat:write         # reply in the thread
+      - users:read         # show who posted the lead
+settings:
+  event_subscriptions:
+    request_url: https://wondershop-website-production.up.railway.app/api/integrations/slack/events
+    bot_events:
+      - message.channels
+      - message.groups
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

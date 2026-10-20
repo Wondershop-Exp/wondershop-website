@@ -52,6 +52,22 @@ class Settings(BaseSettings):
     # sends it. Known partner (vendor) numbers are always skipped.
     AISENSY_REQUIRE_AD: bool = False
 
+    # Slack lead bot (2026-10-20) — routers/slack_leads.py. Sid posts the new
+    # AiSensy / Instagram leads (his usual list, or chat screenshots) in a
+    # Slack channel and the bot adds them to Leads. From the Slack app's
+    # settings: Basic Information -> Signing Secret, and OAuth & Permissions
+    # -> Bot User OAuth Token (xoxb-...). SLACK_LEADS_CHANNEL: the channel ID
+    # (C0...) to listen to; blank = any channel the bot has been added to.
+    SLACK_SIGNING_SECRET: str = ""
+    SLACK_BOT_TOKEN: str = ""
+    SLACK_LEADS_CHANNEL: str = ""
+    # Claude API key (console.anthropic.com) — only for reading screenshots
+    # posted to the Slack lead bot; text lists work without it.
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = "claude-sonnet-5-5"
+    # Public site, for the lead links in the bot's Slack replies.
+    SITE_URL: str = "https://www.wondershopexperiences.com"
+
     # Google review link for the post-event feedback page (2026-10-12) —
     # Google Business Profile -> "Ask for reviews" -> copy the link
     # (g.page/r/.../review). Blank = the page hides the Google review step.
