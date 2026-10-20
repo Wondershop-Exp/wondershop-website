@@ -535,11 +535,22 @@ async def _earnings(leads, who: str, d0: date, d1: date, today: date) -> dict:
             and d0 <= _ist_date(d["converted_on"]) <= d1]
     conv.sort(key=lambda d: d["converted_on"])
     lines, total = [], 0.0
+    adj = {}
+    if conv:
+        rows = await database.fetch_all(
+            "SELECT lead_id, commission_base, commission_note, commission_set_by FROM leads WHERE lead_id = ANY(:ids)",
+            values={"ids": [d["lead_id"] for d in conv]})
+        adj = {r["lead_id"]: r for r in rows}
     for i, d in enumerate(conv, 1):
         rate = _slab_rate(i)
-        c = round(d["revenue"] * rate, 2)
+        a = adj.get(d["lead_id"])
+        base = float(a["commission_base"]) if a and a["commission_base"] is not None else d["revenue"]
+        c = round(base * rate, 2)
         total += c
-        lines.append({"lead_id": d["lead_id"], "name": d["parent_name"], "value": d["revenue"], "rate_pct": rate * 100, "commission": c})
+        lines.append({"lead_id": d["lead_id"], "name": d["parent_name"], "value": d["revenue"], "base": base,
+                      "adjusted": bool(a and a["commission_base"] is not None),
+                      "note": (a["commission_note"] if a else None), "set_by": (a["commission_set_by"] if a else None),
+                      "rate_pct": rate * 100, "commission": c})
     n = len(conv)
     avg_val = round(sum(d["revenue"] for d in conv) / n) if n else None
     if not avg_val:
@@ -570,6 +581,26 @@ async def _earnings(leads, who: str, d0: date, d1: date, today: date) -> dict:
         "target": {"ym": f"{ym[:4]}-{ym[4:]}", "bookings": t["bookings_target"] if t else None,
                    "revenue": float(t["revenue_target"]) if t and t["revenue_target"] is not None else None},
     }
+
+
+class CommissionBaseIn(BaseModel):
+    lead_id: int
+    base: Optional[float] = None        # None = back to the booking value
+    note: Optional[str] = None
+    changed_by: Optional[str] = None
+
+
+@router.put("/sales-performance/commission-base")
+async def set_commission_base(body: CommissionBaseIn, x_admin_password: Optional[str] = Header(None)):
+    if _require_admin(x_admin_password) != "admin":
+        raise HTTPException(status_code=403, detail="Only the admin adjusts commission.")
+    if body.base is not None and body.base < 0:
+        raise HTTPException(status_code=400, detail="Commission value can't be negative.")
+    r = await database.execute(
+        """UPDATE leads SET commission_base = :b, commission_note = :n, commission_set_by = :by WHERE lead_id = :id""",
+        values={"b": body.base, "n": (body.note or "").strip() or None if body.base is not None else None,
+                "by": body.changed_by if body.base is not None else None, "id": body.lead_id})
+    return {"success": True}
 
 
 class TargetIn(BaseModel):

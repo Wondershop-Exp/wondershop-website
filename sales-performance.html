@@ -259,6 +259,19 @@ function earningsHtml(E){
           + '<div style="font-size:12.5px;color:var(--mut)">Bookings '+sl.from+(sl.to?'–'+sl.to:'+')+'</div><div style="font-size:22px;font-weight:700">'+sl.rate_pct+'%</div>'
           + (here?'<div style="font-size:12px;font-weight:700;color:var(--pkd)">Your next booking</div>':'')+'</div>'; }).join('')
     + '</div></div>';
+  // per-booking breakdown; admin can adjust the value commission is paid on
+  // (2026-10-20, per Shruti: some costs don't earn commission)
+  if(E.lines.length){
+    o += '<div style="margin-top:16px"><div style="font-weight:700;margin-bottom:8px">Bookings this period</div><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Booking</th><th>Booking value</th><th>Commission on</th><th>Rate</th><th>Commission</th></tr></thead><tbody>'
+      + E.lines.map((l,i)=>'<tr><td>'+(i+1)+'</td><td><a href="sales-leads.html?ids='+encodeURIComponent(l.lead_id)+'&title='+encodeURIComponent(l.name||'Booking')+'">'+esc(l.name||l.lead_id)+'</a></td><td>'+money(l.value)+'</td><td>'
+        + (isAdmin
+            ? '<input type="number" min="0" id="cb_'+i+'" value="'+l.base+'" style="width:120px"> <input type="text" id="cn_'+i+'" placeholder="Why (optional)" value="'+esc(l.note||'')+'" style="width:160px"> <button type="button" class="chip" onclick="saveBase('+i+')">Save</button>'
+              + (l.adjusted?' <button type="button" class="chip" onclick="saveBase('+i+',true)">Reset</button>':'')
+            : money(l.base))
+        + (l.adjusted?'<div class="note" style="color:var(--pkd)">Adjusted'+(l.set_by?' by '+esc(l.set_by):'')+(l.note&&!isAdmin?': '+esc(l.note):'')+'</div>':'')
+        + '</td><td>'+l.rate_pct+'%</td><td><b>'+money(l.commission)+'</b></td></tr>').join('')
+      + '</tbody></table></div></div>';
+  }
   // motivation
   const lines = ['<b>Convert 1 more booking</b> and earn about <b style="color:var(--gr)">'+money(E.next_booking_commission)+'</b> more ('+E.next_rate_pct+'% of a '+money(E.avg_booking)+' booking).'];
   if(E.to_next_slab) lines.push('<b>'+E.to_next_slab+' more booking'+(E.to_next_slab===1?'':'s')+'</b> and every booking after that pays <b>'+(E.next_rate_pct===5?'7.5':'10')+'%</b>.');
@@ -279,6 +292,15 @@ function earningsHtml(E){
     + '</div>';
   o += '<p class="note" style="margin-top:12px">Commission: bookings 1–5 in the period earn 5% of the booking value each, 6–10 earn 7.5% each, 11 and up earn 10% each.</p></div>';
   return o;
+}
+async function saveBase(i, reset){
+  const l = D.earnings.lines[i], v = document.getElementById('cb_'+i).value, n = document.getElementById('cn_'+i).value;
+  try{
+    const res = await fetch(API+'/api/admin/sales-performance/commission-base', {method:'PUT', headers:{'Content-Type':'application/json','X-Admin-Password':pw()},
+      body: JSON.stringify({lead_id: l.lead_id, base: reset||v==='' ? null : Number(v), note: n, changed_by: who()})});
+    if(!res.ok){ const x = await res.json().catch(()=>({})); throw new Error(x.detail||'Save failed'); }
+    load();
+  }catch(e){ $('err').textContent = e.message; $('err').hidden = false; }
 }
 async function saveTarget(){
   const b = document.getElementById('tgB').value, r = document.getElementById('tgR').value;

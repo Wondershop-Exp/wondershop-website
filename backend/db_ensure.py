@@ -49,6 +49,7 @@ SAFE_MIGRATIONS = [
     "069_sorting_hat.sql",
     "070_slack_lead_posts.sql",
     "071_sales_targets.sql",
+    "072_commission_base.sql",
 ]
 
 
