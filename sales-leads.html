@@ -424,6 +424,12 @@ body.role-sales .admin-only{display:none!important}
       <div class="lf-ms"><span class="lf-ms-l">Call status</span>
         <button type="button" class="lf-ms-btn" id="lf_call_btn" onclick="msToggle(event,'lf_call')">All</button>
         <div class="lf-ms-panel" id="lf_call" hidden onclick="event.stopPropagation()"></div></div>
+      <div class="lf-ms"><span class="lf-ms-l">Lead date</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="date" id="lf_ld_from" onchange="renderListRows()" title="From" style="font:inherit;font-size:13px;padding:6px 8px;border:1px solid #E5E1F5;border-radius:8px;background:#fff">
+          <span style="color:var(--gy);font-size:12px">to</span>
+          <input type="date" id="lf_ld_to" onchange="renderListRows()" title="To" style="font:inherit;font-size:13px;padding:6px 8px;border:1px solid #E5E1F5;border-radius:8px;background:#fff">
+        </div></div>
 <label class="lf-chk"><input type="checkbox" id="lf_fu" onchange="renderListRows()"> Follow-ups due today</label>
       <button class="linkbtn" onclick="clearListFilters()">Clear filters</button>
       <span class="lf-count" id="lfCount"></span>
@@ -902,6 +908,7 @@ function fillListFilters(){
 function clearListFilters(){
   LF_IDS.forEach(id=>{ document.querySelectorAll('#'+id+' input').forEach(i=>i.checked=false); msBtn(id); });
   const fuc = document.getElementById('lf_fu'); if(fuc) fuc.checked = false;
+  ['lf_ld_from','lf_ld_to'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   SRC_FILTER = 'all'; document.querySelectorAll('#srcFilter button').forEach(b=>b.classList.toggle('sel', b.dataset.val==='all'));
   renderListRows();
 }
@@ -935,6 +942,15 @@ function rowPassesFilters(r){
   if(ages.length){
     const age = parseInt(r.child_age,10);
     if(isNaN(age) || !ages.some(x=>{ const [lo,hi]=x.split('-').map(Number); return age>=lo && age<=hi; })) return false;
+  }
+  // Lead date range (2026-10-20, per Shruti): the lead's Lead Date & Time,
+  // or when it was created in the system if that isn't set. Both ends inclusive.
+  const ldFrom = (document.getElementById('lf_ld_from')||{}).value, ldTo = (document.getElementById('lf_ld_to')||{}).value;
+  if(ldFrom || ldTo){
+    const ts = r.lead_generated_at_ts || r.created_at_ts;
+    if(!ts) return false;
+    const d = new Date(ts), ds = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if((ldFrom && ds < ldFrom) || (ldTo && ds > ldTo)) return false;
   }
   if((document.getElementById('lf_fu')||{}).checked && (r.next_followup||'').slice(0,10) !== _todayStr()) return false;
   return true;
