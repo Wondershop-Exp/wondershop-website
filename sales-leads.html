@@ -36,6 +36,14 @@ a{color:var(--bl)}
 .gate-err{color:var(--pk);font-size:13px;margin-top:8px;min-height:16px}
 
 #app{display:none;max-width:960px;margin:0 auto;padding:20px 20px 110px}
+/* 2026-10-21, per Shruti: wider list so columns up to Location fit; a
+   subtle always-visible horizontal scrollbar for the rest. */
+#app:has(#listView[style*="block"]),#app:has(#listView:not([style])){max-width:1480px}
+.list-scroll{overflow-x:auto;scrollbar-width:thin;scrollbar-color:#D9CFE8 transparent;padding-bottom:4px}
+.list-scroll::-webkit-scrollbar{height:8px}
+.list-scroll::-webkit-scrollbar-track{background:#F6F2FB;border-radius:8px}
+.list-scroll::-webkit-scrollbar-thumb{background:#D9CFE8;border-radius:8px}
+.list-scroll::-webkit-scrollbar-thumb:hover{background:#B9A8D6}
 /* Sticky Grand Total bar (mirrors builder.html's .bld-bb bottom price bar) */
 .gt-bar{position:fixed;left:0;right:0;bottom:0;z-index:500;background:#fff;border-top:1.5px solid var(--li2);
   box-shadow:0 -4px 16px rgba(0,0,0,.07);padding-bottom:env(safe-area-inset-bottom, 0px)}
@@ -395,7 +403,7 @@ body.role-sales .admin-only{display:none!important}
 
   <div id="listView">
     <div class="searchbar">
-      <input type="text" id="searchQ" placeholder="Search by client name, mobile, child's name or lead source..." onkeydown="if(event.key==='Enter')doSearch()">
+      <input type="text" id="searchQ" placeholder="Search by client name, mobile, child's name or lead source..." onkeydown="if(event.key==='Enter')doSearch()" oninput="onSearchInput()">
       <button class="btn bk" onclick="doSearch()">Search</button>
       <button class="btn pk" onclick="startNewLead()" id="newLeadBtn">+ Register a lead</button>
     </div>
@@ -439,12 +447,12 @@ body.role-sales .admin-only{display:none!important}
           <span style="color:var(--gy);font-size:12px">to</span>
           <input type="date" id="lf_ld_to" onchange="renderListRows()" title="To" style="font:inherit;font-size:13px;padding:6px 8px;border:1px solid #E5E1F5;border-radius:8px;background:#fff">
         </div></div>
-<label class="lf-chk"><input type="checkbox" id="lf_fu" onchange="renderListRows()"> Follow-ups due today</label>
+<label class="lf-chk"><input type="checkbox" id="lf_fu" onchange="renderListRows()"> Follow-ups: due till today + next 5 days</label>
       <button class="linkbtn" onclick="clearListFilters()">Clear filters</button>
       <span class="lf-count" id="lfCount"></span>
     </div>
     <div class="lf-total" id="lfTotal"></div>
-    <div style="overflow-x:auto">
+    <div class="list-scroll">
     <table class="list" id="listTable">
       <thead><tr>
         <th>ID</th>
@@ -894,6 +902,9 @@ async function quickSetStatus(leadId, newStatus){
   }
 }
 
+// 2026-10-21, per Shruti: refresh as you edit the search, not only on Enter.
+let _searchT = null;
+function onSearchInput(){ clearTimeout(_searchT); _searchT = setTimeout(doSearch, 400); }
 async function doSearch(){
   const q = document.getElementById('searchQ').value.trim();
   const body = document.getElementById('listBody');
@@ -916,6 +927,7 @@ async function doSearch(){
   }
 }
 const _MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function _dayStr(n){ const t=new Date(); t.setDate(t.getDate()+n); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
 function _todayStr(){ const t=new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
 // "mitika sangoi" / "mitika" count as Mitika, etc. (2026-10-16) — same
 // names as the Sales Lead dropdown (SALES_LEADS).
@@ -1013,7 +1025,11 @@ function rowPassesFilters(r){
     const d = new Date(ts), ds = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     if((ldFrom && ds < ldFrom) || (ldTo && ds > ldTo)) return false;
   }
-  if((document.getElementById('lf_fu')||{}).checked && (r.next_followup||'').slice(0,10) !== _todayStr()) return false;
+  // 2026-10-21, per Shruti: overdue / due today, plus the next 5 days.
+  if((document.getElementById('lf_fu')||{}).checked){
+    const f = (r.next_followup||'').slice(0,10);
+    if(!f || f > _dayStr(5)) return false;
+  }
   return true;
 }
 // Location = the locality: the last comma-separated part of the venue
@@ -1040,7 +1056,7 @@ function renderListRows(){
   }
   if(!rows.length){
     const fu = (document.getElementById('lf_fu')||{}).checked;
-    body.innerHTML = '<tr><td colspan="15" style="padding:16px;color:#6B7280">'+(fu ? 'No follow-ups due today.' : 'No leads match these filters.')+'</td></tr>';
+    body.innerHTML = '<tr><td colspan="15" style="padding:16px;color:#6B7280">'+(fu ? 'No follow-ups due till today or in the next 5 days.' : 'No leads match these filters.')+'</td></tr>';
     updateSortHeaders(); return;
   }
   body.innerHTML = rows.map(r=>{
