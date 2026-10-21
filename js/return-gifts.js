@@ -123,6 +123,9 @@ window.WS_GIFTS=[
   {id:'g92',n:'Astronaut Galaxy Projector',img:'return-gifts/astronaut-galaxy-projector.jpg',e:'🧑‍🚀',type:'home',gtheme:'space',age:'4-14',unit:770,bg:'#F0FDF4',tag:''},
   {id:'g93',n:'Kids Lunch Box (assorted prints)',img:'return-gifts/kids-lunch-box-many-prints.jpg',e:'🍱',type:'home',gtheme:'generic',age:'3-12',unit:595,bg:'#F0FDF4',tag:''},
   {id:'g94',n:'Kids Bento Box',img:'return-gifts/kids-bento-box.jpg',e:'🍱',type:'home',gtheme:'generic',age:'3-12',unit:511,bg:'#F0FDF4',tag:''},
+  // Added 2026-10-21, per Shruti — Rs 80/piece as a return gift (the Spy
+  // package's Sunglasses prop is priced separately at Rs 75/child).
+  {id:'g95',n:'Spy Sunglasses',img:'return-gifts/spy-sunglasses.jpg',e:'🕶️',type:'home',gtheme:'generic',age:'3-14',unit:80,bg:'#F0FDF4',tag:''},
 ];
 
 window.WS_GIFT_STOCK_NOTE='Return gifts are sourced from our vendors and are subject to stock availability. They are billed separately from your party: once our team confirms stock, we\'ll send you a payment link on email and WhatsApp (100% advance). Delivery charges are extra, at actuals.';

@@ -743,6 +743,7 @@ GIFTS = [
     ("g92", "Astronaut Galaxy Projector", "return-gifts/astronaut-galaxy-projector.jpg", 770),
     ("g93", "Kids Lunch Box (assorted prints)", "return-gifts/kids-lunch-box-many-prints.jpg", 595),
     ("g94", "Kids Bento Box", "return-gifts/kids-bento-box.jpg", 511),
+    ("g95", "Spy Sunglasses", "return-gifts/spy-sunglasses.jpg", 80),   # 2026-10-21, per Shruti
 ]
 _GIFTS_BY_ID = {g[0]: g for g in GIFTS}
 
