@@ -484,6 +484,27 @@ def _price_gifts(gifts_csv: Optional[str], snap: dict):
     return items, unpriced, total_qty
 
 
+_GIFT_LABEL = re.compile(r"^Gift: (.+) × (\d+)$")
+
+
+def _gift_lines(sep_gift_items, lq: dict) -> list:
+    """Separately-billed Return Gift lines with a discounted price per piece
+    (2026-10-21, per Shruti: MRP + a discounted price box for every gift).
+    The per-piece price lives in bill_line_quotes as "giftunit:<name>"."""
+    out = []
+    for label, amt in sep_gift_items:
+        m = _GIFT_LABEL.match(label)
+        if m:
+            name, qty = m.group(1), int(m.group(2))
+            unit = round(amt / qty, 2) if qty else amt
+            q_unit = lq.get("giftunit:" + name.lower(), unit)
+            out.append({"label": label, "amount": amt, "name": name, "qty": qty, "unit": unit,
+                        "quote_unit": q_unit, "quote": round(q_unit * qty, 2)})
+        else:
+            out.append({"label": label, "amount": amt, "quote": amt})
+    return out
+
+
 def gifts_billed_separately(lead: dict, snap: Optional[dict]) -> bool:
     """2026-10-02, per Shruti — Return Gifts are billed separately from the
     event (stock check first, then a separate payment link). True for every
@@ -705,8 +726,8 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
         "unpriced": unpriced,
         # Return Gifts billed separately (2026-10-02) — NOT in grand_total.
         "gifts_separate": gifts_sep,
-        "gift_items": [{"label": l, "amount": a} for l, a in sep_gift_items],
-        "gift_total": round(sum(a for _l, a in sep_gift_items), 2),
+        "gift_items": _gift_lines(sep_gift_items, _lq),
+        "gift_total": round(sum(g["quote"] for g in _gift_lines(sep_gift_items, _lq)), 2),
         # legacy-named aliases — send_booking_invoice() in admin.py reads
         # these exact keys, unchanged since before this rewrite.
         "subtotal": total_mrp,

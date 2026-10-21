@@ -1579,7 +1579,15 @@ function listBreakdown(){
   if(pb.selected==='Yes') line('Piñata bags ('+kids+')', pb.cost, C.pinata_bags ? (C.pinata_bags.unit_price||0)*kids : null, {k:'req', key:'pinata_bags'});
   inGifts = true;
   const rg = sel('return_gifts');
-  if((rg.selected_gifts||[]).length || num(rg.cost)!==null){
+  const rgList = (rg.selected_gifts||[]).filter(g=>g && g.name);
+  const rgSum = rgList.reduce((s,g)=>s+(Number(g.price)||0)*(Number(g.quantity)||0), 0);
+  if(rgList.length && (num(rg.cost)===null || Math.abs(num(rg.cost) - rgSum) < 1)){
+    // One line per gift, each with its own discounted price (2026-10-21).
+    rgList.forEach(g=>{
+      const q = Number(g.quantity)||0, cu = _catPrice(C.return_gifts_catalogue,'name',g.name);
+      line('Gift: '+g.name+' ('+q+' × '+money(Number(g.price)||0)+')', (Number(g.price)||0)*q, cu!=null ? cu*q : null, {k:'gift', name:g.name, qty:q});
+    });
+  }else if(rgList.length || num(rg.cost)!==null){
     let mrp = null;
     if((rg.selected_gifts||[]).length){
       mrp = rg.selected_gifts.reduce((s,g)=>{
@@ -1646,6 +1654,9 @@ function onLineQuote(n, value){
     const m = Object.assign({}, req('music'));
     m.addons = (m.addons||[]).map((a,ai)=> ai===st.i ? Object.assign({}, a, {price: v===null ? i.mrp : v}) : a);
     saveRequirement('music', m);
+  }else if(st.k==='gift'){
+    onReturnGiftPrice(st.name, v===null ? '' : String(Math.round(v / (st.qty||1) * 100) / 100));
+    return;
   }else if(st.k==='act'){
     onActField(st.id, 'price', v===null ? null : Math.round(v / (st.mult||1) * 100) / 100);
   }
@@ -2455,9 +2466,13 @@ function reqReturnGiftsRow(){
     ? selectedGifts.map(g=>{
         const nameJs = esc(g.name).replace(/\'/g,"\\'");
         const sub = (Number(g.price)||0) * (Number(g.quantity)||0);
+        // MRP + discounted price per gift (2026-10-21, per Shruti).
+        const gm = giftMrpUnit(g), disc = gm!=null && Number(g.price) < gm;
         return '<div class="act-item sel"><div class="act-main" style="cursor:default">'
           + '<div class="an">'+esc(g.name)+'</div>'
           + '<input type="number" min="1" style="width:64px;padding:7px 9px;border:1px solid var(--li2);border-radius:8px;font-size:13px" value="'+(g.quantity==null?'':g.quantity)+'" title="Quantity" onblur="onReturnGiftQty(\''+nameJs+'\',this.value)">'
+          + '<span style="font-size:12px;color:var(--gy);white-space:nowrap">× MRP '+(disc?'<s>'+money(gm)+'</s>':money(gm==null?g.price:gm))+'</span>'
+          + '<label style="font-size:11px;color:var(--gy);display:flex;flex-direction:column">Discounted price<input type="number" min="0" step="1" style="width:90px;padding:6px 8px;border:1px solid '+(disc?'#F4C7C3':'var(--li2)')+';border-radius:8px;font-size:13px;color:'+(disc?'#B42318':'inherit')+'" value="'+(g.price==null?'':Number(g.price))+'" title="Per piece — defaults to the MRP" onchange="onReturnGiftPrice(\''+nameJs+'\',this.value)"></label>'
           + '<div class="ap">'+money(sub)+'</div>'
           + '<button type="button" class="icon-btn" onclick="removeReturnGift(\''+nameJs+'\')" title="Remove">✕</button>'
         + '</div></div>';
@@ -2586,6 +2601,25 @@ async function onReturnGiftField(field, value){
     r.cost = (field==='budget' && r.budget!=null) ? r.budget*kids : r.cost;
   }
   await saveRequirement('return_gifts', r);
+  renderDetail();
+}
+function giftMrpUnit(g){
+  const c = (CATALOGUE.return_gifts_catalogue||[]).find(x=>x.name===g.name);
+  return c && c.price!=null ? Number(c.price) : null;
+}
+// Discounted price per piece (blank = back to the MRP).
+async function onReturnGiftPrice(name, value){
+  const r = Object.assign({}, req('return_gifts'));
+  const gifts = (r.selected_gifts||[]).map(g=>{
+    if(g.name!==name) return g;
+    const m = giftMrpUnit(g);
+    const v = value==='' ? (m!=null ? m : g.price) : Math.max(0, Number(value));
+    return isNaN(v) ? g : Object.assign({}, g, {price: v});
+  });
+  r.selected_gifts = gifts;
+  r.cost = gifts.reduce((s,g)=>s+(Number(g.price)||0)*(Number(g.quantity)||0), 0) || null;
+  await saveRequirement('return_gifts', r);
+  await recalcDerivedCosts();
   renderDetail();
 }
 async function onReturnGiftQty(name, value){

@@ -2593,6 +2593,51 @@ async def save_line_quotes(lead_id: int, body: LineQuotesRequest, x_admin_passwo
     return {"success": True, "discount": discount, "above_list": above, "extra": extra}
 
 
+class GiftQuotesRequest(BaseModel):
+    quotes: dict                      # {gift name: price per piece, or null = back to MRP}
+    changed_by: Optional[str] = None
+
+
+@router.post("/bookings/{lead_id}/gift-quotes")
+async def save_gift_quotes(lead_id: int, body: GiftQuotesRequest, x_admin_password: Optional[str] = Header(None)):
+    """Discounted price per return gift on a booking (2026-10-21, per Shruti).
+    Stored in bill_line_quotes as "giftunit:<name>"; the Return Gift Order's
+    amount to charge becomes the new gifts total."""
+    _require_admin(x_admin_password)
+    who = (body.changed_by or "").strip()
+    if not who:
+        raise HTTPException(status_code=400, detail="changed_by is required.")
+    detail = await get_booking_detail(lead_id, x_admin_password)
+    pricing = detail.get("pricing") or {}
+    names = {g["name"].lower(): g for g in (pricing.get("gift_items") or []) if g.get("name")}
+    stored = {}
+    for _s in detail.get("sections") or []:
+        for _f in _s.get("fields") or []:
+            if _f.get("field_key") == "bill_line_quotes" and _f.get("customer_choice"):
+                try:
+                    stored = {k: float(v) for k, v in json.loads(_f["customer_choice"]).items()}
+                except (ValueError, TypeError, AttributeError):
+                    stored = {}
+    for name, v in (body.quotes or {}).items():
+        k = str(name).lower()
+        if k not in names:
+            continue
+        if v is None or abs(float(v) - float(names[k]["unit"])) < 0.005:
+            stored.pop("giftunit:" + k, None)
+            continue
+        if float(v) < 0:
+            raise HTTPException(status_code=400, detail="A price can't be negative.")
+        stored["giftunit:" + k] = round(float(v), 2)
+    await update_booking_field(lead_id, FieldUpdateRequest(
+        field_key="bill_line_quotes", customer_choice_override=json.dumps(stored) if stored else "", changed_by=who), x_admin_password)
+    fresh = (await get_booking_detail(lead_id, x_admin_password)).get("pricing") or {}
+    total = fresh.get("gift_total")
+    if total is not None:
+        await database.execute("UPDATE leads SET gift_order_total = :t, gift_order_updated_by = :w, gift_order_updated_at = :n WHERE lead_id = :id",
+                               values={"t": total, "w": who, "n": datetime.utcnow(), "id": lead_id})
+    return {"success": True, "gift_total": total}
+
+
 async def _sync_discount_to_agreed_total(lead_id: int, who: str, x_admin_password: Optional[str]) -> Optional[float]:
     """2026-10-01, per Shruti (Prachi's booking) — "total discussed with the
     client (Rs. 60k) should reflect in the bottom sticky bar and the grand

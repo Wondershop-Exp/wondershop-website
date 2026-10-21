@@ -2063,13 +2063,22 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
                     unit = float(g.get("price") or 0)
                 except (TypeError, ValueError):
                     unit = 0
+            # Discounted price per gift (2026-10-21, per Shruti): MRP struck.
+            try:
+                d_unit = float(g.get("price")) if g.get("price") not in (None, "") else unit
+            except (TypeError, ValueError):
+                d_unit = unit
+            if qty and d_unit < unit - 0.005:
+                lines.append({"name": g["name"], "details": [f"{qty} × ~~{inr(unit)}~~ {inr(d_unit)}"],
+                              "image": resolve_gift_image_by_name(g["name"]), "price": d_unit * qty, "strike": unit * qty})
+                continue
             lines.append({"name": g["name"], "details": [f"{qty} × {inr(unit)}"] if qty else ["Quantity to be confirmed"],
                           "image": resolve_gift_image_by_name(g["name"]), "price": unit * qty})
         # A lower Sales Quote for the gifts (2026-10-05): one gift -> the
         # per-gift rate struck out like activities; several -> the list
         # prices stay struck and one "special price" line gives the total.
         it = first("return_gifts")
-        g_mrp = sum(l["price"] for l in lines)
+        g_mrp = sum(l["price"] for l in lines)   # already at the per-gift discounted prices
         if it and it.get("quote") is not None and it["quote"] < g_mrp - 0.5:
             for l in lines:
                 l["strike"] = l["price"]

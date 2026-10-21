@@ -1641,7 +1641,13 @@ function giftOrderHtml(go, leadId, reload){
   GO_LEAD_ID = leadId; GO_RELOAD = reload;
   if(!go) return '';
   const rs = n => (n==null||n==='') ? '—' : '₹'+Math.round(Number(n)).toLocaleString('en-IN');
-  const items = (go.items||[]).map(x=>'<li><span>'+esc(x.label)+'</span><b>'+rs(x.amount)+'</b></li>').join('');
+  // MRP + discounted price per gift (2026-10-21, per Shruti).
+  const items = (go.items||[]).map(x=>{
+    if(!x.name) return '<li><span>'+esc(x.label)+'</span><b>'+rs(x.quote!=null?x.quote:x.amount)+'</b></li>';
+    const disc = x.quote_unit < x.unit - 0.005;
+    return '<li><span>'+esc(x.name)+' <span style="color:#6B7280">× '+x.qty+' · MRP '+(disc?'<s>'+rs(x.unit)+'</s>':rs(x.unit))+'</span></span>'
+      + '<span style="display:flex;align-items:center;gap:6px"><input type="number" min="0" step="1" class="go-gq" data-n="'+esc(x.name)+'" value="'+x.quote_unit+'" title="Discounted price per piece — defaults to the MRP" style="width:80px;padding:4px 6px;border:1px solid '+(disc?'#F4C7C3':'#E4DDF0')+';border-radius:6px;text-align:right;color:'+(disc?'#B42318':'inherit')+'"><b>'+rs(x.quote)+'</b></span></li>';
+  }).join('') + ((go.items||[]).some(x=>x.name) ? '<li style="justify-content:flex-end"><button class="go-btn ghost" onclick="goSaveGiftPrices(this)">Save gift prices</button></li>' : '');
   const opts = (go.status_options||[]).map(o=>'<option value="'+esc(o.value)+'"'+(o.value===go.status?' selected':'')+'>'+esc(o.label)+'</option>').join('');
   const step = ['pending_stock','stock_confirmed','link_sent','paid'];
   const at = step.indexOf(go.status);
@@ -1668,6 +1674,19 @@ function giftOrderHtml(go, leadId, reload){
     +     (meta ? '<div class="go-meta">'+meta+'</div>' : '')
     +   '</div>'
     + '</div></div>';
+}
+async function goSaveGiftPrices(btn){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); return; }
+  const quotes = {};
+  document.querySelectorAll('.go-gq').forEach(el=>{ quotes[el.dataset.n] = el.value==='' ? null : Number(el.value); });
+  btn.disabled = true;
+  try{
+    const r = await apiCall('/api/admin/bookings/'+GO_LEAD_ID+'/gift-quotes', {method:'POST', body: JSON.stringify({quotes, changed_by: who})});
+    showToast('✓ Gift prices saved — return gifts total '+(r.gift_total!=null ? '₹'+Math.round(r.gift_total).toLocaleString('en-IN') : 'updated'));
+    if(GO_RELOAD) await GO_RELOAD();
+  }catch(e){ if(e.message!=='unauthorized') showToast('Save failed: '+e.message); }
+  finally{ btn.disabled = false; }
 }
 async function goSave(send){
   const who = getName();

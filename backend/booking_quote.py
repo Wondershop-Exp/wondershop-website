@@ -99,6 +99,8 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
             lines[-1]["strike"] = m
     extras = [(i["label"], float(i["amount"] or 0)) for i in (P.get("extra_items") or [])]
     gift_items = [(i["label"], float(i["amount"] or 0)) for i in (P.get("gift_items") or [])]
+    # discounted price per gift (2026-10-21): label -> quote
+    gift_quote = {i["label"]: float(i.get("quote", i["amount"]) or 0) for i in (P.get("gift_items") or [])}
     unpriced = list(P.get("unpriced") or [])
     has_unpriced = {"any": bool(unpriced)}
 
@@ -250,6 +252,11 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         name = after(label)
         m = re.match(r"^(.*?) × (\d+)$", name)
         gname, qty = (m.group(1), int(m.group(2))) if m else (name, 0)
+        q = gift_quote.get(label, amt)
+        if qty and q < amt - 0.005:
+            lines.append({"name": gname, "details": [f"{qty} × ~~{inr(amt / qty)}~~ {inr(q / qty)}"],
+                          "image": cat.resolve_gift_image_by_name(gname), "price": q, "strike": amt})
+            continue
         lines.append({"name": gname, "details": [f"{qty} × {inr(amt / qty)}"] if qty else [],
                       "image": cat.resolve_gift_image_by_name(gname), "price": amt})
     for u in take_unpriced("Gift"):
