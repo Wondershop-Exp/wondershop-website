@@ -2470,6 +2470,10 @@ async def _do_convert_lead(lead_id: int, who: str) -> None:
     if not lead_row["converted_on"]:
         set_clauses.append("converted_on = :converted_on")
         values["converted_on"] = now
+    # The person converting owns the booking when no Sales Lead was set
+    # (2026-10-21) — so it counts on their performance page.
+    set_clauses.append("event_sales_lead = COALESCE(NULLIF(TRIM(event_sales_lead), ''), :who)")
+    values["who"] = who
     await database.execute(f"UPDATE leads SET {', '.join(set_clauses)} WHERE lead_id = :id", values=values)
     await _log_status_change(lead_id, lead_row["status"], "Converted to Booking", who, now)
 
@@ -2485,6 +2489,42 @@ async def _do_convert_lead(lead_id: int, who: str) -> None:
         await _copy_sales_line_quotes(lead_id, who)
     except Exception:
         logger.exception(f"Lead #{lead_id}: couldn't copy the item-wise sales quote")
+    # 2026-10-21, per Shruti (Sidhant's #1106): converting from the Status
+    # dropdown skipped the agreed-total sync, so the booking showed the MRP
+    # total instead of the sales quote. Every conversion now locks in the
+    # sales quote and sets the discount to match.
+    try:
+        await _lock_in_sales_quote(lead_id, who)
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: couldn't sync the booking to the sales quote")
+
+
+async def _lock_in_sales_quote(lead_id: int, who: str) -> None:
+    from routers.sales_leads import _list_breakdown, _gift_bill_total
+    pb = await database.fetch_one(
+        "SELECT p.requirements, p.activities, l.kids_count, l.client_budget, l.client_budget_manual "
+        "FROM lead_sales_playbook p JOIN leads l ON l.lead_id = p.lead_id WHERE p.lead_id = :id", values={"id": lead_id})
+    if not pb:
+        return
+    j = lambda v: (json.loads(v) if isinstance(v, str) else v) if v is not None else None
+    reqs = j(pb["requirements"]) or {}
+    b = _list_breakdown(reqs, j(pb["activities"]) or [], pb["kids_count"])
+    qt = float(b.get("quote_total") or 0)
+    if not qt:
+        return
+    cb = pb["client_budget"]
+    agreed = float(cb) if (pb["client_budget_manual"] and cb is not None and float(cb) < qt) else qt
+    await database.execute("UPDATE leads SET client_budget = :a, client_budget_manual = TRUE WHERE lead_id = :id",
+                           values={"a": agreed, "id": lead_id})
+    gift_total = _gift_bill_total(reqs)
+    if gift_total and gift_total > 0:
+        await database.execute(
+            "UPDATE leads SET gift_order_total = COALESCE(gift_order_total, :t), "
+            "gift_order_status = COALESCE(gift_order_status, 'pending_stock'), "
+            "gift_order_updated_by = COALESCE(gift_order_updated_by, :by), "
+            "gift_order_updated_at = COALESCE(gift_order_updated_at, NOW()) WHERE lead_id = :id",
+            values={"t": gift_total, "by": who, "id": lead_id})
+    await _sync_discount_to_agreed_total(lead_id, who, settings.ADMIN_PASSWORD)
 
 
 # ─── Line-wise sales quote on bookings (2026-10-12, per Shruti) ───────────

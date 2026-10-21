@@ -5173,7 +5173,7 @@ function lineQuotesRowHtml(locked){
           : '<button class="mini-btn" onclick="LQ_EDIT=true;renderDetailAgain()">✎ Edit quotes</button>'))
     + '</div><table><thead><tr><th>Item</th><th>MRP</th><th>Discounted price</th></tr></thead><tbody>'
     + rows + extra
-    + '</tbody><tfoot><tr><td>Total</td><td>'+_inr(mrp)+'</td><td id="lqQt">'+_inr(edit?qt:finalQt)+'</td></tr></tfoot></table>'
+    + '</tbody><tfoot><tr><td>Total</td><td>'+_inr(mrp)+'</td><td id="lqQt" data-adj="'+(Math.max(0,otherAdj)-Math.max(0,other))+'">'+_inr(finalQt)+'</td></tr></tfoot></table>'
     + (edit ? '<div class="lq-note">Saving sets the Discount below to the total MRP minus these quotes.</div>' : '')
     + '</div></td></tr>';
 }
@@ -5188,7 +5188,8 @@ function lineQuotesPreview(){
     mrp+=m; qt+=q;
     const td = el.closest('td'); if(td) td.classList.toggle('neg', q<m);
   });
-  const a=document.getElementById('lqQt'); if(a) a.textContent=_inr(qt);
+  // Total = discounted prices − any discount not split by item (2026-10-21).
+  const a=document.getElementById('lqQt'); if(a) a.textContent=_inr(qt + Number(a.dataset.adj||0));
 }
 async function saveLineQuotes(btn){
   const who = getName();

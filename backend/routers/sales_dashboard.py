@@ -426,7 +426,11 @@ async def sales_performance(start: Optional[str] = None, end: Optional[str] = No
 
     called = [d for d in L if d["called"]]
     followup = [d for d in L if is_open(d) and last_call(d).get("followup_at")]
-    converted = [d for d in L if d["converted"]]
+    # Converted = bookings made in the period, whatever the lead date
+    # (2026-10-21, per Shruti: Sidhant's #1106, an older lead, converted today
+    # didn't show). Conversion rate stays converted ÷ leads received.
+    converted = [d for d in leads if d["converted"] and mine(d) and d["source_booking_id"] is None
+                 and _ist_date(d["converted_on"]) and d0 <= _ist_date(d["converted_on"]) <= d1]
     answered_leads = [d for d in L if any((e.get("disposition") or "").lower() not in NOT_ANSWERED and e.get("disposition") for e in d["log"])]
     pipeline = [d for d in L if is_open(d) and (d["status"] or "") in INTERESTED and d["client_budget"]]
 
