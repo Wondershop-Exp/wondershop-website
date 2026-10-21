@@ -422,7 +422,13 @@ SHEET_EPOCH = date(1899, 12, 30)
 
 
 def _kv_date(v: str, today: date, future: bool = False) -> Optional[date]:
-    """dd/mm/yyyy, dd/mm, '16 Oct', ISO, or a Sheets serial number."""
+    """dd/mm/yyyy, dd/mm, '16 Oct', ISO, or a Sheets serial number. An empty
+    date cell in Google Sheets shows as 30/12/1899 (serial 0) -> no date."""
+    d = _kv_date_raw(v, today, future)
+    return d if d and d.year >= 2000 else None
+
+
+def _kv_date_raw(v: str, today: date, future: bool = False) -> Optional[date]:
     v = (v or "").strip()
     if re.fullmatch(r"\d{5}(\.\d+)?", v) and 30000 < float(v) < 80000:
         return SHEET_EPOCH + timedelta(days=int(float(v)))
@@ -452,29 +458,72 @@ def _month_of(v: str) -> Optional[int]:
     return None
 
 
+def _key_regex(norm: str) -> str:
+    # "leadsource" -> "l[\s_.#-]*e[\s_.#-]*a..." : matches "Lead Source", "Lead_source", "LEAD SOURCE"
+    return r"[\s_.#-]*".join(re.escape(ch) for ch in norm)
+
+
+_KNOWN_KEY_RE = re.compile(
+    r"(?<![A-Za-z0-9])(" + "|".join(_key_regex(k) for k in sorted(KV_KEYS, key=len, reverse=True)) + r")\s*=",
+    re.I)
+_ANY_KEY_RE = re.compile(r"(?:^|[,;\n])\s*([A-Za-z#][A-Za-z0-9 #/_.()-]{0,40}?)\s*=", re.M)
+_RECORD_KEYS = ("phone", "name", "source", "lead_date")   # one of these again = the next lead
+
+
+def _kv_pairs(text: str) -> List[Tuple[str, str]]:
+    """All 'Key = value' pairs in the message, in order — whether the leads
+    are one per line, separated by blank lines, or run together on one line."""
+    marks = {}
+    for m in _KNOWN_KEY_RE.finditer(text):
+        marks[m.start(1)] = (m.group(1), m.end())
+    for m in _ANY_KEY_RE.finditer(text):
+        st = m.start(1)
+        # skip it when a known key starts inside this label (the known one wins)
+        if not any(st <= k < m.end() for k in marks):
+            marks[st] = (m.group(1), m.end())
+    starts = sorted(marks)
+    # drop a mark that sits inside an earlier mark's label
+    clean = []
+    for st in starts:
+        if clean and st < marks[clean[-1]][1]:
+            continue
+        clean.append(st)
+    pairs = []
+    for i, st in enumerate(clean):
+        label, vstart = marks[st]
+        vend = clean[i + 1] if i + 1 < len(clean) else len(text)
+        val = text[vstart:vend].strip().rstrip(",;").strip().strip("'\"").strip()
+        pairs.append((label.strip(), val))
+    return pairs
+
+
 def parse_kv_records(text: str, posted_at: datetime) -> List[Dict[str, Any]]:
-    """Lines of 'Key = value, Key = value' -> lead items (empty if none)."""
+    """'Key = value, Key = value' rows (any number per message) -> lead items
+    (empty list if the message isn't in that format)."""
     posted_ist = posted_at.astimezone(IST)
     today = posted_ist.date()
-    out = []
-    for raw in (text or "").splitlines():
-        line = raw.strip()
-        if line.count("=") < 2:
+    if (text or "").count("=") < 2:
+        return []
+    records: List[Tuple[Dict[str, str], List[str]]] = []
+    rec: Dict[str, str] = {}
+    extra: List[str] = []
+    seen: set = set()
+    for label, v in _kv_pairs(text):
+        key = KV_KEYS.get(re.sub(r"[^a-z]", "", label.lower()))
+        if key in _RECORD_KEYS and key in seen:
+            records.append((rec, extra))
+            rec, extra, seen = {}, [], set()
+        if key:
+            seen.add(key)
+        if not v:
             continue
-        rec: Dict[str, str] = {}
-        extra = []
-        for part in KV_SPLIT.split(line):
-            if "=" not in part:
-                continue
-            k, v = part.split("=", 1)
-            v = v.strip().strip("'\"").strip()
-            if not v:
-                continue
-            key = KV_KEYS.get(re.sub(r"[^a-z]", "", k.lower()))
-            if key and key not in rec:
-                rec[key] = v
-            else:
-                extra.append(f"{k.strip()}: {v}")
+        if key and key not in rec:
+            rec[key] = v
+        else:
+            extra.append(f"{label}: {v}")
+    records.append((rec, extra))
+    out = []
+    for rec, extra in records:
         if "phone" not in rec and "name" not in rec:
             continue
         phone = normalise_phone(rec.get("phone", ""))
@@ -652,7 +701,14 @@ async def intake(item: Dict[str, Any], who: str, how: str) -> Dict[str, Any]:
                     await database.execute("UPDATE lead_sales_playbook SET call_log = CAST(:c AS JSONB) WHERE lead_id = :id",
                                            values={"c": json.dumps(cur_calls + add), "id": lead_id})
                     filled.append("call log")
-            placeholder = (row.get("parent_name") or "").startswith(("Instagram lead", "New lead", "New Sales Lead", "@"))
+            # "=" in a name = a sheet row an older bot version saved whole as the
+            # name (2026-10-21): posting the row again repairs it.
+            garbled = "=" in (row.get("parent_name") or "")
+            placeholder = garbled or (row.get("parent_name") or "").startswith(("Instagram lead", "New lead", "New Sales Lead", "@"))
+            if garbled:
+                await database.execute(
+                    "UPDATE lead_sales_playbook SET notes_special_instructions = NULL "
+                    "WHERE lead_id = :id AND notes_special_instructions LIKE '%=%'", values={"id": lead_id})
             if name and placeholder:
                 sets.append("parent_name = :pn"); vals["pn"] = name[:255]; filled.append("name")
             elif name and not _same(name, row.get("parent_name")):
@@ -696,7 +752,7 @@ async def intake(item: Dict[str, Any], who: str, how: str) -> Dict[str, Any]:
                 bits.append(f"Note: {note}")
             await _playbook_log(await _playbook_id(lead_id), "updated", " · ".join(bits))
             result = {"outcome": "updated" if (filled or moved or changes or new_note) else "duplicate",
-                      "lead_id": lead_id, "name": row.get("parent_name"), "phone": row.get("phone"),
+                      "lead_id": lead_id, "name": vals.get("pn") or row.get("parent_name"), "phone": row.get("phone"),
                       "filled": filled, "changes": changes, "moved": moved,
                       "needs_source": not (source or (row.get("lead_source") or "").strip())}
         else:
@@ -990,8 +1046,17 @@ async def handle_message(ev: Dict[str, Any]) -> None:
     except Exception as exc:
         logger.exception("Slack leads: failed")
         errors.append(f"Something went wrong: {str(exc)[:200]}")
-    await slack_api("chat.postMessage", channel=channel, thread_ts=ts, text=format_reply(results, errors),
-                    unfurl_links=False, unfurl_media=False)
+    # Long batches (many sheet rows) -> several replies, so none is cut off.
+    chunk, size = [], 0
+    for line in format_reply(results, errors).split("\n"):
+        if chunk and size + len(line) > 3500:
+            await slack_api("chat.postMessage", channel=channel, thread_ts=ts, text="\n".join(chunk),
+                            unfurl_links=False, unfurl_media=False)
+            chunk, size = [], 0
+        chunk.append(line); size += len(line) + 1
+    if chunk:
+        await slack_api("chat.postMessage", channel=channel, thread_ts=ts, text="\n".join(chunk),
+                        unfurl_links=False, unfurl_media=False)
 
 
 @router.post("/integrations/slack/events")
