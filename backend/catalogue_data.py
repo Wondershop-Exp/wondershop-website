@@ -746,6 +746,9 @@ GIFTS = [
     ("g95", "Spy Sunglasses", "return-gifts/spy-sunglasses.jpg", 80),   # 2026-10-21, per Shruti
     ("g96", "Spy Cap", "return-gifts/spy-cap.png", 80),               # 2026-10-21, per Shruti
     ("g97", "Spy Medal", "return-gifts/spy-medals.jpg", 75),           # 2026-10-21, per Shruti (per medal)
+    ("g98", "City Stamp Travel Stickers", "return-gifts/city-stamp-stickers.jpg", 80),   # 2026-10-21, per Shruti
+    ("g99", "Gem Crystal Stickers", "return-gifts/gem-stickers.jpg", 80),
+    ("g100", "Paper Gift Bag – Red & Yellow Zigzag (10×15×4 in)", "return-gifts/paper-bag-red-yellow-zigzag.jpg", 35),
 ]
 _GIFTS_BY_ID = {g[0]: g for g in GIFTS}
 

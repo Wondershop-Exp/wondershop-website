@@ -129,6 +129,10 @@ window.WS_GIFTS=[
   // Spy package props as return gifts too (2026-10-21, per Shruti).
   {id:'g96',n:'Spy Cap',img:'return-gifts/spy-cap.png',e:'🧢',type:'home',gtheme:'generic',age:'3-14',unit:80,bg:'#F0FDF4',tag:''},
   {id:'g97',n:'Spy Medal',img:'return-gifts/spy-medals.jpg',e:'🏅',type:'home',gtheme:'generic',age:'3-14',unit:75,bg:'#F0FDF4',tag:''},
+  // Added 2026-10-21, per Shruti.
+  {id:'g98',n:'City Stamp Travel Stickers',img:'return-gifts/city-stamp-stickers.jpg',e:'✉️',type:'stationery',gtheme:'generic',age:'5-14',unit:80,bg:'#FFFBDC',tag:''},
+  {id:'g99',n:'Gem Crystal Stickers',img:'return-gifts/gem-stickers.jpg',e:'💎',type:'stationery',gtheme:'generic',age:'3-12',unit:80,bg:'#FFFBDC',tag:''},
+  {id:'g100',n:'Paper Gift Bag – Red & Yellow Zigzag (10×15×4 in)',img:'return-gifts/paper-bag-red-yellow-zigzag.jpg',e:'🛍️',type:'bags',gtheme:'generic',age:'3-14',unit:35,bg:'#FFF0F7',tag:''},
 ];
 
 window.WS_GIFT_STOCK_NOTE='Return gifts are sourced from our vendors and are subject to stock availability. They are billed separately from your party: once our team confirms stock, we\'ll send you a payment link on email and WhatsApp (100% advance). Delivery charges are extra, at actuals.';
