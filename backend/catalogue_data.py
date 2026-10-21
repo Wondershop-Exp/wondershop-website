@@ -94,7 +94,7 @@ THEMES = [
     {"id": "space", "n": "Space Explorer", "b": "180 (Blue, Purple, Silver)",
      "tierPhotos": {"Classic": "Decor/decor-space-arch.jpg", "Premium": "Decor/decor-space-1panel.jpg"}},
     {"id": "spy", "n": "Mystery & Spy", "b": "120 (Black, Gold, Red)",
-     "tierPhotos": {"Classic": "Decor/decor-spy-arch.jpg", "Premium": "Decor/decor-spy-1panel.jpg",
+     "tierPhotos": {"Classic": "Decor/decor-spy-classic-main.jpg", "Premium": "Decor/decor-spy-1panel.jpg",
                     "Luxury": "Decor/decor-spy-2panel.jpg", "Signature": "Decor/decor-spy-3panel.jpg"}},
     {"id": "kpop", "n": "K-Pop Party", "b": "180 (Purple, Pink, Black)",
      "tierPhotos": {"Classic": "Decor/decor-kpop-arch.jpg", "Premium": "Decor/decor-kpop-1panel.jpg",
@@ -170,6 +170,7 @@ TIER_EXTRA_PHOTOS = {
             "Decor/decor-spy-premium-4.jpg"
         ],
         "Classic": [
+            "Decor/decor-spy-arch.jpg",
             "Decor/decor-spy-classic-sustainable.png"
         ],
         "Signature": [

@@ -698,7 +698,7 @@ document.getElementById('nav-ham').addEventListener('click',()=>document.getElem
 // `na:true` entries render greyed-out and also drive the decor gallery's
 // "Not Included" list (see updateGalStage / DECOR_NOT_INCLUDED below).
 const DECOR_TIERS = [
-  {id:'basic', name:'Classic', price:5000, origPrice:6500, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'As per the reference image'},{l:'Happy Birthday, Name & Age',v:'Paper bunting (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/packages/spy/spy-decor-basic.jpg'},
+  {id:'basic', name:'Classic', price:5000, origPrice:6500, spec:[{l:'Panels',v:'NA',na:true},{l:'Balloons',v:'Up to 200'},{l:'Balloon Colours',v:'As per the reference image'},{l:'Happy Birthday, Name & Age',v:'Paper bunting (HBD & name), foil balloon (age)'},{l:'Cutouts',v:'Not included',na:true},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'}], img:'img/Decor/decor-spy-classic-main.jpg', alt:['img/packages/spy/spy-decor-basic.jpg']},
   {id:'p1', name:'Premium', price:10000, origPrice:11000, spec:[{l:'Panels',v:'1 Flex based panel of dimensions Width = 5Ft and Height 7Ft'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'As per the reference image'},{l:'Happy Birthday and Name',v:'Printed on Flex'},{l:'Age',v:'Foil Balloon'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},{l:'Cake Table',v:'Not included',na:true},{l:'Welcome Board',v:'Not included',na:true},{l:'Age Light',v:'Not included',na:true},{l:'Floor Flex',v:'Not included',na:true},{l:'Decor Width',v:'6-7Ft'}], img:'img/packages/spy/spy-decor-1panel.jpg'},
   {id:'p2', name:'Luxury', price:17000, origPrice:18000, spec:[{l:'Panels',v:'2 flex based panels'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per the reference image'},{l:'Happy Birthday, Name and Age',v:'Printed on Flex'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},{l:'Cake Table',v:'1 Cylindrical Cake Table'},{l:'Decor Width',v:'8-9 ft'}], img:'img/packages/spy/spy-decor-2panel.jpg'},
   {id:'sig', name:'Signature', price:25000, origPrice:30000, spec:[{l:'Panels',v:'3 panels'},{l:'Balloons',v:'Up to 500'},{l:'Balloon Colours',v:'As per the reference image'},{l:'Happy Birthday, Name & Age',v:'Printed on Flex, Age light'},{l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board + Balloon Welcome arch'},{l:'Cake Table',v:'As per reference photo'},{l:'Decor Width',v:'12-13Ft'}], img:'img/packages/spy/spy-decor-signature.jpg'},
@@ -920,7 +920,12 @@ function changeKids(d) {
 function renderTierGrid(gridId, items, selected) {
   const grid = document.getElementById(gridId);
   grid.innerHTML = items.map(t => {
-    const img = t.img ? '<img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;margin-bottom:10px">' : '';
+    // t.alt = alternate photos (2026-10-21): tapping the photo opens all of
+    // them in the lightbox, with a "+N photo" badge on the card.
+    const pics = t.img ? [t.img].concat(t.alt || []) : [];
+    const img = !t.img ? '' : (pics.length > 1
+      ? '<div style="position:relative;margin-bottom:10px;cursor:zoom-in" onclick="event.stopPropagation();openLightbox(' + JSON.stringify(pics).replace(/"/g, '&quot;') + ',0)"><img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;display:block"><span style="position:absolute;right:8px;bottom:8px;background:rgba(25,25,25,.72);color:#fff;font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 9px">+' + (pics.length - 1) + ' photo' + (pics.length > 2 ? 's' : '') + '</span></div>'
+      : '<img src="' + t.img + '" alt="' + t.name + '" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;margin-bottom:10px">');
     // Decor tiers carry a structured `spec` array (labelled bullet list,
     // comparable across tiers). Music tiers carry a plain `bullets` array
     // (grouped bullet lines, same style as the DJ cards in Build a
