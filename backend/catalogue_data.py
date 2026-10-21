@@ -744,6 +744,8 @@ GIFTS = [
     ("g93", "Kids Lunch Box (assorted prints)", "return-gifts/kids-lunch-box-many-prints.jpg", 595),
     ("g94", "Kids Bento Box", "return-gifts/kids-bento-box.jpg", 511),
     ("g95", "Spy Sunglasses", "return-gifts/spy-sunglasses.jpg", 80),   # 2026-10-21, per Shruti
+    ("g96", "Spy Cap", "return-gifts/spy-cap.png", 80),               # 2026-10-21, per Shruti
+    ("g97", "Spy Medal", "return-gifts/spy-medals.jpg", 75),           # 2026-10-21, per Shruti (per medal)
 ]
 _GIFTS_BY_ID = {g[0]: g for g in GIFTS}
 
