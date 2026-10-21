@@ -26,6 +26,14 @@ h1{margin:4px 0 0;font-family:var(--fd);font-size:30px}
 h2{margin:0;font-family:var(--fd);font-size:20px}
 .ctl{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
 .ctl select,.ctl input{font:inherit;font-size:14px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink);padding:10px 12px;border:1px solid #DDD3F0;border-radius:10px;background:#fff;min-height:44px}
+/* 2026-10-21: custom dropdown arrow, vertically centred with the right padding */
+.ctl select{-webkit-appearance:none;appearance:none;padding-right:38px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%235E5670' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 14px center;cursor:pointer}
+/* Commission row controls - same look as the filters, sized to the table row */
+.cin{font:inherit;font-size:13.5px;color:var(--ink);padding:6px 10px;border:1px solid #DDD3F0;border-radius:8px;background:#fff;height:34px;box-sizing:border-box;vertical-align:middle}
+.cin:focus{outline:none;border-color:var(--pl);box-shadow:0 0 0 3px rgba(108,74,182,.15)}
+.cin::placeholder{color:#9A92AD}
+.csave{font:inherit;font-size:13px;font-weight:600;height:34px;padding:0 14px;border-radius:8px;border:1px solid #DDD3F0;background:#fff;color:var(--ink);cursor:pointer;vertical-align:middle}
+.csave:hover{border-color:var(--pk);color:var(--pkd)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .chip{font:inherit;font-size:14px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;min-height:44px;border:1px solid #DDD3F0;background:#fff;color:var(--ink)}
 .chip.on{background:var(--pk);border-color:var(--pk);color:#fff}
@@ -265,7 +273,7 @@ function earningsHtml(E){
     o += '<div style="margin-top:16px"><div style="font-weight:700;margin-bottom:8px">Bookings this period</div><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Booking</th><th>Booking value</th><th>Commission on</th><th>Rate</th><th>Commission</th></tr></thead><tbody>'
       + E.lines.map((l,i)=>'<tr><td>'+(i+1)+'</td><td><a href="sales-leads.html?ids='+encodeURIComponent(l.lead_id)+'&title='+encodeURIComponent(l.name||'Booking')+'">'+esc(l.name||l.lead_id)+'</a></td><td>'+money(l.value)+'</td><td>'
         + (isAdmin
-            ? '<input type="number" min="0" id="cb_'+i+'" value="'+l.base+'" style="width:120px"> <input type="text" id="cn_'+i+'" placeholder="Why (optional)" value="'+esc(l.note||'')+'" style="width:160px"> <button type="button" class="chip" onclick="saveBase('+i+')">Save</button>'
+            ? '<input type="number" min="0" class="cin" id="cb_'+i+'" value="'+l.base+'" style="width:120px"> <input type="text" class="cin" id="cn_'+i+'" placeholder="Why (optional)" value="'+esc(l.note||'')+'" style="width:160px"> <button type="button" class="csave" onclick="saveBase('+i+')">Save</button>'
               + (l.adjusted?' <button type="button" class="chip" onclick="saveBase('+i+',true)">Reset</button>':'')
             : money(l.base))
         + (l.adjusted?'<div class="note" style="color:var(--pkd)">Adjusted'+(l.set_by?' by '+esc(l.set_by):'')+(l.note&&!isAdmin?': '+esc(l.note):'')+'</div>':'')
