@@ -430,7 +430,7 @@ body.role-sales .admin-only{display:none!important}
       <div class="lf-ms"><span class="lf-ms-l">Age/Gender</span>
         <button type="button" class="lf-ms-btn" id="lf_ag_btn" onclick="msToggle(event,'lf_ag')">All</button>
         <div class="lf-ms-panel" id="lf_ag" hidden onclick="event.stopPropagation()"></div></div>
-      <div class="lf-ms"><span class="lf-ms-l">Call status</span>
+      <div class="lf-ms"><span class="lf-ms-l">Last call status</span>
         <button type="button" class="lf-ms-btn" id="lf_call_btn" onclick="msToggle(event,'lf_call')">All</button>
         <div class="lf-ms-panel" id="lf_call" hidden onclick="event.stopPropagation()"></div></div>
       <div class="lf-ms"><span class="lf-ms-l">Lead date</span>
@@ -453,6 +453,7 @@ body.role-sales .admin-only{display:none!important}
         <th class="th-sort" id="th_leaddate" onclick="setSort('leaddate')">Lead Date</th>
         <th class="th-sort" id="th_birthday" onclick="setSort('birthday')">Birthday</th>
         <th class="th-sort" id="th_status" onclick="setSort('status')">Status</th>
+        <th>Last Call Status</th>
         <th>Location</th>
         <th class="th-sort" id="th_quote" onclick="setSort('quote')">Sales Quote</th>
         <th>Age/Gender</th>
@@ -960,7 +961,7 @@ function fillListFilters(){
   const disps = (DATA && DATA.call_dispositions) || ['Answered','Unanswered','Follow-up required','Wrong number'];
   const seen = Array.from(new Set(LIST_ROWS.map(r=>(r.last_disposition||'').trim()).filter(Boolean)));
   const callOpts = Array.from(new Set(disps.concat(seen))).map(x=>[x,x]);
-  callOpts.push(['__logged','Call logged, no disposition'], ['__none','No calls yet']);
+  callOpts.push(['__logged','Call logged, no status'], ['__none','No calls yet']);
   msBuild('lf_call', callOpts);
 }
 function clearListFilters(){
@@ -1039,7 +1040,7 @@ function renderListRows(){
   }
   if(!rows.length){
     const fu = (document.getElementById('lf_fu')||{}).checked;
-    body.innerHTML = '<tr><td colspan="14" style="padding:16px;color:#6B7280">'+(fu ? 'No follow-ups due today.' : 'No leads match these filters.')+'</td></tr>';
+    body.innerHTML = '<tr><td colspan="15" style="padding:16px;color:#6B7280">'+(fu ? 'No follow-ups due today.' : 'No leads match these filters.')+'</td></tr>';
     updateSortHeaders(); return;
   }
   body.innerHTML = rows.map(r=>{
@@ -1055,6 +1056,7 @@ function renderListRows(){
       +'<td style="font-size:12.5px;white-space:nowrap">'+leadDateStr(r)+'</td>'
       +'<td>'+birthdayStr(r)+'</td>'
       +'<td>'+statusCellHtml(r)+'</td>'
+      +'<td style="font-size:12.5px;white-space:nowrap">'+esc((r.last_disposition||'').trim() || (Number(r.calls||0) > 0 ? 'Call logged' : 'Not called'))+'</td>'
       +'<td title="'+esc(r.venue||'')+'">'+esc(localityOf(r.venue)||'—')+'</td>'
       +'<td>'+(money(r.revenue_potential)||'—')+'</td>'
       +'<td>'+esc(ageGender(r))+'</td>'
@@ -1801,7 +1803,7 @@ function sectionCalls(){
     + '<div class="call-form">'
       + '<label class="act-fld">Call date &amp; time<input type="datetime-local" id="callDate" value="'+esc((_cd && _cd.date)||nowLocalIso())+'" style="'+inp+'"></label>'
       + '<label class="call-first"><input type="checkbox" id="callFirst" '+((_cd ? _cd.first : !(DATA.call_log||[]).length)?'checked':'')+'> First call</label>'
-      + '<label class="act-fld">Disposition<select id="callDisp" style="'+inp+'"><option value="">—</option>'+disps.map(x=>'<option'+(_cd && _cd.disp===x?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></label>'
+      + '<label class="act-fld">Call status<select id="callDisp" style="'+inp+'"><option value="">—</option>'+disps.map(x=>'<option'+(_cd && _cd.disp===x?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></label>'
       + '<label class="act-fld">Follow-up date &amp; time<input type="datetime-local" id="callFollowup" step="900" value="'+esc((_cd && _cd.fu)||'')+'" style="'+inp+'"></label>'
       + '<label class="act-fld call-rm-fld">Remarks<textarea id="callRemarks" rows="2" style="'+inp+';resize:vertical" placeholder="What was discussed / next step">'+esc((_cd && _cd.rm)||'')+'</textarea></label>'
       + '<button type="button" class="btn pk" id="addCallBtn" onclick="addCall()">+ Add call</button>'
@@ -1823,7 +1825,7 @@ async function addCall(){
     remarks: g('callRemarks').value.trim() || null, by: getName() || null, at: new Date().toISOString(),
   };
   if(!entry.date){ showToast('Pick the call date.'); return; }
-  if(!entry.disposition && !entry.followup_at && !entry.remarks){ showToast('Add a disposition, follow-up or remarks for this call.'); return; }
+  if(!entry.disposition && !entry.followup_at && !entry.remarks){ showToast('Add a call status, follow-up or remarks for this call.'); return; }
   const btn = g('addCallBtn'); btn.disabled = true;
   try{ CALL_DRAFT = null; await saveCallLog((DATA.call_log||[]).concat([entry]), 'Call saved.'); }
   catch(e){ callDraftCapture(); showToast(e.message || 'Could not save the call.'); btn.disabled = false; }
