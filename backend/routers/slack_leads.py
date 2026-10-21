@@ -380,7 +380,147 @@ def _clean_screenshot_lead(l: Dict[str, Any], posted_at: datetime) -> Dict[str, 
 # ─── creating / updating leads ─────────────────────────────────────────────
 
 DETAIL_LABELS = {"child_ages": "age", "child_genders": "gender", "venue": "venue", "kids_count": "# kids",
-                 "theme": "theme", "event_date": "event date"}
+                 "theme": "theme", "event_date": "event date", "child_names": "child's name",
+                 "earlier_conversations": "earlier conversations", "event_sales_lead": "sales lead",
+                 "email": "email"}
+
+
+# ─── "Key = value" records (2026-10-21, per Shruti) ────────────────────────
+# Moving the AiSensy leads from the old Google Sheet: one lead per line, e.g.
+#   Lead Source = 'Ai-Sensi Instagram', Lead Date =15/10/2026, Contact = 9930083544,
+#   Name = QUEEN B , Birthday Month =12_Dec, Locality =Kural west, First Call = 46311,
+#   Event Date =46372, Earlier Conversations=mitika - 16/10 call back in evening
+# Dates may be dd/mm/yyyy, "16 Oct", or Google Sheets serial numbers (46311 =
+# 16 Oct 2026). Fields go where the old-leads import put them (Earlier
+# conversations, month-only birthday, first call in the call log).
+
+KV_SPLIT = re.compile(r",\s*(?=[A-Za-z#][A-Za-z0-9 #/_.()-]{0,40}?\s*=)")
+KV_KEYS = {   # normalised key -> field
+    "leadsource": "source", "source": "source",
+    "leaddate": "lead_date", "leadgenerationdate": "lead_date", "enquirydate": "lead_date", "date": "lead_date",
+    "contact": "phone", "contactno": "phone", "mobile": "phone", "mobileno": "phone", "phone": "phone",
+    "phoneno": "phone", "number": "phone", "whatsapp": "phone", "contactnumber": "phone", "mobilenumber": "phone",
+    "name": "name", "parentname": "name", "clientname": "name", "customername": "name", "parent": "name",
+    "birthdaymonth": "bday_month", "month": "bday_month", "eventmonth": "bday_month",
+    "locality": "locality", "location": "locality", "area": "locality",
+    "venue": "venue", "address": "venue",
+    "firstcall": "first_call", "firstcalldate": "first_call", "calldate": "first_call",
+    "eventdate": "event_date", "partydate": "event_date", "birthdaydate": "event_date", "birthday": "event_date",
+    "earlierconversations": "conv", "earlierconversation": "conv", "conversations": "conv", "remarks": "conv",
+    "remark": "conv", "notes": "conv", "note": "conv", "comments": "conv",
+    "childname": "child_names", "child": "child_names", "kidname": "child_names", "childsname": "child_names",
+    "age": "child_ages", "childage": "child_ages",
+    "gender": "child_genders",
+    "theme": "theme",
+    "kids": "kids_count", "nokids": "kids_count", "kidscount": "kids_count", "numberofkids": "kids_count",
+    "noofkids": "kids_count", "guests": "kids_count",
+    "saleslead": "event_sales_lead", "assignedto": "event_sales_lead", "owner": "event_sales_lead",
+    "email": "email", "emailid": "email",
+    "followup": "followup", "followupdate": "followup", "nextfollowup": "followup",
+}
+SHEET_EPOCH = date(1899, 12, 30)
+
+
+def _kv_date(v: str, today: date, future: bool = False) -> Optional[date]:
+    """dd/mm/yyyy, dd/mm, '16 Oct', ISO, or a Sheets serial number."""
+    v = (v or "").strip()
+    if re.fullmatch(r"\d{5}(\.\d+)?", v) and 30000 < float(v) < 80000:
+        return SHEET_EPOCH + timedelta(days=int(float(v)))
+    m = re.fullmatch(r"(\d{4})-(\d{1,2})-(\d{1,2})", v)
+    if m:
+        try:
+            return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            return None
+    d = parse_heading_date(v + " lead", today)   # reuses the list-heading date reader
+    if d and future and d < today and not re.search(r"\d{4}|/\d{2}$", v):
+        try:
+            d = d.replace(year=d.year + 1)
+        except ValueError:
+            pass
+    return d
+
+
+def _month_of(v: str) -> Optional[int]:
+    l = (v or "").lower()
+    m = re.search(r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)", l)
+    if m:
+        return MONTHS[m.group(1)]
+    m = re.search(r"\b(\d{1,2})\b", l)
+    if m and 1 <= int(m.group(1)) <= 12:
+        return int(m.group(1))
+    return None
+
+
+def parse_kv_records(text: str, posted_at: datetime) -> List[Dict[str, Any]]:
+    """Lines of 'Key = value, Key = value' -> lead items (empty if none)."""
+    posted_ist = posted_at.astimezone(IST)
+    today = posted_ist.date()
+    out = []
+    for raw in (text or "").splitlines():
+        line = raw.strip()
+        if line.count("=") < 2:
+            continue
+        rec: Dict[str, str] = {}
+        extra = []
+        for part in KV_SPLIT.split(line):
+            if "=" not in part:
+                continue
+            k, v = part.split("=", 1)
+            v = v.strip().strip("'\"").strip()
+            if not v:
+                continue
+            key = KV_KEYS.get(re.sub(r"[^a-z]", "", k.lower()))
+            if key and key not in rec:
+                rec[key] = v
+            else:
+                extra.append(f"{k.strip()}: {v}")
+        if "phone" not in rec and "name" not in rec:
+            continue
+        phone = normalise_phone(rec.get("phone", ""))
+        src, ref = source_from_text(rec.get("source", ""))
+        if rec.get("source") and not src:
+            extra.append(f"Lead source given: {rec['source']}")
+        ld = _kv_date(rec.get("lead_date", ""), today)
+        if ld and ld != today:
+            gen = datetime(ld.year, ld.month, ld.day, 23, 59, tzinfo=IST)
+        else:
+            gen = posted_ist
+        fields: Dict[str, Any] = {}
+        ev = _kv_date(rec.get("event_date", ""), today, future=True)
+        if ev:
+            fields["event_date"], fields["date_precision"] = ev, "exact"
+        elif rec.get("bday_month") and _month_of(rec["bday_month"]):
+            mo = _month_of(rec["bday_month"])
+            yr = today.year if mo >= today.month else today.year + 1
+            fields["event_date"], fields["date_precision"] = date(yr, mo, 1), "month"
+        venue = ", ".join(x for x in (rec.get("venue"), rec.get("locality")) if x)
+        if venue:
+            fields["venue"] = venue[:255]
+        for k in ("child_names", "child_ages", "theme", "event_sales_lead", "email"):
+            if rec.get(k):
+                fields[k] = rec[k][:255]
+        if rec.get("child_genders"):
+            g = rec["child_genders"].strip().lower()
+            fields["child_genders"] = {"m": "Male", "male": "Male", "boy": "Male", "f": "Female",
+                                       "female": "Female", "girl": "Female"}.get(g, rec["child_genders"])
+        if rec.get("kids_count"):
+            m = re.search(r"\d+", rec["kids_count"])
+            if m:
+                fields["kids_count"] = int(m.group(0))
+        conv = "\n".join(x for x in [rec.get("conv")] + extra if x)
+        if conv:
+            fields["earlier_conversations"] = conv
+        calls = []
+        fc = _kv_date(rec.get("first_call", ""), today)
+        if fc:
+            fu = _kv_date(rec.get("followup", ""), today, future=True)
+            calls.append({"id": f"c{int(time.time() * 1000) % 10**9}", "date": fc.isoformat(), "time": None,
+                          "first_call": True, "disposition": None, "followup_at": fu.isoformat() if fu else None,
+                          "remarks": "From the old Google Sheet", "by": None, "at": None})
+        out.append({"name": rec.get("name"), "phone": phone, "handle": None, "note": None,
+                    "source": src, "referred_by": ref, "generated_at": gen, "fields": fields, "call_log": calls})
+    return out
 
 
 SAME_LEAD_DAYS = 90   # 2026-10-20, per Shruti: same mobile, lead generated within 90 days = same lead
@@ -494,8 +634,24 @@ async def intake(item: Dict[str, Any], who: str, how: str) -> Dict[str, Any]:
                 elif not _same(cur, new):
                     changes.append(f"{label}: {_show(cur)} → {_show(new)}")
 
+            precision = fields.pop("date_precision", None)
             for col, v in fields.items():
                 take(col, v, DETAIL_LABELS.get(col, col))
+            if precision and "event_date" in vals:
+                sets.append("date_precision = :dprec"); vals["dprec"] = precision
+            if item.get("call_log"):
+                pb = await database.fetch_one("SELECT call_log FROM lead_sales_playbook WHERE lead_id = :id", values={"id": lead_id})
+                cur_calls = (pb["call_log"] if pb else None) or []
+                cur_calls = json.loads(cur_calls) if isinstance(cur_calls, str) else cur_calls
+                have = {c.get("date") for c in cur_calls if isinstance(c, dict)}
+                add = [c for c in item["call_log"] if c["date"] not in have]
+                if add:
+                    for c in add:
+                        c["first_call"] = c["first_call"] and not any(x.get("first_call") for x in cur_calls if isinstance(x, dict))
+                        c["by"] = c["by"] or who
+                    await database.execute("UPDATE lead_sales_playbook SET call_log = CAST(:c AS JSONB) WHERE lead_id = :id",
+                                           values={"c": json.dumps(cur_calls + add), "id": lead_id})
+                    filled.append("call log")
             placeholder = (row.get("parent_name") or "").startswith(("Instagram lead", "New lead", "New Sales Lead", "@"))
             if name and placeholder:
                 sets.append("parent_name = :pn"); vals["pn"] = name[:255]; filled.append("name")
@@ -560,8 +716,10 @@ async def intake(item: Dict[str, Any], who: str, how: str) -> Dict[str, Any]:
             lead_id = await database.execute(
                 f"INSERT INTO leads ({names}) VALUES ({', '.join(':' + k for k in cols)}) RETURNING lead_id", values=cols)
             pid = await database.execute(
-                "INSERT INTO lead_sales_playbook (lead_id, created_by, notes_special_instructions) "
-                "VALUES (:id, :by, :n) RETURNING id", values={"id": lead_id, "by": actor, "n": note})
+                "INSERT INTO lead_sales_playbook (lead_id, created_by, notes_special_instructions, call_log) "
+                "VALUES (:id, :by, :n, CAST(:cl AS JSONB)) RETURNING id",
+                values={"id": lead_id, "by": actor, "n": note,
+                        "cl": json.dumps([{**c, "by": c["by"] or who} for c in item["call_log"]]) if item.get("call_log") else None})
             label = platform or source
             earlier_txt = None
             if earlier:
@@ -576,7 +734,8 @@ async def intake(item: Dict[str, Any], who: str, how: str) -> Dict[str, Any]:
             result = {"outcome": "created", "lead_id": lead_id, "name": cols["parent_name"], "phone": phone,
                       "platform": label, "generated_at": gen, "needs_source": not source,
                       "earlier": earlier["lead_id"] if earlier else None,
-                      "filled": [DETAIL_LABELS[k] for k in fields if k in DETAIL_LABELS]}
+                      "filled": [DETAIL_LABELS[k] for k in fields if k in DETAIL_LABELS]
+                                + (["first call"] if item.get("call_log") else [])}
     if result["outcome"] in ("created", "updated"):
         sheet_sync.schedule_sync(result["lead_id"])
     return result
@@ -787,7 +946,8 @@ async def handle_message(ev: Dict[str, Any]) -> None:
     who = await slack_user_name(ev.get("user") or "")
     results, errors = [], []
     try:
-        items = [(i, "text list") for i in parse_lead_list(text, posted_at)]
+        kv = parse_kv_records(text, posted_at)
+        items = [(i, "sheet row") for i in kv] if kv else [(i, "text list") for i in parse_lead_list(text, posted_at)]
         files = [f for f in (ev.get("files") or []) if (f.get("mimetype") or "").startswith("image/")]
         if files:
             images = [x for x in [await download_slack_file(f) for f in files] if x]
