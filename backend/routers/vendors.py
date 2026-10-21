@@ -70,6 +70,8 @@ VENDOR_READ_COLUMNS = VENDOR_FIELDS + [
     "carnival_profile",
     # Host answers (2026-10-14, migrations/059); photos are in vendor_catalogues.
     "host_profile",
+    # DJ zones + rates (2026-10-21, migrations/074).
+    "dj_profile",
 ]
 
 # Fields a pending update is allowed to write when approved (never is_active,
@@ -158,6 +160,13 @@ def _row_out(r) -> dict:
         except ValueError:
             hp = None
     d["host_profile"] = hp if isinstance(hp, dict) else None
+    dp = d.get("dj_profile")
+    if isinstance(dp, (str, bytes)):
+        try:
+            dp = json.loads(dp)
+        except ValueError:
+            dp = None
+    d["dj_profile"] = dp if isinstance(dp, dict) else None
     return d
 
 

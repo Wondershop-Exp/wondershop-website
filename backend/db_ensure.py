@@ -51,6 +51,7 @@ SAFE_MIGRATIONS = [
     "071_sales_targets.sql",
     "072_commission_base.sql",
     "073_status_unanswered.sql",
+    "074_dj_profile.sql",
 ]
 
 

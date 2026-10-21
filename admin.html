@@ -3264,6 +3264,29 @@ function carnivalSectionHtml(v){
     + '<h4>Catalogues &amp; photos</h4><div id="vendorCatalogues" style="font-size:13px;color:var(--gy)">Loading…</div>'
     + '</div>';
 }
+// ── DJ partner (2026-10-21, per Shruti) ─────────────────────────────────
+// Zones they serve and their price per zone for the two standard setups and
+// two extras, from the partner form (js/dj-form.js).
+function isDJVendor(v){ return /^dj$/i.test((v.deals_in||'').trim()) || !!v.dj_profile; }
+function djSectionHtml(v){
+  const p = v.dj_profile || {};
+  const zones = (window.WS_VOLUNTEER && WS_VOLUNTEER.zones) || [];
+  const cols = [['two_tops','2 tops + DJ + console + 2 mics'],['one_top','1 top + DJ + console + 2 mics'],['led4','Extra: 4 LEDs with stands'],['smoke','Extra: smoke machine']];
+  const inr = n => (n || n === 0) ? '₹'+Number(n).toLocaleString('en-IN') : '<span style="color:var(--gy)">—</span>';
+  const th = 'style="text-align:left;padding:6px 10px;font-size:11.5px;color:var(--gy);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--li2)"';
+  const td = 'style="padding:7px 10px;border-bottom:1px solid #F3F0F8;font-size:13px"';
+  const table = (p.zones||[]).length
+    ? '<div style="overflow-x:auto"><table style="border-collapse:collapse;min-width:640px;margin-top:6px"><tr><th '+th+'>Zone</th>'+cols.map(c=>'<th '+th+'>'+esc(c[1])+'</th>').join('')+'</tr>'
+      + p.zones.map(n=>{ const z = zones.find(x=>x.n===n); const r = (p.rates||{})[String(n)] || {};
+          return '<tr><td '+td+'><b>'+n+'</b> · '+esc(z?z.en:'')+'</td>'+cols.map(c=>'<td '+td+'>'+inr(r[c[0]])+'</td>').join('')+'</tr>'; }).join('')
+      + '</table></div>'
+    : '';
+  return '<div class="vol-card"><h3>🎧 DJ Rates</h3>'
+    + (v.dj_profile ? '<div class="vol-note">Price per setup in each zone they serve, as given on the partner form. — means they don\u2019t provide that extra.</div>' + table
+        + (p.notes ? '<div style="margin-top:10px"><b style="font-size:12px;color:var(--gy);text-transform:uppercase;letter-spacing:.3px">Notes</b><div style="white-space:pre-wrap">'+esc(p.notes)+'</div></div>' : '')
+      : '<div class="vol-note">The DJ hasn\u2019t given their areas and rates yet — send them an update link.</div>')
+    + '</div>';
+}
 // ── Host partner (2026-10-14, per Shruti) ───────────────────────────────
 // Answers from the partner form (js/host-form.js). Their event photos are in
 // the same files list carnival partners' catalogues use.
@@ -3363,6 +3386,7 @@ function renderVendorForm(v){
     + (isVolunteerVendor(v) ? volunteerSectionHtml(v) : '')
     + (isCarnivalVendor(v) ? carnivalSectionHtml(v) : '')
     + (isHostVendor(v) ? hostSectionHtml(v) : '')
+    + (isDJVendor(v) ? djSectionHtml(v) : '')
     + '<div class="section-block" style="padding:16px 18px;margin-top:14px">'
       + '<h3>Bank / Payment Details</h3>'
       + '<div class="status-card" style="align-items:flex-start;margin-top:10px">'+bankFieldsHtml+'</div>'

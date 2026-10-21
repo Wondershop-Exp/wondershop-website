@@ -135,8 +135,18 @@ body.is-volunteer .opt-vol,body.is-volunteer .hide-vol{display:none}
 .req-car{display:none}
 body.is-carnival .req-vol,body.is-carnival .req-car{display:inline}
 /* Decorator (2026-10-15): alternate number mandatory */
-body.is-decorator .req-dec{display:inline}
-body.is-decorator .opt-dec{display:none}
+body.is-decorator .req-dec,body.is-dj .req-dec{display:inline}
+body.is-decorator .opt-dec,body.is-dj .opt-dec{display:none}
+/* DJ rates (2026-10-21) - js/dj-form.js */
+.dj-zone{margin-top:10px}
+.dj-zone .vl-zone span{height:auto}
+.dj-prices{border:1.5px solid var(--pk);border-top:0;border-radius:0 0 12px 12px;padding:4px 12px 12px;margin-top:-6px;background:#fff}
+.dj-zone.on .vl-zone span{border-radius:12px 12px 0 0}
+.dj-q{margin-top:10px}
+.dj-q label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
+.dj-rs{display:flex;align-items:center;gap:6px}
+.dj-rs span{font-weight:700;color:var(--gy)}
+.dj-rs input{width:100%;padding:10px 12px;border:1.5px solid var(--li2);border-radius:10px;font-family:var(--fb);font-size:14.5px;background:var(--wh)}
 body.is-carnival .opt-vol{display:none}
 .cv-add-btn{flex:0 0 auto;padding:0 18px;border:0;border-radius:10px;background:var(--pk);color:#fff;font:inherit;font-weight:700;cursor:pointer}
 .cv-svc{border:1px solid var(--li2);border-radius:12px;padding:12px;margin-top:10px}
@@ -265,6 +275,8 @@ body.is-host .req-host{display:inline}
       <div id="carnivalSection" hidden></div>
       <!-- Host questions (2026-10-14) - filled in by js/host-form.js -->
       <div id="hostSection" hidden></div>
+      <!-- DJ rates per zone (2026-10-21) - filled in by js/dj-form.js -->
+      <div id="djSection" hidden></div>
       <!-- Event Volunteer questions (2026-10-10) - filled in by js/volunteer-form.js -->
       <div id="volunteerSection" hidden></div>
 
@@ -337,6 +349,7 @@ body.is-host .req-host{display:inline}
 <script src="js/volunteer-form.js"></script>
 <script src="js/carnival-form.js"></script>
 <script src="js/host-form.js"></script>
+<script src="js/dj-form.js"></script>
 <script>
 const BANK_REQUIRED = ['Host', 'Event Volunteer'];   // 2026-10-15: bank details mandatory only for these
 const WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
@@ -452,6 +465,8 @@ dealsSelect.addEventListener('change', () => {
   if(window.WSVolunteer) WSVolunteer.toggle(vol);
   document.body.classList.toggle('is-carnival', isCarnival());
   document.body.classList.toggle('is-decorator', isDecoratorSel());
+  document.body.classList.toggle('is-dj', isDJ());
+  if(window.WSDJ) WSDJ.toggle(isDJ());
   if(window.WSCarnival) WSCarnival.toggle(isCarnival());
   document.body.classList.toggle('is-host', isHost());
   if(window.WSHost) WSHost.toggle(isHost());
@@ -466,6 +481,8 @@ function isCarnival(){ return dealsSelect.value === 'Carnival Stalls & Mascots';
 function extrasRequired(){ return isVolunteer() || isCarnival(); }
 // Decorator (2026-10-15, per Shruti): alternate number is mandatory.
 function isDecoratorSel(){ return dealsSelect.value === 'Decorator'; }
+// DJ (2026-10-21, per Shruti): alternate number mandatory, plus zones + rates.
+function isDJ(){ return dealsSelect.value === 'DJ'; }
 // Host (2026-10-14, per Shruti): address and pincode are mandatory.
 function isHost(){ return dealsSelect.value === 'Host'; }
 // WhatsApp starts as the mobile number; once edited by hand it stays as typed.
@@ -503,9 +520,9 @@ const FIELD_RULES = {
 function fieldError(id){
   const rule = FIELD_RULES[id];
   const raw = document.getElementById(id).value.trim();
-  if(!raw) return (rule.required || (rule.volRequired && extrasRequired()) || (rule.carRequired && isCarnival()) || (rule.hostRequired && isHost()) || (rule.decRequired && isDecoratorSel()) || (rule.emailRequired && emailRequired())) ? 'Please enter your ' + rule.label + '.' : '';
+  if(!raw) return (rule.required || (rule.volRequired && extrasRequired()) || (rule.carRequired && isCarnival()) || (rule.hostRequired && isHost()) || (rule.decRequired && (isDecoratorSel() || isDJ())) || (rule.emailRequired && emailRequired())) ? 'Please enter your ' + rule.label + '.' : '';
   if(rule.kind === 'address' && (extrasRequired() || isHost()) && raw.length < 10) return 'Please enter your full address.';
-  if(id === 'f_alt_mobile' && (extrasRequired() || isDecoratorSel()) && normMobile(raw) === normMobile(document.getElementById('f_mobile').value))
+  if(id === 'f_alt_mobile' && (extrasRequired() || isDecoratorSel() || isDJ()) && normMobile(raw) === normMobile(document.getElementById('f_mobile').value))
     return 'Please give a different number from your mobile number.';
   if(rule.kind === 'mobile'){
     const d = normMobile(raw);
@@ -621,6 +638,16 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
     }
   }
 
+  const isDJForm = deals === 'DJ' && window.WSDJ;
+  if(isDJForm){
+    const check = WSDJ.validate();
+    if(check.error){
+      showErr(check.error);
+      if(check.el && check.el.scrollIntoView) setTimeout(() => check.el.scrollIntoView({behavior:'smooth', block:'center'}), 400);
+      if(check.el && check.el.focus) check.el.focus({preventScroll:true});
+      return;
+    }
+  }
   const isHostForm = deals === 'Host' && window.WSHost;
   if(isHostForm){
     const check = WSHost.validate();
@@ -661,6 +688,7 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   if(isVol) WSVolunteer.appendTo(fd);
   if(isCarn) WSCarnival.appendTo(fd);
   if(isHostForm) WSHost.appendTo(fd);
+  if(isDJForm) WSDJ.appendTo(fd);
   if(isVol){ fd.set('primary_contact_name', ''); fd.set('gst_number', ''); }
 
   try{
@@ -721,6 +749,7 @@ const UPD = {token: new URLSearchParams(location.search).get('u') || '', ok: fal
     if(window.WSVolunteer && isVolunteer()) WSVolunteer.fill(d.volunteer_profile, d.has_resume);
     if(window.WSCarnival && isCarnival()) WSCarnival.fill(d.carnival_profile);
     if(window.WSHost && isHost()) WSHost.fill(d.host_profile, d.host_photo_count);
+    if(window.WSDJ && isDJ()) WSDJ.fill(d.dj_profile);
     document.getElementById('updBank').hidden = !UPD.hasBank;
     const missing = (d.missing || []).filter(m => !(m === 'Bank details' && UPD.hasBank));
     box.innerHTML = '<b>Hi ' + escH(d.name || '') + '!</b> Your earlier answers are filled in below. '

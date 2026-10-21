@@ -722,6 +722,76 @@ async def _save_host(profile: dict, photos: list, mobile: str, vendor_id: Option
     logger.info(f"Host profile saved on partner {vendor_id} ({mobile}), {len(photos)} photo(s)")
 
 
+# ─── DJ (2026-10-21, per Shruti) ─────────────────────────────────────────────
+# Zones they serve and, per zone, prices for two standard setups (mandatory)
+# and two extras (optional, blank = not provided). The alternate mobile number
+# is mandatory for DJs. See js/dj-form.js.
+DJ = "dj"
+DJ_ITEMS = [  # key, label, required — keep in step with js/dj-form.js
+    ("two_tops", "2 tops with stands + DJ with console + 2 mics", True),
+    ("one_top", "1 top with stand + DJ with console + 2 mics", True),
+    ("led4", "4 LED lights with stands (extra)", False),
+    ("smoke", "Smoke machine (extra)", False),
+]
+
+
+def _price(v) -> Optional[int]:
+    try:
+        n = int(float(v))
+    except (TypeError, ValueError):
+        return None
+    return n if 0 < n <= 10_000_000 else None
+
+
+def clean_dj_profile(p: dict, strict: bool) -> dict:
+    if not isinstance(p, dict):
+        raise HTTPException(status_code=400, detail="We could not read your DJ rates — please try again.")
+    zones = sorted({int(z) for z in (p.get("zones") or []) if str(z).isdigit() and 1 <= int(z) <= 6})
+    raw_rates = p.get("rates") if isinstance(p.get("rates"), dict) else {}
+    rates = {}
+    for z in zones:
+        r = raw_rates.get(str(z)) or raw_rates.get(z) or {}
+        r = r if isinstance(r, dict) else {}
+        rates[str(z)] = {k: _price(r.get(k)) for k, _l, _req in DJ_ITEMS}
+    out = {"zones": zones, "rates": rates, "notes": _para(p.get("notes"), 1000)}
+    if strict:
+        if not zones:
+            raise HTTPException(status_code=400, detail="Please tick the areas of Mumbai you serve.")
+        for z in zones:
+            for k, label, req in DJ_ITEMS:
+                if req and not rates[str(z)][k]:
+                    raise HTTPException(status_code=400, detail=f"Please give your price for {label} in zone {z}.")
+    return out
+
+
+def _parse_dj_profile(raw: Optional[str]) -> dict:
+    raw = (raw or "").strip()
+    if not raw or len(raw) > 20_000:
+        raise HTTPException(status_code=400, detail="Please fill in your DJ rates.")
+    try:
+        p = json.loads(raw)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="We could not read your DJ rates — please try again.")
+    return clean_dj_profile(p, strict=True)
+
+
+async def _save_dj(profile: dict, mobile: str, vendor_id: Optional[int] = None) -> None:
+    prim, alt = _DIGITS.format(c="primary_mobile"), _DIGITS.format(c="alternate_mobile")
+    if vendor_id is None:
+        vendor_id = await database.fetch_val(
+            f"SELECT vendor_id FROM vendor_master WHERE duplicate_of_id IS NULL AND ({prim} = :m OR {alt} = :m) "
+            f"ORDER BY ({prim} = :m) DESC, vendor_id DESC LIMIT 1",
+            {"m": mobile},
+        )
+    if not vendor_id:
+        logger.warning(f"DJ rates for {mobile}: no partner row found")
+        return
+    await database.execute(
+        "UPDATE vendor_master SET dj_profile = CAST(:p AS JSONB), onboarding_reviewed = FALSE WHERE vendor_id = :id",
+        {"id": vendor_id, "p": json.dumps(profile, ensure_ascii=False)})
+    logger.info(f"DJ rates saved on partner {vendor_id} ({mobile}), zones {profile.get('zones')}")
+
+
 def _clean(s: Optional[str]) -> Optional[str]:
     s = (s or "").strip()
     return s or None
@@ -842,8 +912,15 @@ def partner_missing(row) -> List[str]:
         out.append("What you deal in")
     if deals in (VOLUNTEER, "wondershop team member") and not (row.get("email") or "").strip():
         out.append("Email")
-    if deals == "decorator" and not (row.get("alternate_mobile") or "").strip():
+    if deals in ("decorator", DJ) and not (row.get("alternate_mobile") or "").strip():
         out.append("Alternate mobile number")
+    if deals == DJ or row.get("dj_profile"):
+        dp = _as_dict(row.get("dj_profile")) or {}
+        if not dp.get("zones"):
+            out.append("Areas you serve")
+        elif any(not ((dp.get("rates") or {}).get(str(z)) or {}).get(k)
+                 for z in dp["zones"] for k, _l, req in DJ_ITEMS if req):
+            out.append("DJ rates for each area")
     is_carn = deals == CARNIVAL or bool(row.get("carnival_profile"))
     if is_carn:
         if len((row.get("address") or "").strip()) < 10:
@@ -970,7 +1047,7 @@ async def _vendor_by_token(token: Optional[str]):
         return None
     cols = ", ".join(_PLAIN_FIELDS + _BANK_FIELDS + [
         "vendor_id", "primary_mobile", "cancelled_cheque_filename", "volunteer_profile",
-        "volunteer_tnc_accepted_at", "resume_filename", "carnival_profile", "host_profile"])
+        "volunteer_tnc_accepted_at", "resume_filename", "carnival_profile", "host_profile", "dj_profile"])
     return await database.fetch_one(
         f"SELECT {cols} FROM vendor_master WHERE update_token_hash = :h AND update_token_expires > NOW()",
         {"h": _token_hash(token)},
@@ -1010,6 +1087,7 @@ async def prefill(token: str):
         except ValueError:
             hp = None
     out.update({
+        "dj_profile": _as_dict(d.get("dj_profile")),
         "host_profile": hp if isinstance(hp, dict) else None,
         "host_photo_count": await database.fetch_val(
             "SELECT COUNT(*) FROM vendor_catalogues WHERE vendor_id = :v AND filename NOT LIKE 'headshot-%'",
@@ -1054,6 +1132,7 @@ async def submit_vendor_onboarding(
     host_profile: Optional[str] = Form(None),
     host_photos: Optional[List[UploadFile]] = File(None),
     host_headshot: Optional[UploadFile] = File(None),
+    dj_profile: Optional[str] = Form(None),
     update_token: Optional[str] = Form(None),
 ):
     # Sent through a private update link? Then this is that partner, and the
@@ -1178,8 +1257,9 @@ async def submit_vendor_onboarding(
     # bad card or photo is reported to the vendor instead of half-saving.
     rate_card = _parse_rate_card(decor_rate_card) if (_clean(deals_in) or "").lower() == "decorator" else None
     work = await _read_work_photos(work_photos) if rate_card is not None else []
-    # 2026-10-15, per Shruti: alternate number is mandatory for decorators.
-    if (_clean(deals_in) or "").lower() == "decorator":
+    # 2026-10-15, per Shruti: alternate number is mandatory for decorators
+    # (and for DJs, 2026-10-21).
+    if (_clean(deals_in) or "").lower() in ("decorator", DJ):
         if not alternate_mobile:
             raise HTTPException(status_code=400, detail="Please enter an alternate mobile number.")
         if alternate_mobile == mobile:
@@ -1214,6 +1294,9 @@ async def submit_vendor_onboarding(
             raise HTTPException(status_code=400, detail="Please enter your locality and pincode.")
         carn_profile = _parse_carnival_profile(carnival_profile)
         carn_files = await _read_catalogues(catalogues)
+
+    # DJ (2026-10-21): zones served and the two standard setups priced for each.
+    dj_prof = _parse_dj_profile(dj_profile) if (_clean(deals_in) or "").lower() == DJ else None
 
     # Host (2026-10-14): address and pincode mandatory, hosting questions complete.
     is_host = (_clean(deals_in) or "").lower() == HOST
@@ -1282,6 +1365,8 @@ async def submit_vendor_onboarding(
             await _save_carnival(carn_profile, carn_files, mobile, vendor_id=link_id)
         if host_prof is not None:
             await _save_host(host_prof, host_pics, mobile, vendor_id=link_id, headshot=host_head)
+        if dj_prof is not None:
+            await _save_dj(dj_prof, mobile, vendor_id=link_id)
         return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}
     if matched:   # number shared by several partners and the name didn't pick one
         values["remarks"] = (
@@ -1308,4 +1393,6 @@ async def submit_vendor_onboarding(
         await _save_carnival(carn_profile, carn_files, mobile)
     if host_prof is not None:
         await _save_host(host_prof, host_pics, mobile, headshot=host_head)
+    if dj_prof is not None:
+        await _save_dj(dj_prof, mobile)
     return {"ok": True, "message": "Thanks! Your details have been submitted and our team will be in touch."}
