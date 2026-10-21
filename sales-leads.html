@@ -182,6 +182,8 @@ th.th-sort:hover{color:var(--pk)}
 .gt-breakup td{padding:4px 0 4px 12px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .gt-breakup td:first-child{white-space:normal}
 .gt-breakup td.neg{color:#B42318}
+.gt-breakup .lq-in{width:110px;padding:5px 8px;border:1px solid var(--li2);border-radius:6px;font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums}
+.gt-breakup td.neg .lq-in{color:#B42318;border-color:#F4C7C3}
 .gt-breakup tfoot td{border-top:1px solid var(--li2);padding-top:7px;font-weight:700}
 .disc-row{font-size:13px;padding:10px 12px;border-radius:8px;background:var(--li3);color:var(--bk)}
 .disc-row b{font-weight:700}
@@ -1544,37 +1546,37 @@ function listBreakdown(){
   const num = v => (v===null||v===undefined||v==='') ? null : (isNaN(Number(v)) ? null : Number(v));
   // mrp == null -> no list price: the MRP column shows "—" and the quote
   // counts towards the MRP total instead (per Shruti, for hosts above ₹15k).
-  function line(label, quoted, mrp){
+  function line(label, quoted, mrp, set){
     const q = num(quoted);
     const m = (mrp==null) ? (q||0) : Number(mrp);
-    (inGifts ? giftItems : items).push({label, mrp: m, noMrp: mrp==null, quote: (q===null ? m : q)});
+    (inGifts ? giftItems : items).push({label, mrp: m, noMrp: mrp==null, quote: (q===null ? m : q), set});
   }
   const sel = k => (reqs[k] && typeof reqs[k]==='object') ? reqs[k] : {};
   const on = r => r.selected && r.selected !== 'No';
   const d = sel('decor');
-  if(on(d) || num(d.cost)!==null) line('Decor'+(d.selected?': '+(d.theme_name?d.theme_name+' – ':'')+d.selected:''), d.cost, decorListPrice(d.theme_name, d.selected));
+  if(on(d) || num(d.cost)!==null) line('Decor'+(d.selected?': '+(d.theme_name?d.theme_name+' – ':'')+d.selected:''), d.cost, decorListPrice(d.theme_name, d.selected), {k:'req', key:'decor'});
   const h = sel('host');
   const spyBy = spyHostIncludedBy();
   if(num(h.cost)!==null){
     const t = _upperTier(C.host_reference, h.cost);
-    line('Host'+(t?': '+t.name+' tier':' (above all tiers)'), h.cost, t ? t.price : null);
+    line('Host'+(t?': '+t.name+' tier':' (above all tiers)'), h.cost, t ? t.price : null, {k:'req', key:'host'});
   }else if(spyBy){
     // Spy activity -> Signature host at no extra cost (2026-10-05).
     items.push({label:'Host: '+(((C.spy_host)||{}).tier||'Signature')+' (included with '+spyBy+')', mrp:0, quote:0, noMrp:false});
   }
   const m = sel('music');
-  if(on(m) || num(m.cost)!==null) line('Music'+(m.selected?': '+m.selected:''), m.cost, _catPrice(C.music,'name',m.selected));
-  (m.addons||[]).forEach(a=>{ if(a && a.name) line('Music add-on: '+a.name, a.price, _catPrice(C.music_addons,'name',a.name)); });
+  if(on(m) || num(m.cost)!==null) line('Music'+(m.selected?': '+m.selected:''), m.cost, _catPrice(C.music,'name',m.selected), {k:'req', key:'music'});
+  (m.addons||[]).forEach((a,ai)=>{ if(a && a.name) line('Music add-on: '+a.name, a.price, _catPrice(C.music_addons,'name',a.name), {k:'addon', i:ai}); });
   const ph = sel('photographer');
-  if(on(ph) || num(ph.cost)!==null) line('Photographer'+(ph.selected?': '+ph.selected:''), ph.cost, _catPrice(C.photographer,'name',ph.selected));
+  if(on(ph) || num(ph.cost)!==null) line('Photographer'+(ph.selected?': '+ph.selected:''), ph.cost, _catPrice(C.photographer,'name',ph.selected), {k:'req', key:'photographer'});
   const ei = sel('einvite_type');
-  if(on(ei) || num(ei.cost)!==null) line('E-Invite'+(ei.selected?': '+ei.selected:''), ei.cost, _catPrice(C.einvite_type,'name',ei.selected));
+  if(on(ei) || num(ei.cost)!==null) line('E-Invite'+(ei.selected?': '+ei.selected:''), ei.cost, _catPrice(C.einvite_type,'name',ei.selected), {k:'req', key:'einvite_type'});
   const sd = sel('save_the_date');
-  if(sd.selected==='Yes') line('Save the Date', sd.cost, C.save_the_date_price!=null ? C.save_the_date_price : null);
+  if(sd.selected==='Yes') line('Save the Date', sd.cost, C.save_the_date_price!=null ? C.save_the_date_price : null, {k:'req', key:'save_the_date'});
   const pt = sel('pinata_type');
-  if(on(pt) || num(pt.cost)!==null) line('Piñata'+(pt.selected?': '+pt.selected:''), pt.cost, _catPrice(C.pinata_type,'name',pt.selected));
+  if(on(pt) || num(pt.cost)!==null) line('Piñata'+(pt.selected?': '+pt.selected:''), pt.cost, _catPrice(C.pinata_type,'name',pt.selected), {k:'req', key:'pinata_type'});
   const pb = sel('pinata_bags');
-  if(pb.selected==='Yes') line('Piñata bags ('+kids+')', pb.cost, C.pinata_bags ? (C.pinata_bags.unit_price||0)*kids : null);
+  if(pb.selected==='Yes') line('Piñata bags ('+kids+')', pb.cost, C.pinata_bags ? (C.pinata_bags.unit_price||0)*kids : null, {k:'req', key:'pinata_bags'});
   inGifts = true;
   const rg = sel('return_gifts');
   if((rg.selected_gifts||[]).length || num(rg.cost)!==null){
@@ -1585,24 +1587,24 @@ function listBreakdown(){
         return s + (p!=null ? p : (Number(g.price)||0)) * (Number(g.quantity)||0);
       }, 0);
     }
-    line('Return gifts'+(giftQty?' ('+giftQty+')':''), rg.cost, mrp);
+    line('Return gifts'+(giftQty?' ('+giftQty+')':''), rg.cost, mrp, {k:'req', key:'return_gifts'});
   }
   const pk = sel('packaging');
   if(pk.selected && pk.selected!=='None'){
     const unit = _catPrice((C.packaging||[]).map(o=>({name:o.label, price:o.price})),'name',pk.selected);
-    line('Packaging: '+pk.selected, pk.cost, unit!=null ? unit*giftQty : null);
+    line('Packaging: '+pk.selected, pk.cost, unit!=null ? unit*giftQty : null, {k:'req', key:'packaging'});
   }
   const tg = sel('return_gift_tags');
   if(tg.selected==='Yes'){
     const gt = C.return_gift_tags || {};
-    line('Return gift tags', tg.cost, Math.max(gt.min_qty||15, giftQty)*(gt.unit_price||10));
+    line('Return gift tags', tg.cost, Math.max(gt.min_qty||15, giftQty)*(gt.unit_price||10), {k:'req', key:'return_gift_tags'});
   }
   inGifts = false;
   const known = ['decor','host','music','photographer','einvite_type','save_the_date','pinata_type','pinata_bags','return_gifts','packaging','return_gift_tags'];
   Object.keys(reqs).forEach(k=>{
     if(known.includes(k)) return;
     const r = reqs[k];
-    if(r && typeof r==='object' && num(r.cost)) line(k.replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()), r.cost, null);
+    if(r && typeof r==='object' && num(r.cost)) line(k.replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()), r.cost, null, {k:'req', key:k});
   });
   (DATA.activities||[]).forEach(a=>{
     if(!a || !a.name) return;
@@ -1615,18 +1617,46 @@ function listBreakdown(){
     const band = engBandPrice(a);       // Sports Engagement: headcount band (2026-10-17)
     if(band != null){ if(qUnit === engCatPrice(a)) qUnit = null; cUnit = band; mult = 1; }
     items.push({label:'Activity: '+a.name+(a.custom?' (custom'+(qUnit?'':', price to be confirmed')+')':'')+(flat?'':' ('+mult+' × '+money(cUnit||0)+')'),
-                mrp: (cUnit||0)*mult, quote: (qUnit===null ? cUnit||0 : qUnit)*mult});
+                mrp: (cUnit||0)*mult, quote: (qUnit===null ? cUnit||0 : qUnit)*mult, set:{k:'act', id:a.id, mult}});
   });
   const r2 = v => Math.round(v*100)/100;
   return {total: r2(items.reduce((s,i)=>s+i.mrp,0)), quoteTotal: r2(items.reduce((s,i)=>s+i.quote,0)), items,
           giftItems, giftTotal: r2(giftItems.reduce((s,i)=>s+i.quote,0)), giftMrp: r2(giftItems.reduce((s,i)=>s+i.mrp,0))};
 }
+// Discount on every item (2026-10-21, per Shruti: "show original mrp and a
+// text box where we can input the discounted price ... equal to the mrp by
+// default"). The box writes back to that item's own quote (section Sales
+// Quote / activity price), so the Grand Total and discount follow it.
+let LQ_LINES = [];
+function lqCell(i){
+  if(!i.set || (DATA && DATA.locked)) return money(i.quote);
+  const n = LQ_LINES.push(i) - 1;
+  return '<input type="number" min="0" step="1" class="lq-in" value="'+Math.round(i.quote*100)/100+'" onchange="onLineQuote('+n+', this.value)" title="Discounted price — defaults to the MRP">';
+}
+function onLineQuote(n, value){
+  const i = LQ_LINES[n]; if(!i || !i.set) return;
+  const v = value==='' ? null : Math.max(0, Number(value));
+  if(v!==null && isNaN(v)) return;
+  const st = i.set;
+  if(st.k==='req'){
+    const r = Object.assign({}, req(st.key));
+    r.cost = v===null ? (i.noMrp ? null : i.mrp) : v;
+    saveRequirement(st.key, r);
+  }else if(st.k==='addon'){
+    const m = Object.assign({}, req('music'));
+    m.addons = (m.addons||[]).map((a,ai)=> ai===st.i ? Object.assign({}, a, {price: v===null ? i.mrp : v}) : a);
+    saveRequirement('music', m);
+  }else if(st.k==='act'){
+    onActField(st.id, 'price', v===null ? null : Math.round(v / (st.mult||1) * 100) / 100);
+  }
+}
 function breakupHtml(b){
+  LQ_LINES = [];
   if(!b.items.length) return '<div class="gt-breakup empty">Nothing selected yet.</div>';
   return '<div class="gt-breakup"><table>'
-    + '<thead><tr><th>Item</th><th>MRP</th><th>Sales quote</th></tr></thead><tbody>'
-    + b.items.map(i=>'<tr><td>'+esc(i.label)+'</td><td>'+(i.noMrp ? '<span title="No list price — the sales quote counts in the MRP total">—</span>' : money(i.mrp))+'</td>'
-        + '<td'+(i.quote < i.mrp ? ' class="neg"' : '')+'>'+(i.quote < i.mrp && !i.noMrp ? '<s style="color:var(--gy);font-weight:400">'+money(i.mrp)+'</s> ' : '')+money(i.quote)+'</td></tr>').join('')
+    + '<thead><tr><th>Item</th><th>MRP</th><th>Discounted price</th></tr></thead><tbody>'
+    + b.items.map(i=>'<tr><td>'+esc(i.label)+'</td><td>'+(i.noMrp ? '<span title="No list price — the sales quote counts in the MRP total">—</span>' : (i.quote < i.mrp ? '<s style="color:var(--gy)">'+money(i.mrp)+'</s>' : money(i.mrp)))+'</td>'
+        + '<td'+(i.quote < i.mrp ? ' class="neg"' : '')+'>'+lqCell(i)+'</td></tr>').join('')
     + '</tbody><tfoot><tr><td>Total</td><td>'+money(b.total)+'</td><td>'+money(b.quoteTotal)+'</td></tr></tfoot>'
     + '</table></div>'
     + giftBreakupHtml(b);
@@ -1634,9 +1664,9 @@ function breakupHtml(b){
 function giftBreakupHtml(b){
   if(!b.giftItems || !b.giftItems.length) return '';
   return '<div class="gt-breakup gifts"><div class="gb-hd">🎁 Return gifts — billed separately (not in Grand Total)</div><table>'
-    + '<thead><tr><th>Item</th><th>MRP</th><th>Sales quote</th></tr></thead><tbody>'
-    + b.giftItems.map(i=>'<tr><td>'+esc(i.label)+'</td><td>'+(i.noMrp ? '—' : money(i.mrp))+'</td>'
-        + '<td'+(i.quote < i.mrp ? ' class="neg"' : '')+'>'+money(i.quote)+'</td></tr>').join('')
+    + '<thead><tr><th>Item</th><th>MRP</th><th>Discounted price</th></tr></thead><tbody>'
+    + b.giftItems.map(i=>'<tr><td>'+esc(i.label)+'</td><td>'+(i.noMrp ? '—' : (i.quote < i.mrp ? '<s style="color:var(--gy)">'+money(i.mrp)+'</s>' : money(i.mrp)))+'</td>'
+        + '<td'+(i.quote < i.mrp ? ' class="neg"' : '')+'>'+lqCell(i)+'</td></tr>').join('')
     + '</tbody><tfoot><tr><td>Return gifts total</td><td>'+money(b.giftMrp)+'</td><td>'+money(b.giftTotal)+'</td></tr></tfoot>'
     + '</table></div>';
 }

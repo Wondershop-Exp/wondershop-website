@@ -5104,7 +5104,8 @@ async function saveEinviteCard(){
 // MRP and the agreed sales quote. Saving sets the total discount to the
 // line-wise gap (Grand Total = sum of quotes + fees). Any discount on top
 // that isn't split by item shows as "Other discount".
-let LQ_EDIT = false;
+// 2026-10-21, per Shruti: discounted-price boxes always shown (default = MRP).
+let LQ_EDIT = true;
 function lineQuotesRowHtml(locked){
   const P = (CURRENT_DETAIL && CURRENT_DETAIL.pricing) || null;
   if(!P || !(P.items||[]).length) return '';
@@ -5123,11 +5124,11 @@ function lineQuotesRowHtml(locked){
     + (Math.abs(otherAdj) >= 1 ? '<tr class="lq-other"><td>Above list price (internal)</td><td></td><td>+'+_inr(otherAdj)+'</td></tr>' : '');
   const finalQt = qt - Math.max(0,other) + Math.max(0,otherAdj);
   return '<tr data-key="bill_line_quotes"><td colspan="5" style="padding:8px 6px">'
-    + '<div class="gt-breakup"><div class="lq-top"><span class="gb-hd">Sales quote by item</span>'
+    + '<div class="gt-breakup"><div class="lq-top"><span class="gb-hd">Price by item (MRP and discounted price)</span>'
       + (locked ? '' : (edit
-          ? '<span><button class="mini-btn" onclick="LQ_EDIT=false;renderDetailAgain()">Cancel</button> <button class="mini-btn save" onclick="saveLineQuotes(this)">Save</button></span>'
+          ? '<span><button class="mini-btn" onclick="renderDetailAgain()">Reset</button> <button class="mini-btn save" onclick="saveLineQuotes(this)">Save prices</button></span>'
           : '<button class="mini-btn" onclick="LQ_EDIT=true;renderDetailAgain()">✎ Edit quotes</button>'))
-    + '</div><table><thead><tr><th>Item</th><th>MRP</th><th>Sales quote</th></tr></thead><tbody>'
+    + '</div><table><thead><tr><th>Item</th><th>MRP</th><th>Discounted price</th></tr></thead><tbody>'
     + rows + extra
     + '</tbody><tfoot><tr><td>Total</td><td>'+_inr(mrp)+'</td><td id="lqQt">'+_inr(edit?qt:finalQt)+'</td></tr></tfoot></table>'
     + (edit ? '<div class="lq-note">Saving sets the Discount below to the total MRP minus these quotes.</div>' : '')
@@ -5154,7 +5155,7 @@ async function saveLineQuotes(btn){
   btn.disabled = true;
   try{
     const r = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/line-quotes', {method:'POST', body: JSON.stringify({quotes, changed_by: who})});
-    LQ_EDIT = false;
+    LQ_EDIT = true; 
     showToast('✓ Saved — discount set to '+_inr(r.discount)+(r.above_list?' (+'+_inr(r.above_list)+' above list price)':''));
     await loadDetail();
   }catch(e){ if(e.message!=='unauthorized') showToast('Save failed: '+e.message); }
