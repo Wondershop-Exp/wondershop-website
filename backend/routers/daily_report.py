@@ -202,12 +202,32 @@ _MONTHS = {m: i for i, m in enumerate(["jan", "feb", "mar", "apr", "may", "jun",
 
 
 def parse_summary_request(text: str):
-    """The day asked for, or None if the message isn't a summary request."""
+    """The day asked for, or None if the message isn't a summary request.
+
+    2026-10-21, per Shruti ("Sid posted 'please share today's summary' — no
+    response"): besides "summary" / "summary yesterday" / "summary 19 Oct",
+    any SHORT message that asks for the summary / report / daily update in
+    plain words works too — "please share today's summary", "can I get
+    yesterday's report?", "summary for 19 Oct pls". Long messages and anything
+    with a phone number or "=" (lead posts) are never taken as a request."""
     t = re.sub(r"<@[A-Z0-9]+>", "", text or "").strip().lower()
     m = re.fullmatch(r"(?:daily\s+)?(?:summary|update|report)\s*(.*)", t)
     if not m:
-        return None
-    arg = m.group(1).strip(" ?.!")
+        words = re.findall(r"[a-z0-9']+", t)
+        if (len(words) > 12 or "=" in t or re.search(r"\d{6,}", re.sub(r"\s", "", t))
+                or not re.search(r"\b(summary|summery|report|daily update|business update)\b", t)):
+            return None
+        # the day: today / yesterday / a date anywhere in the message
+        if re.search(r"\byesterday", t):
+            arg = "yesterday"
+        else:
+            dm = (re.search(r"\b\d{4}-\d{2}-\d{2}\b", t)
+                  or re.search(r"\b\d{1,2}(?:st|nd|rd|th)?\s*(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:\s+\d{4})?\b", t))
+            arg = re.sub(r"(\d)(st|nd|rd|th)", r"\1", dm.group(0)) if dm else "today"
+        m = re.fullmatch(r"(.*)", arg)
+    arg = m.group(1)
+    arg = re.sub(r"\b(for|of|the|pls|plz|please|share|send|me|on|today's|todays)\b", " ", arg)
+    arg = re.sub(r"(\d)(st|nd|rd|th)\b", r"\1", re.sub(r"\s+", " ", arg)).strip(" ?.!,")
     today = datetime.now(IST).date()
     if arg in ("", "today", "now"):
         return today
