@@ -452,7 +452,8 @@ DISCOUNT_TYPE_OPTIONS = [_opt("%", "% (Percentage)"), _opt("value", "₹ (Flat A
 #   read, so they can never go stale.
 # "Did not Enquire" added 2026-10-07, per Shruti (migration 042).
 # "Re-engage later" added 2026-10-16, per Shruti (migration 064).
-LEAD_STATUSES = ["New", "Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing", "Not Interested", "DND", "Did not Enquire", "Re-engage later"]
+# "Unanswered" added 2026-10-21, per Shruti (migration 073).
+LEAD_STATUSES = ["New", "Unanswered", "Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing", "Not Interested", "DND", "Did not Enquire", "Re-engage later"]
 # "Converted" (2026-08-19, per Shruti follow-up: "add converted to the status
 # dropdown for leads") is a DROPDOWN-ONLY value — it is never written to the
 # `status` column (the leads_status_check constraint from migration 018
@@ -461,7 +462,7 @@ LEAD_STATUSES = ["New", "Initial Discussions Done", "Proposal Sent", "Negotiatio
 # same conversion as the old dedicated Convert button (see _do_convert_lead())
 # — hence LEAD_STATUSES (the real, storable set) stays separate from the
 # dropdown's full option list.
-LEAD_STATUS_DROPDOWN_VALUES = ["New", "Re-engage later", "Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing", "Converted", "Not Interested", "DND", "Did not Enquire"]
+LEAD_STATUS_DROPDOWN_VALUES = ["New", "Unanswered", "Re-engage later", "Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing", "Converted", "Not Interested", "DND", "Did not Enquire"]
 LEAD_STATUS_OPTIONS = [_opt(x) for x in LEAD_STATUS_DROPDOWN_VALUES]
 BOOKING_DISPLAY_STATUSES = ["New", "Upcoming", "Complete", "Cancelled"]
 

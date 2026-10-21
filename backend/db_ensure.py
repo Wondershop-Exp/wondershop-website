@@ -50,6 +50,7 @@ SAFE_MIGRATIONS = [
     "070_slack_lead_posts.sql",
     "071_sales_targets.sql",
     "072_commission_base.sql",
+    "073_status_unanswered.sql",
 ]
 
 
