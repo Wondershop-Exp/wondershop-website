@@ -123,6 +123,8 @@ THEMES = [
     {"id": "stitch", "n": "Lilo & Stitch", "b": "150 (Blue, Turquoise, White)",
      "tierPhotos": {"Premium": "Decor/decor-stitch-1panel.jpg"},
      "tierOverrides": {"Premium": {"price": 18000}}},
+    {"id": "anime", "n": "Anime", "b": "200 (Navy, Blue, Yellow, Red)",   # 2026-10-22, per Shruti
+     "tierPhotos": {"Premium": "Decor/decor-anime-1panel.jpg"}},
     {"id": "malgudi", "n": "Malgudi Days", "b": "180 (mixed colours)",
      "tierPhotos": {"Signature": "Decor/decor-malgudi-3panel.jpg"}},
     {"id": "mithai", "n": "Mithai Theme", "b": "180 (mixed colours)",
