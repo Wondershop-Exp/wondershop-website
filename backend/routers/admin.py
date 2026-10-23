@@ -2200,6 +2200,21 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
     if "svc_cake_price" not in already and cake_cost:
         to_write.append(("svc_cake_price", f"{cake_cost:g}", None))
 
+    # ── Return gifts (2026-10-23, per Shruti: gifts picked on the sales panel
+    # weren't reaching the booking). "Name x10, Name x5" — the format the
+    # booking's gift picker saves; per-gift prices go to bill_line_quotes
+    # (see _copy_sales_line_quotes).
+    rg_list = [g for g in (_req("return_gifts").get("selected_gifts") or []) if isinstance(g, dict) and g.get("name")]
+    if "svc_gifts" not in already and rg_list:
+        parts = []
+        for g in rg_list:
+            try:
+                q = int(float(g.get("quantity") or 0))
+            except (TypeError, ValueError):
+                q = 0
+            parts.append(f"{g['name']} x{q}" if q > 1 else str(g["name"]))
+        to_write.append(("svc_gifts", ", ".join(parts), None))
+
     act_notes = (_req("activity_notes").get("customization") or "").strip()
     if "activities_notes" not in already and act_notes:
         to_write.append(("activities_notes", act_notes, None))
@@ -2558,9 +2573,24 @@ async def _copy_sales_line_quotes(lead_id: int, who: str) -> None:
             k = _SALES_KEY_TO_LINE.get(k)
         if k:
             out[k] = round(out.get(k, 0.0) + float(it.get("quote") or 0), 2)
+    # discounted price per return gift (2026-10-23)
+    rg = (j(pb["requirements"]) or {}).get("return_gifts") or {}
+    for g in (rg.get("selected_gifts") or []) if isinstance(rg, dict) else []:
+        try:
+            name, price = str(g["name"]), float(g.get("price"))
+        except (KeyError, TypeError, ValueError):
+            continue
+        mrp = cat_gift_price(name)
+        if mrp is not None and price < mrp - 0.005:
+            out["giftunit:" + name.lower()] = round(price, 2)
     await update_booking_field(lead_id, FieldUpdateRequest(
         field_key="bill_line_quotes", customer_choice_override=json.dumps(out) if out else "",
         changed_by=who), settings.ADMIN_PASSWORD)
+
+
+def cat_gift_price(name: str):
+    from booking_pricing import GIFT_PRICES
+    return GIFT_PRICES.get(name)
 
 
 class LineQuotesRequest(BaseModel):
