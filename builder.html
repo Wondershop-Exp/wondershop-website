@@ -2820,9 +2820,9 @@ const THEMES=[
   {id:'hero',n:'Superhero',e:'🦸',bg:'linear-gradient(135deg,#5B8EDD,#BCD8E8)',age:'6-8',gn:'Both',b:'150 (Red, Blue, Yellow)',s:'3 hrs',ni:'Tables',tag:'rec',tierPhotos:{Classic:'img/Decor/decor-hero-arch.jpg',Premium:'img/Decor/decor-hero-1panel.jpg',Luxury:'img/Decor/decor-hero-2panel.jpg',Signature:'img/Decor/decor-hero-extra1.jpg'}},
   {id:'space',n:'Space Explorer',e:'🚀',bg:'linear-gradient(135deg,#B59DDE,#BCD8E8)',age:'6-12',gn:'Both',b:'180 (Blue, Purple, Silver)',s:'4 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Classic:'img/Decor/decor-space-arch.jpg',Premium:'img/Decor/decor-space-1panel.jpg'}},
   {id:'spy',n:'Mystery & Spy',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',b:'120 (Black, Gold, Red)',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',
-    tierPhotos:{Classic:'img/Decor/decor-spy-classic-main.jpg',Premium:'img/Decor/decor-spy-1panel.jpg',Luxury:'img/Decor/decor-spy-2panel.jpg',Signature:'img/Decor/decor-spy-3panel.jpg'},
+    tierPhotos:{Classic:'img/Decor/decor-spy-classic-main.jpg',Premium:'img/Decor/decor-spy-premium-3.jpeg',Luxury:'img/Decor/decor-spy-2panel.jpg',Signature:'img/Decor/decor-spy-3panel.jpg'},
     // Spy Premium ₹13,000 / Luxury ₹20,000 (2026-10-23, per Shruti — this theme only).
-    tierOverrides:{Premium:{price:13000},Luxury:{price:20000}},
+    tierOverrides:{Premium:{price:13000,extraSpec:[{l:'Cutouts',v:'3 cutouts included'}]},Luxury:{price:20000}},
     // 2 extra Premium-tier photos added 2026-08-24 from "Spy Premium - 2.png"
     // / "Spy Premium - 3.jpeg" in the latest img/Decor upload batch.
     // 1 extra Signature-tier photo added 2026-09-06 from "Spy Kpop Signature
@@ -2837,7 +2837,18 @@ const THEMES=[
     // 2026-10-21, per Shruti — new red/white/black arch ("SPY Classic Decor.png")
     // is now the Classic main photo; the old black & white arch moves to the
     // first alternate.
-    tierExtraPhotos:{Premium:['img/Decor/decor-spy-premium-2.png','img/Decor/decor-spy-premium-3.jpeg','img/Decor/decor-spy-premium-4.jpg'],Classic:['img/Decor/decor-spy-arch.jpg','img/Decor/decor-spy-classic-sustainable.png'],Signature:['img/Decor/decor-spy-kpop-3panel.jpg']}},
+    tierExtraPhotos:{Classic:['img/Decor/decor-spy-arch.jpg','img/Decor/decor-spy-classic-sustainable.png'],Signature:['img/Decor/decor-spy-kpop-3panel.jpg']}},
+  // 2026-10-23, per Shruti: the 4 Spy Premium designs are separate themes now
+  // (Mystery & Spy keeps the blue/red/silver 'Yuvaan' one as its Premium).
+  {id:'spytopsecret',n:'Mystery & Spy – Top Secret',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',b:'300 (Black, Gold, Pink)',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',
+    tierPhotos:{Premium:'img/Decor/decor-spy-1panel.jpg'},
+    tierOverrides:{Premium:{price:13000,extraSpec:[{l:'Cutouts',v:'3 cutouts included'}]}}},
+  {id:'spyredgold',n:'Mystery & Spy – Red & Gold',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',b:'300 (Black, Red, Gold)',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',
+    tierPhotos:{Premium:'img/Decor/decor-spy-premium-2.png'},
+    tierOverrides:{Premium:{price:13000,extraSpec:[{l:'Cutouts',v:'3 cutouts included'}]}}},
+  {id:'spymission',n:'Mystery & Spy – Agent Mission',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',b:'300 (Black, Red)',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',
+    tierPhotos:{Premium:'img/Decor/decor-spy-premium-4.jpg'},
+    tierOverrides:{Premium:{price:13000,extraSpec:[{l:'Cutouts',v:'3 cutouts included'}]}}},
   {id:'kpop',n:'K-Pop Party',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-14',gn:'Girls',b:'180 (Purple, Pink, Black)',s:'4 hrs',ni:'Open area, mini stage',tag:'trend',
     // Luxury tier photo updated 2026-08-24 from the "Kpop Luxury.png" file
     // in the latest img/Decor upload batch (replaces the older
@@ -2991,7 +3002,7 @@ function themeTierEntries(t){
     // panel), 2026-09-18 per Shruti.
     const ov=(t.tierOverrides&&t.tierOverrides[tm.tier])||null;
     const baseSpec=ov&&ov.spec?ov.spec:spec;   // full replacement (Sustainable LED Decor, 2026-10-08)
-    const finalSpec=ov&&ov.extraSpec?baseSpec.concat(ov.extraSpec):baseSpec;
+    const finalSpec=ov&&ov.extraSpec?baseSpec.map(x=>ov.extraSpec.find(e=>e.l===x.l)||x).concat(ov.extraSpec.filter(e=>!baseSpec.some(x=>x.l===e.l))):baseSpec;   // same label replaces (2026-10-23)
     const price=ov&&ov.price!=null?ov.price:tm.price;
     const origPrice=ov?(ov.origPrice!==undefined?ov.origPrice:tm.origPrice):tm.origPrice;
     return {

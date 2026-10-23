@@ -94,9 +94,19 @@ THEMES = [
     {"id": "space", "n": "Space Explorer", "b": "180 (Blue, Purple, Silver)",
      "tierPhotos": {"Classic": "Decor/decor-space-arch.jpg", "Premium": "Decor/decor-space-1panel.jpg"}},
     {"id": "spy", "n": "Mystery & Spy", "b": "120 (Black, Gold, Red)",
-     "tierPhotos": {"Classic": "Decor/decor-spy-classic-main.jpg", "Premium": "Decor/decor-spy-1panel.jpg",
+     "tierPhotos": {"Classic": "Decor/decor-spy-classic-main.jpg", "Premium": "Decor/decor-spy-premium-3.jpeg",
                     "Luxury": "Decor/decor-spy-2panel.jpg", "Signature": "Decor/decor-spy-3panel.jpg"},
-     "tierOverrides": {"Premium": {"price": 13000}, "Luxury": {"price": 20000}}},   # 2026-10-23, per Shruti
+     "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 cutouts included", False)]}, "Luxury": {"price": 20000}}},   # 2026-10-23, per Shruti
+    # The 4 Spy Premium designs as separate themes (2026-10-23, per Shruti).
+    {"id": "spytopsecret", "n": "Mystery & Spy – Top Secret", "b": "300 (Black, Gold, Pink)",
+     "tierPhotos": {"Premium": "Decor/decor-spy-1panel.jpg"},
+     "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 cutouts included", False)]}}},
+    {"id": "spyredgold", "n": "Mystery & Spy – Red & Gold", "b": "300 (Black, Red, Gold)",
+     "tierPhotos": {"Premium": "Decor/decor-spy-premium-2.png"},
+     "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 cutouts included", False)]}}},
+    {"id": "spymission", "n": "Mystery & Spy – Agent Mission", "b": "300 (Black, Red)",
+     "tierPhotos": {"Premium": "Decor/decor-spy-premium-4.jpg"},
+     "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 cutouts included", False)]}}},
     {"id": "kpop", "n": "K-Pop Party", "b": "180 (Purple, Pink, Black)",
      "tierPhotos": {"Classic": "Decor/decor-kpop-arch.jpg", "Premium": "Decor/decor-kpop-1panel.jpg",
                     "Luxury": "Decor/decor-kpop-luxury.png", "Signature": "Decor/decor-kpop-3panel.jpg"}},
@@ -167,11 +177,6 @@ THEMES = [
 # decor options page (decor-options.html, 2026-10-08).
 TIER_EXTRA_PHOTOS = {
     "spy": {
-        "Premium": [
-            "Decor/decor-spy-premium-2.png",
-            "Decor/decor-spy-premium-3.jpeg",
-            "Decor/decor-spy-premium-4.jpg"
-        ],
         "Classic": [
             "Decor/decor-spy-arch.jpg",
             "Decor/decor-spy-classic-sustainable.png"
@@ -289,8 +294,11 @@ def _spec_for(label: str, tier: str, colors: str, theme: Optional[dict] = None) 
         if v == "__THEME__":
             v = colors
         out.append((l, v, na))
-    extra = (((theme or {}).get("tierOverrides") or {}).get(tier) or {}).get("extraSpec") or []
-    return out + [tuple(x) for x in extra]
+    extra = [tuple(x) for x in ((((theme or {}).get("tierOverrides") or {}).get(tier) or {}).get("extraSpec") or [])]
+    # an extra line with the same label replaces the shared one (2026-10-23)
+    by = {x[0]: x for x in extra}
+    out = [by.get(l, (l, v, na)) for l, v, na in out]
+    return out + [x for x in extra if x[0] not in {o[0] for o in out}]
 
 
 # ─── Photographer ───────────────────────────────────────────────────────
