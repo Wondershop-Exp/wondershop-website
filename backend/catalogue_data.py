@@ -98,13 +98,13 @@ THEMES = [
                     "Luxury": "Decor/decor-spy-2panel.jpg", "Signature": "Decor/decor-spy-3panel.jpg"},
      "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 paper cutouts (under 6 inches each, not sunboard)", False)]}, "Luxury": {"price": 20000}}},   # 2026-10-23, per Shruti
     # The 4 Spy Premium designs as separate themes (2026-10-23, per Shruti).
-    {"id": "spytopsecret", "n": "Mystery & Spy – Top Secret", "b": "300 (Black, Gold, Pink)",
+    {"id": "spytopsecret", "variantOf": "spy", "n": "Mystery & Spy – Top Secret", "b": "300 (Black, Gold, Pink)",
      "tierPhotos": {"Premium": "Decor/decor-spy-1panel.jpg"},
      "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 paper cutouts (under 6 inches each, not sunboard)", False)]}}},
-    {"id": "spyredgold", "n": "Mystery & Spy – Red & Gold", "b": "300 (Black, Red, Gold)",
+    {"id": "spyredgold", "variantOf": "spy", "n": "Mystery & Spy – Red & Gold", "b": "300 (Black, Red, Gold)",
      "tierPhotos": {"Premium": "Decor/decor-spy-premium-2.png"},
      "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 paper cutouts (under 6 inches each, not sunboard)", False)]}}},
-    {"id": "spymission", "n": "Mystery & Spy – Agent Mission", "b": "300 (Black, Red)",
+    {"id": "spymission", "variantOf": "spy", "n": "Mystery & Spy – Agent Mission", "b": "300 (Black, Red)",
      "tierPhotos": {"Premium": "Decor/decor-spy-premium-4.jpg"},
      "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 paper cutouts (under 6 inches each, not sunboard)", False)]}}},
     {"id": "kpop", "n": "K-Pop Party", "b": "180 (Purple, Pink, Black)",
@@ -212,7 +212,8 @@ _THEMES_BY_ID = {t["id"]: t for t in THEMES}
 # emails and the theme pickers in admin / the sales module.
 PREF_ONLY_THEMES = [{"id": "among-us", "n": "Among Us"}, {"id": "imposter", "n": "Imposter"}]
 # Every theme a customer can pick as their party theme, by display name.
-THEME_PREFERENCE_NAMES = sorted([t["n"] for t in THEMES if not t.get("anyTheme")] + [t["n"] for t in PREF_ONLY_THEMES], key=str.lower)
+# Decor variants (variantOf, e.g. the Spy Premium designs) are decor names, not themes (2026-10-23).
+THEME_PREFERENCE_NAMES = sorted([t["n"] for t in THEMES if not t.get("anyTheme") and not t.get("variantOf")] + [t["n"] for t in PREF_ONLY_THEMES], key=str.lower)
 
 STD_META = {
     "Classic": "Decor/Standard Classic Balloon Arch.jpg",

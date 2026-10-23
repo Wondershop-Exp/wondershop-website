@@ -143,7 +143,7 @@ async def item_with_image(item_id: int) -> Optional[dict]:
 async def get_ref(lead_id: int, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
     from catalogue_data import THEMES, THEME_PREFERENCE_NAMES
-    themes = sorted({t["n"] for t in THEMES} | set(THEME_PREFERENCE_NAMES or []))
+    themes = sorted({t["n"] for t in THEMES if not t.get("variantOf")} | set(THEME_PREFERENCE_NAMES or []))
     return {"current": await current_for_lead(lead_id), "tiers": TIERS, "genders": GENDERS,
             "age_groups": AGE_GROUPS, "themes": themes}
 

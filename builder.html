@@ -2840,13 +2840,13 @@ const THEMES=[
     tierExtraPhotos:{Classic:['img/Decor/decor-spy-arch.jpg','img/Decor/decor-spy-classic-sustainable.png'],Signature:['img/Decor/decor-spy-kpop-3panel.jpg']}},
   // 2026-10-23, per Shruti: the 4 Spy Premium designs are separate themes now
   // (Mystery & Spy keeps the blue/red/silver 'Yuvaan' one as its Premium).
-  {id:'spytopsecret',n:'Mystery & Spy – Top Secret',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',b:'300 (Black, Gold, Pink)',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',
+  {id:'spytopsecret',variantOf:'spy',n:'Mystery & Spy – Top Secret',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',b:'300 (Black, Gold, Pink)',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',
     tierPhotos:{Premium:'img/Decor/decor-spy-1panel.jpg'},
     tierOverrides:{Premium:{price:13000,extraSpec:[{l:'Cutouts',v:'3 paper cutouts (under 6 inches each, not sunboard)'}]}}},
-  {id:'spyredgold',n:'Mystery & Spy – Red & Gold',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',b:'300 (Black, Red, Gold)',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',
+  {id:'spyredgold',variantOf:'spy',n:'Mystery & Spy – Red & Gold',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',b:'300 (Black, Red, Gold)',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',
     tierPhotos:{Premium:'img/Decor/decor-spy-premium-2.png'},
     tierOverrides:{Premium:{price:13000,extraSpec:[{l:'Cutouts',v:'3 paper cutouts (under 6 inches each, not sunboard)'}]}}},
-  {id:'spymission',n:'Mystery & Spy – Agent Mission',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',b:'300 (Black, Red)',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',
+  {id:'spymission',variantOf:'spy',n:'Mystery & Spy – Agent Mission',e:'🕵️',bg:'linear-gradient(135deg,#374151,#6B7280)',age:'8-12',gn:'Both',b:'300 (Black, Red)',s:'3.5 hrs',ni:'Tables, chairs',tag:'trend',
     tierPhotos:{Premium:'img/Decor/decor-spy-premium-4.jpg'},
     tierOverrides:{Premium:{price:13000,extraSpec:[{l:'Cutouts',v:'3 paper cutouts (under 6 inches each, not sunboard)'}]}}},
   {id:'kpop',n:'K-Pop Party',e:'🎤',bg:'linear-gradient(135deg,#E65A96,#B59DDE)',age:'8-14',gn:'Girls',b:'180 (Purple, Pink, Black)',s:'4 hrs',ni:'Open area, mini stage',tag:'trend',
@@ -3006,7 +3006,8 @@ function themeTierEntries(t){
     const price=ov&&ov.price!=null?ov.price:tm.price;
     const origPrice=ov?(ov.origPrice!==undefined?ov.origPrice:tm.origPrice):tm.origPrice;
     return {
-      id:t.id+'-'+tm.tier.toLowerCase(), themeId:t.id, themeName:t.n, tier:tm.tier,
+      id:t.id+'-'+tm.tier.toLowerCase(), themeId:t.variantOf||t.id, themeName:t.n,   // a decor variant belongs to its parent theme (2026-10-23)
+      tier:tm.tier,
       n:t.n+' - '+tm.tier, e:t.e, bg:t.bg, age:t.age, gn:t.gn, tag:t.tag, s:t.s, ni:t.ni, anyTheme:!!t.anyTheme,
       p:price, origP:origPrice, spec:finalSpec,
       gallery:[{type:'img',src:t.tierPhotos[tm.tier]}].concat(extra.map(src=>({type:'img',src}))),
@@ -4705,7 +4706,7 @@ function decAgeInRange(ageStr,want){
 // dropdowns on the site (this filter + Theme Preference) can never show
 // different values again.
 function populateThemeCatalogSelects(){
-  const sorted=THEMES.filter(t=>!t.anyTheme).sort((a,b)=>a.n.localeCompare(b.n));   // not a party theme (Sustainable LED Decor)
+  const sorted=THEMES.filter(t=>!t.anyTheme&&!t.variantOf).sort((a,b)=>a.n.localeCompare(b.n));   // not a party theme (Sustainable LED Decor)
   const themeSel=document.getElementById('decThemeSel');
   if(themeSel&&themeSel.options.length===1){
     sorted.forEach(t=>{themeSel.innerHTML+='<option value="'+t.id+'">'+t.e+' '+t.n+'</option>';});
