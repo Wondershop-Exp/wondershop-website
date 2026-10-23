@@ -107,6 +107,8 @@ THEMES = [
     {"id": "spymission", "variantOf": "spy", "n": "Mystery & Spy – Agent Mission", "b": "300 (Black, Red)",
      "tierPhotos": {"Premium": "Decor/decor-spy-premium-4.jpg"},
      "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 paper cutouts (under 6 inches each, not sunboard)", False)]}}},
+    {"id": "spykpop", "variantOf": "spy", "n": "Mystery & Spy – K-Pop", "b": "300 (Black, Pink, Purple)",   # 2026-10-23, per Shruti
+     "tierPhotos": {"Signature": "Decor/decor-spy-kpop-3panel.jpg"}},
     {"id": "kpop", "n": "K-Pop Party", "b": "180 (Purple, Pink, Black)",
      "tierPhotos": {"Classic": "Decor/decor-kpop-arch.jpg", "Premium": "Decor/decor-kpop-1panel.jpg",
                     "Luxury": "Decor/decor-kpop-luxury.png", "Signature": "Decor/decor-kpop-3panel.jpg"}},
@@ -182,9 +184,6 @@ TIER_EXTRA_PHOTOS = {
         "Classic": [
             "Decor/decor-spy-arch.jpg",
             "Decor/decor-spy-classic-sustainable.png"
-        ],
-        "Signature": [
-            "Decor/decor-spy-kpop-3panel.jpg"
         ]
     },
     "racing": {
