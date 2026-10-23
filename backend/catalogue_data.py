@@ -614,7 +614,7 @@ def engagement_from_price(id_or_name) -> Optional[float]:
 # repeat customers from now on (2026-10-17, per Shruti).
 # "WhatsApp Broadcast" (2026-10-20, per Shruti) = replies to our AiSensy
 # broadcast messages, posted via the Slack lead bot (routers/slack_leads.py).
-LEAD_SOURCES = ["Instagram", "Facebook", "Google", "Repeat", "WSR Repeat", "Stall", "Referral", "Website", "WhatsApp Broadcast"]   # approved 2026-10-17
+LEAD_SOURCES = ["Instagram", "Facebook", "Google", "Repeat", "WSR Repeat", "Stall", "Referral", "Website", "WhatsApp Broadcast", "ChatGpt"]   # approved 2026-10-17; ChatGpt 2026-10-23
 
 
 TURF_HOST_INCLUDED = {"eng90": "90 Min Sports Engagement", "eng120": "120 Min Sports Engagement"}

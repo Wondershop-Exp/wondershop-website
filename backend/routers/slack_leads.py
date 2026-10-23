@@ -92,10 +92,11 @@ SOURCES = {
     "wsr":       ("WSR Repeat",         None),
     "stall":     ("Stall",              None),
     "website":   ("Website",            None),
+    "chatgpt":   ("ChatGpt",            None),   # 2026-10-23
 }
 _HELP_LABELS = [("ad", "Instagram ad"), ("dm", "Instagram DM"), ("broadcast", "WhatsApp broadcast"),
                 ("facebook", "Facebook"), ("google", "Google"), ("referral", "Referral (referred by …)"),
-                ("repeat", "Repeat"), ("wsr", "WSR Repeat"), ("stall", "Stall"), ("website", "Website")]
+                ("repeat", "Repeat"), ("wsr", "WSR Repeat"), ("stall", "Stall"), ("website", "Website"), ("chatgpt", "ChatGpt")]
 
 
 def source_help() -> str:
