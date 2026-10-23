@@ -843,6 +843,7 @@ ACTIVITY_IMAGES = {
     "slime": "img/activity/act-slime.jpg",
     "rock-painting": "img/activity/act-rock-painting.jpg",
     "movie-party": "img/activity/act-movie-party.jpg",
+    "projector": "img/activity/act-projector.jpg",
     "mascot": "img/activity/act-mascots.jpg",
     "jelly-swimbags": "img/activity/act-jelly-tote-bag.jpg",
     "hairbrush-decor": "img/act-hairbrush-decor.jpg",
