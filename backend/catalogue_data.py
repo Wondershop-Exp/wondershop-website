@@ -96,17 +96,17 @@ THEMES = [
     {"id": "spy", "n": "Mystery & Spy", "b": "120 (Black, Gold, Red)",
      "tierPhotos": {"Classic": "Decor/decor-spy-classic-main.jpg", "Premium": "Decor/decor-spy-premium-3.jpeg",
                     "Luxury": "Decor/decor-spy-2panel.jpg", "Signature": "Decor/decor-spy-3panel.jpg"},
-     "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 cutouts included", False)]}, "Luxury": {"price": 20000}}},   # 2026-10-23, per Shruti
+     "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 paper cutouts (under 6 inches each, not sunboard)", False)]}, "Luxury": {"price": 20000}}},   # 2026-10-23, per Shruti
     # The 4 Spy Premium designs as separate themes (2026-10-23, per Shruti).
     {"id": "spytopsecret", "n": "Mystery & Spy – Top Secret", "b": "300 (Black, Gold, Pink)",
      "tierPhotos": {"Premium": "Decor/decor-spy-1panel.jpg"},
-     "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 cutouts included", False)]}}},
+     "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 paper cutouts (under 6 inches each, not sunboard)", False)]}}},
     {"id": "spyredgold", "n": "Mystery & Spy – Red & Gold", "b": "300 (Black, Red, Gold)",
      "tierPhotos": {"Premium": "Decor/decor-spy-premium-2.png"},
-     "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 cutouts included", False)]}}},
+     "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 paper cutouts (under 6 inches each, not sunboard)", False)]}}},
     {"id": "spymission", "n": "Mystery & Spy – Agent Mission", "b": "300 (Black, Red)",
      "tierPhotos": {"Premium": "Decor/decor-spy-premium-4.jpg"},
-     "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 cutouts included", False)]}}},
+     "tierOverrides": {"Premium": {"price": 13000, "extraSpec": [("Cutouts", "3 paper cutouts (under 6 inches each, not sunboard)", False)]}}},
     {"id": "kpop", "n": "K-Pop Party", "b": "180 (Purple, Pink, Black)",
      "tierPhotos": {"Classic": "Decor/decor-kpop-arch.jpg", "Premium": "Decor/decor-kpop-1panel.jpg",
                     "Luxury": "Decor/decor-kpop-luxury.png", "Signature": "Decor/decor-kpop-3panel.jpg"}},
