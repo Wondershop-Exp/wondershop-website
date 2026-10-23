@@ -474,6 +474,7 @@ ACTIVITIES = [
     ("rock-painting", "Rock Painting", 500, False),   # min bill Rs 5,000 (2026-10-17, per Shruti)
     ("movie-party", "Movie Party", 0, True),   # price on request (2026-10-23, per Shruti)
     ("projector", "Projector", 2500, True),    # 2026-10-23, per Shruti
+    ("karaoke", "Karaoke", 15000, True),       # 2026-10-23, per Shruti — 3 hours
     ("hairbrush-decor", "Hairbrush Decoration", 400, False),
     ("photoframe-decor", "Photo Frame Decoration", 400, False),
     ("mirror-decor", "Mirror Decoration", 750, False),
@@ -548,6 +549,7 @@ SPY_ACTIVITY_IDS = {"a26", "a27", "a28", "spy-mission"}
 # station. builder.html carries the same text in that activity's `req`.
 ACTIVITY_VENUE_NOTES = {
     "play-area": "Needs a minimum of 15 × 15 ft of open space.",   # 2026-10-05, per Shruti
+    "karaoke": "Includes Music Plus setup (2 speakers, 1 mixer, 1 operator), 1 projector, 1 screen with stand and 1 projector operator · 3 hours. Needs 3 tables for the setup, plug points and space to put the screen.",   # 2026-10-23
     "popcorn": "Needs a spacious, well-ventilated venue — the popcorn machine gives off heat and some smoke, so it isn't suitable for a home setup.",
 }
 
@@ -843,6 +845,7 @@ ACTIVITY_IMAGES = {
     "rock-painting": "img/activity/act-rock-painting.jpg",
     "movie-party": "img/activity/act-movie-party.jpg",
     "projector": "img/activity/act-projector.jpg",
+    "karaoke": "img/activity/act-karaoke.jpg",
     "mascot": "img/activity/act-mascots.jpg",
     "jelly-swimbags": "img/activity/act-jelly-tote-bag.jpg",
     "hairbrush-decor": "img/act-hairbrush-decor.jpg",

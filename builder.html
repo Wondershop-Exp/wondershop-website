@@ -3343,6 +3343,8 @@ const ACTS=[
   // 2026-10-23, per Shruti — Movie Party (price on request) and a Projector (flat Rs 2,500).
   {id:'movie-party',n:'Movie Party',e:'🎬',img:'activity/act-movie-party',realImg:true,cat:'experience',age:'3-14',dur:'As per the movie',req:'Seating on the floor or on chairs — as you prefer · power point',r1:0,r2:0,r3:0,flat:true,por:true,bgs:['linear-gradient(135deg,#374151,#5B8EDD)'],tag:'new',pers:false,rating:4.8,cnt:1},
   {id:'projector',n:'Projector',e:'📽️',img:'activity/act-projector',realImg:true,cat:'experience',age:'3-14',dur:'Throughout the party',req:'Screen with stand included · needs a power point, a stool/table for the projector and a laptop to connect for display',r1:2500,r2:2500,r3:2500,flat:true,bgs:['linear-gradient(135deg,#374151,#6B7280)'],tag:'new',pers:false,rating:4.7,cnt:1},
+  // 2026-10-23, per Shruti — Karaoke (flat Rs 15,000, 3 hours). incl = what's included (shown on the card).
+  {id:'karaoke',n:'Karaoke',e:'🎤',img:'activity/act-karaoke',realImg:true,cat:'experience',age:'5-14',dur:'3 hours',req:'3 tables for the setup · plug points · space to put the screen',incl:'Music Plus setup (2 speakers, 1 mixer, 1 operator), 1 projector, 1 screen with stand, 1 operator for the projector',r1:15000,r2:15000,r3:15000,flat:true,bgs:['linear-gradient(135deg,#E65A96,#5B8EDD)'],tag:'new',pers:false,rating:4.8,cnt:1},
   {id:'spy-badge',n:'MDF Spy Badge',e:'🕵️',img:'packages/spy/spy-badge-mdf-sq',realImg:true,cat:'mystery',age:'5-14',dur:'15-20 min',req:'Tables & chairs (arranged by client)',r1:9000,r2:9000,r3:9000,flat:true,banded:true,bgs:['linear-gradient(135deg,#374151,#5B8EDD)'],tag:'new',pers:true,rating:4.7,cnt:1},
   {id:'snatch-game',n:'Snatch Game',e:'🎯',img:'activity/act-snatch-game',realImg:true,cat:'carnival',age:'5-14',dur:'Throughout the party',req:'A table-top stall with power point nearby',r1:13000,r2:13000,r3:13000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
   {id:'street-fighter',n:'Street Fighter',e:'🕹️',img:'activity/act-street-fighter',realImg:true,cat:'carnival',age:'5-14',dur:'Throughout the party',req:'A table-top stall with power point nearby',r1:13000,r2:13000,r3:13000,flat:true,bgs:['linear-gradient(135deg,#F2D147,#E65A96)'],tag:'new',pers:false,rating:4.7,cnt:1},
@@ -4911,7 +4913,7 @@ function renderActs(list){
       ? ('<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:13px">₹'+fb.wasP.toLocaleString('en-IN')+'</s>'+(fb.price>0?('₹'+fb.price.toLocaleString('en-IN')):'<img src="img/icons/icon-free-gift.png" alt="Free" style="height:1em;vertical-align:-0.15em">'))
       : ((a.wasP&&a.wasP>tot)?'<s style="color:var(--gy);font-weight:500;margin-right:6px;font-size:13px">₹'+a.wasP.toLocaleString('en-IN')+'</s>₹'+tot.toLocaleString('en-IN'):'₹'+tot.toLocaleString('en-IN'));
     const priceHtmlF=isPOR(a)?'<span style="font-size:15px">Price on request</span>':priceHtml;
-    const fieldsHtml='👶 Suitable for: Ages '+a.age+'<br>📦 Packaging: '+(a.pers?'Included':'Not applicable')+'<br>🎨 Personalization Possible: '+(a.pers?'Yes':'No');
+    const fieldsHtml=(a.incl?'✅ Includes: '+a.incl+'<br>':'')+'👶 Suitable for: Ages '+a.age+'<br>📦 Packaging: '+(a.pers?'Included':'Not applicable')+'<br>🎨 Personalization Possible: '+(a.pers?'Yes':'No');
     // Most activities are still on the emoji/gradient fallback (see
     // .caro-fallback) until fresh photography comes in — only entries
     // flagged realImg have an actual confirmed photo to show.
