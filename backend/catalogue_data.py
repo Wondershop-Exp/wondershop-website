@@ -33,7 +33,7 @@ DECOR_TIER_META = {
             # DECOR_TIER_META.
             ("Happy Birthday & Age", "Paper bunting (HBD), foil balloon (age)", False),
             ("Name on Bunting", "Not included — add for ₹200", True),
-            ("Cutouts", "Not included", True),
+            ("Cutouts", "Not included — no cutouts with Classic decor", True),
             ("Welcome Decor", "Not included", True),
             ("Cake Table", "Not included", True),
             ("Decor Width", "5-6 ft", False),
@@ -163,7 +163,7 @@ THEMES = [
     # Sustainable LED Decor (2026-10-08, per Shruti) — works with any theme
     # (anyTheme: not offered as a party theme); its own inclusions replace
     # the shared Signature spec. Mirrors builder.html.
-    {"id": "ledscreen", "n": "Sustainable LED Decor", "b": "As per theme", "anyTheme": True,
+    {"id": "ledscreen", "n": "Sustainable LED Decor", "b": "As per theme", "anyTheme": True, "tag": "New Launch",
      "tierPhotos": {"Signature": "Decor/decor-sustainable-led-signature.jpg"},
      "tierOverrides": {"Signature": {"price": 30000, "spec": [
          ("Backdrop", "6 × 6 ft LED screen mounted on a platform — your theme & the birthday child's name on screen", False),
@@ -985,9 +985,9 @@ def _excl(label, value):
     return f"{label}: {v}"
 
 
-def _option_dict(oid, name, theme_name, tier, price, photos, spec):
+def _option_dict(oid, name, theme_name, tier, price, photos, spec, tag=None):
     return {
-        "id": oid, "name": name, "theme": theme_name, "tier": tier, "price": price,
+        "id": oid, "name": name, "theme": theme_name, "tier": tier, "price": price, "tag": tag,
         "image": photos[0] if photos else None, "photos": photos,
         "included": [f"{l}: {v}" for l, v, na in spec if not na and not l.lower().startswith("needed from you")],
         "needed": [v for l, v, na in spec if l.lower().startswith("needed from you")],
@@ -1007,7 +1007,7 @@ def decor_options() -> list:
             photos = [f"img/{photo}"] + [f"img/{x}" for x in (t.get("tierExtraPhotos") or {}).get(tier, [])]
             out.append(_option_dict(f"{t['id']}-{tier.lower()}", f"{t['n']} — {tier}", t["n"], tier,
                                     ov.get("price", DECOR_TIER_META[tier]["price"]), photos,
-                                    _spec_for(t["n"], tier, colors=_extract_colors(t["b"]), theme=t)))
+                                    _spec_for(t["n"], tier, colors=_extract_colors(t["b"]), theme=t), tag=t.get("tag")))
     for tier in _TIER_ORDER:
         if tier in STD_META:
             out.append(_option_dict(f"std-{tier.lower()}", f"Standard — {_STD_NAMES[tier]}", None, tier,

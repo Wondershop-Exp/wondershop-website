@@ -165,7 +165,7 @@ def _build_catalogue() -> dict:
     decor_themes = [{"id": t["id"], "name": t["n"]} for t in THEMES]
     # Decor options to show the client side by side (2026-10-08).
     from catalogue_data import decor_options as _decor_options
-    decor_option_list = [{"id": x["id"], "name": x["name"], "price": x["price"], "tier": x["tier"], "theme": x["theme"]} for x in _decor_options()]
+    decor_option_list = [{"id": x["id"], "name": x["name"], "price": x["price"], "tier": x["tier"], "theme": x["theme"], "tag": x.get("tag")} for x in _decor_options()]
     # Host: no tier dropdown anymore (Shruti — "remove dropdown, just keep
     # cost") — reference prices are still sent for the hint text next to
     # the free-entry cost field.

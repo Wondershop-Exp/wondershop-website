@@ -2323,7 +2323,7 @@ function decorOptionsHtml(){
   const chips = ids.map((id,i)=>{
     const o = all.find(x=>x.id===id);
     const q = decorOptQuote(id);
-    return '<div class="dopt-chip"><span><b>Option '+(i+1)+':</b> '+esc(o?o.name:id)+(o?' <span class="dopt-ref">list '+money(o.price)+'</span>':'')+'</span>'
+    return '<div class="dopt-chip"><span><b>Option '+(i+1)+':</b> '+esc(o?o.name:id)+(o&&o.tag?' <span class="dopt-ref" style="color:#1A7F4B;font-weight:700">'+esc(o.tag)+'</span>':'')+(o?' <span class="dopt-ref">list '+money(o.price)+'</span>':'')+'</span>'
       + '<span class="dopt-q"><label>Sales Quote (₹)<input type="number" min="0" step="1" value="'+(q==null?(o?o.price:''):q)+'" onblur="setDecorOptQuote(\''+esc(id)+'\', this.value)"></label>'
       + '<button type="button" class="icon-btn" title="Remove" onclick="removeDecorOption(\''+esc(id)+'\')">✕</button></span></div>';
   }).join('');

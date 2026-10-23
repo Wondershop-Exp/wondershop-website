@@ -72,7 +72,7 @@ function card(o, i){
     ? '<div class="thumbs">' + o.photos.map((p,k)=>'<img src="'+esc(p)+'" alt="" class="'+(k?'':'on')+'" onclick="pick(this)">').join('') + '</div>' : '';
   const list = (arr, cls) => arr.length ? '<ul>'+arr.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>' : '<div class="none">'+(cls==='exc'?'Nothing — it\'s all included.':'—')+'</div>';
   return '<div class="opt"><div class="photo"><img src="'+esc(o.image)+'" alt="'+esc(o.name)+'" loading="'+(i?'lazy':'eager')+'"></div>' + thumbs
-    + '<div class="body"><div class="hd"><div><div class="num">Option '+(i+1)+'</div><div class="name">'+esc(o.name)+'</div><span class="tier">'+esc(o.tier)+'</span></div>'
+    + '<div class="body"><div class="hd"><div><div class="num">Option '+(i+1)+'</div><div class="name">'+esc(o.name)+'</div><span class="tier">'+esc(o.tier)+'</span>'+(o.tag?' <span class="tier" style="background:#E6F6EC;color:#1A7F4B">'+esc(o.tag)+'</span>':'')+'</div>'
     + '<div class="price">'+(o.quote!=null && o.quote<o.price ? '<s class="was">'+inr(o.price)+'</s>' : '')+inr(o.quote!=null ? o.quote : o.price)+'</div></div>'
     + '<div class="cols"><div class="inc"><h3>Included</h3>'+list(o.included,'inc')+'</div>'
     + '<div class="exc"><h3>Not included</h3>'+list(o.excluded,'exc')+'</div></div>'
