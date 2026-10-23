@@ -134,6 +134,8 @@ THEMES = [
     {"id": "stitch", "n": "Lilo & Stitch", "b": "150 (Blue, Turquoise, White)",
      "tierPhotos": {"Premium": "Decor/decor-stitch-1panel.jpg"},
      "tierOverrides": {"Premium": {"price": 18000}}},
+    {"id": "lego", "n": "Lego", "b": "200 (Red, Yellow, Blue, Green)",   # 2026-10-23, per Shruti
+     "tierPhotos": {"Premium": "Decor/decor-lego-1panel.jpg", "Luxury": "Decor/decor-lego-2panel.jpg"}},
     {"id": "anime", "n": "Anime", "b": "200 (Navy, Blue, Yellow, Red)",   # 2026-10-22, per Shruti
      "tierPhotos": {"Premium": "Decor/decor-anime-1panel.jpg"}},
     {"id": "malgudi", "n": "Malgudi Days", "b": "180 (mixed colours)",
@@ -471,6 +473,8 @@ ACTIVITIES = [
     ("jelly-swimbags", "Personalized Jelly Tote Bags", 450, False),
     ("bracelet", "Bracelet Making", 350, False),   # min bill Rs 5,000
     ("rock-painting", "Rock Painting", 500, False),   # min bill Rs 5,000 (2026-10-17, per Shruti)
+    ("movie-party", "Movie Party", 0, True),   # price on request (2026-10-23, per Shruti)
+    ("projector", "Projector", 2500, True),    # 2026-10-23, per Shruti
     ("hairbrush-decor", "Hairbrush Decoration", 400, False),
     ("photoframe-decor", "Photo Frame Decoration", 400, False),
     ("mirror-decor", "Mirror Decoration", 750, False),
@@ -838,6 +842,7 @@ ACTIVITY_IMAGES = {
     "a25": "img/activity/act-colouring-station.jpg",
     "slime": "img/activity/act-slime.jpg",
     "rock-painting": "img/activity/act-rock-painting.jpg",
+    "movie-party": "img/activity/act-movie-party.jpg",
     "mascot": "img/activity/act-mascots.jpg",
     "jelly-swimbags": "img/activity/act-jelly-tote-bag.jpg",
     "hairbrush-decor": "img/act-hairbrush-decor.jpg",
