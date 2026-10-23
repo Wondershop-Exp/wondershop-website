@@ -355,7 +355,7 @@ def _build_decor_options():
     opts = []
     for theme in cat.THEMES:
         for tier in theme["tierPhotos"].keys():
-            price = cat.DECOR_TIER_META[tier]["price"]
+            price = ((theme.get("tierOverrides") or {}).get(tier) or {}).get("price", cat.DECOR_TIER_META[tier]["price"])
             value = f'{theme["n"]} - {tier}'
             opts.append(_opt(value, f'{value} - Rs. {price}'))
     for tier, std_name in _STD_DECOR_NAMES.items():
