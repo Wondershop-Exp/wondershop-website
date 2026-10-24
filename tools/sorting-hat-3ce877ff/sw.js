@@ -1,6 +1,8 @@
 // Sorting Hat offline cache. Bump VERSION when index.html changes.
-const VERSION = "sh-v5";
-const CORE = ["./", "index.html", "manifest.json", "icon.png"];
+const VERSION = "sh-v8";
+const CORE = ["./", "index.html", "manifest.json", "icon.png", "hat.png",
+  "audio/gryffindor-1.m4a", "audio/gryffindor-2.m4a", "audio/hufflepuff-1.m4a", "audio/hufflepuff-2.m4a",
+  "audio/slytherin-1.m4a", "audio/slytherin-2.m4a", "audio/birthday-gryffindor.m4a", "audio/cheer.m4a"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
 });

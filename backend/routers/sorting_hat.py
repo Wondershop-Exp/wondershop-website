@@ -96,10 +96,21 @@ class Team(BaseModel):
     audio: List[int] = []
 
 
+class RosterKid(BaseModel):
+    name: str
+    team: int
+    bday: bool = False
+
+
 class Setup(BaseModel):
     teams: List[Team]
     ask_names: bool = False
     kids: int = 0
+    # 2026-10-24, per Shruti — "in some cases, the houses might already be
+    # allocated ... please assign the houses we pre-feed". The tablet then
+    # picks the child's name and the ceremony announces their own house.
+    preassigned: bool = False
+    roster: List[RosterKid] = []
 
 
 @router.post("/admin/sorting-hat/{lead_id}")
@@ -110,7 +121,12 @@ async def admin_save(lead_id: int, body: Setup, x_admin_password: Optional[str] 
         raise HTTPException(400, "Codes can only be made for confirmed bookings.")
     if not 2 <= len(body.teams) <= 8:
         raise HTTPException(400, "Use 2 to 8 teams.")
-    cfg = {"teams": [t.dict() for t in body.teams], "ask_names": body.ask_names, "kids": body.kids}
+    if body.preassigned:
+        if not body.roster or any(not 0 <= k.team < len(body.teams) for k in body.roster):
+            raise HTTPException(400, "Every child in the list needs one of the teams.")
+    cfg = {"teams": [t.dict() for t in body.teams], "ask_names": body.ask_names, "kids": body.kids,
+           "preassigned": body.preassigned,
+           "roster": [{"name": k.name.strip()[:60], "team": k.team, "bday": k.bday} for k in body.roster] if body.preassigned else []}
     ev = await database.fetch_one("SELECT code FROM sorting_hat_events WHERE lead_id=:id", values={"id": lead_id})
     if ev:
         await database.execute("UPDATE sorting_hat_events SET config=CAST(:c AS JSONB), updated_at=NOW() WHERE lead_id=:id",

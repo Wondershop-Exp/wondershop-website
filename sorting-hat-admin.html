@@ -57,7 +57,17 @@ table{width:100%;border-collapse:collapse;font-size:15px}td,th{padding:6px;borde
 
     <div class="card">
       <h2>Teams</h2>
-      <div class="row">
+      <div class="row" style="margin-bottom:12px;gap:18px">
+        <label style="display:flex;gap:6px;align-items:center;font-size:16px"><input type="radio" name="mode" id="modeRandom" style="width:auto;margin:0" checked>The Hat decides (random)</label>
+        <label style="display:flex;gap:6px;align-items:center;font-size:16px"><input type="radio" name="mode" id="modePre" style="width:auto;margin:0">Houses already decided</label>
+      </div>
+      <div id="rosterBox" class="hidden" style="margin-bottom:12px">
+        <label>Paste the children, one per line: <b>Name, House</b>. Put a <b>*</b> before the birthday child.
+          <textarea id="roster" rows="8" style="width:100%;margin-top:4px;padding:9px 10px;font:inherit;font-size:15px;border:1px solid #a88a4a;border-radius:4px;background:#fbf5e2" placeholder="*Rene Sigler, Gryffindor&#10;Maira, Slytherin&#10;Ishani Jain, Ravenclaw"></textarea></label>
+        <p style="font-size:13px;margin:4px 0 0">You can paste straight from the i-card roster (CSV) too; extra columns are ignored. Team places are counted from this list.</p>
+        <div id="rosterMsg"></div>
+      </div>
+      <div class="row" id="randomBits">
         <label style="width:150px">Number of children<input id="kids" type="number" min="1"></label>
         <label style="width:130px">Number of teams<input id="nteams" type="number" min="2" max="8"></label>
         <button class="btn small ghost" id="split" style="margin-top:18px">Split evenly</button>
@@ -65,8 +75,8 @@ table{width:100%;border-collapse:collapse;font-size:15px}td,th{padding:6px;borde
       </div>
       <p style="font-size:13px;margin:8px 0 0">Number of children comes from the booking; change it here if the guest list changed. It's only used for this setup.</p>
       <div id="teams"></div>
-      <label style="margin-top:14px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="askNames" style="width:auto;margin:0">Volunteer types each child's name before sorting (names are saved in the split)</label>
-      <p style="font-size:13px;margin:10px 0 0">Audio: up to 2 clips per team (mp3, m4a, wav · under 7 MB). One plays at random at each sorting. With no clip, the Hat says the team name in its own voice.</p>
+      <label id="askNamesRow" style="margin-top:14px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="askNames" style="width:auto;margin:0">Volunteer types each child's name before sorting (shows on the reveal and in the tablet's log)</label>
+      <p style="font-size:13px;margin:10px 0 0"><b>Audio:</b> Gryffindor, Hufflepuff and Slytherin use Wondershop's built-in Sorting Hat recordings automatically (2 each), and the birthday child gets the special birthday recording when they're in Gryffindor. Upload clips here only to replace them for this party (mp3, m4a, wav · under 7 MB). A team with no recording gets a cheer when it's revealed; the Hat never uses a computer voice.</p>
       <div class="row" style="margin-top:16px;justify-content:center"><button class="btn big" id="save">Save setup</button></div>
       <div id="saveMsg" style="text-align:center;margin-top:8px"></div>
     </div>
@@ -84,7 +94,10 @@ table{width:100%;border-collapse:collapse;font-size:15px}td,th{padding:6px;borde
 <script>
 const API="https://wondershop-website-production.up.railway.app";
 const APP_URL=location.origin+"/tools/sorting-hat-3ce877ff/";
-const PALETTE=[["Emberclaw","#ae0001"],["Tidewing","#1f4fa3"],["Thornmoss","#2a623d"],["Goldmane","#e0a800"],["Nightveil","#5b2a86"],["Stoneheart","#6b6b6b"],["Dawnfire","#d9620f"],["Frostfang","#3fa7c4"]];
+const PALETTE=[["Gryffindor","#7f0909"],["Hufflepuff","#e3a813"],["Ravenclaw","#1f3a93"],["Slytherin","#1a6b38"],["Team 5","#5b2a86"],["Team 6","#6b6b6b"],["Team 7","#d9620f"],["Team 8","#3fa7c4"]];
+const HOUSE_ORDER=["gryffindor","hufflepuff","ravenclaw","slytherin"];
+function houseKey(n){const s=String(n||"").toLowerCase().replace(/[^a-z]/g,"");if(/^gr[iy]ff?[iy]n?dor/.test(s))return"gryffindor";if(/^huff?le?puff?/.test(s))return"hufflepuff";if(/^slyth/.test(s))return"slytherin";if(/^ravenc/.test(s))return"ravenclaw";return s}
+let roster=[];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function pw(){try{return localStorage.getItem("ws_admin_pw")||""}catch(e){return""}}
@@ -118,12 +131,38 @@ async function load(id){let j;try{j=await api("/api/admin/sorting-hat/"+id)}catc
   teams=cfg&&cfg.teams?cfg.teams.map(t=>({...t,audio:(t.audio||[]).filter(a=>audio.some(x=>x.id===a))})):[0,1,2,3].map(i=>({name:PALETTE[i][0],color:PALETTE[i][1],cap:0,audio:[]}));
   if(!cfg&&b.kids_count)evenSplit();
   $("#askNames").checked=!!(cfg&&cfg.ask_names);$("#nteams").value=teams.length;
-  $("#main").classList.remove("hidden");renderCode();renderTeams()}
+  roster=(cfg&&cfg.roster)||[];$("#modePre").checked=!!(cfg&&cfg.preassigned);$("#modeRandom").checked=!$("#modePre").checked;
+  $("#roster").value=roster.map(r=>(r.bday?"*":"")+r.name+", "+(teams[r.team]?teams[r.team].name:"")).join("\n");
+  $("#main").classList.remove("hidden");setMode();renderCode();renderTeams()}
+function isPre(){return $("#modePre").checked}
+function setMode(){const pre=isPre();$("#rosterBox").classList.toggle("hidden",!pre);$("#randomBits").classList.toggle("hidden",pre);$("#askNamesRow").classList.toggle("hidden",pre);if(pre)parseRoster();renderTeams()}
+$("#modePre").onchange=setMode;$("#modeRandom").onchange=setMode;
+function parseRoster(){const lines=$("#roster").value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);const bad=[],out=[];
+  const names=teams.map(t=>houseKey(t.name));
+  for(const line of lines){let cells=line.split(/\t|,/).map(c=>c.trim()).filter(c=>c!=="");if(!cells.length)continue;
+    if(/^card|^#|^name$/i.test(cells[0])&&/house|team/i.test(line))continue; // header row
+    // CSV from the i-card roster: Card#,House,Colour,Child,...  ->  find the cell that is a team name
+    let hi=cells.findIndex(c=>names.includes(houseKey(c))||HOUSE_ORDER.includes(houseKey(c)));
+    if(hi<0){bad.push(line);continue}
+    const house=cells[hi];let rest=cells.filter((c,i)=>i!==hi&&!/^\d+$/.test(c)&&!/^(red|green|blue|yellow|gold|silver)$/i.test(c)&&!/^(yes|no)$/i.test(c)&&!/photo|icon/i.test(c));
+    let name=(rest[0]||"").trim();let bday=false;if(/^[*🎂]/.test(name)){bday=true;name=name.replace(/^[*🎂\s]+/,"")}
+    if(!name){bad.push(line);continue}
+    let ti=teams.findIndex(t=>houseKey(t.name)===houseKey(house));
+    if(ti<0){const k=houseKey(house),p=PALETTE[HOUSE_ORDER.indexOf(k)]||PALETTE[teams.length%8];teams.push({name:p&&HOUSE_ORDER.includes(k)?p[0]:house,color:p?p[1]:"#777777",cap:0,audio:[]});ti=teams.length-1;names.push(houseKey(house))}
+    out.push({name:name.slice(0,60),team:ti,bday})}
+  // birthday child: if no * given, match the booking's child name
+  if(!out.some(r=>r.bday)&&cur&&cur.booking.child_names){const first=cur.booking.child_names.split(/[ ,&]/)[0].toLowerCase();const m=out.find(r=>r.name.toLowerCase().split(" ")[0]===first);if(m)m.bday=true}
+  // keep only teams that have children, in a stable order
+  const used=[...new Set(out.map(r=>r.team))].sort((a,b)=>a-b),map={};const nt=used.map((ti,i)=>{map[ti]=i;return teams[ti]});
+  out.forEach(r=>r.team=map[r.team]);if(out.length){teams=nt;teams.forEach((t,i)=>t.cap=out.filter(r=>r.team===i).length);$("#kids").value=out.length;$("#nteams").value=teams.length}
+  roster=out;const bd=out.find(r=>r.bday);
+  $("#rosterMsg").innerHTML=(out.length?`<p class="ok">✓ ${out.length} children: ${teams.map(t=>esc(t.name)+" "+t.cap).join(" · ")}${bd?` · 🎂 ${esc(bd.name)}`:" · no birthday child marked"}</p>`:"")+(bad.length?`<p class="warn">Couldn't read ${bad.length} line(s): ${bad.map(esc).join(" | ")}<br>Each line needs a name and a house.</p>`:"")}
+$("#roster").oninput=()=>{parseRoster();renderTeams()};
 function evenSplit(){const n=parseInt($("#kids").value)||0,k=teams.length;teams.forEach((t,i)=>t.cap=Math.floor(n/k)+(i<n%k?1:0))}
 $("#split").onclick=()=>{evenSplit();renderTeams()};
 $("#kids").oninput=capCheck;
 $("#nteams").onchange=e=>{const n=Math.min(8,Math.max(2,parseInt(e.target.value)||2));while(teams.length<n){const p=PALETTE[teams.length%8];teams.push({name:p[0],color:p[1],cap:0,audio:[]})}teams.length=n;e.target.value=n;renderTeams()};
-function capCheck(){const n=parseInt($("#kids").value)||0,s=teams.reduce((a,t)=>a+(+t.cap||0),0),m=$("#capMsg");
+function capCheck(){if(isPre()){const ok=roster.length>0;$("#capMsg").innerHTML="";return ok}const n=parseInt($("#kids").value)||0,s=teams.reduce((a,t)=>a+(+t.cap||0),0),m=$("#capMsg");
   m.innerHTML=!n?"":s===n?`<span class="ok">✓ ${s} of ${n} places</span>`:`<span class="warn">Places add up to ${s}, children = ${n}</span>`;return n&&s===n}
 function renderTeams(){const w=$("#teams");w.innerHTML="";
   teams.forEach((t,i)=>{const d=document.createElement("div");d.className="team";
@@ -131,14 +170,15 @@ function renderTeams(){const w=$("#teams");w.innerHTML="";
     <div>${t.audio.map(id=>{const a=audio.find(x=>x.id===id);return`<span class="chip">🔊 ${esc(a?a.name:"clip")}<button data-del="${id}" title="Remove">✕</button></span>`}).join("")}
     ${t.audio.length<2?`<label class="btn small" style="display:inline-block;margin-top:6px;color:#f5e8c8">+ Add audio<input type="file" accept="audio/*" class="hidden"></label>`:""}<span class="up"></span></div>`;
     d.querySelectorAll("input[data-k]").forEach(inp=>inp.oninput=()=>{const k=inp.dataset.k;t[k]=k==="cap"?Math.max(0,parseInt(inp.value)||0):inp.value;capCheck()});
+    if(isPre())d.querySelector('[data-k="cap"]').disabled=true;
     const f=d.querySelector("input[type=file]");if(f)f.onchange=async()=>{const file=f.files[0];if(!file)return;d.querySelector(".up").textContent=" Uploading…";
       const fd=new FormData();fd.append("file",file);try{const r=await api(`/api/admin/sorting-hat/${cur.booking.lead_id}/audio`,{method:"POST",body:fd});audio.push(r);t.audio.push(r.id);renderTeams();$("#saveMsg").innerHTML='<span class="warn">Audio added. Press Save setup to keep it.</span>'}catch(e){d.querySelector(".up").textContent=" "+e.message}};
     d.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{t.audio=t.audio.filter(x=>x!==+b.dataset.del);renderTeams();$("#saveMsg").innerHTML='<span class="warn">Press Save setup to apply.</span>'});
     w.appendChild(d)});capCheck()}
-$("#save").onclick=async()=>{if(!capCheck()){$("#saveMsg").innerHTML='<span class="warn">Team places must add up to the number of children.</span>';return}
+$("#save").onclick=async()=>{if(isPre())parseRoster();if(!capCheck()){$("#saveMsg").innerHTML=isPre()?'<span class="warn">Paste the list of children and their houses first.</span>':'<span class="warn">Team places must add up to the number of children.</span>';return}
   if(teams.some(t=>!t.name.trim())){$("#saveMsg").innerHTML='<span class="warn">Every team needs a name.</span>';return}
   const id=cur.booking.lead_id;$("#saveMsg").textContent="Saving…";
-  try{cur=await api("/api/admin/sorting-hat/"+id,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({teams:teams.map(t=>({name:t.name.trim(),color:t.color,cap:+t.cap,audio:t.audio})),ask_names:$("#askNames").checked,kids:+$("#kids").value})});
+  try{cur=await api("/api/admin/sorting-hat/"+id,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({teams:teams.map(t=>({name:t.name.trim(),color:t.color,cap:+t.cap,audio:t.audio})),ask_names:!isPre()&&$("#askNames").checked,kids:+$("#kids").value,preassigned:isPre(),roster:isPre()?roster:[]})});
     // remove clips no longer used by any team
     const used=new Set(teams.flatMap(t=>t.audio));for(const a of audio.filter(a=>!used.has(a.id)))await api(`/api/admin/sorting-hat/audio/${a.id}/remove`,{method:"POST"}).catch(()=>{});
     audio=audio.filter(a=>used.has(a.id));$("#saveMsg").innerHTML='<span class="ok">✓ Saved. A tablet that already loaded this event picks up changes the next time it opens the code online.</span>';renderCode()}
