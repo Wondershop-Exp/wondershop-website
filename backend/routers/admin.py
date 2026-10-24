@@ -65,7 +65,7 @@ from invoice_builder import assemble_invoice_data, build_invoice_pdf, invoice_fi
 from booking_pricing import (
     gifts_billed_separately, to_be_confirmed, tbc_state,
     compute_billing, compute_adjustments, freebie_activity_names, parse_csv as _parse_csv_names,
-    PACKAGING_KEY_TO_LABEL, PACKAGING_UNIT_PRICE, DJ_LIGHTS_PRICE, DJ_SMOKE_PRICE,
+    PACKAGING_KEY_TO_LABEL, PACKAGING_UNIT_PRICE, DJ_LIGHTS_PRICE, DJ_SMOKE_PRICE, DECOR_ADDONS,
     TAG_NOTE_UNIT_PRICE, TAG_NOTE_MIN_QTY, PINATA_BAG_PRICE, DECOR_PRICES, ACTIVITY_PRICES,
 )
 from routers.leads import (
@@ -232,6 +232,10 @@ FIELD_CATALOG = [
     # Add-ons
     {"key": "addon_dj_lights",       "label": "Music Lights",           "section": "Add-ons"},
     {"key": "addon_dj_smoke",        "label": "Music Smoke Machine",    "section": "Add-ons"},
+    # Decor add-ons (2026-10-24, per Shruti) — Rs 1,500 each.
+    {"key": "addon_decor_cake_table", "label": "Decor: Cake Table",     "section": "Add-ons"},
+    {"key": "addon_decor_age_light",  "label": "Decor: Age Light",      "section": "Add-ons"},
+    {"key": "addon_decor_cutouts",    "label": "Decor: Cutouts",        "section": "Add-ons"},
     {"key": "addon_gift_packaging",  "label": "Gift Packaging",         "section": "Add-ons"},
     {"key": "addon_gift_note",       "label": "Gift Thank-You Note",    "section": "Add-ons"},
     {"key": "addon_pinata_bags",     "label": "Piñata Bags",            "section": "Add-ons", "admin_only": True},
@@ -518,6 +522,7 @@ ADDON_PACKAGING_OPTIONS = [
 ADDON_PINATA_BAGS_OPTIONS = [_opt("Yes", f"Yes - Rs. {PINATA_BAG_PRICE}/bag"), _opt("No")]
 
 DROPDOWN_OPTIONS = {
+    **{k: [_opt("Yes", f"Yes - Rs. {p}"), _opt("No")] for k, _n, p in DECOR_ADDONS},   # decor add-ons (2026-10-24)
     "addon_dj_lights": ADDON_LIGHTS_OPTIONS,
     "addon_dj_smoke": ADDON_SMOKE_OPTIONS,
     "addon_gift_packaging": ADDON_PACKAGING_OPTIONS,
@@ -643,6 +648,12 @@ def _derive_original_value(key: str, lead: dict, snap: dict):
         parts = [f"{g.get('n')} x{g.get('qty')}" for g in gifts if g.get("n")]
         return ", ".join(parts) if parts else None
 
+    if key in {k for k, _n, _p in DECOR_ADDONS}:
+        name = next(n for k, n, _p in DECOR_ADDONS if k == key)
+        picked = {str(x.get("n")) for x in (snap.get("decor_addons") or []) if isinstance(x, dict)}
+        if name in picked:
+            return "Yes"
+        return "No" if snap.get("decor") else None
     if key == "addon_dj_lights":
         v = lead.get("dj_lights_addon")
         return None if v is None else ("Yes" if v else "No")
@@ -1998,6 +2009,11 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
         remark = f"{prefix} {d['customization']}" if d.get("customization") else None
         if decor_cc or remark:
             to_write.append(("svc_decor", decor_cc, remark))
+    # ── Decor add-ons (2026-10-24) — Cake Table / Age Light / Cutouts ──
+    picked_da = {str(a.get("name")) for a in (d.get("addons") or []) if isinstance(a, dict)}
+    for _key, _name, _p in DECOR_ADDONS:
+        if _key not in already and _name in picked_da:
+            to_write.append((_key, "Yes", None))
 
     # ── Activities (multi-select — comma-joined names, same as this page's
     # own multi-select Save). 2026-09-25, per Shruti — no more generic
@@ -2567,7 +2583,7 @@ async def _copy_sales_line_quotes(lead_id: int, who: str) -> None:
             k = _lk("Activity: " + str((it.get("activity") or {}).get("name") or it.get("label") or ""))
             if not it.get("flat") and it.get("qty") and int(it["qty"]) != int(pb["kids_count"] or 0):
                 out["kids:" + k] = int(it["qty"])
-        elif k == "music_addon":
+        elif k in ("music_addon", "decor_addon"):
             k = str(it.get("label") or "").strip().lower()
         else:
             k = _SALES_KEY_TO_LINE.get(k)

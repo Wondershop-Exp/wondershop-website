@@ -179,7 +179,11 @@ def assemble_order_form_data(req, lead_id: int, event_sales_lead: Optional[str],
         "payment_method_selected": _PAYMENT_METHOD_LABELS.get(req.payment_method or "", req.payment_method) or "—",
         "coupon_code": coupon or "—",
         "remarks": req.remarks or "—",
-        "decor_name": decor.get("n") or "—",
+        # Decor add-ons (2026-10-24) — so ops see them on the execution form.
+        "decor_name": (decor.get("n") or "—") + (
+            " + " + ", ".join(([] if not snap.get("decor_name_bunting_fee") else ["Name on Bunting"])
+                              + [str(x.get("n")) for x in (snap.get("decor_addons") or []) if isinstance(x, dict) and x.get("n")])
+            if (snap.get("decor_name_bunting_fee") or snap.get("decor_addons")) else ""),
         "host_tier": host.get("tier") or "—",
         "dj_tier": dj.get("tier") or "—",
         "dj_addons": ", ".join(dj_addon_bits) or "None",

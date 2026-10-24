@@ -74,6 +74,15 @@ TAG_NOTE_UNIT_PRICE = 10
 TAG_NOTE_MIN_QTY = 15
 DJ_LIGHTS_PRICE = 1500
 DJ_SMOKE_PRICE = 2000
+# Decor add-ons (2026-10-24, per Shruti) — Rs 1,500 each, offered on the
+# tiers that don't include them (builder.html DECOR_ADDONS). (field key,
+# name, price). Website orders carry them in builder_snapshot["decor_addons"].
+DECOR_ADDONS = [
+    ("addon_decor_cake_table", "Cake Table", 1500),
+    ("addon_decor_age_light", "Age Light", 1500),
+    ("addon_decor_cutouts", "Cutouts", 1500),
+]
+DECOR_ADDON_LABEL = "{} (decor add-on)"
 # 2026-09-22, per Shruti — Piñata Bags admin dropdown (Add-ons section):
 # flat per-bag rate, deliberately no MOQ/tiering ("don't add an MOQ, just
 # give per bag pricing"). Not yet priced into Total MRP below — the admin
@@ -252,6 +261,18 @@ def compute_adjustments(lead: dict, snap: dict, cur: dict, removed: set) -> dict
             add(sub, f"{label} added", price)
         elif was_on and not now_on:
             add(sub, f"{label} removed", -price)
+
+    # ── decor add-ons (2026-10-24) ──────────────────────────────────────────
+    was_decor = {str(x.get("n")) for x in (snap.get("decor_addons") or []) if isinstance(x, dict)}
+    for key, name, price in DECOR_ADDONS:
+        val = "No" if key in removed else cur.get(key)
+        if val not in ("Yes", "No"):
+            continue
+        now_on, was_on = val == "Yes", name in was_decor
+        if now_on and not was_on:
+            add(sub, f"{DECOR_ADDON_LABEL.format(name)} added", price)
+        elif was_on and not now_on:
+            add(sub, f"{DECOR_ADDON_LABEL.format(name)} removed", -price)
 
     # ── activities ────────────────────────────────────────────────────────
     orig_acts = {a["n"]: (money(a.get("p")) or 0.0) for a in (snap.get("activities") or []) if a.get("n")}
@@ -584,6 +605,9 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
         add("Music lights", DJ_LIGHTS_PRICE)
     if _resolved(cur, "addon_dj_smoke", removed) == "Yes":
         add("Smoke machine", DJ_SMOKE_PRICE)
+    for key, name, price in DECOR_ADDONS:
+        if _resolved(cur, key, removed) == "Yes":
+            add(DECOR_ADDON_LABEL.format(name), price)
 
     einvite = _resolved(cur, "svc_einvite", removed)
     if einvite and einvite != "No selection":

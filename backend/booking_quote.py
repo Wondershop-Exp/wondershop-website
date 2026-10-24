@@ -145,6 +145,10 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         _strike(lines, label, amt)
     for u in take_unpriced("Decor"):
         lines.append({"name": after(u), "details": [], "image": None, "price": None, "price_text": "To be confirmed"})
+    # Decor add-ons (2026-10-24): "Cake Table (decor add-on)" etc.
+    for nm in ("Cake Table", "Age Light", "Cutouts"):
+        for label, amt in take(nm + " (decor add-on)"):
+            lines.append({"name": f"Add-on: {nm}", "details": [], "image": None, "price": amt})
     add("Decor", lines)
 
     # 2. Activities

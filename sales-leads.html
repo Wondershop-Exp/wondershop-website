@@ -1555,6 +1555,7 @@ function listBreakdown(){
   const on = r => r.selected && r.selected !== 'No';
   const d = sel('decor');
   if(on(d) || num(d.cost)!==null) line('Decor'+(d.selected?': '+(d.theme_name?d.theme_name+' – ':'')+d.selected:''), d.cost, decorListPrice(d.theme_name, d.selected), {k:'req', key:'decor'});
+  (d.addons||[]).forEach((a,ai)=>{ if(a && a.name) line('Decor add-on: '+a.name, a.price, _catPrice(C.decor_addons,'name',a.name), {k:'daddon', i:ai}); });
   const h = sel('host');
   const spyBy = spyHostIncludedBy();
   if(num(h.cost)!==null){
@@ -1650,6 +1651,10 @@ function onLineQuote(n, value){
     const r = Object.assign({}, req(st.key));
     r.cost = v===null ? (i.noMrp ? null : i.mrp) : v;
     saveRequirement(st.key, r);
+  }else if(st.k==='daddon'){
+    const d = Object.assign({}, req('decor'));
+    d.addons = (d.addons||[]).map((a,ai)=> ai===st.i ? Object.assign({}, a, {price: v===null ? i.mrp : v}) : a);
+    saveRequirement('decor', d);
   }else if(st.k==='addon'){
     const m = Object.assign({}, req('music'));
     m.addons = (m.addons||[]).map((a,ai)=> ai===st.i ? Object.assign({}, a, {price: v===null ? i.mrp : v}) : a);
@@ -2268,6 +2273,7 @@ function reqDecorRow(){
     + '<select id="req_decor_sel" onchange="onDecorTierChange()">' + tierOpts + '</select>'
     + '<input type="number" id="req_decor_cost" placeholder="Sales Quote (₹)" title="Sales Quote (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'decor\')">'
     + '</div>'
+    + '<div id="decorAddonsBox">' + decorAddonsHtml(r) + '</div>'
     + custBox('decor', 'Customizations (colours, add-ons, special requests...)')
     + '<div id="decorRefBox"></div>'
     + '<div class="pick-row">'
@@ -2276,6 +2282,28 @@ function reqDecorRow(){
     + '</div>'
     + decorOptionsHtml()
     + '</div>';
+}
+// ── Decor add-ons (2026-10-24, per Shruti) — Cake Table / Age Light /
+// Cutouts, Rs 1,500 each. Offered for the tiers that don't include them
+// (CATALOGUE.decor_addons[].tiers); any tier / "Others" / no tier shows all.
+// Saved on requirements.decor.addons, like Music's add-ons.
+function decorAddonsHtml(r){
+  const all = CATALOGUE.decor_addons || [];
+  const picked = (r.addons||[]).map(a=>a.name);
+  const tierKnown = ['Classic','Premium','Luxury','Signature'].includes(r.selected);
+  const list = all.filter(a => !tierKnown || (a.tiers||[]).includes(r.selected) || picked.includes(a.name));
+  if(!list.length) return '';
+  return '<div style="margin-top:6px;font-size:12px;color:var(--gy)">Decor add-ons</div>' + list.map(a=>{
+    const on = picked.includes(a.name);
+    return '<label class="addon-row"><input type="checkbox" '+(on?'checked':'')+' onchange="onDecorAddonChange(\''+esc(a.name)+'\','+a.price+',this.checked)"> '+esc(a.name)+' ('+money(a.price)+')</label>';
+  }).join('');
+}
+async function onDecorAddonChange(name, price, checked){
+  const r = Object.assign({selected:null,cost:null,addons:[]}, req('decor'));
+  let addons = (r.addons||[]).filter(a=>a.name!==name);
+  if(checked) addons.push({name, price});
+  r.addons = addons;
+  await saveRequirement('decor', r);
 }
 // ── Decor options for the client (2026-10-08, per Shruti) ───────────────
 // "the salesteam needs to send multiple decor options in the sales quote ...
@@ -2388,6 +2416,8 @@ async function onDecorTierChange(){
   const costEl = document.getElementById('req_decor_cost');
   if(costEl) costEl.value = r.cost==null?'':r.cost;
   await saveRequirement('decor', r);
+  const dab = document.getElementById('decorAddonsBox');   // add-ons depend on the tier (2026-10-24)
+  if(dab) dab.innerHTML = decorAddonsHtml(r);
 }
 // List price of a decor: a named design's own price when it has one (e.g.
 // Sustainable LED Decor ₹30,000), else the tier's (2026-10-08).

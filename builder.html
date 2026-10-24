@@ -1775,8 +1775,8 @@ body.browse-mode .browse-cta{display:flex}
          syncDecorAddonsUI(). -->
     <div id="decorAddonsSec" style="display:none;margin-top:16px">
       <div class="sec-lbl" style="font-size:13px;margin-bottom:8px"><span class="dot"></span>Decor Add-ons</div>
-      <div style="font-size:12px;color:var(--gy);margin-bottom:8px">Classic decor's "Happy Birthday" bunting is generic — add your child's name to it for a small fee.</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div style="font-size:12px;color:var(--gy);margin-bottom:8px" id="decorAddonsNote">Add extras to your decor.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap" id="decorAddonBtns">
         <button class="pkg-btn" id="decorAddonNameBunting" onclick="toggleDecorNameBunting(this)">🏷️ Add Child's Name to Bunting<div style="font-size:10px;color:var(--gy)">₹200</div></button>
       </div>
     </div>
@@ -2785,19 +2785,19 @@ const DECOR_TIER_META=[
     // as standard, so this only applies at Classic tier.
     {l:'Happy Birthday & Age',v:'Paper bunting (HBD), foil balloon (age)'},
     {l:'Name on Bunting',v:'Not included — add for ₹200',na:true},
-    {l:'Cutouts',v:'Not included — no cutouts with Classic decor',na:true},{l:'Welcome Decor',v:'Not included',na:true},
-    {l:'Cake Table',v:'Not included',na:true},{l:'Decor Width',v:'5-6 ft'},
+    {l:'Cutouts',v:'Not included — add for ₹1,500',na:true},{l:'Welcome Decor',v:'Not included',na:true},
+    {l:'Cake Table',v:'Not included — add for ₹1,500',na:true},{l:'Age Light',v:'Not included — add for ₹1,500',na:true},{l:'Decor Width',v:'5-6 ft'},
   ]},
   {tier:'Premium',price:11000,spec:[
     {l:'Panels',v:'1 Flex based panel of dimensions Width = 5Ft and Height 7Ft'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'As per the reference image'},
     {l:'Happy Birthday and Name',v:'Printed on Flex'},{l:'Age',v:'Foil Balloon'},
     {l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},
-    {l:'Cake Table',v:'Not included',na:true},{l:'Welcome Board',v:'Not included',na:true},
-    {l:'Age Light',v:'Not included',na:true},{l:'Floor Flex',v:'Not included',na:true},{l:'Decor Width',v:'6-7Ft'},
+    {l:'Cake Table',v:'Not included — add for ₹1,500',na:true},{l:'Welcome Board',v:'Not included',na:true},
+    {l:'Age Light',v:'Not included — add for ₹1,500',na:true},{l:'Floor Flex',v:'Not included',na:true},{l:'Decor Width',v:'6-7Ft'},
   ]},
   {tier:'Luxury',price:18000,spec:[
     {l:'Panels',v:'2 flex based panels'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per the reference image'},
-    {l:'Happy Birthday, Name and Age',v:'Printed on Flex'},
+    {l:'Happy Birthday, Name and Age',v:'Printed on Flex, 3ft age light'},
     {l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},
     {l:'Cake Table',v:'1 Cylindrical Cake Table'},{l:'Decor Width',v:'8-9 ft'},
   ]},
@@ -2814,6 +2814,20 @@ const DECOR_TIER_META=[
 // shown when a Classic-tier decor is selected; S.decorAddons.nameBunting).
 // 2026-09-13, per Shruti.
 const NAME_BUNTING_PRICE=200;
+// Decor add-ons (2026-10-24, per Shruti): Cake Table / Age Light / Cutouts,
+// Rs 1,500 each — offered only on tiers that don't already include them
+// (Classic: all 3; Premium: cake table + age light; Luxury & Signature
+// include all three). S.decorAddons[key]. Mirrored server-side in
+// booking_pricing.DECOR_ADDONS and sales_leads.DECOR_ADDONS.
+const DECOR_ADDONS=[
+  {key:'cakeTable',n:'Cake Table',e:'🎂',p:1500,tiers:['classic','premium']},
+  {key:'ageLight',n:'Age Light',e:'💡',p:1500,tiers:['classic','premium']},
+  {key:'cutouts',n:'Cutouts',e:'✂️',p:1500,tiers:['classic']},
+];
+function decorTierKey(){const m=S.decor&&S.decor.id?/-(classic|premium|luxury|signature)$/.exec(S.decor.id):null;return m?m[1]:'';}
+function decorAddonsAvail(){const t=decorTierKey();return DECOR_ADDONS.filter(a=>a.tiers.includes(t));}
+function decorAddonsOn(){return decorAddonsAvail().filter(a=>S.decorAddons[a.key]);}
+function decorAddonsTotal(){return decorAddonsOn().reduce((t,a)=>t+a.p,0);}
 const THEMES=[
   {id:'uni',n:'Unicorn Magic',e:'🦄',bg:'linear-gradient(135deg,#F5C3D7,#EDE6FA)',age:'3-5',gn:'Girl',b:'150 (Pink, Purple, White)',s:'3 hrs',ni:'Tables, chairs',tag:'pop',tierPhotos:{Classic:'img/Decor/decor-uni-arch.jpg',Premium:'img/Decor/decor-uni-1panel.jpg',Luxury:'img/Decor/decor-uni-2panel.jpg',Signature:'img/Decor/decor-uni-3panel.jpg'}},
   {id:'jungle',n:'Jungle Safari',e:'🌴',bg:'linear-gradient(135deg,#52C470,#B7E0B8)',age:'3-8',gn:'Both',b:'200 (Green, Yellow, Orange)',s:'3.5 hrs',ni:'Tables, chairs, props',tag:'trend',tierPhotos:{Signature:'img/Decor/decor-jungle-3panel.jpg'}},
@@ -3617,6 +3631,7 @@ function cItems(){
   const items=[];
   if(S.decor)items.push({cat:'Decor',n:S.decor.n,p:S.decor.p,id:S.decor.id});
   if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)items.push({cat:'Addons',n:'Name on Bunting',p:NAME_BUNTING_PRICE,id:'decor-name-bunting'});
+  decorAddonsOn().forEach(a=>items.push({cat:'Addons',n:a.n,p:a.p,id:'decor-addon-'+a.key}));
   orderedActivities().forEach(a=>{
     const nm=a.id==='spy-mission'?(spyStationTier(S.kidsCount).stations+' Mission Stations ('+S.kidsCount+' kids)'):a.n;
     const rawPrice=actPrice(a,S.kidsCount);
@@ -3737,7 +3752,7 @@ function thumbFor(cat,id){
     if(id==='unicorn-tshirt')return e('👕');
     const g=GIFTS.find(x=>x.id===id);if(!g)return e('🎁');return g.img?{type:'img',src:'img/'+g.img}:e(g.e,g.bg);
   }
-  if(cat==='Addons'){if(id==='dj-lights')return e('💡');if(id==='dj-smoke')return e('💨');if(id==='decor-name-bunting')return e('🏷️');return e('🕵️');}
+  if(cat==='Addons'){if(id==='dj-lights')return e('💡');if(id==='dj-smoke')return e('💨');if(id==='decor-name-bunting')return e('🏷️');if(id.indexOf('decor-addon-')===0){const da=DECOR_ADDONS.find(x=>'decor-addon-'+x.key===id);return e(da?da.e:'🎈');}return e('🕵️');}
   return e('✨');
 }
 function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e');box.style.background='var(--li2)';box.textContent='✨';}
@@ -3755,7 +3770,7 @@ function rvImgErr(img){const box=img.parentElement;box.classList.add('rv-thumb-e
 function giftsSep(){return true;}
 function giftItemsTotal(){return S.gifts.reduce((s,g)=>s+g.unit*g.qty,0);}
 function giftBillTotal(){return giftsSep()?(giftItemsTotal()+packagingCost()+tagFee()):0;}
-function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)t+=NAME_BUNTING_PRICE;S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.djAddons.lights)t+=1500;if(S.djAddons.smoke)t+=2000;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p;if(!giftsSep())S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
+function rawNoInv(){let t=0;if(S.decor)t+=S.decor.p;if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)t+=NAME_BUNTING_PRICE;t+=decorAddonsTotal();S.activities.forEach(a=>t+=actPrice(a,S.kidsCount));if(S.host)t+=S.host.p;if(S.dj)t+=S.dj.p;if(S.djAddons.lights)t+=1500;if(S.djAddons.smoke)t+=2000;if(S.pinata)t+=S.pinata.p;if(S.photo)t+=S.photo.p;if(!giftsSep())S.gifts.forEach(g=>t+=g.unit*g.qty);S.spyExtras.forEach(x=>t+=x.p);return t;}
 function eventItems(){const its=cItems();return giftsSep()?its.filter(i=>i.cat!=='Return Gifts'):its;}
 function rawT(){return eventItems().reduce((s,i)=>s+i.p,0)}
 // 2026-08-18, per Shruti — "discounts should be very clearly called out,
@@ -4838,7 +4853,7 @@ function selDec(btn,id,n,p,themeId){
     const b=c.querySelector('.card-btn');
     if(b){b.classList.remove('added');b.textContent='Add';}
   });
-  S.decorAddons.nameBunting=false;
+  S.decorAddons.nameBunting=false;DECOR_ADDONS.forEach(a=>{S.decorAddons[a.key]=false;});
   if(wasSel){S.decor=null;S.theme='';}
   else{card.classList.add('sel');S.decor={id,n,p};S.theme=themeId||'';const b=card.querySelector('.card-btn');if(b){b.classList.add('added');b.textContent='✓ Added';}}
   syncDecorAddonsUI();
@@ -5115,10 +5130,25 @@ function syncDecorAddonsUI(){
   const sec=document.getElementById('decorAddonsSec');
   if(!sec)return;
   const isClassic=!!(S.decor&&S.decor.id&&S.decor.id.endsWith('-classic'));
-  sec.style.display=isClassic?'block':'none';
+  const avail=decorAddonsAvail();
+  sec.style.display=(isClassic||avail.length)?'block':'none';
   if(!isClassic)S.decorAddons.nameBunting=false;
+  // Clear any add-on the newly picked tier doesn't offer (or already includes).
+  DECOR_ADDONS.forEach(a=>{if(!avail.includes(a))S.decorAddons[a.key]=false;});
   const btn=document.getElementById('decorAddonNameBunting');
-  if(btn)btn.classList.toggle('on',!!S.decorAddons.nameBunting);
+  if(btn){btn.style.display=isClassic?'':'none';btn.classList.toggle('on',!!S.decorAddons.nameBunting);}
+  const wrap=document.getElementById('decorAddonBtns');
+  if(wrap){
+    wrap.querySelectorAll('.decor-addon-btn').forEach(b=>b.remove());
+    avail.forEach(a=>{
+      const b=document.createElement('button');b.type='button';b.className='pkg-btn decor-addon-btn'+(S.decorAddons[a.key]?' on':'');
+      b.innerHTML=a.e+' '+a.n+'<div style="font-size:10px;color:var(--gy)">₹'+a.p.toLocaleString('en-IN')+'</div>';
+      b.onclick=()=>{S.decorAddons[a.key]=!S.decorAddons[a.key];b.classList.toggle('on',!!S.decorAddons[a.key]);updBB(S.screen);};
+      wrap.appendChild(b);
+    });
+  }
+  const note=document.getElementById('decorAddonsNote');
+  if(note)note.textContent=isClassic?'Classic decor doesn\'t include these — add the ones you\'d like. The "Happy Birthday" bunting is generic; your child\'s name can be added too.':'Add a cake table or an age light to your decor.';
 }
 function syncDjAddonsDom(){const l=document.getElementById('djAddonLights');const s=document.getElementById('djAddonSmoke');if(l)l.classList.toggle('on',!!S.djAddons.lights);if(s)s.classList.toggle('on',!!S.djAddons.smoke);}
 
@@ -5563,7 +5593,7 @@ function rmRevItem(cat,id){
   else if(cat==='E-Invite')S.einvite=null;
   else if(cat==='Photographer'){S.photo=null;}
   else if(cat==='Return Gifts')S.gifts=S.gifts.filter(g=>g.id!==id);
-  else if(cat==='Addons'){if(id==='dj-lights')S.djAddons.lights=false;else if(id==='dj-smoke')S.djAddons.smoke=false;else if(id==='decor-name-bunting')S.decorAddons.nameBunting=false;else S.spyExtras=S.spyExtras.filter(x=>x.id!==id);}
+  else if(cat==='Addons'){if(id==='dj-lights')S.djAddons.lights=false;else if(id==='dj-smoke')S.djAddons.smoke=false;else if(id==='decor-name-bunting')S.decorAddons.nameBunting=false;else if(id.indexOf('decor-addon-')===0){S.decorAddons[id.slice(12)]=false;syncDecorAddonsUI();}else S.spyExtras=S.spyExtras.filter(x=>x.id!==id);}
   buildRev();
   updBB(S.screen);
 }
@@ -6365,6 +6395,7 @@ function buildSummaryText(){
   lines.push('--- Builder Selections ---');
   if(S.decor)lines.push('Decor: '+S.decor.n+' (₹'+S.decor.p.toLocaleString('en-IN')+')');
   if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)lines.push('Decor Add-on: Name on Bunting (₹'+NAME_BUNTING_PRICE.toLocaleString('en-IN')+')');
+  decorAddonsOn().forEach(a=>lines.push('Decor Add-on: '+a.n+' (₹'+a.p.toLocaleString('en-IN')+')'));
   if(S.activities.length)lines.push('Activities: '+S.activities.map(a=>a.n+(isPOR(a)?' (price on request)':'')).join(', '));
   if(S.host)lines.push('Host: '+S.host.tier+' (₹'+S.host.p.toLocaleString('en-IN')+')');
   if(S.dj)lines.push('Music: '+musicLabel(S.dj.tier)+' (₹'+S.dj.p.toLocaleString('en-IN')+')');
@@ -6547,6 +6578,8 @@ function buildSnapshot(){
       // server-side) so the invoice/confirmation email always matches what
       // was actually charged, even if this price changes later.
       decor_name_bunting_fee: (S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting) ? NAME_BUNTING_PRICE : null,
+      // Decor add-ons (2026-10-24): [{n:'Cake Table',p:1500}, ...] — already in estimated_total.
+      decor_addons: decorAddonsOn().map(a=>({n:a.n,p:a.p})),
       estimated_total: rawT(),
       pincode:     S.pincode,
       kids_count:  S.kidsCount,

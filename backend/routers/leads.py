@@ -1022,6 +1022,10 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
         name_bunting_fee = snap.get("decor_name_bunting_fee")
         if name_bunting_fee:
             decor_entry["addons"] = [{"name": "Name on Bunting", "price": name_bunting_fee}]
+        # Cake Table / Age Light / Cutouts (2026-10-24) — already in the order total.
+        for a in snap.get("decor_addons") or []:
+            if isinstance(a, dict) and a.get("n"):
+                decor_entry.setdefault("addons", []).append({"name": a.get("n"), "price": a.get("p")})
         out.append(decor_entry)
     else:
         out.append({"label": "Decor", "not_selected": True})

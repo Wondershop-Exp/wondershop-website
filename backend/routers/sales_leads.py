@@ -90,6 +90,12 @@ def _to_ts_ms(dt) -> Optional[float]:
 
 MUSIC_LABELS = {"Classic": "Music Essential", "Premium": "Music Plus"}
 MUSIC_ADDONS = [{"name": "Music Lights", "price": 1500}, {"name": "Smoke Machine", "price": 2000}]
+# Decor add-ons (2026-10-24, per Shruti) — Rs 1,500 each; "tiers" = the decor
+# tiers that don't already include them (mirrors builder.html DECOR_ADDONS and
+# booking_pricing.DECOR_ADDONS). Saved on requirements.decor.addons.
+DECOR_ADDONS = [{"name": "Cake Table", "price": 1500, "tiers": ["Classic", "Premium"]},
+                {"name": "Age Light", "price": 1500, "tiers": ["Classic", "Premium"]},
+                {"name": "Cutouts", "price": 1500, "tiers": ["Classic"]}]
 # Photographer tier cards in builder.html display "Classic Package" /
 # "Premium Package" / "Signature Package" — not the bare tier word.
 PHOTO_LABELS = {"Classic": "Classic Package", "Premium": "Premium Package", "Signature": "Signature Package"}
@@ -219,6 +225,7 @@ def _build_catalogue() -> dict:
                      "tier": SPY_INCLUDED_HOST_TIER},
         "music": music,
         "music_addons": MUSIC_ADDONS,
+        "decor_addons": DECOR_ADDONS,
         "photographer": photographer,
         "einvite_type": einvite_type,
         "save_the_date_price": SAVE_THE_DATE_PRICE,
@@ -522,6 +529,9 @@ def _list_breakdown(requirements: dict, activities: list, kids_count: Optional[i
         _own = next((o["price"] for o in _dopts() if o["theme"] and o["theme"] == (d.get("theme_name") or "").strip()
                      and o["tier"] == d.get("selected")), None)
         line("decor", "Decor", d.get("cost"), _own if _own is not None else cat_price(C["decor_tiers"], "name", d.get("selected")))
+    for a in d.get("addons") or []:   # decor add-ons (2026-10-24)
+        if a and a.get("name"):
+            line("decor_addon", a.get("name"), a.get("price"), cat_price(DECOR_ADDONS, "name", a.get("name")))
     h = sel("host")
     spy_by = spy_host_included_by(activities)
     if num(h.get("cost")) is not None:
@@ -1887,6 +1897,8 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
         if img and decor_image_is_reference(theme or None, tier):
             det.append(DECOR_REFERENCE_NOTE)
         lines.append(priced(it, name, det, img))
+    for it in by_key.get("decor_addon") or []:   # Cake Table / Age Light / Cutouts (2026-10-24)
+        lines.append(priced(it, f"Add-on: {it['label']}"))
     # Decor options to choose from (2026-10-08, per Shruti) — each with its
     # photo, price and inclusions; NOT in the Estimated Total (only the decor
     # picked above is). Link to decor-options.html for bigger photos.
@@ -2113,7 +2125,7 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
     add("Return Gifts", lines, billed_separately=True)
 
     # Anything else priced on the sheet (keys the page lists generically).
-    shown = {"decor", "activity", "host", "host_gifts", "music", "music_addon", "pinata_type", "pinata_bags",
+    shown = {"decor", "decor_addon", "activity", "host", "host_gifts", "music", "music_addon", "pinata_type", "pinata_bags",
              "cake", "photographer", "einvite_type", "save_the_date", "return_gifts", "packaging", "return_gift_tags"}
     others = [priced(it, it["label"]) for it in B["items"] if it["key"] not in shown]
     if others:
