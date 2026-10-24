@@ -277,7 +277,8 @@ $("#begin").onclick=()=>{
    when the house is called out, so the name appears on screen on that word. */
 const HOUSE_CLIPS={gryffindor:[["audio/gryffindor-1.m4a",3.0],["audio/gryffindor-2.m4a",3.8]],
   hufflepuff:[["audio/hufflepuff-1.m4a",2.6],["audio/hufflepuff-2.m4a",2.3]],
-  slytherin:[["audio/slytherin-1.m4a",2.5],["audio/slytherin-2.m4a",2.2]]};
+  slytherin:[["audio/slytherin-1.m4a",2.5],["audio/slytherin-2.m4a",2.2]],
+  ravenclaw:[["audio/ravenclaw-1.m4a",1.9],["audio/ravenclaw-2.m4a",0.2]]};
 const BDAY={house:"gryffindor",src:"audio/birthday-gryffindor.m4a",at:19.8}; // this recording calls out Gryffindor
 const CHEER="audio/cheer.m4a";   // for a team with no recording (e.g. Ravenclaw): cheer on the reveal
 function houseKey(n){const s=String(n||"").toLowerCase().replace(/[^a-z]/g,"");if(/^gr[iy]ff?[iy]n?dor/.test(s))return"gryffindor";if(/^huff?le?puff?/.test(s))return"hufflepuff";if(/^slyth/.test(s))return"slytherin";if(/^ravenc/.test(s))return"ravenclaw";return s}
