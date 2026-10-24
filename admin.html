@@ -652,6 +652,7 @@ body.role-sales .admin-only{display:none!important}
 .notes-card .ei-fld{margin-top:4px}
 @media(max-width:640px){.ei-grid{grid-template-columns:1fr}}
 .sugg-box{display:flex;flex-direction:column;gap:6px}
+.chip-ro{display:inline-block;padding:7px 13px;border-radius:20px;background:var(--li2);color:var(--plum);font-weight:700;font-size:12.5px;margin-right:6px}
 .sugg-head{font-size:12px;font-weight:700;color:#8A6A1E}
 .sugg-item{font-size:12.5px;background:#FFF7EC;border:1px solid #F3DFB0;color:#8A6A1E;border-radius:9px;padding:8px 11px}
 .sugg-item b{color:#5C4610}
@@ -5043,6 +5044,59 @@ async function saveDiscountRow(){
   }
 }
 
+// ── Decor add-ons as buttons under Decor (2026-10-24, per Shruti) ────────
+// Cake Table / Age Light / Cutouts (Rs 1,500 each) are the addon_decor_*
+// fields; offered for the tiers that don't include them (Classic: all 3,
+// Premium: cake table + age light). A tap saves Yes / No straight away.
+const DECOR_ADDON_UI = [
+  {key:'addon_decor_cake_table', n:'Cake Table', e:'🎂', tiers:['Classic','Premium']},
+  {key:'addon_decor_age_light',  n:'Age Light',  e:'💡', tiers:['Classic','Premium']},
+  {key:'addon_decor_cutouts',    n:'Cutouts',    e:'✂️', tiers:['Classic']},
+];
+function _decorAddonField(key){
+  for(const s of ((CURRENT_DETAIL && CURRENT_DETAIL.sections) || [])){
+    const f = (s.fields||[]).find(x=>x.field_key===key); if(f) return f;
+  }
+  return null;
+}
+function decorAddonChipsRow(locked){
+  if(!DECOR_ADDON_UI.some(a=>_decorAddonField(a.key))) return '';
+  const decor = _decorAddonField('svc_decor');
+  const dv = String((decor && !decor.removed && decor.customer_choice) || '');
+  const m = /\b(Classic|Premium|Luxury|Signature)\b/.exec(dv);
+  const tier = m ? m[1] : '';
+  const isOn = f => !!(f && !f.removed && f.customer_choice === 'Yes');
+  const chips = DECOR_ADDON_UI.map(a=>{
+    const f = _decorAddonField(a.key); if(!f) return '';
+    const on = isOn(f), offered = !tier || a.tiers.includes(tier);
+    if(!offered && !on) return '';
+    const label = (on?'✓ ':'+ ')+a.e+' '+a.n+' — ₹1,500'+(!offered?' · ⚠ included in '+tier+' — tap to remove':'');
+    if(locked) return on ? '<span class="chip-ro">'+esc(label.replace(/^✓ /,''))+'</span>' : '';
+    return '<button type="button" class="'+(on?'sel':'')+'" onclick="toggleDecorAddonField(\''+a.key+'\')">'+esc(label)+'</button>';
+  }).join('');
+  const note = (tier==='Luxury'||tier==='Signature') && !chips ? 'Cake table, age light &amp; cutouts are included with '+tier+' decor.' : (locked ? '' : 'Decor add-ons · ₹1,500 each · tap to add / remove');
+  if(!chips && !note) return '';
+  return '<tr class="sugg-tr decor-addons-tr"><td colspan="5"><div class="sugg-box">'
+    + (note ? '<div class="sugg-head" style="color:var(--gy);font-weight:600">'+note+'</div>' : '')
+    + (chips ? '<div class="chips">'+chips+'</div>' : '')
+    + '</div></td></tr>';
+}
+async function toggleDecorAddonField(key){
+  const f = _decorAddonField(key); if(!f) return;
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
+  if(document.querySelector('#sectionsContainer tr.dirty') && !confirm('You have unsaved edits on this page — they will be lost. Continue?')) return;
+  const on = !f.removed && f.customer_choice === 'Yes';
+  try{
+    const res = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {method:'POST', body: JSON.stringify({
+      field_key: key, customer_choice_override: on ? 'No' : 'Yes',   // 'No', not '' (blank = back to the original)
+      assigned_value: f.assigned_value || '', remarks: f.remarks || '', removed: false, changed_by: who})});
+    showToast(saveResultMessage(res));
+    await loadDetail();
+  }catch(e){
+    if(e.message!=='unauthorized') showToast('Save failed: '+e.message);
+  }
+}
 // Custom activities typed in the sales panel (not in the catalogue) — shown
 // right under Activities as the same yellow strip the sales page uses, so
 // whoever handles the booking knows they still need pricing/adding.
@@ -5433,6 +5487,11 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(f.field_key==='bill_discount_pct' || f.field_key==='bill_discount_value') return '';
   if(f.field_key==='bill_line_quotes') return '';
   if(f.field_key==='bill_discount_type') return discountRowHtml(f, locked);
+  // Decor add-ons (2026-10-24): shown as buttons under the Decor row, not as rows.
+  if(f.field_key.indexOf('addon_decor_')===0) return '';
+  if(f.field_key==='svc_decor' && !f._withAddons){
+    return fieldRowHtml(Object.assign({}, f, {_withAddons:true}), isCustEvent, locked) + decorAddonChipsRow(locked);
+  }
   if(f.field_key==='svc_activities' && !f._withReq){
     const base = fieldRowHtml(Object.assign({}, f, {_withReq:true}), isCustEvent, locked);
     const cards = '';   // 2026-10-12: quotes now sit on each activity row (mpRowsHtml)

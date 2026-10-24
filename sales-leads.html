@@ -2292,18 +2292,19 @@ function decorAddonsHtml(r){
   const picked = (r.addons||[]).map(a=>a.name);
   const tierKnown = ['Classic','Premium','Luxury','Signature'].includes(r.selected);
   const list = all.filter(a => !tierKnown || (a.tiers||[]).includes(r.selected) || picked.includes(a.name));
-  if(!list.length) return '';
-  return '<div style="margin-top:6px;font-size:12px;color:var(--gy)">Decor add-ons</div>' + list.map(a=>{
+  if(!list.length) return tierKnown ? '<div class="req-note" style="margin:8px 0 4px">Cake table, age light &amp; cutouts are included with '+esc(r.selected)+' decor.</div>' : '';
+  return '<div class="req-note" style="margin:8px 0 4px">Decor add-ons (₹1,500 each) — tap to add / remove</div><div class="chip-row">' + list.map(a=>{
     const on = picked.includes(a.name);
-    return '<label class="addon-row"><input type="checkbox" '+(on?'checked':'')+' onchange="onDecorAddonChange(\''+esc(a.name)+'\','+a.price+',this.checked)"> '+esc(a.name)+' ('+money(a.price)+')</label>';
-  }).join('');
+    const extra = tierKnown && !(a.tiers||[]).includes(r.selected) ? ' (included in '+esc(r.selected)+')' : '';
+    return '<button type="button" class="'+(on?'sel':'')+'" onclick="toggleDecorAddon(\''+esc(a.name)+'\','+a.price+')">'+(on?'✓ ':'+ ')+esc(a.name)+' — '+money(a.price)+extra+'</button>';
+  }).join('') + '</div>';
 }
-async function onDecorAddonChange(name, price, checked){
+async function toggleDecorAddon(name, price){
   const r = Object.assign({selected:null,cost:null,addons:[]}, req('decor'));
-  let addons = (r.addons||[]).filter(a=>a.name!==name);
-  if(checked) addons.push({name, price});
-  r.addons = addons;
+  const has = (r.addons||[]).some(a=>a.name===name);
+  r.addons = has ? (r.addons||[]).filter(a=>a.name!==name) : (r.addons||[]).concat([{name, price}]);
   await saveRequirement('decor', r);
+  renderDetail();
 }
 // ── Decor options for the client (2026-10-08, per Shruti) ───────────────
 // "the salesteam needs to send multiple decor options in the sales quote ...
@@ -2415,9 +2416,14 @@ async function onDecorTierChange(){
   }
   const costEl = document.getElementById('req_decor_cost');
   if(costEl) costEl.value = r.cost==null?'':r.cost;
+  // Drop add-ons the new tier already includes (2026-10-24).
+  const offered = (CATALOGUE.decor_addons||[]).filter(a=>(a.tiers||[]).includes(tierName)).map(a=>a.name);
+  if(['Classic','Premium','Luxury','Signature'].includes(tierName) && (r.addons||[]).length){
+    const dropped = r.addons.filter(a=>!offered.includes(a.name)).map(a=>a.name);
+    if(dropped.length){ r.addons = r.addons.filter(a=>offered.includes(a.name)); showToast('Removed '+dropped.join(', ')+' — included in '+tierName+' decor'); }
+  }
   await saveRequirement('decor', r);
-  const dab = document.getElementById('decorAddonsBox');   // add-ons depend on the tier (2026-10-24)
-  if(dab) dab.innerHTML = decorAddonsHtml(r);
+  renderDetail();
 }
 // List price of a decor: a named design's own price when it has one (e.g.
 // Sustainable LED Decor ₹30,000), else the tier's (2026-10-08).

@@ -524,6 +524,18 @@ body.browse-mode .browse-cta{display:flex}
 .cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .cards-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 @media(max-width:660px){.cards-grid{grid-template-columns:repeat(2,1fr)}}
+/* Decor add-ons panel (2026-10-24) — opens right under the selected decor card,
+   spanning the full row; "dense" lets the cards after it fill the row first. */
+#thCards,#stdCards{grid-auto-flow:row dense}
+.dec-addon-panel{grid-column:1/-1;background:#F7F2FF;border:1.5px solid var(--li2);border-radius:14px;padding:14px 16px}
+.dec-addon-panel .dap-h{font-family:var(--fd);font-weight:700;font-size:14px;color:var(--bk)}
+.dec-addon-panel .dap-s{font-size:12px;color:var(--gy);margin:3px 0 10px;line-height:1.5}
+.dec-addon-panel .dap-btns{display:flex;gap:10px;flex-wrap:wrap}
+.dap-pulse{animation:dapPulse 1.3s ease 1}
+@keyframes dapPulse{0%{box-shadow:0 0 0 0 rgba(132,85,221,.45)}100%{box-shadow:0 0 0 14px rgba(132,85,221,0)}}
+.rv-addchips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 0 2px;font-size:12px;color:var(--gy)}
+.rv-addchip{border:1.5px dashed var(--li);background:#fff;color:#5B3E96;border-radius:16px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb)}
+.rv-addchip:hover{background:var(--li3)}
 /* 2026-08-16, per Shruti: on phone, the 2-column card grid leaves each
    card too narrow for the price + Add/Added button to sit side by side
    (looked "very congested" on Activities & Pinata) — web is unaffected
@@ -1769,17 +1781,7 @@ body.browse-mode .browse-cta{display:flex}
       <div class="cards-grid" id="stdCards"></div>
     </div>
 
-    <!-- Decor Add-ons — only relevant for Classic tier, which doesn't
-         include the child's name on the "Happy Birthday" bunting by
-         default (2026-09-13, per Shruti). Hidden entirely otherwise; see
-         syncDecorAddonsUI(). -->
-    <div id="decorAddonsSec" style="display:none;margin-top:16px">
-      <div class="sec-lbl" style="font-size:13px;margin-bottom:8px"><span class="dot"></span>Decor Add-ons</div>
-      <div style="font-size:12px;color:var(--gy);margin-bottom:8px" id="decorAddonsNote">Add extras to your decor.</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap" id="decorAddonBtns">
-        <button class="pkg-btn" id="decorAddonNameBunting" onclick="toggleDecorNameBunting(this)">🏷️ Add Child's Name to Bunting<div style="font-size:10px;color:var(--gy)">₹200</div></button>
-      </div>
-    </div>
+    <!-- Decor add-ons now open in a panel right under the selected decor card (syncDecorAddonsUI, 2026-10-24). -->
   </div>
 </div>
 
@@ -3630,8 +3632,9 @@ function orderedActivities(){
 function cItems(){
   const items=[];
   if(S.decor)items.push({cat:'Decor',n:S.decor.n,p:S.decor.p,id:S.decor.id});
-  if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)items.push({cat:'Addons',n:'Name on Bunting',p:NAME_BUNTING_PRICE,id:'decor-name-bunting'});
-  decorAddonsOn().forEach(a=>items.push({cat:'Addons',n:a.n,p:a.p,id:'decor-addon-'+a.key}));
+  // Decor add-ons sit under Decor on the review page (2026-10-24).
+  decorAddonsOn().forEach(a=>items.push({cat:'Decor',n:a.n,p:a.p,id:'decor-addon-'+a.key}));
+  if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)items.push({cat:'Decor',n:'Name on Bunting',p:NAME_BUNTING_PRICE,id:'decor-name-bunting'});
   orderedActivities().forEach(a=>{
     const nm=a.id==='spy-mission'?(spyStationTier(S.kidsCount).stations+' Mission Stations ('+S.kidsCount+' kids)'):a.n;
     const rawPrice=actPrice(a,S.kidsCount);
@@ -3694,6 +3697,8 @@ function cItems(){
 // review-page line item so the customer gets a visual recap of their picks.
 function thumbFor(cat,id){
   const e=(ch,bg)=>({type:'e',e:ch,bg:bg||'var(--li2)'});
+  if(cat==='Decor'&&id==='decor-name-bunting')return e('🏷️');
+  if(cat==='Decor'&&id&&id.indexOf('decor-addon-')===0){const da=DECOR_ADDONS.find(x=>'decor-addon-'+x.key===id);return e(da?da.e:'🎈');}
   if(cat==='Decor'){
     // Only the 4 legacy package-page ids (spy-basic/p1/p2/sig) use this old
     // filename map — 2026-08-16 fix: this used to match ANY id starting
@@ -4008,7 +4013,7 @@ function goTo(id){
   if(id==='s9')buildRev();
   if(id==='s6'){chkFreeInv();buildInvs();}
   if(id==='s8')updTagNote();
-  if(id==='s1')syncDecorAddonsUI();
+  if(id==='s1')syncDecorAddonsUI(!!S.fromReview);
   if(id==='s3')syncHostDom();
   if(id==='s4')syncDjAddonsDom();
   if(id==='s2'){try{document.getElementById('kDisp2').textContent=S.kidsCount;}catch(e){}}
@@ -4686,7 +4691,7 @@ function buildDec(){
   if(dtBtns.length===2){if(S.decorType==='standard'){dtBtns[0].classList.remove('on');dtBtns[1].classList.add('on');document.getElementById('thSec').style.display='none';document.getElementById('stdSec').style.display='block';}else{dtBtns[0].classList.add('on');dtBtns[1].classList.remove('on');document.getElementById('thSec').style.display='block';document.getElementById('stdSec').style.display='none';}}
 }
 function showAllT(){decShowAll=true;buildDec();}
-function setDT(type,btn){S.decorType=type;document.querySelectorAll('#s1 .dt-tog .dt-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.getElementById('thSec').style.display=type==='themed'?'block':'none';document.getElementById('stdSec').style.display=type==='standard'?'block':'none';}
+function setDT(type,btn){S.decorType=type;document.querySelectorAll('#s1 .dt-tog .dt-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.getElementById('thSec').style.display=type==='themed'?'block':'none';document.getElementById('stdSec').style.display=type==='standard'?'block':'none';syncDecorAddonsUI();}
 // ── Decor filters: Theme / Gender / Age (2026-09-08, per Shruti) ──
 // Theme names use singular 'Girl' in one legacy entry (uni) and 'Girls'
 // elsewhere — normalize both to match either explicit filter value.
@@ -4856,7 +4861,7 @@ function selDec(btn,id,n,p,themeId){
   S.decorAddons.nameBunting=false;DECOR_ADDONS.forEach(a=>{S.decorAddons[a.key]=false;});
   if(wasSel){S.decor=null;S.theme='';}
   else{card.classList.add('sel');S.decor={id,n,p};S.theme=themeId||'';const b=card.querySelector('.card-btn');if(b){b.classList.add('added');b.textContent='✓ Added';}}
-  syncDecorAddonsUI();
+  syncDecorAddonsUI(!wasSel);
   buildActs();
   updBB(S.screen);
 }
@@ -5126,29 +5131,45 @@ function toggleDecorNameBunting(btn){S.decorAddons.nameBunting=!S.decorAddons.na
 // standard — ends in '-classic', see themeTierEntries()/STD above).
 // Clears the addon whenever it's hidden so switching away from Classic
 // can't silently leave a stale ₹200 charge in the cart.
-function syncDecorAddonsUI(){
-  const sec=document.getElementById('decorAddonsSec');
-  if(!sec)return;
-  const isClassic=!!(S.decor&&S.decor.id&&S.decor.id.endsWith('-classic'));
+function syncDecorAddonsUI(scroll){
+  document.querySelectorAll('.dec-addon-panel').forEach(x=>x.remove());
+  const tier=decorTierKey(), isClassic=tier==='classic';
   const avail=decorAddonsAvail();
-  sec.style.display=(isClassic||avail.length)?'block':'none';
   if(!isClassic)S.decorAddons.nameBunting=false;
-  // Clear any add-on the newly picked tier doesn't offer (or already includes).
+  // Clear any add-on the picked tier doesn't offer (or already includes).
   DECOR_ADDONS.forEach(a=>{if(!avail.includes(a))S.decorAddons[a.key]=false;});
-  const btn=document.getElementById('decorAddonNameBunting');
-  if(btn){btn.style.display=isClassic?'':'none';btn.classList.toggle('on',!!S.decorAddons.nameBunting);}
-  const wrap=document.getElementById('decorAddonBtns');
-  if(wrap){
-    wrap.querySelectorAll('.decor-addon-btn').forEach(b=>b.remove());
+  if(!S.decor||!tier)return;   // package decor (no tier) — no add-ons
+  const tierName=tier[0].toUpperCase()+tier.slice(1);
+  const panel=document.createElement('div');panel.className='dec-addon-panel';
+  if(!avail.length&&!isClassic){
+    panel.innerHTML='<div class="dap-s" style="margin:0">✓ Cake table, age light &amp; cutouts are already included with '+tierName+' decor.</div>';
+  }else{
+    panel.innerHTML='<div class="dap-h">✨ Make it extra special — add-ons for your '+tierName+' decor</div>'
+      +'<div class="dap-s">₹1,500 each · tap to add, tap again to remove'+(tier==='premium'?' · Cutouts are already included in Premium':'')+'</div><div class="dap-btns"></div>';
+    const wrap=panel.querySelector('.dap-btns');
     avail.forEach(a=>{
       const b=document.createElement('button');b.type='button';b.className='pkg-btn decor-addon-btn'+(S.decorAddons[a.key]?' on':'');
       b.innerHTML=a.e+' '+a.n+'<div style="font-size:10px;color:var(--gy)">₹'+a.p.toLocaleString('en-IN')+'</div>';
-      b.onclick=()=>{S.decorAddons[a.key]=!S.decorAddons[a.key];b.classList.toggle('on',!!S.decorAddons[a.key]);updBB(S.screen);};
+      b.onclick=ev=>{ev.stopPropagation();S.decorAddons[a.key]=!S.decorAddons[a.key];b.classList.toggle('on',!!S.decorAddons[a.key]);updBB(S.screen);};
       wrap.appendChild(b);
     });
+    if(isClassic){
+      const b=document.createElement('button');b.type='button';b.className='pkg-btn decor-addon-btn'+(S.decorAddons.nameBunting?' on':'');
+      b.innerHTML='🏷️ Child\'s name on bunting<div style="font-size:10px;color:var(--gy)">₹'+NAME_BUNTING_PRICE.toLocaleString('en-IN')+'</div>';
+      b.onclick=ev=>{ev.stopPropagation();toggleDecorNameBunting(b);};
+      wrap.appendChild(b);
+    }
   }
-  const note=document.getElementById('decorAddonsNote');
-  if(note)note.textContent=isClassic?'Classic decor doesn\'t include these — add the ones you\'d like. The "Happy Birthday" bunting is generic; your child\'s name can be added too.':'Add a cake table or an age light to your decor.';
+  // Right under the selected card; else at the top of the visible grid.
+  const thOn=(document.getElementById('thSec')||{style:{}}).style.display!=='none';
+  const grid=document.getElementById(thOn?'thCards':'stdCards');
+  const card=document.getElementById('dc-'+S.decor.id);
+  if(card&&grid&&grid.contains(card))card.after(panel);
+  else if(grid){
+    const h=document.createElement('div');h.className='dap-s';h.style.margin='0 0 6px';h.innerHTML='Your decor: <b></b>';h.querySelector('b').textContent=S.decor.n;
+    panel.prepend(h);grid.prepend(panel);
+  }
+  if(scroll){panel.classList.add('dap-pulse');setTimeout(()=>panel.scrollIntoView({block:'nearest',behavior:'smooth'}),60);}
 }
 function syncDjAddonsDom(){const l=document.getElementById('djAddonLights');const s=document.getElementById('djAddonSmoke');if(l)l.classList.toggle('on',!!S.djAddons.lights);if(s)s.classList.toggle('on',!!S.djAddons.smoke);}
 
@@ -5465,7 +5486,7 @@ function chgQty(id,unit,d){const g=S.gifts.find(g=>g.id===id);if(!g)return;g.qty
 // Thank-you note: flat ₹10/item, billed on the total no. of gift items
 // (min. 15 items charged even if fewer gifts are selected).
 function updTagNote(){const n=Math.max(15,S.gifts.reduce((s,g)=>s+g.qty,0));const t=n*10;const el=document.getElementById('tagPN');if(el)el.textContent='₹10/item · min. 15 items — ₹'+t.toLocaleString('en-IN')+' for '+n+' item'+(n===1?'':'s');}
-function selPkg(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('.pkg-btn').forEach(b=>b.classList.remove('on'));if(wasSel){S.packaging='';}else{btn.classList.add('on');S.packaging=val;}updBB(S.screen);}
+function selPkg(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('.pkg-btn[onclick^="selPkg"]').forEach(b=>b.classList.remove('on'));if(wasSel){S.packaging='';}else{btn.classList.add('on');S.packaging=val;}updBB(S.screen);}
 function selTag(btn,val){const wasSel=btn.classList.contains('on');document.querySelectorAll('#tagEx').forEach(b=>b.classList.remove('on'));if(wasSel){S.tagType='';}else{btn.classList.add('on');S.tagType=val;}updBB(S.screen);}
 
 // ── REVIEW ──
@@ -5507,6 +5528,12 @@ function buildRev(){
     // show as line items INSIDE the Return Gifts section itself (previously
     // buried as plain text rows in the separate "Return Gift Delivery" block
     // below, easy to miss next to the address/date fields).
+    // Decor add-ons not picked yet — add them right here (2026-10-24).
+    if(cat==='Decor'&&S.decor){
+      const opts=decorAddonsAvail().filter(a=>!S.decorAddons[a.key]).map(a=>[a.key,a.e+' '+a.n,a.p]);
+      if(S.decor.id.endsWith('-classic')&&!S.decorAddons.nameBunting)opts.push(['nameBunting','🏷️ Name on bunting',NAME_BUNTING_PRICE]);
+      if(opts.length)html+='<div class="rv-addchips"><span>Add to your decor:</span>'+opts.map(o=>'<button type="button" class="rv-addchip" onclick="addRevDecorAddon(\''+o[0]+'\')">+ '+o[1]+' ₹'+o[2].toLocaleString('en-IN')+'</button>').join('')+'</div>';
+    }
     if(cat==='Return Gifts'&&its){
       if(S.packaging){
         html+='<div class="rv-item"><span class="rv-item-name">📦 '+(PACKAGING_LABELS[S.packaging]||'')+'</span><span class="rv-item-price">₹'+packagingCost().toLocaleString('en-IN')+'</span></div>';
@@ -5585,7 +5612,15 @@ function buildRev(){
 // Remove a single selection directly from the Review page without having to
 // jump back into that step.
 function rmRevItem(cat,id){
-  if(cat==='Decor')S.decor=null;
+  if(cat==='Decor'){
+    if(id==='decor-name-bunting')S.decorAddons.nameBunting=false;
+    else if(id&&id.indexOf('decor-addon-')===0)S.decorAddons[id.slice(12)]=false;
+    else{
+      S.decor=null;S.theme='';S.decorAddons.nameBunting=false;DECOR_ADDONS.forEach(a=>{S.decorAddons[a.key]=false;});
+      document.querySelectorAll('#thCards .pcard.sel,#stdCards .pcard.sel').forEach(c=>{c.classList.remove('sel');const b=c.querySelector('.card-btn');if(b){b.classList.remove('added');b.textContent='Add';}});
+    }
+    syncDecorAddonsUI();
+  }
   else if(cat==='Activities'){S.activities=S.activities.filter(a=>a.id!==id);syncIncludedHost();}
   else if(cat==='Host')S.host=null;
   else if(cat==='DJ')S.dj=null;
@@ -5597,6 +5632,7 @@ function rmRevItem(cat,id){
   buildRev();
   updBB(S.screen);
 }
+function addRevDecorAddon(k){if(k==='nameBunting')S.decorAddons.nameBunting=true;else S.decorAddons[k]=true;syncDecorAddonsUI();buildRev();updBB(S.screen);}
 function editFR(sn){S.fromReview=true;goTo(SIDS[sn]);}
 
 // ── CHECKOUT ──
