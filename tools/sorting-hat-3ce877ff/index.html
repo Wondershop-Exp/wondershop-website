@@ -66,7 +66,7 @@ input[type=color]{padding:2px;height:42px}
 #hatWrap.talk img{animation:wobble .55s ease-in-out infinite}
 @keyframes bob{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-8px) rotate(1.5deg)}}
 @keyframes wobble{0%,100%{transform:rotate(-3deg) scaleY(1)}50%{transform:rotate(3deg) scaleY(1.04)}}
-.who{position:absolute;top:8.5vh;left:0;right:0;text-align:center;color:#f7ecd0;font-family:'Pinyon Script',cursive;font-size:clamp(22px,4.4vh,40px);text-shadow:0 2px 8px #000;z-index:1}
+.who{position:absolute;top:8.5vh;left:0;right:0;text-align:center;color:#f7ecd0;font-family:'IM Fell English',Georgia,serif;font-size:clamp(20px,3.6vh,34px);letter-spacing:.04em;text-shadow:0 2px 8px #000;z-index:1}
 #speech{position:absolute;top:63vh;left:5%;right:5%;text-align:center;font-style:italic;font-size:clamp(16px,2.7vh,26px);color:#f7ecd0;text-shadow:0 2px 6px #000,0 0 12px #000;transition:opacity .4s;z-index:1}
 #pad{position:absolute;top:68.5vh;left:50%;transform:translateX(-50%);width:21vh;min-width:150px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;touch-action:none;user-select:none;-webkit-user-select:none;z-index:2;
   background:radial-gradient(circle,rgba(12,8,4,.92) 0,rgba(12,8,4,.82) 62%,rgba(212,175,55,.12) 70%,transparent 72%)}
@@ -99,8 +99,7 @@ input[type=color]{padding:2px;height:42px}
 #reveal .kname{font-size:clamp(20px,3.6vw,34px);color:#fff;margin-top:14px;font-style:italic;text-shadow:0 2px 10px #000}
 #reveal .tname{font-family:'Pinyon Script',cursive;font-weight:400;font-size:clamp(64px,13vw,150px);color:#fff;line-height:1.05;text-shadow:0 0 30px var(--team),0 4px 0 rgba(0,0,0,.4),0 0 80px #fff6;animation:crestIn 1s .3s both}
 #reveal.house{background:#000;justify-content:flex-start;padding:0}
-#reveal .hbg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(22px) brightness(.75);transform:scale(1.15)}
-#reveal .himg{position:absolute;left:50%;top:0;height:100%;transform:translateX(-50%);animation:fadein 1s}
+#reveal .hbg{position:absolute;inset:0;background-size:cover;background-position:center;animation:fadein 1s}
 #reveal.house .kname{position:relative;margin-top:4vh;font-size:clamp(22px,4vh,40px);text-shadow:0 2px 10px #000,0 0 20px #000}
 #reveal.house .tap{position:absolute;bottom:3vh;left:0;right:0;text-shadow:0 2px 8px #000}
 #reveal .tap{margin-top:26px;color:#fff;opacity:.75;font-size:18px}
@@ -138,6 +137,7 @@ td,th{padding:6px;border-bottom:1px solid #b89a5a;text-align:left}
     <div class="row" style="margin-top:14px">
       <button class="btn small" id="refreshEv">↻ Reload from Wondershop</button>
       <button class="btn small ghost" id="changeEv">Use a different code</button>
+      <button class="btn small ghost" id="resetEv" style="border-color:#8b1a1a;color:#8b1a1a">↺ Reset sorting (clear test sorts)</button>
     </div>
   </div>
 
@@ -261,6 +261,9 @@ function renderEvent(){if(!cfg)return;
   $("#evWarn").innerHTML=w.map(x=>`<p class="warn">${x}</p>`).join("");
   $("#begin").disabled=!cfg.teams.length}
 $("#refreshEv").onclick=async()=>{const b=$("#refreshEv");b.textContent="Loading…";try{await loadEvent(cfg.code);renderEvent();b.textContent="✓ Up to date"}catch(e){b.textContent="↻ Reload from Wondershop";$("#evWarn").innerHTML=`<p class="warn">${esc(navigator.onLine?e.message:"No internet. Using the copy saved on this tablet.")}</p>`}};
+$("#resetEv").onclick=()=>{const b=$("#resetEv");if(!cfg||!cfg.sorted.length){b.textContent="Nothing to reset";setTimeout(()=>b.textContent="↺ Reset sorting (clear test sorts)",1800);return}
+  if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent=`Tap again to clear all ${cfg.sorted.length} sortings`;setTimeout(()=>{b.dataset.c="";b.textContent="↺ Reset sorting (clear test sorts)"},4000);return}
+  cfg.sorted=[];cfg.sortStarted=null;save();b.dataset.c="";b.textContent="✓ Cleared. Every child can be sorted again";renderEvent();setTimeout(()=>b.textContent="↺ Reset sorting (clear test sorts)",2500)};
 $("#changeEv").onclick=()=>{$("#gatePw").value="";showGate("")};
 
 $("#begin").onclick=()=>{
@@ -279,7 +282,7 @@ const BDAY={house:"gryffindor",src:"audio/birthday-gryffindor.m4a",at:19.8}; // 
 const CHEER="audio/cheer.m4a";   // for a team with no recording (e.g. Ravenclaw): cheer on the reveal
 function houseKey(n){const s=String(n||"").toLowerCase().replace(/[^a-z]/g,"");if(/^gr[iy]ff?[iy]n?dor/.test(s))return"gryffindor";if(/^huff?le?puff?/.test(s))return"hufflepuff";if(/^slyth/.test(s))return"slytherin";if(/^ravenc/.test(s))return"ravenclaw";return s}
 const HOUSE_COLOR={gryffindor:"#7f0909",hufflepuff:"#e3a813",ravenclaw:"#1f3a93",slytherin:"#1a6b38"};
-const HOUSE_IMG={gryffindor:"houses/gryffindor.jpg",hufflepuff:"houses/hufflepuff.jpg",ravenclaw:"houses/ravenclaw.jpg",slytherin:"houses/slytherin.jpg"};
+const HOUSE_IMG={gryffindor:"houses/gryffindor-wide.jpg",hufflepuff:"houses/hufflepuff-wide.jpg",ravenclaw:"houses/ravenclaw-wide.jpg",slytherin:"houses/slytherin-wide.jpg"};
 const pickRand=a=>a[Math.floor(rnd()*a.length)];
 function chooseClip(t,bday){const k=houseKey(t.name);
   if(bday&&k===BDAY.house)return{src:BDAY.src,at:BDAY.at};
@@ -353,7 +356,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function reveal(i,name,bday){
   const t=cfg.teams[i],R=$("#reveal"),hk=houseKey(t.name);R.style.setProperty("--team",t.color);
   if(HOUSE_IMG[hk]){R.className="house";
-    R.innerHTML=`<div class="hbg" style="background-image:url(${HOUSE_IMG[hk]})"></div><img class="himg" src="${HOUSE_IMG[hk]}" alt="${esc(t.name)}">
+    R.innerHTML=`<div class="hbg" role="img" aria-label="${esc(t.name)}" style="background-image:url(${HOUSE_IMG[hk]})"></div>
     <div class="kname">${bday?"🎂 ":""}${name?esc(name)+", welcome to "+esc(t.name)+"!":"Welcome to "+esc(t.name)+"!"}</div><div class="tap">Tap anywhere to continue</div>`;
     $("#speech").textContent="";R.classList.remove("hidden");burst(t.color);
     let can2=false;setTimeout(()=>can2=true,1500);
