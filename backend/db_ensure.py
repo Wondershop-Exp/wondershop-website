@@ -52,6 +52,7 @@ SAFE_MIGRATIONS = [
     "072_commission_base.sql",
     "073_status_unanswered.sql",
     "074_dj_profile.sql",
+    "075_status_column_width.sql",
 ]
 
 
