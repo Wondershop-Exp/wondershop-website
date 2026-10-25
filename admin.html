@@ -380,7 +380,7 @@ table.list.static tr:hover td{background:inherit}
 .mini-btn.save{background:var(--pk);color:#fff;border-color:var(--pk)}
 .ag-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 12px}
 .ag-c.ag-chips,.ag-c.ag-text{grid-column:1/-1}
-.ag-l{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.35px;color:var(--gy);margin-bottom:4px}
+.ag-l{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.35px;color:var(--gy);margin-bottom:6px;line-height:inherit}
 .ag-adm{font-size:10px;text-transform:none;letter-spacing:0;color:#8a5a00;background:#FFF4DC;border-radius:6px;padding:1px 6px;margin-left:4px;white-space:nowrap;display:inline-block}
 .ag-l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ag-c input{width:100%;box-sizing:border-box}
@@ -5614,7 +5614,7 @@ function addonGroupRowHtml(g, locked){
                : '<button class="mini-btn remove" onclick="saveAddonGroup(\''+g+'\', true)">Remove</button>')+'</div>';
   return '<tr id="'+rid+'" class="ag-row'+(removed?' removed':'')+'" data-key="'+esc(G.head)+'">'
     + '<td class="field-label">'+esc(G.title)+'<small>Original: '+esc(orig||'None selected')+'</small></td>'
-    + '<td colspan="2" data-label="Current value"><div class="ag-grid">'+fs.map(cell).join('')+'</div></td>'
+    + '<td colspan="2"><div class="ag-grid">'+fs.map(cell).join('')+'</div></td>'
     + '<td data-label="Remarks">'+(locked?'<span class="readonly-cell">'+esc(head.remarks||'—')+'</span>':'<textarea id="'+rid+'_rm" placeholder="Remarks..." data-old="'+esc(head.remarks||'')+'">'+esc(head.remarks||'')+'</textarea>')+'</td>'
     + '<td>'+actions+'</td></tr>';
 }
