@@ -307,7 +307,7 @@ FIELD_CATALOG = [
     # (rendered as a textarea, see admin.html) since one event can have
     # several links; saving this ALSO pushes a row to the "Event Photos"
     # tab of the Google Sheet — see _push_event_photos_to_sheet below.
-    {"key": "event_photos_link",    "label": "Event Photos Link(s)",   "section": "Billing & Rewards", "admin_only": True},
+    {"key": "event_photos_link",    "label": "Event Photos Link(s)",   "section": "Event Schedule & Photos", "admin_only": True},
     # 2026-09-23, per Shruti — "add a new T&C field in admin as well to
     # capture sales lead T&C" / "add this section in admin" (Event
     # Schedule). Both textareas (see admin.html's event_photos_link-style
@@ -315,7 +315,7 @@ FIELD_CATALOG = [
     # lead converts to a booking (see _copy_sales_data_to_admin_overrides
     # below) and freely editable afterward like any other field here.
     {"key": "terms_conditions",     "label": "Terms & Conditions (Sales)", "section": "Billing & Rewards", "admin_only": True},
-    {"key": "event_schedule_text",  "label": "Event Schedule",         "section": "Billing & Rewards", "admin_only": True},
+    {"key": "event_schedule_text",  "label": "Event Schedule",         "section": "Event Schedule & Photos", "admin_only": True},
     {"key": "bill_coupon_code",     "label": "Coupon Code",            "section": "Billing & Rewards"},
     # 2026-09-22, per Shruti — clarified this is specifically the
     # scratch-card reveal reward (reward_label/reward_type on the lead),
@@ -335,7 +335,8 @@ FIELD_CATALOG = [
     {"key": "post_event_internal_notes",  "label": "Internal Learning / What to Improve", "section": "Notes", "admin_only": True},
 ]
 
-SECTIONS = ["Customer & Event Details", "Services", "Add-ons", "Billing & Rewards", "Notes"]
+# "Event Schedule & Photos" split out of Billing & Rewards (2026-10-25, per Shruti).
+SECTIONS = ["Customer & Event Details", "Services", "Add-ons", "Event Schedule & Photos", "Billing & Rewards", "Notes"]
 PLAYBOOK_NOTE_FIELDS = ("notes_special_instructions", "notes_changes_updates",
                         "post_event_missing_items", "post_event_client_feedback", "post_event_internal_notes")
 CATALOG_BY_KEY = {f["key"]: f for f in FIELD_CATALOG}

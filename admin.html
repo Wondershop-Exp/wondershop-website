@@ -332,14 +332,21 @@ table.list.static tr:hover td{background:inherit}
 .field-label small{display:block;font-weight:400;color:var(--gy);font-size:10px;white-space:normal;word-break:break-word}
 .einvite-combo{position:relative}
 /* Final E-Invite card (2026-10-14) */
-.inv-card{background:#fff;border:1px solid var(--li2);border-radius:14px;padding:18px}
+.inv-card{background:#fff;border:1px solid var(--li2);border-radius:14px;padding:14px 16px}
+/* Final E-Invite, compact (2026-10-25): invite + website on the left, message on the right */
+.inv-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;align-items:start}
+.inv-cols > .inv-msg > .inv-web{margin-top:0;padding-top:0;border-top:none}
+@media(max-width:900px){.inv-cols{grid-template-columns:1fr}.inv-cols > .inv-msg > .inv-web{margin-top:4px;padding-top:12px;border-top:1px solid var(--li2)}}
+.inv-mask-d summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--plum);margin-top:12px}
+.inv-thumb img{width:96px}
+.go-in-sec{margin-top:14px}
 .inv-top{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
 .inv-thumb img{width:120px;border-radius:10px;border:1px solid var(--li2);display:block}
 .inv-info{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:200px}
 .inv-info .inv-up{display:inline-block;cursor:pointer;margin-top:6px}
 .inv-ok{font-size:12.5px;font-weight:600;color:#16A34A}
 .inv-meta{font-size:12px;color:var(--gy)}
-.inv-web{margin-top:16px;padding-top:16px;border-top:1px solid var(--li2)}
+.inv-web{margin-top:12px;padding-top:12px;border-top:1px solid var(--li2)}
 .inv-chk{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:600;cursor:pointer}
 .inv-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px}
 .inv-f{display:flex;flex-direction:column;gap:5px}
@@ -1634,7 +1641,7 @@ function bdJump(ev, id){
 function renderBookingNav(d){
   const nav = document.getElementById('bdNav');
   nav.className = 'bd-nav';
-  nav.innerHTML = d.sections.map(s => {
+  nav.innerHTML = d.sections.filter(s => s.section==='Notes' || (s.fields||[]).length).map(s => {
     const id = 'sect-'+secId(s.section);
     return '<a href="#'+id+'" onclick="bdJump(event,\''+id+'\')">'+esc(s.section)+'</a>';
   }).join('') + (d.is_booking && ROLE !== 'sales' ? '<a href="#teamSection" onclick="bdJump(event,\'teamSection\')">Partners &amp; expenses</a><a href="#fbSection" onclick="bdJump(event,\'fbSection\')">Feedback</a>' : '') + (d.is_spy_booking ? '<a href="#spySection" onclick="bdJump(event,\'spySection\')">Spy registration</a>' : '') + '<a href="#bdLog" onclick="bdJump(event,\'bdLog\')">Modification trail</a>'
@@ -2062,10 +2069,10 @@ async function renderInviteBlock(d){
         +     '<div class="inv-f"><label>Theme tag (optional)</label><input type="text" id="invWebTheme" list="invThemeTags" maxlength="60" placeholder="e.g. spy, kpop, frozen" value="'+esc(st.website_theme||'')+'">'
         +     '<datalist id="invThemeTags">'+['spy','kpop','frozen','hero','uni','stitch','imposter','hp','football','art','nanighar'].map(t=>'<option value="'+t+'">').join('')+'</datalist></div>'
         +   '</div>'
-        +   (thumb ? '<div class="inv-mask"><div class="inv-mask-h">Hide the parent’s number and the venue: drag a box over each — it’s blurred on the website copy only.</div>'
+        +   (thumb ? '<details class="inv-mask-d"'+(st.has_website_image?'':' open')+'><summary>'+(st.has_website_image?'✓ Website copy masked — edit masking':'Mask the phone number and venue')+'</summary><div class="inv-mask"><div class="inv-mask-h">Hide the parent’s number and the venue: drag a box over each — it’s blurred on the website copy only.</div>'
         +     '<canvas id="invMaskCv"></canvas>'
         +     '<div class="inv-mask-act"><button type="button" class="sr-btn ghost" onclick="invMaskUndo()">Undo box</button><button type="button" class="sr-btn ghost" onclick="invMaskClear()">Clear</button>'
-        +     (st.has_website_image ? '<span class="inv-ok">✓ Website copy saved — draw again to replace it</span>' : '')+'</div></div>' : '')
+        +     (st.has_website_image ? '<span class="inv-ok">✓ Website copy saved — draw again to replace it</span>' : '')+'</div></div></details>' : '')
         + '</div>'
         + '<div class="inv-act"><button type="button" class="sr-btn primary" onclick="saveInviteWebsite('+d.lead_id+')">Save</button>'
         + (on ? '<span class="inv-ok">✓ On the website'+(st.website_by?' · '+esc(st.website_by):'')+(st.website_at?' · '+esc(st.website_at):'')+'</span>' : '')+'</div>'
@@ -2079,7 +2086,8 @@ async function renderInviteBlock(d){
   let regLink = '';
   if(spy){ try{ const ss = await apiCall('/api/spy-registration/admin/'+d.lead_id); if(ss && ss.exists) regLink = window.location.origin + ss.share_url; }catch(e){} }
   if(INV_LEAD_ID !== d.lead_id) return;
-  block.innerHTML = '<div class="inv-card"><div class="inv-top">'+img+'<div class="inv-info">'+info+upload+'</div></div>'+web+inviteMsgHtml(regLink)+'</div>';
+  block.innerHTML = '<div class="inv-card"><div class="inv-cols"><div><div class="inv-top">'+img+'<div class="inv-info">'+info+upload+'</div></div>'+web+'</div>'
+    + '<div class="inv-msg">'+inviteMsgHtml(regLink)+'</div></div></div>';
   if(thumb && isAdmin) invMaskInit();
 }
 // ── Website copy: drag boxes over the phone number / venue (2026-10-14,
@@ -2092,7 +2100,7 @@ function invMaskInit(){
   const im = new Image();
   im.onload = ()=>{
     INV_IMG = im;
-    const w = Math.min(360, im.naturalWidth); cv.width = w; cv.height = Math.round(im.naturalHeight * w / im.naturalWidth);
+    const w = Math.min(280, im.naturalWidth); cv.width = w; cv.height = Math.round(im.naturalHeight * w / im.naturalWidth);
     invMaskDraw();
     let start = null;
     const pt = e=>{ const r = cv.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e;
@@ -2359,7 +2367,7 @@ function inviteMsgHtml(link){
   return '<div class="inv-web">'
     + '<div style="font-size:13px;font-weight:700;margin-bottom:4px">WhatsApp message for the guests’ parents</div>'
     + '<div class="inv-meta" style="margin-bottom:8px">Built from this booking and its theme — edit anything before copying. Send it with the invite image.</div>'
-    + '<textarea id="srWaMsg" rows="14" style="width:100%;box-sizing:border-box;font:inherit;font-size:13px;line-height:1.5;padding:10px 12px;border:1px solid var(--li2);border-radius:10px">'+esc(inviteMsg(link))+'</textarea>'
+    + '<textarea id="srWaMsg" rows="9" style="width:100%;box-sizing:border-box;font:inherit;font-size:13px;line-height:1.5;padding:10px 12px;border:1px solid var(--li2);border-radius:10px">'+esc(inviteMsg(link))+'</textarea>'
     + '<div class="inv-act" style="margin-top:8px"><button type="button" class="sr-btn primary" onclick="copySpyWaMsg()">Copy WhatsApp message</button></div></div>';
 }
 function copySpyWaMsg(){
@@ -4173,18 +4181,21 @@ function renderDetail(d){
   renderInviteBlock(d);
   renderTeamBlock(d);
   renderFeedbackBlock(d);
-  document.getElementById('giftOrderBlock').innerHTML = giftOrderHtml(d.gift_order, d.lead_id, loadDetail);
+  // Return Gift Order sits inside Billing & Rewards (2026-10-25, per Shruti).
+  document.getElementById('giftOrderBlock').innerHTML = '';
+  const giftOrderBox = giftOrderHtml(d.gift_order, d.lead_id, loadDetail);
   document.getElementById('tbcBlock').innerHTML = tbcHtml(d);
   renderPreEventMsg(d);
 
   const container = document.getElementById('sectionsContainer');
   container.innerHTML = d.sections.map(sec=>{
     if(sec.section === 'Notes') return notesSectionHtml(d.locked);
+    if(!(sec.fields||[]).length) return '';   // e.g. an admin-only section on the sales login
     const isCustEvent = sec.section==='Customer & Event Details';
     // 2026-10-12 — partners are assigned in Partners & Expenses now, so the
     // service rows no longer have an Assigned Value (partner) column.
     CUR_SEC = sec.section;
-    const col3Label = isCustEvent ? 'Updated Value' : (NO_PARTNER_SECTIONS.includes(sec.section) ? '' : 'Assigned Value');
+    const col3Label = isCustEvent ? 'Updated Value' : ((NO_PARTNER_SECTIONS.includes(sec.section) || sec.section==='Event Schedule & Photos') ? '' : 'Assigned Value');
     // 2026-09-22, per Shruti — "combine advance amount and payment method
     // ... utilize the space [Assigned Value] to capture payment method" and
     // the same for Event Payment Confirmed + Event Payment Mode. Both merges
@@ -4215,6 +4226,7 @@ function renderDetail(d){
       +'<h3>'+esc(sec.section)+'</h3>'
       +'<table class="fields"><thead><tr><th>Field</th><th>Current Value</th><th>'+col3Label+'</th><th>Remarks</th><th></th></tr></thead>'
       +'<tbody id="sec-'+secId(sec.section)+'">'+rowsHtml+'</tbody></table>'
+      +(sec.section === 'Billing & Rewards' && giftOrderBox ? '<div class="go-in-sec">'+giftOrderBox+'</div>' : '')
       +(d.locked ? '' : '<button class="add-field-btn" onclick="addCustomField('+attrJson(sec.section)+')">+ Add field to '+esc(sec.section)+'</button>')
       +'</div>';
   }).join('');
