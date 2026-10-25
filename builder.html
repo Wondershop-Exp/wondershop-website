@@ -2247,7 +2247,7 @@ body.browse-mode .browse-cta{display:flex}
       <div class="addon-grp-h"><h3>Tables &amp; chairs on rent</h3><span class="gift-bill-chip">Quote to follow</span></div>
       <div class="rent-grid">
         <div class="rent-card">
-          <div class="rent-media" style="--bg:url('img/Addons/rent-table.jpg')"><img src="img/Addons/rent-table.jpg" alt="Catering table, 2 by 4 feet, with a fitted skirt cover"></div>
+          <div class="rent-media" style="--bg:url('img/Addons/rent-table.jpg?v=2')"><img src="img/Addons/rent-table.jpg?v=2" alt="Catering table, 2 by 4 feet, with a fitted skirt cover"></div>
           <div class="rent-body">
             <div class="rent-top">
               <div><div class="rent-name">Catering table</div><div class="rent-spec">2 × 4 ft · 2.5 ft high · fitted skirt cover</div></div>
@@ -3796,7 +3796,7 @@ function cItems(){
 // review-page line item so the customer gets a visual recap of their picks.
 function thumbFor(cat,id){
   const e=(ch,bg)=>({type:'e',e:ch,bg:bg||'var(--li2)'});
-  if(id==='rent-tables'||id==='rent-chairs'||id==='phys-inv')return{type:'img',src:{'rent-tables':'img/Addons/rent-table.jpg','rent-chairs':'img/Addons/rent-chairs.jpg?v=2','phys-inv':'img/Addons/physical-invite.jpg?v=2'}[id]};
+  if(id==='rent-tables'||id==='rent-chairs'||id==='phys-inv')return{type:'img',src:{'rent-tables':'img/Addons/rent-table.jpg?v=2','rent-chairs':'img/Addons/rent-chairs.jpg?v=2','phys-inv':'img/Addons/physical-invite.jpg?v=2'}[id]};
   if(cat==='Decor'&&id==='decor-name-bunting')return e('🏷️');
   if(cat==='Decor'&&id&&id.indexOf('decor-addon-')===0){const da=DECOR_ADDONS.find(x=>'decor-addon-'+x.key===id);return e(da?da.e:'🎈');}
   if(cat==='Decor'){
