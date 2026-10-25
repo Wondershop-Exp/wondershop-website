@@ -393,6 +393,15 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         # hide the box only once Payment Status confirms it (2026-10-16 fix).
         "advance_paid": bool((fields.get("bill_advance") or {}).get("advance_confirmed")),
     }
+    # 2026-10-25, per Shruti — QR + bank details whenever a payment is still
+    # pending: the advance (not yet confirmed) or, after it, the balance.
+    # Hidden only once the booking is fully paid.
+    _complete = (val("bill_payment_status") or "") == "Complete" or (balance is not None and balance <= 0.5 and data["advance_paid"])
+    data["payment_pending"] = booked and not _complete
+    if data["payment_pending"] and data["advance_paid"] and balance:
+        data["pay_heading"] = f"PAY THE BALANCE ({inr(max(0, balance))})"
+    elif data["payment_pending"] and advance:
+        data["pay_heading"] = f"PAY THE ADVANCE ({inr(advance)}) TO CONFIRM YOUR BOOKING"
     paths = [MASCOT_PATH] + list(SECTION_ICONS.values())
     for s in sections:
         paths += [ln.get("image") for ln in s["lines"] if ln.get("image")]

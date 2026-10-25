@@ -563,7 +563,8 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
         _totals_block(story, notes, tt, tw, W)
 
     # ── how to pay (until the advance is paid) ─────────────────────────────
-    if not data.get("advance_paid") and os.path.exists(_QR_PATH):
+    show_pay = data["payment_pending"] if "payment_pending" in data else not data.get("advance_paid")
+    if show_pay and os.path.exists(_QR_PATH):
         s_lab = _style("bkl", size=8.6, color=MUTED, leading=12)
         s_val = _style("bkv", font=BODY_BOLD, size=9.2, color=INK, leading=12)
         rows = [[Paragraph(_x(k), s_lab), Paragraph(_x(v), s_val)] for k, v in BANK_DETAILS]
@@ -571,7 +572,7 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
         bank.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                                   ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
                                   ("TOPPADDING", (0, 0), (-1, -1), 0.8 * mm), ("BOTTOMPADDING", (0, 0), (-1, -1), 0.8 * mm)]))
-        head = Paragraph("PAY THE ADVANCE TO CONFIRM YOUR BOOKING" if booked else "HOW TO PAY", _style("payh", font=BODY_BOLD, size=8.6, color=PINK_DARK, leading=11))
+        head = Paragraph(_x(data.get("pay_heading") or ("PAY THE ADVANCE TO CONFIRM YOUR BOOKING" if booked else "HOW TO PAY")), _style("payh", font=BODY_BOLD, size=8.6, color=PINK_DARK, leading=11))
         note = Paragraph("Scan with any UPI app (GPay, PhonePe, Paytm, BHIM) or pay by bank transfer, "
                          "then share the screenshot with us on WhatsApp.", _style("payn", size=8.2, color=MUTED, leading=11))
         qr_w = 34 * mm
