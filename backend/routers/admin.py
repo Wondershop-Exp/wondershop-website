@@ -2602,7 +2602,8 @@ async def _lock_in_sales_quote(lead_id: int, who: str) -> None:
 
 # ─── Line-wise sales quote on bookings (2026-10-12, per Shruti) ───────────
 _SALES_KEY_TO_LINE = {"decor": "decor", "host": "host", "music": "music", "photographer": "photography",
-                      "einvite_type": "einvite", "save_the_date": "save_the_date", "pinata_type": "pinata"}
+                      "einvite_type": "einvite", "save_the_date": "save_the_date", "pinata_type": "pinata",
+                      "packaging": "packaging", "return_gift_tags": "thank-you note"}
 
 
 async def _copy_sales_line_quotes(lead_id: int, who: str) -> None:
@@ -2618,7 +2619,7 @@ async def _copy_sales_line_quotes(lead_id: int, who: str) -> None:
     j = lambda v: (json.loads(v) if isinstance(v, str) else v) if v is not None else None
     b = _list_breakdown(j(pb["requirements"]) or {}, j(pb["activities"]) or [], pb["kids_count"])
     out = {}
-    for it in b["items"]:
+    for it in list(b["items"]) + [g for g in (b.get("gift_items") or []) if g.get("key") in ("packaging", "return_gift_tags")]:
         k = it.get("key")
         if k == "activity":
             from booking_pricing import line_key as _lk
@@ -2675,6 +2676,9 @@ async def save_line_quotes(lead_id: int, body: LineQuotesRequest, x_admin_passwo
     if not pricing:
         raise HTTPException(status_code=400, detail="This booking has no priced items yet.")
     lines = {i["key"]: i for i in pricing["items"]}
+    # Packaging / thank-you note on a separate Return Gifts bill take a quote
+    # too, but stay out of the event discount below (2026-10-25).
+    gift_keys = {g["key"] for g in (pricing.get("gift_items") or []) if g.get("key")}
 
     def gap_of(items, quotes):
         return round(sum(float(i["amount"]) - float(quotes.get(i["key"], i["amount"])) for i in items), 2)
@@ -2693,7 +2697,7 @@ async def save_line_quotes(lead_id: int, body: LineQuotesRequest, x_admin_passwo
     new_q = dict(stored)
     for k, v in (body.quotes or {}).items():
         is_kids = k.startswith("kids:") and k[5:] in lines
-        if k not in lines and not is_kids:
+        if k not in lines and k not in gift_keys and not is_kids:
             continue
         if v is None:
             new_q.pop(k, None)

@@ -540,7 +540,11 @@ def _gift_lines(sep_gift_items, lq: dict) -> list:
             out.append({"label": label, "amount": amt, "name": name, "qty": qty, "unit": unit,
                         "quote_unit": q_unit, "quote": round(q_unit * qty, 2)})
         else:
-            out.append({"label": label, "amount": amt, "quote": amt})
+            # Packaging / thank-you note on the Return Gifts bill: a sales
+            # quote of its own, shown on that field's row (2026-10-25).
+            k = line_key(label)
+            out.append({"label": label, "amount": amt, "key": k, "field": field_for_label(label),
+                        "quote": lq.get(k, amt)})
     return out
 
 

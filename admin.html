@@ -5274,7 +5274,9 @@ function _lqItems(fieldKey){
   const P = (CURRENT_DETAIL && CURRENT_DETAIL.pricing) || null;
   if(!P) return [];
   // Each Total MRP line says which field it belongs to (2026-10-25).
-  if((P.items||[]).some(i=>i.field)) return (P.items||[]).filter(i=>i.field===fieldKey);
+  // Packaging / thank-you note on the separate Return Gifts bill (2026-10-25).
+  const gi = (P.gift_items||[]).filter(i=>i.field && i.field===fieldKey);
+  if((P.items||[]).some(i=>i.field)) return (P.items||[]).filter(i=>i.field===fieldKey).concat(gi);
   if(fieldKey==='svc_activities') return (P.items||[]).filter(i=>String(i.key||'').startsWith('activity:'));
   const k = LQ_FIELD_KEYS[fieldKey];
   return k ? (P.items||[]).filter(i=>i.key===k) : [];
