@@ -500,23 +500,50 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
             # show the difference as its own charge — just the total.
             trows = []
     n_plain = len(trows)
-    trows.append([Paragraph("Grand Total" if data.get("booked") else "Estimated Total", _style("gl", font=HEAD, size=13, color=WHITE, leading=16)),
+    gift_sep = bool(T.get("gift_total"))
+    party_lbl = ("Party Grand Total" if gift_sep else "Grand Total") if data.get("booked") else ("Party Estimated Total" if gift_sep else "Estimated Total")
+    trows.append([Paragraph(party_lbl, _style("gl", font=HEAD, size=13, color=WHITE, leading=16)),
                   Paragraph(inr(T.get("estimate") or 0), _style("gr", font=BODY_BOLD, size=15, color=WHITE, align=TA_RIGHT, leading=18))])
+    # Advance + balance under the party total (2026-10-25, per Shruti).
+    if T.get("advance") is not None:
+        adv_lbl = "Advance paid" if T.get("advance_confirmed") else "Advance (to be paid)"
+        trows.append([Paragraph(adv_lbl, s_tl), Paragraph(inr(T["advance"]), s_tr)])
+        if T.get("balance") is not None:
+            trows.append([Paragraph("<b>Balance due</b>", s_tl), Paragraph(inr(max(0, T["balance"])), s_tr)])
     tw = 96 * mm
     tt = Table(trows, colWidths=[tw * 0.58, tw * 0.42])
-    tt.setStyle(TableStyle([
+    tst = [
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("LEFTPADDING", (0, 0), (-1, -1), 4 * mm), ("RIGHTPADDING", (0, 0), (-1, -1), 4 * mm),
         ("TOPPADDING", (0, 0), (-1, -1), 2 * mm), ("BOTTOMPADDING", (0, 0), (-1, -1), 2 * mm),
-        ("BACKGROUND", (0, 0), (-1, n_plain - 1), LAV_BAND),
         ("BACKGROUND", (0, n_plain), (-1, n_plain), PINK),
         ("TOPPADDING", (0, n_plain), (-1, n_plain), 3 * mm), ("BOTTOMPADDING", (0, n_plain), (-1, n_plain), 3 * mm),
         ("ROUNDEDCORNERS", [6, 6, 6, 6]),
-    ]))
+    ]
+    if n_plain:
+        tst.append(("BACKGROUND", (0, 0), (-1, n_plain - 1), LAV_BAND))
+    if len(trows) > n_plain + 1:
+        tst.append(("BACKGROUND", (0, n_plain + 1), (-1, -1), LAV_BAND))
+    tt.setStyle(TableStyle(tst))
+    if gift_sep:
+        # Second total: the separate Return Gifts bill (2026-10-25).
+        g_rows = [[Paragraph("Return Gifts Total", _style("ggl", font=HEAD, size=12, color=WHITE, leading=15)),
+                   Paragraph(inr(T["gift_total"]), _style("ggr", font=BODY_BOLD, size=13.5, color=WHITE, align=TA_RIGHT, leading=17))]]
+        g_rows.append([Paragraph("Status", s_tl), Paragraph(_x("Paid" if T.get("gift_paid") else (T.get("gift_status") or "Pending stock confirmation")), s_tr)])
+        gt_ = Table(g_rows, colWidths=[tw * 0.58, tw * 0.42])
+        gt_.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4 * mm), ("RIGHTPADDING", (0, 0), (-1, -1), 4 * mm),
+            ("TOPPADDING", (0, 0), (-1, -1), 2 * mm), ("BOTTOMPADDING", (0, 0), (-1, -1), 2 * mm),
+            ("BACKGROUND", (0, 0), (-1, 0), PURPLE_DARK), ("BACKGROUND", (0, 1), (-1, -1), LAV_BAND),
+            ("ROUNDEDCORNERS", [6, 6, 6, 6]),
+        ]))
+        tt = [tt, Spacer(1, 3 * mm), gt_]
     notes = []
     if T.get("gift_total"):
         notes.append(f"<b>Return gifts: {inr(T['gift_total'])}</b> — billed separately, after we confirm stock "
-                     f"(not included in the Estimated Total).")
+                     f"(not included in the party total). Paid 100% in advance via a separate payment link; "
+                     f"delivery is extra, at actuals.")
     if T.get("has_unpriced"):
         notes.append("Items marked <i>Price on request</i> or <i>To be confirmed</i> are not included in the "
                      "Estimated Total; your Party Experience Lead will confirm them.")

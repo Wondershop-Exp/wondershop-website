@@ -142,6 +142,10 @@ class LeadSubmitRequest(BaseModel):
     # gift_order_total is that separate bill. See _gifts_separate() below and
     # migrations/039_return_gift_orders.sql.
     gift_order_total:           Optional[float] = None
+    # Set only by the admin summary-email resend (2026-10-25): live Return
+    # Gifts bill — whether there is one, and its current status.
+    gift_bill_live:             Optional[bool] = None
+    gift_order_status_label:    Optional[str] = None
     # Music add-ons (internal field names still say "dj" — see builder.html
     # for the same convention) — Music Lights (Rs.1,500) / Smoke Machine
     # (Rs.2,000). Replaces the old "Signature DJ" tier, which bundled both
@@ -721,6 +725,8 @@ def _gifts_separate(req: LeadSubmitRequest) -> bool:
     """True when this order's Return Gifts are billed separately from the
     event (2026-10-02 flow) — i.e. the frontend flagged it AND at least one
     gift was actually picked."""
+    if getattr(req, "gift_bill_live", None) is not None:
+        return bool(req.gift_bill_live)
     snap = req.builder_snapshot or {}
     return bool(snap.get("gifts_billed_separately")) and any(g.get("n") for g in (snap.get("gifts") or []))
 
@@ -863,7 +869,7 @@ def _format_order_summary_block(req: LeadSubmitRequest) -> str:
     if gift_total is not None:
         lines.append("RETURN GIFTS (BILLED SEPARATELY)")
         lines.append(f"  Return Gifts Total : {_fmt_rupees(gift_total)}")
-        lines.append("  Status             : Pending stock confirmation")
+        lines.append(f"  Status             : {getattr(req, 'gift_order_status_label', None) or 'Pending stock confirmation'}")
         lines.append(f"  {GIFT_ORDER_CUSTOMER_NOTE}")
         lines.append("")
     return "\n".join(lines) + "\n"
@@ -1548,7 +1554,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
             _html_section_title("Return Gifts — Billed Separately")
             + _html_details_table([
                 ("Return Gifts Total", _fmt_rupees(_gift_total)),
-                ("Status", "Pending stock confirmation"),
+                ("Status", getattr(req, "gift_order_status_label", None) or "Pending stock confirmation"),
             ])
             + f'<div style="background:#F7F3FD;border:1px dashed #D9CBF2;border-radius:10px;padding:10px 14px;'
               f'margin-top:8px;font-size:12.5px;line-height:1.55;color:#5B4B78">{_html_escape(_gift_note)}</div>'

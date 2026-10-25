@@ -3565,6 +3565,14 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
         fake_req.order_balance = _live_money("bill_balance")
         fake_req.order_total_savings = _live_money("bill_total_savings")
         fake_req.order_freebies_text = _live("bill_freebies")
+        # Live Return Gifts bill (2026-10-25, per Shruti — party emails show
+        # the party total + advance/balance and, separately, the gifts total).
+        _lp = live_pricing or {}
+        _go = live_detail.get("gift_order") or {}
+        fake_req.gift_bill_live = bool(_lp.get("gifts_separate") and _lp.get("gift_items"))
+        if fake_req.gift_bill_live:
+            fake_req.gift_order_total = _money(_go.get("total")) if _go.get("total") is not None else float(_lp.get("gift_total") or 0)
+            fake_req.gift_order_status_label = _go.get("status_label")
 
         # _send_user_ack never raises on its own (by design, for the
         # original fire-and-forget /submit flow) -- it always records the

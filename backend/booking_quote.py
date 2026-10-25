@@ -252,6 +252,7 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
 
     # 8. Return gifts (billed separately when the booking says so)
     lines = []
+    gifts_sep_on = bool(P.get("gifts_separate")) and bool(gift_items)
     for label, amt in gift_items + take("Gift"):
         name = after(label)
         m = re.match(r"^(.*?) × (\d+)$", name)
@@ -265,7 +266,17 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
                       "image": cat.resolve_gift_image_by_name(gname), "price": amt})
     for u in take_unpriced("Gift"):
         lines.append({"name": after(u), "details": [], "image": None, "price": None, "price_text": "To be confirmed"})
-    add("Return Gifts", lines, billed_separately=bool(P.get("gifts_separate")))
+    # Packaging / thank-you note on the party bill — e.g. the customer's own
+    # gifts packed by us (2026-10-25, per Shruti): listed here, counted in the
+    # party Grand Total.
+    for label, amt in take("Packaging") + take("Thank-you note"):
+        inner = label[label.find("(") + 1:label.rfind(")")] if "(" in label else ""
+        own = "own gifts" in inner
+        base = "Gift packaging" if label.startswith("Packaging") else "Thank-you note"
+        lines.append({"name": base + (" — your own gifts" if own else ""),
+                      "details": [inner.replace(" own gifts", " gifts")] if inner else [], "image": None, "price": amt})
+        _strike(lines, label, amt)
+    add("Return Gifts", lines, billed_separately=gifts_sep_on)
 
     # Anything else on the bill (confirmed TBC items, packaging fees, …)
     others = [{"name": l, "details": [], "image": None, "price": a} for l, a in items + extras]
@@ -304,6 +315,16 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
     subtotal = round(total_mrp + extra_total, 2)
     if grand is None:
         grand = round(subtotal - discount, 2)
+    # Advance / balance on the party bill (2026-10-25, per Shruti).
+    advance = _money(val("bill_advance"))
+    balance = _money(val("bill_balance"))
+    if advance is not None and balance is None:
+        balance = round(grand - advance, 2)
+    # Return gifts bill — its own grand total (2026-10-25).
+    go = d.get("gift_order") or {}
+    gift_grand = None
+    if gifts_sep_on:
+        gift_grand = _money(go.get("total")) if go.get("total") is not None else float(P.get("gift_total") or 0)
 
     # ── header / details ────────────────────────────────────────────────
     now_ist = datetime.utcnow() + IST_OFFSET
@@ -357,7 +378,12 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         "totals": {
             "subtotal": subtotal, "discount": round(subtotal - grand, 2), "estimate": grand,
             "discount_items": 0, "discount_extra": 0,
-            "gift_total": float(P.get("gift_total") or 0) if P.get("gifts_separate") else 0,
+            "gift_total": gift_grand or 0,
+            "gift_status": go.get("status_label") if gifts_sep_on else None,
+            "gift_paid": go.get("status") == "paid",
+            "advance": advance if booked else None,
+            "balance": balance if booked else None,
+            "advance_confirmed": bool((fields.get("bill_advance") or {}).get("advance_confirmed")),
             "gift_mrp": 0, "has_unpriced": has_unpriced["any"],
         },
         "extra_terms": cust_val("terms_conditions"),
