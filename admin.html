@@ -5268,6 +5268,8 @@ const LQ_FIELD_KEYS = {svc_decor:'decor', svc_host:'host', svc_dj:'music', svc_p
 function _lqItems(fieldKey){
   const P = (CURRENT_DETAIL && CURRENT_DETAIL.pricing) || null;
   if(!P) return [];
+  // Each Total MRP line says which field it belongs to (2026-10-25).
+  if((P.items||[]).some(i=>i.field)) return (P.items||[]).filter(i=>i.field===fieldKey);
   if(fieldKey==='svc_activities') return (P.items||[]).filter(i=>String(i.key||'').startsWith('activity:'));
   const k = LQ_FIELD_KEYS[fieldKey];
   return k ? (P.items||[]).filter(i=>i.key===k) : [];
@@ -5417,15 +5419,59 @@ async function saveActQuote(el){
     }else{ showToast('✓ Saved — discount is now '+_inr(r.discount)); await loadDetail(); }
   }catch(e){ if(e.message!=='unauthorized') showToast('Save failed: '+e.message); }
 }
+// Return gifts billed separately: a price per piece for each gift (2026-10-25).
+function giftQuoteStripHtml(locked){
+  const G = ((CURRENT_DETAIL.pricing||{}).gift_items||[]).filter(g=>g.name);
+  if(!G.length) return '';
+  return '<div class="lq-strip">' + G.map(g=>{
+    const disc = g.quote_unit < g.unit - 0.005;
+    const box = locked ? '<b'+(disc?' class="neg"':'')+'>'+_inr(g.quote_unit)+'</b>'
+      : '<span class="lq-inp"><span>₹</span><input type="number" min="0" step="1" value="'+g.quote_unit+'" data-n="'+esc(g.name)+'" data-old="'+g.quote_unit+'" onblur="saveGiftQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()"></span>';
+    return '<div class="lq-line"><b>'+esc(g.name)+'</b> · <span style="color:var(--gy)">'+g.qty+' × MRP '+_inr(g.unit)+'</span> <span class="lq-q">Sales quote '+box+'</span><span class="lq-per">/piece = <b'+(disc?' class="neg"':'')+'>'+_inr(g.quote)+'</b></span>'
+      + (disc ? '<span class="lq-off">−'+_inr(g.amount-g.quote)+'</span>' : '') + '</div>';
+  }).join('') + '<div style="font-size:11.5px;color:var(--gy)">Billed separately on the Return Gift Order — not in Grand Total.</div></div>';
+}
+async function saveGiftQuote(el){
+  if(el.value === el.dataset.old) return;
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); el.value = el.dataset.old; return; }
+  try{
+    const r = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/gift-quotes', {method:'POST', body: JSON.stringify({quotes:{[el.dataset.n]: el.value.trim()===''?null:Number(el.value)}, changed_by: who})});
+    el.dataset.old = el.value;
+    showToast('✓ Gift price saved — return gifts total '+_inr(r.gift_total||0));
+    if(!document.querySelectorAll('#sectionsContainer tr.dirty').length) await loadDetail();
+  }catch(e){ if(e.message!=='unauthorized') showToast('Save failed: '+e.message); el.value = el.dataset.old; }
+}
+// Custom add-ons (2026-10-25, per Shruti): name + price rows, added to Total MRP.
+function customAddonRowsHtml(rid, val, locked){
+  let list = []; try{ list = JSON.parse(val||'[]'); }catch(e){}
+  if(!Array.isArray(list)) list = [];
+  if(locked) return list.length ? list.map(c=>esc(c.name)+' — '+_inr(Number(c.price)||0)).join('<br>') : '—';
+  const row = c => '<div class="ca-row" style="display:flex;gap:6px;margin-bottom:6px"><input type="text" class="ca-n" placeholder="Add-on name" value="'+esc(c.name||'')+'" style="flex:1" oninput="caSync(\''+rid+'\')"><input type="number" class="ca-p" min="0" step="1" placeholder="₹ Price" value="'+(c.price==null?'':c.price)+'" style="width:110px" oninput="caSync(\''+rid+'\')"><button type="button" class="mini-btn remove" onclick="this.parentNode.remove();caSync(\''+rid+'\')">✕</button></div>';
+  return '<div id="'+rid+'_carows">'+list.map(row).join('')+'</div>'
+    + '<button type="button" class="mini-btn" onclick="caAdd(\''+rid+'\')">+ Add custom add-on</button>'
+    + '<input type="hidden" id="'+rid+'_cc" value="'+esc(val||'')+'">';
+}
+function caAdd(rid){
+  document.getElementById(rid+'_carows').insertAdjacentHTML('beforeend', customAddonRowsHtml(rid, '[{"name":"","price":null}]', false).match(/<div class="ca-row"[\s\S]*?<\/div>/)[0]);
+}
+function caSync(rid){
+  const list = [...document.querySelectorAll('#'+rid+'_carows .ca-row')].map(r=>({name:r.querySelector('.ca-n').value.trim(), price:r.querySelector('.ca-p').value===''?null:Number(r.querySelector('.ca-p').value)})).filter(c=>c.name);
+  const h = document.getElementById(rid+'_cc'); h.value = list.length ? JSON.stringify(list) : '';
+  const tr = document.getElementById(rid); if(tr) tr.classList.add('dirty');
+  if(typeof updateDirtyCount==='function') updateDirtyCount();
+}
 function quoteStripHtml(f, locked){
   if(!CURRENT_DETAIL || !CURRENT_DETAIL.is_booking) return '';
   if(f.field_key==='svc_activities') return '';
+  if(f.field_key==='svc_gifts' && CURRENT_DETAIL.pricing && CURRENT_DETAIL.pricing.gifts_separate) return giftQuoteStripHtml(locked);
   const items = _lqItems(f.field_key);
   if(!items.length) return '';
+  const named = items.length > 1 || /^(svc_gifts|addon_)/.test(f.field_key);
   return '<div class="lq-strip">' + items.map(i=>{
     const m = Number(i.amount||0), q = Number(i.quote==null?m:i.quote);
     const qu = _lqQtyUnit(i.label, m), perKid = qu.qty > 1;
-    const name = f.field_key==='svc_activities' ? '<b>'+esc(String(i.label).replace(/^Activity:\s*/,'').replace(/\s*\(.*$/,''))+'</b> · ' : '';
+    const name = named ? '<b>'+esc(String(i.label).replace(/^(Activity|Gift|Add-on):\s*/,''))+'</b> · <span style="color:var(--gy)">MRP '+_inr(m)+'</span> ' : '';
     const mrpTxt = perKid ? _inr(qu.unit)+' × '+qu.qty+' = '+_inr(m) : _inr(m);
     const qVal = perKid ? Math.round(q/qu.qty*100)/100 : q;
     const box = locked ? '<b'+(q<m?' class="neg"':'')+'>'+_inr(q)+'</b>'
@@ -5486,6 +5532,7 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(EI_FIELDS.some(x=>x.key===f.field_key)) return '';
   if(f.field_key==='bill_discount_pct' || f.field_key==='bill_discount_value') return '';
   if(f.field_key==='bill_line_quotes') return '';
+  if(f.field_key==='svc_cake_price') return '';   // shown on the Cake row (2026-10-25)
   if(f.field_key==='bill_discount_type') return discountRowHtml(f, locked);
   // Decor add-ons (2026-10-24): shown as buttons under the Decor row, not as rows.
   if(f.field_key.indexOf('addon_decor_')===0) return '';
@@ -5618,7 +5665,12 @@ function fieldRowHtml(f, isCustEvent, locked){
     // Cake price (2026-10-07) — added to Total MRP.
     ccCell = '<span class="pct-wrap"><span class="pct-suffix" style="left:9px;right:auto">₹</span><input type="number" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="—" step="1" min="0" style="padding-left:22px;padding-right:11px"></span>';
   }else if(f.field_key==='svc_cake'){
-    ccCell = '<input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="e.g. Chocolate truffle, 2 kg">';
+    // Cake and its price on one line (2026-10-25, per Shruti).
+    const cp = _decorAddonField('svc_cake_price');
+    ccCell = '<div style="display:flex;gap:6px;align-items:center"><input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="e.g. Chocolate truffle, 2 kg" style="flex:1">'
+      + '<span class="pct-wrap" style="width:130px"><span class="pct-suffix" style="left:9px;right:auto">₹</span><input type="number" id="fld_cake_price_inline" value="'+esc((cp&&cp.customer_choice)||'')+'" data-old="'+esc((cp&&cp.customer_choice)||'')+'" placeholder="Price" step="1" min="0" style="padding-left:22px;padding-right:11px"></span></div>';
+  }else if(f.field_key==='addon_custom'){
+    ccCell = customAddonRowsHtml(rid, f.customer_choice||'', locked);
   }else if(f.field_key==='venue_handover_time' || f.field_key==='packup_time'){
     // 2026-10-05, per Shruti — from the sales panel; editable here too.
     ccCell = timeSelect12(rid+'_cc', f.customer_choice||'');
@@ -5745,6 +5797,11 @@ async function saveField(key, removedOverride){
         changed_by: who,
       }),
     });
+    const cpEl = key==='svc_cake' ? document.getElementById('fld_cake_price_inline') : null;
+    if(cpEl && cpEl.value !== cpEl.dataset.old){
+      await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {method:'POST', body: JSON.stringify({
+        field_key:'svc_cake_price', customer_choice_override: cpEl.value, assigned_value:'', remarks:'', removed:false, changed_by: who})});
+    }
     let qMsg = '';
     try{ const q = await savePendingQuotes(key); if(q) qMsg = ' · discount now '+_inr(q.discount); }
     catch(qe){ qMsg = ' · ⚠ sales quote not saved: '+qe.message; }

@@ -370,6 +370,24 @@ def line_key(label: str) -> str:
     return lab
 
 
+# Which booking field a Total MRP line belongs to, so its sales-quote box
+# shows on that field's row (2026-10-25, per Shruti).
+def field_for_label(label: str) -> Optional[str]:
+    l = str(label or "")
+    low = l.lower()
+    if "(decor add-on)" in low or low.startswith("decor:"):
+        return "svc_decor"
+    for pre, fk in (("host:", "svc_host"), ("music lights", "addon_dj_lights"), ("smoke machine", "addon_dj_smoke"),
+                    ("music:", "svc_dj"), ("photography:", "svc_photo"), ("piñata", "svc_pinata"), ("pinata", "svc_pinata"),
+                    ("tables & chairs on rent", "addon_rent_price"), ("physical invites", "addon_phys_inv_price"),
+                    ("e-invite", "svc_einvite"), ("cake:", "svc_cake"), ("activity:", "svc_activities"),
+                    ("custom activity:", "svc_activities"), ("gift:", "svc_gifts"), ("packaging", "addon_gift_packaging"),
+                    ("thank-you note", "addon_gift_note"), ("add-on:", "addon_custom")):
+        if low.startswith(pre):
+            return fk
+    return None
+
+
 def line_quotes(cur: dict, removed: set) -> dict:
     raw = _resolved(cur, "bill_line_quotes", removed)
     try:
@@ -714,7 +732,17 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
             if amt:
                 sep_gift_items.append((label, round(float(amt), 2)))
         else:
-            add_extra(label, amt)
+            add(label, amt)   # an add-on with its own sales quote (2026-10-25)
+    # Custom add-ons (2026-10-25, per Shruti): name + price typed on the
+    # booking, stored as JSON [{"name","price"}] in addon_custom.
+    try:
+        _cust = json.loads(_resolved(cur, "addon_custom", removed) or "[]")
+    except (TypeError, ValueError):
+        _cust = []
+    for c in _cust if isinstance(_cust, list) else []:
+        if isinstance(c, dict) and str(c.get("name") or "").strip():
+            add(f"Add-on: {str(c['name']).strip()}", money(c.get("price")) or 0)
+    total_mrp = round(sum(a for _l, a in items), 2)
 
     if lead.get("payment_method") == "collect":
         add_extra("Cash Collection Fee", COLLECTION_FEE)
@@ -755,7 +783,7 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
         "extra_total": extra_total,
         "grand_total": grand_total,
         "quote_adjustment": round(quote_adj, 2),
-        "items": [{"label": l, "amount": a, "key": line_key(l),
+        "items": [{"label": l, "amount": a, "key": line_key(l), "field": field_for_label(l),
                    "quote": _lq.get(line_key(l), a)} for l, a in items],
         "line_quotes_set": bool(_lq),
         "extra_items": [{"label": l, "amount": a} for l, a in extra_items],

@@ -251,6 +251,8 @@ FIELD_CATALOG = [
     {"key": "addon_gift_note",       "label": "Gift Thank-You Note",    "section": "Add-ons"},
     {"key": "addon_pinata_bags",     "label": "Piñata Bags",            "section": "Add-ons", "admin_only": True},
     {"key": "addon_pinata_fillings", "label": "Piñata Fillings",        "section": "Add-ons", "admin_only": True},
+    # Custom add-ons (2026-10-25, per Shruti): name + price, JSON list.
+    {"key": "addon_custom",          "label": "Custom Add-ons",         "section": "Add-ons", "admin_only": True},
 
     # Billing & Rewards — Grand Total / Balance Due are system-calculated
     # displays (read-only, see READ_ONLY_FIELDS below); everything else here
