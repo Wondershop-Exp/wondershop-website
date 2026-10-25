@@ -2969,7 +2969,7 @@ function reqRentalsRow(){
   const covers = RENTAL_COVERS.map(c=>'<button type="button" class="'+(r.cover===c?'sel':'')+'" onclick="onRentalCover(\''+c+'\')">'+c+'</button>').join('');
   const inp = (id, ph, v, f) => '<input type="number" min="0" id="'+id+'" placeholder="'+ph+'" title="'+ph+'" value="'+(v==null?'':v)+'" onblur="onRentalField(\''+f+'\', this.value)" style="max-width:180px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13px">';
   return '<div class="req-row"><div class="rlabel">Tables &amp; Chairs on Rent (Add-on)</div>'
-    + '<div class="req-grid">'+inp('req_rent_tables','Tables (2×4 ft)',r.tables,'tables')+inp('req_rent_chairs','Chairs',r.chairs,'chairs')+inp('req_rentals_cost','Sales Quote (₹)',r.cost,'cost')+'</div>'
+    + '<div class="req-grid">'+inp('req_rent_tables','Tables (2×4 ft)',r.tables,'tables')+inp('req_rent_chairs','Chiavari chairs',r.chairs,'chairs')+inp('req_rentals_cost','Sales Quote (₹)',r.cost,'cost')+'</div>'
     + '<div class="req-note" style="margin:8px 0 4px">Table cover colour</div><div class="chip-row">'+covers+'</div>'
     + custBox('rentals', 'Where to set them up, timings, anything else...')
     + '<div class="req-note">Installed by our catering team with 1 helper on site. No list price — quote separately.</div></div>';
@@ -2977,7 +2977,7 @@ function reqRentalsRow(){
 function _rentalDesc(r){
   const b = [];
   if(Number(r.tables)) b.push(r.tables+' table'+(Number(r.tables)>1?'s':'')+(r.cover?' ('+r.cover.toLowerCase()+' cover)':''));
-  if(Number(r.chairs)) b.push(r.chairs+' chair'+(Number(r.chairs)>1?'s':''));
+  if(Number(r.chairs)) b.push(r.chairs+' Chiavari chair'+(Number(r.chairs)>1?'s':''));
   return b.join(', ');
 }
 async function onRentalField(f, v){

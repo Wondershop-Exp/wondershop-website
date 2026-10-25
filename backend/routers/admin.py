@@ -240,7 +240,7 @@ FIELD_CATALOG = [
     # the website / sales panel; Quote (₹) is what goes into Total MRP.
     {"key": "addon_rent_tables",      "label": "Tables & Chairs: Tables (2×4 ft)", "section": "Add-ons"},
     {"key": "addon_rent_table_cover", "label": "Tables & Chairs: Table Cover",     "section": "Add-ons"},
-    {"key": "addon_rent_chairs",      "label": "Tables & Chairs: Chairs",          "section": "Add-ons"},
+    {"key": "addon_rent_chairs",      "label": "Tables & Chairs: Chiavari Chairs", "section": "Add-ons"},
     {"key": "addon_rent_notes",       "label": "Tables & Chairs: Setup Notes",     "section": "Add-ons"},
     {"key": "addon_rent_price",       "label": "Tables & Chairs: Quote (₹)",       "section": "Add-ons", "admin_only": True},
     # Physical invites (2026-10-25) — designed on theme, printed, delivered home; quoted.

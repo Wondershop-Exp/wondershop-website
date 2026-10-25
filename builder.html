@@ -531,12 +531,12 @@ body.browse-mode .browse-cta{display:flex}
 .rent-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 @media(max-width:660px){.rent-grid{grid-template-columns:1fr}}
 .rent-card{background:#fff;border:1.5px solid var(--li2);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
-.rent-media{position:relative;height:240px;overflow:hidden;background:#F7F3FC}
+.rent-media{position:relative;aspect-ratio:4/3;overflow:hidden;background:#F7F3FC}
 .rent-media::before{content:'';position:absolute;inset:-24px;background:var(--bg) center/cover;filter:blur(20px);opacity:.5}
 .rent-media img{position:relative;width:100%;height:100%;object-fit:contain;display:block}
 .rent-card-wide{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
-.rent-card-wide .rent-media{height:260px}
-@media(max-width:660px){.rent-card-wide{grid-template-columns:1fr}.rent-card-wide .rent-media{height:240px}}
+.rent-card-wide .rent-media{aspect-ratio:4/3}
+@media(max-width:660px){.rent-card-wide{grid-template-columns:1fr}}
 .addon-grp{margin-bottom:28px}
 .addon-grp-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 .addon-grp-h h3{font-family:var(--fd);font-size:19px;font-weight:700;margin:0}
@@ -2259,10 +2259,10 @@ body.browse-mode .browse-cta{display:flex}
           </div>
         </div>
         <div class="rent-card">
-          <div class="rent-media" style="--bg:url('img/Addons/rent-chairs.jpg')"><img src="img/Addons/rent-chairs.jpg" alt="Chairs dressed with sheer fabric"></div>
+          <div class="rent-media" style="--bg:url('img/Addons/rent-chairs.jpg?v=2')"><img src="img/Addons/rent-chairs.jpg?v=2" alt="Chiavari chairs"></div>
           <div class="rent-body">
             <div class="rent-top">
-              <div><div class="rent-name">Chairs</div><div class="rent-spec">For guests, kids or the stage</div></div>
+              <div><div class="rent-name">Chiavari chairs</div><div class="rent-spec">For guests, kids or the stage</div></div>
               <div class="rent-step"><button type="button" aria-label="Fewer chairs" onclick="rentStep('chairs',-5)">−</button><input type="number" min="0" id="rentChairs" aria-label="Number of chairs" oninput="rentInput('chairs',this)"><button type="button" aria-label="More chairs" onclick="rentStep('chairs',5)">+</button></div>
             </div>
           </div>
@@ -2279,7 +2279,7 @@ body.browse-mode .browse-cta{display:flex}
     <div class="addon-grp">
       <div class="addon-grp-h"><h3>Physical invites</h3><span class="gift-bill-chip">Quote to follow</span></div>
       <div class="rent-card rent-card-wide">
-        <div class="rent-media" style="--bg:url('img/Addons/physical-invite.jpg')"><img src="img/Addons/physical-invite.jpg" alt="A printed owl-shaped party invite with a scroll"></div>
+        <div class="rent-media" style="--bg:url('img/Addons/physical-invite.jpg?v=2')"><img src="img/Addons/physical-invite.jpg?v=2" alt="A printed owl-shaped party invite with a scroll"></div>
         <div class="rent-body">
           <div class="rent-top">
             <div><div class="rent-name">Printed invites</div><div class="rent-spec">Designed on your party theme</div></div>
@@ -3729,7 +3729,7 @@ function cItems(){
   if(S.decor)items.push({cat:'Decor',n:S.decor.n,p:S.decor.p,id:S.decor.id});
   // Tables & chairs on rent — no price here, quoted separately (2026-10-25).
   if(S.rentals&&S.rentals.tables)items.push({cat:'Addons',n:S.rentals.tables+' catering table'+(S.rentals.tables>1?'s':'')+' (2×4 ft)'+(S.rentals.cover?' · '+S.rentals.cover+' cover':''),p:0,id:'rent-tables',quote:true});
-  if(S.rentals&&S.rentals.chairs)items.push({cat:'Addons',n:S.rentals.chairs+' chair'+(S.rentals.chairs>1?'s':'')+' on rent',p:0,id:'rent-chairs',quote:true});
+  if(S.rentals&&S.rentals.chairs)items.push({cat:'Addons',n:S.rentals.chairs+' Chiavari chair'+(S.rentals.chairs>1?'s':'')+' on rent',p:0,id:'rent-chairs',quote:true});
   if(S.physInv&&S.physInv.qty)items.push({cat:'Addons',n:pinvDesc()+' (designed on your theme, delivered home)',p:0,id:'phys-inv',quote:true});
   // Decor add-ons sit under Decor on the review page (2026-10-24).
   decorAddonsOn().forEach(a=>items.push({cat:'Decor',n:a.n,p:a.p,id:'decor-addon-'+a.key}));
@@ -3796,7 +3796,7 @@ function cItems(){
 // review-page line item so the customer gets a visual recap of their picks.
 function thumbFor(cat,id){
   const e=(ch,bg)=>({type:'e',e:ch,bg:bg||'var(--li2)'});
-  if(id==='rent-tables'||id==='rent-chairs'||id==='phys-inv')return{type:'img',src:{'rent-tables':'img/Addons/rent-table.jpg','rent-chairs':'img/Addons/rent-chairs.jpg','phys-inv':'img/Addons/physical-invite.jpg'}[id]};
+  if(id==='rent-tables'||id==='rent-chairs'||id==='phys-inv')return{type:'img',src:{'rent-tables':'img/Addons/rent-table.jpg','rent-chairs':'img/Addons/rent-chairs.jpg?v=2','phys-inv':'img/Addons/physical-invite.jpg?v=2'}[id]};
   if(cat==='Decor'&&id==='decor-name-bunting')return e('🏷️');
   if(cat==='Decor'&&id&&id.indexOf('decor-addon-')===0){const da=DECOR_ADDONS.find(x=>'decor-addon-'+x.key===id);return e(da?da.e:'🎈');}
   if(cat==='Decor'){
@@ -5745,7 +5745,7 @@ const RENT_COVERS=[{id:'Black',hex:'#1F1F1F'},{id:'White',hex:'#FFFFFF'},{id:'Ma
 function pinvDesc(){const q=(S.physInv||{}).qty||0;return q?q+' printed invite'+(q>1?'s':''):'';}
 function pinvStep(d){S.physInv.qty=Math.max(0,Math.min(1000,(+S.physInv.qty||0)+d));rentSync();}
 function pinvInput(el){S.physInv.qty=Math.max(0,Math.min(1000,parseInt(el.value,10)||0));rentSync();}
-function rentDesc(){const r=S.rentals||{},b=[];if(r.tables)b.push(r.tables+' table'+(r.tables>1?'s':'')+(r.cover?' ('+r.cover.toLowerCase()+' cover)':''));if(r.chairs)b.push(r.chairs+' chair'+(r.chairs>1?'s':''));return b.join(', ');}
+function rentDesc(){const r=S.rentals||{},b=[];if(r.tables)b.push(r.tables+' table'+(r.tables>1?'s':'')+(r.cover?' ('+r.cover.toLowerCase()+' cover)':''));if(r.chairs)b.push(r.chairs+' Chiavari chair'+(r.chairs>1?'s':''));return b.join(', ');}
 function rentSync(){
   const r=S.rentals;const t=document.getElementById('rentTables'),c=document.getElementById('rentChairs'),n=document.getElementById('rentNote');
   if(t&&document.activeElement!==t)t.value=r.tables||0;if(c&&document.activeElement!==c)c.value=r.chairs||0;if(n&&document.activeElement!==n)n.value=r.note||'';

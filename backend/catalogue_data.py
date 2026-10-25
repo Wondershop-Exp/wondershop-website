@@ -1039,7 +1039,7 @@ RENTAL_COVERS = ["Black", "White", "Maroon"]
 
 
 def rental_desc(r) -> str:
-    """'6 tables (white cover), 30 chairs'."""
+    """'6 tables (white cover), 30 Chiavari chairs'."""
     def n(v):
         try:
             return int(float(v))
@@ -1051,5 +1051,5 @@ def rental_desc(r) -> str:
     if t:
         bits.append(f"{t} table{'s' if t > 1 else ''}" + (f" ({str(cover).lower()} cover)" if cover else ""))
     if c:
-        bits.append(f"{c} chair{'s' if c > 1 else ''}")
+        bits.append(f"{c} Chiavari chair{'s' if c > 1 else ''}")
     return ", ".join(bits)
