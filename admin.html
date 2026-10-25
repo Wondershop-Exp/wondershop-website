@@ -409,6 +409,12 @@ table.list.static tr:hover td{background:inherit}
 .gt-breakdown li b.neg{color:#1a6630}
 .mp-line-total{font-size:11px;color:var(--gy);white-space:nowrap;margin-left:4px}
 .gt-warn{display:block;margin-top:5px;color:var(--or);font-style:normal}
+.gt-3 li{display:grid;grid-template-columns:minmax(0,1fr) 90px 90px;gap:14px}
+.gt-3 li b{text-align:right}
+.gt-3 li.gt-h span{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);text-align:right}
+.gt-3 li.gt-t{border-top:1px solid var(--li2);margin-top:4px;padding-top:4px;font-weight:700}
+.gt-3 li.gt-t b{color:var(--bk)}
+.gt-sub{display:block;margin-top:2px;font-size:11px;color:var(--gy);font-style:normal}
 .mail-ok{color:#1a6630}.mail-bad{color:#B4232C}
 .av-row .av-assignee{flex:1;min-width:0}
 
@@ -4653,13 +4659,26 @@ document.addEventListener('click', e=>{
 // Packaging / Thank-you Note / Cash Collection Fee — charged on top,
 // never discounted, same as at checkout). Total MRP's own note
 // (totalMrpNoteHtml below) carries the itemised "what's this made of" list.
+// 2026-10-25, per Shruti — Grand Total = sum of the sales quotes, minus any
+// special discount given on top (+ fees). The line-wise gap is already in
+// the sales quote total, so only the extra discount shows as its own line.
+function _lqGap(){
+  const P = (CURRENT_DETAIL && CURRENT_DETAIL.pricing) || {};
+  return Math.round((P.items||[]).reduce((t,i)=>t+Number(i.amount||0)-Number(i.quote==null?i.amount:i.quote),0)*100)/100;
+}
 function grandTotalNoteHtml(f){
   let h = '';
-  const mrp = f.mrp, pct = f.discount_pct, amt = f.discount_amt;
+  const P = (CURRENT_DETAIL && CURRENT_DETAIL.pricing) || {};
+  const mrp = f.mrp, amt = Number(f.discount_amt||0);
   if(mrp != null){
-    h += '<span class="gt-title">'+bdRupees(mrp)+' Total MRP';
-    if(amt) h += ' − '+bdRupees(amt)+' Discount ('+fmtPct(pct)+'%)';
-    h += '</span>';
+    const gap = _lqGap(), qt = Math.round((Number(mrp) - gap)*100)/100;
+    const special = Math.round((amt - Math.max(0, gap))*100)/100;
+    const above = Math.round((Number(P.quote_adjustment||0) - Math.max(0, -gap))*100)/100;
+    h += '<span class="gt-title">'+bdRupees(qt)+' Sales quote total'
+      + (special >= 1 ? ' − '+bdRupees(special)+' Special discount' : '')
+      + (above >= 1 ? ' + '+bdRupees(above)+' above list price (internal)' : '')
+      + '</span>';
+    if(gap >= 1 || special >= 1) h += '<span class="gt-sub">Total saving vs MRP: '+bdRupees(Math.max(0,gap)+Math.max(0,special))+'</span>';
   }
   const extras = f.extra_items || [];
   if(extras.length){
@@ -4667,7 +4686,7 @@ function grandTotalNoteHtml(f){
       + extras.map(x => '<li><span>'+esc(x.label)+'</span><b class="pos">+'+bdRupees(x.amount)+'</b></li>').join('')
       + '</ul>';
   }
-  return h || 'Recalculates automatically from Total MRP and Discount %.';
+  return h || 'Recalculates automatically from the sales quotes and the special discount.';
 }
 
 // The Total MRP row's explanation: every currently selected service, add-on,
@@ -4676,8 +4695,16 @@ function grandTotalNoteHtml(f){
 function totalMrpNoteHtml(f){
   const items = f.items || [];
   let h = items.length
-    ? '<span class="gt-title">Sum of everything currently selected:</span><ul class="gt-breakdown">'
-      + items.map(x => '<li><span>'+esc(x.label)+'</span><b class="pos">'+(x.amount ? bdRupees(x.amount) : (/included/i.test(x.label) ? 'Included' : bdRupees(x.amount)))+'</b></li>').join('')
+    ? '<span class="gt-title">Sum of everything currently selected:</span><ul class="gt-breakdown gt-3">'
+      + '<li class="gt-h"><span></span><span>MRP</span><span>Sales quote</span></li>'
+      + items.map(x => {
+          const m = Number(x.amount||0), q = Number(x.quote==null?x.amount:x.quote);
+          const inc = !m && /included/i.test(x.label);
+          return '<li><span>'+esc(x.label)+'</span><b class="pos">'+(inc ? 'Included' : bdRupees(m))+'</b>'
+            + '<b class="'+(q < m - 0.005 ? 'neg' : 'pos')+'">'+(inc ? 'Included' : bdRupees(q))+'</b></li>';
+        }).join('')
+      + '<li class="gt-t"><span>Total</span><b>'+bdRupees(items.reduce((t,x)=>t+Number(x.amount||0),0))+'</b>'
+      + '<b>'+bdRupees(items.reduce((t,x)=>t+Number(x.quote==null?x.amount:x.quote),0))+'</b></li>'
       + '</ul>'
     : 'Nothing priced yet — select a service, activity or gift above.';
   if(f.unpriced && f.unpriced.length){
@@ -5016,20 +5043,29 @@ function _billField(key){
 }
 function discountRowHtml(f, locked){
   const rid = 'fld_bill_discount_type';
-  const type = f.customer_choice==='value' ? 'value' : '%';
+  // Special discount = only what's given ON TOP of the sales quotes
+  // (2026-10-25, per Shruti). Stored as the booking's total ₹ discount
+  // (line-wise gap + special), so billing is unchanged underneath.
   const vF = _billField('bill_discount_value'), pF = _billField('bill_discount_pct');
-  const cur = type==='value' ? (vF.customer_choice||'') : (pF.customer_choice ? fmtPct(pF.customer_choice) : '');
-  const remarks = (type==='value' ? vF.remarks : pF.remarks) || '';
+  const P = (CURRENT_DETAIL && CURRENT_DETAIL.pricing) || {};
+  const gap = Math.max(0, _lqGap());
+  const qt = Math.max(0, Number(P.total_mrp||0) - _lqGap());
+  const special = Math.max(0, Math.round((Number(P.discount_amt||0) - gap)*100)/100);
+  const spPct = qt ? Math.round(special/qt*10000)/100 : 0;
+  const type = (f.customer_choice!=='value' && !gap && pF.customer_choice) ? '%' : 'value';
+  const cur = special ? (type==='value' ? String(special) : String(spPct)) : '';
+  const remarks = (f.customer_choice==='value' ? vF.remarks : pF.remarks) || '';
   const shown = cur==='' ? '—' : (type==='value' ? _inr(cur) : cur+'%');
-  const note = '<small>₹ = rupees off Total MRP · % = percentage of Total MRP</small>';
+  const note = '<small>On top of the sales quotes · ₹ or % of the sales quote total ('+_inr(qt)+')</small>';
+  window.__DISC_GAP = gap; window.__DISC_QT = qt;
   if(locked){
-    return '<tr id="'+rid+'" data-key="bill_discount_type"><td class="field-label">Discount'+note+'</td>'
+    return '<tr id="'+rid+'" data-key="bill_discount_type"><td class="field-label">Special Discount'+note+'</td>'
       +'<td data-label="Current value"><span class="readonly-cell">'+esc(shown)+'</span></td><td></td>'
       +'<td data-label="Remarks"><span class="readonly-cell">'+esc(remarks||'—')+'</span></td><td></td></tr>';
   }
-  window.__DISC_VALS = {value: vF.customer_choice||'', '%': pF.customer_choice ? fmtPct(pF.customer_choice) : ''};
+  window.__DISC_VALS = {value: special ? String(special) : '', '%': special ? String(spPct) : ''};
   return '<tr id="'+rid+'" data-key="bill_discount_type">'
-    +'<td class="field-label">Discount'+note+'</td>'
+    +'<td class="field-label">Special Discount'+note+'</td>'
     +'<td data-label="Current value">'
       + selectHtml(rid+'_cc', f.options||[{value:'%',label:'% (Percentage)'},{value:'value',label:'₹ (Flat Amount)'}], type, ' onchange="onDiscTypeChange()"')
       + '<div class="disc-edit"><span class="pct-wrap" style="margin-top:8px">'
@@ -5059,10 +5095,15 @@ async function saveDiscountRow(){
   const rm = document.getElementById('fld_bill_discount_type_rm').value;
   const post = body => apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {method:'POST',
     body: JSON.stringify(Object.assign({assigned_value:'', removed:false, changed_by:who}, body))});
+  const gap = Number(window.__DISC_GAP||0), qt = Number(window.__DISC_QT||0);
+  const n = amt==='' ? 0 : Number(amt);
+  if(isNaN(n) || n < 0){ showToast('Enter a special discount of 0 or more.'); return; }
+  const special = Math.round((type==='value' ? n : qt*n/100)*100)/100;
+  const total = Math.round((special + gap)*100)/100;
   try{
-    await post({field_key:'bill_discount_type', customer_choice_override:type, remarks:''});
-    await post({field_key: type==='value' ? 'bill_discount_value' : 'bill_discount_pct', customer_choice_override:amt, remarks:rm});
-    showToast('✓ Discount saved — '+(amt==='' ? 'cleared' : (type==='value' ? _inr(amt) : amt+'%')));
+    await post({field_key:'bill_discount_type', customer_choice_override:'value', remarks:''});
+    await post({field_key:'bill_discount_value', customer_choice_override: total ? String(total) : '', remarks:rm});
+    showToast('✓ Special discount saved — '+(special ? _inr(special)+(type==='%'?' ('+n+'%)':'') : 'none')+' on top of the sales quotes');
     await loadDetail();
   }catch(e){
     if(e.message!=='unauthorized') showToast('Save failed: '+e.message);
