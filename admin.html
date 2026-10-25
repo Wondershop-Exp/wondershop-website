@@ -371,6 +371,14 @@ table.list.static tr:hover td{background:inherit}
 .row-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
 .mini-btn{padding:5px 9px;border:1px solid var(--li2);border-radius:6px;background:#fff;font-size:11px;font-weight:600;white-space:nowrap;flex:0 0 auto}
 .mini-btn.save{background:var(--pk);color:#fff;border-color:var(--pk)}
+.ag-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 12px}
+.ag-c.ag-chips,.ag-c.ag-text{grid-column:1/-1}
+.ag-l{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.35px;color:var(--gy);margin-bottom:4px}
+.ag-adm{font-size:10px;text-transform:none;letter-spacing:0;color:#8a5a00;background:#FFF4DC;border-radius:6px;padding:1px 6px;margin-left:4px;white-space:nowrap;display:inline-block}
+.ag-l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ag-c input{width:100%;box-sizing:border-box}
+.ag-c .pct-wrap{display:block}
+@media(max-width:700px){.ag-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .mini-btn.remove{color:var(--pk);border-color:var(--spk)}
 .mini-btn.restore{color:var(--gr);border-color:var(--sgr)}
 .add-field-btn{margin:10px 14px 14px;padding:8px 14px;border:1px dashed var(--li);border-radius:8px;background:none;color:var(--li);font-size:12px;font-weight:600}
@@ -5533,8 +5541,108 @@ async function saveOneQuote(el){
     }
   }catch(e){ if(e.message!=='unauthorized') showToast('Save failed: '+e.message); el.value = el.dataset.old; }
 }
+// ── Add-ons shown as one row each (2026-10-25, per Shruti — "do we need 3
+// rows? can we make it 1?"): Tables & chairs on rent and Physical invites.
+// The fields stay separate underneath (billing, sales copy-over); this row
+// just edits them together with one Save / Remove. Quote fields are
+// admin-only, so they only appear when the server sent them.
+const ADDON_GROUPS = {
+  rent: {title:'Tables & chairs on rent', head:'addon_rent_tables', fields:[
+    {key:'addon_rent_tables', label:'Tables (2×4 ft)', type:'num'},
+    {key:'addon_rent_chairs', label:'Chiavari chairs', type:'num'},
+    {key:'addon_rent_price', label:'Quote', type:'money'},
+    {key:'addon_rent_table_cover', label:'Table cover', type:'chips', opts:['Black','White','Maroon']},
+    {key:'addon_rent_notes', label:'Setup notes', type:'text', ph:'Where to set them up, timings'}]},
+  pinv: {title:'Physical invites', head:'addon_phys_inv_qty', fields:[
+    {key:'addon_phys_inv_qty', label:'Quantity', type:'num'},
+    {key:'addon_phys_inv_price', label:'Quote', type:'money'},
+    {key:'addon_phys_inv_notes', label:'Notes', type:'text', ph:'Design notes, needed-by date'}]},
+};
+function _addonGroupOf(key){
+  for(const g in ADDON_GROUPS){ if(ADDON_GROUPS[g].fields.some(x=>x.key===key)) return g; }
+  return null;
+}
+function _addonOrigSummary(g){
+  const v = k => { const f = _decorAddonField(k); return f && f.original_value ? String(f.original_value) : ''; };
+  if(g==='rent'){
+    const b = [], t = v('addon_rent_tables'), c = v('addon_rent_chairs'), cv = v('addon_rent_table_cover'), n = v('addon_rent_notes');
+    if(Number(t)) b.push(t+' table'+(Number(t)>1?'s':'')+(cv?' ('+cv.toLowerCase()+' cover)':''));
+    if(Number(c)) b.push(c+' Chiavari chair'+(Number(c)>1?'s':''));
+    return b.length ? b.join(', ')+(n?' · '+n:'') : '';
+  }
+  const q = v('addon_phys_inv_qty');
+  return Number(q) ? q+' invites' : '';
+}
+function addonGroupRowHtml(g, locked){
+  const G = ADDON_GROUPS[g], head = _decorAddonField(G.head);
+  if(!head) return '';
+  const fs = G.fields.map(x=>Object.assign({}, x, {f:_decorAddonField(x.key)})).filter(x=>x.f);
+  const removed = !!head.removed;
+  const orig = _addonOrigSummary(g);
+  const rid = 'grp_'+g;
+  const cell = x => {
+    const val = x.f.customer_choice || '';
+    const lbl = '<div class="ag-l">'+esc(x.label)+(x.f.admin_only?' <span class="ag-adm">admin</span>':'')+'</div>';
+    if(locked) return '<div class="ag-c ag-'+x.type+'">'+lbl+'<span class="readonly-cell">'+esc(val? (x.type==='money'?_inr(val):val) :'—')+'</span></div>';
+    let inp;
+    if(x.type==='chips'){
+      inp = '<input type="hidden" id="'+rid+'_'+x.key+'" value="'+esc(val)+'" data-old="'+esc(val)+'"><div class="chips">'
+        + x.opts.map(o=>'<button type="button" class="'+(val===o?'sel':'')+'" onclick="addonGroupChip(\''+rid+'\',\''+x.key+'\',\''+o+'\',this)">'+o+'</button>').join('')+'</div>';
+    }else{
+      const t = x.type==='text' ? 'text' : 'number';
+      inp = (x.type==='money'?'<span class="pct-wrap"><span class="pct-suffix" style="left:9px;right:auto">₹</span>':'')
+        + '<input type="'+t+'" id="'+rid+'_'+x.key+'" value="'+esc(val)+'" data-old="'+esc(val)+'"'+(t==='number'?' min="0" step="1"':'')
+        + ' placeholder="'+esc(x.ph||'—')+'"'+(x.type==='money'?' style="padding-left:22px"':'')+'>'
+        + (x.type==='money'?'</span>':'');
+    }
+    return '<div class="ag-c ag-'+x.type+'">'+lbl+inp+'</div>';
+  };
+  const actions = locked ? '' : '<div class="row-actions"><button class="mini-btn save" onclick="saveAddonGroup(\''+g+'\')">Save</button>'
+    + (removed ? '<button class="mini-btn restore" onclick="saveAddonGroup(\''+g+'\', false)">Restore</button>'
+               : '<button class="mini-btn remove" onclick="saveAddonGroup(\''+g+'\', true)">Remove</button>')+'</div>';
+  return '<tr id="'+rid+'" class="ag-row'+(removed?' removed':'')+'" data-key="'+esc(G.head)+'">'
+    + '<td class="field-label">'+esc(G.title)+'<small>Original: '+esc(orig||'None selected')+'</small></td>'
+    + '<td colspan="2" data-label="Current value"><div class="ag-grid">'+fs.map(cell).join('')+'</div></td>'
+    + '<td data-label="Remarks">'+(locked?'<span class="readonly-cell">'+esc(head.remarks||'—')+'</span>':'<textarea id="'+rid+'_rm" placeholder="Remarks..." data-old="'+esc(head.remarks||'')+'">'+esc(head.remarks||'')+'</textarea>')+'</td>'
+    + '<td>'+actions+'</td></tr>';
+}
+function addonGroupChip(rid, key, o, btn){
+  const h = document.getElementById(rid+'_'+key); if(!h) return;
+  h.value = h.value===o ? '' : o;
+  btn.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('sel', b.textContent===h.value));
+  const tr = btn.closest('tr'); if(tr){ tr.classList.add('dirty'); if(typeof updateDirtyCount==='function') updateDirtyCount(); }
+}
+async function saveAddonGroup(g, removeFlag){
+  try{
+    const who = getName();
+    if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
+    const G = ADDON_GROUPS[g], rid = 'grp_'+g, head = _decorAddonField(G.head);
+    const removed = removeFlag!==undefined ? removeFlag : !!(head && head.removed);
+    const rmEl = document.getElementById(rid+'_rm');
+    let n = 0;
+    for(const x of G.fields){
+      const f = _decorAddonField(x.key); if(!f) continue;
+      const el = document.getElementById(rid+'_'+x.key);
+      const v = el ? el.value.trim() : (f.customer_choice||'');
+      const isHead = x.key===G.head;
+      const changed = (el && v !== (el.dataset.old||'')) || (isHead && rmEl && rmEl.value !== (rmEl.dataset.old||'')) || removed !== !!f.removed;
+      if(!changed) continue;
+      await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {method:'POST', body: JSON.stringify({
+        field_key: x.key, customer_choice_override: v, assigned_value: f.assigned_value||'',
+        remarks: isHead && rmEl ? rmEl.value : (f.remarks||''), removed: removed, changed_by: who})});
+      n++;
+    }
+    showToast(n ? '✓ Saved — '+G.title+(removeFlag===true?' removed':removeFlag===false?' restored':' updated') : 'Saved — no change detected.');
+    await loadDetail();
+  }catch(e){
+    console.error('saveAddonGroup failed:', e);
+    showToast(e.message==='unauthorized' ? 'Session expired — please log in again.' : ('Save failed: '+e.message));
+  }
+}
 function fieldRowHtml(f, isCustEvent, locked){
   if(f.field_key==='einvite_save_the_date') return einviteCardHtml(locked);
+  { const g = _addonGroupOf(f.field_key);
+    if(g) return f.field_key===ADDON_GROUPS[g].head ? addonGroupRowHtml(g, locked) : ''; }
   if(EI_FIELDS.some(x=>x.key===f.field_key)) return '';
   if(f.field_key==='bill_discount_pct' || f.field_key==='bill_discount_value') return '';
   if(f.field_key==='bill_line_quotes') return '';
