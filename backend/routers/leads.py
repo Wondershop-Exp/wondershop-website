@@ -1171,6 +1171,15 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
     else:
         out.append({"label": "Return Gifts", "not_selected": True})
 
+    # Tables & chairs on rent (2026-10-25) — quoted separately by the team.
+    rent = snap.get("rentals") or {}
+    rent_desc = cat.rental_desc(rent)
+    if rent_desc:
+        note = (rent.get("note") or "").strip()
+        out.append({"label": "Tables & Chairs (on rent)",
+                    "name": rent_desc + " — quote to follow" + (f" · {note}" if note else ""),
+                    "price": None, "free": False})
+
     # 2026-08-14, per Shruti: if the customer won a Tattoo/Bubble Artist
     # scratch-card reward and chose to add it to THIS booking, show it as
     # its own line in Services Booked (not just buried in the reward

@@ -220,6 +220,7 @@ th.th-sort:hover{color:var(--pk)}
 .fld textarea{min-height:60px;resize:vertical;font-family:var(--fb)}
 
 .req-row{padding:12px 0;border-bottom:1px solid var(--li3)}
+.sec-one > .req-row:last-child{border-bottom:none}
 .req-row:last-child{border-bottom:none}
 .req-row .rlabel{font-size:13px;font-weight:700;color:var(--bk);margin-bottom:7px}
 .req-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:10px}
@@ -1376,7 +1377,7 @@ function renderDetail(){
     // Shruti): Decor, Activities, Host, Music, Pinata, Invite, Photo, Gifts.
     + sectionDecor()
     + sectionActivities()
-    + sectionRequirements()
+    + sectionRequirements()   // now one card per service, like Build-a-Birthday (2026-10-25)
     + sectionSchedule()
     + sectionNotes()
     + sectionBilling()
@@ -1609,7 +1610,9 @@ function listBreakdown(){
     line('Return gift tags', tg.cost, Math.max(gt.min_qty||15, giftQty)*(gt.unit_price||10), {k:'req', key:'return_gift_tags'});
   }
   inGifts = false;
-  const known = ['decor','host','music','photographer','einvite_type','save_the_date','pinata_type','pinata_bags','return_gifts','packaging','return_gift_tags'];
+  const rent = sel('rentals');   // tables & chairs on rent (2026-10-25) — no list price
+  if(num(rent.cost)!==null || Number(rent.tables) || Number(rent.chairs)) line('Tables & chairs on rent'+(_rentalDesc(rent)?': '+_rentalDesc(rent):''), rent.cost, null, {k:'req', key:'rentals'});
+  const known = ['decor','host','music','photographer','einvite_type','save_the_date','pinata_type','pinata_bags','return_gifts','packaging','return_gift_tags','rentals'];
   Object.keys(reqs).forEach(k=>{
     if(known.includes(k)) return;
     const r = reqs[k];
@@ -2929,22 +2932,66 @@ async function onPinataBagsPick(val){
 function sectionDecor(){
   return '<div class="card"><h3>2 · Decor</h3>' + reqDecorRow() + '</div>';
 }
+// 2026-10-25, per Shruti — "rename event requirements and make separate
+// sections like in the bab": one card per service, then ONE Add-ons card with
+// every add-on (same set as the bookings page's Add-ons, plus tables & chairs).
+function _secCard(title, body){ return '<div class="card sec-one"><h3>'+title+'</h3>'+body+'</div>'; }
 function sectionRequirements(){
-  let html = '<div class="card"><h3>4 · Event Requirements</h3>';
-  html += reqHostRow();
-  html += reqTextRow('host_gifts', 'Host Gifts (Add-on)');
-  html += reqMusicRow();
-  html += reqPinataRow();
-  html += reqPinataBagsRow();
-  html += reqYesNoRow('pinata_fillings', 'Pinata — Fillings (Add-on)', (CATALOGUE.pinata_fillings||{}).note||'');
-  html += reqEinviteRow();
-  html += reqPhotographerRow();
-  html += reqReturnGiftsRow();
-  html += reqReturnGiftTagsRow();
-  html += reqPackagingRow();
-  html += reqTextRow('cake', 'Cake', CATALOGUE.cake_note||'');
-  html += '</div>';
-  return html;
+  return _secCard('4 · Host', reqHostRow() + reqTextRow('host_gifts', 'Host Gifts (Add-on)'))
+    + _secCard('5 · Music', reqMusicRow())
+    + _secCard('6 · Piñata', reqPinataRow())
+    + _secCard('7 · E-Invite &amp; Save the Date', reqEinviteRow())
+    + _secCard('8 · Photographer', reqPhotographerRow())
+    + _secCard('9 · Return Gifts', reqReturnGiftsRow())
+    + _secCard('10 · Cake', reqTextRow('cake', 'Cake', CATALOGUE.cake_note||''))
+    + _secCard('11 · Add-ons', reqMusicAddonsRow() + reqPinataBagsRow()
+        + reqYesNoRow('pinata_fillings', 'Pinata — Fillings (Add-on)', (CATALOGUE.pinata_fillings||{}).note||'')
+        + reqReturnGiftTagsRow() + reqPackagingRow() + reqRentalsRow());
+}
+// Music Lights / Smoke Machine — saved on requirements.music.addons as before.
+function reqMusicAddonsRow(){
+  const r = req('music');
+  const picked = (r.addons||[]).map(a=>a.name);
+  const chips = (CATALOGUE.music_addons||[]).map(a=>{
+    const on = picked.includes(a.name);
+    return '<button type="button" class="'+(on?'sel':'')+'" onclick="onMusicAddonChange(\''+esc(a.name)+'\','+a.price+','+(!on)+').then(renderDetail)">'+(on?'✓ ':'+ ')+esc(a.name)+' — '+money(a.price)+'</button>';
+  }).join('');
+  return '<div class="req-row"><div class="rlabel">Music Add-ons</div><div class="chip-row">'+chips+'</div></div>';
+}
+// Tables & chairs on rent (2026-10-25) — 2×4 ft catering tables with a
+// black / white / maroon cover, and chairs; installed by the catering team
+// with 1 helper. No list price: the Sales Quote is what's billed.
+const RENTAL_COVERS = ['Black','White','Maroon'];
+function reqRentalsRow(){
+  const r = req('rentals');
+  const covers = RENTAL_COVERS.map(c=>'<button type="button" class="'+(r.cover===c?'sel':'')+'" onclick="onRentalCover(\''+c+'\')">'+c+'</button>').join('');
+  const inp = (id, ph, v, f) => '<input type="number" min="0" id="'+id+'" placeholder="'+ph+'" title="'+ph+'" value="'+(v==null?'':v)+'" onblur="onRentalField(\''+f+'\', this.value)" style="max-width:180px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13px">';
+  return '<div class="req-row"><div class="rlabel">Tables &amp; Chairs on Rent (Add-on)</div>'
+    + '<div class="req-grid">'+inp('req_rent_tables','Tables (2×4 ft)',r.tables,'tables')+inp('req_rent_chairs','Chairs',r.chairs,'chairs')+inp('req_rentals_cost','Sales Quote (₹)',r.cost,'cost')+'</div>'
+    + '<div class="req-note" style="margin:8px 0 4px">Table cover colour</div><div class="chip-row">'+covers+'</div>'
+    + custBox('rentals', 'Where to set them up, timings, anything else...')
+    + '<div class="req-note">Installed by our catering team with 1 helper on site. No list price — quote separately.</div></div>';
+}
+function _rentalDesc(r){
+  const b = [];
+  if(Number(r.tables)) b.push(r.tables+' table'+(Number(r.tables)>1?'s':'')+(r.cover?' ('+r.cover.toLowerCase()+' cover)':''));
+  if(Number(r.chairs)) b.push(r.chairs+' chair'+(Number(r.chairs)>1?'s':''));
+  return b.join(', ');
+}
+async function onRentalField(f, v){
+  const r = Object.assign({}, req('rentals'));
+  const n = v==='' ? null : Math.max(0, Math.round(Number(v)));
+  if(n!==null && isNaN(n)) return;
+  if((r[f]==null?null:Number(r[f])) === n) return;
+  r[f] = n;
+  await saveRequirement('rentals', r);
+  refreshBillingBreakup();
+}
+async function onRentalCover(c){
+  const r = Object.assign({}, req('rentals'));
+  r.cover = r.cover===c ? null : c;
+  await saveRequirement('rentals', r);
+  renderDetail();
 }
 function reqMusicRow(){
   const r = req('music');
@@ -2957,7 +3004,7 @@ function reqMusicRow(){
   return '<div class="req-row"><div class="rlabel">Music</div><div class="req-grid">'
     + '<select id="req_music_sel" onchange="onReqSelectChange(\'music\')">' + optionsHtml(CATALOGUE.music, r.selected) + '</select>'
     + '<input type="number" id="req_music_cost" placeholder="Sales Quote (₹)" title="Sales Quote (₹)" value="'+(r.cost==null?'':r.cost)+'" onblur="onReqCostBlur(\'music\')">'
-    + '</div>' + addonsHtml + custBox('music', 'Customizations (song requests, timing...)') + '</div>';
+    + '</div>' + custBox('music', 'Customizations (song requests, timing...)') + '<div class="req-note">Music lights / smoke machine: see Add-ons below.</div></div>';
 }
 async function onMusicAddonChange(name, price, checked){
   const r = Object.assign({selected:null,cost:null,addons:[]}, req('music'));
@@ -2971,7 +3018,7 @@ async function onMusicAddonChange(name, price, checked){
 let SCHEDULE = [];
 function sectionSchedule(){
   SCHEDULE = (DATA.event_schedule || []).map(r=>Object.assign({time:'',item:''},r));
-  return '<div class="card"><h3>5 · Event Schedule</h3><div id="schedRows"></div>'
+  return '<div class="card"><h3>12 · Event Schedule</h3><div id="schedRows"></div>'
     + '<button type="button" class="add-dash" onpointerdown="event.preventDefault()" onclick="addSchedRow()">+ Add row</button></div>';
 }
 let SCHED_REBUILDING = false;
@@ -3397,7 +3444,7 @@ function submitNewActivity(){
 // ── 5. Notes ─────────────────────────────────────────────────────────────
 function sectionNotes(){
   const d = DATA;
-  return '<div class="card"><h3>6 · Notes / Client Special Instructions</h3>'
+  return '<div class="card"><h3>13 · Notes / Client Special Instructions</h3>'
     + '<div class="fld"><label>Notes / Special Instructions</label><textarea onblur="saveField(\'notes_special_instructions\', this.value)">'+esc(d.notes_special_instructions||'')+'</textarea></div>'
     + '<div class="fld" style="margin-top:10px"><label>Changes / Last-Minute Updates</label><textarea onblur="saveField(\'notes_changes_updates\', this.value)">'+esc(d.notes_changes_updates||'')+'</textarea></div>'
     + '</div>';
@@ -3536,7 +3583,7 @@ function sectionBilling(){
   const d = DATA;
   const LB = listBreakdown();
   const pmOpts = '<option value="">— select —</option>' + PAYMENT_METHODS.map(m=>'<option '+(m===d.payment_method?'selected':'')+'>'+m+'</option>').join('');
-  return '<div class="card"><h3>7 · Confirm Booking &amp; Balance</h3>'
+  return '<div class="card"><h3>14 · Confirm Booking &amp; Balance</h3>'
     + (d.kids_count?'':'<div class="ref-note">Activities priced per child use ×1 until # Kids is filled in above.</div>')
     + '<div class="grid4">'
       + '<div class="fld"><label>Grand Total (from selections)</label><div class="readonly-amt" id="bill_est_total">'+(money(LB.total)||'₹0')+'</div></div>'
@@ -3611,7 +3658,7 @@ function updateDiscountPreview(){
 function sectionPostEvent(){
   const d = DATA;
   const t = (key,label) => '<div class="fld" style="margin-top:10px"><label>'+label+'</label><textarea onblur="saveField(\''+key+'\', this.value)">'+esc(d[key]||'')+'</textarea></div>';
-  return '<div class="card"><h3>7 · Post-Event Notes</h3>'
+  return '<div class="card"><h3>14 · Post-Event Notes</h3>'
     + t('post_event_missing_items','Missing / Damaged / Left-Behind Items')
     + t('post_event_client_feedback','Client Feedback')
     + t('post_event_internal_notes','Internal Learning / What to Improve')

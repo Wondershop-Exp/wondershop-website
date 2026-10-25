@@ -236,6 +236,13 @@ FIELD_CATALOG = [
     {"key": "addon_decor_cake_table", "label": "Decor: Cake Table",     "section": "Add-ons"},
     {"key": "addon_decor_age_light",  "label": "Decor: Age Light",      "section": "Add-ons"},
     {"key": "addon_decor_cutouts",    "label": "Decor: Cutouts",        "section": "Add-ons"},
+    # Tables & chairs on rent (2026-10-25, per Shruti) — quantities + cover from
+    # the website / sales panel; Quote (₹) is what goes into Total MRP.
+    {"key": "addon_rent_tables",      "label": "Tables & Chairs: Tables (2×4 ft)", "section": "Add-ons"},
+    {"key": "addon_rent_table_cover", "label": "Tables & Chairs: Table Cover",     "section": "Add-ons"},
+    {"key": "addon_rent_chairs",      "label": "Tables & Chairs: Chairs",          "section": "Add-ons"},
+    {"key": "addon_rent_notes",       "label": "Tables & Chairs: Setup Notes",     "section": "Add-ons"},
+    {"key": "addon_rent_price",       "label": "Tables & Chairs: Quote (₹)",       "section": "Add-ons", "admin_only": True},
     {"key": "addon_gift_packaging",  "label": "Gift Packaging",         "section": "Add-ons"},
     {"key": "addon_gift_note",       "label": "Gift Thank-You Note",    "section": "Add-ons"},
     {"key": "addon_pinata_bags",     "label": "Piñata Bags",            "section": "Add-ons", "admin_only": True},
@@ -522,6 +529,7 @@ ADDON_PACKAGING_OPTIONS = [
 ADDON_PINATA_BAGS_OPTIONS = [_opt("Yes", f"Yes - Rs. {PINATA_BAG_PRICE}/bag"), _opt("No")]
 
 DROPDOWN_OPTIONS = {
+    "addon_rent_table_cover": [_opt(c) for c in cat.RENTAL_COVERS],   # tables & chairs (2026-10-25)
     **{k: [_opt("Yes", f"Yes - Rs. {p}"), _opt("No")] for k, _n, p in DECOR_ADDONS},   # decor add-ons (2026-10-24)
     "addon_dj_lights": ADDON_LIGHTS_OPTIONS,
     "addon_dj_smoke": ADDON_SMOKE_OPTIONS,
@@ -648,6 +656,11 @@ def _derive_original_value(key: str, lead: dict, snap: dict):
         parts = [f"{g.get('n')} x{g.get('qty')}" for g in gifts if g.get("n")]
         return ", ".join(parts) if parts else None
 
+    if key in ("addon_rent_tables", "addon_rent_chairs", "addon_rent_table_cover", "addon_rent_notes"):
+        rent = snap.get("rentals") or {}
+        v = rent.get({"addon_rent_tables": "tables", "addon_rent_chairs": "chairs",
+                      "addon_rent_table_cover": "cover", "addon_rent_notes": "note"}[key])
+        return None if v in (None, "", 0) else str(v)
     if key in {k for k, _n, _p in DECOR_ADDONS}:
         name = next(n for k, n, _p in DECOR_ADDONS if k == key)
         picked = {str(x.get("n")) for x in (snap.get("decor_addons") or []) if isinstance(x, dict)}
@@ -808,6 +821,13 @@ async def _validate_choice_value(key: str, value: str, derived_original: Optiona
         grand_total = lead.get("client_budget")
         if grand_total is not None and adv > float(grand_total):
             raise HTTPException(status_code=400, detail="Advance Paid cannot exceed the Grand Total.")
+
+    if key in ("addon_rent_tables", "addon_rent_chairs", "addon_rent_price"):
+        try:
+            if float(value) < 0:
+                raise ValueError
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"{CATALOG_BY_KEY[key]['label']} must be a number (0 or more).")
 
     if key == "event_payment_confirmed_amount":
         try:
@@ -2009,6 +2029,13 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
         remark = f"{prefix} {d['customization']}" if d.get("customization") else None
         if decor_cc or remark:
             to_write.append(("svc_decor", decor_cc, remark))
+    # ── Tables & chairs on rent (2026-10-25) ──
+    rent = _req("rentals")
+    for _key, _v in (("addon_rent_tables", rent.get("tables")), ("addon_rent_chairs", rent.get("chairs")),
+                     ("addon_rent_table_cover", rent.get("cover")), ("addon_rent_notes", rent.get("customization")),
+                     ("addon_rent_price", rent.get("cost"))):
+        if _key not in already and _v not in (None, "", 0):
+            to_write.append((_key, str(int(_v)) if isinstance(_v, float) and _v.is_integer() else str(_v), None))
     # ── Decor add-ons (2026-10-24) — Cake Table / Age Light / Cutouts ──
     picked_da = {str(a.get("name")) for a in (d.get("addons") or []) if isinstance(a, dict)}
     for _key, _name, _p in DECOR_ADDONS:

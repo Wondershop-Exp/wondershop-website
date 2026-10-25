@@ -1028,3 +1028,28 @@ def decor_options() -> list:
 
 def decor_option(oid: Optional[str]) -> Optional[dict]:
     return next((o for o in decor_options() if o["id"] == oid), None) if oid else None
+
+
+# ─── Tables & chairs on rent (2026-10-25, per Shruti) ─────────────────────
+# 2×4 ft catering tables with a black / white / maroon cover, and chairs,
+# installed by the catering team with 1 helper on site. No list price: the
+# team quotes it separately. Website: builder_snapshot["rentals"] =
+# {tables, chairs, cover, note}; sales panel: requirements.rentals.
+RENTAL_COVERS = ["Black", "White", "Maroon"]
+
+
+def rental_desc(r) -> str:
+    """'6 tables (white cover), 30 chairs'."""
+    def n(v):
+        try:
+            return int(float(v))
+        except (TypeError, ValueError):
+            return 0
+    r = r or {}
+    t, c, cover = n(r.get("tables")), n(r.get("chairs")), r.get("cover")
+    bits = []
+    if t:
+        bits.append(f"{t} table{'s' if t > 1 else ''}" + (f" ({str(cover).lower()} cover)" if cover else ""))
+    if c:
+        bits.append(f"{c} chair{'s' if c > 1 else ''}")
+    return ", ".join(bits)

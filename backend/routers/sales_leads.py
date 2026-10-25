@@ -93,6 +93,9 @@ MUSIC_ADDONS = [{"name": "Music Lights", "price": 1500}, {"name": "Smoke Machine
 # Decor add-ons (2026-10-24, per Shruti) — Rs 1,500 each; "tiers" = the decor
 # tiers that don't already include them (mirrors builder.html DECOR_ADDONS and
 # booking_pricing.DECOR_ADDONS). Saved on requirements.decor.addons.
+from catalogue_data import rental_desc   # tables & chairs on rent (2026-10-25)
+
+
 DECOR_ADDONS = [{"name": "Cake Table", "price": 1500, "tiers": ["Classic", "Premium"]},
                 {"name": "Age Light", "price": 1500, "tiers": ["Classic", "Premium"]},
                 {"name": "Cutouts", "price": 1500, "tiers": ["Classic"]}]
@@ -583,8 +586,13 @@ def _list_breakdown(requirements: dict, activities: list, kids_count: Optional[i
         gt = C["return_gift_tags"]
         line("return_gift_tags", "Return gift tags", tg.get("cost"), max(gt.get("min_qty") or 15, gift_qty) * (gt.get("unit_price") or 10))
     in_gifts = False
+    # Tables & chairs on rent (2026-10-25) — no list price, the quote is billed.
+    rent = sel("rentals")
+    if num(rent.get("cost")) is not None or num(rent.get("tables")) or num(rent.get("chairs")):
+        desc = rental_desc(rent)
+        line("rentals", "Tables & chairs on rent" + (f" — {desc}" if desc else ""), rent.get("cost"), None)
     known = {"decor", "host", "music", "photographer", "einvite_type", "save_the_date", "pinata_type",
-             "pinata_bags", "return_gifts", "packaging", "return_gift_tags"}
+             "pinata_bags", "return_gifts", "packaging", "return_gift_tags", "rentals"}
     for k, r in reqs.items():
         if k not in known and isinstance(r, dict) and num(r.get("cost")):
             line(k, k.replace("_", " ").capitalize(), r.get("cost"), None)

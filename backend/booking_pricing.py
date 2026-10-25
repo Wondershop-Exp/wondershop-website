@@ -608,6 +608,13 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
     for key, name, price in DECOR_ADDONS:
         if _resolved(cur, key, removed) == "Yes":
             add(DECOR_ADDON_LABEL.format(name), price)
+    # Tables & chairs on rent (2026-10-25) — billed at the quote the team enters.
+    rent_price = money(_resolved(cur, "addon_rent_price", removed))
+    if rent_price:
+        desc = cat.rental_desc({"tables": _resolved(cur, "addon_rent_tables", removed),
+                                "chairs": _resolved(cur, "addon_rent_chairs", removed),
+                                "cover": _resolved(cur, "addon_rent_table_cover", removed)})
+        add("Tables & chairs on rent" + (f" ({desc})" if desc else ""), rent_price)
 
     einvite = _resolved(cur, "svc_einvite", removed)
     if einvite and einvite != "No selection":
