@@ -531,7 +531,15 @@ body.browse-mode .browse-cta{display:flex}
 .rent-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 @media(max-width:660px){.rent-grid{grid-template-columns:1fr}}
 .rent-card{background:#fff;border:1.5px solid var(--li2);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
-.rent-img{width:100%;height:200px;object-fit:cover;display:block}
+.rent-media{position:relative;height:240px;overflow:hidden;background:#F7F3FC}
+.rent-media::before{content:'';position:absolute;inset:-24px;background:var(--bg) center/cover;filter:blur(20px);opacity:.5}
+.rent-media img{position:relative;width:100%;height:100%;object-fit:contain;display:block}
+.rent-card-wide{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+.rent-card-wide .rent-media{height:260px}
+@media(max-width:660px){.rent-card-wide{grid-template-columns:1fr}.rent-card-wide .rent-media{height:240px}}
+.addon-grp{margin-bottom:28px}
+.addon-grp-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.addon-grp-h h3{font-family:var(--fd);font-size:19px;font-weight:700;margin:0}
 .rent-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px}
 .rent-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .rent-name{font-family:var(--fd);font-size:17px;font-weight:700}
@@ -2224,45 +2232,64 @@ body.browse-mode .browse-cta{display:flex}
   </div>
 </div>
 
-<!-- ─── STEP 9: ADD-ONS — tables & chairs on rent (2026-10-25, per Shruti) ───
-     Catering tables (2×4 ft) with a black / white / maroon cover, and chairs.
-     Installed by our catering team with 1 helper on site; quoted separately
-     (not in the total). S.rentals; sent as builder_snapshot.rentals. -->
+<!-- ─── STEP 9: ADD-ONS (2026-10-25, per Shruti) ───
+     Quote-based extras, not in the total: tables & chairs on rent
+     (S.rentals → builder_snapshot.rentals) and physical invites
+     (S.physInv → builder_snapshot.physical_invites). Add new add-ons here
+     as another .addon-grp. -->
 <div class="step" id="sadd">
   <div class="s-hero"><div class="slbl">Step 9 of 10 · Add-ons</div>
-    <h2>Tables &amp; chairs <span class="hl">on rent</span></h2>
-    <p>Need extra seating or food tables? Tell us how many — our catering team brings them and sets them up wherever you want.</p>
+    <h2>Party <span class="hl">add-ons</span></h2>
+    <p>Optional extras we arrange for you. Each one is quoted separately — nothing here is added to your total now.</p>
   </div>
   <div class="sec-blk">
-    <div class="rent-grid">
-      <div class="rent-card">
-        <img src="img/Addons/rent-table.jpg" alt="Catering table, 2 by 4 feet, with a fitted skirt cover" class="rent-img" style="object-fit:contain;background:#fff">
-        <div class="rent-body">
-          <div class="rent-top">
-            <div><div class="rent-name">Catering table</div><div class="rent-spec">2 × 4 ft · 2.5 ft high · fitted skirt cover</div></div>
-            <div class="rent-step"><button type="button" aria-label="Fewer tables" onclick="rentStep('tables',-1)">−</button><input type="number" min="0" id="rentTables" aria-label="Number of tables" oninput="rentInput('tables',this)"><button type="button" aria-label="More tables" onclick="rentStep('tables',1)">+</button></div>
+    <div class="addon-grp">
+      <div class="addon-grp-h"><h3>Tables &amp; chairs on rent</h3><span class="gift-bill-chip">Quote to follow</span></div>
+      <div class="rent-grid">
+        <div class="rent-card">
+          <div class="rent-media" style="--bg:url('img/Addons/rent-table.jpg')"><img src="img/Addons/rent-table.jpg" alt="Catering table, 2 by 4 feet, with a fitted skirt cover"></div>
+          <div class="rent-body">
+            <div class="rent-top">
+              <div><div class="rent-name">Catering table</div><div class="rent-spec">2 × 4 ft · 2.5 ft high · fitted skirt cover</div></div>
+              <div class="rent-step"><button type="button" aria-label="Fewer tables" onclick="rentStep('tables',-1)">−</button><input type="number" min="0" id="rentTables" aria-label="Number of tables" oninput="rentInput('tables',this)"><button type="button" aria-label="More tables" onclick="rentStep('tables',1)">+</button></div>
+            </div>
+            <div class="rent-lbl">Preferred cover colour</div>
+            <div class="rent-covers" id="rentCovers"></div>
+            <div class="err-msg" id="rentCoverErr">Please pick a cover colour for the tables</div>
           </div>
-          <div class="rent-lbl">Table cover colour</div>
-          <div class="rent-covers" id="rentCovers"></div>
-          <div class="err-msg" id="rentCoverErr">Please pick a cover colour for the tables</div>
+        </div>
+        <div class="rent-card">
+          <div class="rent-media" style="--bg:url('img/Addons/rent-chairs.jpg')"><img src="img/Addons/rent-chairs.jpg" alt="Chairs dressed with sheer fabric"></div>
+          <div class="rent-body">
+            <div class="rent-top">
+              <div><div class="rent-name">Chairs</div><div class="rent-spec">For guests, kids or the stage</div></div>
+              <div class="rent-step"><button type="button" aria-label="Fewer chairs" onclick="rentStep('chairs',-5)">−</button><input type="number" min="0" id="rentChairs" aria-label="Number of chairs" oninput="rentInput('chairs',this)"><button type="button" aria-label="More chairs" onclick="rentStep('chairs',5)">+</button></div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="rent-card">
-        <img src="img/Addons/rent-chairs.jpg" alt="Chairs dressed with sheer fabric" class="rent-img">
-        <div class="rent-body">
-          <div class="rent-top">
-            <div><div class="rent-name">Chairs</div><div class="rent-spec">For guests, kids or the stage</div></div>
-            <div class="rent-step"><button type="button" aria-label="Fewer chairs" onclick="rentStep('chairs',-5)">−</button><input type="number" min="0" id="rentChairs" aria-label="Number of chairs" oninput="rentInput('chairs',this)"><button type="button" aria-label="More chairs" onclick="rentStep('chairs',5)">+</button></div>
-          </div>
-        </div>
+      <div class="ig" style="margin-top:14px"><label for="rentNote">Where should we set them up? <span class="opt">optional</span></label>
+        <textarea id="rentNote" rows="2" placeholder="e.g. 4 tables along the garden wall for the buffet, chairs around the stage" oninput="S.rentals.note=this.value"></textarea></div>
+      <div class="rent-info">
+        <div><b>📍 Depends on availability in your area.</b> Table colours, chair styles and quantities vary by location — our team will check and then share a quote.</div>
+        <div><b>🚚 Transport &amp; labour included</b> in the quote. Our catering team sets everything up, with 1 helper on site to move things around.</div>
       </div>
     </div>
-    <div class="ig" style="margin-top:16px"><label for="rentNote">Where should we set them up? <span class="opt">optional</span></label>
-      <textarea id="rentNote" rows="3" placeholder="e.g. 4 tables along the garden wall for the buffet, chairs around the stage" oninput="S.rentals.note=this.value"></textarea></div>
-    <div class="rent-info">
-      <div><b>🚚 Delivered &amp; installed</b> by our catering team at the spot you choose.</div>
-      <div><b>🙋 1 helper on site</b> to move tables and chairs around during the party.</div>
-      <div><b>🧾 Priced separately.</b> We'll share a quote after you book — it isn't added to your total now.</div>
+
+    <div class="addon-grp">
+      <div class="addon-grp-h"><h3>Physical invites</h3><span class="gift-bill-chip">Quote to follow</span></div>
+      <div class="rent-card rent-card-wide">
+        <div class="rent-media" style="--bg:url('img/Addons/physical-invite.jpg')"><img src="img/Addons/physical-invite.jpg" alt="A printed owl-shaped party invite with a scroll"></div>
+        <div class="rent-body">
+          <div class="rent-top">
+            <div><div class="rent-name">Printed invites</div><div class="rent-spec">Designed on your party theme</div></div>
+            <div class="rent-step"><button type="button" aria-label="Fewer invites" onclick="pinvStep(-5)">−</button><input type="number" min="0" id="pinvQty" aria-label="Number of invites" oninput="pinvInput(this)"><button type="button" aria-label="More invites" onclick="pinvStep(5)">+</button></div>
+          </div>
+          <div class="rent-info" style="margin-top:0">
+            <div><b>🎨 We design it on your theme,</b> print it and deliver it to your home.</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="rent-sum" id="rentSum"></div>
   </div>
@@ -2773,7 +2800,7 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Code.gs) was retired 2026-08-11 to stop writing duplicate, drifting
 // rows — see the "Consolidate leads + bookings" commits.
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},decorAddons:{nameBunting:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',pickupTime:'',showPickupOnInvite:false,giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,venueLocality:'',interests:[],interestOther:'',FIT:20000,remarks:{},rentals:{tables:0,chairs:0,cover:'',note:''}};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},decorAddons:{nameBunting:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',pickupTime:'',showPickupOnInvite:false,giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,venueLocality:'',interests:[],interestOther:'',FIT:20000,remarks:{},rentals:{tables:0,chairs:0,cover:'',note:''},physInv:{qty:0}};
 
 // ── Google Places Autocomplete (2026-08-16, per Shruti) ─────────────
 // Wires real address autocomplete onto the checkout venue address and
@@ -3701,8 +3728,9 @@ function cItems(){
   const items=[];
   if(S.decor)items.push({cat:'Decor',n:S.decor.n,p:S.decor.p,id:S.decor.id});
   // Tables & chairs on rent — no price here, quoted separately (2026-10-25).
-  if(S.rentals&&S.rentals.tables)items.push({cat:'Tables & Chairs',n:S.rentals.tables+' catering table'+(S.rentals.tables>1?'s':'')+' (2×4 ft)'+(S.rentals.cover?' · '+S.rentals.cover+' cover':''),p:0,id:'rent-tables',quote:true});
-  if(S.rentals&&S.rentals.chairs)items.push({cat:'Tables & Chairs',n:S.rentals.chairs+' chair'+(S.rentals.chairs>1?'s':''),p:0,id:'rent-chairs',quote:true});
+  if(S.rentals&&S.rentals.tables)items.push({cat:'Addons',n:S.rentals.tables+' catering table'+(S.rentals.tables>1?'s':'')+' (2×4 ft)'+(S.rentals.cover?' · '+S.rentals.cover+' cover':''),p:0,id:'rent-tables',quote:true});
+  if(S.rentals&&S.rentals.chairs)items.push({cat:'Addons',n:S.rentals.chairs+' chair'+(S.rentals.chairs>1?'s':'')+' on rent',p:0,id:'rent-chairs',quote:true});
+  if(S.physInv&&S.physInv.qty)items.push({cat:'Addons',n:pinvDesc()+' (designed on your theme, delivered home)',p:0,id:'phys-inv',quote:true});
   // Decor add-ons sit under Decor on the review page (2026-10-24).
   decorAddonsOn().forEach(a=>items.push({cat:'Decor',n:a.n,p:a.p,id:'decor-addon-'+a.key}));
   if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)items.push({cat:'Decor',n:'Name on Bunting',p:NAME_BUNTING_PRICE,id:'decor-name-bunting'});
@@ -3768,7 +3796,7 @@ function cItems(){
 // review-page line item so the customer gets a visual recap of their picks.
 function thumbFor(cat,id){
   const e=(ch,bg)=>({type:'e',e:ch,bg:bg||'var(--li2)'});
-  if(cat==='Tables & Chairs')return{type:'img',src:id==='rent-chairs'?'img/Addons/rent-chairs.jpg':'img/Addons/rent-table.jpg'};
+  if(id==='rent-tables'||id==='rent-chairs'||id==='phys-inv')return{type:'img',src:{'rent-tables':'img/Addons/rent-table.jpg','rent-chairs':'img/Addons/rent-chairs.jpg','phys-inv':'img/Addons/physical-invite.jpg'}[id]};
   if(cat==='Decor'&&id==='decor-name-bunting')return e('🏷️');
   if(cat==='Decor'&&id&&id.indexOf('decor-addon-')===0){const da=DECOR_ADDONS.find(x=>'decor-addon-'+x.key===id);return e(da?da.e:'🎈');}
   if(cat==='Decor'){
@@ -5567,8 +5595,9 @@ function selTag(btn,val){const wasSel=btn.classList.contains('on');document.quer
 function buildRev(){
   const body=document.getElementById('rvBody');
   const items=cItems();const cats={};items.forEach(i=>{if(!cats[i.cat])cats[i.cat]=[];cats[i.cat].push(i);});
-  const sm={Decor:1,Activities:2,Host:3,DJ:4,Pinata:5,'E-Invite':6,Photographer:7,'Return Gifts':8,'Tables & Chairs':9};
-  const ord=['Decor','Activities','Host','DJ','Pinata','E-Invite','Photographer','Return Gifts','Tables & Chairs','Addons'];
+  const sm={Decor:1,Activities:2,Host:3,DJ:4,Pinata:5,'E-Invite':6,Photographer:7,'Return Gifts':8,Addons:9};
+  const ord=['Decor','Activities','Host','DJ','Pinata','E-Invite','Photographer','Return Gifts','Addons'];
+  const CAT_LBL={Addons:'Add-ons'};
   let html='';
   ord.forEach(cat=>{
     const its=cats[cat];
@@ -5579,10 +5608,10 @@ function buildRev(){
     // category name (left-aligned, bigger/more visible) instead of pushed
     // to the far right by .rv-hdr's space-between — populated categories
     // keep "Edit" on the right as before.
-    const sepChip=(cat==='Return Gifts'&&its&&giftsSep())?' <span class="gift-bill-chip">Billed separately</span>':(cat==='Tables & Chairs'&&its)?' <span class="gift-bill-chip">Quote to follow</span>':'';
+    const sepChip=(cat==='Return Gifts'&&its&&giftsSep())?' <span class="gift-bill-chip">Billed separately</span>':(cat==='Addons'&&its&&its.some(i=>i.quote))?' <span class="gift-bill-chip">Quote to follow</span>':'';
     const catHtml=(!its&&sm[cat])
-      ?'<div class="rv-cat">'+cat+'<span class="add-link" onclick="editFR('+sm[cat]+')">+ Add</span></div>'
-      :'<div class="rv-cat">'+cat+sepChip+'</div>';
+      ?'<div class="rv-cat">'+(CAT_LBL[cat]||cat)+'<span class="add-link" onclick="editFR('+sm[cat]+')">+ Add</span></div>'
+      :'<div class="rv-cat">'+(CAT_LBL[cat]||cat)+sepChip+'</div>';
     const actionHtml=(!sm[cat]||!its)?''
       :'<span class="edit-link" onclick="editFR('+sm[cat]+')">Edit</span>';
     html+='<div class="rv-sec"><div class="rv-hdr">'+catHtml+actionHtml+'</div><div class="rv-items">';
@@ -5602,7 +5631,10 @@ function buildRev(){
     // show as line items INSIDE the Return Gifts section itself (previously
     // buried as plain text rows in the separate "Return Gift Delivery" block
     // below, easy to miss next to the address/date fields).
-    if(cat==='Tables & Chairs'&&its)html+='<div class="rv-addchips" style="display:block;line-height:1.5">Set up by our catering team with 1 helper on site'+(S.rentals.note?' · '+S.rentals.note.replace(/&/g,'&amp;').replace(/</g,'&lt;'):'')+'. We\'ll share the price separately — it\'s not in the total below.</div>';
+    if(cat==='Addons'&&its&&its.some(i=>i.quote)){const nb=[];
+      if(S.rentals.tables||S.rentals.chairs)nb.push('Tables &amp; chairs depend on availability in your area; the quote includes transport &amp; labour'+(S.rentals.note?' (set up: '+S.rentals.note.replace(/&/g,'&amp;').replace(/</g,'&lt;')+')':'')+'.');
+      if(S.physInv.qty)nb.push('Invites are designed on your theme, printed and delivered to your home.');
+      html+='<div class="rv-addchips" style="display:block;line-height:1.5">'+nb.join(' ')+' We\'ll share the price separately — it\'s not in the total below.</div>';}
     // Decor add-ons not picked yet — add them right here (2026-10-24).
     if(cat==='Decor'&&S.decor){
       const opts=decorAddonsAvail().filter(a=>!S.decorAddons[a.key]).map(a=>[a.key,a.e+' '+a.n,a.p]);
@@ -5696,7 +5728,7 @@ function rmRevItem(cat,id){
     }
     syncDecorAddonsUI();
   }
-  else if(cat==='Tables & Chairs'){if(id==='rent-tables'){S.rentals.tables=0;S.rentals.cover='';}else S.rentals.chairs=0;rentSync();}
+  else if(id==='rent-tables'||id==='rent-chairs'||id==='phys-inv'){if(id==='rent-tables'){S.rentals.tables=0;S.rentals.cover='';}else if(id==='rent-chairs')S.rentals.chairs=0;else S.physInv.qty=0;rentSync();}
   else if(cat==='Activities'){S.activities=S.activities.filter(a=>a.id!==id);syncIncludedHost();}
   else if(cat==='Host')S.host=null;
   else if(cat==='DJ')S.dj=null;
@@ -5710,13 +5742,17 @@ function rmRevItem(cat,id){
 }
 // ── Add-ons step: tables & chairs on rent (2026-10-25, per Shruti) ──
 const RENT_COVERS=[{id:'Black',hex:'#1F1F1F'},{id:'White',hex:'#FFFFFF'},{id:'Maroon',hex:'#7A1F2B'}];
+function pinvDesc(){const q=(S.physInv||{}).qty||0;return q?q+' printed invite'+(q>1?'s':''):'';}
+function pinvStep(d){S.physInv.qty=Math.max(0,Math.min(1000,(+S.physInv.qty||0)+d));rentSync();}
+function pinvInput(el){S.physInv.qty=Math.max(0,Math.min(1000,parseInt(el.value,10)||0));rentSync();}
 function rentDesc(){const r=S.rentals||{},b=[];if(r.tables)b.push(r.tables+' table'+(r.tables>1?'s':'')+(r.cover?' ('+r.cover.toLowerCase()+' cover)':''));if(r.chairs)b.push(r.chairs+' chair'+(r.chairs>1?'s':''));return b.join(', ');}
 function rentSync(){
   const r=S.rentals;const t=document.getElementById('rentTables'),c=document.getElementById('rentChairs'),n=document.getElementById('rentNote');
   if(t&&document.activeElement!==t)t.value=r.tables||0;if(c&&document.activeElement!==c)c.value=r.chairs||0;if(n&&document.activeElement!==n)n.value=r.note||'';
+  const q=document.getElementById('pinvQty');if(q&&document.activeElement!==q)q.value=S.physInv.qty||0;
   const w=document.getElementById('rentCovers');
   if(w)w.innerHTML=RENT_COVERS.map(o=>'<button type="button" class="rent-cover'+(r.cover===o.id?' on':'')+'" aria-pressed="'+(r.cover===o.id)+'" onclick="rentCover(\''+o.id+'\')"><span class="dot" style="background:'+o.hex+';border:1.5px solid '+(o.id==='White'?'#C9C2D6':o.hex)+'"></span>'+o.id+'</button>').join('');
-  const sum=document.getElementById('rentSum');if(sum)sum.textContent=rentDesc()?rentDesc()+' · quote to follow':'Nothing added — skip if you don\u2019t need these.';
+  const sum=document.getElementById('rentSum');const all=[rentDesc(),pinvDesc()].filter(Boolean).join(' · ');if(sum)sum.textContent=all?all+' · quote to follow':'Nothing added — skip if you don\u2019t need these.';
   if(r.cover||!r.tables)document.getElementById('rentCoverErr')?.classList.remove('show');
 }
 function rentStep(k,d){S.rentals[k]=Math.max(0,Math.min(500,(+S.rentals[k]||0)+d));rentSync();updBB(S.screen);}
@@ -6523,6 +6559,7 @@ function buildSummaryText(){
   if(S.decor)lines.push('Decor: '+S.decor.n+' (₹'+S.decor.p.toLocaleString('en-IN')+')');
   if(S.decor&&S.decor.id.endsWith('-classic')&&S.decorAddons.nameBunting)lines.push('Decor Add-on: Name on Bunting (₹'+NAME_BUNTING_PRICE.toLocaleString('en-IN')+')');
   decorAddonsOn().forEach(a=>lines.push('Decor Add-on: '+a.n+' (₹'+a.p.toLocaleString('en-IN')+')'));
+  if(pinvDesc())lines.push('Physical Invites: '+pinvDesc()+' — quote to follow');
   if(rentDesc())lines.push('Tables & Chairs (on rent): '+rentDesc()+' — quote to follow'+(S.rentals.note?' · '+S.rentals.note:''));
   if(S.activities.length)lines.push('Activities: '+S.activities.map(a=>a.n+(isPOR(a)?' (price on request)':'')).join(', '));
   if(S.host)lines.push('Host: '+S.host.tier+' (₹'+S.host.p.toLocaleString('en-IN')+')');
@@ -6709,6 +6746,7 @@ function buildSnapshot(){
       // Decor add-ons (2026-10-24): [{n:'Cake Table',p:1500}, ...] — already in estimated_total.
       decor_addons: decorAddonsOn().map(a=>({n:a.n,p:a.p})),
       // Tables & chairs on rent (2026-10-25) — quoted separately, not in estimated_total.
+      physical_invites: S.physInv.qty?{qty:S.physInv.qty}:null,
       rentals: (S.rentals.tables||S.rentals.chairs)?{tables:S.rentals.tables,chairs:S.rentals.chairs,cover:S.rentals.cover||null,note:(S.rentals.note||'').trim()||null}:null,
       estimated_total: rawT(),
       pincode:     S.pincode,
@@ -6743,6 +6781,7 @@ function renderConfServices(){
     {icon:'gift',         lbl:'Return Gifts', val:giftsVal},
   ];
   if(rentDesc())items.push({emoji:'🪑', lbl:'Tables & Chairs', val:rentDesc()+' · quote to follow'});
+  if(pinvDesc())items.push({emoji:'💌', lbl:'Physical Invites', val:pinvDesc()+' · quote to follow'});
   // 2026-08-14, per Shruti: a won-and-redeemed Tattoo/Bubble Artist
   // scratch-card reward gets its own chip here too (added via
   // redeemServiceNow(), which re-calls this function once the redemption

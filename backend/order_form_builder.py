@@ -180,6 +180,7 @@ def assemble_order_form_data(req, lead_id: int, event_sales_lead: Optional[str],
         "coupon_code": coupon or "—",
         "remarks": req.remarks or "—",
         "rentals": (cat.rental_desc(snap.get("rentals")) + ((" · " + (snap.get("rentals") or {}).get("note")) if (snap.get("rentals") or {}).get("note") else "")) if cat.rental_desc(snap.get("rentals")) else "—",
+        "physical_invites": (f"{(snap.get('physical_invites') or {}).get('qty')} printed invites" if (snap.get("physical_invites") or {}).get("qty") else "—"),
         # Decor add-ons (2026-10-24) — so ops see them on the execution form.
         "decor_name": (decor.get("n") or "—") + (
             " + " + ", ".join(([] if not snap.get("decor_name_bunting_fee") else ["Name on Bunting"])
@@ -290,6 +291,7 @@ _SERVICE_ROWS = [
     ("Music Add-ons", "dj_addons"),
     ("Bonus Service (Scratch-Card Reward)", "bonus_service"),
     ("Tables & Chairs (on rent)", "rentals"),   # 2026-10-25
+    ("Physical Invites", "physical_invites"),   # 2026-10-25
 ]
 
 _BILLING_ROWS = [

@@ -615,6 +615,11 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
                                 "chairs": _resolved(cur, "addon_rent_chairs", removed),
                                 "cover": _resolved(cur, "addon_rent_table_cover", removed)})
         add("Tables & chairs on rent" + (f" ({desc})" if desc else ""), rent_price)
+    # Physical invites (2026-10-25) — billed at the quote the team enters.
+    pinv_price = money(_resolved(cur, "addon_phys_inv_price", removed))
+    if pinv_price:
+        q = _resolved(cur, "addon_phys_inv_qty", removed)
+        add("Physical invites" + (f" ({q})" if q else ""), pinv_price)
 
     einvite = _resolved(cur, "svc_einvite", removed)
     if einvite and einvite != "No selection":

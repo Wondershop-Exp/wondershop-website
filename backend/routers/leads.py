@@ -1180,6 +1180,12 @@ def _services_detail_list(req: LeadSubmitRequest, added_service_label: Optional[
                     "name": rent_desc + " — quote to follow" + (f" · {note}" if note else ""),
                     "price": None, "free": False})
 
+    pinv_q = (snap.get("physical_invites") or {}).get("qty")
+    if pinv_q:
+        out.append({"label": "Physical Invites",
+                    "name": f"{pinv_q} printed invites (designed on theme, delivered home) — quote to follow",
+                    "price": None, "free": False})
+
     # 2026-08-14, per Shruti: if the customer won a Tattoo/Bubble Artist
     # scratch-card reward and chose to add it to THIS booking, show it as
     # its own line in Services Booked (not just buried in the reward

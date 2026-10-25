@@ -591,8 +591,12 @@ def _list_breakdown(requirements: dict, activities: list, kids_count: Optional[i
     if num(rent.get("cost")) is not None or num(rent.get("tables")) or num(rent.get("chairs")):
         desc = rental_desc(rent)
         line("rentals", "Tables & chairs on rent" + (f" — {desc}" if desc else ""), rent.get("cost"), None)
+    pinv = sel("physical_invites")
+    if num(pinv.get("cost")) is not None or num(pinv.get("qty")):
+        q = num(pinv.get("qty"))
+        line("physical_invites", "Physical invites" + (f" — {int(q)} printed" if q else ""), pinv.get("cost"), None)
     known = {"decor", "host", "music", "photographer", "einvite_type", "save_the_date", "pinata_type",
-             "pinata_bags", "return_gifts", "packaging", "return_gift_tags", "rentals"}
+             "pinata_bags", "return_gifts", "packaging", "return_gift_tags", "rentals", "physical_invites"}
     for k, r in reqs.items():
         if k not in known and isinstance(r, dict) and num(r.get("cost")):
             line(k, k.replace("_", " ").capitalize(), r.get("cost"), None)

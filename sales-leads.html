@@ -1612,7 +1612,9 @@ function listBreakdown(){
   inGifts = false;
   const rent = sel('rentals');   // tables & chairs on rent (2026-10-25) — no list price
   if(num(rent.cost)!==null || Number(rent.tables) || Number(rent.chairs)) line('Tables & chairs on rent'+(_rentalDesc(rent)?': '+_rentalDesc(rent):''), rent.cost, null, {k:'req', key:'rentals'});
-  const known = ['decor','host','music','photographer','einvite_type','save_the_date','pinata_type','pinata_bags','return_gifts','packaging','return_gift_tags','rentals'];
+  const pinv = sel('physical_invites');   // physical invites (2026-10-25) — no list price
+  if(num(pinv.cost)!==null || Number(pinv.qty)) line('Physical invites'+(Number(pinv.qty)?': '+pinv.qty+' printed':''), pinv.cost, null, {k:'req', key:'physical_invites'});
+  const known = ['decor','host','music','photographer','einvite_type','save_the_date','pinata_type','pinata_bags','return_gifts','packaging','return_gift_tags','rentals','physical_invites'];
   Object.keys(reqs).forEach(k=>{
     if(known.includes(k)) return;
     const r = reqs[k];
@@ -2946,7 +2948,7 @@ function sectionRequirements(){
     + _secCard('10 · Cake', reqTextRow('cake', 'Cake', CATALOGUE.cake_note||''))
     + _secCard('11 · Add-ons', reqMusicAddonsRow() + reqPinataBagsRow()
         + reqYesNoRow('pinata_fillings', 'Pinata — Fillings (Add-on)', (CATALOGUE.pinata_fillings||{}).note||'')
-        + reqReturnGiftTagsRow() + reqPackagingRow() + reqRentalsRow());
+        + reqReturnGiftTagsRow() + reqPackagingRow() + reqRentalsRow() + reqPhysInvRow());
 }
 // Music Lights / Smoke Machine — saved on requirements.music.addons as before.
 function reqMusicAddonsRow(){
@@ -2985,6 +2987,25 @@ async function onRentalField(f, v){
   if((r[f]==null?null:Number(r[f])) === n) return;
   r[f] = n;
   await saveRequirement('rentals', r);
+  refreshBillingBreakup();
+}
+// Physical invites (2026-10-25) — designed on the party theme, printed and
+// delivered home. No list price: the Sales Quote is what's billed.
+function reqPhysInvRow(){
+  const r = req('physical_invites');
+  const inp = (id, ph, v, f) => '<input type="number" min="0" id="'+id+'" placeholder="'+ph+'" title="'+ph+'" value="'+(v==null?'':v)+'" onblur="onPhysInvField(\''+f+'\', this.value)" style="max-width:180px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13px">';
+  return '<div class="req-row"><div class="rlabel">Physical Invites (Add-on)</div>'
+    + '<div class="req-grid">'+inp('req_pinv_qty','No. of invites',r.qty,'qty')+inp('req_physical_invites_cost','Sales Quote (₹)',r.cost,'cost')+'</div>'
+    + custBox('physical_invites', 'Design notes, delivery address, needed-by date...')
+    + '<div class="req-note">Designed on the party theme, printed and delivered home. No list price — quote separately.</div></div>';
+}
+async function onPhysInvField(f, v){
+  const r = Object.assign({}, req('physical_invites'));
+  const n = v==='' ? null : Math.max(0, Math.round(Number(v)));
+  if(n!==null && isNaN(n)) return;
+  if((r[f]==null?null:Number(r[f])) === n) return;
+  r[f] = n;
+  await saveRequirement('physical_invites', r);
   refreshBillingBreakup();
 }
 async function onRentalCover(c){
