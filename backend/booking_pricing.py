@@ -725,14 +725,27 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
 
     pack_val = _resolved(cur, "addon_gift_packaging", removed)
     pack_key = PACKAGING_LABEL_TO_KEY.get(pack_val) if pack_val else None
+    # Customer's own gifts (2026-10-25, per Shruti — "she didn't get return
+    # gifts from us, she got them packed"): with no gifts bought from us,
+    # packaging / thank-you note are priced on the number of gifts to pack
+    # (addon_gift_pack_qty, else # kids) and billed in Grand Total.
+    own_gifts = gift_qty == 0
+    try:
+        pack_qty = int(float(_resolved(cur, "addon_gift_pack_qty", removed) or 0)) if own_gifts else gift_qty
+    except ValueError:
+        pack_qty = 0
+    if own_gifts and not pack_qty:
+        pack_qty = kids
+    own_note = f", {pack_qty} own gifts" if own_gifts else ""
     gift_fee_rows = []
-    if pack_key:
-        gift_fee_rows.append((f"Packaging ({PACKAGING_KEY_TO_LABEL.get(pack_key, pack_key)})",
-                              PACKAGING_UNIT_PRICE.get(pack_key, 0) * gift_qty))
-    if _resolved(cur, "addon_gift_note", removed) == "Yes" and gift_qty > 0:
-        gift_fee_rows.append(("Thank-you note", max(TAG_NOTE_MIN_QTY, gift_qty) * TAG_NOTE_UNIT_PRICE))
+    if pack_key and pack_qty:
+        gift_fee_rows.append((f"Packaging ({PACKAGING_KEY_TO_LABEL.get(pack_key, pack_key)}{own_note})",
+                              PACKAGING_UNIT_PRICE.get(pack_key, 0) * pack_qty))
+    if _resolved(cur, "addon_gift_note", removed) == "Yes" and pack_qty > 0:
+        gift_fee_rows.append((f"Thank-you note ({max(TAG_NOTE_MIN_QTY, pack_qty)} notes{own_note})" if own_gifts else "Thank-you note",
+                              max(TAG_NOTE_MIN_QTY, pack_qty) * TAG_NOTE_UNIT_PRICE))
     for label, amt in gift_fee_rows:
-        if gifts_sep:
+        if gifts_sep and not own_gifts:
             if amt:
                 sep_gift_items.append((label, round(float(amt), 2)))
         else:
@@ -790,6 +803,8 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
         "items": [{"label": l, "amount": a, "key": line_key(l), "field": field_for_label(l),
                    "quote": _lq.get(line_key(l), a)} for l, a in items],
         "line_quotes_set": bool(_lq),
+        "gift_qty": gift_qty,          # 0 = customer's own gifts (packaging billed on pack_qty)
+        "gift_pack_qty": pack_qty,
         "extra_items": [{"label": l, "amount": a} for l, a in extra_items],
         "unpriced": unpriced,
         # Return Gifts billed separately (2026-10-02) — NOT in grand_total.

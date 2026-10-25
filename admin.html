@@ -5647,6 +5647,7 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(f.field_key==='bill_discount_pct' || f.field_key==='bill_discount_value') return '';
   if(f.field_key==='bill_line_quotes') return '';
   if(f.field_key==='svc_cake_price') return '';   // shown on the Cake row (2026-10-25)
+  if(f.field_key==='addon_gift_pack_qty') return '';   // shown on the Gift Packaging row (2026-10-25)
   if(f.field_key==='bill_discount_type') return discountRowHtml(f, locked);
   // Decor add-ons (2026-10-24): shown as buttons under the Decor row, not as rows.
   if(f.field_key.indexOf('addon_decor_')===0) return '';
@@ -5745,6 +5746,15 @@ function fieldRowHtml(f, isCustEvent, locked){
       ccCell = einviteComboHtml(rid, f.options, f.customer_choice||'');
     }else{
       ccCell = selectHtml(rid+'_cc', f.options, f.customer_choice||'');
+      // Customer's own gifts (2026-10-25): no gifts bought from us, so ask
+      // how many gifts to pack; packaging then goes into Grand Total.
+      const _P = (CURRENT_DETAIL && CURRENT_DETAIL.pricing) || {};
+      const pq = _decorAddonField('addon_gift_pack_qty');
+      if(f.field_key==='addon_gift_packaging' && pq && _P.gift_qty===0){
+        ccCell = '<div style="display:flex;gap:6px;align-items:center"><div style="flex:1">'+ccCell+'</div>'
+          + '<input type="number" id="fld_pack_qty_inline" min="0" step="1" style="width:120px" title="No. of gifts to pack (customer\'s own gifts)" placeholder="'+(_P.gift_pack_qty||'Gifts')+' gifts" value="'+esc(pq.customer_choice||'')+'" data-old="'+esc(pq.customer_choice||'')+'"></div>'
+          + '<div style="font-size:11.5px;color:var(--gy);margin:4px 0 8px">Customer\'s own gifts — no. of gifts to pack'+(pq.customer_choice?'':' (blank = no. of kids)')+'. Billed in Grand Total.</div>';
+      }
     }
   }else if(f.field_key==='bill_discount_pct'){
     // Trimmed number in the input (still a bare number for saving/
@@ -5911,6 +5921,11 @@ async function saveField(key, removedOverride){
         changed_by: who,
       }),
     });
+    const pqEl = key==='addon_gift_packaging' ? document.getElementById('fld_pack_qty_inline') : null;
+    if(pqEl && pqEl.value !== pqEl.dataset.old){
+      await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {method:'POST', body: JSON.stringify({
+        field_key:'addon_gift_pack_qty', customer_choice_override: pqEl.value, assigned_value:'', remarks:'', removed:false, changed_by: who})});
+    }
     const cpEl = key==='svc_cake' ? document.getElementById('fld_cake_price_inline') : null;
     if(cpEl && cpEl.value !== cpEl.dataset.old){
       await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {method:'POST', body: JSON.stringify({

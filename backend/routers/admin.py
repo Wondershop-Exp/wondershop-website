@@ -249,6 +249,8 @@ FIELD_CATALOG = [
     {"key": "addon_phys_inv_price",   "label": "Physical Invites: Quote (₹)",      "section": "Add-ons", "admin_only": True},
     {"key": "addon_gift_packaging",  "label": "Gift Packaging",         "section": "Add-ons"},
     {"key": "addon_gift_note",       "label": "Gift Thank-You Note",    "section": "Add-ons"},
+    # Customer's own gifts packed by us (2026-10-25) — shown inline on the Gift Packaging row.
+    {"key": "addon_gift_pack_qty",   "label": "Gift Packaging: No. of gifts (customer's own)", "section": "Add-ons"},
     {"key": "addon_pinata_bags",     "label": "Piñata Bags",            "section": "Add-ons", "admin_only": True},
     {"key": "addon_pinata_fillings", "label": "Piñata Fillings",        "section": "Add-ons", "admin_only": True},
     # Custom add-ons (2026-10-25, per Shruti): name + price, JSON list.
@@ -831,7 +833,7 @@ async def _validate_choice_value(key: str, value: str, derived_original: Optiona
         if grand_total is not None and adv > float(grand_total):
             raise HTTPException(status_code=400, detail="Advance Paid cannot exceed the Grand Total.")
 
-    if key in ("addon_rent_tables", "addon_rent_chairs", "addon_rent_price", "addon_phys_inv_qty", "addon_phys_inv_price"):
+    if key in ("addon_rent_tables", "addon_rent_chairs", "addon_rent_price", "addon_phys_inv_qty", "addon_phys_inv_price", "addon_gift_pack_qty"):
         try:
             if float(value) < 0:
                 raise ValueError
