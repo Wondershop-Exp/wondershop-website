@@ -636,7 +636,7 @@ def engagement_from_price(id_or_name) -> Optional[float]:
 # repeat customers from now on (2026-10-17, per Shruti).
 # "WhatsApp Broadcast" (2026-10-20, per Shruti) = replies to our AiSensy
 # broadcast messages, posted via the Slack lead bot (routers/slack_leads.py).
-LEAD_SOURCES = ["Instagram", "Facebook", "Google", "Repeat", "WSR Repeat", "Stall", "Referral", "Website", "WhatsApp Broadcast", "ChatGpt"]   # approved 2026-10-17; ChatGpt 2026-10-23
+LEAD_SOURCES = ["Instagram", "Facebook", "Google", "Repeat", "WSR Repeat", "Stall", "Referral", "Website", "WhatsApp Broadcast", "ChatGpt", "WhatsApp Group Enquiry"]   # approved 2026-10-17; ChatGpt 2026-10-23; WhatsApp Group Enquiry 2026-10-27
 
 
 TURF_HOST_INCLUDED = {"eng90": "90 Min Sports Engagement", "eng120": "120 Min Sports Engagement"}
@@ -773,6 +773,32 @@ GIFTS = [
     ("g98", "City Stamp Travel Stickers", "return-gifts/city-stamp-stickers.jpg", 80),   # 2026-10-21, per Shruti
     ("g99", "Gem Crystal Stickers", "return-gifts/gem-stickers.jpg", 80),
     ("g100", "Paper Gift Bag – Red & Yellow Zigzag (10×15×4 in)", "return-gifts/paper-bag-red-yellow-zigzag.jpg", 35),
+    ("g101", "Velvet Colouring Posters – Colourful Health", "return-gifts/pepplay/velvet-colouring-posters-colourful-health-1.jpg", 219),   # PepPlay PP20104, 2026-10-26
+    ("g102", "Step by Step Drawing Book – Cute Farm Animal", "return-gifts/pepplay/step-by-step-drawing-book-cute-farm-animal-1.jpg", 199),   # PepPlay PP20503, 2026-10-26
+    ("g103", "Origami Art – Animal Kingdom", "return-gifts/pepplay/origami-art-animal-kingdom-1.jpg", 299),   # PepPlay PP20604, 2026-10-26
+    ("g104", "Colour in Velvet – Ocean Life", "return-gifts/pepplay/colour-in-velvet-ocean-life-1.jpg", 319),   # PepPlay PP20101, 2026-10-26
+    ("g105", "Colour in Velvet – Wild Life", "return-gifts/pepplay/colour-in-velvet-wild-life-1.jpg", 319),   # PepPlay PP20102, 2026-10-26
+    ("g106", "Colour in Velvet – Unicorn & Fairies", "return-gifts/pepplay/colour-in-velvet-unicorn-fairies-1.jpg", 359),   # PepPlay PP20109, 2026-10-26
+    ("g107", "Colour in Velvet – Heroes & Power", "return-gifts/pepplay/colour-in-velvet-heroes-power-1.jpg", 359),   # PepPlay PP20110, 2026-10-26
+    ("g108", "Recolourables Colour & Wipe Placemats – Magical Land", "return-gifts/pepplay/recolourables-colour-wipe-placemats-magical-land-1.jpg", 399),   # PepPlay PP20211, 2026-10-26
+    ("g109", "Recolourables Colour & Wipe Placemats – Space Saga", "return-gifts/pepplay/recolourables-colour-wipe-placemats-space-saga-1.jpg", 399),   # PepPlay PP20212, 2026-10-26
+    ("g110", "Recolourables Colour & Wipe Placemats – Super Power", "return-gifts/pepplay/recolourables-colour-wipe-placemats-super-power-1.jpg", 399),   # PepPlay PP20213, 2026-10-26
+    ("g111", "Colour Using Paints and Numbers – Dinosaurs", "return-gifts/pepplay/colour-using-paints-and-numbers-dinosaurs-1.jpg", 359),   # PepPlay PP20505, 2026-10-26
+    ("g112", "Mosaic Sticker by Number – Circus Carnival", "return-gifts/pepplay/mosaic-sticker-by-number-circus-carnival-1.jpg", 359),   # PepPlay PP20605, 2026-10-26
+    ("g113", "Origami Art Animal Kingdom – Safari Pack", "return-gifts/pepplay/origami-art-animal-kingdom-safari-pack-1.jpg", 439),   # PepPlay PP20607, 2026-10-26
+    ("g114", "Dough Art Kit – Nature", "return-gifts/pepplay/dough-art-kit-nature-1.jpg", 479),   # PepPlay PP20701, 2026-10-26
+    ("g115", "Dough Art Kit – Numbers", "return-gifts/pepplay/dough-art-kit-numbers-1.jpg", 449),   # PepPlay PP20706, 2026-10-26
+    ("g116", "My First Touch & Feel Puzzles – Vehicles", "return-gifts/pepplay/my-first-touch-feel-puzzles-vehicles-1.jpg", 399),   # PepPlay PP20802, 2026-10-26
+    ("g117", "Activity Planner – Peach", "return-gifts/pepplay/activity-planner-peach-1.jpg", 519),   # PepPlay PP20201, 2026-10-26
+    ("g118", "Make Your Unicorn Pillow", "return-gifts/pepplay/make-your-unicorn-pillow-1.jpg", 879),   # PepPlay PP20704, 2026-10-26
+    ("g119", "Make Your Rocket Pillow", "return-gifts/pepplay/make-your-rocket-pillow-1.jpg", 879),   # PepPlay PP20707, 2026-10-26
+    ("g120", "Colour Your Superhero Cape", "return-gifts/pepplay/colour-your-superhero-cape-1.jpg", 759),   # PepPlay PP20708, 2026-10-26
+    ("g121", "Make Your Dinosaur Toy", "return-gifts/pepplay/make-your-dinosaur-toy-1.jpg", 879),   # PepPlay PP20709, 2026-10-26
+    ("g122", "My Princess Cape Kit", "return-gifts/pepplay/my-princess-cape-kit-1.jpg", 759),   # PepPlay PP20710, 2026-10-26
+    ("g123", "My Affirmation Cape Kit", "return-gifts/pepplay/my-affirmation-cape-kit-1.jpg", 759),   # PepPlay PP20711, 2026-10-26
+    ("g124", "Make Your Eco Doll", "return-gifts/pepplay/make-your-eco-doll-1.jpg", 1119),   # PepPlay PP20712, 2026-10-26
+    ("g125", "Redoobles Doodle Unicorn", "return-gifts/pepplay/redoobles-doodle-unicorn-1.jpg", 959),   # PepPlay PP20713, 2026-10-26
+    ("g126", "Redoobles Doodle Dinosaur", "return-gifts/pepplay/redoobles-doodle-dinosaur-1.jpg", 959),   # PepPlay PP20716, 2026-10-26
 ]
 _GIFTS_BY_ID = {g[0]: g for g in GIFTS}
 

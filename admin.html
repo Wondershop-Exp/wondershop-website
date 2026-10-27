@@ -1504,7 +1504,7 @@ function bdMoney(s){
 function bdRupees(n){ return n === null ? '—' : '₹'+Math.round(n).toLocaleString('en-IN'); }
 
 // Approved Lead Source values — keep in step with catalogue_data.LEAD_SOURCES (2026-10-17).
-const LEAD_SOURCES = ['Instagram','Facebook','Google','Repeat','WSR Repeat','Stall','Referral','Website','WhatsApp Broadcast','ChatGpt'];
+const LEAD_SOURCES = ['Instagram','Facebook','Google','Repeat','WSR Repeat','Stall','Referral','Website','WhatsApp Broadcast','ChatGpt','WhatsApp Group Enquiry'];
 async function saveLeadSource(el){
   const who = getName();
   if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
