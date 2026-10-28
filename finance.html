@@ -155,14 +155,14 @@ V.roi=function(ms){const rm=store.get('roiM','all'),rs=store.get('roiS','all');
  const yms=ms.map(m=>m.ym);const pick=rm==='all'?yms:[rm];
  const bks=BOOK.filter(b=>pick.includes(b.ym));
  const spendOf=c=>c.category==='mkt'&&pick.includes(c.ym);
- const srcs=[...new Set(bks.map(b=>b.lead_source||'Website').concat(COSTS.filter(spendOf).map(c=>c.lead_source||'Brand / general')))].sort((a,b)=>LEAD_SOURCES.indexOf(a)-LEAD_SOURCES.indexOf(b));
+ const srcs=[...new Set(bks.map(b=>b.lead_source||'(not set)').concat(COSTS.filter(spendOf).map(c=>c.lead_source||'Brand / general')))].sort((a,b)=>LEAD_SOURCES.indexOf(a)-LEAD_SOURCES.indexOf(b));
  const totRev=bks.reduce((a,b)=>a+b.revenue,0);
- const rows=srcs.filter(x=>rs==='all'||x===rs).map(src=>{const B=bks.filter(b=>(b.lead_source||'Website')===src);const rev=B.reduce((a,b)=>a+b.revenue,0),gm=B.reduce((a,b)=>a+b.revenue-b.cost,0);
+ const rows=srcs.filter(x=>rs==='all'||x===rs).map(src=>{const B=bks.filter(b=>(b.lead_source||'(not set)')===src);const rev=B.reduce((a,b)=>a+b.revenue,0),gm=B.reduce((a,b)=>a+b.revenue-b.cost,0);
   const sp=COSTS.filter(c=>spendOf(c)&&(c.lead_source||'Brand / general')===src).reduce((a,c)=>a+c.amount,0);return {src,n:B.length,rev,gm,sp}});
  const T=rows.reduce((a,r)=>({n:a.n+r.n,rev:a.rev+r.rev,gm:a.gm+r.gm,sp:a.sp+r.sp}),{n:0,rev:0,gm:0,sp:0});
  const x=(a,b)=>b?(a/b).toFixed(2)+'x':'–';
  const tr=(r,b)=>`<tr class="${b?'b':''}"><td>${esc(r.src)}</td><td>${pct(totRev?r.rev/totRev:NaN)}</td><td>${r.n}</td><td>${inr(r.rev)}</td><td>${r.rev?pct(r.gm/r.rev):'–'}</td><td class="${cls(r.gm)}">${inr(r.gm)}</td><td>${inr(r.sp)}</td><td>${x(r.gm,r.sp)}</td><td>${x(r.rev,r.sp)}</td><td>${r.rev&&r.sp?pct(r.sp/r.rev):'–'}</td></tr>`;
- const allSrc=[...new Set(BOOK.map(b=>b.lead_source||'Website').concat(LEAD_SOURCES))];
+ const allSrc=[...new Set(BOOK.map(b=>b.lead_source||'(not set)').concat(LEAD_SOURCES))];
  return `<div class="card"><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;justify-content:space-between"><h2>ROI by lead source</h2><div style="display:flex;gap:10px;flex-wrap:wrap">
  <label style="font-size:13px;color:var(--mute)">Month <select onchange="store.set('roiM',this.value);render()"><option value="all">All months in period</option>${yms.slice().reverse().map(k=>`<option value="${k}" ${k===rm?'selected':''}>${lbl(k)}</option>`).join('')}</select></label>
  <label style="font-size:13px;color:var(--mute)">Lead source <select onchange="store.set('roiS',this.value);render()"><option value="all">All sources</option>${allSrc.map(k=>`<option ${k===rs?'selected':''}>${esc(k)}</option>`).join('')}</select></label></div></div>
