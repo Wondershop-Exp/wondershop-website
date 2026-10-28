@@ -91,9 +91,10 @@ SALES_ALLOWED = [(m, re.compile(p)) for m, p in [
     ("GET",  rf"/api/admin/bookings/{_ID}/quotation\.pdf"),
     # Decor reference images on a lead/booking (2026-10-06).
     ("*",    r"/api/admin/decor-refs(/.*)?"),
-    # Partner NAMES only, for the "assigned partner" suggestions on a booking
-    # (never /vendors itself, which carries bank details).
-    ("GET",  r"/api/admin/vendors/names"),
+    # 2026-10-28, per Shruti: "partners should not be visible to sales team" —
+    # no partner endpoint at all for sales (the names list used to be allowed
+    # for "assigned partner" suggestions; partners are now assigned only in
+    # the admin-only Partners & Expenses section).
     # Sales Leads module (sales-leads.html + its print page).
     ("*",    r"/api/admin/sales-leads(/.*)?"),
     # Sales Dashboard (2026-10-16) - read only; spend stays admin-only (the

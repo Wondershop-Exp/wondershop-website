@@ -1131,6 +1131,7 @@ async function enterApp(){
 
 let VENDOR_NAMES = [];
 async function loadVendorNames(){
+  if(ROLE === 'sales') return;   // 2026-10-28: partners are not shown to the sales team
   try{
     // Names only (2026-10-01) — this list is also loaded for the sales
     // login, which must never receive partner contact/bank details.
