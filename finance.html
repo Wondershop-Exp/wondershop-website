@@ -106,11 +106,13 @@ function bars(ms,f,fmt){const vals=ms.map(f);const mx=Math.max(1,...vals.map(Mat
  const top=`<div style="height:${hasNeg?50:100}%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;width:100%">${v>=0?`<div class="val">${fmt(v)}</div><div class="bar" style="height:${h}%"></div>`:''}</div>`;
  const bot=hasNeg?`<div style="height:50%;display:flex;flex-direction:column;align-items:center;width:100%">${v<0?`<div class="bar n" style="height:${h}%"></div><div class="val">${fmt(v)}</div>`:''}</div>`:'';
  return `<div class="c" title="${lbl(m.ym)}: ${inr(v)}">${top}${bot}<div class="lab">${lbl(m.ym)}</div></div>`}).join('')}</div></div>`}
+// cost as % of that period's revenue, in brackets (2026-10-28)
+const shr=(v,rev)=>rev?` <span style="color:var(--mute);font-weight:400;font-size:11.5px">(${(v/rev*100).toFixed(0)}%)</span>`:'';
 function table(ms,rowsDef,opts={}){const tot=opts.total!==false;
  let h=`<table><thead><tr><th></th>${ms.map(m=>`<th>${lbl(m.ym)}</th>`).join('')}${tot?'<th>Total</th>':''}</tr></thead><tbody>`;
  for(const r of rowsDef){if(r.sec){h+=`<tr class="sec"><td colspan="${ms.length+2}" style="color:var(--mute);font-size:12px">${r.sec}</td></tr>`;continue}
   const vals=ms.map(r.f);const T=r.tot?r.tot(ms):(r.pct?null:vals.reduce((a,b)=>a+b,0));
-  h+=`<tr class="${r.b?'b':''} ${r.pct?'pct':''}"><td>${r.l}</td>${vals.map((v,i)=>{const e=r.e&&r.e(ms[i]);return `<td class="${cls(v)} ${e?'est':''}" ${e?'title="Estimated / includes costs entered on the Other costs tab"':''}>${r.pct?pct(v):inr(v)}${e?'*':''}</td>`}).join('')}${tot?`<td class="${cls(T)}">${T==null?'':r.pct?pct(T):inr(T)}</td>`:''}</tr>`}
+  h+=`<tr class="${r.b?'b':''} ${r.pct?'pct':''}"><td>${r.l}</td>${vals.map((v,i)=>{const e=r.e&&r.e(ms[i]);return `<td class="${cls(v)} ${e?'est':''}" ${e?'title="Estimated / includes costs entered on the Other costs tab"':''}>${r.pct?pct(v):inr(v)}${e?'*':''}${r.share?shr(v,ms[i].net):''}</td>`}).join('')}${tot?`<td class="${cls(T)}">${T==null?'':r.pct?pct(T):inr(T)}${r.share&&T!=null?shr(T,sum(ms,'net')):''}</td>`:''}</tr>`}
  return h+'</tbody></table>'}
 
 const V={
@@ -122,9 +124,9 @@ overview(ms){const net=sum(ms,'net'),gm=sum(ms,'gm'),eb=sum(ms,'ebitda'),cash=su
 pl(ms){return `<div class="card"><h2>Profit & Loss</h2><p class="note">Revenue = birthday bookings (event month). Event costs = Partners &amp; Expenses on each booking. Everything else = costs entered on the Other costs tab. <span class="est">*</span> = includes an estimate or a cost you added on the Other costs tab.</p>`+table(ms,[
  
  {l:'Revenue',f:m=>m.net,b:1},
- {sec:'Direct costs'},{l:'Event costs (vendors, partners & expenses)',f:m=>m.evCost},
- {l:'Total direct costs',f:m=>m.direct,b:1},{l:'Gross margin',f:m=>m.gm,b:1},{l:'GM %',f:m=>m.gm/m.net,pct:1,tot:x=>sum(x,'gm')/sum(x,'net')},
- {sec:'Operating expenses'},{l:'Marketing & ads',f:m=>m.mkt,e:m=>m.manual.mkt},{l:'Manpower',f:m=>m.man,e:m=>m.manual.man},{l:'Rent',f:m=>m.rent,e:m=>m.estimated.rent||m.manual.rent},{l:'Electricity',f:m=>m.elec,e:m=>m.estimated.elec||m.manual.elec},{l:'Wifi & mobile',f:m=>m.wifi,e:m=>m.estimated.wifi||m.manual.wifi},{l:'Shop expenses',f:m=>m.shopx,e:m=>m.manual.shopx},{l:'Other (transport, cleaning, misc.)',f:m=>m.other},
+ {sec:'Direct costs'},{l:'Event costs (vendors, partners & expenses)',share:1,f:m=>m.evCost},
+ {l:'Total direct costs',share:1,f:m=>m.direct,b:1},{l:'Gross margin',f:m=>m.gm,b:1},{l:'GM %',f:m=>m.gm/m.net,pct:1,tot:x=>sum(x,'gm')/sum(x,'net')},
+ {sec:'Operating expenses'},{l:'Marketing & ads',share:1,f:m=>m.mkt,e:m=>m.manual.mkt},{l:'Manpower',share:1,f:m=>m.man,e:m=>m.manual.man},{l:'Rent',share:1,f:m=>m.rent,e:m=>m.estimated.rent||m.manual.rent},{l:'Electricity',share:1,f:m=>m.elec,e:m=>m.estimated.elec||m.manual.elec},{l:'Wifi & mobile',share:1,f:m=>m.wifi,e:m=>m.estimated.wifi||m.manual.wifi},{l:'Shop expenses',share:1,f:m=>m.shopx,e:m=>m.manual.shopx},{l:'Other (transport, cleaning, misc.)',share:1,f:m=>m.other},
  {l:'EBITDA',f:m=>m.ebitda,b:1},{l:'EBITDA %',f:m=>m.ebitda/m.net,pct:1,tot:x=>sum(x,'ebitda')/sum(x,'net')}])+'</div>'},
 ebitda(ms){return `<div class="card"><h2>Monthly EBITDA</h2>${bars(ms,m=>m.ebitda,v=>Math.round(v/1000)+'k')}</div><div class="card"><h2>EBITDA bridge</h2>`+table(ms,[
  {l:'Gross margin',f:m=>m.gm},{l:'– Marketing',f:m=>-m.mkt},{l:'– Fixed costs',f:m=>-m.fixed},{l:'EBITDA',f:m=>m.ebitda,b:1},{l:'EBITDA %',f:m=>m.ebitda/m.net,pct:1,tot:x=>sum(x,'ebitda')/sum(x,'net')},
