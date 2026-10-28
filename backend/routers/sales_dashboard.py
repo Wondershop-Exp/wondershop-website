@@ -152,6 +152,9 @@ async def _load():
         d["converted"] = bool(d["is_booking"]) and (d["status"] or "") != "Cancelled"
         rev = d["client_budget"] if d["client_budget"] is not None else d["order_grand_total"]
         d["revenue"] = float(rev or 0) if d["converted"] else 0.0
+        if d["converted"]:   # 2026-10-28: live Grand Total, same as the booking page / Finance
+            from routers.finance import live_grand_total
+            d["revenue"] = await live_grand_total(d["lead_id"], d["revenue"])
         d["counted"] = d["source_booking_id"] is None and d["lead_day"] is not None
         d["rep"] = _rep(d["event_sales_lead"])
         # FRT / DRT (2026-10-20, per Shruti): hours from the lead's generated

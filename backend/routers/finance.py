@@ -26,6 +26,49 @@ from routers.admin import _require_admin
 
 router = APIRouter()
 
+
+# ─── Live booking figures, shared (2026-10-28) ───────────────────────────────
+# The booking page prices Grand Total live (routers.admin.get_booking_detail ->
+# booking_pricing.compute_billing); leads.client_budget can be stale. Finance,
+# the Sales Dashboard and the daily Slack report all use THIS so they agree.
+import time as _time
+_live_cache: dict = {}
+
+
+def _money(v) -> float:
+    try:
+        return float(str(v).replace(",", "").replace("₹", "").strip()) if v not in (None, "") else 0.0
+    except ValueError:
+        return 0.0
+
+
+async def live_booking_figures(lead_id: int) -> dict:
+    """{'grand_total', 'advance', 'final_payment', 'paid_mode'} as the booking page shows them (cached 5 min)."""
+    hit = _live_cache.get(lead_id)
+    if hit and _time.time() - hit[0] < 300:
+        return hit[1]
+    from config import settings
+    from routers.admin import get_booking_detail
+    d = await get_booking_detail(lead_id, settings.ADMIN_PASSWORD)
+    secs = d.get("sections") or []
+    fl = {x["field_key"]: x for sec in secs for x in (sec.get("fields") or [])} if isinstance(secs, list) \
+        else {x["field_key"]: x for xs in secs.values() for x in xs}
+
+    def val(k):
+        x = fl.get(k) or {}
+        return None if x.get("removed") else x.get("customer_choice")
+    out = {"grand_total": _money(val("bill_grand_total")), "advance": _money(val("bill_advance")),
+           "final_payment": _money(val("event_payment_confirmed_amount")), "paid_mode": val("event_payment_confirmed_mode")}
+    _live_cache[lead_id] = (_time.time(), out)
+    return out
+
+
+async def live_grand_total(lead_id: int, fallback: float = 0.0) -> float:
+    try:
+        return (await live_booking_figures(lead_id))["grand_total"]
+    except Exception:
+        return fallback
+
 PAID_VIA = ["Pending", "Gpay", "Cash", "Bank transfer", "UPI (other)", "Card"]   # same as event_team
 # "owner" = money put in by the co-founders/owners (2026-10-28): not a cost - shown
 # under Financing in the cash flow, never in the P&L.
@@ -145,50 +188,43 @@ async def put_snapshot(body: SnapshotIn, x_admin_password: Optional[str] = Heade
 @router.get("/finance/bookings")
 async def finance_bookings(x_admin_password: Optional[str] = Header(None)):
     """Birthday bookings (Oct 2026 on, not cancelled) with the SAME figures the
-    booking page shows (2026-10-28, per Shruti - the stored client_budget was
-    stale): Grand Total is priced live by routers.admin.get_booking_detail,
-    client paid = Advance Paid + Event Payment Confirmed, and costs = every
-    row of that booking's Partners & Expenses (event_team)."""
+    booking page shows: live Grand Total, client paid = Advance Paid + Event
+    Payment Confirmed, costs = every row of Partners & Expenses (event_team),
+    plus the lead source (for the ROI tab)."""
     _admin_only(x_admin_password)
-    from routers.admin import get_booking_detail
     from routers.event_team import team_rows
-    ids = await database.fetch_all(
-        "SELECT lead_id FROM leads WHERE is_booking = TRUE AND status != 'Cancelled' AND event_date >= :start "
-        "ORDER BY event_date DESC",
+    from routers.sales_dashboard import _src
+    rows_ = await database.fetch_all(
+        "SELECT lead_id, parent_name, child_names, event_date, lead_source, lead_origin FROM leads "
+        "WHERE is_booking = TRUE AND status != 'Cancelled' AND event_date >= :start ORDER BY event_date DESC",
         values={"start": date(int(START_YM[:4]), int(START_YM[4:]), 1)})
-
-    def f(v):
-        try:
-            return float(str(v).replace(",", "").replace("₹", "").strip()) if v not in (None, "") else 0.0
-        except ValueError:
-            return 0.0
     out = []
-    for r in ids:
-        lid = r["lead_id"]
-        d = await get_booking_detail(lid, x_admin_password)
-        fl = {x["field_key"]: x for sec in (d.get("sections") or []) for x in (sec.get("fields") or [])} \
-            if isinstance(d.get("sections"), list) else \
-            {x["field_key"]: x for xs in (d.get("sections") or {}).values() for x in xs}
-
-        def val(k):
-            x = fl.get(k) or {}
-            return None if x.get("removed") else x.get("customer_choice")
-        lead = await database.fetch_one("SELECT parent_name, child_names, event_date FROM leads WHERE lead_id = :id", values={"id": lid})
+    for lead in rows_:
+        lid = lead["lead_id"]
+        fig = await live_booking_figures(lid)
         rows = await team_rows(lid)
         cost = sum(x["amount"] or 0 for x in rows)
         unpaid = sum(x["amount"] or 0 for x in rows if (x.get("paid_via") or "Pending") == "Pending" and not x.get("paid"))
-        advance, final = f(val("bill_advance")), f(val("event_payment_confirmed_amount"))
         ev = lead["event_date"]
         out.append({
             "lead_id": lid, "parent": lead["parent_name"], "child": lead["child_names"],
+            "lead_source": _src(dict(lead)),
             "date": ev.isoformat() if ev else None, "ym": ev.strftime("%Y%m") if ev else None,
-            "revenue": f(val("bill_grand_total")),
-            "advance": advance, "final_payment": final, "paid_amount": advance + final,
-            "paid_mode": val("event_payment_confirmed_mode"),
+            "revenue": fig["grand_total"],
+            "advance": fig["advance"], "final_payment": fig["final_payment"], "paid_amount": fig["advance"] + fig["final_payment"],
+            "paid_mode": fig["paid_mode"],
             "cost": round(cost, 2), "cost_unpaid": round(unpaid, 2), "cost_lines": len(rows),
             "costs": [{"partner": x["partner"], "category": x["category"], "amount": x["amount"], "paid_via": x["paid_via"]} for x in rows],
         })
     return out
+
+
+@router.get("/finance/lead-sources")
+async def finance_lead_sources(x_admin_password: Optional[str] = Header(None)):
+    """The approved lead-source list (same as the Sales Quotation module) + Brand / general."""
+    _admin_only(x_admin_password)
+    from catalogue_data import LEAD_SOURCES
+    return {"sources": list(LEAD_SOURCES) + ["Brand / general"]}
 
 
 class PaidIn(BaseModel):

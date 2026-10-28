@@ -32,6 +32,8 @@ thead th{color:var(--mute);font-weight:500;font-size:12px}tr.b td{font-weight:65
 details summary{cursor:pointer}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:800px){.grid2{grid-template-columns:1fr}header,main,nav{padding-left:16px;padding-right:16px}}
 #drop{display:none}
+/* 2026-10-28: dropdown arrow set in from the edge */
+select{-webkit-appearance:none;appearance:none;padding-right:34px !important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2377716a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer}
 </style></head><body>
 <header><h1>Wondershop Finance<small id="gen"></small></h1>
 <div class="ctl">
@@ -55,7 +57,7 @@ async function api(path,opts={}){opts.headers={'Content-Type':'application/json'
  if(!r.ok){const b=await r.json().catch(()=>({}));throw new Error(b.detail||('Request failed ('+r.status+')'))}return r.json()}
 function showGate(msg){$('#gate').style.display='flex';$('#gateErr').textContent=msg||''}
 async function boot(){if(!getPw()){showGate();return}
- try{const [c,bk]=await Promise.all([api('/costs'),api('/bookings').catch(e=>{if(e.message==='auth')throw e;console.warn(e);return []})]);BOOK=bk;fetch(API+'/api/admin/vendors/names',{headers:{'X-Admin-Password':getPw()}}).then(r=>r.ok?r.json():{names:[]}).then(j=>{PARTNERS=j.names||[];if(tab==='costs')render()}).catch(()=>{});$('#gate').style.display='none';
+ try{const [c,bk]=await Promise.all([api('/costs'),api('/bookings').catch(e=>{if(e.message==='auth')throw e;console.warn(e);return []})]);BOOK=bk;api('/lead-sources').then(j=>{if(j&&j.sources){LEAD_SOURCES=j.sources;if(tab==='costs'||tab==='roi')render()}}).catch(()=>{});fetch(API+'/api/admin/vendors/names',{headers:{'X-Admin-Password':getPw()}}).then(r=>r.ok?r.json():{names:[]}).then(j=>{PARTNERS=j.names||[];if(tab==='costs')render()}).catch(()=>{});$('#gate').style.display='none';
   DATA=null;META=null;COSTS=c;setupFY();render()}catch(e){if(e.message!=='auth')$('#app').innerHTML='<div class="card neg">'+e.message+'</div>'}}
 const $=s=>document.querySelector(s);
 const inr=v=>{if(v==null||isNaN(v))return'–';const n=Math.round(v),s=Math.abs(n).toLocaleString('en-IN');return(n<0?'-₹':'₹')+s};
@@ -68,7 +70,7 @@ const lbl=k=>MN[+k.slice(4)-1]+" '"+k.slice(2,4);
 const store={get(k,d){try{const v=localStorage.getItem('wsf_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('wsf_'+k,JSON.stringify(v))}catch(e){}}};
 let tab=store.get('tab','overview');
 $('#fte').value=store.get('fte',2);
-const TABS=[['overview','Overview'],['pl','P&L'],['ebitda','EBITDA'],['cash','Cash flow'],['events','Events GM%'],['team','Revenue / FTE'],['costs','+ Other costs']];
+const TABS=[['overview','Overview'],['pl','P&L'],['ebitda','EBITDA'],['cash','Cash flow'],['events','Events GM%'],['team','Revenue / FTE'],['roi','ROI metrics'],['costs','+ Other costs']];
 $('#tabs').innerHTML=TABS.map(([k,l])=>`<button data-k="${k}">${l}</button>`).join('');
 $('#tabs').onclick=e=>{const k=e.target.dataset.k;if(k){tab=k;store.set('tab',k);render()}};
 $('#fte').oninput=()=>{store.set('fte',+$('#fte').value);render()};
@@ -81,7 +83,7 @@ function setupFY(){const ks=allMonths().map(m=>m.ym);if(!ks.length)ks.push('2026
  $('#fy').value=prev||String(fys[0]);$('#gen').textContent='from Bookings + costs entered here'}
 // 2026-10-16 — marketing costs carry a lead source; payment mode as on bookings.
 const PAY_MODES=['Pending','Gpay','Cash','Bank transfer','UPI (other)','Card'];
-const LEAD_SOURCES=['Instagram','Google','Wonderfest Feb 2026','Powai Rotary Christmas Stall 2025','Brand / general'];
+let LEAD_SOURCES=['Instagram','Facebook','Google','Repeat','WSR Repeat','Stall','Referral','Website','WhatsApp Broadcast','ChatGpt','WhatsApp Group Enquiry','Brand / general']   // replaced on load from /finance/lead-sources (the Sales Quotation list);
 const LS_RULES=[[/facebook|instagram|meta|aisensy/i,'Instagram'],[/google/i,'Google'],[/wonderfest/i,'Wonderfest Feb 2026'],[/rotary/i,'Powai Rotary Christmas Stall 2025']];
 const defLS=p=>{for(const [rx,s] of LS_RULES)if(rx.test(p||''))return s;return ''};
 const todayIST=()=>new Date(Date.now()+5.5*3600e3).toISOString().slice(0,10);
@@ -149,6 +151,23 @@ events(ms){const evs=(DATA?DATA.events:[]).filter(e=>ms.some(m=>m.ym===e.ym)&&!(
 team(ms){const fte=+$('#fte').value||1;return kpis([['FTEs',fte,'set at top'],['Avg revenue / FTE / month',inr(sum(ms,'net')/ms.length/fte)],['Avg GM / FTE / month',inr(sum(ms,'gm')/ms.length/fte)],['Manpower % of net sales',pct(sum(ms,'man')/sum(ms,'net'))]])
  +`<div class="card"><h2>Revenue per full-time employee</h2>${bars(ms,m=>m.net/fte,v=>Math.round(v/1000)+'k')}`+table(ms,[{l:'Net sales',f:m=>m.net},{l:'Revenue per FTE',f:m=>m.net/fte,b:1},{l:'Gross margin per FTE',f:m=>m.gm/fte},{l:'Manpower cost',f:m=>m.man},{l:'Revenue per ₹1 of manpower',f:m=>m.man?m.net/m.man:0,tot:x=>sum(x,'net')/sum(x,'man')}])+'<p class="note" style="margin-top:10px">Team: sales (₹21k + incentives), admin (₹15k), cleaner (₹1.5k, part-time) → default 2 FTE. Change it above if the team changes.</p></div>'}
 };
+V.roi=function(ms){const rm=store.get('roiM','all'),rs=store.get('roiS','all');
+ const yms=ms.map(m=>m.ym);const pick=rm==='all'?yms:[rm];
+ const bks=BOOK.filter(b=>pick.includes(b.ym));
+ const spendOf=c=>c.category==='mkt'&&pick.includes(c.ym);
+ const srcs=[...new Set(bks.map(b=>b.lead_source||'Website').concat(COSTS.filter(spendOf).map(c=>c.lead_source||'Brand / general')))].sort((a,b)=>LEAD_SOURCES.indexOf(a)-LEAD_SOURCES.indexOf(b));
+ const totRev=bks.reduce((a,b)=>a+b.revenue,0);
+ const rows=srcs.filter(x=>rs==='all'||x===rs).map(src=>{const B=bks.filter(b=>(b.lead_source||'Website')===src);const rev=B.reduce((a,b)=>a+b.revenue,0),gm=B.reduce((a,b)=>a+b.revenue-b.cost,0);
+  const sp=COSTS.filter(c=>spendOf(c)&&(c.lead_source||'Brand / general')===src).reduce((a,c)=>a+c.amount,0);return {src,n:B.length,rev,gm,sp}});
+ const T=rows.reduce((a,r)=>({n:a.n+r.n,rev:a.rev+r.rev,gm:a.gm+r.gm,sp:a.sp+r.sp}),{n:0,rev:0,gm:0,sp:0});
+ const x=(a,b)=>b?(a/b).toFixed(2)+'x':'–';
+ const tr=(r,b)=>`<tr class="${b?'b':''}"><td>${esc(r.src)}</td><td>${pct(totRev?r.rev/totRev:NaN)}</td><td>${r.n}</td><td>${inr(r.rev)}</td><td>${r.rev?pct(r.gm/r.rev):'–'}</td><td class="${cls(r.gm)}">${inr(r.gm)}</td><td>${inr(r.sp)}</td><td>${x(r.gm,r.sp)}</td><td>${x(r.rev,r.sp)}</td><td>${r.rev&&r.sp?pct(r.sp/r.rev):'–'}</td></tr>`;
+ const allSrc=[...new Set(BOOK.map(b=>b.lead_source||'Website').concat(LEAD_SOURCES))];
+ return `<div class="card"><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;justify-content:space-between"><h2>ROI by lead source</h2><div style="display:flex;gap:10px;flex-wrap:wrap">
+ <label style="font-size:13px;color:var(--mute)">Month <select onchange="store.set('roiM',this.value);render()"><option value="all">All months in period</option>${yms.slice().reverse().map(k=>`<option value="${k}" ${k===rm?'selected':''}>${lbl(k)}</option>`).join('')}</select></label>
+ <label style="font-size:13px;color:var(--mute)">Lead source <select onchange="store.set('roiS',this.value);render()"><option value="all">All sources</option>${allSrc.map(k=>`<option ${k===rs?'selected':''}>${esc(k)}</option>`).join('')}</select></label></div></div>
+ <p class="note">Bookings by event month and the lead's source; revenue = Grand Total, GM = revenue − Partners &amp; Expenses. Spend = Marketing &amp; ads costs tagged to that lead source (+ Other costs). ROI = GM ÷ spend · ROAS = revenue ÷ spend · ACOS = spend ÷ revenue.</p>
+ <table><thead><tr><th>Lead source</th><th>% contribution</th><th># bookings</th><th>Bookings rev</th><th>GM%</th><th>GM</th><th>Spend</th><th>ROI</th><th>ROAS</th><th>ACOS</th></tr></thead><tbody>${rows.map(r=>tr(r)).join('')||'<tr><td colspan="10" class="note">Nothing in this period.</td></tr>'}</tbody>${rows.length>1?`<tfoot>${tr({src:'Total',...T},1)}</tfoot>`:''}</table></div>`};
 V.costs=function(){const now=new Date();const dm=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
  const rowsH=COSTS.map(c=>`<tr><td>${dlbl(c)}</td><td style="text-align:left">${CATS[c.category]||c.category}${c.category==='mkt'?`<br><select data-ls="${c.id}" style="font-size:12px;padding:2px 6px;margin-top:3px">${['',...LEAD_SOURCES.filter(x=>x!=='Brand / general')].map(x=>`<option value="${esc(x)}"${(c.lead_source||'')===x?' selected':''}>${x?esc(x):'Brand / general'}</option>`).join('')}${c.lead_source&&!LEAD_SOURCES.includes(c.lead_source)?`<option selected>${esc(c.lead_source)}</option>`:''}</select>`:''}</td><td style="text-align:left">${esc(c.partner||'')}${c.partner&&PARTNERS.length&&!PARTNERS.includes(c.partner)?' <span class="est">not in Partners</span>':''}${!c.partner?'<span class="est">no partner</span>':''}</td><td style="text-align:left">${esc(c.description||'')}</td><td>${inr(c.amount)}</td><td><select data-pv="${c.id}" style="font-size:12px;padding:2px 6px">${PAY_MODES.map(m=>`<option${(c.paid_via||(c.paid?'':'Pending'))===m?' selected':''}>${m}</option>`).join('')}${c.paid_via&&!PAY_MODES.includes(c.paid_via)?`<option selected>${esc(c.paid_via)}</option>`:''}</select></td><td style="color:var(--mute)">${c.created_by||''}</td><td><button data-del="${c.id}">Remove</button></td></tr>`).join('');
  return `<div class="card"><h2>Add a cost</h2><p class="note">Rent, salaries, wifi, electricity, cleaning, transport, ads, materials — Everything except event partner costs (those go on the booking's Partners & Expenses). They flow straight into P&L, EBITDA and cash flow, and are saved to the Wondershop database.</p>

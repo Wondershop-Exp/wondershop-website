@@ -19,7 +19,7 @@ monthly admin dashboard (routers/dashboard.py), so the numbers agree:
   Realized revenue   event already happened AND payment amount + mode confirmed.
   Booked revenue     every other confirmed booking in the month.
   Potential revenue  warm leads whose event date is in the window, at their budget.
-  Revenue            Sales Quote (client_budget) else order Grand Total.
+  Revenue            booking's live Grand Total (same as the booking page and Finance).
 """
 import asyncio
 import logging
@@ -61,8 +61,9 @@ def _pct(a, b) -> str:
 
 
 async def _bookings(start: date, end: date):
-    """Non-cancelled bookings with event_date in [start, end)."""
-    return await database.fetch_all(
+    """Non-cancelled bookings with event_date in [start, end), revenue = live Grand Total."""
+    from routers.finance import live_grand_total
+    rows = await database.fetch_all(
         """SELECT l.lead_id, l.event_date, l.parent_name, l.child_names, l.theme, l.venue, l.event_sales_lead,
                   COALESCE(l.client_budget, l.order_grand_total, 0) AS revenue,
                   amt.customer_choice_override AS pay_amt, mode.customer_choice_override AS pay_mode
@@ -72,6 +73,12 @@ async def _bookings(start: date, end: date):
            WHERE l.is_booking = TRUE AND l.status != 'Cancelled' AND l.event_date >= :s AND l.event_date < :e
            ORDER BY l.event_date, l.lead_id""",
         values={"s": start, "e": end})
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["revenue"] = await live_grand_total(d["lead_id"], float(d["revenue"] or 0))
+        out.append(d)
+    return out
 
 
 async def _warm(start: date, end: date):
