@@ -162,6 +162,11 @@ async def send_report(today: Optional[date] = None) -> dict:
     d = await slack_api("chat.postMessage", channel=settings.SLACK_REPORT_CHANNEL, text=text, unfurl_links=False, mrkdwn=True)
     if not d.get("ok"):
         raise HTTPException(status_code=502, detail=f"Slack said: {d.get('error')}")
+    try:   # team member summary right after (2026-10-28)
+        await slack_api("chat.postMessage", channel=settings.SLACK_REPORT_CHANNEL, text=await build_team_report(today),
+                        unfurl_links=False, mrkdwn=True)
+    except Exception as exc:
+        logger.warning(f"Team summary failed: {exc}")
     return {"ok": True}
 
 
@@ -260,4 +265,80 @@ async def reply_in_thread(channel: str, ts: str, day: date) -> None:
     except Exception as exc:
         logger.exception("On-demand summary failed")
         text = f"Sorry, I couldn't build the summary ({exc})."
+    await slack_api("chat.postMessage", channel=channel, thread_ts=ts, text=text, unfurl_links=False, mrkdwn=True)
+
+
+# ─── Team member daily summary (2026-10-28, per Shruti) ──────────────────────
+# One block per sales team member (co-founders excluded, as on the Sales
+# Dashboard). Posted right after the business update, and on demand with
+# "team summary" / "mitika summary" (+ yesterday / a date).
+FULL_NAMES = {"Mitika": "Mitika Gala"}
+ANSWERED = {"Answered", "Follow-up required"}
+
+
+async def build_team_report(day: Optional[date] = None) -> str:
+    from routers.sales_dashboard import REPS, FOUNDERS, _rep
+    day = day or datetime.now(IST).date()
+    ds = day.isoformat()
+    leads = await _load()
+    reasons = {r["lead_id"]: (r["non_convert_reason_other"] or r["non_convert_reason"] or "").strip()
+               for r in await database.fetch_all(
+                   "SELECT lead_id, non_convert_reason, non_convert_reason_other FROM leads WHERE non_convert_reason IS NOT NULL")}
+    team = [r for r in REPS if r not in FOUNDERS]
+    blocks = [f"*Team daily summary — {day.strftime('%a %d %b %Y')}*"]
+    for rep in team:
+        calls = answered = fu_due = fu_done = 0
+        worked = []
+        for d in leads:
+            log = sorted(d["log"], key=lambda e: (str(e.get("date") or ""), str(e.get("time") or ""), str(e.get("at") or "")))
+            mine = [e for e in log if str(e.get("date") or "")[:10] == ds and _rep(e.get("by") or d["event_sales_lead"]) == rep]
+            calls += len(mine)
+            answered += sum(1 for e in mine if (e.get("disposition") or "") in ANSWERED)
+            if mine:
+                worked.append((d, log))
+            # follow-ups due today for this rep: the last call before today set a follow-up for today
+            before = [e for e in log if str(e.get("date") or "")[:10] < ds]
+            if before and str(before[-1].get("followup_at") or "")[:10] == ds and not d["is_booking"] \
+                    and _rep(before[-1].get("by") or d["event_sales_lead"]) == rep:
+                fu_due += 1
+                if mine:
+                    fu_done += 1
+        conv = [d for d, _ in worked if d["converted"]]
+        lost = [d for d, _ in worked if not d["converted"] and (d["status"] or "") in LOST]
+        in_fu = [d for d, log in worked if not d["converted"] and d not in lost and (
+            str((log[-1] if log else {}).get("followup_at") or "")[:10] > ds or (log[-1] if log else {}).get("disposition") == "Follow-up required")]
+        why = {}
+        for d in lost:
+            k = reasons.get(d["lead_id"]) or d["status"] or "No reason given"
+            why[k] = why.get(k, 0) + 1
+        blocks += ["",
+                   f"*{FULL_NAMES.get(rep, rep)}*",
+                   f"• Calls done today: *{calls}*",
+                   f"• Calls answered: *{answered}* ({_pct(answered, calls)})",
+                   f"• Follow-ups pending today: *{fu_due}*",
+                   f"• Follow-ups called today: *{fu_done}* ({_pct(fu_done, fu_due)})",
+                   f"• Leads worked on today: *{len(worked)}*",
+                   f"• Leads in follow-up: *{len(in_fu)}*",
+                   f"• Leads converted: *{len(conv)}*",
+                   f"• Leads not interested: *{len(lost)}*"]
+        for k, n in sorted(why.items(), key=lambda x: -x[1]):
+            blocks.append(f"   ◦ {k}: {n}")
+    return "\n".join(blocks)
+
+
+def parse_team_request(text: str):
+    """'team summary', 'mitika summary yesterday', 'team report 19 Oct' -> day, else None."""
+    t = re.sub(r"<@[A-Z0-9]+>", "", text or "").strip().lower()
+    if len(t.split()) > 12 or not re.search(r"\b(team|mitika)\b", t) or not re.search(r"\b(summary|summery|report|update)\b", t):
+        return None
+    rest = re.sub(r"\b(team|mitika|member|members|sales)\b", " ", t)
+    return parse_summary_request(rest) or datetime.now(IST).date()
+
+
+async def reply_team_in_thread(channel: str, ts: str, day: date) -> None:
+    try:
+        text = await build_team_report(day)
+    except Exception as exc:
+        logger.exception("Team summary failed")
+        text = f"Sorry, I couldn't build the team summary ({exc})."
     await slack_api("chat.postMessage", channel=channel, thread_ts=ts, text=text, unfurl_links=False, mrkdwn=True)

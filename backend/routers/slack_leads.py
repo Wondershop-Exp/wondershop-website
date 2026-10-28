@@ -1093,6 +1093,10 @@ async def slack_events(request: Request):
     # "summary yesterday", "summary 19 Oct" in any channel the bot is in
     # (meant for #business-performance) -> the daily update, as a thread reply.
     from routers import daily_report
+    tday = daily_report.parse_team_request(ev.get("text") or "")   # "team summary" (2026-10-28)
+    if tday is not None:
+        asyncio.get_running_loop().create_task(_safe(daily_report.reply_team_in_thread(ev.get("channel"), ev.get("ts"), tday)))
+        return {"ok": True}
     sday = daily_report.parse_summary_request(ev.get("text") or "")
     if sday is not None:
         asyncio.get_running_loop().create_task(_safe(daily_report.reply_in_thread(ev.get("channel"), ev.get("ts"), sday)))
