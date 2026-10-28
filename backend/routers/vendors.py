@@ -193,7 +193,9 @@ async def list_vendors(q: Optional[str] = None, active_only: bool = False, pendi
         where.append(
             "(name ILIKE :q OR primary_contact_name ILIKE :q OR primary_mobile ILIKE :q "
             "OR alternate_mobile ILIKE :q OR whatsapp_number ILIKE :q OR email ILIKE :q "
-            "OR deals_in ILIKE :q OR city ILIKE :q OR address ILIKE :q)"
+            "OR deals_in ILIKE :q OR city ILIKE :q OR address ILIKE :q OR remarks ILIKE :q "
+            # 2026-10-28: notes too, so a saved contact can be found by what was said about it.
+            "OR EXISTS (SELECT 1 FROM vendor_notes vn WHERE vn.vendor_id = vendor_master.vendor_id AND vn.note ILIKE :q))"
         )
         values["q"] = f"%{q}%"
     if active_only:
@@ -234,6 +236,46 @@ async def get_vendor(vendor_id: int, x_admin_password: Optional[str] = Header(No
     if not row:
         raise HTTPException(status_code=404, detail="Vendor not found.")
     return _row_out(row)
+
+
+# ─── Notes (2026-10-28, per Shruti) ─────────────────────────────────────────
+# "give a comments box where I can input my thoughts so that later on I can
+# fetch them." Added here (Partners tab) or in Slack #vendor-contacts
+# (routers/slack_vendors.py); newest first.
+class VendorNoteRequest(BaseModel):
+    note: str
+    added_by: Optional[str] = None
+
+
+@router.get("/vendors/{vendor_id}/notes")
+async def list_vendor_notes(vendor_id: int, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    rows = await database.fetch_all(
+        "SELECT id, note, added_by, source, created_at FROM vendor_notes WHERE vendor_id = :v ORDER BY created_at DESC, id DESC",
+        {"v": vendor_id})
+    return {"notes": [{"id": r["id"], "note": r["note"], "added_by": r["added_by"], "source": r["source"],
+                       "created_on_ist": _to_ist_str(r["created_at"])} for r in rows]}
+
+
+@router.post("/vendors/{vendor_id}/notes")
+async def add_vendor_note(vendor_id: int, body: VendorNoteRequest, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    note = (body.note or "").strip()
+    if not note:
+        raise HTTPException(status_code=400, detail="Please write a note.")
+    if not await database.fetch_val("SELECT vendor_id FROM vendor_master WHERE vendor_id = :v", {"v": vendor_id}):
+        raise HTTPException(status_code=404, detail="Vendor not found.")
+    await database.execute(
+        "INSERT INTO vendor_notes (vendor_id, note, added_by, source) VALUES (:v, :n, :b, 'admin')",
+        {"v": vendor_id, "n": note[:5000], "b": (body.added_by or "")[:100]})
+    return await list_vendor_notes(vendor_id, x_admin_password)
+
+
+@router.delete("/vendors/{vendor_id}/notes/{note_id}")
+async def delete_vendor_note(vendor_id: int, note_id: int, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    await database.execute("DELETE FROM vendor_notes WHERE id = :n AND vendor_id = :v", {"n": note_id, "v": vendor_id})
+    return await list_vendor_notes(vendor_id, x_admin_password)
 
 
 @router.get("/vendors/{vendor_id}/cancelled-cheque")

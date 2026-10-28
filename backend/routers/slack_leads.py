@@ -1097,6 +1097,17 @@ async def slack_events(request: Request):
     if sday is not None:
         asyncio.get_running_loop().create_task(_safe(daily_report.reply_in_thread(ev.get("channel"), ev.get("ts"), sday)))
         return {"ok": True}
+    # #vendor-contacts (2026-10-28): visiting cards / contacts -> vendor master.
+    if settings.SLACK_VENDOR_CHANNEL and ev.get("channel") == settings.SLACK_VENDOR_CHANNEL:
+        from routers import slack_vendors
+        if ev.get("thread_ts") and ev.get("thread_ts") != ev.get("ts"):
+            post = await database.fetch_one("SELECT * FROM slack_vendor_posts WHERE channel = :c AND ts = :t",
+                                            values={"c": ev.get("channel"), "t": ev.get("thread_ts")})
+            if post:
+                asyncio.get_running_loop().create_task(_safe(slack_vendors.handle_reply(ev, dict(post))))
+            return {"ok": True}
+        asyncio.get_running_loop().create_task(_safe(slack_vendors.handle_message(ev)))
+        return {"ok": True}
     if settings.SLACK_LEADS_CHANNEL and ev.get("channel") != settings.SLACK_LEADS_CHANNEL:
         return {"ok": True}
     if ev.get("thread_ts") and ev.get("thread_ts") != ev.get("ts"):

@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     SLACK_SIGNING_SECRET: str = ""
     SLACK_BOT_TOKEN: str = ""
     SLACK_LEADS_CHANNEL: str = ""
+    # Vendor contacts channel (2026-10-28, routers/slack_vendors.py): visiting
+    # cards / contact notes posted here are saved to the vendor master.
+    # Default: the private #vendor-contacts channel. Blank = off.
+    SLACK_VENDOR_CHANNEL: str = "C0CCKURLL0K"
     # Daily business update (routers/daily_report.py, 2026-10-20): channel ID to post
     # to (name or ID), and the IST time (HH:MM) to post at. Blank channel = off.
     SLACK_REPORT_CHANNEL: str = "#business-performance"

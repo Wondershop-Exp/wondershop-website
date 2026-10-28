@@ -53,6 +53,7 @@ SAFE_MIGRATIONS = [
     "073_status_unanswered.sql",
     "074_dj_profile.sql",
     "075_status_column_width.sql",
+    "077_vendor_notes.sql",
 ]
 
 
