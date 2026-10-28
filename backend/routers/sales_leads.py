@@ -781,12 +781,12 @@ def _call_summary(call_log) -> dict:
     calls = _json_val(call_log) or []
     calls = [c for c in calls if isinstance(c, dict) and c.get("date")]
     if not calls:
-        return {"calls": 0, "last_call_date": None, "last_disposition": None, "next_followup": None}
+        return {"calls": 0, "last_call_date": None, "last_call_time": None, "last_disposition": None, "next_followup": None}
     ordered = sorted(calls, key=lambda c: (c.get("date") or "", c.get("time") or "", c.get("at") or ""))
     last = ordered[-1]
     # The most recently set follow-up (a later call without one keeps it).
     fu = next((c.get("followup_at") for c in reversed(ordered) if c.get("followup_at")), None)
-    return {"calls": len(calls), "last_call_date": last.get("date"),
+    return {"calls": len(calls), "last_call_date": last.get("date"), "last_call_time": last.get("time"),
             "last_disposition": last.get("disposition"), "next_followup": fu}
 
 

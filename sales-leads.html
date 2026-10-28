@@ -121,7 +121,7 @@ table.list tr:hover td{background:var(--li3)}
 #listTable td:nth-child(2) strong{word-break:break-word}
 #listTable td:nth-child(2) .src-tag,#listTable td:nth-child(2) .wsr-tag{max-width:170px;white-space:normal}
 #listTable td:nth-child(2) .hl-tag{margin-left:0;margin-right:4px}
-#listTable td:nth-child(3),#listTable td:nth-child(7),#listTable td:nth-child(11){white-space:normal;max-width:130px;line-height:1.35}
+#listTable td:nth-child(3),#listTable td:nth-child(9),#listTable td:nth-child(13){white-space:normal;max-width:130px;line-height:1.35}
 #listTable td{padding-left:8px;padding-right:8px}
 th.th-sort{cursor:pointer;user-select:none}
 th.th-sort:hover{color:var(--pk)}
@@ -465,6 +465,7 @@ body.role-sales .admin-only{display:none!important}
         <th class="th-sort" id="th_birthday" onclick="setSort('birthday')">Birthday</th>
         <th class="th-sort" id="th_status" onclick="setSort('status')">Status</th>
         <th>Last Call Status</th>
+        <th class="th-sort" id="th_lastcall" onclick="setSort('lastcall')">Last Called</th>
         <th>Location</th>
         <th class="th-sort" id="th_quote" onclick="setSort('quote')">Sales Quote</th>
         <th>Age/Gender</th>
@@ -836,6 +837,7 @@ const SORT_ACCESSORS = {
   status:   r => (r.status||'').toLowerCase(),
   // No follow-up sorts last when ascending (soonest first).
   followup: r => r.next_followup || (SORT_DIR==='asc' ? '9999' : ''),
+  lastcall: r => r.last_call_date ? r.last_call_date+'T'+(r.last_call_time||'00:00') : (SORT_DIR==='asc' ? '9999' : ''),
 };
 const SORT_LABELS = {leaddate:'Lead Date', birthday:'Birthday', quote:'Sales Quote', followup:'Follow-up', status:'Status', modified:'Last Modified'};
 
@@ -1059,7 +1061,7 @@ function renderListRows(){
   }
   if(!rows.length){
     const fu = (document.getElementById('lf_fu')||{}).checked;
-    body.innerHTML = '<tr><td colspan="15" style="padding:16px;color:#6B7280">'+(fu ? 'No follow-ups due till today or in the next 5 days.' : 'No leads match these filters.')+'</td></tr>';
+    body.innerHTML = '<tr><td colspan="16" style="padding:16px;color:#6B7280">'+(fu ? 'No follow-ups due till today or in the next 5 days.' : 'No leads match these filters.')+'</td></tr>';
     updateSortHeaders(); return;
   }
   body.innerHTML = rows.map(r=>{
@@ -1076,6 +1078,7 @@ function renderListRows(){
       +'<td>'+birthdayStr(r)+'</td>'
       +'<td>'+statusCellHtml(r)+'</td>'
       +'<td style="font-size:12.5px;white-space:nowrap">'+esc((r.last_disposition||'').trim() || (Number(r.calls||0) > 0 ? 'Call logged' : 'Not called'))+'</td>'
+      +'<td style="font-size:12.5px;white-space:nowrap">'+(r.last_call_date ? esc(fmtFollowup(r.last_call_date+(r.last_call_time?'T'+r.last_call_time:''))) : '—')+'</td>'
       +'<td title="'+esc(r.venue||'')+'">'+esc(localityOf(r.venue)||'—')+'</td>'
       +'<td>'+(money(r.revenue_potential)||'—')+'</td>'
       +'<td>'+esc(ageGender(r))+'</td>'
