@@ -86,7 +86,7 @@ const LS_RULES=[[/facebook|instagram|meta|aisensy/i,'Instagram'],[/google/i,'Goo
 const defLS=p=>{for(const [rx,s] of LS_RULES)if(rx.test(p||''))return s;return ''};
 const todayIST=()=>new Date(Date.now()+5.5*3600e3).toISOString().slice(0,10);
 const dlbl=c=>c.spent_on?new Date(c.spent_on+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'}):lbl(c.ym);
-const CATS={man:'Manpower',rent:'Rent',elec:'Electricity',wifi:'Wifi',mkt:'Marketing & ads',shopx:'Shop expenses',other:'Other (transport, cleaning, misc.)'};
+const CATS={man:'Manpower',rent:'Rent',elec:'Electricity',wifi:'Wifi & mobile',mkt:'Marketing & ads',shopx:'Shop expenses',other:'Other (transport, cleaning, misc.)'};
 let COSTS=[];
 const ZERO=ym=>({ym,sales:0,net:0,cogs:0,mat:0,evCost:0,stall:0,mkt:0,man:0,rent:0,elec:0,wifi:0,shopx:0,other:0,capex:0,inv:0,ch:{},bd:{sales:0,net:0,cogs:0,cashIn:0,recv:0,vendor:0,vendorPaid:0},cashIn:0,cashOut:0,recv:0,pay:0,ownerIn:0,estimated:{}});
 function withManual(m){const x={...m,ch:{...m.ch},estimated:m.estimated||{},manual:{}};
@@ -124,7 +124,7 @@ pl(ms){return `<div class="card"><h2>Profit & Loss</h2><p class="note">Revenue =
  {l:'Revenue',f:m=>m.net,b:1},
  {sec:'Direct costs'},{l:'Event costs (vendors, partners & expenses)',f:m=>m.evCost},
  {l:'Total direct costs',f:m=>m.direct,b:1},{l:'Gross margin',f:m=>m.gm,b:1},{l:'GM %',f:m=>m.gm/m.net,pct:1,tot:x=>sum(x,'gm')/sum(x,'net')},
- {sec:'Operating expenses'},{l:'Marketing & ads',f:m=>m.mkt,e:m=>m.manual.mkt},{l:'Manpower',f:m=>m.man,e:m=>m.manual.man},{l:'Rent',f:m=>m.rent,e:m=>m.estimated.rent||m.manual.rent},{l:'Electricity',f:m=>m.elec,e:m=>m.estimated.elec||m.manual.elec},{l:'Wifi',f:m=>m.wifi,e:m=>m.estimated.wifi||m.manual.wifi},{l:'Shop expenses',f:m=>m.shopx,e:m=>m.manual.shopx},{l:'Other (transport, cleaning, misc.)',f:m=>m.other},
+ {sec:'Operating expenses'},{l:'Marketing & ads',f:m=>m.mkt,e:m=>m.manual.mkt},{l:'Manpower',f:m=>m.man,e:m=>m.manual.man},{l:'Rent',f:m=>m.rent,e:m=>m.estimated.rent||m.manual.rent},{l:'Electricity',f:m=>m.elec,e:m=>m.estimated.elec||m.manual.elec},{l:'Wifi & mobile',f:m=>m.wifi,e:m=>m.estimated.wifi||m.manual.wifi},{l:'Shop expenses',f:m=>m.shopx,e:m=>m.manual.shopx},{l:'Other (transport, cleaning, misc.)',f:m=>m.other},
  {l:'EBITDA',f:m=>m.ebitda,b:1},{l:'EBITDA %',f:m=>m.ebitda/m.net,pct:1,tot:x=>sum(x,'ebitda')/sum(x,'net')}])+'</div>'},
 ebitda(ms){return `<div class="card"><h2>Monthly EBITDA</h2>${bars(ms,m=>m.ebitda,v=>Math.round(v/1000)+'k')}</div><div class="card"><h2>EBITDA bridge</h2>`+table(ms,[
  {l:'Gross margin',f:m=>m.gm},{l:'– Marketing',f:m=>-m.mkt},{l:'– Fixed costs',f:m=>-m.fixed},{l:'EBITDA',f:m=>m.ebitda,b:1},{l:'EBITDA %',f:m=>m.ebitda/m.net,pct:1,tot:x=>sum(x,'ebitda')/sum(x,'net')},
