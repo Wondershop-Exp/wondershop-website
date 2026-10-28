@@ -961,11 +961,18 @@ SORTABLE_COLUMNS = {"status", "created", "event_date", "modified"}
 
 
 @router.get("/bookings")
-async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str = "created", dir: str = "desc", x_admin_password: Optional[str] = Header(None)):
+async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str = "created", dir: str = "desc",
+                        status: Optional[str] = None, limit: int = 200, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
     is_booking = kind == "booking"
     where = ["is_booking = :is_booking"]
     values = {"is_booking": is_booking}
+    # Calendar (2026-10-28, per Shruti): only the warm statuses, and all of
+    # them — the 200-row cap was filled by far-future Re-engage leads.
+    if status:
+        where.append("status = ANY(:statuses)")
+        values["statuses"] = [x.strip() for x in status.split(",") if x.strip()]
+    limit = max(1, min(int(limit or 200), 5000))
     # 2026-10-12 — WSR Repeat (past store customer) leads appear only from
     # their show_from date, and never the ones hidden from the team — same
     # rule as the Sales Leads list (routers/sales_leads.py).
@@ -1073,7 +1080,7 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
     with_val = [r for r in enriched if _sort_val(r) is not None]
     without_val = [r for r in enriched if _sort_val(r) is None]
     with_val.sort(key=_sort_val, reverse=sort_desc)
-    ordered = (with_val + without_val)[:200]
+    ordered = (with_val + without_val)[:limit]
 
     out = [{
         "lead_id": row["lead_id"],

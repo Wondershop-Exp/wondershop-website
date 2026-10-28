@@ -1202,7 +1202,7 @@ const CAL_MONTHS = ['January','February','March','April','May','June','July','Au
 const CAL_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const CAL_WEEK_STARTS_ON = 1;   // 1 = Monday, 0 = Sunday
 const CAL_MAX_CHIPS = 3;        // chips per day cell before "+N more"
-const CAL_FETCH_LIMIT = 200;    // the list endpoint's per-kind row cap
+const CAL_FETCH_LIMIT = 5000;   // the list endpoint's per-kind row cap (calendar asks for up to 5000)
 let CAL_Y = new Date().getFullYear();
 let CAL_M = new Date().getMonth();
 let CAL_LEADS = [], CAL_BOOKINGS = [];
@@ -1222,8 +1222,8 @@ async function loadCalendar(){
   renderCalendar();
   try{
     const res = await Promise.all([
-      apiCall('/api/admin/bookings?kind=lead&sort=event_date&dir=desc'),
-      apiCall('/api/admin/bookings?kind=booking&sort=event_date&dir=desc'),
+      apiCall('/api/admin/bookings?kind=lead&sort=event_date&dir=desc&limit=5000&status='+encodeURIComponent(CAL_WARM_STATUSES.join(','))),
+      apiCall('/api/admin/bookings?kind=booking&sort=event_date&dir=desc&limit=5000'),
     ]);
     CAL_LEADS = res[0].rows || [];
     CAL_BOOKINGS = res[1].rows || [];
