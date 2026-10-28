@@ -142,32 +142,17 @@ async def put_snapshot(body: SnapshotIn, x_admin_password: Optional[str] = Heade
 
 @router.get("/finance/bookings")
 async def finance_bookings(x_admin_password: Optional[str] = Header(None)):
-    """Birthday bookings from the admin system (Oct 2026 on, not cancelled) with
-    their revenue and every cost logged against them in Partners & Expenses
-    (event_team). Feeds the finance dashboard's event GM% and P&L."""
+    """Birthday bookings (Oct 2026 on, not cancelled) with the SAME figures the
+    booking page shows (2026-10-28, per Shruti - the stored client_budget was
+    stale): Grand Total is priced live by routers.admin.get_booking_detail,
+    client paid = Advance Paid + Event Payment Confirmed, and costs = every
+    row of that booking's Partners & Expenses (event_team)."""
     _admin_only(x_admin_password)
-    rows = await database.fetch_all(
-        """
-        SELECT l.lead_id, l.parent_name, l.child_names, l.event_date,
-               COALESCE(l.client_budget, l.order_grand_total, 0) AS revenue,
-               amt.customer_choice_override AS paid_amount,
-               mode.customer_choice_override AS paid_mode,
-               COALESCE(t.cost, 0) AS cost, COALESCE(t.cost_unpaid, 0) AS cost_unpaid, COALESCE(t.n, 0) AS cost_lines
-        FROM leads l
-        LEFT JOIN booking_field_overrides amt
-          ON amt.lead_id = l.lead_id AND amt.field_key = 'event_payment_confirmed_amount'
-        LEFT JOIN booking_field_overrides mode
-          ON mode.lead_id = l.lead_id AND mode.field_key = 'event_payment_confirmed_mode'
-        LEFT JOIN (
-            SELECT lead_id, SUM(COALESCE(amount, 0)) AS cost,
-                   SUM(CASE WHEN COALESCE(paid_via, '') IN ('', 'Pending') AND NOT paid THEN COALESCE(amount, 0) ELSE 0 END) AS cost_unpaid,
-                   COUNT(*) AS n
-            FROM event_team GROUP BY lead_id
-        ) t ON t.lead_id = l.lead_id
-        WHERE l.is_booking = TRUE AND l.status != 'Cancelled'
-          AND l.event_date >= :start
-        ORDER BY l.event_date DESC
-        """,
+    from routers.admin import get_booking_detail
+    from routers.event_team import team_rows
+    ids = await database.fetch_all(
+        "SELECT lead_id FROM leads WHERE is_booking = TRUE AND status != 'Cancelled' AND event_date >= :start "
+        "ORDER BY event_date DESC",
         values={"start": date(int(START_YM[:4]), int(START_YM[4:]), 1)})
 
     def f(v):
@@ -175,13 +160,33 @@ async def finance_bookings(x_admin_password: Optional[str] = Header(None)):
             return float(str(v).replace(",", "").replace("₹", "").strip()) if v not in (None, "") else 0.0
         except ValueError:
             return 0.0
-    return [{
-        "lead_id": r["lead_id"], "parent": r["parent_name"], "child": r["child_names"],
-        "date": r["event_date"].isoformat() if r["event_date"] else None,
-        "ym": r["event_date"].strftime("%Y%m") if r["event_date"] else None,
-        "revenue": float(r["revenue"] or 0), "paid_amount": f(r["paid_amount"]), "paid_mode": r["paid_mode"],
-        "cost": float(r["cost"] or 0), "cost_unpaid": float(r["cost_unpaid"] or 0), "cost_lines": r["cost_lines"],
-    } for r in rows]
+    out = []
+    for r in ids:
+        lid = r["lead_id"]
+        d = await get_booking_detail(lid, x_admin_password)
+        fl = {x["field_key"]: x for sec in (d.get("sections") or []) for x in (sec.get("fields") or [])} \
+            if isinstance(d.get("sections"), list) else \
+            {x["field_key"]: x for xs in (d.get("sections") or {}).values() for x in xs}
+
+        def val(k):
+            x = fl.get(k) or {}
+            return None if x.get("removed") else x.get("customer_choice")
+        lead = await database.fetch_one("SELECT parent_name, child_names, event_date FROM leads WHERE lead_id = :id", values={"id": lid})
+        rows = await team_rows(lid)
+        cost = sum(x["amount"] or 0 for x in rows)
+        unpaid = sum(x["amount"] or 0 for x in rows if (x.get("paid_via") or "Pending") == "Pending" and not x.get("paid"))
+        advance, final = f(val("bill_advance")), f(val("event_payment_confirmed_amount"))
+        ev = lead["event_date"]
+        out.append({
+            "lead_id": lid, "parent": lead["parent_name"], "child": lead["child_names"],
+            "date": ev.isoformat() if ev else None, "ym": ev.strftime("%Y%m") if ev else None,
+            "revenue": f(val("bill_grand_total")),
+            "advance": advance, "final_payment": final, "paid_amount": advance + final,
+            "paid_mode": val("event_payment_confirmed_mode"),
+            "cost": round(cost, 2), "cost_unpaid": round(unpaid, 2), "cost_lines": len(rows),
+            "costs": [{"partner": x["partner"], "category": x["category"], "amount": x["amount"], "paid_via": x["paid_via"]} for x in rows],
+        })
+    return out
 
 
 class PaidIn(BaseModel):
