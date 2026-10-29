@@ -54,12 +54,29 @@ SAFE_MIGRATIONS = [
     "074_dj_profile.sql",
     "075_status_column_width.sql",
     "077_vendor_notes.sql",
+    "078_sales_lead_names.sql",
 ]
 
 
 def _statements(sql: str):
+    """Split on ';' outside $$ ... $$ blocks (function bodies, 2026-10-29)."""
     sql = re.sub(r"--[^\n]*", "", sql)
-    return [s.strip() for s in sql.split(";") if s.strip()]
+    out, buf, in_dollar = [], [], False
+    for part in re.split(r"(\$\$|;)", sql):
+        if part == "$$":
+            in_dollar = not in_dollar
+            buf.append(part)
+        elif part == ";" and not in_dollar:
+            st = "".join(buf).strip()
+            if st:
+                out.append(st)
+            buf = []
+        else:
+            buf.append(part)
+    st = "".join(buf).strip()
+    if st:
+        out.append(st)
+    return out
 
 
 async def ensure_schema() -> None:

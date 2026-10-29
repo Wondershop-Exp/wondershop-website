@@ -545,7 +545,8 @@ async def _sales_rep_performance_in_month(month_start: datetime, month_end: date
     rows = await database.fetch_all(
         """
         SELECT
-          COALESCE(NULLIF(TRIM(p.created_by), ''), '(unknown)') AS rep,
+          -- standard name (migration 078): Sales Lead, else who registered it
+          COALESCE(ws_rep(l.event_sales_lead), ws_rep(p.created_by), 'Unassigned') AS rep,
           COUNT(*) AS leads,
           COUNT(*) FILTER (WHERE l.is_booking = TRUE AND l.status != 'Cancelled') AS bookings,
           COALESCE(SUM(l.client_budget) FILTER (WHERE l.is_booking = TRUE AND l.status != 'Cancelled'), 0) AS confirmed_revenue,
