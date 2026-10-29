@@ -130,7 +130,8 @@
       var el = document.getElementById('bmMap'); if(!el) return;
       if(MAP){ MAP.remove(); MAP = null; }
       MAP = L.map(el, {scrollWheelZoom:false});
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {maxZoom:18, attribution:'&copy; OpenStreetMap contributors &copy; CARTO'}).addTo(MAP);
+      // OpenStreetMap's own free tiles (CARTO now asks for a key on live sites, 2026-10-29).
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'&copy; OpenStreetMap contributors'}).addTo(MAP);
       if(VIEW==='Pune') MAP.setView([18.5204,73.8567], 11); else MAP.setView([19.10,72.93], 10);
       var max = Math.max.apply(null, rows.map(function(x){ return x.n; }).concat([1]));
       rows.forEach(function(x){
