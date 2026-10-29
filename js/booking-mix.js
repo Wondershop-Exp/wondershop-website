@@ -135,7 +135,7 @@
       var max = Math.max.apply(null, rows.map(function(x){ return x.n; }).concat([1]));
       rows.forEach(function(x){
         L.circleMarker([x.l.lat, x.l.lng], {radius: 7 + 16*Math.sqrt(x.n/max), color:'#B4236B', weight:1.5, fillColor:'#D6457F', fillOpacity:.55})
-          .bindTooltip('<b>'+e(x.l.name)+'</b>: '+x.n+' booking'+(x.n===1?'':'s'))
+          .bindTooltip(e(x.l.name)+' · '+x.n, {permanent:true, direction:'right', offset:[8,0], className:'bm-tip'})   // always-visible labels (2026-10-29)
           .bindPopup('<b>'+e(x.l.name)+'</b> · '+x.n+'<br>'+x.who.map(function(r){ return '#'+r.id+' '+e(r.name||''); }).join('<br>'))
           .addTo(MAP);
       });
