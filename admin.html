@@ -193,6 +193,30 @@ table.list th.sortable:hover{color:var(--bk)}
 .dash-kpi-delta.down{color:var(--pk)}
 .dash-card{background:#fff;border:1px solid var(--li2);border-radius:var(--r);padding:18px 20px}
 .dash-card-title{font-size:13px;font-weight:700;color:var(--bk);margin-bottom:12px}
+/* Booking mix (2026-10-29) */
+.bm-filters{display:flex;flex-wrap:wrap;gap:10px}
+.bm-filters label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:var(--gy)}
+.bm-filters select{min-width:140px;padding:7px 9px;border:1px solid var(--li2);border-radius:8px;font:inherit;font-size:13px;text-transform:none;letter-spacing:0;color:var(--bk);background:#fff}
+.bm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}
+.bm-h{font-size:12.5px;font-weight:700;color:var(--bk);margin-bottom:8px}
+.bm-h small{font-weight:400;color:var(--gy);margin-left:6px}
+.bm-bar{display:grid;grid-template-columns:100px 1fr 70px;align-items:center;gap:8px;font-size:12.5px;margin-bottom:6px}
+.bm-t{background:#F3EEFB;border-radius:6px;height:14px;overflow:hidden}
+.bm-t span{display:block;height:14px;border-radius:6px}
+.bm-v{font-weight:700;text-align:right}.bm-v small{font-weight:400;color:var(--gy)}
+.bm-maphead{margin-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.bm-view button{border:1px solid var(--li2);background:#fff;padding:5px 12px;font:inherit;font-size:12px;cursor:pointer}
+.bm-view button:first-child{border-radius:8px 0 0 8px}.bm-view button:last-child{border-radius:0 8px 8px 0;border-left:0}
+.bm-view button.on{background:#D6457F;border-color:#D6457F;color:#fff;font-weight:700}
+.bm-mapwrap{display:grid;grid-template-columns:1fr 240px;gap:14px}
+#bmMap{height:420px;border-radius:10px;border:1px solid var(--li2);z-index:0}
+.bm-loclist{max-height:420px;overflow:auto;font-size:12.5px}
+.bm-loc{display:flex;justify-content:space-between;padding:6px 8px;border-radius:6px;cursor:pointer}
+.bm-loc:hover{background:#F3EEFB}
+.bm-off{margin-top:10px;padding-top:8px;border-top:1px solid var(--li2);color:var(--gy)}
+.bm-off b{color:var(--bk);display:block}.bm-off small{display:block;margin-bottom:4px}
+.bm-off div{margin-top:3px}
+@media(max-width:720px){.bm-mapwrap{grid-template-columns:1fr}#bmMap{height:320px}}
 
 /* Monthly overview (2026-09-11, per Shruti — "we would look at monthly
    revenue... add some graphics around target achieved", then the fuller
@@ -878,6 +902,7 @@ body.role-sales .admin-only{display:none!important}
         <div id="dashMonthlyBody"><div class="empty">Loading…</div></div>
       </div>
 
+      <div class="dash-card" id="bookingMixCard" style="margin-top:16px"><div class="empty">Loading…</div></div>
       <div class="dash-card" id="ga4TrafficCard" style="margin-top:16px"><div class="empty">Loading…</div></div>
       <div class="dash-card" id="ga4CoreCard" style="margin-top:16px"><div class="empty">Loading…</div></div>
       <div class="dash-card" id="ga4BuilderCard" style="margin-top:16px"><div class="empty">Loading…</div></div>
@@ -951,6 +976,7 @@ body.role-sales .admin-only{display:none!important}
 
 <script src="js/volunteer-data.js"></script>
 <script src="js/locality.js"></script>
+<script src="js/booking-mix.js"></script>
 <script>
 const API = 'https://wondershop-website-production.up.railway.app';
 let CURRENT_LEAD_ID = null;
@@ -1178,7 +1204,7 @@ function switchTab(tab){
   document.getElementById('searchQ').placeholder = tab==='vendor'
     ? 'Search partners by name, contact, phone, email...'
     : 'Search by name, phone, email, or booking ID...';
-  if(tab==='dash'){ loadDashMonthly(); loadGa4Funnels(); }
+  if(tab==='dash'){ loadDashMonthly(); loadGa4Funnels(); if(window.wsBM) wsBM.load(); }
   if(tab==='cal'){ loadCalendar(); }
 }
 

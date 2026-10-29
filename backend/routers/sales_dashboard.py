@@ -631,3 +631,56 @@ async def set_target(body: TargetIn, x_admin_password: Optional[str] = Header(No
                revenue_target = EXCLUDED.revenue_target, updated_by = EXCLUDED.updated_by, updated_at = NOW()""",
         values={"r": _rep(body.rep), "ym": body.month.replace("-", ""), "b": body.bookings, "v": body.revenue, "by": body.changed_by})
     return {"success": True}
+
+
+# ─── Booking mix: gender / age / locality (2026-10-29, per Shruti) ─────────
+# One row per confirmed (not cancelled) booking for the Analytics dashboard's
+# "Booking mix" card; the page filters (booking month, lead month, sales
+# lead) and draws the charts / Mumbai-Pune map itself.
+def _genders(v) -> List[str]:
+    out = []
+    for g in re.split(r"[,/;&]| and ", str(v or "")):
+        t = g.strip().lower()
+        if not t:
+            continue
+        if t.startswith(("girl", "female", "f")) and t not in ("both",):
+            out.append("Girl")
+        elif t.startswith(("boy", "male", "m")):
+            out.append("Boy")
+        else:
+            out.append("Not specified")
+    return out
+
+
+def _ages(v) -> List[int]:
+    out = []
+    for a in re.split(r"[,/;&]| and ", str(v or "")):
+        m = re.search(r"\d{1,2}", a)
+        if m and 0 < int(m.group()) <= 18:
+            out.append(int(m.group()))
+    return out
+
+
+@router.get("/dashboard/booking-mix")
+async def booking_mix(x_admin_password: Optional[str] = Header(None)):
+    if _require_admin(x_admin_password) != "admin":
+        raise HTTPException(status_code=403, detail="Admin only.")
+    rows = await database.fetch_all(
+        """SELECT lead_id, parent_name, child_genders, child_ages, venue, city, pincode, event_date,
+                  converted_on, created_on, lead_generated_at, event_sales_lead
+           FROM leads WHERE is_booking AND COALESCE(status, '') <> 'Cancelled'""")
+    out = []
+    for r in rows:
+        booked = _ist_date(r["converted_on"] or r["created_on"])
+        lead = _ist_date(r["lead_generated_at"] or r["created_on"])
+        out.append({
+            "id": r["lead_id"], "name": r["parent_name"],
+            "booking_month": booked.strftime("%Y-%m") if booked else None,
+            "lead_month": lead.strftime("%Y-%m") if lead else None,
+            "event_date": str(r["event_date"]) if r["event_date"] else None,
+            "sales_lead": _rep(r["event_sales_lead"]),
+            "genders": _genders(r["child_genders"]) or ["Not specified"],
+            "ages": _ages(r["child_ages"]),
+            "venue": r["venue"], "city": r["city"], "pincode": r["pincode"],
+        })
+    return {"rows": out}
