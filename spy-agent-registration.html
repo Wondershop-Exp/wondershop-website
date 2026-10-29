@@ -521,8 +521,8 @@
       </div>
 
       <div class="field">
-        <label for="agentDob">Child&rsquo;s Date of Birth <span class="req">*</span></label>
-        <input type="date" id="agentDob" name="agent_dob" required>
+        <label for="agentDob">Child&rsquo;s Date of Birth <span class="opt">(optional)</span></label>
+        <input type="date" id="agentDob" name="agent_dob">
       </div>
 
       <div class="field">
@@ -552,8 +552,8 @@
       </div>
 
       <div class="field">
-        <label for="parentName">Parent Name <span class="req">*</span></label>
-        <input type="text" id="parentName" name="parent_name" placeholder="Your name" required>
+        <label for="parentName">Parent Name <span class="opt">(optional)</span></label>
+        <input type="text" id="parentName" name="parent_name" placeholder="Your name">
       </div>
 
       <div class="field">
@@ -651,9 +651,12 @@
         // style line (real data now, from age_ordinal/child_pronoun —
         // see spy_registration.py's _ordinal()/_pronoun()); fall back to
         // the generic phrasing when the child's age isn't on file.
+        // 2026-10-29 — her/his from the booking's gender (or the admin's
+        // Boy/Girl override), also when the age isn't on file.
+        var pron = d.child_pronoun || 'their';
         document.getElementById('questLineOut').textContent = d.age_ordinal
-          ? ('On ' + (d.child_pronoun || 'their').charAt(0).toUpperCase() + (d.child_pronoun || 'their').slice(1) + ' ' + d.age_ordinal + ' Birthday Quest')
-          : 'on their birthday quest';
+          ? ('On ' + pron.charAt(0).toUpperCase() + pron.slice(1) + ' ' + d.age_ordinal + ' Birthday Quest')
+          : ('on ' + pron + ' birthday quest');
         document.getElementById('dateLineOut').textContent = d.event_date_display ? ('Date: ' + d.event_date_display) : '';
         // 2026-09-23, per Shruti — "party time - replace with Drop off
         // time / cannot see pickup time": this line now shows the real
@@ -931,7 +934,6 @@
     var parentPhone = document.getElementById('parentPhone').value.trim();
 
     if (!agentName) { showMsg('Please enter your child\'s name.', 'error'); document.getElementById('agentName').focus(); return; }
-    if (!agentDob) { showMsg('Please enter your child\'s date of birth.', 'error'); document.getElementById('agentDob').focus(); return; }
     var tshirtField = document.getElementById('tshirtField');
     var tshirtSize = document.getElementById('tshirtSize').value;
     if (tshirtField.style.display !== 'none' && !tshirtSize) {
@@ -939,7 +941,6 @@
       document.getElementById('tshirtSize').focus();
       return;
     }
-    if (!parentName) { showMsg('Please enter the Parent Name.', 'error'); document.getElementById('parentName').focus(); return; }
     if (parentPhone && !/^\d{10}$/.test(parentPhone.replace(/\D/g,''))) {
       showMsg('Parent Phone Number should be 10 digits.', 'error');
       document.getElementById('parentPhone').focus();

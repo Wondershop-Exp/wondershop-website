@@ -2250,8 +2250,27 @@ function renderSpyRegistrationBody(leadId, status){
     : '';
   const uploadLabel = !status.exists ? 'Upload Invite &amp; Generate Link' : (status.has_invite ? 'Replace Invite' : 'Upload Invite');
   const helpText = !status.exists
-    ? '<div style="font-size:12px;color:var(--gy);margin-top:8px">Upload the party&rsquo;s invite image to generate its registration link \u2014 the page will show that invite automatically.</div>'
+    ? '<div style="font-size:12px;color:var(--gy);margin-top:8px">Upload the party&rsquo;s invite image to generate its registration link \u2014 the page will show that invite automatically. No invite for this event? Use <b>Generate Link without Invite</b> \u2014 the page shows its own mission card instead.</div>'
+    : (!status.has_invite ? '<div style="font-size:12px;color:var(--gy);margin-top:8px">No invite uploaded \u2014 the page shows its own mission card. You can still upload one later; the link stays the same.</div>' : '');
+  const noInviteBtn = !status.exists
+    ? '<button type="button" class="sr-btn ghost" onclick="generateSpyLinkNoInvite('+leadId+')">Generate Link without Invite</button>'
     : '';
+  // 2026-10-29, per Shruti \u2014 "change their to her/him based on the gender".
+  const bkG = status.booking_gender || '', ovG = status.child_gender_override || '';
+  const pron = status.child_pronoun || 'their';
+  const genderHtml = '<div class="sr-pickup-drop" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">'
+    +   '<div style="font-size:12px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Birthday Child</div>'
+    +   '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">'
+    +     '<label style="font-size:12.5px;color:var(--gy);display:flex;align-items:center;gap:6px">Gender'
+    +       '<select id="srGender" style="padding:7px 9px;border:1px solid var(--li2);border-radius:7px;font-size:13px">'
+    +         '<option value=""'+(ovG?'':' selected')+'>As per booking'+(bkG?' ('+bkG+')':' (not set)')+'</option>'
+    +         '<option value="Boy"'+(ovG==='Boy'?' selected':'')+'>Boy</option>'
+    +         '<option value="Girl"'+(ovG==='Girl'?' selected':'')+'>Girl</option>'
+    +       '</select></label>'
+    +     '<button type="button" class="sr-btn primary" onclick="saveSpyGender('+leadId+')">Save</button>'
+    +   '</div>'
+    +   '<div style="font-size:11.5px;color:'+(pron==='their'?'var(--pk)':'var(--gy)')+';margin-top:8px">Page reads: &ldquo;On '+pron.charAt(0).toUpperCase()+pron.slice(1)+' \u2026 Birthday Quest&rdquo;'+(pron==='their'?' \u2014 no gender on file, pick Boy or Girl above.':'')+'</div>'
+    + '</div>';
   const dropOffVal = status.drop_off_time || '';
   // 2026-09-25, per Shruti — "prefill if the data is present in the sales
   // panel. same goes for website bookings. if the data was input earlier
@@ -2288,9 +2307,11 @@ function renderSpyRegistrationBody(leadId, status){
     + '<div class="srb">'
     +   linkHtml
     +   '<label class="sr-btn primary" style="display:inline-block;cursor:pointer">'+uploadLabel+'<input type="file" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="uploadSpyInvite('+leadId+',this)"></label>'
+    +   noInviteBtn
     +   (status.exists && status.has_invite ? '<span class="sr-status">\u2713 Invite uploaded'+(status.invite_image_name ? ' ('+esc(status.invite_image_name)+')' : '')+'</span>' : '')
     + '</div>'
     + helpText
+    + genderHtml
     + '<div class="sr-pickup-drop" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">'
     +   '<div style="font-size:12px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Drop-off / Pick-up Time</div>'
     +   '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">'
@@ -2421,6 +2442,33 @@ function copySpyRegLink(){
   (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
     .then(()=>showToast('Link copied'))
     .catch(()=>showToast('Could not copy \u2014 long-press to select the link text'));
+}
+
+async function _spyAdminPost(leadId, path, body){
+  const opts = {method:'POST', headers:{'X-Admin-Password': getPw()}};
+  if(body){ opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  const res = await fetch(API+'/api/spy-registration/admin/'+leadId+path, opts);
+  if(res.status===401) throw new Error('Session expired \u2014 please log in again.');
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.detail || ('Failed ('+res.status+')'));
+  return data;
+}
+async function generateSpyLinkNoInvite(leadId){
+  try{
+    await _spyAdminPost(leadId, '/generate');
+    showToast('\u2713 Link generated \u2014 no invite needed');
+    if(CURRENT_DETAIL) renderInviteBlock(CURRENT_DETAIL);
+    renderSpyRegistrationBody(leadId, await apiCall('/api/spy-registration/admin/'+leadId));
+  }catch(e){ showToast('Could not generate link: '+e.message); }
+}
+async function saveSpyGender(leadId){
+  const el = document.getElementById('srGender'); if(!el) return;
+  try{
+    await _spyAdminPost(leadId, '/gender', {gender: el.value});
+    showToast('\u2713 Saved');
+    if(CURRENT_DETAIL) renderInviteBlock(CURRENT_DETAIL);
+    renderSpyRegistrationBody(leadId, await apiCall('/api/spy-registration/admin/'+leadId));
+  }catch(e){ showToast('Could not save: '+e.message); }
 }
 
 async function uploadSpyInvite(leadId, inputEl){

@@ -55,6 +55,7 @@ SAFE_MIGRATIONS = [
     "075_status_column_width.sql",
     "077_vendor_notes.sql",
     "078_sales_lead_names.sql",
+    "079_spy_reg_gender_override.sql",
 ]
 
 

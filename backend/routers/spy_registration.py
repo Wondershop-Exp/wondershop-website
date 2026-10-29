@@ -150,13 +150,47 @@ def _ordinal(n_str: Optional[str]) -> str:
     return f"{n}{suffix}"
 
 
+_BOY_WORDS = {"boy", "b", "male", "m", "son", "his", "him", "he"}
+_GIRL_WORDS = {"girl", "g", "female", "f", "daughter", "her", "she"}
+
+
+def _gender(genders_str: Optional[str]) -> str:
+    """'Boy' / 'Girl' / '' from whatever form the booking stores gender in.
+    2026-10-29, per Shruti ("change their to her/him based on the gender")
+    -- builder.html saves "Boy"/"Girl" but Slack leads save "Male"/"Female"
+    (slack_leads.py) and old imports use lowercase, so anything other than
+    an exact "boy"/"girl" used to fall through to "their"."""
+    first = (genders_str or "").split(",")[0].strip().lower().rstrip(".")
+    if first in _BOY_WORDS:
+        return "Boy"
+    if first in _GIRL_WORDS:
+        return "Girl"
+    return ""
+
+
 def _pronoun(genders_str: Optional[str]) -> str:
-    first = (genders_str or "").split(",")[0].strip().lower()
-    if first == "boy":
-        return "his"
-    if first == "girl":
-        return "her"
-    return "their"
+    g = _gender(genders_str)
+    return "his" if g == "Boy" else "her" if g == "Girl" else "their"
+
+
+async def _ensure_page(lead_id: int) -> str:
+    """Return this booking's share_token, creating its registration page row
+    (with no invite) the first time. 404 if the booking doesn't exist."""
+    existing = await database.fetch_one(
+        "SELECT share_token FROM spy_registration_pages WHERE lead_id = :lead_id",
+        values={"lead_id": lead_id},
+    )
+    if existing:
+        return existing["share_token"]
+    lead = await database.fetch_one("SELECT lead_id FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    if not lead:
+        raise HTTPException(status_code=404, detail="No booking found with that lead ID.")
+    token = secrets.token_urlsafe(18)
+    await database.execute(
+        "INSERT INTO spy_registration_pages (lead_id, share_token) VALUES (:lead_id, :token)",
+        values={"lead_id": lead_id, "token": token},
+    )
+    return token
 
 
 # ─── ADMIN: upload/replace the invite, check current status ───────────────
@@ -207,6 +241,17 @@ async def _suggested_pickup_time(lead_id: int):
     return None, None
 
 
+async def _gender_info(lead_id: int, override: Optional[str]) -> dict:
+    lead = await database.fetch_one("SELECT child_genders FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    booking_gender = _gender(lead["child_genders"]) if lead else ""
+    effective = _gender(override) or booking_gender
+    return {
+        "booking_gender": booking_gender,
+        "child_gender_override": _gender(override),
+        "child_pronoun": "his" if effective == "Boy" else "her" if effective == "Girl" else "their",
+    }
+
+
 @router.get("/admin/{lead_id}")
 async def admin_get_status(lead_id: int, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
@@ -217,7 +262,7 @@ async def admin_get_status(lead_id: int, x_admin_password: Optional[str] = Heade
                   pickup_drop_source, pickup_drop_updated_at,
                   tshirt_size_enabled, tshirt_size_options,
                   (tshirt_chart_image IS NOT NULL) AS has_tshirt_chart,
-                  tshirt_chart_image_name
+                  tshirt_chart_image_name, child_gender_override
            FROM spy_registration_pages WHERE lead_id = :lead_id""",
         values={"lead_id": lead_id},
     )
@@ -227,6 +272,7 @@ async def admin_get_status(lead_id: int, x_admin_password: Optional[str] = Heade
             "exists": False, "show_pickup_drop": True, "tshirt_size_enabled": False,
             "pick_up_time_suggested": suggested_val,
             "pick_up_time_suggested_source": suggested_src,
+            **(await _gender_info(lead_id, None)),
         }
     suggested_val, suggested_src = (None, None)
     if not row["pick_up_time"]:
@@ -252,7 +298,39 @@ async def admin_get_status(lead_id: int, x_admin_password: Optional[str] = Heade
         "tshirt_size_options": row["tshirt_size_options"] or "",
         "has_tshirt_chart": bool(row["has_tshirt_chart"]),
         "tshirt_chart_image_name": row["tshirt_chart_image_name"],
+        **(await _gender_info(lead_id, row["child_gender_override"])),
     }
+
+
+@router.post("/admin/{lead_id}/generate")
+async def admin_generate_link(lead_id: int, x_admin_password: Optional[str] = Header(None)):
+    """2026-10-29, per Shruti -- "for some events, we might not have an
+    invite, so let us generate a link without invite upload as well. this
+    is an admin feature." Creates the page with no invite; the public page
+    already falls back to its coded invite card. An invite can still be
+    uploaded later -- the link stays the same."""
+    _require_admin(x_admin_password)
+    token = await _ensure_page(lead_id)
+    return {"success": True, "share_token": token, "share_url": f"/spy-agent-registration.html?t={token}"}
+
+
+class GenderUpdate(BaseModel):
+    gender: Optional[str] = None   # "Boy" / "Girl" / "" (= use the booking's gender)
+
+
+@router.post("/admin/{lead_id}/gender")
+async def admin_set_gender(lead_id: int, body: GenderUpdate, x_admin_password: Optional[str] = Header(None)):
+    """Boy/Girl for the "On Her/His 8th Birthday Quest" line, for bookings
+    with no gender on file (or a wrong one). Blank clears the override."""
+    _require_admin(x_admin_password)
+    token = await _ensure_page(lead_id)
+    g = _gender(body.gender) or None
+    await database.execute(
+        "UPDATE spy_registration_pages SET child_gender_override = :g WHERE lead_id = :lead_id",
+        values={"g": g, "lead_id": lead_id},
+    )
+    return {"success": True, "share_token": token, "share_url": f"/spy-agent-registration.html?t={token}",
+            **(await _gender_info(lead_id, g))}
 
 
 @router.post("/admin/{lead_id}/invite")
@@ -478,6 +556,7 @@ async def get_party_info(token: str):
                   srp.drop_off_time, srp.pick_up_time, srp.show_pickup_drop,
                   srp.tshirt_size_enabled, srp.tshirt_size_options,
                   (srp.tshirt_chart_image IS NOT NULL) AS has_tshirt_chart,
+                  srp.child_gender_override,
                   l.child_names, l.child_ages, l.child_genders,
                   l.event_date, l.event_time, l.venue,
                   l.venue_contact_name, l.venue_contact_phone
@@ -508,7 +587,8 @@ async def get_party_info(token: str):
         # when the age isn't on file — the frontend falls back to a
         # generic "on their birthday quest" line in that case.
         "age_ordinal": _ordinal(row.get("child_ages")),
-        "child_pronoun": _pronoun(row.get("child_genders")),
+        # Admin's Boy/Girl override (spy panel) wins over the booking's gender.
+        "child_pronoun": _pronoun(row.get("child_gender_override") or row.get("child_genders")),
         "event_date_display": _format_date(row.get("event_date")),
         "event_time_display": _format_time(row.get("event_time")),
         "venue": _clean(row.get("venue")),
@@ -570,8 +650,8 @@ async def get_tshirt_chart_image(token: str):
 async def register_spy_agent(
     token: str = Form(...),
     agent_name: str = Form(...),
-    agent_dob: str = Form(...),
-    parent_name: str = Form(...),
+    agent_dob: str = Form(""),   # optional since 2026-10-29, per Shruti
+    parent_name: str = Form(""),   # optional since 2026-10-29, per Shruti
     parent_phone: str = Form(""),
     # 2026-09-23, per Shruti — "add a checkbox asking parents to receive
     # information for birthdays, latest theme launches and discounts."
@@ -601,10 +681,6 @@ async def register_spy_agent(
         raise HTTPException(status_code=400, detail="Missing registration link reference — please use the link exactly as shared.")
     if not agent_name:
         raise HTTPException(status_code=400, detail="Agent Name is required.")
-    if not agent_dob:
-        raise HTTPException(status_code=400, detail="Agent DOB is required.")
-    if not parent_name:
-        raise HTTPException(status_code=400, detail="Parent Name is required.")
 
     row = await database.fetch_one(
         """SELECT l.child_names, l.event_date, srp.tshirt_size_enabled FROM spy_registration_pages srp
