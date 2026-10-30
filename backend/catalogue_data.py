@@ -126,6 +126,9 @@ THEMES = [
     {"id": "football", "n": "Football Party", "b": "150 (Green, Black, White)",
      "tierPhotos": {"Classic": "Decor/decor-football-arch.jpg", "Premium": "Decor/decor-football-1panel.jpg",
                     "Luxury": "Decor/decor-football-2panel.jpg", "Signature": "Decor/decor-football-3panel.jpg"}},
+    {"id": "footballturf", "variantOf": "football", "n": "Football – Turf Party", "b": "150 (Green, Black, White)",   # 2026-10-30, per Shruti (turf package decor)
+     "tierPhotos": {"Classic": "Decor/turf-decor-classic.jpg", "Premium": "Decor/turf-decor-premium.png",
+                    "Luxury": "Decor/turf-decor-luxury.jpg", "Signature": "Decor/turf-decor-signature.jpg"}},
     {"id": "craftbazaar", "n": "Indian Craft Bazaar", "b": "180 (mixed colours)",
      "tierPhotos": {"Signature": "Decor/decor-craftbazaar-3panel.jpg"}},
     {"id": "indianpalace", "n": "Indian Palace", "b": "180 (mixed colours)",
