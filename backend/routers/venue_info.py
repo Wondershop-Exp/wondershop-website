@@ -62,6 +62,8 @@ MAX_VIDEOS = 3
 # follow-up = (key, label, show when the answer is one of these values)
 SECTIONS = [
     ("Timings", [
+        ("event_start", "The party starts at", "time", None, True, None),
+        ("event_end", "The party ends at", "time", None, True, None),
         ("setup_from", "Our team can enter the venue for setup from", "time", None, True, None),
         ("clear_by", "The venue must be cleared by", "time", None, True, None),
         ("other_event", "Is there another event at the venue that day?", "chips",
@@ -138,6 +140,104 @@ async def ensure_venue_link(lead_id: int, by: Optional[str] = None) -> str:
         values={"id": lead_id, "t": tok, "by": (by or "")[:80] or None})
     row = await database.fetch_one("SELECT token FROM venue_info WHERE lead_id = :id", values={"id": lead_id})
     return venue_url(row["token"])
+
+
+# ── Two-way sync with the booking (2026-10-31, per Shruti — "the information
+# taken in this form should flow in the booking ... and vice versa. if the
+# user has already input venue handover time and event start and end time -
+# prefill it in this form"). The booking is the source of truth: what's on the
+# booking is shown in the form, and anything the customer types here is
+# written to the booking straight away (logged as "Customer (venue form)").
+#   event_start <-> Event Time            (leads.event_time)
+#   setup_from  <-> Venue Handover Time   (booking field / sales panel)
+#   clear_by    <-> Packup Time           (booking field / sales panel)
+#   event_end   <-> Event End Time        (sales panel playbook)
+SYNC_WHO = "Customer (venue form)"
+
+
+def _hhmm(v) -> Optional[str]:
+    """'16:00', '16:00:00', '4:00 PM' or a time -> '16:00' (None if not a time)."""
+    if v is None:
+        return None
+    s = str(v).strip()
+    m = re.match(r"^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?$", s)
+    if not m:
+        return None
+    h, mi, ap = int(m.group(1)), int(m.group(2)), (m.group(3) or "").upper()
+    if ap == "PM" and h < 12:
+        h += 12
+    if ap == "AM" and h == 12:
+        h = 0
+    return f"{h:02d}:{mi:02d}" if 0 <= h < 24 and 0 <= mi < 60 else None
+
+
+async def booking_times(lead_id: int) -> dict:
+    """The booking's current event start / end, handover and packup times."""
+    out = {}
+    lead = await database.fetch_one("SELECT event_time FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    out["event_start"] = _hhmm(lead["event_time"]) if lead else None
+    pb = None
+    try:
+        pb = await database.fetch_one(
+            "SELECT event_end_time, venue_handover_time, packup_time FROM lead_sales_playbook WHERE lead_id = :id",
+            values={"id": lead_id})
+    except Exception:
+        pb = None
+    out["event_end"] = _hhmm(pb["event_end_time"]) if pb else None
+    for key, fk in (("setup_from", "venue_handover_time"), ("clear_by", "packup_time")):
+        v = None
+        try:
+            ov = await database.fetch_one(
+                "SELECT customer_choice_override, removed FROM booking_field_overrides WHERE lead_id = :id AND field_key = :k",
+                values={"id": lead_id, "k": fk})
+            if ov and not ov["removed"] and (ov["customer_choice_override"] or "").strip():
+                v = _hhmm(ov["customer_choice_override"])
+        except Exception:
+            v = None
+        if not v and pb:
+            v = _hhmm(pb[fk])
+        out[key] = v
+    return out
+
+
+async def _with_booking_times(lead_id: int, answers: dict) -> dict:
+    a = dict(answers)
+    for k, v in (await booking_times(lead_id)).items():
+        if v:
+            a[k] = v
+    return a
+
+
+async def push_times_to_booking(lead_id: int, answers: dict, keys) -> None:
+    """Writes the times the customer just gave into the booking."""
+    from config import settings
+    from routers.admin import update_booking_field, FieldUpdateRequest
+    current = await booking_times(lead_id)
+    for k in keys:
+        v = _hhmm(answers.get(k))
+        if not v or v == current.get(k):
+            continue
+        try:
+            if k == "event_start":
+                await update_booking_field(lead_id, FieldUpdateRequest(
+                    field_key="event_time", assigned_value=v, changed_by=SYNC_WHO), settings.ADMIN_PASSWORD)
+            elif k in ("setup_from", "clear_by"):
+                fk = "venue_handover_time" if k == "setup_from" else "packup_time"
+                await update_booking_field(lead_id, FieldUpdateRequest(
+                    field_key=fk, customer_choice_override=v, changed_by=SYNC_WHO), settings.ADMIN_PASSWORD)
+            elif k == "event_end":
+                n = await database.fetch_val("SELECT COUNT(*) FROM lead_sales_playbook WHERE lead_id = :id", values={"id": lead_id})
+                # Only where a sales-panel sheet already exists — creating one
+                # here would add the booking to the sales panel. Otherwise the
+                # end time stays in the form's own answers.
+                if n:
+                    await database.execute("UPDATE lead_sales_playbook SET event_end_time = :v WHERE lead_id = :id",
+                                           values={"v": v, "id": lead_id})
+        except Exception as exc:   # e.g. a cancelled (locked) booking — the form still keeps the answer
+            logger.warning(f"Lead #{lead_id}: venue form couldn't update {k} on the booking — {exc}")
+
+
+SYNC_KEYS = ("event_start", "event_end", "setup_from", "clear_by")
 
 
 def _missing(answers: dict) -> List[str]:
@@ -238,7 +338,7 @@ async def public_get(token: str):
     lead = await _lead(row["lead_id"])
     if not row["opened_at"]:
         await database.execute("UPDATE venue_info SET opened_at = NOW() WHERE id = :id", values={"id": row["id"]})
-    answers = _j(row["answers"]) or {}
+    answers = await _with_booking_times(row["lead_id"], _j(row["answers"]) or {})
     return {
         "booking": _booking_header(lead),
         "sections": _questions_out(),
@@ -280,8 +380,11 @@ def _clean_answers(raw: Dict[str, Optional[str]]) -> dict:
 async def public_save(token: str, body: VenueAnswers):
     row = await _by_token(token)
     answers = _j(row["answers"]) or {}
-    answers.update(_clean_answers(body.answers))
+    cleaned = _clean_answers(body.answers)
+    answers.update(cleaned)
     answers = {k: v for k, v in answers.items() if v}
+    await push_times_to_booking(row["lead_id"], answers, [k for k in SYNC_KEYS if cleaned.get(k)])
+    answers = await _with_booking_times(row["lead_id"], answers)
     tnc = bool(row["tnc_accepted_at"]) if body.accept_tnc is None else bool(body.accept_tnc)
     if body.submit and not tnc:
         raise HTTPException(status_code=400, detail="Please tick that you've read the Terms & Conditions.")
@@ -377,7 +480,7 @@ async def admin_get(lead_id: int, x_admin_password: Optional[str] = Header(None)
         logger.exception("venue_info table missing (migration 080?)")
         raise HTTPException(status_code=500, detail="The venue form isn't set up yet — the server needs a restart to add its table.")
     row = dict(await database.fetch_one("SELECT * FROM venue_info WHERE lead_id = :id", values={"id": lead_id}))
-    answers = _j(row["answers"]) or {}
+    answers = await _with_booking_times(lead_id, _j(row["answers"]) or {})
     rows = []
     for title, qs in SECTIONS:
         for k, l, _t, _o, _req, fu in qs:
