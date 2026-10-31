@@ -72,7 +72,7 @@ async def live_grand_total(lead_id: int, fallback: float = 0.0) -> float:
 PAID_VIA = ["Pending", "Gpay", "Cash", "Bank transfer", "UPI (other)", "Card"]   # same as event_team
 # "owner" = money put in by the co-founders/owners (2026-10-28): not a cost - shown
 # under Financing in the cash flow, never in the P&L.
-CATEGORIES = {"man", "rent", "elec", "wifi", "mkt", "shopx", "other", "owner"}
+CATEGORIES = {"man", "rent", "elec", "wifi", "mkt", "shopx", "sample", "other", "owner"}   # "sample" 2026-10-31
 START_YM = "202610"   # finance tracking starts Oct 2026 (per Shruti)
 
 
