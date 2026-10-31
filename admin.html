@@ -3545,10 +3545,32 @@ function carnivalSectionHtml(v){
   setTimeout(()=>loadVendorCatalogues(v.vendor_id), 0);
   return '<div class="vol-card"><h3>🎪 Carnival Stalls &amp; Mascots</h3>'
     + (v.carnival_profile ? '' : '<div class="vol-note">The partner hasn\u2019t filled in the carnival questions yet — send them an update link.</div>')
-    + ((p.services||[]).length ? '<h4>What they offer</h4>' + p.services.map(sv=>'<div style="margin-top:8px"><b>'+esc(sv.name)+'</b>'+(sv.details?'<div style="white-space:pre-wrap;color:var(--gy)">'+esc(sv.details)+'</div>':'')+'</div>').join('') : '')
+    + ((p.services||[]).length ? '<h4>Stalls &amp; activities</h4>' + p.services.map(stallCardHtml).join('') : '')
     + (v.carnival_profile ? '<h4>Booking terms</h4>' + row('Heads-up time', p.headsup) + row('Setup time', p.setup_time) + row('Needs from the venue', p.venue_needs) + row('Minimum order', p.min_order) + row('Instagram / website', p.instagram)
       + '<h4>Service areas</h4>' + row('Zones', zoneNames.join('\n')) + row('Extra travel charge', p.travel_charge) : '')
-    + '<h4>Catalogues &amp; photos</h4><div id="vendorCatalogues" style="font-size:13px;color:var(--gy)">Loading…</div>'
+    + '<h4>Catalogues</h4><div id="vendorCatalogues" style="font-size:13px;color:var(--gy)">Loading…</div>'
+    + '</div>';
+}
+// One stall / activity (2026-10-31): price, time and staff included, takeaway
+// and photos of earlier work. Photos are files named stall-<slug>-n; the slug
+// rule matches stall_slug() in backend/routers/vendor_onboarding.py.
+function stallSlug(name){ return String(name||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40) || 'stall'; }
+function stallCardHtml(sv){
+  const unit = {stall:'per stall', child:'per child', piece:'per piece', hour:'per hour', day:'per day'}[sv.price_unit] || '';
+  const inr = n => '₹'+Number(n).toLocaleString('en-IN');
+  const bits = [];
+  if(sv.price) bits.push('<b>'+inr(sv.price)+'</b> '+esc(unit));
+  if(sv.duration) bits.push(esc(sv.duration)+' included');
+  if(sv.extra_hour) bits.push(inr(sv.extra_hour)+' per extra hour');
+  if(sv.staff != null && sv.staff !== '') bits.push(sv.staff+' staff');
+  const kv = (k, val) => val ? '<div style="margin-top:4px;font-size:13px"><span style="color:var(--gy)">'+esc(k)+':</span> '+esc(val)+'</div>' : '';
+  return '<div style="border:1px solid var(--li2);border-radius:10px;padding:10px 12px;margin-top:8px">'
+    + '<div><b>'+esc(sv.name)+'</b>'+(sv.category?' <span style="font-size:11.5px;color:var(--gy)">· '+esc(sv.category)+'</span>':'')+'</div>'
+    + (bits.length ? '<div style="margin-top:4px;font-size:13px">'+bits.join(' · ')+'</div>' : (sv.price ? '' : '<div style="margin-top:4px;font-size:13px;color:var(--gy)">No price given yet.</div>'))
+    + kv('Takeaway', sv.takeaway==='yes' ? (sv.takeaway_what||'Yes') : (sv.takeaway==='no' ? 'No' : ''))
+    + kv('Capacity', sv.capacity) + kv('Space & power', sv.space_power)
+    + (sv.details ? '<div style="margin-top:4px;white-space:pre-wrap;color:var(--gy);font-size:13px">'+esc(sv.details)+'</div>' : '')
+    + '<div data-stall-photos="'+esc(stallSlug(sv.name))+'" style="font-size:13px;color:var(--gy)"></div>'
     + '</div>';
 }
 // ── DJ partner (2026-10-21, per Shruti) ─────────────────────────────────
@@ -3621,7 +3643,15 @@ async function loadVendorCatalogues(vendorId, emptyText){
   const el = document.getElementById('vendorCatalogues'); if(!el) return;
   try{
     const r = await apiCall('/api/admin/vendors/'+vendorId+'/catalogues');
-    const files = r.files||[];
+    let files = r.files||[];
+    const btn = f=>'<button class="mini-btn" style="margin:6px 6px 0 0" onclick="viewVendorCatalogue('+vendorId+','+f.id+')">📷 '+esc(f.filename||'Photo')+'</button>';
+    // Stall photos sit under their stall card; the rest stay in this list.
+    document.querySelectorAll('[data-stall-photos]').forEach(box=>{
+      const pre = 'stall-'+box.getAttribute('data-stall-photos')+'-';
+      const mine = files.filter(f=>(f.filename||'').startsWith(pre) && /^\d+\./.test((f.filename||'').slice(pre.length)));
+      box.innerHTML = mine.length ? '<div style="margin-top:4px">'+mine.map(btn).join('')+'</div>' : '<div style="margin-top:4px">No photos of earlier work.</div>';
+      files = files.filter(f=>mine.indexOf(f)<0);
+    });
     el.innerHTML = files.length ? files.map(f=>'<div style="display:flex;gap:10px;align-items:center;margin-top:6px"><button class="mini-btn" onclick="viewVendorCatalogue('+vendorId+','+f.id+')">📎 '+esc(f.filename||'File')+'</button><span>'+(f.size_bytes?Math.max(1,Math.round(f.size_bytes/1024))+' KB':'')+'</span></div>').join('') : (emptyText || 'No catalogues uploaded.');
   }catch(e){ el.textContent = 'Could not load the catalogues.'; }
 }

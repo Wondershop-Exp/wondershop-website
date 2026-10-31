@@ -452,8 +452,22 @@ MAX_CATALOGUE_TOTAL = 50 * 1024 * 1024
 CARNIVAL_HEADSUP = ["24 hours", "2 days", "3 days", "1 week", "2 weeks or more"]
 
 
+# 2026-10-31: each stall / activity is now a structured entry — price and what
+# it is per, time included, staff included, takeaway, capacity, space & power,
+# details and photos of earlier work (sent as "stall_photos", file names
+# starting "s<card no>__", stored in vendor_catalogues as "stall-<slug>-n.jpg").
+STALL_UNITS = {"stall", "child", "piece", "hour", "day"}
+STALL_DURATIONS = ["1 hour", "2 hours", "3 hours", "4 hours", "Full event", "Per piece (no time limit)"]
+MAX_STALL_PHOTOS = 5
+
+
+def stall_slug(name: str) -> str:
+    """File-name key for a stall's photos; js/carnival-form.js and admin.html use the same rule."""
+    return re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")[:40] or "stall"
+
+
 def _parse_carnival_profile(raw: Optional[str]) -> dict:
-    if not raw or len(raw) > 40000:
+    if not raw or len(raw) > 80000:
         raise HTTPException(status_code=400, detail="Please fill in what you offer.")
     try:
         p = json.loads(raw)
@@ -461,16 +475,51 @@ def _parse_carnival_profile(raw: Optional[str]) -> dict:
         raise HTTPException(status_code=400, detail="We could not read your details — please try again.")
     if not isinstance(p, dict):
         raise HTTPException(status_code=400, detail="We could not read your details — please try again.")
+
+    def num(v, hi):
+        try:
+            n = int(float(str(v).replace(",", "").strip()))
+        except (TypeError, ValueError):
+            return None
+        return n if 0 <= n <= hi else None
+
     services, seen = [], set()
     for s in (p.get("services") or [])[:40]:
         if not isinstance(s, dict):
             continue
         name = _txt(s.get("name"), 60)
-        if name and name.lower() not in seen:
-            seen.add(name.lower())
-            services.append({"name": name, "details": str(s.get("details") or "").strip()[:1500]})
+        if not name or name.lower() in seen:
+            continue
+        seen.add(name.lower())
+        price, staff = num(s.get("price"), 9999999), num(s.get("staff"), 99)
+        unit = _txt(s.get("price_unit"), 10) or "stall"
+        duration = _txt(s.get("duration"), 40)
+        takeaway = _txt(s.get("takeaway"), 3).lower()
+        takeaway_what = _txt(s.get("takeaway_what"), 150)
+        if not price:
+            raise HTTPException(status_code=400, detail=f"Please give the price for {name}.")
+        if unit not in STALL_UNITS:
+            raise HTTPException(status_code=400, detail=f"Please say what the price of {name} is per.")
+        if duration not in STALL_DURATIONS:
+            raise HTTPException(status_code=400, detail=f"Please choose the time included for {name}.")
+        if staff is None:
+            raise HTTPException(status_code=400, detail=f"Please say how many staff come with {name}.")
+        if takeaway not in ("yes", "no"):
+            raise HTTPException(status_code=400, detail=f"Please say if kids take something home from {name}.")
+        if takeaway == "yes" and not takeaway_what:
+            raise HTTPException(status_code=400, detail=f"Please say what kids take home from {name}.")
+        services.append({
+            "name": name, "category": _txt(s.get("category"), 30) or "Other",
+            "price": price, "price_unit": unit, "duration": duration,
+            "extra_hour": num(s.get("extra_hour"), 999999) or None, "staff": staff,
+            "capacity": _txt(s.get("capacity"), 40), "takeaway": takeaway,
+            "takeaway_what": takeaway_what if takeaway == "yes" else "",
+            "space_power": _txt(s.get("space_power"), 200),
+            "details": str(s.get("details") or "").strip()[:1500],
+            "photo_key": _txt(s.get("photo_key"), 4),
+        })
     if not services:
-        raise HTTPException(status_code=400, detail="Please tick at least one service you offer.")
+        raise HTTPException(status_code=400, detail="Please add at least one stall or activity.")
     headsup = _txt(p.get("headsup"), 30)
     if headsup not in CARNIVAL_HEADSUP:
         raise HTTPException(status_code=400, detail="Please choose the heads-up time you need.")
@@ -483,6 +532,36 @@ def _parse_carnival_profile(raw: Optional[str]) -> dict:
         "instagram": _txt(p.get("instagram"), 200), "zones": zones,
         "travel_charge": _txt(p.get("travel_charge"), 200),
     }
+
+
+async def _read_stall_photos(files, profile: dict, already: int = 0) -> list:
+    """Photos of earlier work, filed under their stall. `already` = bytes of catalogues read."""
+    keys = {s.get("photo_key"): s["name"] for s in profile["services"] if s.get("photo_key")}
+    out, per, total = [], {}, already
+    for f in files or []:
+        if f is None or not getattr(f, "filename", None):
+            continue
+        m = re.match(r"^(s\d{1,2})__", f.filename)
+        name = keys.get(m.group(1)) if m else None
+        if not name:
+            continue
+        if per.get(name, 0) >= MAX_STALL_PHOTOS:
+            raise HTTPException(status_code=400, detail=f"Please add at most {MAX_STALL_PHOTOS} photos for {name}.")
+        raw = await f.read(MAX_CATALOGUE_BYTES + 1)
+        if len(raw) > MAX_CATALOGUE_BYTES:
+            raise HTTPException(status_code=400, detail=f"A photo for {name} is larger than 10 MB.")
+        if not raw:
+            continue
+        total += len(raw)
+        if total > MAX_CATALOGUE_TOTAL:
+            raise HTTPException(status_code=400, detail="Your files add up to more than 50 MB — please remove a few.")
+        kind = _sniff_file_type(raw)
+        if kind not in _IMAGE_TYPES:
+            raise HTTPException(status_code=400, detail=f"Photos for {name} must be JPG or PNG.")
+        per[name] = per.get(name, 0) + 1
+        ext = {"image/png": ".png", "image/webp": ".webp"}.get(kind, ".jpg")
+        out.append((raw, kind, f"stall-{stall_slug(name)}-{per[name]}{ext}"))
+    return out
 
 
 async def _read_catalogues(files) -> list:
@@ -939,7 +1018,9 @@ def partner_missing(row) -> List[str]:
                 cp = {}
         cp = cp if isinstance(cp, dict) else {}
         if not cp.get("services"):
-            out.append("Services you offer")
+            out.append("Stalls / activities you offer")
+        elif any(isinstance(x, dict) and not x.get("price") for x in cp["services"]):
+            out.append("Price and details for each stall")
         if not cp.get("headsup"):
             out.append("Heads-up time")
         if not cp.get("zones"):
@@ -1093,11 +1174,29 @@ async def prefill(token: str):
             "SELECT COUNT(*) FROM vendor_catalogues WHERE vendor_id = :v AND filename NOT LIKE 'headshot-%'",
             {"v": d["vendor_id"]}) or 0,
         "carnival_profile": cp if isinstance(cp, dict) else None,
+        "stall_photo_counts": await _stall_photo_counts(d["vendor_id"], cp),
         "volunteer_profile": d["volunteer_profile"],
         "has_bank": _has_bank(d),
         "has_resume": bool(d.get("resume_filename")),
         "missing": partner_missing(d),
     })
+    return out
+
+
+async def _stall_photo_counts(vendor_id: int, cp) -> dict:
+    """{stall name (lower case): photos on file} for the update-link form."""
+    if not isinstance(cp, dict) or not cp.get("services"):
+        return {}
+    rows = await database.fetch_all(
+        "SELECT filename FROM vendor_catalogues WHERE vendor_id = :v AND filename LIKE 'stall-%'", {"v": vendor_id})
+    names = [r["filename"] for r in rows]
+    out = {}
+    for sv in cp["services"]:
+        if isinstance(sv, dict) and sv.get("name"):
+            pre = "stall-" + stall_slug(sv["name"]) + "-"
+            n = sum(1 for f in names if f.startswith(pre) and f[len(pre):].split(".")[0].isdigit())
+            if n:
+                out[sv["name"].lower()] = n
     return out
 
 
@@ -1129,6 +1228,7 @@ async def submit_vendor_onboarding(
     resume: Optional[UploadFile] = File(None),
     carnival_profile: Optional[str] = Form(None),
     catalogues: Optional[List[UploadFile]] = File(None),
+    stall_photos: Optional[List[UploadFile]] = File(None),
     host_profile: Optional[str] = Form(None),
     host_photos: Optional[List[UploadFile]] = File(None),
     host_headshot: Optional[UploadFile] = File(None),
@@ -1294,6 +1394,7 @@ async def submit_vendor_onboarding(
             raise HTTPException(status_code=400, detail="Please enter your locality and pincode.")
         carn_profile = _parse_carnival_profile(carnival_profile)
         carn_files = await _read_catalogues(catalogues)
+        carn_files += await _read_stall_photos(stall_photos, carn_profile, sum(len(r) for r, _k, _n in carn_files))
 
     # DJ (2026-10-21): zones served and the two standard setups priced for each.
     dj_prof = _parse_dj_profile(dj_profile) if (_clean(deals_in) or "").lower() == DJ else None

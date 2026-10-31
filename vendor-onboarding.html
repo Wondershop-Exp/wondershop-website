@@ -156,6 +156,12 @@ body.is-host .req-host{display:inline}
 .cv-files{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:6px}
 .cv-files li{display:flex;justify-content:space-between;gap:10px;font-size:13px;background:var(--li3);border-radius:8px;padding:7px 10px;word-break:break-all}
 .cv-files button{border:0;background:none;color:var(--gy);cursor:pointer;margin-left:6px;font-size:13px}
+/* stall / activity cards (2026-10-31) */
+.cv-stall{border:1.5px solid var(--li2);border-radius:14px;padding:14px;margin-top:12px;background:var(--wh)}
+.cv-stall-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:14.5px}
+.cv-rm{border:0;background:none;color:var(--gy);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
+.cv-add-stall{display:block;width:100%;margin-top:12px;padding:12px;border:1.5px dashed var(--pk);border-radius:12px;background:#FDEFF5;color:var(--pk);font:inherit;font-weight:700;cursor:pointer}
+.cv-ph-box{padding:14px}
 </style>
 <style id="ws-no-caret">/* hide stray text cursor on non-editable text (2026-10-03) */body{caret-color:transparent}input,textarea,select,[contenteditable],[contenteditable] *{caret-color:auto}</style><style id="ws-select-arrow">/* every dropdown: own chevron with room from the edge (2026-10-05) */select:not([multiple]):not([size]){-webkit-appearance:none;appearance:none;padding-right:36px;background-repeat:no-repeat;background-position:right 14px center;background-size:10px 6px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}select::-ms-expand{display:none}</style>
 <link rel="stylesheet" href="css/vendor-decor.css">
@@ -747,7 +753,7 @@ const UPD = {token: new URLSearchParams(location.search).get('u') || '', ok: fal
       dealsSelect.dispatchEvent(new Event('change'));
     }
     if(window.WSVolunteer && isVolunteer()) WSVolunteer.fill(d.volunteer_profile, d.has_resume);
-    if(window.WSCarnival && isCarnival()) WSCarnival.fill(d.carnival_profile);
+    if(window.WSCarnival && isCarnival()) WSCarnival.fill(d.carnival_profile, d.stall_photo_counts);
     if(window.WSHost && isHost()) WSHost.fill(d.host_profile, d.host_photo_count);
     if(window.WSDJ && isDJ()) WSDJ.fill(d.dj_profile);
     document.getElementById('updBank').hidden = !UPD.hasBank;
