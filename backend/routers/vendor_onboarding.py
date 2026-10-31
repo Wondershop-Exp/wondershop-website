@@ -1453,7 +1453,11 @@ async def submit_vendor_onboarding(
             "UPDATE vendor_master SET update_token_hash = NULL, update_token_expires = NULL, "
             # 2026-10-12: also replaces the 1111111111 placeholder (migration 052).
             "primary_mobile = CASE WHEN COALESCE(TRIM(primary_mobile), '') IN ('', '1111111111') THEN :m ELSE primary_mobile END, "
-            "whatsapp_number = CASE WHEN COALESCE(TRIM(whatsapp_number), '') IN ('', '1111111111') THEN :m ELSE whatsapp_number END "
+            "whatsapp_number = CASE WHEN COALESCE(TRIM(whatsapp_number), '') IN ('', '1111111111') THEN :m ELSE whatsapp_number END, "
+            # 2026-10-31: a contact saved from Slack who fills in the form is now a
+            # partner to review, not just a saved contact.
+            "onboarding_reviewed = CASE WHEN onboarding_source = 'slack_contact' THEN FALSE ELSE onboarding_reviewed END, "
+            "onboarding_source = CASE WHEN onboarding_source = 'slack_contact' THEN 'self_submitted' ELSE onboarding_source END "
             "WHERE vendor_id = :id",
             {"id": link_id, "m": mobile},
         )

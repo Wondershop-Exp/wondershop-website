@@ -3790,7 +3790,16 @@ function volunteerSectionHtml(v){
 // (2026-10-10, per Shruti). The link opens the partner form pre-filled.
 function volMissingHtml(v){
   const miss = v.missing || [];
-  if(!miss.length) return '<div class="vol-miss ok">✓ All required details are filled in.</div>';
+  // 2026-10-31, per Shruti: contacts saved from Slack never filled in the
+  // partner form, so they always get the link (and a "please register" message).
+  if(v.vendor_id && v.onboarding_source==='slack_contact') return '<div class="vol-miss"><b>Saved contact — not onboarded yet</b>'
+    + '<div style="font-size:12.5px;margin:4px 0 6px">Send them the partner form to fill in their details. What we already have is filled in for them.'
+    + (miss.length ? ' Still missing: '+miss.map(esc).join(', ')+'.' : '')+'</div>'
+    + '<button class="mini-btn" onclick="makeUpdateLink('+v.vendor_id+')">🔗 Send partner form link</button>'
+    + '<div class="vol-link" id="volLink"></div></div>';
+  if(!miss.length) return '<div class="vol-miss ok">✓ All required details are filled in.'
+    + (v.vendor_id ? ' <button class="mini-btn" style="margin-left:8px" onclick="makeUpdateLink('+v.vendor_id+')">🔗 Send update link</button><div class="vol-link" id="volLink"></div>' : '')
+    + '</div>';
   return '<div class="vol-miss"><b>'+miss.length+' detail'+(miss.length>1?'s':'')+' missing</b>'
     + '<div class="vm-list">'+miss.map(m=>'<span>'+esc(m)+'</span>').join('')+'</div>'
     + '<button class="mini-btn" onclick="makeUpdateLink('+v.vendor_id+')">🔗 Send update link</button>'
@@ -3805,11 +3814,18 @@ async function makeUpdateLink(vendorId){
     const first = String(v.primary_contact_name||v.name||'').trim().split(/\s+/)[0] || 'there';
     const miss = r.missing||[];
     const role = /volunteer/i.test(v.deals_in||'') ? 'a volunteer' : (/team member/i.test(v.deals_in||'') ? 'a team member' : (/^host$/i.test((v.deals_in||'').trim()) ? 'a host' : 'a partner'));
-    const msg = 'Hi '+first+'! Thank you for registering as '+role+' with Wondershop Experiences.\n\n'
-      + 'A few details are still missing from your profile:\n'+miss.map(m=>'• '+m).join('\n')+'\n\n'
-      + 'Please complete them using this link (your earlier answers are already filled in):\n'+url+'\n\n'
-      + 'The link works for 14 days. Thank you!';
-    const phone = String(v.whatsapp_number||v.primary_mobile||'').replace(/\D/g,'').slice(-10);
+    const msg = v.onboarding_source==='slack_contact'
+      ? 'Hi '+first+'! This is Wondershop Experiences — we would love to work with you as a partner.\n\n'
+        + 'Please share your details using this link (we have filled in what we already have):\n'+url+'\n\n'
+        + 'The link works for 14 days. Thank you!'
+      : 'Hi '+first+'! Thank you for registering as '+role+' with Wondershop Experiences.\n\n'
+        + (miss.length ? 'A few details are still missing from your profile:\n'+miss.map(m=>'• '+m).join('\n')+'\n\n'
+            + 'Please complete them using this link (your earlier answers are already filled in):\n'
+          : 'You can check and update your details using this link (your earlier answers are already filled in):\n')
+        + url+'\n\nThe link works for 14 days. Thank you!';
+    // First real number: WhatsApp, mobile, then alternate (1111111111 is the "no number" placeholder).
+    const phone = [v.whatsapp_number, v.primary_mobile, v.alternate_mobile]
+      .map(x=>String(x||'').replace(/\D/g,'').slice(-10)).find(x=>/^[6-9]\d{9}$/.test(x)) || '';
     box.innerHTML = '<textarea id="volLinkMsg">'+esc(msg)+'</textarea>'
       + '<div class="vl-row">'
         + (phone.length===10 ? '<a class="mini-btn" style="text-decoration:none" target="_blank" rel="noopener" href="https://wa.me/91'+phone+'?text='+encodeURIComponent(msg)+'">💬 Open in WhatsApp</a>' : '')
