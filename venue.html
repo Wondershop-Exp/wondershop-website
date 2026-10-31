@@ -44,7 +44,7 @@ body{font-family:var(--fb);color:var(--bk);background:#FBF9FF;line-height:1.5;mi
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:1.5px solid var(--li2);background:#fff;color:var(--bk);border-radius:999px;padding:9px 15px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .chip.on{background:var(--pk);border-color:var(--pk);color:#fff;font-weight:700}
-input[type=time],input[type=text],textarea{width:100%;font:inherit;font-size:16px;border:1.5px solid var(--li2);border-radius:14px;padding:11px 14px;background:#fff;color:var(--bk)}
+input[type=time],input[type=text],input[type=url],textarea{width:100%;font:inherit;font-size:16px;border:1.5px solid var(--li2);border-radius:14px;padding:11px 14px;background:#fff;color:var(--bk)}
 input[type=time]{max-width:200px}
 textarea{min-height:84px;resize:vertical}
 input:focus,textarea:focus{outline:none;border-color:var(--pu)}
@@ -128,7 +128,7 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
       + (b.parent_name ? '<span>Name</span><b>' + esc(b.parent_name) + '</b>' : '')
       + (b.child_name ? '<span>Birthday child</span><b>' + esc(b.child_name + age) + '</b>' : '')
       + (b.event_date ? '<span>Event</span><b>' + esc(b.event_date + (b.event_time ? ' · ' + b.event_time : '')) + '</b>' : '')
-      + (b.venue ? '<span>Venue</span><b>' + esc(b.venue) + '</b>' : '')
+      + (b.venue ? '<span>Venue</span><b>' + esc(b.venue) + (A.maps_link ? ' · <a href="' + esc(A.maps_link) + '" target="_blank" rel="noopener" style="color:var(--pu-d)">Map ↗</a>' : '') + '</b>' : '')
       + '</div><div class="intro">' + (b.first_name ? 'Hi ' + esc(b.first_name) + '! ' : '')
       + 'Some venues and societies have rules that change how we set up and pack up. Tell us what you know — tap “Not sure” if you don’t, and you can come back to this link anytime.</div>'
       + '<div class="prog" id="prog"></div></div>';
@@ -155,6 +155,10 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
     var h = '<div class="q" data-q="' + q.key + '"><div class="q-lbl">' + esc(q.label) + (q.required ? '' : ' <span class="opt">(optional)</span>') + '</div>';
     if(q.type === 'chips'){
       h += '<div class="chips">' + q.options.map(function(o){ return '<button type="button" class="chip' + (v === o.value ? ' on' : '') + '" data-k="' + q.key + '" data-v="' + esc(o.value) + '">' + esc(o.label) + '</button>'; }).join('') + '</div>';
+    }else if(q.type === 'url'){
+      h += '<input type="url" inputmode="url" data-k="' + q.key + '" value="' + esc(v) + '" placeholder="Paste the link from Google Maps → Share">'
+        + '<div class="hint">' + (v ? '<a href="' + esc(v) + '" target="_blank" rel="noopener" style="color:var(--pu-d);font-weight:700">Open in Maps ↗</a> · ' : '')
+        + 'In Google Maps, search the venue, tap <b>Share</b> → <b>Copy link</b>, and paste it here.</div>';
     }else if(q.type === 'time'){
       h += '<input type="time" data-k="' + q.key + '" value="' + esc(v) + '">';
     }else{
@@ -191,7 +195,7 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
         queueSave(k, v);
       });
     });
-    app.querySelectorAll('input[type=time][data-k],textarea[data-k],.fu input[data-k]').forEach(function(el){
+    app.querySelectorAll('input[type=time][data-k],input[type=url][data-k],textarea[data-k],.fu input[data-k]').forEach(function(el){
       el.addEventListener('change', function(){ queueSave(el.dataset.k, el.value.trim()); });
       if(el.tagName === 'TEXTAREA' || el.type === 'text') el.addEventListener('input', function(){ A[el.dataset.k] = el.value; pending[el.dataset.k] = el.value; clearTimeout(saveTimer); saveTimer = setTimeout(flush, 1200); });
     });

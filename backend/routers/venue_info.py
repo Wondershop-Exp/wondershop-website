@@ -71,6 +71,7 @@ SECTIONS = [
          ("other_event_note", "Its timing (e.g. till 3 PM)", ["before", "after", "both"])),
     ]),
     ("Getting our things in", [
+        ("maps_link", "Google Maps link of the venue", "url", None, True, None),
         ("floor", "Which floor is the party on?", "chips",
          [("ground", "Ground"), ("1-3", "1–3"), ("4-10", "4–10"), ("11+", "11+"), ("terrace", "Terrace")], True, None),
         ("vehicle", "Can our vehicle (car / tempo) reach the building?", "chips",
@@ -174,8 +175,9 @@ def _hhmm(v) -> Optional[str]:
 async def booking_times(lead_id: int) -> dict:
     """The booking's current event start / end, handover and packup times."""
     out = {}
-    lead = await database.fetch_one("SELECT event_time FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    lead = await database.fetch_one("SELECT event_time, venue_maps_link FROM leads WHERE lead_id = :id", values={"id": lead_id})
     out["event_start"] = _hhmm(lead["event_time"]) if lead else None
+    out["maps_link"] = ((lead["venue_maps_link"] or "").strip() or None) if lead else None
     pb = None
     try:
         pb = await database.fetch_one(
@@ -214,11 +216,14 @@ async def push_times_to_booking(lead_id: int, answers: dict, keys) -> None:
     from routers.admin import update_booking_field, FieldUpdateRequest
     current = await booking_times(lead_id)
     for k in keys:
-        v = _hhmm(answers.get(k))
+        v = (answers.get(k) or "").strip() if k == "maps_link" else _hhmm(answers.get(k))
         if not v or v == current.get(k):
             continue
         try:
-            if k == "event_start":
+            if k == "maps_link":
+                await update_booking_field(lead_id, FieldUpdateRequest(
+                    field_key="venue_maps_link", assigned_value=v, changed_by=SYNC_WHO), settings.ADMIN_PASSWORD)
+            elif k == "event_start":
                 await update_booking_field(lead_id, FieldUpdateRequest(
                     field_key="event_time", assigned_value=v, changed_by=SYNC_WHO), settings.ADMIN_PASSWORD)
             elif k in ("setup_from", "clear_by"):
@@ -237,7 +242,7 @@ async def push_times_to_booking(lead_id: int, answers: dict, keys) -> None:
             logger.warning(f"Lead #{lead_id}: venue form couldn't update {k} on the booking — {exc}")
 
 
-SYNC_KEYS = ("event_start", "event_end", "setup_from", "clear_by")
+SYNC_KEYS = ("event_start", "event_end", "setup_from", "clear_by", "maps_link")   # maps_link <-> Venue Maps Link
 
 
 def _missing(answers: dict) -> List[str]:
@@ -370,6 +375,11 @@ def _clean_answers(raw: Dict[str, Optional[str]]) -> dict:
                 raise HTTPException(status_code=400, detail=f"Please pick one of the options for: {q[1]}")
             if v and q[2] == "time" and not re.fullmatch(r"\d{1,2}:\d{2}", v):
                 raise HTTPException(status_code=400, detail=f"Please pick a time for: {q[1]}")
+            if v and q[2] == "url":
+                m = re.search(r"https?://\S+", v)   # pasted share text often has words around the link
+                if not m:
+                    raise HTTPException(status_code=400, detail="Please paste the Google Maps link (it starts with https://).")
+                v = m.group(0).rstrip(").,")
             out[k] = v[:1500]
         elif k in FOLLOWUPS:
             out[k] = v[:300]

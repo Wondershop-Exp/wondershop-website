@@ -2046,7 +2046,7 @@ function drawVenueBlock(){
     h += '<table class="ven-tbl">' + VEN.rows.map(r=>{
       let out = '';
       if(r.section !== last){ last = r.section; out += '<tr class="sec"><td colspan="2">'+esc(r.section)+'</td></tr>'; }
-      return out + '<tr><td>'+esc(r.label)+'</td><td>'+(r.answer ? esc(r.answer) : (r.required ? '<span class="miss">Not answered</span>' : '—'))+'</td></tr>';
+      return out + '<tr><td>'+esc(r.label)+'</td><td>'+(r.answer ? (/^https?:\/\//.test(r.answer) ? '<a href="'+esc(r.answer)+'" target="_blank" rel="noopener">Open in Maps ↗</a>' : esc(r.answer)) : (r.required ? '<span class="miss">Not answered</span>' : '—'))+'</td></tr>';
     }).join('') + '</table>';
   }
   if(VEN.media.length){
