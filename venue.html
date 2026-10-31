@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Venue details — Wondershop Experiences</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="logo-square.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<!--
+  Venue & society information form (2026-10-31, per Shruti — replaces the
+  Google Form). Opened from venue.html?t=<token>: the order confirmation page,
+  the confirmation email, or the email / WhatsApp the team sends from the
+  booking page. Backend: backend/routers/venue_info.py.
+  Every answer saves as soon as it's picked; photos are shrunk in the browser
+  before upload; videos up to 30 MB each.
+-->
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--pk:#E65A96;--pu:#8A67BE;--pu-d:#6C4AB6;--li2:#EDE6FA;--li3:#F7F3FF;--bk:#2D2140;--gy:#6B6280;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--fb);color:var(--bk);background:#FBF9FF;line-height:1.5;min-height:100vh}
+.hero{background:linear-gradient(135deg,#F7B6D2 0%,#C9B3EE 100%);padding:24px 18px 54px;text-align:center}
+.hero img.logo{height:34px;margin-bottom:12px}
+.hero h1{font-family:var(--fd);font-size:24px;line-height:1.25}
+.hero p{margin-top:6px;font-size:14px;color:#4B3F63}
+.wrap{max-width:580px;margin:-34px auto 0;padding:0 14px 120px}
+.card{background:#fff;border-radius:20px;box-shadow:0 8px 28px rgba(45,33,64,.08);padding:18px;margin-bottom:14px}
+.bk{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px}
+.bk span{color:var(--gy)}
+.bk b{font-weight:700}
+.intro{font-size:13.5px;color:var(--gy);margin-top:10px}
+.prog{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:12.5px;color:var(--gy)}
+.bar{flex:1;height:6px;border-radius:99px;background:var(--li2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--pk);border-radius:99px;transition:width .2s}
+.sec-h{font-family:var(--fd);font-size:19px;margin-bottom:4px}
+.q{padding:12px 0;border-bottom:1px solid #F1ECF8}
+.q:last-child{border-bottom:none;padding-bottom:0}
+.q-lbl{font-weight:700;font-size:15px;margin-bottom:8px}
+.q-lbl .opt{font-weight:400;font-size:12.5px;color:var(--gy)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--li2);background:#fff;color:var(--bk);border-radius:999px;padding:9px 15px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.chip.on{background:var(--pk);border-color:var(--pk);color:#fff;font-weight:700}
+input[type=time],input[type=text],textarea{width:100%;font:inherit;font-size:16px;border:1.5px solid var(--li2);border-radius:14px;padding:11px 14px;background:#fff;color:var(--bk)}
+input[type=time]{max-width:200px}
+textarea{min-height:84px;resize:vertical}
+input:focus,textarea:focus{outline:none;border-color:var(--pu)}
+.fu{margin-top:10px}
+.hint{font-size:12.5px;color:var(--gy);margin-top:6px}
+.up-btn{display:flex;align-items:center;justify-content:center;gap:8px;border:2px dashed #D9CBF2;border-radius:16px;padding:16px;font-weight:700;color:var(--pu-d);background:var(--li3);cursor:pointer;margin-top:12px}
+.media{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.mi{display:grid;grid-template-columns:88px 1fr;gap:12px;border:1px solid #F1ECF8;border-radius:14px;padding:10px}
+.mi .th{width:88px;height:88px;border-radius:10px;overflow:hidden;background:#F1ECF8;position:relative}
+.mi .th img,.mi .th video{width:100%;height:100%;object-fit:cover;display:block}
+.mi .th .play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;text-shadow:0 1px 6px rgba(0,0,0,.5);pointer-events:none}
+.mi .tg{display:flex;flex-wrap:wrap;gap:6px}
+.mi .tg button{border:1px solid var(--li2);background:#fff;border-radius:999px;padding:5px 10px;font:inherit;font-size:12.5px;cursor:pointer;color:var(--gy)}
+.mi .tg button.on{background:#F3EDFD;border-color:var(--pu);color:var(--pu-d);font-weight:700}
+.mi input[type=text]{font-size:14px;padding:7px 10px;border-radius:10px;margin-top:8px}
+.mi .rm{background:none;border:none;color:#B4232C;font:inherit;font-size:12.5px;cursor:pointer;margin-top:6px;padding:0}
+.upl{font-size:13px;color:var(--gy);border:1px dashed var(--li2);border-radius:14px;padding:10px 12px}
+.tnc{display:flex;gap:10px;align-items:flex-start;font-size:14.5px}
+.tnc input{width:22px;height:22px;margin-top:1px;accent-color:var(--pk);flex-shrink:0}
+.tnc a{color:var(--pu-d);font-weight:700}
+.btn{display:block;width:100%;border:none;border-radius:999px;padding:16px;font:inherit;font-size:16.5px;font-weight:700;cursor:pointer;text-align:center;background:var(--pk);color:#fff;box-shadow:0 6px 18px rgba(230,90,150,.35)}
+.btn:disabled{opacity:.6}
+.err{color:#B4232C;font-size:13.5px;text-align:center;margin-top:10px;min-height:1em}
+.saved{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#2D2140;color:#fff;font-size:13px;padding:8px 14px;border-radius:999px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.saved.show{opacity:.92}
+.banner{background:#EAF7EF;color:#16794A;border-radius:14px;padding:10px 14px;font-size:13.5px;margin-bottom:14px;font-weight:500}
+.done{text-align:center}
+.done .big{font-size:50px}
+.done h2{font-family:var(--fd);font-size:23px;margin:6px 0}
+.done p{color:var(--gy);font-size:14.5px}
+.msg{text-align:center;padding:40px 10px;color:var(--gy)}
+.miss{font-size:13px;color:#8A5A00;background:#FFF6E3;border-radius:12px;padding:10px 12px;margin-bottom:12px}
+footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
+</style>
+</head>
+<body>
+<div class="hero">
+  <img class="logo" src="logo-horizontal.png" alt="Wondershop Experiences">
+  <h1 id="title">A quick venue check</h1>
+  <p>About 2 minutes · every answer saves as you go</p>
+</div>
+<div class="wrap"><div id="app"><div class="card msg">Loading…</div></div></div>
+<div class="saved" id="saved">Saved ✓</div>
+<footer>Wondershop Experiences · +91 90044 35362</footer>
+
+<script>
+(function(){
+  var API = 'https://wondershop-website-production.up.railway.app';
+  if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).get('api')) API = new URLSearchParams(location.search).get('api');
+  var TOKEN = new URLSearchParams(location.search).get('t');
+  var app = document.getElementById('app');
+  var D = null, A = {}, saveTimer = null, pending = {};
+
+  function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function toast(t){ var el = document.getElementById('saved'); el.textContent = t || 'Saved ✓'; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(function(){ el.classList.remove('show'); }, 1400); }
+  function api(path, opts){
+    return fetch(API + path, opts || {}).then(function(r){
+      return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok) throw new Error(j.detail || ('Something went wrong (' + r.status + ')')); return j; });
+    });
+  }
+
+  if(!TOKEN){ app.innerHTML = '<div class="card msg">This link is incomplete — please open the link we sent you.</div>'; return; }
+  api('/api/venue-info/' + encodeURIComponent(TOKEN)).then(function(d){ D = d; A = d.answers || {}; render(); })
+    .catch(function(e){ app.innerHTML = '<div class="card msg">' + esc(e.message) + '</div>'; });
+
+  function requiredKeys(){ var k = []; D.sections.forEach(function(s){ s.questions.forEach(function(q){ if(q.required) k.push(q.key); }); }); return k; }
+  function progress(){
+    var req = requiredKeys(), n = req.filter(function(k){ return A[k]; }).length;
+    var el = document.getElementById('prog'); if(!el) return;
+    el.innerHTML = '<div class="bar"><i style="width:' + Math.round(n / req.length * 100) + '%"></i></div><span>' + n + ' of ' + req.length + ' answered</span>';
+  }
+
+  function render(){
+    var b = D.booking;
+    document.getElementById('title').textContent = 'Venue check' + (b.child_name ? ' for ' + b.child_name + '’s party' : '');
+    var age = b.child_age ? ' (turning ' + b.child_age + ')' : '';
+    var h = '';
+    if(D.submitted_at) h += '<div class="banner">✓ Thank you! You shared these on ' + esc(D.submitted_at) + '. You can still update anything below.</div>';
+    h += '<div class="card"><div class="bk">'
+      + '<span>Booking</span><b>#' + esc(b.lead_id) + '</b>'
+      + (b.parent_name ? '<span>Name</span><b>' + esc(b.parent_name) + '</b>' : '')
+      + (b.child_name ? '<span>Birthday child</span><b>' + esc(b.child_name + age) + '</b>' : '')
+      + (b.event_date ? '<span>Event</span><b>' + esc(b.event_date + (b.event_time ? ' · ' + b.event_time : '')) + '</b>' : '')
+      + (b.venue ? '<span>Venue</span><b>' + esc(b.venue) + '</b>' : '')
+      + '</div><div class="intro">' + (b.first_name ? 'Hi ' + esc(b.first_name) + '! ' : '')
+      + 'Some venues and societies have rules that change how we set up and pack up. Tell us what you know — tap “Not sure” if you don’t, and you can come back to this link anytime.</div>'
+      + '<div class="prog" id="prog"></div></div>';
+    D.sections.forEach(function(s, si){
+      h += '<div class="card"><div class="sec-h">' + (si + 1) + ' · ' + esc(s.title) + '</div>';
+      s.questions.forEach(function(q){ h += qHtml(q); });
+      h += '</div>';
+    });
+    h += '<div class="card"><div class="sec-h">' + (D.sections.length + 1) + ' · Show us the space <span style="font-family:var(--fb);font-size:13px;font-weight:400;color:var(--gy)">(recommended)</span></div>'
+      + '<div class="hint" style="margin-top:0">Photos or short videos of the party area, entrance and lift help us plan. Tag where things should go — decor wall, DJ corner, gift table…</div>'
+      + '<label class="up-btn"><input type="file" id="upIn" accept="image/*,video/*" multiple style="display:none">＋ Add photos or videos</label>'
+      + '<div class="hint">Up to ' + D.limits.images + ' photos and ' + D.limits.videos + ' videos (' + D.limits.video_mb + ' MB each).</div>'
+      + '<div class="media" id="media"></div></div>';
+    h += '<div class="card"><div id="miss"></div>'
+      + '<label class="tnc"><input type="checkbox" id="tnc"' + (D.tnc_accepted ? ' checked' : '') + '><span>I have read and understood the <a href="' + esc(D.tnc_url) + '" target="_blank" rel="noopener">Terms &amp; Conditions</a></span></label>'
+      + '<div style="margin-top:16px"><button class="btn" id="sub">' + (D.submitted_at ? 'Update venue details' : 'Submit venue details') + '</button></div>'
+      + '<div class="err" id="err"></div></div>';
+    app.innerHTML = h;
+    wire(); drawMedia(); progress(); drawMissing();
+  }
+
+  function qHtml(q){
+    var v = A[q.key] || '';
+    var h = '<div class="q" data-q="' + q.key + '"><div class="q-lbl">' + esc(q.label) + (q.required ? '' : ' <span class="opt">(optional)</span>') + '</div>';
+    if(q.type === 'chips'){
+      h += '<div class="chips">' + q.options.map(function(o){ return '<button type="button" class="chip' + (v === o.value ? ' on' : '') + '" data-k="' + q.key + '" data-v="' + esc(o.value) + '">' + esc(o.label) + '</button>'; }).join('') + '</div>';
+    }else if(q.type === 'time'){
+      h += '<input type="time" data-k="' + q.key + '" value="' + esc(v) + '">';
+    }else{
+      h += '<textarea data-k="' + q.key + '" placeholder="e.g. no music after 9 PM, no confetti, lift booking needed">' + esc(v) + '</textarea>';
+    }
+    if(q.followup){
+      var show = q.followup.when.indexOf(v) >= 0;
+      h += '<div class="fu" data-fu="' + q.key + '" style="' + (show ? '' : 'display:none') + '"><input type="text" data-k="' + q.followup.key + '" placeholder="' + esc(q.followup.label) + '" value="' + esc(A[q.followup.key] || '') + '"></div>';
+    }
+    return h + '</div>';
+  }
+
+  function queueSave(k, v){
+    A[k] = v; pending[k] = v; progress();
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 600);
+  }
+  function flush(){
+    var body = pending; pending = {};
+    if(!Object.keys(body).length) return Promise.resolve();
+    return api('/api/venue-info/' + encodeURIComponent(TOKEN), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({answers: body})})
+      .then(function(j){ D.missing = j.missing; drawMissing(); toast(); })
+      .catch(function(e){ toast('Couldn’t save — ' + e.message); });
+  }
+
+  function wire(){
+    app.querySelectorAll('.chip').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var k = btn.dataset.k, v = btn.dataset.v;
+        if(A[k] === v) v = '';
+        btn.parentNode.querySelectorAll('.chip').forEach(function(b){ b.classList.toggle('on', b.dataset.v === v); });
+        var q = findQ(k);
+        if(q && q.followup){ var fu = app.querySelector('[data-fu="' + k + '"]'); if(fu) fu.style.display = q.followup.when.indexOf(v) >= 0 ? '' : 'none'; }
+        queueSave(k, v);
+      });
+    });
+    app.querySelectorAll('input[type=time][data-k],textarea[data-k],.fu input[data-k]').forEach(function(el){
+      el.addEventListener('change', function(){ queueSave(el.dataset.k, el.value.trim()); });
+      if(el.tagName === 'TEXTAREA' || el.type === 'text') el.addEventListener('input', function(){ A[el.dataset.k] = el.value; pending[el.dataset.k] = el.value; clearTimeout(saveTimer); saveTimer = setTimeout(flush, 1200); });
+    });
+    document.getElementById('upIn').addEventListener('change', function(e){ var files = Array.prototype.slice.call(e.target.files || []); e.target.value = ''; uploadAll(files); });
+    document.getElementById('tnc').addEventListener('change', function(){ document.getElementById('err').textContent = ''; });
+    document.getElementById('sub').addEventListener('click', submit);
+  }
+  function findQ(k){ var f = null; D.sections.forEach(function(s){ s.questions.forEach(function(q){ if(q.key === k) f = q; }); }); return f; }
+
+  function drawMissing(){
+    var el = document.getElementById('miss'); if(!el) return;
+    var m = (D.missing || []).map(function(k){ var q = findQ(k); return q ? q.label : k; });
+    el.innerHTML = m.length ? '<div class="miss"><b>Still to answer (' + m.length + '):</b> ' + m.map(esc).join(' · ') + '<br><span style="font-size:12px">You can submit now and fill these in later — just open this link again.</span></div>' : '';
+  }
+
+  function submit(){
+    var err = document.getElementById('err'), btn = document.getElementById('sub');
+    if(!document.getElementById('tnc').checked){ err.textContent = 'Please tick that you’ve read the Terms & Conditions.'; return; }
+    btn.disabled = true; err.textContent = '';
+    clearTimeout(saveTimer);
+    var body = {answers: pending, accept_tnc: true, submit: true}; pending = {};
+    api('/api/venue-info/' + encodeURIComponent(TOKEN), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)})
+      .then(function(j){
+        D.missing = j.missing; D.tnc_accepted = true;
+        var b = D.booking;
+        app.innerHTML = '<div class="card done"><div class="big">🎈</div><h2>Thank you' + (b.first_name ? ', ' + esc(b.first_name) : '') + '!</h2>'
+          + '<p>Our team will use this to plan ' + (b.child_name ? esc(b.child_name) + '’s' : 'your') + ' party setup. '
+          + (j.missing.length ? 'A few questions are still open — you can fill them in anytime from this same link.' : 'We’ll reach out if we need anything else.') + '</p>'
+          + '<div style="margin-top:18px"><button class="btn" style="background:#fff;color:var(--pu-d);box-shadow:none;border:1.5px solid var(--li2)" id="again">Review or update my answers</button></div></div>';
+        document.getElementById('again').onclick = function(){ D.submitted_at = 'today'; render(); window.scrollTo(0, 0); };
+        window.scrollTo(0, 0);
+      })
+      .catch(function(e){ err.textContent = e.message; btn.disabled = false; });
+  }
+
+  // ── photos & videos ──
+  function drawMedia(){
+    var el = document.getElementById('media'); if(!el) return;
+    el.innerHTML = (D.media || []).map(function(m){
+      var src = API + m.url;
+      var th = m.kind === 'video'
+        ? '<a href="' + esc(src) + '" target="_blank" rel="noopener"><video src="' + esc(src) + '#t=0.5" preload="metadata" muted playsinline></video><span class="play">▶</span></a>'
+        : '<a href="' + esc(src) + '" target="_blank" rel="noopener"><img src="' + esc(src) + '" alt=""></a>';
+      return '<div class="mi" data-m="' + m.id + '"><div class="th">' + th + '</div><div>'
+        + '<div class="tg">' + D.tags.map(function(t){ return '<button type="button" data-t="' + t.key + '" class="' + (m.tags.indexOf(t.key) >= 0 ? 'on' : '') + '">' + esc(t.label) + '</button>'; }).join('') + '</div>'
+        + '<input type="text" placeholder="Note (optional) — e.g. decor on this wall" value="' + esc(m.caption || '') + '">'
+        + '<button type="button" class="rm">Remove</button></div></div>';
+    }).join('') + '<div id="upl"></div>';
+    el.querySelectorAll('.mi').forEach(function(row){
+      var id = Number(row.dataset.m), m = D.media.filter(function(x){ return x.id === id; })[0];
+      row.querySelectorAll('.tg button').forEach(function(b){
+        b.addEventListener('click', function(){
+          var t = b.dataset.t, i = m.tags.indexOf(t);
+          if(i >= 0) m.tags.splice(i, 1); else m.tags.push(t);
+          b.classList.toggle('on', i < 0);
+          saveMedia(m);
+        });
+      });
+      var cap = row.querySelector('input');
+      cap.addEventListener('change', function(){ m.caption = cap.value.trim(); saveMedia(m); });
+      row.querySelector('.rm').addEventListener('click', function(){
+        if(!confirm('Remove this ' + (m.kind === 'video' ? 'video' : 'photo') + '?')) return;
+        api('/api/venue-info/' + encodeURIComponent(TOKEN) + '/media/' + id, {method:'DELETE'})
+          .then(function(){ D.media = D.media.filter(function(x){ return x.id !== id; }); drawMedia(); toast('Removed'); })
+          .catch(function(e){ toast(e.message); });
+      });
+    });
+  }
+  function saveMedia(m){
+    api('/api/venue-info/' + encodeURIComponent(TOKEN) + '/media/' + m.id, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({tags: m.tags, caption: m.caption || ''})})
+      .then(function(){ toast(); }).catch(function(e){ toast(e.message); });
+  }
+  function shrink(file){
+    return new Promise(function(res){
+      if(!/^image\/(jpeg|png|webp|heic|heif)/i.test(file.type) || !window.createImageBitmap){ res(file); return; }
+      createImageBitmap(file).then(function(bm){
+        var s = Math.min(1, 1600 / Math.max(bm.width, bm.height));
+        var c = document.createElement('canvas'); c.width = Math.round(bm.width * s); c.height = Math.round(bm.height * s);
+        c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height);
+        c.toBlob(function(b){ res(b && b.size < file.size ? new File([b], (file.name || 'photo').replace(/\.\w+$/, '') + '.jpg', {type:'image/jpeg'}) : file); }, 'image/jpeg', 0.82);
+      }).catch(function(){ res(file); });
+    });
+  }
+  function uploadAll(files){
+    var box = document.getElementById('upl');
+    var chain = Promise.resolve();
+    files.forEach(function(f, i){
+      chain = chain.then(function(){
+        var isVid = /^video\//.test(f.type);
+        if(isVid && f.size > D.limits.video_mb * 1024 * 1024){ toast('“' + f.name + '” is over ' + D.limits.video_mb + ' MB — please trim it'); return; }
+        box.innerHTML = '<div class="upl">Uploading ' + (i + 1) + ' of ' + files.length + '… <span id="pct">0%</span></div>';
+        return shrink(f).then(function(file){
+          return new Promise(function(res){
+            var fd = new FormData(); fd.append('file', file, file.name || (isVid ? 'video.mp4' : 'photo.jpg')); fd.append('tags', '');
+            var x = new XMLHttpRequest();
+            x.open('POST', API + '/api/venue-info/' + encodeURIComponent(TOKEN) + '/media');
+            x.upload.onprogress = function(e){ var p = document.getElementById('pct'); if(p && e.lengthComputable) p.textContent = Math.round(e.loaded / e.total * 100) + '%'; };
+            x.onload = function(){
+              var j = {}; try{ j = JSON.parse(x.responseText); }catch(e){}
+              if(x.status >= 200 && x.status < 300){ D.media = j.media || D.media; }
+              else toast(j.detail || 'Upload failed (' + x.status + ')');
+              res();
+            };
+            x.onerror = function(){ toast('Upload failed — check your connection'); res(); };
+            x.send(fd);
+          });
+        });
+      });
+    });
+    chain.then(function(){ drawMedia(); });
+  }
+})();
+</script>
+</body>
+</html>

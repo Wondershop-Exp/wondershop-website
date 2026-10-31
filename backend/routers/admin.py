@@ -3580,6 +3580,12 @@ async def send_summary_email(lead_id: int, body: SendSummaryEmailRequest, x_admi
         if fake_req.gift_bill_live:
             fake_req.gift_order_total = _money(_go.get("total")) if _go.get("total") is not None else float(_lp.get("gift_total") or 0)
             fake_req.gift_order_status_label = _go.get("status_label")
+        if lead.get("is_booking"):
+            try:
+                from routers.venue_info import ensure_venue_link
+                fake_req.venue_info_url = await ensure_venue_link(lead_id)
+            except Exception:
+                logger.exception(f"Lead #{lead_id}: venue form link for the summary email failed")
 
         # _send_user_ack never raises on its own (by design, for the
         # original fire-and-forget /submit flow) -- it always records the

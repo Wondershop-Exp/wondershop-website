@@ -145,6 +145,9 @@ class LeadSubmitRequest(BaseModel):
     # Set only by the admin summary-email resend (2026-10-25): live Return
     # Gifts bill — whether there is one, and its current status.
     gift_bill_live:             Optional[bool] = None
+    # Venue & society form link (2026-10-31) — set by /submit for bookings,
+    # shown as a nudge in the customer confirmation email.
+    venue_info_url:             Optional[str] = None
     gift_order_status_label:    Optional[str] = None
     # Music add-ons (internal field names still say "dj" — see builder.html
     # for the same convention) — Music Lights (Rs.1,500) / Smoke Machine
@@ -1602,6 +1605,18 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
         )
 
     reward_html = _html_reward_card(req, reward_code, added_service_label)
+    venue_form_html = ""
+    if recipient_kind == "customer" and getattr(req, "venue_info_url", None):
+        _vu = _html_escape(req.venue_info_url)
+        venue_form_html = (
+            '<div style="background:#F7F3FD;border:1px solid #E4DAF7;border-radius:12px;padding:14px 16px;margin:16px 0">'
+            '<div style="font-size:14.5px;font-weight:700;color:#2D2140;margin-bottom:4px">📍 One more thing — a 2-minute venue check</div>'
+            '<div style="font-size:13px;line-height:1.55;color:#5B4B78">Tell us about setup timings, lift &amp; parking and society rules, '
+            'and add a few photos of the space. It helps our team plan a smooth setup and pack-up.</div>'
+            f'<div style="margin-top:10px"><a href="{_vu}" style="display:inline-block;background:#E65A96;color:#fff;'
+            'text-decoration:none;font-weight:700;font-size:14px;padding:10px 20px;border-radius:999px">Share venue details</a></div>'
+            '</div>'
+        )
     referral_html = _html_referral_card(req, referral_code) if recipient_kind == "customer" else ""
 
     tnc_html = ""
@@ -1632,6 +1647,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
         _html_section_title("Booking Details" if is_booking else "Enquiry Details") + details_html,
         (_html_section_title("Event Schedule") + _html_details_table(
             [(t or "—", i or "") for t, i in event_schedule])) if event_schedule else "",
+        venue_form_html,
         (_html_section_title("Order Summary") + order_html) if order_rows else "",
         gift_bill_html,
         services_html,
@@ -2473,6 +2489,16 @@ async def submit_lead(req: LeadSubmitRequest):
     # Sheet row + customer confirmation email go out immediately either way
     # — the customer shouldn't wait on the scratch card for their own
     # confirmation (2026-08-12, per Shruti).
+    # Venue & society form link for bookings (2026-10-31) — shown on the
+    # confirmation page and in the confirmation email.
+    venue_info_url = None
+    if req.is_booking:
+        try:
+            from routers.venue_info import ensure_venue_link
+            venue_info_url = await ensure_venue_link(lead_id, "website")
+            req.venue_info_url = venue_info_url
+        except Exception as exc:
+            logger.error(f"Lead #{lead_id}: venue form link couldn't be created — {exc}")
     await _notify_customer(lead_id, req, reward_code, referral_code)
 
     # The team-facing "order booking" notification (email + WhatsApp) is
@@ -2488,6 +2514,7 @@ async def submit_lead(req: LeadSubmitRequest):
         "lead_id": lead_id,
         "reward_code": reward_code,
         "referral_code": referral_code,
+        "venue_info_url": venue_info_url,
         "message": "We'll be in touch within a few hours!",
     }
 

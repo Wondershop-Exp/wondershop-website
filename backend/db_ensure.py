@@ -56,6 +56,7 @@ SAFE_MIGRATIONS = [
     "077_vendor_notes.sql",
     "078_sales_lead_names.sql",
     "079_spy_reg_gender_override.sql",
+    "080_venue_info.sql",
 ]
 
 

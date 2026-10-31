@@ -557,6 +557,11 @@ body.browse-mode .browse-cta{display:flex}
 .rent-info{background:var(--li3);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;font-size:13px;line-height:1.5;color:#3B2A55;margin-top:14px}
 .rent-sum{margin-top:12px;font-size:13px;font-weight:700;color:#3B2A55;text-align:center}
 .rv-quote{font-size:12px;color:var(--gy);font-weight:600}
+.conf-venue{display:flex;gap:12px;align-items:flex-start;background:#FFF8E8;border:1.5px solid #F6D58E;border-radius:16px;padding:14px 16px;margin:0 0 14px}
+.conf-venue .cv-ic{font-size:26px;line-height:1}
+.conf-venue .cv-tx{display:flex;flex-direction:column;gap:4px;font-size:13px;color:#5B4B2A;line-height:1.5}
+.conf-venue .cv-tx b{font-size:14.5px;color:var(--bk)}
+.conf-venue a{align-self:flex-start;margin-top:6px;background:var(--pk);color:#fff;text-decoration:none;font-weight:700;font-size:13.5px;padding:9px 16px;border-radius:999px}
 .dec-addon-panel{grid-column:1/-1;background:#F7F2FF;border:1.5px solid var(--li2);border-radius:14px;padding:14px 16px}
 .dec-addon-panel .dap-h{font-family:var(--fd);font-weight:700;font-size:14px;color:var(--bk)}
 .dec-addon-panel .dap-s{font-size:12px;color:var(--gy);margin:3px 0 10px;line-height:1.5}
@@ -2521,6 +2526,14 @@ body.browse-mode .browse-cta{display:flex}
          screen" — the Lead ID the backend assigned on submit (S._lastLeadId).
          Hidden if the submit call never returned one (e.g. offline/failed). -->
     <div id="confOrderId" class="conf-order-id" style="display:none">Order ID: #<span id="confOrderIdVal"></span></div>
+  </div>
+  <!-- 2026-10-31, per Shruti — soft nudge to fill the venue & society form
+       (venue.html?t=…), link returned by /api/leads/submit. -->
+  <div class="conf-venue" id="confVenue" style="display:none">
+    <div class="cv-ic">📍</div>
+    <div class="cv-tx"><b>One more thing — a 2-minute venue check</b>
+      <span>Setup timings, lift &amp; parking, society rules and a few photos of the space. It helps our team plan a smooth setup and pack-up — you can also fill it later from your email.</span>
+      <a id="confVenueBtn" href="#" target="_blank" rel="noopener">Share venue details →</a></div>
   </div>
   <div class="cal-note" id="confCalNote">📅 Calendar invite sent to your email &amp; Wondershop team — your date is blocked!</div>
   <div class="urgent-note" id="confUrgentNote" style="display:none">⚡ Since your event is less than 3 days away, we haven't taken any advance and this booking isn't confirmed yet. Our team will call you within 24 hours to check feasibility.</div>
@@ -6369,6 +6382,7 @@ async function doCo(){
         try{
           const __rj=await __r.json();
           if(__rj && __rj.lead_id){S._lastLeadId=__rj.lead_id;}
+          if(__rj && __rj.venue_info_url){S._venueUrl=__rj.venue_info_url;}   // venue & society form (2026-10-31)
           if(__rj && __rj.reward_code && __reward){
             __reward.code=__rj.reward_code;
             __reward.sub='Your code: '+__rj.reward_code+'. '+__reward.sub;
@@ -6476,6 +6490,7 @@ async function doCo(){
     if(S._lastLeadId){document.getElementById('confOrderIdVal').textContent=S._lastLeadId;orderIdBox.style.display='block';}
     else orderIdBox.style.display='none';
   }
+  {const cv=document.getElementById('confVenue');if(cv){if(S._venueUrl){document.getElementById('confVenueBtn').href=S._venueUrl;cv.style.display='flex';}else cv.style.display='none';}}   // venue form nudge (2026-10-31)
 
   if(__urgent){
     heroIcon.textContent='📞';

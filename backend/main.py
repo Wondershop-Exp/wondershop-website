@@ -100,6 +100,8 @@ app.include_router(booking_invites.router, prefix="/api", tags=["Booking Invites
 app.include_router(sorting_hat.router, prefix="/api", tags=["Sorting Hat"])  # 2026-10-18 volunteer passcode app
 import booking_quote
 app.include_router(booking_quote.router, prefix="/api", tags=["Booking Quotation"])
+from routers import venue_info
+app.include_router(venue_info.router, prefix="/api", tags=["Venue Info"])   # 2026-10-31 venue & society form
 
 @app.get("/")
 async def root():

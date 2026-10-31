@@ -39,6 +39,9 @@ MAX_BODY_BYTES = 12 * 1024 * 1024  # partner form: cheque (5MB) + volunteer resu
 # host's photos, plus the cheque. Only that one (rate-limited) path gets the
 # bigger cap (2026-10-14).
 PARTNER_FORM_MAX_BYTES = 60 * 1024 * 1024
+# Venue form uploads (2026-10-31): one video up to 30 MB per request.
+VENUE_MEDIA_MAX_BYTES = 32 * 1024 * 1024
+_VENUE_MEDIA_RX = re.compile(r"/api/venue-info/[A-Za-z0-9_-]+/media")
 
 # (method, path, path_is_prefix, max_requests, window_seconds)
 PUBLIC_LIMITS = [
@@ -56,6 +59,8 @@ PUBLIC_LIMITS = [
     # generous, just a ceiling against a runaway sender (2026-10-12).
     ("POST", "/api/integrations/aisensy/webhook", False, 5000, 3600),
     ("POST", "/api/integrations/slack/events", False, 2000, 3600),
+    # Venue form (2026-10-31): saves + uploads from the customer's phone.
+    ("POST", "/api/venue-info/", True, 300, 3600),
 ]
 
 # ─── Roles (2026-10-01, per Shruti: "separate out logins for the sales team.
@@ -106,6 +111,8 @@ SALES_ALLOWED = [(m, re.compile(p)) for m, p in [
     # Final e-invite on a booking (2026-10-14). The "show on website" switch
     # is checked for admin inside routers/booking_invites.py.
     ("*",    rf"/api/admin/bookings/{_ID}/invite(/.*)?"),
+    # Venue & society form on a booking (2026-10-31).
+    ("*",    rf"/api/admin/bookings/{_ID}/venue-info(/.*)?"),
 ]]
 
 
@@ -155,7 +162,9 @@ async def security_middleware(request: Request, call_next):
         _sweep(now)
 
     cl = request.headers.get("content-length", "")
-    if cl.isdigit() and int(cl) > (PARTNER_FORM_MAX_BYTES if path == "/api/vendor-onboarding/submit" else MAX_BODY_BYTES):
+    _cap = (PARTNER_FORM_MAX_BYTES if path == "/api/vendor-onboarding/submit"
+            else VENUE_MEDIA_MAX_BYTES if _VENUE_MEDIA_RX.fullmatch(path) else MAX_BODY_BYTES)
+    if cl.isdigit() and int(cl) > _cap:
         return JSONResponse({"detail": "That upload is too large."}, status_code=413)
 
     for i, (method, rule_path, is_prefix, max_req, window) in enumerate(PUBLIC_LIMITS):

@@ -169,6 +169,20 @@ table.list th.sortable:hover{color:var(--bk)}
 .fb-res{margin-top:12px;background:var(--li3);border-radius:12px;padding:12px 14px;font-size:13.5px}
 .fb-res .stars{color:#F5A400;letter-spacing:1px}
 .fb-res table{border-collapse:collapse;margin-top:6px}.fb-res td{padding:3px 14px 3px 0}
+.ven-st{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 10px;margin-left:6px}
+.ven-st.ok{background:#EAF7EF;color:#16794A}.ven-st.part{background:#FFF6E3;color:#8A5A00}.ven-st.no{background:#F3F1F7;color:var(--gy)}
+.ven-tbl{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+.ven-tbl td{padding:5px 8px;border-bottom:1px solid #F1ECF8;vertical-align:top}
+.ven-tbl td:first-child{color:var(--gy);width:55%}
+.ven-tbl tr.sec td{font-weight:700;color:var(--plum);background:var(--li3);border-bottom:none}
+.ven-tbl .miss{color:#B4232C;font-style:italic}
+.ven-media{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
+.ven-media figure{margin:0;border:1px solid var(--li2);border-radius:10px;overflow:hidden;background:#fff}
+.ven-media .vm-th{height:110px;background:#F1ECF8;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--gy);cursor:pointer}
+.ven-media .vm-th img,.ven-media .vm-th video{width:100%;height:100%;object-fit:cover}
+.ven-media figcaption{padding:6px 8px;font-size:11.5px}
+.ven-media .vm-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:3px}
+.ven-media .vm-tags span{background:#F3EDFD;color:var(--plum);border-radius:999px;padding:1px 7px;font-weight:700}
 
 /* ─── Leads / Bookings tabs ─── */
 .tabs{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
@@ -939,6 +953,11 @@ body.role-sales .admin-only{display:none!important}
     <!-- Partners & Expenses (2026-10-12, per Shruti) — admin only, never
          rendered for the sales login (renderTeamBlock) and its API refuses
          the sales password. -->
+    <!-- Venue & society form (2026-10-31, per Shruti) — venue.html?t=<token> -->
+    <div class="log-section" id="venSection" style="display:none">
+      <h3>📍 Venue &amp; Society Details</h3>
+      <div id="venBlock"></div>
+    </div>
     <div class="log-section" id="teamSection" style="display:none">
       <h3>Partners &amp; Expenses <span style="font-size:11px;font-weight:600;color:var(--gy);text-transform:none;letter-spacing:0">admin only</span></h3>
       <div id="teamBlock"></div>
@@ -1682,7 +1701,7 @@ function renderBookingNav(d){
   nav.innerHTML = d.sections.filter(s => s.section==='Notes' || (s.fields||[]).length).map(s => {
     const id = 'sect-'+secId(s.section);
     return '<a href="#'+id+'" onclick="bdJump(event,\''+id+'\')">'+esc(s.section)+'</a>';
-  }).join('') + (d.is_booking && ROLE !== 'sales' ? '<a href="#teamSection" onclick="bdJump(event,\'teamSection\')">Partners &amp; expenses</a><a href="#fbSection" onclick="bdJump(event,\'fbSection\')">Feedback</a>' : '') + (d.is_spy_booking ? '<a href="#spySection" onclick="bdJump(event,\'spySection\')">Spy registration</a>' : '') + '<a href="#bdLog" onclick="bdJump(event,\'bdLog\')">Modification trail</a>'
+  }).join('') + (d.is_booking ? '<a href="#venSection" onclick="bdJump(event,\'venSection\')">Venue details</a>' : '') + (d.is_booking && ROLE !== 'sales' ? '<a href="#teamSection" onclick="bdJump(event,\'teamSection\')">Partners &amp; expenses</a><a href="#fbSection" onclick="bdJump(event,\'fbSection\')">Feedback</a>' : '') + (d.is_spy_booking ? '<a href="#spySection" onclick="bdJump(event,\'spySection\')">Spy registration</a>' : '') + '<a href="#bdLog" onclick="bdJump(event,\'bdLog\')">Modification trail</a>'
     + '<button type="button" class="sec-all" id="secAllBtn" onclick="secToggleAll()">Collapse all</button>';
 }
 
@@ -1984,6 +2003,97 @@ async function saveTeam(btn){
 // what to ask about (pre-ticked from the booking), create the link, then
 // Email it from here and/or open WhatsApp with the message filled in.
 let FB = null;
+// ── Venue & society form (2026-10-31, per Shruti) ─────────────────────
+// One link per booking (venue.html?t=…): share by email / WhatsApp, see the
+// answers, what's missing, and the venue photos/videos with their tags.
+let VEN = null;
+async function renderVenueBlock(d){
+  const sec = document.getElementById('venSection'), block = document.getElementById('venBlock');
+  if(!sec || !block) return;
+  if(!d.is_booking){ sec.style.display = 'none'; block.innerHTML = ''; return; }
+  sec.style.display = 'block';
+  block.innerHTML = '<span style="font-size:12.5px;color:var(--gy)">Loading…</span>';
+  try{ VEN = await apiCall('/api/admin/bookings/'+d.lead_id+'/venue-info'); }
+  catch(e){ block.innerHTML = '<div style="color:var(--pk);font-size:13px">Could not load: '+esc(e.message)+'</div>'; return; }
+  if(CURRENT_LEAD_ID !== d.lead_id) return;
+  drawVenueBlock();
+}
+function _venWaMsg(){
+  const b = VEN.booking;
+  return 'Hi'+(b.first_name?' '+b.first_name:'')+'! 🎈 To plan '+(b.child_name?b.child_name+'\u2019s':'your')+' party setup, timings and pack-up smoothly, '
+    + 'please share a few details about the venue — timings, lift & parking, society rules — and a few photos of the space. '
+    + 'It takes about 2 minutes and you can come back to it anytime:\n'+VEN.url+'\n\nTeam Wondershop Experiences';
+}
+function drawVenueBlock(){
+  const block = document.getElementById('venBlock'); if(!block || !VEN) return;
+  const st = VEN.submitted_at ? (VEN.missing.length ? ['part','Submitted · '+VEN.missing.length+' still open'] : ['ok','Submitted ✓'])
+    : (VEN.answered ? ['part','In progress · '+VEN.answered+' of '+VEN.total] : (VEN.opened_at ? ['no','Opened, not answered yet'] : ['no','Not opened yet']));
+  const digits = String(VEN.phone||'').replace(/\D/g,'');
+  const wa = digits ? 'https://wa.me/'+(digits.length===10?'91'+digits:digits)+'?text='+encodeURIComponent(_venWaMsg()) : '';
+  let h = '<div style="font-size:13px;color:var(--gy)">Venue timings, lift &amp; parking, society rules and photos — the customer fills it on their phone. '
+    + 'Website bookings get the link on the confirmation page and email.<span class="ven-st '+st[0]+'">'+esc(st[1])+'</span></div>'
+    + '<div class="fb-btns" style="margin-top:10px">'
+    + (wa ? '<a class="fb-btn wa" href="'+esc(wa)+'" target="_blank" rel="noopener" onclick="markVenueWhatsapp()">WhatsApp to client</a>' : '')
+    + '<button class="fb-btn gh" onclick="navigator.clipboard.writeText('+attrJson(_venWaMsg())+').then(()=>{showToast(\'Message copied — paste it in the event group\');markVenueWhatsapp();})">Copy WhatsApp message</button>'
+    + '<button class="fb-btn pk" onclick="emailVenue(this)"'+(VEN.email?'':' disabled title="No email on file"')+'>Email</button>'
+    + '<button class="fb-btn gh" onclick="navigator.clipboard.writeText('+attrJson(VEN.url)+').then(()=>showToast(\'Link copied\'))">Copy link</button>'
+    + '<a class="fb-btn gh" href="'+esc(VEN.url)+'" target="_blank" rel="noopener">Open ↗</a></div>'
+    + '<div class="fb-meta">'+[VEN.emailed_at?'Emailed '+esc(VEN.emailed_at):null, VEN.whatsapp_at?'WhatsApp '+esc(VEN.whatsapp_at):null,
+        VEN.opened_at?'Opened '+esc(VEN.opened_at):null, VEN.updated_at?'Last updated '+esc(VEN.updated_at):null,
+        VEN.tnc_accepted_at?'T&amp;C accepted '+esc(VEN.tnc_accepted_at):null].filter(Boolean).join(' · ')+'</div>';
+  if(VEN.answered || VEN.media.length){
+    let last = '';
+    h += '<table class="ven-tbl">' + VEN.rows.map(r=>{
+      let out = '';
+      if(r.section !== last){ last = r.section; out += '<tr class="sec"><td colspan="2">'+esc(r.section)+'</td></tr>'; }
+      return out + '<tr><td>'+esc(r.label)+'</td><td>'+(r.answer ? esc(r.answer) : (r.required ? '<span class="miss">Not answered</span>' : '—'))+'</td></tr>';
+    }).join('') + '</table>';
+  }
+  if(VEN.media.length){
+    const lbl = {}; (VEN.tags||[]).forEach(t=>lbl[t.key]=t.label);
+    h += '<div style="font-weight:700;font-size:13px;margin-top:14px">Venue photos &amp; videos ('+VEN.media.length+')</div><div class="ven-media">'
+      + VEN.media.map(m=>'<figure><div class="vm-th" data-vm="'+m.id+'" data-kind="'+m.kind+'" onclick="openVenueMedia('+m.id+')">'+(m.kind==='video'?'▶ Video':'Loading…')+'</div>'
+        + '<figcaption><div class="vm-tags">'+(m.tags.length?m.tags.map(t=>'<span>'+esc(lbl[t]||t)+'</span>').join(''):'<i style="color:var(--gy)">No tag</i>')+'</div>'
+        + (m.caption?esc(m.caption):'')+'</figcaption></figure>').join('') + '</div>';
+  }
+  block.innerHTML = h;
+  // thumbnails need the admin header, so fetch them as blobs (photos only; videos on click)
+  VEN.media.filter(m=>m.kind==='image').forEach(async m=>{
+    try{
+      const r = await fetch(API+m.url, {headers:{'X-Admin-Password': getPw()}});
+      if(!r.ok) return;
+      const u = URL.createObjectURL(await r.blob()); m._blob = u;
+      const el = document.querySelector('.vm-th[data-vm="'+m.id+'"]'); if(el) el.innerHTML = '<img src="'+u+'" alt="">';
+    }catch(e){}
+  });
+}
+async function openVenueMedia(id){
+  const m = (VEN.media||[]).find(x=>x.id===id); if(!m) return;
+  const w = window.open('', '_blank');
+  try{
+    if(!m._blob){
+      showToast('Opening '+(m.kind==='video'?'video':'photo')+'…');
+      const r = await fetch(API+m.url, {headers:{'X-Admin-Password': getPw()}});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      m._blob = URL.createObjectURL(await r.blob());
+    }
+    if(w) w.location.href = m._blob;
+  }catch(e){ if(w) w.close(); showToast('Could not open: '+e.message); }
+}
+async function emailVenue(btn){
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first.'); highlightWhoName(); return; }
+  btn.disabled = true;
+  try{
+    const r = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/venue-info/email', {method:'POST', body: JSON.stringify({changed_by:who})});
+    showToast('✓ Venue form emailed to '+r.sent_to);
+    VEN = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/venue-info'); drawVenueBlock();
+  }catch(e){ btn.disabled = false; if(e.message!=='unauthorized') showToast('Could not send: '+e.message); }
+}
+function markVenueWhatsapp(){
+  apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/venue-info/whatsapp', {method:'POST', body: JSON.stringify({changed_by:getName()||''})})
+    .then(()=>apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/venue-info')).then(r=>{ VEN = r; drawVenueBlock(); }).catch(()=>{});
+}
 async function renderFeedbackBlock(d){
   const sec = document.getElementById('fbSection'), block = document.getElementById('fbBlock');
   if(!sec || !block) return;
@@ -4319,6 +4429,7 @@ function renderDetail(d){
   renderInviteBlock(d);
   renderTeamBlock(d);
   renderFeedbackBlock(d);
+  renderVenueBlock(d);
   // Return Gift Order sits inside Billing & Rewards (2026-10-25, per Shruti).
   document.getElementById('giftOrderBlock').innerHTML = '';
   const giftOrderBox = giftOrderHtml(d.gift_order, d.lead_id, loadDetail);
