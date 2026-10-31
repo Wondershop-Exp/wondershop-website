@@ -1855,9 +1855,27 @@ async function tbcSave(i, status){
   }catch(e){ if(e.message!=='unauthorized') showToast('⚠ '+e.message); }
 }
 
+// Sales quote of a not-yet-converted sales lead (2026-10-31, per Shruti — "we
+// cannot see any quote for this lead"): read-only, edited on the sales panel.
+function salesQuoteCardHtml(d){
+  const q = d.sales_quote; if(!q) return '';
+  const row = i => '<tr><td>'+esc(i.label)+'</td><td>'+_inr(Number(i.mrp||0))+'</td><td'+(Number(i.quote)<Number(i.mrp)?' class="neg"':'')+'>'+_inr(Number(i.quote||0))+'</td></tr>';
+  const disc = Number(q.mrp||0) - Number(q.agreed||0);
+  return '<div class="dash-card" style="margin-top:14px"><div class="dash-card-title-row"><div class="dash-card-title" style="margin-bottom:0">Sales quote</div>'
+    + '<a class="linkbtn" href="sales-leads.html?ids='+d.lead_id+'&title='+encodeURIComponent('Lead #'+d.lead_id)+'" target="_blank">Edit on sales panel ↗</a></div>'
+    + '<div class="gt-breakup"><table><thead><tr><th>Item</th><th>MRP</th><th>Sales quote</th></tr></thead><tbody>'
+    + q.items.map(row).join('')
+    + '</tbody><tfoot><tr><td>Total</td><td>'+_inr(Number(q.mrp||0))+'</td><td>'+_inr(Number(q.quote_total||0))+'</td></tr>'
+    + (Math.abs(Number(q.agreed) - Number(q.quote_total)) >= 1 ? '<tr><td>Agreed with client</td><td></td><td><b>'+_inr(Number(q.agreed))+'</b></td></tr>' : '')
+    + '</tfoot></table></div>'
+    + (disc > 0 ? '<div style="font-size:12.5px;color:#B42318;margin-top:6px">Discount '+_inr(disc)+' on MRP</div>' : '')
+    + (q.gift_items.length ? '<div class="gt-breakup gifts"><div class="gb-hd">Return gifts — billed separately</div><table><tbody>'+q.gift_items.map(row).join('')+'</tbody><tfoot><tr><td>Return gifts total</td><td></td><td>'+_inr(Number(q.gift_total||0))+'</td></tr></tfoot></table></div>' : '')
+    + '<div style="font-size:11.5px;color:var(--gy);margin-top:8px">Copied onto this page as services and prices when the lead is converted to a booking.</div></div>';
+}
 function renderBookingBar(d){
   const bar = document.getElementById('bdBar');
-  const gt = bdMoney(bdVal(d, 'bill_grand_total'));
+  let gt = bdMoney(bdVal(d, 'bill_grand_total'));
+  if((gt === null || gt === 0) && d.sales_quote) gt = Number(d.sales_quote.agreed||0);   // sales lead: its quote (2026-10-31)
   const advF = bdField(d, 'bill_advance');
   const adv = advF ? bdMoney(advF.customer_choice) : null;   // Balance Due is computed from this same Current Value
   // Until the team confirms the advance arrived (Payment Status), it is only "pending".
@@ -4407,7 +4425,7 @@ function renderDetail(d){
   // over the boot-time cache, which may not have resolved yet.
   if(d.lead_status_options && d.lead_status_options.length) LEAD_STATUS_OPTIONS = d.lead_status_options;
   if(d.non_convert_reason_options && d.non_convert_reason_options.length) NON_CONVERT_REASON_OPTIONS = d.non_convert_reason_options;
-  document.getElementById('statusBlock').innerHTML = statusBlockHtml(d);
+  document.getElementById('statusBlock').innerHTML = statusBlockHtml(d) + salesQuoteCardHtml(d);
 
   // 2026-08-19, per Shruti follow-up: "if a booking is marked as cancelled,
   // no further updates can be done on the values of the booking. same for

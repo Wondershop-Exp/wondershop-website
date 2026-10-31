@@ -1518,6 +1518,9 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
         },
         "advance_confirmed": advance_confirmed,
         "sales_activity_requests": sales_activity_requests,
+        # A sales lead's quote lives in the sales panel until it's converted
+        # (2026-10-31, per Shruti) — shown read-only on the lead page.
+        "sales_quote": (await _sales_quote_for(lead_id)) if not is_booking else None,
         "pricing": ({"subtotal": pricing["subtotal"], "checkout_total": pricing["checkout_total"],
                      "total_mrp": pricing["total_mrp"], "discount_pct": pricing["discount_pct"],
                      "discount_amt": pricing["discount_amt"], "extra_items": pricing["extra_items"],
@@ -2660,6 +2663,28 @@ async def _copy_sales_line_quotes(lead_id: int, who: str) -> None:
 def cat_gift_price(name: str):
     from booking_pricing import GIFT_PRICES
     return GIFT_PRICES.get(name)
+
+
+async def _sales_quote_for(lead_id: int) -> Optional[dict]:
+    try:
+        from routers.sales_leads import _list_breakdown
+        pb = await database.fetch_one(
+            "SELECT p.requirements, p.activities, l.kids_count, l.client_budget FROM lead_sales_playbook p "
+            "JOIN leads l ON l.lead_id = p.lead_id WHERE p.lead_id = :id", values={"id": lead_id})
+        if not pb:
+            return None
+        j = lambda v: (json.loads(v) if isinstance(v, str) else v) if v is not None else None
+        b = _list_breakdown(j(pb["requirements"]) or {}, j(pb["activities"]) or [], pb["kids_count"])
+        if not b["items"] and not b["gift_items"]:
+            return None
+        cb = float(pb["client_budget"]) if pb["client_budget"] is not None else None
+        line = lambda i: {"label": i["label"], "mrp": i.get("mrp"), "quote": i.get("quote")}
+        return {"items": [line(i) for i in b["items"]], "gift_items": [line(i) for i in b["gift_items"]],
+                "mrp": b["total"], "quote_total": b["quote_total"], "gift_total": b["gift_total"],
+                "agreed": cb if cb else b["quote_total"]}
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: couldn't build the sales quote")
+        return None
 
 
 class LineQuotesRequest(BaseModel):
