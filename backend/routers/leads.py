@@ -1611,7 +1611,7 @@ def _build_html_email(*, is_booking: bool, lead_id: int, req: LeadSubmitRequest,
         venue_form_html = (
             '<div style="background:#F7F3FD;border:1px solid #E4DAF7;border-radius:12px;padding:14px 16px;margin:16px 0">'
             '<div style="font-size:14.5px;font-weight:700;color:#2D2140;margin-bottom:4px">📍 One more thing — a 2-minute venue check</div>'
-            '<div style="font-size:13px;line-height:1.55;color:#5B4B78">Tell us about setup timings, lift &amp; parking and society rules, '
+            '<div style="font-size:13px;line-height:1.55;color:#5B4B78">Tell us about setup timings, lift &amp; parking and venue rules, '
             'and add a few photos of the space. It helps our team plan a smooth setup and pack-up.</div>'
             f'<div style="margin-top:10px"><a href="{_vu}" style="display:inline-block;background:#E65A96;color:#fff;'
             'text-decoration:none;font-weight:700;font-size:14px;padding:10px 20px;border-radius:999px">Share venue details</a></div>'

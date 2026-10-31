@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <!--
-  Venue & society information form (2026-10-31, per Shruti — replaces the
+  Venue information form (2026-10-31, per Shruti — replaces the
   Google Form). Opened from venue.html?t=<token>: the order confirmation page,
   the confirmation email, or the email / WhatsApp the team sends from the
   booking page. Backend: backend/routers/venue_info.py.
@@ -130,7 +130,7 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
       + (b.event_date ? '<span>Event</span><b>' + esc(b.event_date + (b.event_time ? ' · ' + b.event_time : '')) + '</b>' : '')
       + (b.venue ? '<span>Venue</span><b>' + esc(b.venue) + (A.maps_link ? ' · <a href="' + esc(A.maps_link) + '" target="_blank" rel="noopener" style="color:var(--pu-d)">Map ↗</a>' : '') + '</b>' : '')
       + '</div><div class="intro">' + (b.first_name ? 'Hi ' + esc(b.first_name) + '! ' : '')
-      + 'Some venues and societies have rules that change how we set up and pack up. Tell us what you know — tap “Not sure” if you don’t, and you can come back to this link anytime.</div>'
+      + 'Every venue — a society hall, banquet, restaurant or turf — has its own rules that change how we set up and pack up. Tell us what you know — tap “Not sure” if you don’t, and you can come back to this link anytime.</div>'
       + '<div class="prog" id="prog"></div></div>';
     D.sections.forEach(function(s, si){
       h += '<div class="card"><div class="sec-h">' + (si + 1) + ' · ' + esc(s.title) + '</div>';

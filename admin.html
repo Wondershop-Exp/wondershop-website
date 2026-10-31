@@ -955,7 +955,7 @@ body.role-sales .admin-only{display:none!important}
          the sales password. -->
     <!-- Venue & society form (2026-10-31, per Shruti) — venue.html?t=<token> -->
     <div class="log-section" id="venSection" style="display:none">
-      <h3>📍 Venue &amp; Society Details</h3>
+      <h3>📍 Venue Details</h3>
       <div id="venBlock"></div>
     </div>
     <div class="log-section" id="teamSection" style="display:none">
@@ -2021,7 +2021,7 @@ async function renderVenueBlock(d){
 function _venWaMsg(){
   const b = VEN.booking;
   return 'Hi'+(b.first_name?' '+b.first_name:'')+'! 🎈 To plan '+(b.child_name?b.child_name+'\u2019s':'your')+' party setup, timings and pack-up smoothly, '
-    + 'please share a few details about the venue — timings, lift & parking, society rules — and a few photos of the space. '
+    + 'please share a few details about the venue — timings, lift & parking, venue rules — and a few photos of the space. '
     + 'It takes about 2 minutes and you can come back to it anytime:\n'+VEN.url+'\n\nTeam Wondershop Experiences';
 }
 function drawVenueBlock(){
@@ -2030,7 +2030,7 @@ function drawVenueBlock(){
     : (VEN.answered ? ['part','In progress · '+VEN.answered+' of '+VEN.total] : (VEN.opened_at ? ['no','Opened, not answered yet'] : ['no','Not opened yet']));
   const digits = String(VEN.phone||'').replace(/\D/g,'');
   const wa = digits ? 'https://wa.me/'+(digits.length===10?'91'+digits:digits)+'?text='+encodeURIComponent(_venWaMsg()) : '';
-  let h = '<div style="font-size:13px;color:var(--gy)">Venue timings, lift &amp; parking, society rules and photos — the customer fills it on their phone. '
+  let h = '<div style="font-size:13px;color:var(--gy)">Venue timings, lift &amp; parking, venue rules and photos — the customer fills it on their phone. '
     + 'Website bookings get the link on the confirmation page and email.<span class="ven-st '+st[0]+'">'+esc(st[1])+'</span></div>'
     + '<div class="fb-btns" style="margin-top:10px">'
     + (wa ? '<a class="fb-btn wa" href="'+esc(wa)+'" target="_blank" rel="noopener" onclick="markVenueWhatsapp()">WhatsApp to client</a>' : '')

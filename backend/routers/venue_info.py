@@ -71,6 +71,11 @@ SECTIONS = [
          ("other_event_note", "Its timing (e.g. till 3 PM)", ["before", "after", "both"])),
     ]),
     ("Getting our things in", [
+        # Same values as the booking's Location Type (2026-10-31 — "what if the
+        # venue is a restaurant or a banquet hall or turf?").
+        ("venue_type", "What kind of venue is it?", "chips",
+         [("Society Banquet Hall", "Society clubhouse / hall"), ("Society Banquet", "Banquet hall"), ("Restaurant", "Restaurant"),
+          ("Turf", "Turf"), ("Club", "Club / resort"), ("Play Area", "Play area"), ("Home", "Home"), ("Other", "Other")], True, None),
         ("maps_link", "Google Maps link of the venue", "url", None, True, None),
         ("floor", "Which floor is the party on?", "chips",
          [("ground", "Ground"), ("1-3", "1–3"), ("4-10", "4–10"), ("11+", "11+"), ("terrace", "Terrace")], True, None),
@@ -89,12 +94,12 @@ SECTIONS = [
         ("trolleys", "Are trolleys available?", "chips",
          [("yes", "Yes"), ("no", "No"), ("unsure", "Not sure")], True, None),
     ]),
-    ("Society rules", [
-        ("gate_pass", "Does the society need a gate pass / permission for our team?", "chips",
+    ("Venue rules", [
+        ("gate_pass", "Does the venue or building need an entry pass / permission for our team?", "chips",
          [("yes", "Yes, I'll arrange it"), ("no", "No"), ("unsure", "Not sure")], True, None),
         ("tape", "Can we use tape on the walls?", "chips",
          [("yes", "Yes"), ("no", "No"), ("unsure", "Not sure")], True, None),
-        ("venue_notes", "Anything else the venue or society told you?", "text", None, False, None),
+        ("venue_notes", "Anything else the venue told you? (rules, restrictions, timings)", "text", None, False, None),
     ]),
 ]
 QUESTIONS = {q[0]: q for _s, qs in SECTIONS for q in qs}
@@ -175,9 +180,11 @@ def _hhmm(v) -> Optional[str]:
 async def booking_times(lead_id: int) -> dict:
     """The booking's current event start / end, handover and packup times."""
     out = {}
-    lead = await database.fetch_one("SELECT event_time, venue_maps_link FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    lead = await database.fetch_one("SELECT event_time, venue_maps_link, location_type FROM leads WHERE lead_id = :id", values={"id": lead_id})
     out["event_start"] = _hhmm(lead["event_time"]) if lead else None
     out["maps_link"] = ((lead["venue_maps_link"] or "").strip() or None) if lead else None
+    lt = ((lead["location_type"] or "").strip() if lead else "")
+    out["venue_type"] = lt if lt in {v for v, _ in QUESTIONS["venue_type"][3]} else None
     pb = None
     try:
         pb = await database.fetch_one(
@@ -216,11 +223,14 @@ async def push_times_to_booking(lead_id: int, answers: dict, keys) -> None:
     from routers.admin import update_booking_field, FieldUpdateRequest
     current = await booking_times(lead_id)
     for k in keys:
-        v = (answers.get(k) or "").strip() if k == "maps_link" else _hhmm(answers.get(k))
+        v = (answers.get(k) or "").strip() if k in ("maps_link", "venue_type") else _hhmm(answers.get(k))
         if not v or v == current.get(k):
             continue
         try:
-            if k == "maps_link":
+            if k == "venue_type":
+                await update_booking_field(lead_id, FieldUpdateRequest(
+                    field_key="location_type", assigned_value=v, changed_by=SYNC_WHO), settings.ADMIN_PASSWORD)
+            elif k == "maps_link":
                 await update_booking_field(lead_id, FieldUpdateRequest(
                     field_key="venue_maps_link", assigned_value=v, changed_by=SYNC_WHO), settings.ADMIN_PASSWORD)
             elif k == "event_start":
@@ -242,7 +252,7 @@ async def push_times_to_booking(lead_id: int, answers: dict, keys) -> None:
             logger.warning(f"Lead #{lead_id}: venue form couldn't update {k} on the booking — {exc}")
 
 
-SYNC_KEYS = ("event_start", "event_end", "setup_from", "clear_by", "maps_link")   # maps_link <-> Venue Maps Link
+SYNC_KEYS = ("event_start", "event_end", "setup_from", "clear_by", "maps_link", "venue_type")   # maps_link <-> Venue Maps Link
 
 
 def _missing(answers: dict) -> List[str]:
@@ -533,7 +543,7 @@ def _email_html(first: str, child: str, url: str, hdr: dict) -> str:
 <div style="font-family:Georgia,serif;font-size:21px;font-weight:700;color:#fff">A quick venue check for {party}</div></td></tr>
 <tr><td style="padding:24px 26px;font-size:15px;line-height:1.6;color:#2D2140">
 {hi}<br><br>To plan setup, timings and pack-up smoothly, please tell us a little about the venue —
-timings, lift and parking, society rules — and add a few photos of the space. It takes about 2 minutes,
+timings, lift and parking, venue rules — and add a few photos of the space. It takes about 2 minutes,
 and you can save and come back anytime.
 <div style="margin:14px 0 0;font-size:13px;color:#6B6280">Booking #{hdr.get('lead_id')}{(' · ' + when) if when else ''}{(' · ' + hdr['venue']) if hdr.get('venue') else ''}</div>
 <div style="text-align:center;margin:24px 0 8px">
