@@ -98,7 +98,9 @@ from catalogue_data import rental_desc   # tables & chairs on rent (2026-10-25)
 
 DECOR_ADDONS = [{"name": "Cake Table", "price": 1500, "tiers": ["Classic", "Premium"]},
                 {"name": "Age Light", "price": 1500, "tiers": ["Classic", "Premium"]},
-                {"name": "Cutouts", "price": 1500, "tiers": ["Classic"]}]
+                {"name": "Cutouts", "price": 1500, "tiers": ["Classic"]},
+                # 2026-11-01, per Shruti — offered with Science Luxury decor (Luxury tier).
+                {"name": "Welcome Arch + Welcome Board", "price": 3000, "tiers": ["Luxury"]}]
 # Photographer tier cards in builder.html display "Classic Package" /
 # "Premium Package" / "Signature Package" — not the bare tier word.
 PHOTO_LABELS = {"Classic": "Classic Package", "Premium": "Premium Package", "Signature": "Signature Package"}

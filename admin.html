@@ -5449,6 +5449,7 @@ const DECOR_ADDON_UI = [
   {key:'addon_decor_cake_table', n:'Cake Table', e:'🎂', tiers:['Classic','Premium']},
   {key:'addon_decor_age_light',  n:'Age Light',  e:'💡', tiers:['Classic','Premium']},
   {key:'addon_decor_cutouts',    n:'Cutouts',    e:'✂️', tiers:['Classic']},
+  {key:'addon_decor_welcome',    n:'Welcome Arch + Welcome Board', e:'🎪', tiers:['Luxury'], p:3000, theme:/science/i},   // 2026-11-01
 ];
 function _decorAddonField(key){
   for(const s of ((CURRENT_DETAIL && CURRENT_DETAIL.sections) || [])){
@@ -5465,13 +5466,13 @@ function decorAddonChipsRow(locked){
   const isOn = f => !!(f && !f.removed && f.customer_choice === 'Yes');
   const chips = DECOR_ADDON_UI.map(a=>{
     const f = _decorAddonField(a.key); if(!f) return '';
-    const on = isOn(f), offered = !tier || a.tiers.includes(tier);
+    const on = isOn(f), offered = (!tier || a.tiers.includes(tier)) && (!a.theme || !dv || a.theme.test(dv));
     if(!offered && !on) return '';
-    const label = (on?'✓ ':'+ ')+a.e+' '+a.n+' — ₹1,500'+(!offered?' · ⚠ included in '+tier+' — tap to remove':'');
+    const label = (on?'✓ ':'+ ')+a.e+' '+a.n+' — ₹'+(a.p||1500).toLocaleString('en-IN')+(!offered?' · ⚠ included in '+tier+' — tap to remove':'');
     if(locked) return on ? '<span class="chip-ro">'+esc(label.replace(/^✓ /,''))+'</span>' : '';
     return '<button type="button" class="'+(on?'sel':'')+'" onclick="toggleDecorAddonField(\''+a.key+'\')">'+esc(label)+'</button>';
   }).join('');
-  const note = (tier==='Luxury'||tier==='Signature') && !chips ? 'Cake table, age light &amp; cutouts are included with '+tier+' decor.' : (locked ? '' : 'Decor add-ons · ₹1,500 each · tap to add / remove');
+  const note = (tier==='Luxury'||tier==='Signature') && !chips ? 'Cake table, age light &amp; cutouts are included with '+tier+' decor.' : (locked ? '' : 'Decor add-ons · tap to add / remove');
   if(!chips && !note) return '';
   return '<tr class="sugg-tr decor-addons-tr"><td colspan="5"><div class="sugg-box">'
     + (note ? '<div class="sugg-head" style="color:var(--gy);font-weight:600">'+note+'</div>' : '')

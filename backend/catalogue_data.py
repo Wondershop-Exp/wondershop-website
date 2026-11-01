@@ -120,7 +120,7 @@ THEMES = [
     {"id": "art", "n": "Art & Paint Party", "b": "150 (Colorful mix)",
      "tierPhotos": {"Classic": "Decor/decor-art-classic.png", "Premium": "Decor/decor-art-1panel.jpg", "Luxury": "Decor/decor-art-2panel.jpg"}},
     {"id": "science", "n": "Science Party", "b": "150 (Blue, Green, White)",
-     "tierPhotos": {"Premium": "Decor/decor-science-1panel.jpg"}},
+     "tierPhotos": {"Premium": "Decor/decor-science-1panel.jpg", "Luxury": "Decor/decor-science-2panel.jpg"}},   # Luxury 2026-11-01
     {"id": "racing", "n": "Race Track & Cars", "b": "150 (Black, Red, Yellow)",
      "tierPhotos": {"Luxury": "Decor/decor-racing-2panel.jpg"}},
     {"id": "football", "n": "Football Party", "b": "150 (Green, Black, White)",

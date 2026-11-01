@@ -2935,9 +2935,11 @@ const DECOR_ADDONS=[
   {key:'cakeTable',n:'Cake Table',e:'🎂',p:1500,tiers:['classic','premium']},
   {key:'ageLight',n:'Age Light',e:'💡',p:1500,tiers:['classic','premium']},
   {key:'cutouts',n:'Cutouts',e:'✂️',p:1500,tiers:['classic']},
+  // 2026-11-01, per Shruti — Science Luxury decor only (decors = exact decor ids).
+  {key:'welcomeArch',n:'Welcome Arch + Welcome Board',e:'🎪',p:3000,tiers:['luxury'],decors:['science-luxury']},
 ];
 function decorTierKey(){const m=S.decor&&S.decor.id?/-(classic|premium|luxury|signature)$/.exec(S.decor.id):null;return m?m[1]:'';}
-function decorAddonsAvail(){const t=decorTierKey();return DECOR_ADDONS.filter(a=>a.tiers.includes(t));}
+function decorAddonsAvail(){const t=decorTierKey();return DECOR_ADDONS.filter(a=>a.tiers.includes(t)&&(!a.decors||(S.decor&&a.decors.includes(S.decor.id))));}
 function decorAddonsOn(){return decorAddonsAvail().filter(a=>S.decorAddons[a.key]);}
 function decorAddonsTotal(){return decorAddonsOn().reduce((t,a)=>t+a.p,0);}
 const THEMES=[
@@ -2993,7 +2995,7 @@ const THEMES=[
     // Classic tier photo added 2026-08-24 from "Art Party Decor Classic.png"
     // in the latest img/Decor upload batch — Premium/Luxury unchanged.
     tierPhotos:{Classic:'img/Decor/decor-art-classic.png',Premium:'img/Decor/decor-art-1panel.jpg',Luxury:'img/Decor/decor-art-2panel.jpg'}},
-  {id:'science',n:'Science Party',e:'🔬',bg:'linear-gradient(135deg,#BCD8E8,#52C470)',age:'6-12',gn:'Both',b:'150 (Blue, Green, White)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Premium:'img/Decor/decor-science-1panel.jpg'}},
+  {id:'science',n:'Science Party',e:'🔬',bg:'linear-gradient(135deg,#BCD8E8,#52C470)',age:'6-12',gn:'Both',b:'150 (Blue, Green, White)',s:'3.5 hrs',ni:'Tables, chairs',tag:'new',tierPhotos:{Premium:'img/Decor/decor-science-1panel.jpg',Luxury:'img/Decor/decor-science-2panel.jpg'}},   // Luxury 2-panel added 2026-11-01
   {id:'racing',n:'Race Track & Cars',e:'🏎️',bg:'linear-gradient(135deg,#F57A1A,#374151)',age:'3-8',gn:'Boys',b:'150 (Black, Red, Yellow)',s:'3 hrs',ni:'Tables',tag:'pop',
     tierPhotos:{Luxury:'img/Decor/decor-racing-2panel.jpg'},
     // Extra Luxury-tier photo added 2026-09-09 from "F1 Luxury.png" (per
@@ -5267,7 +5269,7 @@ function syncDecorAddonsUI(scroll){
     panel.innerHTML='<div class="dap-s" style="margin:0">✓ Cake table, age light &amp; cutouts are already included with '+tierName+' decor.</div>';
   }else{
     panel.innerHTML='<div class="dap-h">✨ Make it extra special — add-ons for your '+tierName+' decor</div>'
-      +'<div class="dap-s">₹1,500 each · tap to add, tap again to remove'+(tier==='premium'?' · Cutouts are already included in Premium':'')+'</div><div class="dap-btns"></div>';
+      +'<div class="dap-s">Tap to add, tap again to remove'+(tier==='premium'?' · Cutouts are already included in Premium':'')+'</div><div class="dap-btns"></div>';
     const wrap=panel.querySelector('.dap-btns');
     avail.forEach(a=>{
       const b=document.createElement('button');b.type='button';b.className='pkg-btn decor-addon-btn'+(S.decorAddons[a.key]?' on':'');

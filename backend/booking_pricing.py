@@ -81,6 +81,7 @@ DECOR_ADDONS = [
     ("addon_decor_cake_table", "Cake Table", 1500),
     ("addon_decor_age_light", "Age Light", 1500),
     ("addon_decor_cutouts", "Cutouts", 1500),
+    ("addon_decor_welcome", "Welcome Arch + Welcome Board", 3000),   # 2026-11-01 — Science Luxury decor
 ]
 DECOR_ADDON_LABEL = "{} (decor add-on)"
 # 2026-09-22, per Shruti — Piñata Bags admin dropdown (Add-ons section):

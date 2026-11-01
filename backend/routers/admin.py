@@ -236,6 +236,7 @@ FIELD_CATALOG = [
     {"key": "addon_decor_cake_table", "label": "Decor: Cake Table",     "section": "Add-ons"},
     {"key": "addon_decor_age_light",  "label": "Decor: Age Light",      "section": "Add-ons"},
     {"key": "addon_decor_cutouts",    "label": "Decor: Cutouts",        "section": "Add-ons"},
+    {"key": "addon_decor_welcome",    "label": "Decor: Welcome Arch + Welcome Board", "section": "Add-ons"},   # 2026-11-01, Rs 3,000
     # Tables & chairs on rent (2026-10-25, per Shruti) — quantities + cover from
     # the website / sales panel; Quote (₹) is what goes into Total MRP.
     {"key": "addon_rent_tables",      "label": "Tables & Chairs: Tables (2×4 ft)", "section": "Add-ons"},
