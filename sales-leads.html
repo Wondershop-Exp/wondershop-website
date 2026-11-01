@@ -392,7 +392,7 @@ body.role-sales .admin-only{display:none!important}
   <div class="topbar">
     <h1>Sales Quotation Module</h1>
     <div class="who">
-      Editing as <input type="text" id="whoName" onchange="saveName()">
+      Editing as <input type="text" id="whoName" name="ws-editor" autocomplete="off" data-lpignore="true" data-1p-ignore onchange="saveName()">
       <button type="button" class="save-status" id="saveStatus" onclick="onSaveBtnClick()">💾 <span id="saveStatusText">Save</span></button>
       <span class="role-badge" id="roleBadge"></span>
       <a class="linkbtn" href="admin.html">Leads &amp; Bookings</a>
@@ -406,7 +406,7 @@ body.role-sales .admin-only{display:none!important}
 
   <div id="listView">
     <div class="searchbar">
-      <input type="text" id="searchQ" placeholder="Search by client name, mobile, child's name or lead source..." onkeydown="if(event.key==='Enter')doSearch()" oninput="onSearchInput()">
+      <input type="search" id="searchQ" name="ws-search" autocomplete="off" data-lpignore="true" data-1p-ignore placeholder="Search by client name, mobile, child's name or lead source..." onkeydown="if(event.key==='Enter')doSearch()" oninput="onSearchInput()">
       <button class="btn bk" onclick="doSearch()">Search</button>
       <button class="btn pk" onclick="startNewLead()" id="newLeadBtn">+ Register a lead</button>
     </div>
@@ -3868,6 +3868,19 @@ async function decorRefRemove(btn){
   }catch(e){ showToast(e.message); btn.disabled = false; return; }
   decorRefRender();
 }
+</script>
+<script>
+// Browsers' password manager fills the saved login name ("Shruti") into the
+// search box. Keep it read-only until the user clicks it, and clear any
+// value the browser put there before the user typed (2026-11-01).
+(function(){
+  var q = document.getElementById('searchQ'); if(!q) return;
+  var typed = false;
+  q.setAttribute('readonly', 'readonly');
+  q.addEventListener('focus', function(){ q.removeAttribute('readonly'); });
+  q.addEventListener('keydown', function(){ typed = true; });
+  [300, 1000, 2500].forEach(function(ms){ setTimeout(function(){ if(!typed && q.value){ q.value = ''; if(typeof doSearch==='function' && document.getElementById('app') && getComputedStyle(document.getElementById('app')).display!=='none') doSearch(); } }, ms); });
+})();
 </script>
 </body>
 </html>
