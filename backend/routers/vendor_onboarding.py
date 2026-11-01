@@ -445,7 +445,7 @@ async def _save_volunteer(profile: dict, resume, mobile: str, vendor_id: Optiona
 # photos), heads-up time, setup time, venue needs, minimum order and the
 # Mumbai zones they cover. Alternate number, address, locality and pincode
 # are mandatory for them. See js/carnival-form.js.
-CARNIVAL = "carnival stalls & mascots"
+CARNIVAL = "live stations & mascots"   # was "Carnival Stalls & Mascots" (renamed 2026-11-01, migration 079)
 MAX_CATALOGUES = 10
 MAX_CATALOGUE_BYTES = 10 * 1024 * 1024
 MAX_CATALOGUE_TOTAL = 50 * 1024 * 1024
@@ -959,7 +959,7 @@ async def lookup_pincode(pin: str):
 # "there are some volunteers who have filled in some details, but left some
 # open. how can I ask them to update the missing fields?" Shown in the Partners
 # tab and on the private update link, so both list the same things.
-_LISTED_TYPES = {"event volunteer", "carnival stalls & mascots", "wondershop team member", "photographer", "decorator",
+_LISTED_TYPES = {"event volunteer", "live stations & mascots", "transport services", "wondershop team member", "photographer", "decorator",
                  "baker", "stationery store", "personalization store", "gift shop", "packaging store", "art & craft store",
                  "host", "dj", "magician", "bubble show artist", "science show artist", "puppet show artist", "other entertainer"}
 

@@ -52,10 +52,10 @@ logger = logging.getLogger(__name__)
 
 PLACEHOLDER_MOBILE = "1111111111"   # same placeholder as migrations/052
 # Same list as the admin Partners tab (DEALS_OPTIONS in admin.html).
-DEALS = ['Event Volunteer', 'Wondershop Team Member', 'Carnival Stalls & Mascots', 'Photographer', 'Decorator',
+DEALS = ['Event Volunteer', 'Wondershop Team Member', 'Live Stations & Mascots', 'Photographer', 'Decorator',
          'Baker', 'Stationery Store', 'Personalization Store', 'Gift Shop', 'Packaging Store', 'Art & Craft Store',
          'Host', 'DJ', 'Magician', 'Bubble Show Artist', 'Science Show Artist', 'Puppet Show Artist',
-         'Other Entertainer', 'Others']
+         'Other Entertainer', 'Transport Services', 'Others']
 
 PROMPT = """You are helping Wondershop Experiences (a kids' birthday party company in Mumbai) save supplier contacts. The founder posted a message in Slack, possibly with photos of visiting cards. Today is {today}.
 

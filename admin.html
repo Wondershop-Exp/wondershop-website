@@ -3547,9 +3547,9 @@ async function resolveVendorPending(action){
 }
 
 // 2026-10-12: dropdowns in the partner form (same list as vendor-onboarding.html).
-const DEALS_OPTIONS = ['Event Volunteer','Wondershop Team Member','Carnival Stalls & Mascots','Photographer','Decorator','Baker','Stationery Store',
+const DEALS_OPTIONS = ['Event Volunteer','Wondershop Team Member','Live Stations & Mascots','Photographer','Decorator','Baker','Stationery Store',
   'Personalization Store','Gift Shop','Packaging Store','Art & Craft Store','Host','DJ','Magician','Bubble Show Artist',
-  'Science Show Artist','Puppet Show Artist','Other Entertainer','Others'];
+  'Science Show Artist','Puppet Show Artist','Other Entertainer','Transport Services','Others'];
 function vendorSelectHtml(f, raw){
   let opts = (f.options==='DEALS' ? DEALS_OPTIONS : f.options).map(o=>Array.isArray(o)?o:[o,o]);
   if(raw && !opts.some(o=>o[0].toLowerCase()===String(raw).toLowerCase())) opts = [[raw, raw+' (old value)']].concat(opts);
@@ -3558,14 +3558,14 @@ function vendorSelectHtml(f, raw){
     + '</select>';
 }
 // ── Carnival Stalls & Mascots partner (2026-10-12) ──────────────────────
-function isCarnivalVendor(v){ return /carnival stalls/i.test(v.deals_in||'') || !!v.carnival_profile; }
+function isCarnivalVendor(v){ return /carnival stalls|live stations/i.test(v.deals_in||'') || !!v.carnival_profile; }
 function carnivalSectionHtml(v){
   const p = v.carnival_profile || {};
   const zones = (window.WS_VOLUNTEER && WS_VOLUNTEER.zones) || [];
   const zoneNames = (p.zones||[]).map(n=>{ const z = zones.find(x=>x.n===n); return n+' · '+(z?z.en:''); });
   const row = (k, val) => val ? '<div style="margin-top:6px"><b style="font-size:12px;color:var(--gy);text-transform:uppercase;letter-spacing:.3px">'+esc(k)+'</b><div style="white-space:pre-wrap">'+esc(val)+'</div></div>' : '';
   setTimeout(()=>loadVendorCatalogues(v.vendor_id), 0);
-  return '<div class="vol-card"><h3>🎪 Carnival Stalls &amp; Mascots</h3>'
+  return '<div class="vol-card"><h3>🎪 Live Stations &amp; Mascots</h3>'
     + (v.carnival_profile ? '' : '<div class="vol-note">The partner hasn\u2019t filled in the carnival questions yet — send them an update link.</div>')
     + ((p.services||[]).length ? '<h4>Stalls &amp; activities</h4>' + p.services.map(stallCardHtml).join('') : '')
     + (v.carnival_profile ? '<h4>Booking terms</h4>' + row('Heads-up time', p.headsup) + row('Setup time', p.setup_time) + row('Needs from the venue', p.venue_needs) + row('Minimum order', p.min_order) + row('Instagram / website', p.instagram)

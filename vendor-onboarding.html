@@ -195,7 +195,7 @@ body.is-host .req-host{display:inline}
           <select id="f_deals">
             <option value="">Select...</option>
             <option value="Event Volunteer">Event Volunteer</option>
-            <option value="Carnival Stalls & Mascots">Carnival Stalls &amp; Mascots</option>
+            <option value="Live Stations & Mascots">Live Stations &amp; Mascots</option>
             <option value="Wondershop Team Member">Wondershop Team Member (internal)</option>
             <option value="Photographer">Photographer</option>
             <option value="Decorator">Decorator</option>
@@ -212,6 +212,7 @@ body.is-host .req-host{display:inline}
             <option value="Science Show Artist">Science Show Artist</option>
             <option value="Puppet Show Artist">Puppet Show Artist</option>
             <option value="Other Entertainer">Other Entertainer / Performer</option>
+            <option value="Transport Services">Transport Services</option>
             <option value="Others">Others</option>
           </select>
         </div>
@@ -483,7 +484,7 @@ dealsSelect.addEventListener('change', () => {
 function isVolunteer(){ return dealsSelect.value === 'Event Volunteer'; }
 // Carnival Stalls & Mascots (2026-10-12): alternate number, address, locality
 // and pincode are mandatory too.
-function isCarnival(){ return dealsSelect.value === 'Carnival Stalls & Mascots'; }
+function isCarnival(){ return dealsSelect.value === 'Live Stations & Mascots'; }
 function extrasRequired(){ return isVolunteer() || isCarnival(); }
 // Decorator (2026-10-15, per Shruti): alternate number is mandatory.
 function isDecoratorSel(){ return dealsSelect.value === 'Decorator'; }
@@ -634,7 +635,7 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
     }
   }
 
-  const isCarn = deals === 'Carnival Stalls & Mascots' && window.WSCarnival;
+  const isCarn = deals === 'Live Stations & Mascots' && window.WSCarnival;
   if(isCarn){
     const check = WSCarnival.validate();
     if(check.error){
