@@ -876,7 +876,7 @@ ACTIVITY_IMAGES = {
     "zorb": "img/activity/act-body-zorbing.jpg",
     "gym": "img/activity/act-gymnastics.jpg",
     "a26": "img/packages/spy/spy-laser-tunnel.jpg",
-    "a27": "img/packages/spy/act-dark-room.jpg",
+    "a27": "img/packages/spy/act-dark-room-2.jpg",
     "a28": "img/packages/spy/maze.jpg",
     "hit-the-cans": "img/activity/act-hit-the-cans-v2.jpg",
     "face-painting": "img/activity/act-face-painting-v2.jpg",
