@@ -1717,6 +1717,14 @@ async def _build_booking_invoice_pdf(lead_id: int, req: LeadSubmitRequest) -> tu
     breakdown automatically the moment settings.GST_ENABLED is switched on,
     with no code change here (2026-09-11, per Shruti — "we might need to
     add gst later")."""
+    # 2026-11-02, per Shruti: the invoice is the party plan layout with the
+    # payments actually received (and no GST) — same as the booking page's.
+    try:
+        from routers.admin import _build_invoice
+        _l, _n, pdf_bytes, filename = await _build_invoice(lead_id, settings.ADMIN_PASSWORD)
+        return filename, pdf_bytes
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: new invoice layout failed — using the old one")
     invoice_number = await _get_or_create_invoice_number(lead_id)
     _ar = await database.fetch_one("SELECT customer_choice_override FROM booking_field_overrides WHERE lead_id = :id AND field_key = 'client_address' AND NOT removed", values={"id": lead_id})
     _addr = (_ar["customer_choice_override"] if _ar else None) or None

@@ -53,6 +53,7 @@ LAV_CARD = colors.HexColor("#EDE6FA")
 LAV_RULE = colors.HexColor("#E4DAF5")
 PINK_CARD = colors.HexColor("#FBECF1")
 WHITE = colors.white
+GREEN = colors.HexColor("#1E8A4C")
 
 BUSINESS_NAME = "Wondershop Experiences"
 BUSINESS_ADDRESS = "409, Ajmera Sikova, Ghatkopar West, Mumbai – 400086"
@@ -255,8 +256,8 @@ def _img(data: Optional[bytes], w_mm: float, h_mm: Optional[float] = None):
 def quotation_filename(data: dict) -> str:
     who = (data.get("child_first_name") or data.get("client_name") or "Client").strip()
     safe = "".join(c for c in who if c.isalnum() or c in " -_").strip().replace(" ", "-") or "Client"
-    kind = "Party-Plan" if data.get("booked") else "Quotation"
-    qno = "".join(c for c in str(data.get("quote_no") or "") if c.isalnum() or c in "-_")
+    kind = "Invoice" if data.get("invoice") else ("Party-Plan" if data.get("booked") else "Quotation")
+    qno = "".join(c for c in str((data.get("invoice") or {}).get("number") or data.get("quote_no") or "") if c.isalnum() or c in "-_")
     return f"Wondershop-{kind}-{safe}-{qno}.pdf".replace("--", "-")
 
 
@@ -320,11 +321,15 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
     # booked=True (2026-10-06): a confirmed booking's party plan from the
     # bookings panel — no validity window, "Booking No." instead of quote.
     booked = bool(data.get("booked"))
+    INV = data.get("invoice")   # invoice mode (2026-11-02): same layout, actual amounts paid
     meta_rows = [
-        [Paragraph("PARTY PLAN" if booked else "QUOTATION", _style("qt", font=HEAD, size=20, color=PURPLE_DARK, align=TA_RIGHT, leading=23))],
+        [Paragraph("INVOICE" if INV else ("PARTY PLAN" if booked else "QUOTATION"), _style("qt", font=HEAD, size=20, color=PURPLE_DARK, align=TA_RIGHT, leading=23))],
         [Paragraph(f"<font color='#7B5DAE'>{'Booking No.' if booked else 'Quote No.'}</font>&nbsp; <b>{_x(data.get('quote_no'))}</b>", _style("m1", size=8.8, align=TA_RIGHT))],
         [Paragraph(f"<font color='#7B5DAE'>Issued</font>&nbsp; {_x(data.get('issued_at_text'))}", _style("m2", size=8.8, align=TA_RIGHT))],
     ]
+    if INV:
+        meta_rows.insert(1, [Paragraph(f"<font color='#7B5DAE'>Invoice No.</font>&nbsp; <b>{_x(INV.get('number'))}</b>", _style("mi", size=8.8, align=TA_RIGHT))])
+        meta_rows.append([Paragraph(f"<b>{_x(INV.get('status'))}</b>", _style("ms", size=9.5, color=(GREEN if INV.get('paid') else PINK_DARK), align=TA_RIGHT))])
     if not booked:
         meta_rows.append([Paragraph(f"<b>Valid till {_x(data.get('valid_until_text'))}</b>", _style("m3", size=8.8, color=PINK_DARK, align=TA_RIGHT))])
     meta = Table(meta_rows, colWidths=[W * 0.46 - 10 * mm])
@@ -346,7 +351,10 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
     first = (data.get("client_first_name") or "").strip()
     intro = (
         (f"Hi {_x(first)}, thank you" if first else "Thank you")
-        + (" for booking with Wondershop Experiences! Here are all the details of your party — please go "
+        + (" for celebrating with Wondershop Experiences! Here is the invoice for your party, with what you "
+           "paid for each service and the payments we received."
+           if INV else
+           " for booking with Wondershop Experiences! Here are all the details of your party — please go "
            "through them and let us know if anything needs to change."
            if booked else
            " for considering Wondershop Experiences! Here is the party plan we have put together for you, "
@@ -505,7 +513,11 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
     trows.append([Paragraph(party_lbl, _style("gl", font=HEAD, size=13, color=WHITE, leading=16)),
                   Paragraph(inr(T.get("estimate") or 0), _style("gr", font=BODY_BOLD, size=15, color=WHITE, align=TA_RIGHT, leading=18))])
     # Advance + balance under the party total (2026-10-25, per Shruti).
-    if T.get("advance") is not None:
+    if INV and INV.get("payments") is not None:
+        for lbl, amt in INV["payments"]:
+            trows.append([Paragraph(_x(lbl), s_tl), Paragraph(inr(amt), s_tr)])
+        trows.append([Paragraph("<b>Balance due</b>", s_tl), Paragraph(inr(max(0, INV.get("balance") or 0)), s_tr)])
+    elif T.get("advance") is not None:
         adv_lbl = "Advance paid" if T.get("advance_confirmed") else "Advance (to be paid)"
         trows.append([Paragraph(adv_lbl, s_tl), Paragraph(inr(T["advance"]), s_tr)])
         if T.get("balance") is not None:
@@ -547,7 +559,8 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
     if T.get("has_unpriced"):
         notes.append("Items marked <i>Price on request</i> or <i>To be confirmed</i> are not included in the "
                      "Estimated Total; your Party Experience Lead will confirm them.")
-    notes.append("All prices are estimates for the details shown above (date, venue and number of kids).")
+    if not data.get("invoice"):
+        notes.append("All prices are estimates for the details shown above (date, venue and number of kids).")
     if data.get("hide_total"):
         # 2026-10-07, per Shruti — "give an option to the user to hide total
         # from the quote as the user might want to show multiple combinations

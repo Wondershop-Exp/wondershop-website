@@ -411,10 +411,63 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
 @router.get("/admin/bookings/{lead_id}/quotation.pdf")
 async def booking_quotation_pdf(lead_id: int, by: Optional[str] = None, x_admin_password: Optional[str] = Header(None)):
     from routers.admin import _require_admin
-    from routers.decor_refs import current_for_lead
-    from quotation_builder import build_quotation_pdf, fetch_images, quotation_filename
     _require_admin(x_admin_password)
-    data, paths = await booking_quotation_data(lead_id, x_admin_password, by)
+    pdf, fname = await booking_pdf(lead_id, x_admin_password, by)
+    return Response(
+        content=pdf, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"',
+                 "X-Quote-Filename": fname, "Access-Control-Expose-Headers": "X-Quote-Filename",
+                 "Cache-Control": "no-store"},
+    )
+
+
+def invoice_payments(data: dict, fields_val) -> dict:
+    """Actual payments received (2026-11-02, per Shruti: the invoice shows
+    what the customer has paid — advance and the final payment, with how)."""
+    T = data["totals"]
+    grand = float(T.get("estimate") or 0)
+    pays = []
+    adv = _money(fields_val("bill_advance"))
+    if adv and T.get("advance_confirmed"):
+        m = (fields_val("bill_payment_method") or "").strip()
+        pays.append((f"Advance received{(' (' + m + ')') if m else ''}", adv))
+    fin = _money(fields_val("event_payment_confirmed_amount"))
+    if fin:
+        m = (fields_val("event_payment_confirmed_mode") or "").strip()
+        pays.append((f"Payment received{(' (' + m + ')') if m else ''}", fin))
+    received = round(sum(a for _l, a in pays), 2)
+    complete = (fields_val("bill_payment_status") or "").strip().lower() == "complete"
+    if complete and received < grand - 0.5:
+        pays.append(("Balance received", round(grand - received, 2)))
+        received = grand
+    balance = round(grand - received, 2)
+    paid = balance <= 0.5
+    return {"payments": pays, "balance": max(0.0, balance), "paid": paid,
+            "status": "PAID IN FULL" if paid else ("PARTIALLY PAID" if received > 0 else "PAYMENT DUE")}
+
+
+async def booking_pdf(lead_id: int, pw: Optional[str], by: Optional[str] = None, invoice: Optional[dict] = None):
+    """Party plan PDF (or, with invoice={number, date}, the invoice in the same layout)."""
+    from routers.decor_refs import current_for_lead
+    from quotation_builder import build_quotation_pdf, fetch_images, quotation_filename, inr
+    data, paths = await booking_quotation_data(lead_id, pw, by)
+    if invoice:
+        from routers.admin import get_booking_detail
+        d = await get_booking_detail(lead_id, pw)
+        fields = {f["field_key"]: f for sct in d["sections"] for f in sct["fields"]}
+        fv = lambda k: (None if not fields.get(k) or fields[k].get("removed") else (fields[k].get("customer_choice") or fields[k].get("assigned_value")))
+        inv = invoice_payments(data, fv)
+        inv.update(invoice)
+        data["invoice"] = inv
+        addr = (fv("client_address") or "").strip()
+        if addr:
+            data["details"] = [x for x in data["details"]]
+            i = next((k for k, x in enumerate(data["details"]) if x[0] == "Mobile"), 1)
+            data["details"].insert(i + 1, ("Billing address", ", ".join(l.strip() for l in addr.splitlines() if l.strip())))
+        data["issued_at_text"] = invoice.get("date") or data.get("issued_at_text")
+        data["payment_pending"] = not inv["paid"]
+        if not inv["paid"]:
+            data["pay_heading"] = f"PAY THE BALANCE ({inr(inv['balance'])})"
     images = await fetch_images([p for p in paths if not str(p).startswith("aref:")])
     from routers.sales_leads import load_activity_photos
     await load_activity_photos(images, paths)
@@ -433,13 +486,7 @@ async def booking_quotation_pdf(lead_id: int, by: Optional[str] = None, x_admin_
             ref = await item_with_image(int(did[4:]))
     apply_decor_ref(data, images, ref, own=own)
     pdf = build_quotation_pdf(data, images)
-    fname = quotation_filename(data)
-    return Response(
-        content=pdf, media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{fname}"',
-                 "X-Quote-Filename": fname, "Access-Control-Expose-Headers": "X-Quote-Filename",
-                 "Cache-Control": "no-store"},
-    )
+    return pdf, quotation_filename(data)
 
 
 # ── 1-day-before WhatsApp message (2026-10-09, per Shruti) ──────────────

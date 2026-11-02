@@ -3017,74 +3017,13 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
 
 
 async def _build_invoice(lead_id: int, x_admin_password: Optional[str]):
+    """The invoice PDF — the party plan layout with the invoice number and
+    the payments actually received; no GST for now (2026-11-02, per Shruti)."""
     lead = dict(await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id}))
-
-    # Reuse get_booking_detail()'s own live billing recalculation (Discount
-    # %-driven Grand Total, Balance Due = Grand Total − Advance Paid, with
-    # every admin override already folded in) instead of duplicating that
-    # delicate math here.
-    detail = await get_booking_detail(lead_id, x_admin_password)
-    pricing = detail.get("pricing")
-    billing = {f["field_key"]: f for s in detail["sections"] if s["section"] == "Billing & Rewards" for f in s["fields"]}
-
-    def _choice(key):
-        f = billing.get(key)
-        return f.get("customer_choice") if f else None
-
-    snap = _parse_snapshot(lead.get("builder_snapshot"))
-    fake_req = SimpleNamespace(builder_snapshot=snap, child_names=lead.get("child_names"), child_ages=lead.get("child_ages"), payment_method=lead.get("payment_method"))
-
-    # "What changed since checkout" rows for the invoice PDF -- kept on the
-    # OLD delta-vs-snapshot logic (compute_adjustments, unchanged by the
-    # 2026-09-24 Total-MRP rewrite) purely so this annotation list isn't
-    # duplicated against _services_detail_list's checkout-time line items
-    # below. Grand Total itself (via `pricing` above) is NOT derived from this.
-    all_fields2 = {f["field_key"]: f for s in detail["sections"] for f in s["fields"]}
-    legacy_adj = compute_adjustments(
-        lead, snap,
-        {k: f.get("customer_choice") for k, f in all_fields2.items()},
-        {k for k, f in all_fields2.items() if f.get("removed")},
-    )
-
     invoice_number = await _get_or_create_invoice_number(lead_id)
-    data = assemble_invoice_data(
-        lead_id=lead_id,
-        invoice_number=invoice_number,
-        invoice_date_str=_fmt_date_long(date_cls.today()),
-        parent_name=lead.get("parent_name"),
-        phone=lead.get("phone"),
-        email=lead.get("email"),
-        event_title=_party_title(fake_req) or "Birthday Party",
-        event_date_str=_fmt_date_long(lead.get("event_date")),
-        event_time=lead.get("event_time"),
-        venue=lead.get("venue"),
-        city=lead.get("city"),
-        # Separately-billed Return Gifts (2026-10-02) aren't on the event invoice.
-        services_detail=[s for s in _services_detail_list(fake_req) if not s.get("separate")],
-        subtotal=(pricing["subtotal"] if pricing else _money(lead.get("order_grand_total"))),
-        discount_pct=_money(_choice("bill_discount_pct")),
-        grand_total=_money(_choice("bill_grand_total")),
-        advance_paid=_money(_choice("bill_advance")),
-        balance_due=_money(_choice("bill_balance")),
-        total_savings=_money(_choice("bill_total_savings")),
-        freebies_text=_choice("bill_freebies"),
-        payment_method=lead.get("payment_method"),
-        # Original fee rows + one signed row per admin change (the Discount
-        # % change isn't a row — the summary's Discount line already shows it),
-        # so the itemised list explains why the total moved.
-        extra_fee_rows=_order_addon_rows_raw(fake_req) + [
-            (f"Updated — {label}", amount)
-            for label, amount in legacy_adj["sub"] + legacy_adj["extra"]
-        ],
-        advance_confirmed=bool(detail.get("advance_confirmed")),
-        discount_amt=(pricing.get("discount_amt") if pricing else None),
-        gst_enabled=settings.GST_ENABLED,
-        gstin=settings.GSTIN,
-        gst_rate_pct=settings.GST_RATE_PCT,
-        address=_choice("client_address") or (all_fields2.get("client_address") or {}).get("customer_choice"),
-    )
-    pdf_bytes = build_invoice_pdf(data)
-    filename = invoice_filename(data)
+    from booking_quote import booking_pdf
+    pdf_bytes, filename = await booking_pdf(lead_id, x_admin_password, None,
+                                            invoice={"number": invoice_number, "date": _fmt_date_long(date_cls.today())})
     return lead, invoice_number, pdf_bytes, filename
 
 
