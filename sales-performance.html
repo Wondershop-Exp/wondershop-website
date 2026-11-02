@@ -15,6 +15,14 @@
 :root{--ink:#1F1A2E;--mut:#5E5670;--line:#ECE5F7;--bg:#FAF7FD;--pk:#D6457F;--pkd:#B8336A;--pl:#6C4AB6;--gr:#1A7F4B;--rd:#B42318;--or:#B54708;--fd:'Lora',Georgia,serif;--fb:'DM Sans',system-ui,sans-serif}
 *{box-sizing:border-box}
 [hidden]{display:none !important}
+.po-card{margin-top:16px;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:#FCFAFF}
+.po-line{border-bottom:1px solid var(--line)}
+.po-line summary{display:flex;justify-content:space-between;align-items:center;padding:10px 2px;cursor:pointer;list-style:none;font-size:14.5px}
+.po-line summary::-webkit-details-marker{display:none}
+.po-line summary .po-l::before{content:'▸';display:inline-block;width:16px;color:var(--mut);transition:transform .15s}
+.po-line[open] summary .po-l::before{transform:rotate(90deg)}
+.po-v{font-weight:700}
+.po-total{display:flex;justify-content:space-between;padding:12px 2px 2px;font-size:16px;font-weight:800;color:var(--gr)}
 body{margin:0;background:var(--bg);font-family:var(--fb);color:var(--ink)}
 a{color:var(--pkd);text-decoration:none}a:hover{text-decoration:underline}
 .wrap{max-width:1240px;margin:0 auto;padding:24px 16px 48px;display:flex;flex-direction:column;gap:22px}
@@ -249,6 +257,24 @@ function afterRender(){
       if(fresh) setTimeout(() => WSCelebrate.booking(fresh+' new booking'+(fresh>1?'s':'')+'!', 'Converted since you last looked. Brilliant work!'), 700); }
   }catch(e){}
 }
+// Payout summary (2026-11-02, per Shruti): base salary + commission +
+// volunteering + expenses to reimburse, all by EVENT month. Each line opens
+// its breakup.
+function payoutHtml(E, isAdmin){
+  const B = E.base_salary || {total:0, months:[]}, V = E.volunteer || {total:0, items:[]}, X = E.expenses || {total:0, items:[]};
+  const ev = i => '<tr><td>'+fmtD(i.date)+'</td><td><a href="sales-leads.html?ids='+i.lead_id+'">'+esc(i.event||('#'+i.lead_id))+'</a></td><td>'+esc(i.role||'')+(i.details?' · <span class="note">'+esc(i.details)+'</span>':'')+'</td><td>'+money(i.amount)+'</td><td>'+(i.paid?'<span style="color:var(--gr)">Paid</span>':'<span style="color:#B45309">Pending</span>')+'</td></tr>';
+  const tbl = (head, rows) => rows ? '<div style="overflow-x:auto;margin:6px 0 4px"><table style="min-width:0"><thead><tr>'+head.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div>' : '<p class="note" style="margin:6px 0">Nothing this month.</p>';
+  const line = (label, amt, sub, body) => '<details class="po-line"><summary><span class="po-l">'+label+(sub?' <span class="note">'+sub+'</span>':'')+'</span><span class="po-v">'+money(amt)+'</span></summary>'+body+'</details>';
+  const baseBody = (B.months.length ? tbl(['Month','Base salary'], B.months.map(m=>'<tr><td>'+MON[+m.ym.slice(5,7)-1]+' '+m.ym.slice(0,4)+'</td><td>'+(m.amount==null?'<span class="note">Not set</span>':money(m.amount))+'</td></tr>').join('')) : '')
+    + (isAdmin ? '<div style="display:flex;gap:8px;align-items:center;margin:6px 0"><label class="ctl" style="flex-direction:row;align-items:center;gap:8px">Base salary from '+MON[+E.target.ym.slice(5,7)-1]+' '+E.target.ym.slice(0,4)+' (₹/month)<input type="number" min="0" id="tgS" value="'+(B.current??'')+'" style="width:130px"></label><button type="button" class="chip on" onclick="saveTarget()">Save</button></div>' : '');
+  const comBody = tbl(['Event','Booking','Commission on','Rate','Commission'], E.lines.map(l=>'<tr><td>'+(l.event_date?fmtD(l.event_date):'—')+'</td><td>'+esc(l.name||l.lead_id)+'</td><td>'+money(l.base)+'</td><td>'+l.rate_pct+'%</td><td><b>'+money(l.commission)+'</b></td></tr>').join(''));
+  return '<div class="po-card"><div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px"><h3 style="margin:0">Payout summary</h3><span class="note">By event month · click a line for the breakup</span></div>'
+    + line('Base salary', B.total, B.months.length>1?B.months.length+' months':'', baseBody)
+    + line('Commissions', E.commission, E.bookings+' booking'+(E.bookings===1?'':'s'), comBody)
+    + line('Volunteer earnings', V.total, (V.items||[]).length+' entr'+((V.items||[]).length===1?'y':'ies'), tbl(['Event date','Event','Role','Amount','Status'], (V.items||[]).map(ev).join('')))
+    + line('Expenses to reimburse', X.total, (X.items||[]).length ? (X.items.length+' item'+(X.items.length===1?'':'s')) : 'transport, food …', tbl(['Event date','Event','For','Amount','Status'], (X.items||[]).map(ev).join('')))
+    + '<div class="po-total"><span>Total payout</span><span>'+money(E.payout_total||0)+'</span></div></div>';
+}
 function earningsHtml(E){
   const T = E.target, isAdmin = ROLE==='admin';
   const bar = (v, t, col) => '<div style="background:#F3EEFB;border-radius:8px;height:14px;overflow:hidden;margin:6px 0 4px"><div style="height:14px;border-radius:8px;background:'+col+';width:'+Math.min(100, t ? Math.round(100*v/t) : 0)+'%"></div></div>';
@@ -260,6 +286,7 @@ function earningsHtml(E){
     +   '<div class="kpi"><span class="l">Sales commission</span><span class="v">'+money(E.commission)+'</span><span class="s">on '+E.bookings+' booking'+(E.bookings===1?'':'s')+' worth '+money(rev)+'</span></div>'
     +   '<div class="kpi"><span class="l">Volunteering</span><span class="v">'+money(E.volunteer.total)+'</span><span class="s">'+E.volunteer.events+' event'+(E.volunteer.events===1?'':'s')+' · '+money(E.volunteer.paid)+' paid · '+money(E.volunteer.pending)+' pending</span></div>'
     + '</div>';
+  o += payoutHtml(E, isAdmin);
   // slab ladder
   o += '<div style="margin-top:16px"><div style="font-weight:700;margin-bottom:8px">Commission per booking</div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">'
     + E.slabs.map(sl=>{ const here = E.bookings+1 >= sl.from && (sl.to==null || E.bookings+1 <= sl.to);
@@ -311,10 +338,12 @@ async function saveBase(i, reset){
   }catch(e){ $('err').textContent = e.message; $('err').hidden = false; }
 }
 async function saveTarget(){
-  const b = document.getElementById('tgB').value, r = document.getElementById('tgR').value;
+  const tb = document.getElementById('tgB'), tr = document.getElementById('tgR');
+  const b = tb ? tb.value : (D.earnings.target.bookings ?? ''), r = tr ? tr.value : (D.earnings.target.revenue ?? '');
   try{
     const res = await fetch(API+'/api/admin/sales-performance/target', {method:'PUT', headers:{'Content-Type':'application/json','X-Admin-Password':pw()},
-      body: JSON.stringify({rep: D.rep, month: D.earnings.target.ym, bookings: b===''?null:Number(b), revenue: r===''?null:Number(r), changed_by: who()})});
+      body: JSON.stringify({rep: D.rep, month: D.earnings.target.ym, bookings: b===''?null:Number(b), revenue: r===''?null:Number(r),
+        base_salary: (()=>{ const el=document.getElementById('tgS'); const v = el ? el.value : (D.earnings.base_salary||{}).current; return v===''||v==null?null:Number(v); })(), changed_by: who()})});
     if(!res.ok){ const x = await res.json().catch(()=>({})); throw new Error(x.detail||'Save failed'); }
     load();
   }catch(e){ $('err').textContent = e.message; $('err').hidden = false; }

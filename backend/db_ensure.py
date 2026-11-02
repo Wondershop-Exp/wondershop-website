@@ -59,6 +59,7 @@ SAFE_MIGRATIONS = [
     "079_spy_reg_gender_override.sql",
     "080_venue_info.sql",
     "082_partner_categories.sql",
+    "083_base_salary.sql",
 ]
 
 

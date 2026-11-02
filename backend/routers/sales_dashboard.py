@@ -579,10 +579,21 @@ async def _earnings(leads, who: str, d0: date, d1: date, today: date) -> dict:
     nxt_slab = next((upto for upto, _r in COMMISSION_SLABS if upto is not None and n < upto), None)
     # volunteering: Partners & Expenses rows in this person's name
     vol_rows = await database.fetch_all(
-        """SELECT t.amount, t.paid, t.paid_via, t.bill_date, l.event_date, t.lead_id, l.parent_name
+        """SELECT t.amount, t.paid, t.paid_via, t.bill_date, t.role, t.assigned_to, t.notes,
+                  l.event_date, t.lead_id, l.parent_name
            FROM event_team t JOIN leads l ON l.lead_id = t.lead_id
            WHERE lower(trim(t.person_name)) LIKE :p""", values={"p": who.lower() + "%"})
-    vol = [r for r in vol_rows if (r["bill_date"] or r["event_date"]) and d0 <= (r["bill_date"] or r["event_date"]) <= d1]
+    # Payout month = EVENT month (2026-11-02, per Shruti). Rows in a cost
+    # category (transport, food ...) are expenses to reimburse, the rest is
+    # volunteering pay.
+    in_month = [r for r in vol_rows if (r["event_date"] or r["bill_date"]) and d0 <= (r["event_date"] or r["bill_date"]) <= d1]
+    is_exp = lambda r: (r["role"] or "").strip().lower() in EXPENSE_ROLES
+    vol = [r for r in in_month if not is_exp(r)]
+    exp = [r for r in in_month if is_exp(r)]
+    def _item(r):
+        paid = bool(r["paid"] or (r["paid_via"] or "").strip().lower() not in ("", "pending"))
+        return {"lead_id": r["lead_id"], "event": r["parent_name"], "date": (r["event_date"] or r["bill_date"]).isoformat(),
+                "role": r["role"], "details": " · ".join(x for x in (r["assigned_to"], r["notes"]) if x), "amount": float(r["amount"] or 0), "paid": paid}
     v_total = sum(float(r["amount"] or 0) for r in vol)
     v_paid = sum(float(r["amount"] or 0) for r in vol
                  if r["paid"] or (r["paid_via"] or "").strip().lower() not in ("", "pending"))
@@ -590,12 +601,34 @@ async def _earnings(leads, who: str, d0: date, d1: date, today: date) -> dict:
     ym = f"{d1.year}{d1.month:02d}"
     t = await database.fetch_one("SELECT bookings_target, revenue_target FROM sales_targets WHERE rep = :r AND ym = :ym",
                                  values={"r": who, "ym": ym})
+    # Base salary per event month in the range (the latest one set on or before that month carries on).
+    sal_rows = await database.fetch_all("SELECT ym, base_salary FROM sales_targets WHERE rep = :r AND base_salary IS NOT NULL ORDER BY ym",
+                                        values={"r": who})
+    months, y, m = [], d0.year, d0.month
+    while (y, m) <= (d1.year, d1.month):
+        months.append(f"{y}{m:02d}"); m += 1
+        if m == 13:
+            y, m = y + 1, 1
+    base_by_month = []
+    for mo in months:
+        cur = None
+        for sr in sal_rows:
+            if sr["ym"] <= mo:
+                cur = float(sr["base_salary"])
+        base_by_month.append({"ym": f"{mo[:4]}-{mo[4:]}", "amount": cur})
+    base_total = round(sum(b["amount"] or 0 for b in base_by_month), 2)
+    e_total = round(sum(float(r["amount"] or 0) for r in exp), 2)
     return {
         "bookings": n, "commission": round(total, 2), "lines": lines,
         "slabs": [{"from": 1, "to": 5, "rate_pct": 5}, {"from": 6, "to": 10, "rate_pct": 7.5}, {"from": 11, "to": None, "rate_pct": 10}],
         "next_rate_pct": next_rate * 100, "to_next_slab": (nxt_slab - n + 1) if nxt_slab else None,
         "avg_booking": avg_val, "next_booking_commission": round(avg_val * next_rate),
-        "volunteer": {"total": v_total, "paid": v_paid, "pending": round(v_total - v_paid, 2), "events": len(vol)},
+        "volunteer": {"total": v_total, "paid": v_paid, "pending": round(v_total - v_paid, 2), "events": len(vol),
+                      "items": [_item(r) for r in sorted(vol, key=lambda r: r["event_date"] or r["bill_date"])]},
+        "expenses": {"total": e_total, "items": [_item(r) for r in sorted(exp, key=lambda r: r["event_date"] or r["bill_date"])]},
+        "base_salary": {"total": base_total, "months": base_by_month,
+                        "current": base_by_month[-1]["amount"] if base_by_month else None},
+        "payout_total": round(base_total + total + v_total + e_total, 2),
         "total_earnings": round(total + v_total, 2),
         "target": {"ym": f"{ym[:4]}-{ym[4:]}", "bookings": t["bookings_target"] if t else None,
                    "revenue": float(t["revenue_target"]) if t and t["revenue_target"] is not None else None},
@@ -622,11 +655,16 @@ async def set_commission_base(body: CommissionBaseIn, x_admin_password: Optional
     return {"success": True}
 
 
+# Partners & Expenses categories that are costs to reimburse, not pay.
+EXPENSE_ROLES = {"transport", "food", "materials", "printing", "other", "return gifts", "expense", "petrol", "travel"}
+
+
 class TargetIn(BaseModel):
     rep: str
     month: str                      # YYYY-MM
     bookings: Optional[int] = None
     revenue: Optional[float] = None
+    base_salary: Optional[float] = None
     changed_by: Optional[str] = None
 
 
@@ -637,11 +675,13 @@ async def set_target(body: TargetIn, x_admin_password: Optional[str] = Header(No
     if not re.fullmatch(r"\d{4}-\d{2}", body.month or "") or not _rep(body.rep) or _rep(body.rep) == "Unassigned":
         raise HTTPException(status_code=400, detail="Pick a sales person and month.")
     await database.execute(
-        """INSERT INTO sales_targets (rep, ym, bookings_target, revenue_target, updated_by, updated_at)
-           VALUES (:r, :ym, :b, :v, :by, NOW())
+        """INSERT INTO sales_targets (rep, ym, bookings_target, revenue_target, base_salary, updated_by, updated_at)
+           VALUES (:r, :ym, :b, :v, :s, :by, NOW())
            ON CONFLICT (rep, ym) DO UPDATE SET bookings_target = EXCLUDED.bookings_target,
-               revenue_target = EXCLUDED.revenue_target, updated_by = EXCLUDED.updated_by, updated_at = NOW()""",
-        values={"r": _rep(body.rep), "ym": body.month.replace("-", ""), "b": body.bookings, "v": body.revenue, "by": body.changed_by})
+               revenue_target = EXCLUDED.revenue_target, base_salary = EXCLUDED.base_salary,
+               updated_by = EXCLUDED.updated_by, updated_at = NOW()""",
+        values={"r": _rep(body.rep), "ym": body.month.replace("-", ""), "b": body.bookings, "v": body.revenue,
+                "s": body.base_salary, "by": body.changed_by})
     return {"success": True}
 
 
