@@ -205,6 +205,8 @@ body.is-host .req-host{display:inline}
             <option value="Gift Shop">Gift Shop</option>
             <option value="Packaging Store">Packaging Store</option>
             <option value="Art & Craft Store">Art & Craft Store</option>
+            <option value="Hardware Store">Hardware Store</option>
+            <option value="Decoration Store">Decoration Store</option>
             <option value="Host">Host</option>
             <option value="DJ">DJ</option>
             <option value="Magician">Magician</option>
@@ -460,6 +462,16 @@ document.getElementById('f_gst').addEventListener('input', function(){
 });
 
 const dealsSelect = document.getElementById('f_deals');
+// Categories added later from Slack #vendor-contacts (2026-11-02): shown just before "Others".
+function addExtraDeals(list){
+  const others = Array.from(dealsSelect.options).find(o => o.value === 'Others');
+  (list || []).forEach(n => {
+    if(!n || Array.from(dealsSelect.options).some(o => o.value.toLowerCase() === String(n).toLowerCase())) return;
+    const o = document.createElement('option'); o.value = n; o.textContent = n;
+    dealsSelect.insertBefore(o, others || null);
+  });
+}
+fetch(WS_API_BASE + '/api/vendor-onboarding/categories').then(r => r.ok ? r.json() : {}).then(d => addExtraDeals(d.extra)).catch(() => {});
 const dealsOtherFld = document.getElementById('dealsOtherFld');
 dealsSelect.addEventListener('change', () => {
   dealsOtherFld.style.display = dealsSelect.value === 'Others' ? 'block' : 'none';
@@ -747,6 +759,7 @@ const UPD = {token: new URLSearchParams(location.search).get('u') || '', ok: fal
     set('f_email', d.email); set('f_address', d.address);
     set('f_pincode', d.pincode); set('f_city', d.city); set('f_locality', d.locality);
     set('f_payment_mode', d.preferred_payment_mode);
+    addExtraDeals(d.deals_extra);
     if(d.deals_in){
       const opt = Array.from(dealsSelect.options).find(o => o.value.toLowerCase() === d.deals_in.toLowerCase());
       if(opt) dealsSelect.value = opt.value;

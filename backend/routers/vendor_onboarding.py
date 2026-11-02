@@ -919,6 +919,18 @@ _PIN_CACHE_TTL = 7 * 24 * 3600
 _PO_SUFFIX = re.compile(r"\s+(S\.?O|B\.?O|H\.?O|GPO)\.?$", re.I)
 
 
+async def _extra_cats():
+    from partner_categories import extra_categories
+    return await extra_categories()
+
+
+@router.get("/categories")
+async def partner_categories_list():
+    """The "What do you deal in?" list incl. categories added from Slack (2026-11-02)."""
+    from partner_categories import all_categories, extra_categories
+    return {"categories": await all_categories(), "extra": await extra_categories()}
+
+
 @router.get("/pincode/{pin}")
 async def lookup_pincode(pin: str):
     if not _PINCODE_RE.match(pin or ""):
@@ -961,6 +973,7 @@ async def lookup_pincode(pin: str):
 # tab and on the private update link, so both list the same things.
 _LISTED_TYPES = {"event volunteer", "live stations & mascots", "transport services", "wondershop team member", "photographer", "decorator",
                  "baker", "stationery store", "personalization store", "gift shop", "packaging store", "art & craft store",
+                 "hardware store", "decoration store",
                  "host", "dj", "magician", "bubble show artist", "science show artist", "puppet show artist", "other entertainer"}
 
 
@@ -1179,6 +1192,7 @@ async def prefill(token: str):
         "has_bank": _has_bank(d),
         "has_resume": bool(d.get("resume_filename")),
         "missing": partner_missing(d),
+        "deals_extra": await _extra_cats(),
     })
     return out
 

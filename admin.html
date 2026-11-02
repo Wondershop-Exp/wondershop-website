@@ -1166,6 +1166,7 @@ async function enterApp(){
   if(!getName()) highlightWhoName();
   loadStatusOptions();
   loadVendorNames();
+  loadExtraDeals();
   updateSortHeaders('lead');
   updateSortHeaders('booking');
   doSearch();
@@ -3548,8 +3549,17 @@ async function resolveVendorPending(action){
 
 // 2026-10-12: dropdowns in the partner form (same list as vendor-onboarding.html).
 const DEALS_OPTIONS = ['Event Volunteer','Wondershop Team Member','Live Stations & Mascots','Photographer','Decorator','Baker','Stationery Store',
-  'Personalization Store','Gift Shop','Packaging Store','Art & Craft Store','Host','DJ','Magician','Bubble Show Artist',
+  'Personalization Store','Gift Shop','Packaging Store','Art & Craft Store','Hardware Store','Decoration Store','Host','DJ','Magician','Bubble Show Artist',
   'Science Show Artist','Puppet Show Artist','Other Entertainer','Transport Services','Others'];
+// Categories added from Slack #vendor-contacts (2026-11-02) go just before "Others".
+async function loadExtraDeals(){
+  try{
+    const r = await fetch(API+'/api/vendor-onboarding/categories'); if(!r.ok) return;
+    ((await r.json()).extra||[]).forEach(n=>{
+      if(n && !DEALS_OPTIONS.some(o=>o.toLowerCase()===n.toLowerCase())) DEALS_OPTIONS.splice(DEALS_OPTIONS.length-1, 0, n);
+    });
+  }catch(e){ /* built-in list still works */ }
+}
 function vendorSelectHtml(f, raw){
   let opts = (f.options==='DEALS' ? DEALS_OPTIONS : f.options).map(o=>Array.isArray(o)?o:[o,o]);
   if(raw && !opts.some(o=>o[0].toLowerCase()===String(raw).toLowerCase())) opts = [[raw, raw+' (old value)']].concat(opts);

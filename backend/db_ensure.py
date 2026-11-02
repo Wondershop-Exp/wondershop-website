@@ -58,6 +58,7 @@ SAFE_MIGRATIONS = [
     "081_live_stations_rename.sql",
     "079_spy_reg_gender_override.sql",
     "080_venue_info.sql",
+    "082_partner_categories.sql",
 ]
 
 
