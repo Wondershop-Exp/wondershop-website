@@ -1718,6 +1718,8 @@ async def _build_booking_invoice_pdf(lead_id: int, req: LeadSubmitRequest) -> tu
     with no code change here (2026-09-11, per Shruti — "we might need to
     add gst later")."""
     invoice_number = await _get_or_create_invoice_number(lead_id)
+    _ar = await database.fetch_one("SELECT customer_choice_override FROM booking_field_overrides WHERE lead_id = :id AND field_key = 'client_address' AND NOT removed", values={"id": lead_id})
+    _addr = (_ar["customer_choice_override"] if _ar else None) or None
     data = assemble_invoice_data(
         lead_id=lead_id,
         invoice_number=invoice_number,
@@ -1756,6 +1758,7 @@ async def _build_booking_invoice_pdf(lead_id: int, req: LeadSubmitRequest) -> tu
         gst_enabled=settings.GST_ENABLED,
         gstin=settings.GSTIN,
         gst_rate_pct=settings.GST_RATE_PCT,
+        address=_addr,   # optional client address (2026-11-02)
     )
     pdf_bytes = build_invoice_pdf(data)
     return invoice_filename(data), pdf_bytes

@@ -256,6 +256,7 @@ FIELD_CATALOG = [
     {"key": "addon_pinata_bags",     "label": "Piñata Bags",            "section": "Add-ons", "admin_only": True},
     {"key": "addon_pinata_fillings", "label": "Piñata Fillings",        "section": "Add-ons", "admin_only": True},
     # Custom add-ons (2026-10-25, per Shruti): name + price, JSON list.
+    {"key": "client_address",        "label": "Client Address (for invoice, optional)", "section": "Billing & Rewards", "admin_only": True},
     {"key": "addon_custom",          "label": "Custom Add-ons",         "section": "Add-ons", "admin_only": True},
 
     # Billing & Rewards — Grand Total / Balance Due are system-calculated
@@ -2979,6 +2980,23 @@ def _money(s):
         return None
 
 
+@router.get("/bookings/{lead_id}/invoice.pdf")
+async def preview_booking_invoice(lead_id: int, download: int = 0, x_admin_password: Optional[str] = Header(None)):
+    """The invoice exactly as it would be emailed — to review in a tab or
+    download first (2026-11-02, per Shruti)."""
+    _require_admin(x_admin_password)
+    lead_row = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    if not lead_row:
+        raise HTTPException(status_code=404, detail="Booking not found.")
+    if not dict(lead_row).get("is_booking"):
+        raise HTTPException(status_code=400, detail="This is a lead, not a confirmed booking — nothing to invoice yet.")
+    _lead, _num_, pdf_bytes, filename = await _build_invoice(lead_id, x_admin_password)
+    from fastapi.responses import Response
+    disp = "attachment" if download else "inline"
+    return Response(content=pdf_bytes, media_type="application/pdf",
+                    headers={"Content-Disposition": f'{disp}; filename="{filename}"'})
+
+
 @router.post("/bookings/{lead_id}/invoice/send")
 async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
@@ -2993,6 +3011,13 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
         raise HTTPException(status_code=400, detail="This is a lead, not a confirmed booking — nothing to invoice yet.")
     if not lead.get("email"):
         raise HTTPException(status_code=400, detail="This booking has no email on file — nothing to send the invoice to.")
+    lead, invoice_number, pdf_bytes, filename = await _build_invoice(lead_id, x_admin_password)
+    who = body.changed_by.strip()
+    return await _send_invoice_email(lead, lead_id, invoice_number, pdf_bytes, filename, who)
+
+
+async def _build_invoice(lead_id: int, x_admin_password: Optional[str]):
+    lead = dict(await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id}))
 
     # Reuse get_booking_detail()'s own live billing recalculation (Discount
     # %-driven Grand Total, Balance Due = Grand Total − Advance Paid, with
@@ -3056,11 +3081,14 @@ async def send_booking_invoice(lead_id: int, body: ChangedByRequest, x_admin_pas
         gst_enabled=settings.GST_ENABLED,
         gstin=settings.GSTIN,
         gst_rate_pct=settings.GST_RATE_PCT,
+        address=_choice("client_address") or (all_fields2.get("client_address") or {}).get("customer_choice"),
     )
     pdf_bytes = build_invoice_pdf(data)
     filename = invoice_filename(data)
+    return lead, invoice_number, pdf_bytes, filename
 
-    who = body.changed_by.strip()
+
+async def _send_invoice_email(lead, lead_id, invoice_number, pdf_bytes, filename, who):
     subject = f"📄 Your Updated Wondershop Invoice (Order #{lead_id})"
     first_name = cat.greeting_name(lead.get("parent_name")) or "there"
     body_text = (

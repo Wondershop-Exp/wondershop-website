@@ -95,6 +95,7 @@ SALES_ALLOWED = [(m, re.compile(p)) for m, p in [
     ("POST", rf"/api/admin/bookings/{_ID}/(field|status|convert|cancel|invoice/send|summary/send|tbc|line-quotes|lead-source)"),
     # Quotation PDF of a booking (2026-10-06).
     ("GET",  rf"/api/admin/bookings/{_ID}/quotation\.pdf"),
+    ("GET",  rf"/api/admin/bookings/{_ID}/invoice\.pdf"),   # invoice preview (2026-11-02)
     # Decor reference images on a lead/booking (2026-10-06).
     ("*",    r"/api/admin/decor-refs(/.*)?"),
     # 2026-10-28, per Shruti: "partners should not be visible to sales team" —

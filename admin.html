@@ -4390,7 +4390,22 @@ function summaryEmailControlsHtml(d){
   return '<button class="btn" onclick="sendSummaryEmailDetail()">Resend Summary Email</button>'
     +'<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gy);margin:0 4px">'
       +'<input type="checkbox" id="attachInvoiceChk"'+(d.is_booking ? '' : ' disabled title="Only a confirmed booking has an invoice to attach"')+'> Attach invoice'
-    +'</label>';
+    +'</label>'
+    // Review the invoice before it goes out (2026-11-02, per Shruti)
+    + (d.is_booking ? '<button class="btn" onclick="openInvoicePdf(false)">View invoice</button><button class="btn" onclick="openInvoicePdf(true)">Download invoice PDF</button>' : '');
+}
+async function openInvoicePdf(download){
+  const tab = download ? null : window.open('', '_blank');
+  try{
+    const res = await fetch(API+'/api/admin/bookings/'+CURRENT_LEAD_ID+'/invoice.pdf'+(download?'?download=1':''), {headers:{'X-Admin-Password': getPw()}});
+    if(!res.ok){ const x = await res.json().catch(()=>({})); throw new Error(x.detail || 'Could not build the invoice'); }
+    const blob = await res.blob(), url = URL.createObjectURL(blob);
+    if(download){
+      const m = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition')||'');
+      const a = document.createElement('a'); a.href = url; a.download = m ? m[1] : ('Invoice-'+CURRENT_LEAD_ID+'.pdf'); document.body.appendChild(a); a.click(); a.remove();
+    }else if(tab){ tab.location.href = url; }
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }catch(e){ if(tab) tab.close(); showToast('⚠ '+e.message); }
 }
 // Did the booking emails actually go out? (recorded by the server, migration 033)
 function emailStatusHtml(d){
@@ -6190,6 +6205,8 @@ function fieldRowHtml(f, isCustEvent, locked){
     const cp = _decorAddonField('svc_cake_price');
     ccCell = '<div style="display:flex;gap:6px;align-items:center"><input type="text" id="'+rid+'_cc" value="'+esc(f.customer_choice||'')+'" placeholder="e.g. Chocolate truffle, 2 kg" style="flex:1">'
       + '<span class="pct-wrap" style="width:130px"><span class="pct-suffix" style="left:9px;right:auto">₹</span><input type="number" id="fld_cake_price_inline" value="'+esc((cp&&cp.customer_choice)||'')+'" data-old="'+esc((cp&&cp.customer_choice)||'')+'" placeholder="Price" step="1" min="0" style="padding-left:22px;padding-right:11px"></span></div>';
+  }else if(f.field_key==='client_address'){
+    ccCell = '<textarea id="'+rid+'_cc" placeholder="Optional — printed under the client\'s name on the invoice" style="min-height:64px">'+esc(f.customer_choice||'')+'</textarea>';
   }else if(f.field_key==='addon_custom'){
     ccCell = customAddonRowsHtml(rid, f.customer_choice||'', locked);
   }else if(f.field_key==='venue_handover_time' || f.field_key==='packup_time'){

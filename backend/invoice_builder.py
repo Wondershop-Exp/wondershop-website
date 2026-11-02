@@ -180,6 +180,7 @@ def assemble_invoice_data(
     extra_fee_rows: Optional[list] = None,
     advance_confirmed: Optional[bool] = None,
     discount_amt: Optional[float] = None,
+    address: Optional[str] = None,
 ) -> dict:
     line_items = _line_items_from_services_detail(services_detail)
     # Order-level fees that pushed Payable Total above Package Subtotal
@@ -242,6 +243,7 @@ def assemble_invoice_data(
         "parent_name": parent_name or "—",
         "phone": phone or "—",
         "email": email or "—",
+        "address": (address or "").strip(),   # optional billing address (2026-11-02)
         "event_title": event_title or "—",
         "event_date_str": event_date_str,
         "event_time": event_time or "",
@@ -276,6 +278,10 @@ def _p(text: str, *, size=10, color=_INK, bold=False, align=None, leading=None) 
         alignment=(TA_RIGHT if align == "right" else 0),
     )
     return Paragraph(text, style)
+
+
+def _esc_line(t: str) -> str:
+    return str(t).strip().replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def build_invoice_pdf(data: dict) -> bytes:
@@ -336,7 +342,9 @@ def build_invoice_pdf(data: dict) -> bytes:
     bill_card = [
         _p("BILLED TO", size=8, bold=True, color=_LAVENDER_TEXT),
         Spacer(1, 5),
-        _p(f"<b>{data['parent_name']}</b><br/>{data['phone']}<br/>{data['email']}", size=10, leading=15),
+        _p(f"<b>{data['parent_name']}</b><br/>{data['phone']}<br/>{data['email']}"
+           + (("<br/>" + "<br/>".join(_esc_line(x) for x in data.get("address", "").splitlines() if x.strip())) if data.get("address") else ""),
+           size=10, leading=15),
     ]
     event_card = [
         _p("EVENT DETAILS", size=8, bold=True, color=_PINK_TEXT),
