@@ -156,8 +156,9 @@ td,th{padding:6px;border-bottom:1px solid #b89a5a;text-align:left}
     <h2>Offline use</h2>
     <p id="offStatus" style="margin:0 0 10px">Checking…</p>
     <p style="font-size:14px;margin:0 0 10px"><b>Tablet:</b> open this page and enter the party code once with internet (this downloads the teams and audio), then <b>Share → Add to Home Screen</b> (iPad, Safari) or <b>⋮ → Install app</b> (Android, Chrome). The home-screen icon then works with no internet.</p>
-    <p style="font-size:14px;margin:0 0 10px"><b>Laptop:</b> download a copy and double-click it to open in Chrome or Safari, no internet needed.</p>
-    <a class="btn small" id="dlCopy" href="index.html" download="wondershop-sorting-hat.html" style="text-decoration:none;display:inline-block">⬇ Download offline copy</a>
+    <p style="font-size:14px;margin:0 0 10px"><b>Note for iPad:</b> the home-screen app keeps its own storage, separate from Safari. Open the home-screen icon once <b>with internet</b> and enter the code there too.</p>
+    <p style="font-size:14px;margin:0 0 10px"><b>Laptop:</b> download this party as a single file (setup, images and all audio inside), then double-click it to open in Chrome or Safari. It needs no internet and no code.</p>
+    <button class="btn small" id="dlCopy">⬇ Download this party for offline use</button> <span id="dlMsg" style="font-size:14px"></span>
   </div>
 </section>
 
@@ -284,6 +285,8 @@ const CHEER="audio/cheer.m4a";   // for a team with no recording (e.g. Ravenclaw
 function houseKey(n){const s=String(n||"").toLowerCase().replace(/[^a-z]/g,"");if(/^gr[iy]ff?[iy]n?dor/.test(s))return"gryffindor";if(/^huff?le?puff?/.test(s))return"hufflepuff";if(/^slyth/.test(s))return"slytherin";if(/^ravenc/.test(s))return"ravenclaw";return s}
 const HOUSE_COLOR={gryffindor:"#7f0909",hufflepuff:"#e3a813",ravenclaw:"#1f3a93",slytherin:"#1a6b38"};
 const HOUSE_IMG={gryffindor:"houses/gryffindor-wide.jpg",hufflepuff:"houses/hufflepuff-wide.jpg",ravenclaw:"houses/ravenclaw-wide.jpg",slytherin:"houses/slytherin-wide.jpg"};
+const EMB=window.__EMBED||null;   // set only inside a downloaded single-file copy
+const A=p=>(EMB&&EMB.files[p])||p;
 const pickRand=a=>a[Math.floor(rnd()*a.length)];
 function chooseClip(t,bday){const k=houseKey(t.name);
   if(bday&&k===BDAY.house)return{src:BDAY.src,at:BDAY.at};
@@ -296,11 +299,11 @@ function silentUrl(){const n=2205,b=new ArrayBuffer(44+n*2),v=new DataView(b),w=
   return URL.createObjectURL(new Blob([b],{type:"audio/wav"}))}
 // iPad only lets a page play sound that starts from a tap, so the same player is "woken" on the first tap and reused.
 function unlockAudio(){if(unlocked)return;unlocked=true;try{player.src=silentUrl();player.play().catch(()=>{})}catch(e){}}
-async function playSrc(c){try{let src=c.src;if(!src){const b=memAudio[c.id]||await getAudio(c.id);if(!b)return false;src=URL.createObjectURL(b)}
+async function playSrc(c){try{let src=c.src?A(c.src):(EMB&&EMB.files[c.id]);if(!src){const b=memAudio[c.id]||await getAudio(c.id);if(!b)return false;src=URL.createObjectURL(b)}
   player.pause();player.src=src;player.currentTime=0;await player.play();return true}catch(e){return false}}
 function untilTime(at){return new Promise(res=>{const lim=Date.now()+(at+5)*1000;const iv=setInterval(()=>{if(player.currentTime>=at||player.ended||Date.now()>lim){clearInterval(iv);res()}},40)})}
 function stopAudio(){try{player.pause()}catch(e){}}
-function preload(){[...Object.values(HOUSE_CLIPS).flat().map(c=>c[0]),BDAY.src,CHEER,"hat.png",...Object.values(HOUSE_IMG)].forEach(u=>fetch(u).catch(()=>{}))}
+function preload(){if(EMB)return;[...Object.values(HOUSE_CLIPS).flat().map(c=>c[0]),BDAY.src,CHEER,"hat.png",...Object.values(HOUSE_IMG)].forEach(u=>fetch(u).catch(()=>{}))}
 $("#begin").addEventListener("click",unlockAudio);
 $("#soundTest").onclick=()=>{unlockAudio();playSrc({src:CHEER});setTimeout(stopAudio,3500)};
 
@@ -357,7 +360,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function reveal(i,name,bday){
   const t=cfg.teams[i],R=$("#reveal"),hk=houseKey(t.name);R.style.setProperty("--team",t.color);
   if(HOUSE_IMG[hk]){R.className="house";
-    R.innerHTML=`<div class="hbg" role="img" aria-label="${esc(t.name)}" style="background-image:url(${HOUSE_IMG[hk]})"></div>
+    R.innerHTML=`<div class="hbg" role="img" aria-label="${esc(t.name)}" style="background-image:url(${A(HOUSE_IMG[hk])})"></div>
     <div class="kname">${bday?"🎂 ":""}${name?esc(name)+", welcome to "+esc(t.name)+"!":"Welcome to "+esc(t.name)+"!"}</div><div class="tap">Tap anywhere to continue</div>`;
     $("#speech").textContent="";R.classList.remove("hidden");burst(t.color);
     let can2=false;setTimeout(()=>can2=true,1500);
@@ -416,17 +419,37 @@ function animFx(){fc.clearRect(0,0,fx.width,fx.height);parts=parts.filter(p=>p.l
 function showGate(m){$("#gate").classList.remove("hidden");$("#gateMsg").textContent=m||"";setTimeout(()=>$("#gatePw").focus(),50)}
 async function openCode(){const v=$("#gatePw").value.trim();if(!v)return;$("#gateMsg").textContent="Opening the party… (downloading teams and audio)";
   try{await loadEvent(v);$("#gate").classList.add("hidden");$("#setup").classList.remove("hidden");$("#sort").classList.add("hidden");renderEvent()}
-  catch(e){$("#gateMsg").textContent=navigator.onLine?e.message:"No internet. Enter the code once while online; after that the party works offline."}}
+  catch(e){const net=!navigator.onLine||e instanceof TypeError;$("#gateMsg").textContent=net?"Couldn't reach Wondershop. Connect to the internet and enter the code once on this device; after that the party works offline.":e.message}}
 $("#gateBtn").onclick=openCode;$("#gatePw").addEventListener("keydown",e=>{if(e.key==="Enter")openCode()});
-(()=>{const last=store.get("sh_code",null),saved=last&&store.get("sh_ev_"+last,null);
+(()=>{if(EMB){const mine=store.get("sh_ev_"+EMB.cfg.code,null);cfg=mine||EMB.cfg;persist();$("#gate").classList.add("hidden");
+    $("#hatWrap img").src=A("hat.png");$("#refreshEv").remove();$("#changeEv").remove();renderEvent();return}
+  const last=store.get("sh_code",null),saved=last&&store.get("sh_ev_"+last,null);
   if(saved){cfg=saved;expire();$("#gate").classList.add("hidden");renderEvent();
     if(navigator.onLine)loadEvent(last).then(renderEvent).catch(e=>{if(e.code===404){cfg=null;showGate("This party's code was changed. Please enter the new code.")}})}
   else showGate("")})();
 
 
+/* ---------- download this party as one self-contained file ---------- */
+const toData=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(b)});
+$("#dlCopy").onclick=async()=>{const m=$("#dlMsg");if(!cfg){m.textContent="Open the party with its code first.";return}
+  const b=$("#dlCopy");b.disabled=true;m.textContent="Preparing… (packing images and audio)";
+  try{const html=await (await fetch("index.html",{cache:"no-store"})).text();
+    const paths=["hat.png",...Object.values(HOUSE_IMG),...Object.values(HOUSE_CLIPS).flat().map(c=>c[0]),BDAY.src,CHEER];const files={};
+    for(const pth of paths){const r=await fetch(pth);if(!r.ok)throw new Error("Couldn't load "+pth);files[pth]=await toData(await r.blob())}
+    for(const t of cfg.teams)for(const a of t.audio||[]){const bl=memAudio[a.id]||await getAudio(a.id);if(bl)files[a.id]=await toData(bl)}
+    const emb={cfg:{...cfg,sorted:[],sortStarted:null},files};
+    const tag="<script>window.__EMBED="+JSON.stringify(emb).replace(/</g,"\\u003c")+";<\/script>\n";
+    const i=html.indexOf("<script>");if(i<0)throw new Error("Unexpected page");
+    const out=html.slice(0,i)+tag+html.slice(i);
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([out],{type:"text/html"}));
+    a.download=`sorting-hat-${(cfg.childName||"party").split(/[ ,&]/)[0]}-${cfg.code}.html`;document.body.appendChild(a);a.click();a.remove();
+    m.textContent=`✓ Downloaded (${(out.length/1048576).toFixed(1)} MB). Double-click the file to open it.`}
+  catch(e){m.textContent="Couldn't prepare the download: "+(e.message||e)+". Check the internet and try again."}
+  b.disabled=false};
+
 /* ---------- offline (service worker) ---------- */
 function offMsg(t){const o=$("#offStatus");if(o)o.innerHTML=t}
-if(location.protocol==="file:"){offMsg("✓ You're using the downloaded copy, which works without internet.");$("#dlCopy").remove()}
+if(EMB||location.protocol==="file:"){offMsg(EMB?"✓ This is the downloaded copy of this party. It works without internet.":"This file can't load a party on its own. Open the Sorting Hat link with internet, enter the code, then use “Download this party”.");$("#dlCopy").remove()}
 else if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").then(()=>navigator.serviceWorker.ready).then(()=>offMsg("✓ Saved for offline use on this device.")).catch(()=>offMsg("Offline saving isn't available in this browser. Use the download below."))}
 else offMsg("Offline saving isn't available in this browser. Use the download below.");
 
