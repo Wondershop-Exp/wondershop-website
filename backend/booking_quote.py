@@ -459,11 +459,16 @@ async def booking_pdf(lead_id: int, pw: Optional[str], by: Optional[str] = None,
         inv = invoice_payments(data, fv)
         inv.update(invoice)
         data["invoice"] = inv
-        addr = (fv("client_address") or "").strip()
-        if addr:
-            data["details"] = [x for x in data["details"]]
-            i = next((k for k, x in enumerate(data["details"]) if x[0] == "Mobile"), 1)
-            data["details"].insert(i + 1, ("Billing address", ", ".join(l.strip() for l in addr.splitlines() if l.strip())))
+        addr = [l.strip() for l in (fv("client_address") or "").splitlines() if l.strip()]
+        inv["bill_to"] = [fv("parent_name"), fv("phone"), fv("email")] + addr
+        ev = fv("event_date")
+        try:
+            ev = date.fromisoformat(str(ev)[:10]).strftime("%d %b %Y").lstrip("0") if ev else None
+        except ValueError:
+            pass
+        inv["details"] = [("Invoice No.", invoice.get("number")), ("Invoice date", invoice.get("date")),
+                          ("Booking No.", f"#{lead_id}"), ("Event date", ev),
+                          ("Service", "Birthday party services"), ("Status", inv["status"].title())]
         data["issued_at_text"] = invoice.get("date") or data.get("issued_at_text")
         data["payment_pending"] = not inv["paid"]
         if not inv["paid"]:

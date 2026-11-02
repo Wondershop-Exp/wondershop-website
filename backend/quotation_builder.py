@@ -328,8 +328,10 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
         [Paragraph(f"<font color='#7B5DAE'>Issued</font>&nbsp; {_x(data.get('issued_at_text'))}", _style("m2", size=8.8, align=TA_RIGHT))],
     ]
     if INV:
-        meta_rows.insert(1, [Paragraph(f"<font color='#7B5DAE'>Invoice No.</font>&nbsp; <b>{_x(INV.get('number'))}</b>", _style("mi", size=8.8, align=TA_RIGHT))])
-        meta_rows.append([Paragraph(f"<b>{_x(INV.get('status'))}</b>", _style("ms", size=9.5, color=(GREEN if INV.get('paid') else PINK_DARK), align=TA_RIGHT))])
+        meta_rows = [meta_rows[0],
+                     [Paragraph(f"<font color='#7B5DAE'>Invoice No.</font>&nbsp; <b>{_x(INV.get('number'))}</b>", _style("mi", size=8.8, align=TA_RIGHT))],
+                     [Paragraph(f"<font color='#7B5DAE'>Date</font>&nbsp; {_x(INV.get('date'))}", _style("md", size=8.8, align=TA_RIGHT))],
+                     [Paragraph(f"<b>{_x(INV.get('status'))}</b>", _style("ms", size=9.5, color=(GREEN if INV.get('paid') else PINK_DARK), align=TA_RIGHT))]]
     if not booked:
         meta_rows.append([Paragraph(f"<b>Valid till {_x(data.get('valid_until_text'))}</b>", _style("m3", size=8.8, color=PINK_DARK, align=TA_RIGHT))])
     meta = Table(meta_rows, colWidths=[W * 0.46 - 10 * mm])
@@ -367,10 +369,32 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
     t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("ALIGN", (1, 0), (1, 0), "RIGHT"),
                            ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
                            ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
-    story += [t, Spacer(1, 5 * mm)]
+    if INV:
+        # Invoice (2026-11-02, per Shruti): a plain corporate header — who it's
+        # billed to and the invoice details; nothing operational.
+        s_k = _style("ik", size=8.6, color=MUTED, leading=12)
+        s_v = _style("iv", size=9.6, leading=13)
+        bill = [Paragraph("BILLED TO", s_label), Spacer(1, 1.2 * mm)] + [
+            Paragraph(("<b>%s</b>" % _x(x)) if i == 0 else _x(x), s_v) for i, x in enumerate(INV.get("bill_to") or []) if x]
+        kv = [(k, v) for k, v in (INV.get("details") or []) if v]
+        det = [Paragraph("INVOICE DETAILS", s_label), Spacer(1, 1.2 * mm)]
+        dt = Table([[Paragraph(_x(k), s_k), Paragraph("<b>%s</b>" % _x(v), s_v)] for k, v in kv], colWidths=[30 * mm, W / 2 - 38 * mm])
+        dt.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                                ("TOPPADDING", (0, 0), (-1, -1), 0.6 * mm), ("BOTTOMPADDING", (0, 0), (-1, -1), 0.6 * mm)]))
+        det.append(dt)
+        hdr = Table([[bill, det]], colWidths=[W / 2, W / 2])
+        hdr.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("BACKGROUND", (0, 0), (0, 0), LAV_CARD), ("BACKGROUND", (1, 0), (1, 0), PINK_CARD),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4 * mm), ("RIGHTPADDING", (0, 0), (-1, -1), 4 * mm),
+            ("TOPPADDING", (0, 0), (-1, -1), 3.5 * mm), ("BOTTOMPADDING", (0, 0), (-1, -1), 3.5 * mm),
+        ]))
+        story += [hdr, Spacer(1, 6 * mm)]
+    else:
+        story += [t, Spacer(1, 5 * mm)]
 
     # ── event details card (3 pairs per row) ────────────────────────────
-    details = [(l, v) for l, v in (data.get("details") or []) if v not in (None, "")]
+    details = [] if INV else [(l, v) for l, v in (data.get("details") or []) if v not in (None, "")]
     if details:
         per_row = 3
         cells, row = [], []
@@ -392,7 +416,7 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
         story += [card, Spacer(1, 6 * mm)]
 
     # ── event schedule (2026-10-05, per Shruti) ─────────────────────────
-    sched = [(t, i) for t, i in (data.get("schedule") or []) if t or i]
+    sched = [] if INV else [(t, i) for t, i in (data.get("schedule") or []) if t or i]
     if sched:
         s_st = _style("sch_t", font=BODY_BOLD, size=9.4, color=PURPLE_DARK, leading=12)
         s_si = _style("sch_i", size=9.4, leading=12)
@@ -408,7 +432,7 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
         story += [KeepTogether([head, Spacer(1, 2 * mm), tbl]), Spacer(1, 6 * mm)]
 
     # ── "Your party plan" sections ──────────────────────────────────────
-    story.append(Paragraph("YOUR PARTY PLAN", _style("pp", font=BODY_BOLD, size=9, color=PINK_DARK, leading=12)))
+    story.append(Paragraph("SERVICES" if INV else "YOUR PARTY PLAN", _style("pp", font=BODY_BOLD, size=9, color=PINK_DARK, leading=12)))
     story.append(Spacer(1, 2.5 * mm))
 
     IMG_W = 21 * mm
@@ -420,6 +444,8 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
         icon = _img(images.get(SECTION_ICONS.get(sec.get("icon_key") or label, "")), 9.5)
         hdr_txt = _x(label)
         empty = sec.get("not_selected") or not sec.get("lines")
+        if INV and empty:
+            continue   # invoice: only the services used
         if sec.get("billed_separately") and not empty:
             hdr_txt += "&nbsp;&nbsp;<font name='%s' size='8' color='#C2427A'>BILLED SEPARATELY</font>" % BODY_BOLD
         if empty:
@@ -654,9 +680,15 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
         + f"Questions or changes? Call or WhatsApp us on <b>{_x(BUSINESS_PHONES)}</b> or write to {_x(BUSINESS_EMAIL)}."
     )
     tail.append(Paragraph(sign, _style("sign", size=8.8, color=MUTED, align=TA_CENTER, leading=12.4)))
-    story.append(KeepTogether(tail) if not booked else tail[0])
-    if booked:
-        story += tail[1:]
+    if INV:
+        # no terms on the invoice — just a thank-you line
+        story += [Spacer(1, 2 * mm), Paragraph("Thank you for celebrating with Wondershop Experiences! "
+                  + f"Questions about this invoice? Call or WhatsApp <b>{_x(BUSINESS_PHONES)}</b> or write to {_x(BUSINESS_EMAIL)}.",
+                  _style("sign", size=8.8, color=MUTED, align=TA_CENTER, leading=12.4))]
+    else:
+        story.append(KeepTogether(tail) if not booked else tail[0])
+        if booked:
+            story += tail[1:]
 
     quote_no = data.get("quote_no") or ""
 
