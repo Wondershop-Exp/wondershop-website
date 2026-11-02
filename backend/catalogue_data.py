@@ -141,6 +141,9 @@ THEMES = [
     {"id": "stitch", "n": "Lilo & Stitch", "b": "150 (Blue, Turquoise, White)",
      "tierPhotos": {"Premium": "Decor/decor-stitch-1panel.jpg"},
      "tierOverrides": {"Premium": {"price": 18000}}},
+    {"id": "mermaid", "n": "Mermaid", "b": "180 (Lilac, Pink, Teal, Aqua)",   # 2026-11-02, per Shruti
+     "tierPhotos": {"Premium": "Decor/decor-mermaid-1panel.jpg"},
+     "tierOverrides": {"Premium": {"price": 13500}}},
     {"id": "lego", "n": "Lego", "b": "200 (Red, Yellow, Blue, Green)",   # 2026-10-23, per Shruti
      "tierPhotos": {"Premium": "Decor/decor-lego-1panel.jpg", "Luxury": "Decor/decor-lego-2panel.jpg"}},
     {"id": "anime", "n": "Anime", "b": "200 (Navy, Blue, Yellow, Red)",   # 2026-10-22, per Shruti
