@@ -538,9 +538,20 @@ def _slab_rate(n: int) -> float:
 
 
 async def _earnings(leads, who: str, d0: date, d1: date, today: date) -> dict:
-    conv = [d for d in leads if d["converted"] and d["rep"] == who and _ist_date(d["converted_on"])
-            and d0 <= _ist_date(d["converted_on"]) <= d1]
-    conv.sort(key=lambda d: d["converted_on"])
+    # Commission is paid by the EVENT month (2026-11-02, per Shruti: "the
+    # payout is on the booking month ... Dr. Deepika's event is in Nov").
+    def _ev(d):
+        v = d.get("event_date")
+        if isinstance(v, datetime):
+            return v.date()
+        if isinstance(v, date):
+            return v
+        try:
+            return date.fromisoformat(str(v)[:10]) if v else None
+        except ValueError:
+            return None
+    conv = [d for d in leads if d["converted"] and d["rep"] == who and _ev(d) and d0 <= _ev(d) <= d1]
+    conv.sort(key=lambda d: (_ev(d), str(d["converted_on"] or "")))
     lines, total = [], 0.0
     adj = {}
     if conv:
@@ -555,6 +566,7 @@ async def _earnings(leads, who: str, d0: date, d1: date, today: date) -> dict:
         c = round(base * rate, 2)
         total += c
         lines.append({"lead_id": d["lead_id"], "name": d["parent_name"], "value": d["revenue"], "base": base,
+                      "event_date": _ev(d).isoformat() if _ev(d) else None,
                       "adjusted": bool(a and a["commission_base"] is not None),
                       "note": (a["commission_note"] if a else None), "set_by": (a["commission_set_by"] if a else None),
                       "rate_pct": rate * 100, "commission": c})

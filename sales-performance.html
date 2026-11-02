@@ -254,7 +254,7 @@ function earningsHtml(E){
   const bar = (v, t, col) => '<div style="background:#F3EEFB;border-radius:8px;height:14px;overflow:hidden;margin:6px 0 4px"><div style="height:14px;border-radius:8px;background:'+col+';width:'+Math.min(100, t ? Math.round(100*v/t) : 0)+'%"></div></div>';
   const rev = E.lines.reduce((t,l)=>t+l.value,0);
   let o = '<div class="card" id="earnCard"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:baseline"><h2>Your earnings <img src="img/brand-mascots/shape-5.png" alt="" class="wsc-wiggle" style="height:34px;vertical-align:middle"><img src="img/brand-mascots/kid-jump-1.png" alt="" class="wsc-wiggle" style="height:38px;vertical-align:middle;animation-delay:.4s"></h2>'
-    + '<span class="note">Bookings converted in this period · volunteering at events in this period</span></div>'
+    + '<span class="note">Bookings with their event in this period · volunteering at events in this period</span></div>'
     + '<div class="kpis">'
     +   '<div class="kpi" style="background:#F1FAF4;border-color:#CDEBD8"><span class="l">Total earned</span><span class="v" style="color:var(--gr)">'+money(E.total_earnings)+'</span><span class="s">commission + volunteering</span></div>'
     +   '<div class="kpi"><span class="l">Sales commission</span><span class="v">'+money(E.commission)+'</span><span class="s">on '+E.bookings+' booking'+(E.bookings===1?'':'s')+' worth '+money(rev)+'</span></div>'
@@ -270,8 +270,8 @@ function earningsHtml(E){
   // per-booking breakdown; admin can adjust the value commission is paid on
   // (2026-10-20, per Shruti: some costs don't earn commission)
   if(E.lines.length){
-    o += '<div style="margin-top:16px"><div style="font-weight:700;margin-bottom:8px">Bookings this period</div><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Booking</th><th>Booking value</th><th>Commission on</th><th>Rate</th><th>Commission</th></tr></thead><tbody>'
-      + E.lines.map((l,i)=>'<tr><td>'+(i+1)+'</td><td><a href="sales-leads.html?ids='+encodeURIComponent(l.lead_id)+'&title='+encodeURIComponent(l.name||'Booking')+'">'+esc(l.name||l.lead_id)+'</a></td><td>'+money(l.value)+'</td><td>'
+    o += '<div style="margin-top:16px"><div style="font-weight:700;margin-bottom:8px">Bookings this period</div><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Booking</th><th>Event</th><th>Booking value</th><th>Commission on</th><th>Rate</th><th>Commission</th></tr></thead><tbody>'
+      + E.lines.map((l,i)=>'<tr><td>'+(i+1)+'</td><td><a href="sales-leads.html?ids='+encodeURIComponent(l.lead_id)+'&title='+encodeURIComponent(l.name||'Booking')+'">'+esc(l.name||l.lead_id)+'</a></td><td>'+(l.event_date?fmtD(l.event_date):'—')+'</td><td>'+money(l.value)+'</td><td>'
         + (isAdmin
             ? '<input type="number" min="0" class="cin" id="cb_'+i+'" value="'+l.base+'" style="width:120px"> <input type="text" class="cin" id="cn_'+i+'" placeholder="Why (optional)" value="'+esc(l.note||'')+'" style="width:160px"> <button type="button" class="csave" onclick="saveBase('+i+')">Save</button>'
               + (l.adjusted?' <button type="button" class="chip" onclick="saveBase('+i+',true)">Reset</button>':'')
@@ -298,7 +298,7 @@ function earningsHtml(E){
         + '<label class="ctl">Revenue target (₹)<input type="number" min="0" id="tgR" value="'+(T.revenue??'')+'" style="width:160px"></label>'
         + '<button type="button" class="chip on" onclick="saveTarget()">Save target</button></div>' : '')
     + '</div>';
-  o += '<p class="note" style="margin-top:12px">Commission: bookings 1–5 in the period earn 5% of the booking value each, 6–10 earn 7.5% each, 11 and up earn 10% each.</p></div>';
+  o += '<p class="note" style="margin-top:12px">Commission is paid by event month: bookings 1–5 with events in the period earn 5% of the booking value each, 6–10 earn 7.5% each, 11 and up earn 10% each.</p></div>';
   return o;
 }
 async function saveBase(i, reset){
