@@ -262,12 +262,12 @@ function afterRender(){
 // its breakup.
 function payoutHtml(E, isAdmin){
   const B = E.base_salary || {total:0, months:[]}, V = E.volunteer || {total:0, items:[]}, X = E.expenses || {total:0, items:[]};
-  const ev = i => '<tr><td>'+fmtD(i.date)+'</td><td><a href="sales-leads.html?ids='+i.lead_id+'">'+esc(i.event||('#'+i.lead_id))+'</a></td><td>'+esc(i.role||'')+(i.details?' · <span class="note">'+esc(i.details)+'</span>':'')+'</td><td>'+money(i.amount)+'</td><td>'+(i.paid?'<span style="color:var(--gr)">Paid</span>':'<span style="color:#B45309">Pending</span>')+'</td></tr>';
+  const ev = i => '<tr><td>'+fmtD(i.date)+'</td><td><a href="admin.html#booking-'+i.lead_id+'" target="_blank" rel="noopener">'+esc(i.event||('#'+i.lead_id))+'</a></td><td>'+esc(i.role||'')+(i.details?' · <span class="note">'+esc(i.details)+'</span>':'')+'</td><td>'+money(i.amount)+'</td><td>'+(i.paid?'<span style="color:var(--gr)">Paid</span>':'<span style="color:#B45309">Pending</span>')+'</td></tr>';
   const tbl = (head, rows) => rows ? '<div style="overflow-x:auto;margin:6px 0 4px"><table style="min-width:0"><thead><tr>'+head.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div>' : '<p class="note" style="margin:6px 0">Nothing this month.</p>';
   const line = (label, amt, sub, body) => '<details class="po-line"><summary><span class="po-l">'+label+(sub?' <span class="note">'+sub+'</span>':'')+'</span><span class="po-v">'+money(amt)+'</span></summary>'+body+'</details>';
   const baseBody = (B.months.length ? tbl(['Month','Base salary'], B.months.map(m=>'<tr><td>'+MON[+m.ym.slice(5,7)-1]+' '+m.ym.slice(0,4)+'</td><td>'+(m.amount==null?'<span class="note">Not set</span>':money(m.amount))+'</td></tr>').join('')) : '')
     + (isAdmin ? '<div style="display:flex;gap:8px;align-items:center;margin:6px 0"><label class="ctl" style="flex-direction:row;align-items:center;gap:8px">Base salary from '+MON[+E.target.ym.slice(5,7)-1]+' '+E.target.ym.slice(0,4)+' (₹/month)<input type="number" min="0" id="tgS" value="'+(B.current??'')+'" style="width:130px"></label><button type="button" class="chip on" onclick="saveTarget()">Save</button></div>' : '');
-  const comBody = tbl(['Event','Booking','Commission on','Rate','Commission'], E.lines.map(l=>'<tr><td>'+(l.event_date?fmtD(l.event_date):'—')+'</td><td>'+esc(l.name||l.lead_id)+'</td><td>'+money(l.base)+'</td><td>'+l.rate_pct+'%</td><td><b>'+money(l.commission)+'</b></td></tr>').join(''));
+  const comBody = tbl(['Event','Booking','Commission on','Rate','Commission'], E.lines.map(l=>'<tr><td>'+(l.event_date?fmtD(l.event_date):'—')+'</td><td><a href="admin.html#booking-'+l.lead_id+'" target="_blank" rel="noopener">'+esc(l.name||l.lead_id)+'</a></td><td>'+money(l.base)+'</td><td>'+l.rate_pct+'%</td><td><b>'+money(l.commission)+'</b></td></tr>').join(''));
   return '<div class="po-card"><div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px"><h3 style="margin:0">Payout summary</h3><span class="note">By event month · click a line for the breakup</span></div>'
     + line('Base salary', B.total, B.months.length>1?B.months.length+' months':'', baseBody)
     + line('Commissions', E.commission, E.bookings+' booking'+(E.bookings===1?'':'s'), comBody)
@@ -298,7 +298,7 @@ function earningsHtml(E){
   // (2026-10-20, per Shruti: some costs don't earn commission)
   if(E.lines.length){
     o += '<div style="margin-top:16px"><div style="font-weight:700;margin-bottom:8px">Bookings this period</div><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Booking</th><th>Event</th><th>Booking value</th><th>Commission on</th><th>Rate</th><th>Commission</th></tr></thead><tbody>'
-      + E.lines.map((l,i)=>'<tr><td>'+(i+1)+'</td><td><a href="sales-leads.html?ids='+encodeURIComponent(l.lead_id)+'&title='+encodeURIComponent(l.name||'Booking')+'">'+esc(l.name||l.lead_id)+'</a></td><td>'+(l.event_date?fmtD(l.event_date):'—')+'</td><td>'+money(l.value)+'</td><td>'
+      + E.lines.map((l,i)=>'<tr><td>'+(i+1)+'</td><td><a href="admin.html#booking-'+l.lead_id+'" target="_blank" rel="noopener">'+esc(l.name||l.lead_id)+'</a></td><td>'+(l.event_date?fmtD(l.event_date):'—')+'</td><td>'+money(l.value)+'</td><td>'
         + (isAdmin
             ? '<input type="number" min="0" class="cin" id="cb_'+i+'" value="'+l.base+'" style="width:120px"> <input type="text" class="cin" id="cn_'+i+'" placeholder="Why (optional)" value="'+esc(l.note||'')+'" style="width:160px"> <button type="button" class="csave" onclick="saveBase('+i+')">Save</button>'
               + (l.adjusted?' <button type="button" class="chip" onclick="saveBase('+i+',true)">Reset</button>':'')
