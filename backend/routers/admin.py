@@ -242,6 +242,7 @@ FIELD_CATALOG = [
     {"key": "addon_rent_tables",      "label": "Tables & Chairs: Tables (2×4 ft)", "section": "Add-ons"},
     {"key": "addon_rent_table_cover", "label": "Tables & Chairs: Table Cover",     "section": "Add-ons"},
     {"key": "addon_rent_chairs",      "label": "Tables & Chairs: Chiavari Chairs", "section": "Add-ons"},
+    {"key": "addon_rent_kids_chairs", "label": "Tables & Chairs: Kids' Crossback Chairs", "section": "Add-ons"},   # 2026-11-02
     {"key": "addon_rent_notes",       "label": "Tables & Chairs: Setup Notes",     "section": "Add-ons"},
     {"key": "addon_rent_price",       "label": "Tables & Chairs: Quote (₹)",       "section": "Add-ons", "admin_only": True},
     # Physical invites (2026-10-25) — designed on theme, printed, delivered home; quoted.
@@ -666,9 +667,9 @@ def _derive_original_value(key: str, lead: dict, snap: dict):
         parts = [f"{g.get('n')} x{g.get('qty')}" for g in gifts if g.get("n")]
         return ", ".join(parts) if parts else None
 
-    if key in ("addon_rent_tables", "addon_rent_chairs", "addon_rent_table_cover", "addon_rent_notes"):
+    if key in ("addon_rent_tables", "addon_rent_chairs", "addon_rent_kids_chairs", "addon_rent_table_cover", "addon_rent_notes"):
         rent = snap.get("rentals") or {}
-        v = rent.get({"addon_rent_tables": "tables", "addon_rent_chairs": "chairs",
+        v = rent.get({"addon_rent_tables": "tables", "addon_rent_chairs": "chairs", "addon_rent_kids_chairs": "kids_chairs",
                       "addon_rent_table_cover": "cover", "addon_rent_notes": "note"}[key])
         return None if v in (None, "", 0) else str(v)
     if key == "addon_phys_inv_qty":
@@ -835,7 +836,7 @@ async def _validate_choice_value(key: str, value: str, derived_original: Optiona
         if grand_total is not None and adv > float(grand_total):
             raise HTTPException(status_code=400, detail="Advance Paid cannot exceed the Grand Total.")
 
-    if key in ("addon_rent_tables", "addon_rent_chairs", "addon_rent_price", "addon_phys_inv_qty", "addon_phys_inv_price", "addon_gift_pack_qty"):
+    if key in ("addon_rent_tables", "addon_rent_chairs", "addon_rent_kids_chairs", "addon_rent_price", "addon_phys_inv_qty", "addon_phys_inv_price", "addon_gift_pack_qty"):
         try:
             if float(value) < 0:
                 raise ValueError
@@ -2055,6 +2056,7 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
     # ── Tables & chairs on rent (2026-10-25) ──
     rent = _req("rentals")
     for _key, _v in (("addon_rent_tables", rent.get("tables")), ("addon_rent_chairs", rent.get("chairs")),
+                     ("addon_rent_kids_chairs", rent.get("kids_chairs")),
                      ("addon_rent_table_cover", rent.get("cover")), ("addon_rent_notes", rent.get("customization")),
                      ("addon_rent_price", rent.get("cost"))):
         if _key not in already and _v not in (None, "", 0):

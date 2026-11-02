@@ -5945,6 +5945,7 @@ const ADDON_GROUPS = {
   rent: {title:'Tables & chairs on rent', head:'addon_rent_tables', fields:[
     {key:'addon_rent_tables', label:'Tables (2×4 ft)', type:'num'},
     {key:'addon_rent_chairs', label:'Chiavari chairs', type:'num'},
+    {key:'addon_rent_kids_chairs', label:"Kids' crossback chairs", type:'num'},
     {key:'addon_rent_price', label:'Quote', type:'money'},
     {key:'addon_rent_table_cover', label:'Table cover', type:'chips', opts:['Black','White','Maroon']},
     {key:'addon_rent_notes', label:'Setup notes', type:'text', ph:'Where to set them up, timings'}]},
@@ -5963,6 +5964,7 @@ function _addonOrigSummary(g){
     const b = [], t = v('addon_rent_tables'), c = v('addon_rent_chairs'), cv = v('addon_rent_table_cover'), n = v('addon_rent_notes');
     if(Number(t)) b.push(t+' table'+(Number(t)>1?'s':'')+(cv?' ('+cv.toLowerCase()+' cover)':''));
     if(Number(c)) b.push(c+' Chiavari chair'+(Number(c)>1?'s':''));
+    const kc = v('addon_rent_kids_chairs'); if(Number(kc)) b.push(kc+' kids\' crossback chair'+(Number(kc)>1?'s':''));
     return b.length ? b.join(', ')+(n?' · '+n:'') : '';
   }
   const q = v('addon_phys_inv_qty');

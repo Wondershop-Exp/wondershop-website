@@ -1614,7 +1614,7 @@ function listBreakdown(){
   }
   inGifts = false;
   const rent = sel('rentals');   // tables & chairs on rent (2026-10-25) — no list price
-  if(num(rent.cost)!==null || Number(rent.tables) || Number(rent.chairs)) line('Tables & chairs on rent'+(_rentalDesc(rent)?': '+_rentalDesc(rent):''), rent.cost, null, {k:'req', key:'rentals'});
+  if(num(rent.cost)!==null || Number(rent.tables) || Number(rent.chairs) || Number(rent.kids_chairs)) line('Tables & chairs on rent'+(_rentalDesc(rent)?': '+_rentalDesc(rent):''), rent.cost, null, {k:'req', key:'rentals'});
   const pinv = sel('physical_invites');   // physical invites (2026-10-25) — no list price
   if(num(pinv.cost)!==null || Number(pinv.qty)) line('Physical invites'+(Number(pinv.qty)?': '+pinv.qty+' printed':''), pinv.cost, null, {k:'req', key:'physical_invites'});
   const known = ['decor','host','music','photographer','einvite_type','save_the_date','pinata_type','pinata_bags','return_gifts','packaging','return_gift_tags','rentals','physical_invites'];
@@ -2972,7 +2972,7 @@ function reqRentalsRow(){
   const covers = RENTAL_COVERS.map(c=>'<button type="button" class="'+(r.cover===c?'sel':'')+'" onclick="onRentalCover(\''+c+'\')">'+c+'</button>').join('');
   const inp = (id, ph, v, f) => '<input type="number" min="0" id="'+id+'" placeholder="'+ph+'" title="'+ph+'" value="'+(v==null?'':v)+'" onblur="onRentalField(\''+f+'\', this.value)" style="max-width:180px;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13px">';
   return '<div class="req-row"><div class="rlabel">Tables &amp; Chairs on Rent (Add-on)</div>'
-    + '<div class="req-grid">'+inp('req_rent_tables','Tables (2×4 ft)',r.tables,'tables')+inp('req_rent_chairs','Chiavari chairs',r.chairs,'chairs')+inp('req_rentals_cost','Sales Quote (₹)',r.cost,'cost')+'</div>'
+    + '<div class="req-grid">'+inp('req_rent_tables','Tables (2×4 ft)',r.tables,'tables')+inp('req_rent_chairs','Chiavari chairs',r.chairs,'chairs')+inp('req_rent_kids_chairs',"Kids' crossback chairs",r.kids_chairs,'kids_chairs')+inp('req_rentals_cost','Sales Quote (₹)',r.cost,'cost')+'</div>'
     + '<div class="req-note" style="margin:8px 0 4px">Table cover colour</div><div class="chip-row">'+covers+'</div>'
     + custBox('rentals', 'Where to set them up, timings, anything else...')
     + '<div class="req-note">Installed by our catering team with 1 helper on site. No list price — quote separately.</div></div>';
@@ -2981,6 +2981,7 @@ function _rentalDesc(r){
   const b = [];
   if(Number(r.tables)) b.push(r.tables+' table'+(Number(r.tables)>1?'s':'')+(r.cover?' ('+r.cover.toLowerCase()+' cover)':''));
   if(Number(r.chairs)) b.push(r.chairs+' Chiavari chair'+(Number(r.chairs)>1?'s':''));
+  if(Number(r.kids_chairs)) b.push(r.kids_chairs+' kids\' crossback chair'+(Number(r.kids_chairs)>1?'s':''));
   return b.join(', ');
 }
 async function onRentalField(f, v){

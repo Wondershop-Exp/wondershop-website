@@ -2274,6 +2274,16 @@ body.browse-mode .browse-cta{display:flex}
             </div>
           </div>
         </div>
+        <!-- Kids' colourful crossback chairs (2026-11-02, per Shruti) — S.rentals.kids -->
+        <div class="rent-card">
+          <div class="rent-media" style="--bg:url('img/Addons/rent-kids-chairs.jpg')"><img src="img/Addons/rent-kids-chairs.jpg" alt="Kids' colourful crossback chairs"></div>
+          <div class="rent-body">
+            <div class="rent-top">
+              <div><div class="rent-name">Kids' colourful crossback chairs</div><div class="rent-spec">Kid-sized, in bright mixed colours</div></div>
+              <div class="rent-step"><button type="button" aria-label="Fewer kids chairs" onclick="rentStep('kids',-5)">−</button><input type="number" min="0" id="rentKids" aria-label="Number of kids chairs" oninput="rentInput('kids',this)"><button type="button" aria-label="More kids chairs" onclick="rentStep('kids',5)">+</button></div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="ig" style="margin-top:14px"><label for="rentNote">Where should we set them up? <span class="opt">optional</span></label>
         <textarea id="rentNote" rows="2" placeholder="e.g. 4 tables along the garden wall for the buffet, chairs around the stage" oninput="S.rentals.note=this.value"></textarea></div>
@@ -2815,7 +2825,7 @@ window.WS_API_BASE = 'https://wondershop-website-production.up.railway.app';
 // Code.gs) was retired 2026-08-11 to stop writing duplicate, drifting
 // rows — see the "Consolidate leads + bookings" commits.
 
-const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},decorAddons:{nameBunting:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',pickupTime:'',showPickupOnInvite:false,giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,venueLocality:'',interests:[],interestOther:'',FIT:20000,remarks:{},rentals:{tables:0,chairs:0,cover:'',note:''},physInv:{qty:0}};
+const S={screen:'shome',fromReview:false,mobile:'',pincode:'',budget:'',children:[{name:'',dob:'',gender:''}],eventDate:'',eventTime:'11:00',venue:'',venueMapsLink:'',venueContactName:'',venueContactPhone:'',theme:'',kidsCount:15,decor:null,decorType:'themed',activities:[],host:null,dj:null,djAddons:{lights:false,smoke:false},decorAddons:{nameBunting:false},pinata:null,einvite:null,photo:null,gifts:[],spyExtras:[],packaging:'',tagType:'',pickupTime:'',showPickupOnInvite:false,giftAddr:'',giftMapsLink:'',giftAddrType:'',giftContact:'',giftContactPhone:'',giftReqDate:'',couponPct:0,payMethod:'online',tncOk:false,venueLocality:'',interests:[],interestOther:'',FIT:20000,remarks:{},rentals:{tables:0,chairs:0,kids:0,cover:'',note:''},physInv:{qty:0}};
 
 // ── Google Places Autocomplete (2026-08-16, per Shruti) ─────────────
 // Wires real address autocomplete onto the checkout venue address and
@@ -3752,6 +3762,7 @@ function cItems(){
   // Tables & chairs on rent — no price here, quoted separately (2026-10-25).
   if(S.rentals&&S.rentals.tables)items.push({cat:'Addons',n:S.rentals.tables+' catering table'+(S.rentals.tables>1?'s':'')+' (2×4 ft)'+(S.rentals.cover?' · '+S.rentals.cover+' cover':''),p:0,id:'rent-tables',quote:true});
   if(S.rentals&&S.rentals.chairs)items.push({cat:'Addons',n:S.rentals.chairs+' Chiavari chair'+(S.rentals.chairs>1?'s':'')+' on rent',p:0,id:'rent-chairs',quote:true});
+  if(S.rentals&&S.rentals.kids)items.push({cat:'Addons',n:S.rentals.kids+' kids\' colourful crossback chair'+(S.rentals.kids>1?'s':'')+' on rent',p:0,id:'rent-kids',quote:true});
   if(S.physInv&&S.physInv.qty)items.push({cat:'Addons',n:pinvDesc()+' (designed on your theme, delivered home)',p:0,id:'phys-inv',quote:true});
   // Decor add-ons sit under Decor on the review page (2026-10-24).
   decorAddonsOn().forEach(a=>items.push({cat:'Decor',n:a.n,p:a.p,id:'decor-addon-'+a.key}));
@@ -3818,7 +3829,7 @@ function cItems(){
 // review-page line item so the customer gets a visual recap of their picks.
 function thumbFor(cat,id){
   const e=(ch,bg)=>({type:'e',e:ch,bg:bg||'var(--li2)'});
-  if(id==='rent-tables'||id==='rent-chairs'||id==='phys-inv')return{type:'img',src:{'rent-tables':'img/Addons/rent-table.jpg?v=2','rent-chairs':'img/Addons/rent-chairs.jpg?v=2','phys-inv':'img/Addons/physical-invite.jpg?v=2'}[id]};
+  if(id==='rent-tables'||id==='rent-chairs'||id==='rent-kids'||id==='phys-inv')return{type:'img',src:{'rent-tables':'img/Addons/rent-table.jpg?v=2','rent-chairs':'img/Addons/rent-chairs.jpg?v=2','rent-kids':'img/Addons/rent-kids-chairs.jpg','phys-inv':'img/Addons/physical-invite.jpg?v=2'}[id]};
   if(cat==='Decor'&&id==='decor-name-bunting')return e('🏷️');
   if(cat==='Decor'&&id&&id.indexOf('decor-addon-')===0){const da=DECOR_ADDONS.find(x=>'decor-addon-'+x.key===id);return e(da?da.e:'🎈');}
   if(cat==='Decor'){
@@ -5654,7 +5665,7 @@ function buildRev(){
     // buried as plain text rows in the separate "Return Gift Delivery" block
     // below, easy to miss next to the address/date fields).
     if(cat==='Addons'&&its&&its.some(i=>i.quote)){const nb=[];
-      if(S.rentals.tables||S.rentals.chairs)nb.push('Tables &amp; chairs depend on availability in your area; the quote includes transport &amp; labour'+(S.rentals.note?' (set up: '+S.rentals.note.replace(/&/g,'&amp;').replace(/</g,'&lt;')+')':'')+'.');
+      if(S.rentals.tables||S.rentals.chairs||S.rentals.kids)nb.push('Tables &amp; chairs depend on availability in your area; the quote includes transport &amp; labour'+(S.rentals.note?' (set up: '+S.rentals.note.replace(/&/g,'&amp;').replace(/</g,'&lt;')+')':'')+'.');
       if(S.physInv.qty)nb.push('Invites are designed on your theme, printed and delivered to your home.');
       html+='<div class="rv-addchips" style="display:block;line-height:1.5">'+nb.join(' ')+' We\'ll share the price separately — it\'s not in the total below.</div>';}
     // Decor add-ons not picked yet — add them right here (2026-10-24).
@@ -5750,7 +5761,7 @@ function rmRevItem(cat,id){
     }
     syncDecorAddonsUI();
   }
-  else if(id==='rent-tables'||id==='rent-chairs'||id==='phys-inv'){if(id==='rent-tables'){S.rentals.tables=0;S.rentals.cover='';}else if(id==='rent-chairs')S.rentals.chairs=0;else S.physInv.qty=0;rentSync();}
+  else if(id==='rent-tables'||id==='rent-chairs'||id==='rent-kids'||id==='phys-inv'){if(id==='rent-tables'){S.rentals.tables=0;S.rentals.cover='';}else if(id==='rent-chairs')S.rentals.chairs=0;else if(id==='rent-kids')S.rentals.kids=0;else S.physInv.qty=0;rentSync();}
   else if(cat==='Activities'){S.activities=S.activities.filter(a=>a.id!==id);syncIncludedHost();}
   else if(cat==='Host')S.host=null;
   else if(cat==='DJ')S.dj=null;
@@ -5767,9 +5778,10 @@ const RENT_COVERS=[{id:'Black',hex:'#1F1F1F'},{id:'White',hex:'#FFFFFF'},{id:'Ma
 function pinvDesc(){const q=(S.physInv||{}).qty||0;return q?q+' printed invite'+(q>1?'s':''):'';}
 function pinvStep(d){S.physInv.qty=Math.max(0,Math.min(1000,(+S.physInv.qty||0)+d));rentSync();}
 function pinvInput(el){S.physInv.qty=Math.max(0,Math.min(1000,parseInt(el.value,10)||0));rentSync();}
-function rentDesc(){const r=S.rentals||{},b=[];if(r.tables)b.push(r.tables+' table'+(r.tables>1?'s':'')+(r.cover?' ('+r.cover.toLowerCase()+' cover)':''));if(r.chairs)b.push(r.chairs+' Chiavari chair'+(r.chairs>1?'s':''));return b.join(', ');}
+function rentDesc(){const r=S.rentals||{},b=[];if(r.tables)b.push(r.tables+' table'+(r.tables>1?'s':'')+(r.cover?' ('+r.cover.toLowerCase()+' cover)':''));if(r.chairs)b.push(r.chairs+' Chiavari chair'+(r.chairs>1?'s':''));if(r.kids)b.push(r.kids+' kids\' crossback chair'+(r.kids>1?'s':''));return b.join(', ');}
 function rentSync(){
   const r=S.rentals;const t=document.getElementById('rentTables'),c=document.getElementById('rentChairs'),n=document.getElementById('rentNote');
+  const kd=document.getElementById('rentKids');if(kd&&document.activeElement!==kd)kd.value=r.kids||0;
   if(t&&document.activeElement!==t)t.value=r.tables||0;if(c&&document.activeElement!==c)c.value=r.chairs||0;if(n&&document.activeElement!==n)n.value=r.note||'';
   const q=document.getElementById('pinvQty');if(q&&document.activeElement!==q)q.value=S.physInv.qty||0;
   const w=document.getElementById('rentCovers');
@@ -6771,7 +6783,7 @@ function buildSnapshot(){
       decor_addons: decorAddonsOn().map(a=>({n:a.n,p:a.p})),
       // Tables & chairs on rent (2026-10-25) — quoted separately, not in estimated_total.
       physical_invites: S.physInv.qty?{qty:S.physInv.qty}:null,
-      rentals: (S.rentals.tables||S.rentals.chairs)?{tables:S.rentals.tables,chairs:S.rentals.chairs,cover:S.rentals.cover||null,note:(S.rentals.note||'').trim()||null}:null,
+      rentals: (S.rentals.tables||S.rentals.chairs||S.rentals.kids)?{tables:S.rentals.tables,chairs:S.rentals.chairs,kids_chairs:S.rentals.kids||0,cover:S.rentals.cover||null,note:(S.rentals.note||'').trim()||null}:null,
       estimated_total: rawT(),
       pincode:     S.pincode,
       kids_count:  S.kidsCount,

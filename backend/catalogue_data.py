@@ -1092,4 +1092,7 @@ def rental_desc(r) -> str:
         bits.append(f"{t} table{'s' if t > 1 else ''}" + (f" ({str(cover).lower()} cover)" if cover else ""))
     if c:
         bits.append(f"{c} Chiavari chair{'s' if c > 1 else ''}")
+    k = n(r.get("kids_chairs"))   # kids' colourful crossback chairs (2026-11-02)
+    if k:
+        bits.append(f"{k} kids' crossback chair{'s' if k > 1 else ''}")
     return ", ".join(bits)

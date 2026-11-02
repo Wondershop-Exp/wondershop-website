@@ -590,7 +590,7 @@ def _list_breakdown(requirements: dict, activities: list, kids_count: Optional[i
     in_gifts = False
     # Tables & chairs on rent (2026-10-25) — no list price, the quote is billed.
     rent = sel("rentals")
-    if num(rent.get("cost")) is not None or num(rent.get("tables")) or num(rent.get("chairs")):
+    if num(rent.get("cost")) is not None or num(rent.get("tables")) or num(rent.get("chairs")) or num(rent.get("kids_chairs")):
         desc = rental_desc(rent)
         line("rentals", "Tables & chairs on rent" + (f" — {desc}" if desc else ""), rent.get("cost"), None)
     pinv = sel("physical_invites")
