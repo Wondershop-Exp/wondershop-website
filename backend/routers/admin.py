@@ -499,15 +499,30 @@ NON_CONVERT_REASONS = [
 NON_CONVERT_REASON_OPTIONS = [_opt(x) for x in NON_CONVERT_REASONS]
 
 
-def _booking_display_status(lead: dict) -> str:
+def _booking_display_status(lead: dict, paid: bool = False) -> str:
     if lead.get("status") == "Cancelled":
         return "Cancelled"
     event_date = lead.get("event_date")
     if not event_date:
         return "New"
-    today = datetime.utcnow().date()
+    today = (datetime.utcnow() + timedelta(hours=5, minutes=30)).date()   # IST
     ed = event_date if isinstance(event_date, date_cls) else datetime.strptime(str(event_date), "%Y-%m-%d").date()
-    return "Complete" if ed < today else "Upcoming"
+    # 2026-11-02, per Shruti: on the event day, recording the final payment
+    # (or Payment Status = Complete) marks it Complete straight away.
+    if ed < today or (paid and ed <= today):
+        return "Complete"
+    return "Upcoming"
+
+
+async def _paid_lead_ids(ids=None) -> set:
+    """Bookings whose event payment is recorded (Event Payment Confirmed, or
+    Payment Status = Complete)."""
+    rows = await database.fetch_all(
+        """SELECT DISTINCT lead_id FROM booking_field_overrides
+           WHERE NOT removed AND (
+             (field_key = 'event_payment_confirmed_amount' AND COALESCE(TRIM(customer_choice_override), '') NOT IN ('', '0'))
+             OR (field_key = 'bill_payment_status' AND LOWER(TRIM(COALESCE(customer_choice_override, ''))) = 'complete'))""")
+    return {r["lead_id"] for r in rows}
 
 
 # 2026-08-19, per Shruti follow-up: "if a booking is marked as cancelled, no
@@ -1003,9 +1018,10 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
     )
     enriched = []
     new_count = 0
+    _paid = await _paid_lead_ids() if is_booking else set()
     for r in rows:
         row = dict(r)
-        row["_display_status"] = _booking_display_status(row) if is_booking else row["status"]
+        row["_display_status"] = _booking_display_status(row, row["lead_id"] in _paid) if is_booking else row["status"]
         if row["_display_status"] == "New":
             new_count += 1
         enriched.append(row)
@@ -1497,7 +1513,7 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
         "pending_custom_pinata": pending_custom_pinata,
         # Read-only computed status for a booking (New/Upcoming/Complete/
         # Cancelled); the raw editable pipeline status for a lead.
-        "status": _booking_display_status(lead) if is_booking else lead.get("status"),
+        "status": _booking_display_status(lead, lead_id in (await _paid_lead_ids())) if is_booking else lead.get("status"),
         # 2026-08-19, per Shruti follow-up — see _is_locked(): true once a
         # booking is Cancelled or a lead is Not Interested/DND. The frontend
         # renders every field row read-only and hides Save/Remove/+Add Field
