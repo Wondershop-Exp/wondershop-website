@@ -862,11 +862,9 @@ async def _full_detail(lead_row) -> dict:
         )
         lead["client_budget"] = default_quote
         lead["client_budget_manual"] = False
-        if lead.get("is_booking"):
-            try:
-                await _sync_discount_to_agreed_total(lead["lead_id"], "Sales panel", settings.ADMIN_PASSWORD)
-            except Exception:
-                logger.exception(f"Lead #{lead['lead_id']}: couldn't sync booking discount to the Sales Quote")
+        # 2026-11-03, per Shruti: once converted, the sales panel is the record
+        # of what was pitched — nothing flows to the booking any more; all live
+        # changes are made on the booking page.
 
     out = {
         "lead_id": lead["lead_id"],
@@ -1594,11 +1592,7 @@ async def patch_sheet(lead_id: int, body: PatchIn, x_admin_password: Optional[st
     # button was also how a CONFIRMED booking's billing got re-synced after
     # the agreed total changed; with it gone, saving Revenue Potential on a
     # booking re-syncs the booking's discount by itself.
-    if "client_budget" in changed and lead_row["is_booking"]:
-        try:
-            await _sync_discount_to_agreed_total(lead_id, by, x_admin_password)
-        except Exception:
-            logger.exception(f"Lead #{lead_id}: couldn't sync booking discount to the agreed total")
+    # (2026-11-03, per Shruti) no sync to the booking after conversion — see above.
 
     updated_lead = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
     return await _full_detail(updated_lead)

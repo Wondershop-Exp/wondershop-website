@@ -1361,6 +1361,12 @@ async function getQuotation(share){
 function renderDetail(){
   const stagePill = '<span class="pill stagepill '+(STAGE_PILL[DATA.playbook_stage]||'pill-intake')+'">'+(STAGE_LABEL[DATA.playbook_stage]||DATA.playbook_stage)+'</span>';
   document.getElementById('detailBody').innerHTML =
+    // Converted (2026-11-03, per Shruti): this page is now the record of what
+    // was pitched — edits here don't reach the booking.
+    (DATA.is_booking ? '<div class="card" style="background:#FFF8E6;border:1px solid #F5D98B;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">'
+      + '<div style="font-size:13.5px;line-height:1.45"><b>This lead is now a confirmed booking.</b> Changes made here are kept only as the record of what was pitched to the client — they <b>won\'t move to the booking</b>. Make every live change on the booking page.</div>'
+      + '<a class="btn sm pk" href="admin.html#booking-'+DATA.lead_id+'" target="_blank" rel="noopener" style="text-decoration:none;white-space:nowrap">Open booking page ↗</a></div>' : '')
+    +
     '<div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
       +'<div><h1 style="font-size:19px">'+esc(DATA.client_name||'New Lead')+' <span style="font-size:13px;font-weight:400;color:var(--gy)">#'+DATA.lead_id+'</span></h1>'
         +'<div style="font-size:12px;color:var(--gy);margin-top:4px">Created by '+esc(DATA.created_by||'—')+' · '+esc(DATA.created_at||'')+'</div></div>'
