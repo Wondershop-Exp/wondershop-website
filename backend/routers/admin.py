@@ -1893,6 +1893,14 @@ def _compose_sales_decor_value(pb_decor: dict) -> Optional[str]:
     std_name = _STD_DECOR_NAMES.get(tier)
     if std_name:
         return std_name
+    # "Others" with a design picked from the decor options (2026-11-03, #21:
+    # Mermaid - Premium) -> that design.
+    for oid in ((pb_decor or {}).get("_option_ids") or []):
+        o = cat.decor_option(oid)
+        if o and o.get("theme") and o.get("tier"):
+            v = f"{o['theme']} - {o['tier']}"
+            if v in DROPDOWN_VALUES.get("svc_decor", set()):
+                return v
     return "Custom Design"  # "Others", or a theme/tier combo that doesn't actually exist
 
 
@@ -2062,7 +2070,8 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
     to_write = []  # (key, customer_choice_override, remarks)
 
     # ── Decor ──
-    d = _req("decor")
+    d = dict(_req("decor"))
+    d["_option_ids"] = [x for x in (_req("decor_options").get("ids") or []) if isinstance(x, str)]
     decor_cc = _compose_sales_decor_value(d)
     if decor_cc and decor_cc not in DROPDOWN_VALUES.get("svc_decor", set()):
         decor_cc = None
@@ -2847,6 +2856,15 @@ async def _sync_discount_to_agreed_total(lead_id: int, who: str, x_admin_passwor
     lead = await database.fetch_one(
         "SELECT client_budget, is_booking FROM leads WHERE lead_id = :id", values={"id": lead_id})
     if lead and lead["is_booking"]:
+        # 2026-11-03, per Shruti (#21): a lead converted BEFORE its quote was
+        # filled in never got its services — the copy only ran at conversion,
+        # so the booking's MRP stayed empty and the agreed total landed as
+        # "above list price". Every sales-panel save on a booking now copies
+        # any services the booking doesn't have yet (never overwrites).
+        try:
+            await _copy_sales_data_to_admin_overrides(lead_id, who)
+        except Exception:
+            logger.exception(f"Lead #{lead_id}: couldn't copy the sales services to the booking")
         try:
             await _copy_sales_line_quotes(lead_id, who)
         except Exception:
