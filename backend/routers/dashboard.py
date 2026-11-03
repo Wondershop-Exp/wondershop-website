@@ -707,6 +707,49 @@ async def dashboard_monthly(month: Optional[str] = None, x_admin_password: Optio
     }
 
 
+@router.get("/dashboard/monthly-events")
+async def dashboard_monthly_events(month: Optional[str] = None, x_admin_password: Optional[str] = Header(None)):
+    """The events behind each Monthly Overview box (2026-11-03, per Shruti):
+    realized / booked / potential for the month, plus confirmed events in
+    the next 14 days. Same rules as _classify_month / _potential_in_month."""
+    _require_admin(x_admin_password)
+    now = datetime.now(timezone.utc)
+    ms = _parse_month_param(month, now)
+    me = _add_months(ms, 1)
+    today = now.date()
+    cols = """l.lead_id, l.parent_name, l.phone, l.event_date, l.status, l.venue, l.city, l.child_ages, l.child_genders,
+              l.kids_count, l.event_sales_lead, COALESCE(l.client_budget, l.order_grand_total, 0) AS revenue"""
+    def row(r, kind):
+        return {"id": r["lead_id"], "name": r["parent_name"], "phone": r["phone"],
+                "event_date": r["event_date"].isoformat() if r["event_date"] else None,
+                "status": r["status"], "venue": r["venue"], "city": r["city"], "ages": r["child_ages"],
+                "genders": r["child_genders"], "kids": r["kids_count"], "sales_lead": r["event_sales_lead"],
+                "value": round(float(r["revenue"] or 0), 2), "kind": kind}
+    booked_rows = await database.fetch_all(
+        f"""SELECT {cols}, amt.customer_choice_override AS payment_amount, mode.customer_choice_override AS payment_mode
+            FROM leads l
+            LEFT JOIN booking_field_overrides amt ON amt.lead_id = l.lead_id AND amt.field_key = 'event_payment_confirmed_amount'
+            LEFT JOIN booking_field_overrides mode ON mode.lead_id = l.lead_id AND mode.field_key = 'event_payment_confirmed_mode'
+            WHERE l.is_booking = TRUE AND l.status != 'Cancelled' AND l.event_date >= :start AND l.event_date < :end
+            ORDER BY l.event_date""", values={"start": ms.date(), "end": me.date()})
+    realized, booked = [], []
+    for r in booked_rows:
+        happened = r["event_date"] is not None and r["event_date"] < today
+        (realized if (happened and r["payment_amount"] and r["payment_mode"]) else booked).append(
+            row(r, "Realized" if (happened and r["payment_amount"] and r["payment_mode"]) else "Booked"))
+    pot_rows = await database.fetch_all(
+        f"""SELECT {cols} FROM leads l WHERE l.is_booking = FALSE AND l.status = ANY(:statuses)
+            AND l.event_date >= :start AND l.event_date < :end ORDER BY l.event_date""",
+        values={"statuses": list(POTENTIAL_STATUSES), "start": ms.date(), "end": me.date()})
+    potential = [row(r, "Potential") for r in pot_rows]
+    nx = await database.fetch_all(
+        f"""SELECT {cols} FROM leads l WHERE l.is_booking = TRUE AND l.status != 'Cancelled'
+            AND l.event_date >= :today AND l.event_date < :in14 ORDER BY l.event_date""",
+        values={"today": today, "in14": (now + timedelta(days=14)).date()})
+    return {"month": _month_key(ms), "realized": realized, "booked": booked, "potential": potential,
+            "next14": [row(r, "Booked") for r in nx]}
+
+
 class MonthlyOverrideRequest(BaseModel):
     month: str  # "YYYY-MM"
     monthly_target: Optional[float] = None

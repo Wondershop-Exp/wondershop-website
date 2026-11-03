@@ -207,6 +207,18 @@ table.list th.sortable:hover{color:var(--bk)}
 .dash-kpi-delta.down{color:var(--pk)}
 .dash-card{background:#fff;border:1px solid var(--li2);border-radius:var(--r);padding:18px 20px}
 .dash-card-title{font-size:13px;font-weight:700;color:var(--bk);margin-bottom:12px}
+.dash-kpi-click{cursor:pointer;transition:box-shadow .15s,border-color .15s}
+.dash-kpi-click:hover{border-color:var(--pk);box-shadow:0 4px 14px rgba(214,69,127,.12)}
+.kev-ov{position:fixed;inset:0;background:rgba(30,20,40,.45);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto}
+.kev-box{background:#fff;border-radius:14px;max-width:1080px;width:100%;padding:18px 20px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.kev-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:15px}
+.kev-sub{font-size:12px;color:var(--gy);font-weight:400}
+.kev-x{border:0;background:none;font-size:24px;line-height:1;cursor:pointer;color:var(--gy)}
+.kev-tw{overflow-x:auto}
+.kev-t{width:100%;border-collapse:collapse;font-size:13px}
+.kev-t th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--gy);padding:8px;border-bottom:1px solid var(--li2);white-space:nowrap}
+.kev-t td{padding:8px;border-bottom:1px solid var(--li2);vertical-align:top}
+.kev-t tbody tr{cursor:pointer}.kev-t tbody tr:hover{background:#FBF8FE}
 /* Booking mix (2026-10-29) */
 .bm-filters{display:flex;flex-wrap:wrap;gap:10px}
 .bm-filters label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:var(--gy)}
@@ -2902,12 +2914,12 @@ function renderDashMonthly(d){
     ? ('vs '+fmtNum(d.bookings_target)+' bookings target')
     : 'No bookings target set for this month yet';
   const kpis = [
-    kpiCard('Realized Revenue', fmtRs(d.realized_revenue), d.realized_bookings+' event(s) delivered & payment confirmed', ''),
-    kpiCard('Booked Revenue', fmtRs(d.booked_revenue), d.booked_bookings+' confirmed booking(s)'+(d.pending_confirm_count ? ' · '+d.pending_confirm_count+' awaiting confirmation' : ''), ''),
-    kpiCard('Potential Revenue', fmtRs(d.potential_revenue), d.potential_bookings+' warm lead(s) in progress', ''),
-    kpiCard('Total Projected', fmtRs(d.total_revenue), d.total_bookings+' total', ''),
-    kpiCard('AOV', fmtRs(d.aov), 'Realized + Booked', ''),
-    kpiCard('Events in next 14 days', fmtNum(d.confirmed_events_next_14d), 'confirmed bookings', ''),
+    kpiCard('Realized Revenue', fmtRs(d.realized_revenue), d.realized_bookings+' event(s) delivered & payment confirmed', '', 'realized'),
+    kpiCard('Booked Revenue', fmtRs(d.booked_revenue), d.booked_bookings+' confirmed booking(s)'+(d.pending_confirm_count ? ' · '+d.pending_confirm_count+' awaiting confirmation' : ''), '', 'booked'),
+    kpiCard('Potential Revenue', fmtRs(d.potential_revenue), d.potential_bookings+' warm lead(s) in progress', '', 'potential'),
+    kpiCard('Total Projected', fmtRs(d.total_revenue), d.total_bookings+' total', '', 'all'),
+    kpiCard('AOV', fmtRs(d.aov), 'Realized + Booked', '', 'actual'),
+    kpiCard('Events in next 14 days', fmtNum(d.confirmed_events_next_14d), 'confirmed bookings', '', 'next14'),
   ].join('');
   let html = '<div class="dash-monthly-top">'
     + '<div class="dash-gauge-wrap">'+revGauge+'<div class="dash-gauge-caption">'+esc(revCaption)+'</div></div>'
@@ -3279,11 +3291,32 @@ function renderFestivals(confirmedNext14d){
 function fmtRs(n){ return (n===null||n===undefined) ? '—' : '₹'+Math.round(n).toLocaleString('en-IN'); }
 function fmtPct(n){ return (n===null||n===undefined) ? '—' : n.toFixed(1)+'%'; }
 function fmtNum(n){ return (n===null||n===undefined) ? '—' : Math.round(n).toLocaleString('en-IN'); }
-function kpiCard(label, value, sub, delta){
-  return '<div class="dash-kpi"><div class="dash-kpi-label">'+esc(label)+'</div><div class="dash-kpi-value">'+value+'</div>'
+function kpiCard(label, value, sub, delta, key){
+  return '<div class="dash-kpi'+(key?' dash-kpi-click':'')+'"'+(key?' onclick="openKpiEvents(\''+key+'\',\''+esc(label)+'\')" title="Click to see the events"':'')+'><div class="dash-kpi-label">'+esc(label)+'</div><div class="dash-kpi-value">'+value+'</div>'
     + (sub ? '<div class="dash-kpi-sub">'+esc(sub)+'</div>' : '')
     + (delta ? '<div class="dash-kpi-sub">'+delta+'</div>' : '')
     + '</div>';
+}
+// Events behind a Monthly Overview box (2026-11-03, per Shruti).
+async function openKpiEvents(key, label){
+  let ov = document.getElementById('kpiEvModal');
+  if(!ov){ ov = document.createElement('div'); ov.id = 'kpiEvModal'; ov.className = 'kev-ov'; ov.onclick = e=>{ if(e.target===ov) ov.remove(); }; document.body.appendChild(ov); }
+  ov.innerHTML = '<div class="kev-box"><div class="empty">Loading…</div></div>';
+  try{
+    const d = await apiCall('/api/admin/dashboard/monthly-events?month='+offsetMonthStr(DASH_MONTH_OFFSET));
+    const rows = key==='all' ? d.realized.concat(d.booked, d.potential) : key==='actual' ? d.realized.concat(d.booked) : (d[key]||[]);
+    rows.sort((a,b)=>String(a.event_date||'').localeCompare(String(b.event_date||'')));
+    const tot = rows.reduce((t,r)=>t+Number(r.value||0),0);
+    const fd = s => s ? new Date(s+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',weekday:'short'}) : '—';
+    const loc = r => (window.wsLocality ? wsLocality(r.venue||'') : '') || r.venue || r.city || '—';
+    const ag = r => [r.ages, r.genders].filter(Boolean).join(' · ') || '—';
+    ov.innerHTML = '<div class="kev-box"><div class="kev-hd"><div><b>'+esc(label)+'</b> <span class="kev-sub">'+monthLabel(d.month)+(key==='next14'?' · next 14 days':'')+' · '+rows.length+' event'+(rows.length===1?'':'s')+' · '+fmtRs(tot)+'</span></div>'
+      + '<button class="kev-x" onclick="document.getElementById(\'kpiEvModal\').remove()" aria-label="Close">×</button></div>'
+      + (rows.length ? '<div class="kev-tw"><table class="kev-t"><thead><tr><th>Event date</th><th>Parent</th><th>Party value</th><th>Location</th><th>Age · Gender</th><th>Kids</th><th>Sales lead</th>'+(key==='all'||key==='actual'?'<th>Type</th>':'')+'</tr></thead><tbody>'
+        + rows.map(r=>'<tr onclick="document.getElementById(\'kpiEvModal\').remove();openBooking('+r.id+')"><td>'+fd(r.event_date)+'</td><td><b>'+esc(r.name||('#'+r.id))+'</b><div class="kev-sub">#'+r.id+(r.phone?' · '+esc(r.phone):'')+'</div></td><td>'+fmtRs(r.value)+'</td><td>'+esc(loc(r))+'</td><td>'+esc(ag(r))+'</td><td>'+esc(r.kids||'—')+'</td><td>'+esc(r.sales_lead||'—')+'</td>'+(key==='all'||key==='actual'?'<td>'+esc(r.kind)+'</td>':'')+'</tr>').join('')
+        + '</tbody></table></div>' : '<div class="empty">No events.</div>')
+      + '<div class="kev-sub" style="margin-top:8px">Click a row to open it.</div></div>';
+  }catch(e){ if(e.message!=='unauthorized') ov.innerHTML = '<div class="kev-box"><div class="empty">Couldn\'t load: '+esc(e.message)+'</div></div>'; }
 }
 function updateBubble(id, count){
   const el = document.getElementById(id);
