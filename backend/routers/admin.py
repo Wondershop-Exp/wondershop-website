@@ -1390,6 +1390,17 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
     if pricing:
         grand_total_val = pricing["grand_total"]
         grand_total_field["customer_choice"] = _num_str(grand_total_val)
+        # 2026-11-04, per Shruti — keep leads.client_budget (what the
+        # dashboard's Party Value / revenue boxes read) equal to the live
+        # Grand Total shown on the booking.
+        try:
+            _cb = lead.get("client_budget")
+            if lead.get("is_booking") and (_cb is None or abs(float(_cb) - float(grand_total_val)) > 0.5):
+                await database.execute(
+                    "UPDATE leads SET client_budget = :v WHERE lead_id = :id",
+                    values={"v": round(float(grand_total_val), 2), "id": lead_id})
+        except Exception:
+            pass
         grand_total_field["mrp"] = pricing["total_mrp"]
         grand_total_field["discount_pct"] = pricing["discount_pct"]
         grand_total_field["discount_amt"] = pricing["discount_amt"]
