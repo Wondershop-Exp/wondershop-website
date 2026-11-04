@@ -332,7 +332,8 @@ async function doSearch(){
         +'<td>'+esc(r.event_lead||'—')+'</td>'
         +'<td><span class="progress-pill '+cls+'">'+r.progress.checked+' / '+r.progress.total+'</span></td>'
         +'<td>'+esc(r.created_at||'')+'</td>'
-        +'<td><a href="#" onclick="event.stopPropagation();copyShareLink(\''+esc(r.share_url)+'\')" class="linkbtn">Copy staff link</a></td>'
+        +'<td style="white-space:nowrap"><a href="#" onclick="event.stopPropagation();copyShareLink(\''+esc(r.share_url)+'\')" class="linkbtn">Copy staff link</a>'
+        +' &nbsp;<a href="#" onclick="event.stopPropagation();deleteList('+r.id+','+JSON.stringify(r.title||'').replace(/"/g,'&quot;')+');return false;" class="linkbtn" style="color:#B42318">Delete</a></td>'
         +'</tr>';
     }).join('');
   }catch(e){
@@ -360,6 +361,15 @@ function openComposer(){
   renderSections();
   document.getElementById('listView').style.display='none';
   document.getElementById('composerView').style.display='block';
+}
+// Delete a packing list (2026-11-04, per Shruti — duplicates).
+async function deleteList(id, title){
+  if(!confirm('Delete the packing list "'+title+'"? Its staff link will stop working. This cannot be undone.')) return;
+  try{
+    await apiCall('/api/admin/packaging/lists/'+id, {method:'DELETE'});
+    showToast('Deleted "'+title+'".');
+    doSearch();
+  }catch(e){ showToast(e.message||'Could not delete.'); }
 }
 function backToList(){
   document.getElementById('composerView').style.display='none';
