@@ -792,8 +792,17 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
         quote_adj = max(0.0, float(str(_resolved(cur, "bill_quote_adjustment", removed) or 0).replace(",", "")))
     except ValueError:
         quote_adj = 0.0
-    grand_total = max(0.0, round(total_mrp - discount_amt + extra_total + quote_adj, 2))
     _lq = line_quotes(cur, removed)
+    # 2026-11-04, per Shruti: Grand Total = sum of the sales quotes (minus any
+    # special discount on top). The stored discount is "item gap + special";
+    # if it's below the item gap (quotes saved without re-syncing it), the
+    # gap wins so Grand Total never sits above the sales quote total.
+    if _lq:
+        _gap = round(sum(a - _lq.get(line_key(l), a) for l, a in items), 2)
+        if _gap > discount_amt:
+            discount_amt = round(min(_gap, total_mrp), 2)
+            pct = round((discount_amt / total_mrp * 100.0), 2) if total_mrp else 0.0
+    grand_total = max(0.0, round(total_mrp - discount_amt + extra_total + quote_adj, 2))
 
     return {
         "total_mrp": total_mrp,
