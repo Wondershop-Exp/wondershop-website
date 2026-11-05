@@ -2358,6 +2358,15 @@ async def submit_lead(req: LeadSubmitRequest):
        Notifies the team (email + WhatsApp) immediately too, but only for
        plain enquiries — confirmed bookings hold that until /finalize-notify.
     """
+    # 2026-11-05, per Shruti (booking #1339 — a "booking" with no name, a bare
+    # "+" for the phone, no email and no team email): a confirmed booking must
+    # carry a name and a 10-digit mobile, whatever the client sends.
+    if req.is_booking:
+        _digits = re.sub(r"\D", "", req.phone or "")
+        if not (req.parent_name or "").strip():
+            raise HTTPException(status_code=400, detail="Please enter the parent's name.")
+        if len(_digits) < 10:
+            raise HTTPException(status_code=400, detail="Please enter a valid 10-digit mobile number.")
     # 2026-08-19, per Shruti's admin panel status-workflow request (see
     # migrations/017_lead_status_workflow.sql, then 018_booking_flag_and_
     # status_simplify.sql). is_booking is now the real table-membership flag
@@ -2519,6 +2528,13 @@ async def submit_lead(req: LeadSubmitRequest):
     # "wait for" event to hold on — notify the team right away, as before.
     if not req.is_booking:
         await _notify_team(lead_id, req, reward_code, referral_code, event_sales_lead)
+    else:
+        # Server-side safety net (2026-11-05, per Shruti — booking #1339 never
+        # reached the team): the hold above relies on the customer's browser
+        # calling /finalize-notify. If it never does (closed the tab before
+        # the beacon, network drop, or someone posting straight to this API),
+        # send the team email from here after 10 minutes.
+        asyncio.create_task(_team_notify_fallback(lead_id, req, reward_code, referral_code, event_sales_lead))
 
     return {
         "success": True,
@@ -2536,6 +2552,27 @@ class FinalizeNotifyRequest(LeadSubmitRequest):
     lead_id:       int
     reward_code:   Optional[str] = None
     referral_code: Optional[str] = None
+
+
+_TEAM_NOTIFIED: set = set()      # booking lead_ids whose team email has gone out (this process)
+TEAM_NOTIFY_FALLBACK_SECONDS = 600
+
+
+async def _team_notify_fallback(lead_id: int, req: LeadSubmitRequest, reward_code, referral_code, event_sales_lead) -> None:
+    try:
+        await asyncio.sleep(TEAM_NOTIFY_FALLBACK_SECONDS)
+        if lead_id in _TEAM_NOTIFIED:
+            return
+        _TEAM_NOTIFIED.add(lead_id)
+        logger.warning(f"Lead #{lead_id}: no /finalize-notify from the browser after "
+                       f"{TEAM_NOTIFY_FALLBACK_SECONDS // 60} min — sending the team email from the server")
+        added = None
+        row = await database.fetch_one("SELECT redeemed_reward_service FROM leads WHERE lead_id = :id", values={"id": lead_id})
+        if row and row["redeemed_reward_service"]:
+            added = f"Free {REWARD_SERVICE_LABELS.get(row['redeemed_reward_service'], row['redeemed_reward_service'])}"
+        await _notify_team(lead_id, req, reward_code, referral_code, event_sales_lead, added)
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: team-notification fallback failed")
 
 
 @router.post("/finalize-notify")
@@ -2556,6 +2593,9 @@ async def finalize_notify(req: FinalizeNotifyRequest):
     rather than trusted from the request — so this always matches what's
     actually on the booking, even if the client's local state is stale.
     """
+    if req.lead_id in _TEAM_NOTIFIED:   # the server-side fallback already sent it
+        return {"success": True, "already_sent": True}
+    _TEAM_NOTIFIED.add(req.lead_id)
     event_sales_lead = await _resolve_sales_lead_name(req.sales_lead_code)
 
     added_service_label = None

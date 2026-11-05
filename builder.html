@@ -6198,6 +6198,21 @@ async function doCo(){
   }
   childNameEl?.classList.remove('err');
   document.getElementById('co-child-err')?.classList.remove('show');
+
+  // 2026-11-05, per Shruti (booking #1339 came through with no name, phone
+  // or email): parent name, a 10-digit mobile and a valid email are required.
+  {
+    const chk=[
+      ['co-name', v=>v.trim().length>=2, "Please enter the parent's name."],
+      ['co-mob', v=>{const d=v.replace(/\D/g,'');return d.length===10||(d.length===12&&d.startsWith('91'));}, 'Please enter a valid 10-digit mobile number.'],
+      ['co-email', v=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()), 'Please enter a valid email — your booking confirmation is sent there.'],
+    ];
+    for(const [id,ok,msg] of chk){
+      const el=document.getElementById(id);if(!el)continue;
+      if(!ok(el.value||'')){el.classList.add('err');el.scrollIntoView({behavior:'smooth',block:'center'});el.focus();showErrorToast(msg);return;}
+      el.classList.remove('err');
+    }
+  }
   // Sync whatever's in the field back into S.children — the sole source of
   // truth for names when no E-Invite was configured, and a safety net if
   // the customer edited it here after it was pre-filled from ei-names.
