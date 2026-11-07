@@ -363,7 +363,7 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
            "with a picture and an estimate for each service. Anything marked <i>Not selected</i> can still be "
            "added — just let us know.")
     )
-    mascot = _img(images.get(MASCOT_PATH), 34)
+    mascot = None if INV else _img(images.get(MASCOT_PATH), 34)
     title_cell = [Paragraph(_x(title), s_h1), Spacer(1, 1.6 * mm), Paragraph(intro, _style("intro", size=9.4, color=MUTED, leading=13.4))]
     t = Table([[title_cell, mascot or ""]], colWidths=[W - 40 * mm, 40 * mm])
     t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("ALIGN", (1, 0), (1, 0), "RIGHT"),
@@ -439,7 +439,36 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
     PRICE_W = 33 * mm
     DESC_W = W - IMG_W - PRICE_W
 
-    for sec in data.get("sections") or []:
+    if INV:
+        # 2026-11-07, per Shruti — corporate invoice: one plain list of line
+        # items (Spy Treasure Hunt, Host, E-Invite...), no photos/icons/details.
+        s_li = _style("li", size=9.8, color=INK, leading=13)
+        rows = [[Paragraph("<b>Item</b>", s_li), Paragraph("<b>Amount</b>", _style("lih", size=9.8, align=TA_RIGHT))]]
+        for sec in data.get("sections") or []:
+            if sec.get("not_selected") or not sec.get("lines"):
+                continue
+            label = sec["label"]
+            for ln in sec["lines"]:
+                nm = str(ln.get("name") or "").strip()
+                if label.lower() != "activities" and nm.lower() != label.lower() and label.lower() not in nm.lower():
+                    nm = f"{label} – {nm}" if nm else label
+                if ln.get("price") is not None:
+                    amt = inr(ln["price"])
+                else:
+                    amt = _x(ln.get("price_text") or "")
+                rows.append([Paragraph(_x(nm), s_li), Paragraph(amt, _style("lia", size=9.8, font=BODY_BOLD, align=TA_RIGHT))])
+        t = Table(rows, colWidths=[W - PRICE_W, PRICE_W], repeatRows=1)
+        st = [("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+              ("LEFTPADDING", (0, 0), (-1, -1), 1.5 * mm), ("RIGHTPADDING", (0, 0), (-1, -1), 1.5 * mm),
+              ("TOPPADDING", (0, 0), (-1, -1), 2 * mm), ("BOTTOMPADDING", (0, 0), (-1, -1), 2 * mm),
+              ("LINEBELOW", (0, 0), (-1, 0), 0.8, LAV_RULE)]
+        for i in range(1, len(rows)):
+            st.append(("LINEBELOW", (0, i), (-1, i), 0.4, colors.HexColor("#F1ECF8")))
+        t.setStyle(TableStyle(st))
+        story.append(t)
+        story.append(Spacer(1, 4.5 * mm))
+
+    for sec in ([] if INV else (data.get("sections") or [])):
         label = sec["label"]
         icon = _img(images.get(SECTION_ICONS.get(sec.get("icon_key") or label, "")), 9.5)
         hdr_txt = _x(label)

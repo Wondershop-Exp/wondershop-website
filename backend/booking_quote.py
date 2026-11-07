@@ -468,7 +468,7 @@ async def booking_pdf(lead_id: int, pw: Optional[str], by: Optional[str] = None,
             pass
         inv["details"] = [("Invoice No.", invoice.get("number")), ("Invoice date", invoice.get("date")),
                           ("Booking No.", f"#{lead_id}"), ("Event date", ev),
-                          ("Service", "Birthday party services"), ("Status", inv["status"].title())]
+                          ("Service", "Event Management"), ("Status", inv["status"].title())]
         data["issued_at_text"] = invoice.get("date") or data.get("issued_at_text")
         data["payment_pending"] = not inv["paid"]
         if not inv["paid"]:
