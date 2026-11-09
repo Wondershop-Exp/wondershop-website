@@ -624,6 +624,8 @@ body.browse-mode .browse-cta{display:flex}
 .act-card-spec li{margin-bottom:2px}
 .act-card-spec li.na{opacity:.5}
 .act-card-spec b{color:var(--bk);font-weight:600}
+.dspec-more{display:none;background:none;border:none;padding:0 0 8px;font:inherit;font-size:11.5px;font-weight:700;color:var(--li);cursor:pointer;text-align:left}
+@media(max-width:700px){.dspec li.more{display:none}.dspec.open li.more{display:list-item}.dspec-more{display:block}}
 .card-pr-row{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:8px}
 .card-price{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--bk)}
 .card-price-orig{font-size:12px;color:var(--gy);text-decoration:line-through;font-weight:500;margin-right:4px}
@@ -714,6 +716,12 @@ body.browse-mode .browse-cta{display:flex}
    px less gives it enough headroom to actually fit inside width:100%
    instead of relying on the overflow:hidden clip above. */
 @media(max-width:480px){.ig input[type=date],.ig input[type=time]{font-size:13px;padding:10px 8px}}
+/* 2026-11-09, per Shruti — the clip above was cutting off the date box's
+   right border on iPhone. appearance:none makes WebKit size the control to
+   width:100% like any other input, so it fits and nothing gets clipped. */
+.ig input[type=date],.ig input[type=time]{-webkit-appearance:none;appearance:none;display:block;box-sizing:border-box;min-height:42px;line-height:1.3}
+.ig input[type=date]::-webkit-date-and-time-value,.ig input[type=time]::-webkit-date-and-time-value{text-align:left;margin:0}
+.ig input[type=date]::-webkit-calendar-picker-indicator{margin-left:auto}
 .pfx-wrap{display:flex;align-items:center;border:1.5px solid #E5E7EB;border-radius:10px;overflow:hidden;background:#fff;transition:border-color .15s}
 .pfx-wrap:focus-within{border-color:var(--li)}
 .pfx{padding:10px 10px 10px 12px;font-size:14px;font-weight:600;color:var(--gy);background:#F9FAFB;border-right:1.5px solid #E5E7EB;white-space:nowrap;flex-shrink:0}
@@ -2427,7 +2435,7 @@ body.browse-mode .browse-cta{display:flex}
          Step 0 already collected all of this (see fillCo()). -->
     <div id="coPkgExtras" style="display:none">
       <div class="row2">
-        <div class="ig"><label>Child's Date of Birth<span class="req">*</span></label><input type="date" id="co-child-dob"><div class="err-msg" id="co-child-dob-err">Please enter date of birth</div></div>
+        <div class="ig"><label>Child's Date of Birth<span class="req">*</span></label><input type="date" id="co-child-dob" onchange="autofillCoDateFromDob()"><div class="err-msg" id="co-child-dob-err">Please enter date of birth</div></div>
         <div class="ig"><label>Pincode</label><input type="text" id="co-pincode" placeholder="e.g. 400001" maxlength="6" inputmode="numeric" oninput="coPinChanged(this)"></div>
       </div>
     </div>
@@ -4626,7 +4634,10 @@ function syncC(){const oldNames=S.children.map(c=>c.name||'');S.children=[];docu
 function autofillEventDateFromDob(){
   const el=document.getElementById('f-date');
   const dob=S.children[0]?.dob;
-  if(!el||el.value||!dob)return;
+  // 2026-11-09, per Shruti — keep following the DOB while the date is still
+  // our own auto-fill (phone date wheels fire several changes while the
+  // customer scrolls to the right birthday); a date they picked stays.
+  if(!el||!dob||(el.value&&el.value!==S._evDateAuto))return;
   const d=new Date(dob+'T00:00:00');
   if(isNaN(d.getTime()))return;
   const now=new Date();
@@ -4635,7 +4646,19 @@ function autofillEventDateFromDob(){
   if(new Date(yr,d.getMonth(),d.getDate())<today)yr+=1;
   const mm=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
   el.value=yr+'-'+mm+'-'+dd;
-  S.eventDate=el.value;
+  S.eventDate=el.value;S._evDateAuto=el.value;
+  if(typeof checkUrgentDate==='function')checkUrgentDate('f-date','s0-urgent-warn');
+}
+// Same on Checkout for package bookings, which ask the DOB there (2026-11-09).
+function autofillCoDateFromDob(){
+  const el=document.getElementById('co-date'),dob=(document.getElementById('co-child-dob')||{}).value;
+  if(!el||!dob||(el.value&&el.value!==S._coDateAuto))return;
+  const d=new Date(dob+'T00:00:00');if(isNaN(d.getTime()))return;
+  const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  let yr=now.getFullYear();if(new Date(yr,d.getMonth(),d.getDate())<today)yr+=1;
+  el.value=yr+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  S._coDateAuto=el.value;
+  try{checkUrgentDate('co-date','co-urgent-warn');updCoUrgent();checkEiDateMismatch();}catch(e){}
 }
 // Splits a combined "Child Name(s)" string (e.g. "Aarav & Aanya", "Aarav,
 // Aanya") across however many child cards exist in S.children, so per-child
@@ -4769,7 +4792,7 @@ function makeTC(t){
   const launchTag=(t.tier==='Signature'&&t.origP!=null)?'<span class="tag" style="background:var(--yl);color:var(--bk)">🔥 Launch Offer</span>':'';
   const added=S.decor&&S.decor.id===t.id;
   const tierPill='<span class="tag" style="'+(TIER_TAG_STYLE[t.tier]||'')+'">'+t.tier+'</span>';
-  const specHtml='<ul class="act-card-spec">'+t.spec.map(s=>'<li'+(s.na?' class="na"':'')+'><b>'+s.l+':</b> '+s.v+'</li>').join('')+'</ul>';
+  const specHtml=decorSpecHtml(t.spec);
   const priceOrigHtml=t.origP!=null?'<div class="card-price-orig">₹'+t.origP.toLocaleString('en-IN')+'</div>':'';
   return '<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'theme\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+t.gallery[0].src+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tierPill+launchTag+tagHtml+'<span class="tag pk">'+t.gn+'</span></div>'+specHtml+'<div class="card-pr-row"><div>'+priceOrigHtml+'<div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+',\''+t.themeId+'\')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
 }
@@ -4824,7 +4847,7 @@ function buildDec(){
     const added=S.decor&&S.decor.id===t.id;
     const tierPill='<span class="tag" style="'+(TIER_TAG_STYLE[t.tier]||'')+'">'+t.tier+'</span>';
     const launchTag=(t.tier==='Signature'&&t.origP!=null)?'<span class="tag" style="background:var(--yl);color:var(--bk)">🔥 Launch Offer</span>':'';
-    const specHtml='<ul class="act-card-spec">'+t.spec.map(s=>'<li'+(s.na?' class="na"':'')+'><b>'+s.l+':</b> '+s.v+'</li>').join('')+'</ul>';
+    const specHtml=decorSpecHtml(t.spec);
     const priceOrigHtml=t.origP!=null?'<div class="card-price-orig">₹'+t.origP.toLocaleString('en-IN')+'</div>':'';
     sc.innerHTML+='<div class="pcard'+(added?' sel':'')+'" id="dc-'+t.id+'" onclick="openGallery(\'std\',\''+t.id+'\')"><div class="sel-badge">Selected ✓</div><div class="caro" style="overflow:hidden"><img src="'+stdThumb(t)+'" style="width:100%;height:100%;object-fit:cover;object-position:center top" alt="'+t.n+'">'+variantBadge(t)+'</div><div class="card-body"><div class="card-name">'+t.n+'</div><div class="ctags">'+tierPill+launchTag+'</div>'+specHtml+'<div class="card-pr-row"><div>'+priceOrigHtml+'<div class="card-price">₹'+t.p.toLocaleString('en-IN')+'</div></div><button class="card-btn'+(added?' added':'')+'" id="db-'+t.id+'" onclick="event.stopPropagation();selDec(this,\''+t.id+'\',\''+t.n+'\','+t.p+')">'+(added?'✓ Added':'Add')+'</button></div></div></div>';
   });
@@ -5095,6 +5118,15 @@ function fActs(cat,btn){document.querySelectorAll('#aChips .chip').forEach(c=>c.
 // sales panel and bookings, catalogue_data.spy_host_included_by()).
 const HOST_INCL_ACTS={'a28':'Spy Treasure Hunt','spy-mission':'Spy Mission','eng90':'90 Min Sports Engagement','eng120':'120 Min Sports Engagement'};
 function hostIncludedBy(){const a=S.activities.find(x=>HOST_INCL_ACTS[x.id]);return a?HOST_INCL_ACTS[a.id]:null;}
+// Decor card details, collapsible on phones (2026-11-09, per Shruti — "the
+// decor description on phone is too long"): the first 3 inclusions show,
+// the rest (and the not-included rows) open with "See all details".
+function decorSpecHtml(spec){
+  const li=x=>'<li class="'+(x.na?'na':'')+'"><b>'+x.l+':</b> '+x.v+'</li>';
+  const prim=spec.filter(x=>!x.na).slice(0,3), rest=spec.filter(x=>prim.indexOf(x)<0);
+  return '<ul class="act-card-spec dspec">'+prim.map(li).join('')+rest.map(x=>li(x).replace('<li class="','<li class="more ')).join('')+'</ul>'
+    +(rest.length?'<button type="button" class="dspec-more" onclick="event.stopPropagation();const u=this.previousElementSibling;u.classList.toggle(\'open\');this.textContent=u.classList.contains(\'open\')?\'Show less ▴\':\'See all details ▾\'">See all details ▾</button>':'');
+}
 function syncIncludedHost(){
   const by=hostIncludedBy();
   if(by){S.host={tier:'Signature',p:0,auto:true};if(typeof syncHostDom==='function')syncHostDom();}
