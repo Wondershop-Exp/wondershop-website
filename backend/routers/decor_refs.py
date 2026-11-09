@@ -282,9 +282,9 @@ async def website_ref_options(refresh: bool = True) -> list:
     for r in rows:
         img = public_image_url(r["public_token"])
         price = int(float(r["cost"]))
-        out.append({"id": f"ref-{r['id']}", "name": f"{r['theme']} — {r['tier']}", "theme": r["theme"], "tier": r["tier"],
+        out.append({"id": f"ref-{r['id']}", "name": f"{r['theme']} — {r['tier']} · Design {r['id']}", "theme": r["theme"], "tier": r["tier"],
                     "price": price, "tag": None, "image": img, "photos": [img],
-                    "included": [], "needed": [], "excluded": [], "value": f"{r['theme']} - {r['tier']}"})
+                    "included": [], "needed": [], "excluded": [], "value": f"{r['theme']} - {r['tier']} · Design {r['id']}"})
     _REF_OPTS = out
     try:
         from routers import admin as _a
