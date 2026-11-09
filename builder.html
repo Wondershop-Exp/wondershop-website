@@ -4946,6 +4946,10 @@ function populateThemeCatalogSelects(){
 function makeAssistedSelect(selectId){
   const sel=document.getElementById(selectId);
   if(!sel||sel._assisted)return;
+  // Phones/tablets (2026-11-09, per Shruti — the custom list overlapped
+  // the field and hid behind the keyboard): keep the native <select>,
+  // which opens the phone's own picker wheel/list. No typing, nothing clipped.
+  if(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches){sel._assisted=true;return;}
   sel._assisted=true;
   sel.style.display='none';
   const wrap=document.createElement('div');
