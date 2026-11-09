@@ -259,6 +259,48 @@ async def public_website_items():
     return {"items": items}
 
 
+# ─── Website-uploaded designs in every backend decor search ─────────────
+# 2026-11-09, per Shruti — "all decors on ui ... should by default come up
+# on search bars in backend". The decors uploaded with "show on website"
+# (ids "ref-<n>") live in the DB, not catalogue_data.THEMES, so they are
+# added here to the sales-quote option list and the booking Decor dropdown.
+_REF_OPTS: list = []
+
+
+async def website_ref_options(refresh: bool = True) -> list:
+    global _REF_OPTS
+    if not refresh and _REF_OPTS:
+        return _REF_OPTS
+    try:
+        rows = await database.fetch_all(
+            f"SELECT {_META_COLS} FROM decor_reference_images WHERE show_on_website "
+            "AND theme IS NOT NULL AND tier IS NOT NULL AND cost IS NOT NULL ORDER BY theme, tier")
+    except Exception:
+        logger.exception("decor-refs option list failed")
+        return _REF_OPTS
+    out = []
+    for r in rows:
+        img = public_image_url(r["public_token"])
+        price = int(float(r["cost"]))
+        out.append({"id": f"ref-{r['id']}", "name": f"{r['theme']} — {r['tier']}", "theme": r["theme"], "tier": r["tier"],
+                    "price": price, "tag": None, "image": img, "photos": [img],
+                    "included": [], "needed": [], "excluded": [], "value": f"{r['theme']} - {r['tier']}"})
+    _REF_OPTS = out
+    try:
+        from routers import admin as _a
+        import booking_pricing as _bp
+        known = {o["value"] for o in _a.DECOR_OPTIONS}
+        for o in out:
+            if o["value"] not in known:
+                known.add(o["value"])
+                _a.DECOR_OPTIONS.insert(len(_a.DECOR_OPTIONS) - 1, {"value": o["value"], "label": f"{o['value']} - Rs. {o['price']}"})
+            _a.DROPDOWN_VALUES.setdefault("svc_decor", set()).add(o["value"])
+            _bp.DECOR_PRICES.setdefault(o["value"], o["price"])
+    except Exception:
+        logger.exception("decor-refs dropdown merge failed")
+    return out
+
+
 # ─── Decor options page (2026-10-08, per Shruti) ─────────────────────────
 # decor-options.html?o=uni-signature,ledscreen-signature — the bigger photos
 # + inclusions/exclusions for the decor options a sales quote lists
@@ -272,6 +314,10 @@ async def public_decor_options(o: Optional[str] = None):
     for tok in dict.fromkeys(ids):
         oid, _, q = tok.partition(":")   # "uni-signature:22000" = sales quote
         it = cat.decor_option(oid)
+        if not it and oid.startswith("ref-"):
+            it = next((x for x in await website_ref_options(refresh=False) if x["id"] == oid), None)
+            if it:
+                it = dict(it, photos=[])   # absolute URL kept in "image" below
         if not it:
             continue
         it = dict(it)
@@ -279,8 +325,11 @@ async def public_decor_options(o: Optional[str] = None):
             it["quote"] = int(q) if q and int(q) > 0 else None
         except ValueError:
             it["quote"] = None
-        it["photos"] = [f"{site}/{p}" for p in it["photos"]]
-        it["image"] = it["photos"][0] if it["photos"] else None
+        if it["photos"] or not it.get("image"):
+            it["photos"] = [f"{site}/{p}" for p in it["photos"]]
+            it["image"] = it["photos"][0] if it["photos"] else None
+        else:
+            it["photos"] = [it["image"]]
         items.append(it)
     return {"items": items}
 

@@ -160,7 +160,19 @@ PINATA_BAG_UNIT_PRICE = 12
 @router.get("/admin/sales-leads/catalogue")
 async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
-    return _build_catalogue()
+    c = _build_catalogue()
+    # Website-uploaded decor designs too (2026-11-09, per Shruti).
+    from routers.decor_refs import website_ref_options
+    refs = await website_ref_options()
+    have = {o["id"] for o in c.get("decor_options") or []}
+    c["decor_options"] = (c.get("decor_options") or []) + [
+        {k: o[k] for k in ("id", "name", "price", "tier", "theme", "tag")} for o in refs if o["id"] not in have]
+    names = {t["name"].lower() for t in c.get("decor_themes") or []}
+    for o in refs:
+        if o["theme"].lower() not in names:
+            names.add(o["theme"].lower())
+            c.setdefault("decor_themes", []).append({"id": o["id"], "name": o["theme"]})
+    return c
 
 
 def _build_catalogue() -> dict:

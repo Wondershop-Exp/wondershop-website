@@ -810,6 +810,9 @@ def _log_sentence(field_label: str, change_type: str, old_value, new_value, chan
 # ─── VALIDATION (Services dropdowns + Billing rules) ──────────────────────
 
 async def _validate_choice_value(key: str, value: str, derived_original: Optional[str], lead: dict):
+    if key == "svc_decor" and value not in DROPDOWN_VALUES.get("svc_decor", set()):
+        from routers.decor_refs import website_ref_options
+        await website_ref_options()
     """Applies to the value about to be saved into Customer's Choice for
     override-based fields. Blank values (= revert to original) always skip
     validation. A value matching the field's current original/derived value
@@ -1219,6 +1222,11 @@ async def _is_spy_booking(lead: dict, snap: dict, svc_activities_field: Optional
 async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
 
+    try:
+        from routers.decor_refs import website_ref_options
+        await website_ref_options()   # website-uploaded decors in the Decor dropdown (2026-11-09)
+    except Exception:
+        pass
     lead_row = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
     if not lead_row:
         raise HTTPException(status_code=404, detail="Booking not found.")
