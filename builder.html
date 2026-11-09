@@ -776,6 +776,10 @@ body.browse-mode .browse-cta{display:flex}
 .asel-item:hover{background:#F3F0FF}
 .asel-item.sel{font-weight:600;background:#F3F0FF}
 .asel-empty{padding:10px 12px;color:#9CA3AF;font-size:13px}
+.asel-search{position:sticky;top:0;display:block;width:100%;box-sizing:border-box;border:none;border-bottom:1px solid #EEE;padding:10px 12px;font-size:16px;font-family:var(--fb);outline:none;background:#fff}
+.asel-input{caret-color:transparent;user-select:none;-webkit-user-select:none}
+.asel-panel{max-height:320px}
+.asel-item{padding:11px 12px}
 
 /* Selected activities */
 .sel-acts{background:var(--li3);border:1.5px solid var(--li2);border-radius:var(--r);padding:14px;margin-top:12px}
@@ -4955,36 +4959,50 @@ function makeAssistedSelect(selectId){
   function labelFor(val){const o=[...sel.options].find(o=>o.value===val);return o?o.textContent:'';}
   function syncFromSelect(){input.value=labelFor(sel.value);}
   sel._aselSync=syncFromSelect;
+  // 2026-11-09, per Shruti — "theme should be an assisted dropdown, right
+  // now we have to type ... esp on phone": the box is a plain dropdown
+  // (tap → full list, no keyboard); a search field sits at the top of the
+  // list for anyone who wants to filter.
+  input.readOnly=true;
+  const touch=window.matchMedia&&window.matchMedia('(pointer:coarse)').matches;
+  const search=document.createElement('input');
+  search.type='text';search.className='asel-search';search.autocomplete='off';search.placeholder='🔍 Search themes…';
+  const list=document.createElement('div');
+  panel.appendChild(search);panel.appendChild(list);
   function closePanel(){panel.classList.remove('open');syncFromSelect();}
+  function choose(o){sel.value=o.value;closePanel();input.blur();search.blur();sel.dispatchEvent(new Event('change',{bubbles:true}));}
   function renderPanel(filterText){
     const q=(filterText||'').trim().toLowerCase();
     const opts=[...sel.options];
     const matches=q?opts.filter(o=>o.textContent.toLowerCase().includes(q)):opts;
-    panel.innerHTML='';
-    if(!matches.length){
-      panel.innerHTML='<div class="asel-empty">No matches</div>';
-      return;
-    }
+    list.innerHTML='';
+    if(!matches.length){list.innerHTML='<div class="asel-empty">No matches</div>';return;}
     matches.forEach(o=>{
       const item=document.createElement('div');
       item.className='asel-item'+(o.value===sel.value?' sel':'');
       item.textContent=o.textContent;
-      item.addEventListener('mousedown',e=>{
-        e.preventDefault();
-        sel.value=o.value;
-        closePanel();
-        sel.dispatchEvent(new Event('change',{bubbles:true}));
-      });
-      panel.appendChild(item);
+      item.addEventListener('mousedown',e=>{e.preventDefault();choose(o);});
+      item.addEventListener('touchend',e=>{if(item._moved)return;e.preventDefault();choose(o);});
+      item.addEventListener('touchstart',()=>{item._moved=false;},{passive:true});
+      item.addEventListener('touchmove',()=>{item._moved=true;},{passive:true});
+      list.appendChild(item);
     });
   }
-  function openPanel(){panel.classList.add('open');renderPanel('');}
-  input.addEventListener('focus',openPanel);
-  input.addEventListener('click',openPanel);
-  input.addEventListener('input',()=>renderPanel(input.value));
+  function openPanel(){
+    if(panel.classList.contains('open'))return;
+    panel.classList.add('open');search.value='';renderPanel('');
+    const cur=list.querySelector('.asel-item.sel');if(cur)cur.scrollIntoView({block:'nearest'});
+    if(!touch)setTimeout(()=>search.focus(),0);
+  }
+  input.addEventListener('click',()=>{panel.classList.contains('open')?closePanel():openPanel();});
   input.addEventListener('keydown',e=>{
-    if(e.key==='Escape'){closePanel();input.blur();}
-    else if(e.key==='Enter'){e.preventDefault();panel.querySelector('.asel-item')?.dispatchEvent(new MouseEvent('mousedown'));}
+    if(e.key==='Enter'||e.key==='ArrowDown'||e.key===' '){e.preventDefault();openPanel();}
+    else if(e.key.length===1){openPanel();search.value=e.key;renderPanel(e.key);e.preventDefault();}
+  });
+  search.addEventListener('input',()=>renderPanel(search.value));
+  search.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){closePanel();}
+    else if(e.key==='Enter'){e.preventDefault();list.querySelector('.asel-item')?.dispatchEvent(new MouseEvent('mousedown'));}
   });
   document.addEventListener('click',e=>{if(!wrap.contains(e.target))closePanel();});
   syncFromSelect();
