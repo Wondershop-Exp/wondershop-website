@@ -5946,9 +5946,26 @@ function _optListPrice(sel){
   const m = String(o.textContent||'').match(/Rs\.?\s*([\d,]+)/i);
   return m ? Number(m[1].replace(/,/g,'')) : null;
 }
+// Add-on rows get the same pending quote box (2026-11-09, per Shruti —
+// "sales quote is missing here ... check for others as well").
+const LQ_ADDON_KEYS = {addon_gift_packaging:'packaging', addon_gift_note:'thank-you note',
+  addon_dj_lights:'music lights', addon_dj_smoke:'smoke machine'};
+function _addonListPrice(key, sel){
+  const v = String(sel.value||''), P = (CURRENT_DETAIL && CURRENT_DETAIL.pricing) || {};
+  const qty = Number(P.gift_pack_qty || P.gift_qty || (CURRENT_DETAIL && CURRENT_DETAIL.kids_count) || 0);
+  if(!v || /^no\b|not selected/i.test(v)) return null;
+  if(key==='addon_gift_packaging'){ const u = _optListPrice(sel); return u!=null && qty ? u*qty : null; }
+  if(key==='addon_gift_note') return v==='Yes' && qty ? Math.max(15, qty)*10 : null;
+  if(key==='addon_dj_lights') return 1500;
+  if(key==='addon_dj_smoke') return 2000;
+  return null;
+}
 document.addEventListener('change', e=>{
   const tr = e.target.closest && e.target.closest('tr[data-key]');
-  if(!tr || !LQ_FIELD_KEYS[tr.dataset.key] || !e.target.id || !e.target.id.endsWith('_cc')) return;
+  if(!tr || !e.target.id || !e.target.id.endsWith('_cc')) return;
+  const k = tr.dataset.key;
+  if(LQ_ADDON_KEYS[k]){ lqPendingStrip(tr, _addonListPrice(k, e.target), LQ_ADDON_KEYS[k]); return; }
+  if(!LQ_FIELD_KEYS[k]) return;
   lqPendingStrip(tr, e.target.value ? _optListPrice(e.target) : null);
 });
 // E-Invite picker (thumbnail combo, no <select>): list price by type —
@@ -5960,12 +5977,12 @@ function _einviteListPrice(v){
   const l = v.toLowerCase();
   return l.startsWith('custom') ? 1000 : (l.includes('video') ? 2000 : 500);
 }
-function lqPendingStrip(tr, price){
+function lqPendingStrip(tr, price, lineKey){
   const td = tr.children[2]; if(!td) return;
   const old = td.querySelector('.lq-strip'); if(old) old.remove();
   if(price == null) return;
   td.insertAdjacentHTML('afterbegin', '<div class="lq-strip"><div class="lq-line"><span class="lq-q">'
-    + '<span class="lq-inp"><span>₹</span><input type="number" min="0" step="1" class="lq-pending" data-k="'+LQ_FIELD_KEYS[tr.dataset.key]+'" value="'+price+'"></span></span>'
+    + '<span class="lq-inp"><span>₹</span><input type="number" min="0" step="1" class="lq-pending" data-k="'+esc(lineKey||LQ_FIELD_KEYS[tr.dataset.key])+'" value="'+price+'"></span></span>'
     + '<span style="font-size:11.5px">saved with Save</span></div></div>');
 }
 async function saveOneQuote(el){
