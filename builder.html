@@ -1869,6 +1869,10 @@ body.browse-mode .browse-cta{display:flex}
       <button class="chip" onclick="fActs('carnival',this)">🎪 Carnival &amp; Inflatables</button>
       <button class="chip" onclick="fActs('experience',this)">✨ Other Experiences</button>
     </div>
+    <!-- 2026-11-09, per Shruti — "if a user selects spy in activities, show a
+         message saying that a signature host is already included ... same
+         for sports engagement" (see syncIncludedHost) -->
+    <div id="actHostNote" style="display:none;margin:0 0 14px;padding:11px 14px;border-radius:12px;background:#EAF7EE;color:#1E7A3C;font-size:14px;line-height:1.45"></div>
     <div class="cards-grid" id="aCards"></div>
     <div id="selActs" style="display:none">
       <div class="sel-acts"><div class="sel-acts-h">Selected Activities</div><div id="selAList"></div></div>
@@ -4148,6 +4152,7 @@ function goTo(id){
   wsTrackScreen(id);
   if(id==='s9')buildRev();
   if(id==='sadd')rentSync();
+  if(id==='s2'&&typeof syncIncludedHost==='function')syncIncludedHost();   // host-included note (2026-11-09)
   if(id==='s6'){chkFreeInv();buildInvs();}
   if(id==='s8')updTagNote();
   if(id==='s1')syncDecorAddonsUI(!!S.fromReview);
@@ -5096,8 +5101,13 @@ function syncIncludedHost(){
   else if(S.host&&S.host.auto){S.host=null;document.querySelectorAll('#hostCards .tier-card').forEach(c=>c.classList.remove('sel'));}
   const n=document.getElementById('hostInclNote');
   if(n){n.style.display=by?'block':'none';n.innerHTML=by?'✓ <b>Signature Host included</b> with '+by+' — no extra cost.':'';}
+  // Same message on the Activities step itself (2026-11-09, per Shruti).
+  const an=document.getElementById('actHostNote');
+  if(an){an.style.display=by?'block':'none';an.innerHTML=by?'🎤 <b>A Signature Host is already included</b> with your '+by+' — no need to add a host separately, and no extra cost.':'';}
 }
-function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.activities.splice(idx,1);else{const a=ACTS.find(x=>x.id===id);if(a)S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat,wasP:a.wasP,por:a.por});}syncIncludedHost();renderActs(currentActsList());updSelActs();updBB(S.screen);}
+function togAct(id){const idx=S.activities.findIndex(a=>a.id===id);if(idx>-1)S.activities.splice(idx,1);else{const a=ACTS.find(x=>x.id===id);if(a)S.activities.push({id:a.id,n:a.n,r1:a.r1,r2:a.r2,r3:a.r3,flat:a.flat,wasP:a.wasP,por:a.por});}syncIncludedHost();renderActs(currentActsList());updSelActs();updBB(S.screen);
+  // Host-included toast (2026-11-09) — after any freebie toast updBB just showed.
+  if(idx<0&&HOST_INCL_ACTS[id]){const ft=document.getElementById('freebieToast');setTimeout(()=>showFreebieToast('🎤 Signature Host included with '+HOST_INCL_ACTS[id]+' — no extra cost'),ft&&ft.classList.contains('show')?3100:0);}}
 // 2026-08-24, per Shruti — the Step-2 "selected activities" mini-list now
 // reflects a claimed Tattoo/₹5k-credit freebie too (struck-through original
 // + the discounted/free price), not just the Review page — same
