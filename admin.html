@@ -2901,17 +2901,22 @@ function renderTargetGauge(pct){
     + '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="13" stroke-linecap="round" '
       + 'stroke-dasharray="'+dash.toFixed(1)+' '+circ.toFixed(1)+'" transform="rotate(-90 '+cx+' '+cy+')"/>'
     + '<text x="'+cx+'" y="'+(cy-1)+'" font-family="var(--fd)" font-size="23" font-weight="700" fill="var(--bk)" text-anchor="middle">'+label+'</text>'
-    + '<text x="'+cx+'" y="'+(cy+17)+'" font-size="9.5" fill="var(--gy)" text-anchor="middle">of target</text>'
+    + '<text x="'+cx+'" y="'+(cy+17)+'" font-size="9.5" fill="var(--gy)" text-anchor="middle">confirmed</text>'
     + '</svg>';
 }
 function renderDashMonthly(d){
-  const revGauge = renderTargetGauge(d.revenue_target_pct);
-  const bookGauge = renderTargetGauge(d.bookings_target_pct);
+  // 2026-11-11, per Shruti — "this is a little misleading": the rings now
+  // count only confirmed bookings with an event this month (Realized +
+  // Booked); warm leads (Potential) are shown as a separate "with warm leads" line.
+  const confRev = Number(d.realized_revenue||0) + Number(d.booked_revenue||0);
+  const confBk = Number(d.realized_bookings||0) + Number(d.booked_bookings||0);
+  const revGauge = renderTargetGauge(d.revenue_target ? confRev/d.revenue_target*100 : null);
+  const bookGauge = renderTargetGauge(d.bookings_target ? confBk/d.bookings_target*100 : null);
   const revCaption = d.revenue_target
-    ? ('vs '+fmtRs(d.revenue_target)+' revenue target')
+    ? (fmtRs(confRev)+' confirmed vs '+fmtRs(d.revenue_target)+' target · with warm leads: '+Math.round(Number(d.total_revenue||0)/d.revenue_target*100)+'%')
     : 'No revenue target set for this month yet';
   const bookCaption = d.bookings_target
-    ? ('vs '+fmtNum(d.bookings_target)+' bookings target')
+    ? (confBk+' confirmed vs '+fmtNum(d.bookings_target)+' target · with warm leads: '+Math.round(Number(d.total_bookings||0)/d.bookings_target*100)+'%')
     : 'No bookings target set for this month yet';
   const kpis = [
     kpiCard('Realized Revenue', fmtRs(d.realized_revenue), d.realized_bookings+' event(s) delivered & payment confirmed', '', 'realized'),
