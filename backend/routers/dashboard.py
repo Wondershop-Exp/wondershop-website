@@ -379,7 +379,21 @@ async def dashboard_ga4_funnels(x_admin_password: Optional[str] = Header(None)):
         "leads_funnel": leads_funnel,
         "core_funnel": core_funnel,
         "window_days": FUNNEL_WINDOW_DAYS,
+        # Per-day numbers (2026-11-11, per Shruti — "select a date range"):
+        # the page slices any From–To range and Day/Week/Month from these.
+        "daily": _daily_funnel_rows(sessions_by_day, raw["daily_events"]),
+        "data_from": range_start.isoformat(),
     }
+
+
+def _daily_funnel_rows(sessions_by_day: dict, daily_events: list) -> dict:
+    out = {d: {"sessions": v, "leads": 0, "checkouts": 0, "bookings": 0} for d, v in sessions_by_day.items()}
+    names = {"generate_lead": "leads", "begin_checkout": "checkouts", "booking_request_submitted": "bookings"}
+    for row in daily_events:
+        k = names.get(row["event_name"])
+        if k:
+            out.setdefault(row["date"], {"sessions": 0, "leads": 0, "checkouts": 0, "bookings": 0})[k] += row["count"]
+    return out
 
 
 # ─── Monthly overview (Realized / Booked / Potential) ──────────────────────

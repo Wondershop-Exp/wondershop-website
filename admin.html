@@ -3142,31 +3142,101 @@ function renderGa4(){
   renderGa4Builder();
 }
 
+// Traffic & Leads Funnel with a From–To date range, Day/Week/Month and
+// hover labels (2026-11-11, per Shruti). Unit = website sessions (GA4 visits).
+let GA4_FROM = null, GA4_TO = null;
+function _isoD(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
+function setGa4Range(){
+  const f = document.getElementById('ga4From').value, t = document.getElementById('ga4To').value;
+  if(f && t && f <= t){ GA4_FROM = f; GA4_TO = t; renderGa4Traffic(); }
+}
+function setGa4Preset(days){
+  const t = new Date(); const f = new Date(); f.setDate(t.getDate()-days+1);
+  GA4_FROM = _isoD(f); GA4_TO = _isoD(t); renderGa4Traffic();
+}
+function _ga4Buckets(daily, from, to, grain){
+  const out = [], idx = {};
+  const d = new Date(from+'T00:00:00'), end = new Date(to+'T00:00:00');
+  while(d <= end){
+    const day = _isoD(d);
+    let key, label;
+    if(grain==='month'){ key = day.slice(0,7); label = d.toLocaleDateString('en-IN',{month:'short',year:'numeric'}); }
+    else if(grain==='week'){
+      const m = new Date(d); m.setDate(d.getDate() - ((d.getDay()+6)%7));
+      key = _isoD(m); label = 'Week of '+m.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+    } else { key = day; label = d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}); }
+    if(idx[key]==null){ idx[key] = out.length; out.push({key, label, axis: grain==='month'? d.toLocaleDateString('en-IN',{month:'short'}) : (grain==='week'? new Date(key+'T00:00:00') : d).toLocaleDateString('en-IN',{day:'numeric',month:'short'}), sessions:0, leads:0, checkouts:0, bookings:0}); }
+    const r = daily[day] || {}, o = out[idx[key]];
+    o.sessions += r.sessions||0; o.leads += r.leads||0; o.checkouts += r.checkouts||0; o.bookings += r.bookings||0;
+    d.setDate(d.getDate()+1);
+  }
+  return out;
+}
+function ga4Tip(ev, i){
+  const p = (window._GA4_PTS||[])[i]; const tip = document.getElementById('ga4Tip'); if(!p||!tip) return;
+  tip.innerHTML = '<b>'+esc(p.label)+'</b><br>'+fmtNum(p.sessions)+' sessions'
+    + (p.leads? '<br>'+fmtNum(p.leads)+' leads':'') + (p.checkouts? '<br>'+fmtNum(p.checkouts)+' checkouts':'') + (p.bookings? '<br>'+fmtNum(p.bookings)+' bookings':'');
+  const box = tip.parentElement.getBoundingClientRect();
+  tip.style.display = 'block';
+  tip.style.left = Math.min(box.width - 150, Math.max(0, ev.clientX - box.left + 12))+'px';
+  tip.style.top = Math.max(0, ev.clientY - box.top - 20)+'px';
+  document.querySelectorAll('#ga4TrafficCard .ga4dot').forEach((c,j)=>c.setAttribute('r', j===i?6:3.5));
+}
+function ga4TipHide(){ const t=document.getElementById('ga4Tip'); if(t) t.style.display='none'; document.querySelectorAll('#ga4TrafficCard .ga4dot').forEach(c=>c.setAttribute('r',3.5)); }
+
 function renderGa4Traffic(){
   const el = document.getElementById('ga4TrafficCard');
   const d = GA4_DATA;
   if(!d.configured){ el.innerHTML = ga4NotConnectedHtml('Traffic & Leads Funnel'); return; }
   if(d.error){ el.innerHTML = ga4ErrorHtml('Traffic & Leads Funnel', d.error); return; }
-  const series = d.traffic[GA4_GRAIN];
-  const line = buildLine(series, 'value', 800, 170, 16, 16, 12, 40);
-  const dotsMarkup = ga4AxisLabels(line.dots, GA4_GRAIN, series.length).replace(/\{\{Y\}\}/g, '152');
-  let circles = '';
-  const step = Math.ceil(series.length/7) || 1;
-  line.dots.forEach((p,i)=>{
-    if(i % step === 0 || i === series.length-1) circles += '<circle cx="'+p.x+'" cy="'+p.y+'" r="3.5" fill="var(--bl)"></circle>';
+  if(!d.daily){ el.innerHTML = '<div class="empty">Reload once the backend update is deployed.</div>'; return; }
+  if(!GA4_FROM){ const t=new Date(), f=new Date(); f.setDate(t.getDate()-29); GA4_FROM=_isoD(f); GA4_TO=_isoD(t); }
+  const pts = _ga4Buckets(d.daily, GA4_FROM, GA4_TO, GA4_GRAIN);
+  window._GA4_PTS = pts;
+  const W=800, H=200, L=46, R=16, T=14, B=40, cw=W-L-R, ch=H-T-B, n=pts.length;
+  const max = Math.max(1, ...pts.map(p=>p.sessions));
+  const tick = (()=>{ const r=max/4, e=Math.pow(10,Math.floor(Math.log10(r))), m=r/e; return Math.max(1,(m<=1?1:m<=2?2:m<=5?5:10)*e); })(), nice = tick*4;
+  const X = i => L + (n===1? cw/2 : i/(n-1)*cw), Y = v => T + ch - v/nice*ch;
+  let svg = '';
+  for(let k=0;k<=4;k++){ const v=nice*k/4, y=Y(v).toFixed(1);
+    svg += '<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="#EEE"/><text x="'+(L-6)+'" y="'+(+y+3)+'" font-size="10" fill="var(--gy)" text-anchor="end">'+fmtNum(Math.round(v))+'</text>'; }
+  svg += '<text x="4" y="'+(T+ch/2)+'" font-size="10" fill="var(--gy)" transform="rotate(-90 10 '+(T+ch/2)+')" text-anchor="middle">Sessions</text>';
+  svg += '<polyline points="'+pts.map((p,i)=>X(i).toFixed(1)+','+Y(p.sessions).toFixed(1)).join(' ')+'" fill="none" stroke="var(--bl)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+  const step = Math.ceil(n/8)||1;
+  pts.forEach((p,i)=>{
+    svg += '<circle class="ga4dot" cx="'+X(i).toFixed(1)+'" cy="'+Y(p.sessions).toFixed(1)+'" r="3.5" fill="var(--bl)"/>';
+    if(i%step===0 || (i===n-1 && (n-1)%step>=step/2)) svg += '<text x="'+X(i).toFixed(1)+'" y="'+(H-18)+'" font-size="10" fill="var(--gy)" text-anchor="middle">'+esc(p.axis)+'</text>';
   });
-  const funnelMax = (d.leads_funnel[0] && d.leads_funnel[0].value) || 1;
+  const colW = n>1 ? cw/(n-1) : cw;
+  pts.forEach((p,i)=>{ svg += '<rect x="'+(X(i)-colW/2).toFixed(1)+'" y="0" width="'+colW.toFixed(1)+'" height="'+H+'" fill="transparent" style="cursor:crosshair" onmousemove="ga4Tip(event,'+i+')" ontouchstart="ga4Tip(event.touches[0],'+i+')"/>'; });
+
+  const tot = pts.reduce((a,p)=>({s:a.s+p.sessions,l:a.l+p.leads,c:a.c+p.checkouts,b:a.b+p.bookings}),{s:0,l:0,c:0,b:0});
+  const stages = [
+    ['Website Sessions', tot.s, 'starting point'],
+    ['Leads Captured', tot.l, tot.s? (tot.l/tot.s*100).toFixed(1)+'% of sessions':''],
+    ['Checkout Started', tot.c, tot.s? (tot.c/tot.s*100).toFixed(1)+'% of sessions':''],
+    ['Bookings Confirmed', tot.b, tot.c? (tot.b/tot.c*100).toFixed(1)+'% of checkouts':'']];
+  const fmax = tot.s || 1;
   let funnelHtml = '<div class="funnel">';
-  d.leads_funnel.forEach(f=>{
-    const pct = Math.max(f.value/funnelMax*100, f.value>0?8:0.6);
+  stages.forEach(([nm,v,rate])=>{
+    const pct = Math.max(v/fmax*100, v>0?8:0.6);
     funnelHtml += '<div class="funnel-row"><div class="funnel-bar-wrap"><div class="funnel-bar-track">'
-      + '<div class="funnel-bar-fill" style="width:'+pct.toFixed(1)+'%">'+fmtNum(f.value)+'</div>'
-      + '</div></div><div class="funnel-meta"><div class="name">'+esc(f.stage)+'</div><div class="rate">'+(f.rate_label?esc(f.rate_label):'starting point')+'</div></div></div>';
+      + '<div class="funnel-bar-fill" style="width:'+pct.toFixed(1)+'%">'+fmtNum(v)+'</div>'
+      + '</div></div><div class="funnel-meta"><div class="name">'+esc(nm)+'</div><div class="rate">'+esc(rate)+'</div></div></div>';
   });
   funnelHtml += '</div>';
+  const fmtD = x => new Date(x+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  const today = _isoD(new Date());
+  const ctl = '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px;font-size:12.5px">'
+    + '<label>From <input type="date" id="ga4From" value="'+GA4_FROM+'" min="'+(d.data_from||'')+'" max="'+today+'" onchange="setGa4Range()" style="padding:5px 8px;border:1px solid var(--li2);border-radius:8px"></label>'
+    + '<label>To <input type="date" id="ga4To" value="'+GA4_TO+'" min="'+(d.data_from||'')+'" max="'+today+'" onchange="setGa4Range()" style="padding:5px 8px;border:1px solid var(--li2);border-radius:8px"></label>'
+    + [7,30,90].map(x=>'<button class="pill" onclick="setGa4Preset('+x+')">Last '+x+' days</button>').join('')
+    + '</div>';
   el.innerHTML = '<div class="dash-card-title-row"><div class="dash-card-title" style="margin-bottom:0">Traffic &amp; Leads Funnel</div>'+pillRowHtml()+'</div>'
-    + '<div class="card-sub">Website sessions over the selected period, then how they move through the funnel to a confirmed booking (last '+d.window_days+' days).</div>'
-    + '<svg viewBox="0 0 800 170" style="width:100%;height:auto;max-width:100%"><polyline points="'+line.points+'" fill="none" stroke="var(--bl)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></polyline>'+circles+dotsMarkup+'</svg>'
+    + '<div class="card-sub">Website sessions (visits, from Google Analytics) per '+GA4_GRAIN+', '+fmtD(GA4_FROM)+' – '+fmtD(GA4_TO)+', then how they move through the funnel to a confirmed booking in the same dates. Hover a point for its numbers.</div>'
+    + ctl
+    + '<div style="position:relative" onmouseleave="ga4TipHide()"><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;max-width:100%">'+svg+'</svg>'
+    + '<div id="ga4Tip" style="display:none;position:absolute;pointer-events:none;background:#1F1A2E;color:#fff;font-size:12px;line-height:1.45;padding:7px 10px;border-radius:8px;white-space:nowrap;z-index:5"></div></div>'
     + funnelHtml;
 }
 
