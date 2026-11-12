@@ -10,6 +10,15 @@ Google Form "Venue & Society Information Form"):
   return gift placement ... booking details should be shown on this form."
 
 One link per booking (table venue_info, migration 080): venue.html?t=<token>.
+
+Venue recce (2026-11-12, per Shruti — "venue recce - add it to the venue
+information form. also, our volunteer can fill the form on behalf of the
+customer as well"): the same link with &recce=1 shows the customer questions
+(which the volunteer can fill or correct) plus the team-only RECCE_SECTIONS
+(decor area, ceiling height, plug points incl. 16 amp for LED decor and live
+T-shirt printing, medical kit, ...). A recce save needs no T&C tick (that stays
+the customer's) and is stamped _recce_by / _recce_at in the answers. Training
+guide: training-venue-recce.html.
 Answers save as the customer goes (nothing is required to save); the page and
 the bookings panel show what's still missing. Photos are shrunk in the
 browser before upload; videos are capped at 30 MB each, 3 per booking. Files
@@ -36,7 +45,7 @@ import json
 import logging
 import re
 import secrets
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, File, Form, Header, HTTPException, Request, UploadFile
@@ -55,8 +64,8 @@ TNC_URL = SITE_BASE_URL + "/terms.html"
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024    # the page shrinks photos to ~1 MB before upload
 MAX_VIDEO_BYTES = 30 * 1024 * 1024
-MAX_IMAGES = 20
-MAX_VIDEOS = 3
+MAX_IMAGES = 40   # raised from 20 for the recce photos (2026-11-12)
+MAX_VIDEOS = 5
 
 # (key, label, type, options [(value, label)], required, follow-up)
 # follow-up = (key, label, show when the answer is one of these values)
@@ -76,6 +85,7 @@ SECTIONS = [
         ("venue_type", "What kind of venue is it?", "chips",
          [("Society Banquet Hall", "Society clubhouse / hall"), ("Society Banquet", "Banquet hall"), ("Restaurant", "Restaurant"),
           ("Turf", "Turf"), ("Club", "Club / resort"), ("Play Area", "Play area"), ("Home", "Home"), ("Other", "Other")], True, None),
+        ("venue_address", "Venue name and full address", "short", None, True, None),
         ("maps_link", "Google Maps link of the venue", "url", None, True, None),
         ("floor", "Which floor is the party on?", "chips",
          [("ground", "Ground"), ("1-3", "1–3"), ("4-10", "4–10"), ("11+", "11+"), ("terrace", "Terrace")], True, None),
@@ -99,17 +109,78 @@ SECTIONS = [
          [("yes", "Yes, I'll arrange it"), ("no", "No"), ("unsure", "Not sure")], True, None),
         ("tape", "Can we use tape on the walls?", "chips",
          [("yes", "Yes"), ("no", "No"), ("unsure", "Not sure")], True, None),
+        ("venue_contact_name", "Venue manager / contact person's name", "short", None, False, None),
+        ("venue_contact_phone", "Venue manager / contact person's phone", "phone", None, False, None),
         ("venue_notes", "Anything else the venue told you? (rules, restrictions, timings)", "text", None, False, None),
     ]),
 ]
-QUESTIONS = {q[0]: q for _s, qs in SECTIONS for q in qs}
+
+# Team-only questions, shown with &recce=1. "required" here = needed for the
+# recce to be complete (does not affect the customer's progress).
+RECCE_SECTIONS = [
+    ("Recce · Decor area", [
+        ("decor_area", "Where will the main decor go? (e.g. banquet hall, left wall)", "short", None, True, None),
+        ("ceiling", "Floor-to-ceiling height at the decor area", "chips",
+         [("lt9", "Under 9 ft"), ("9-10", "9–10 ft"), ("10-12", "10–12 ft"), ("12+", "12 ft+"), ("unsure", "Not sure")], True,
+         ("ceiling_exact", "Exact height, if measured (e.g. 10 ft 6 in)", ["lt9", "9-10", "10-12", "12+"])),
+        ("decor_width", "Width of the wall / space for the decor", "chips",
+         [("lt8", "Under 8 ft"), ("8-12", "8–12 ft"), ("12-16", "12–16 ft"), ("16+", "16 ft+"), ("unsure", "Not sure")], True, None),
+        ("plug_decor", "Normal plug point near the decor area", "chips",
+         [("lt2", "Yes, within 2 m"), ("2-5", "Yes, 2–5 m away"), ("gt5", "Only 5 m+ away"), ("none", "No plug point")], True, None),
+        ("plug16", "16 amp plug point (needed for LED decor and live T-shirt printing)", "chips",
+         [("near_decor", "Yes, near the decor"), ("elsewhere", "Yes, somewhere else"), ("none", "No 16 amp point"),
+          ("na", "Not needed for this party")], True,
+         ("plug16_where", "Where exactly is it?", ["near_decor", "elsewhere"])),
+        ("tables4", "Can 4 tables fit next to the 16 amp point? (live T-shirt printing)", "chips",
+         [("yes", "Yes"), ("no", "No"), ("na", "Not needed for this party")], True, None),
+        ("venue_tables", "Can the venue give us tables?", "chips",
+         [("yes", "Yes"), ("no", "No, we bring our own"), ("unsure", "Not sure")], True,
+         ("venue_tables_count", "How many?", ["yes"])),
+        ("hanging", "Can we hang things from the ceiling?", "chips",
+         [("yes", "Yes"), ("no", "No"), ("unsure", "Not sure")], True, None),
+        ("decor_obstacles", "Anything in the way near the decor? (pillar, AC vent, fan, window behind)", "text", None, False, None),
+    ]),
+    ("Recce · Safety", [
+        ("medkit", "First-aid / medical kit at the venue", "chips",
+         [("yes", "Yes, venue has one"), ("no", "No — we must carry ours")], True,
+         ("medkit_where", "Where is it kept?", ["yes"])),
+        ("medkit_person", "Who is in charge of it on the day? (name and phone)", "short", None, True, None),
+        ("hospital", "Nearest hospital / clinic and time to reach", "short", None, True, None),
+        ("fire_exit", "Fire exits / emergency stairs checked?", "chips",
+         [("yes", "Yes, noted"), ("no", "Couldn't find")], True, None),
+        ("hazards", "Any dangers for kids nearby? (pool, balcony, steep stairs, glass, road)", "chips",
+         [("none", "None"), ("yes", "Yes")], True,
+         ("hazards_note", "What and where?", ["yes"])),
+    ]),
+    ("Recce · Shows, sound & team", [
+        ("sound", "Music / sound rules", "chips",
+         [("none", "No limits"), ("time", "Time limit"), ("volume", "Volume limit"), ("unsure", "Not sure")], True,
+         ("sound_note", "Details (e.g. no music after 9 PM)", ["time", "volume"])),
+        ("show_space", "Space for kids to sit on the floor in front of a show?", "chips",
+         [("yes", "Yes"), ("tight", "Tight"), ("no", "No"), ("na", "No show booked")], True, None),
+        ("team_room", "Room or corner for our team to keep bags and get ready?", "chips",
+         [("yes", "Yes"), ("no", "No")], True, None),
+        ("ac_control", "Can AC, fans and lights be controlled? (bubble show needs fans off)", "chips",
+         [("yes", "Yes"), ("no", "No"), ("unsure", "Not sure")], True, None),
+        ("walkthrough", "Full walkthrough video uploaded below?", "chips",
+         [("yes", "Yes"), ("no", "Not yet")], True, None),
+        ("recce_summary", "Summary and problems for the team", "text", None, False, None),
+        ("recce_by", "Recce done by (your name)", "short", None, True, None),
+    ]),
+]
+QUESTIONS = {q[0]: q for _s, qs in SECTIONS + RECCE_SECTIONS for q in qs}
 FOLLOWUPS = {q[5][0]: q for q in QUESTIONS.values() if q[5]}
-REQUIRED = [k for k, q in QUESTIONS.items() if q[4]]
+REQUIRED = [q[0] for _s, qs in SECTIONS for q in qs if q[4]]
+RECCE_REQUIRED = [q[0] for _s, qs in RECCE_SECTIONS for q in qs if q[4]]
+RECCE_KEYS = {q[0] for _s, qs in RECCE_SECTIONS for q in qs} | {q[5][0] for _s, qs in RECCE_SECTIONS for q in qs if q[5]}
 
 TAGS = [("decor", "Decor"), ("dj", "DJ / music"), ("activity", "Activity area"), ("return_gifts", "Return gifts"),
         ("food", "Food"), ("cake", "Cake table"), ("entry", "Entry / welcome"), ("unloading", "Unloading / lift"),
         ("other", "Other")]
-TAG_KEYS = [k for k, _ in TAGS]
+RECCE_TAGS = [("decor_front", "Decor – front"), ("decor_left", "Decor – left side"), ("decor_right", "Decor – right side"),
+              ("decor_wide", "Wide – whole room"), ("plug", "Plug point"), ("plug16", "16 amp plug"),
+              ("medical", "Medical kit"), ("walkthrough", "Walkthrough video")]
+TAG_KEYS = [k for k, _ in TAGS + RECCE_TAGS]
 
 
 def venue_url(token: str) -> str:
@@ -180,7 +251,10 @@ def _hhmm(v) -> Optional[str]:
 async def booking_times(lead_id: int) -> dict:
     """The booking's current event start / end, handover and packup times."""
     out = {}
-    lead = await database.fetch_one("SELECT event_time, venue_maps_link, location_type FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    lead = await database.fetch_one("SELECT event_time, venue_maps_link, location_type, venue, venue_contact_name, venue_contact_phone "
+                                    "FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    for k, col in (("venue_address", "venue"), ("venue_contact_name", "venue_contact_name"), ("venue_contact_phone", "venue_contact_phone")):
+        out[k] = ((lead[col] or "").strip() or None) if lead else None
     out["event_start"] = _hhmm(lead["event_time"]) if lead else None
     out["maps_link"] = ((lead["venue_maps_link"] or "").strip() or None) if lead else None
     lt = ((lead["location_type"] or "").strip() if lead else "")
@@ -188,11 +262,16 @@ async def booking_times(lead_id: int) -> dict:
     pb = None
     try:
         pb = await database.fetch_one(
-            "SELECT event_end_time, venue_handover_time, packup_time FROM lead_sales_playbook WHERE lead_id = :id",
+            "SELECT event_end_time, venue_handover_time, packup_time, venue_type FROM lead_sales_playbook WHERE lead_id = :id",
             values={"id": lead_id})
     except Exception:
         pb = None
     out["event_end"] = _hhmm(pb["event_end_time"]) if pb else None
+    # 2026-11-12, per Shruti — "if the client/sales team has filled in any
+    # details earlier, please copy that in the form": the sales panel keeps
+    # Venue Type on its own sheet, so use it when the booking has none.
+    if not out.get("venue_type") and pb and pb["venue_type"] in {v for v, _ in QUESTIONS["venue_type"][3]}:
+        out["venue_type"] = pb["venue_type"]
     for key, fk in (("setup_from", "venue_handover_time"), ("clear_by", "packup_time")):
         v = None
         try:
@@ -217,29 +296,35 @@ async def _with_booking_times(lead_id: int, answers: dict) -> dict:
     return a
 
 
-async def push_times_to_booking(lead_id: int, answers: dict, keys) -> None:
+async def push_times_to_booking(lead_id: int, answers: dict, keys, who: Optional[str] = None) -> None:
     """Writes the times the customer just gave into the booking."""
     from config import settings
     from routers.admin import update_booking_field, FieldUpdateRequest
     current = await booking_times(lead_id)
     for k in keys:
-        v = (answers.get(k) or "").strip() if k in ("maps_link", "venue_type") else _hhmm(answers.get(k))
+        v = (answers.get(k) or "").strip() if k in TEXT_SYNC else _hhmm(answers.get(k))
         if not v or v == current.get(k):
             continue
+        # Sales-panel leads (not yet booked) read these from their own sheet:
+        # keep it in step too, where the sheet exists (2026-11-12).
+        pbcol = {"setup_from": "venue_handover_time", "clear_by": "packup_time", "venue_type": "venue_type"}.get(k)
+        if pbcol:
+            try:
+                await database.execute(f"UPDATE lead_sales_playbook SET {pbcol} = :v WHERE lead_id = :id",
+                                       values={"v": v, "id": lead_id})
+            except Exception as exc:
+                logger.warning(f"Lead #{lead_id}: venue form couldn't update the sales sheet's {pbcol} — {exc}")
         try:
-            if k == "venue_type":
+            if k in TEXT_SYNC:
                 await update_booking_field(lead_id, FieldUpdateRequest(
-                    field_key="location_type", assigned_value=v, changed_by=SYNC_WHO), settings.ADMIN_PASSWORD)
-            elif k == "maps_link":
-                await update_booking_field(lead_id, FieldUpdateRequest(
-                    field_key="venue_maps_link", assigned_value=v, changed_by=SYNC_WHO), settings.ADMIN_PASSWORD)
+                    field_key=TEXT_SYNC[k], assigned_value=v, changed_by=who or SYNC_WHO), settings.ADMIN_PASSWORD)
             elif k == "event_start":
                 await update_booking_field(lead_id, FieldUpdateRequest(
-                    field_key="event_time", assigned_value=v, changed_by=SYNC_WHO), settings.ADMIN_PASSWORD)
+                    field_key="event_time", assigned_value=v, changed_by=who or SYNC_WHO), settings.ADMIN_PASSWORD)
             elif k in ("setup_from", "clear_by"):
                 fk = "venue_handover_time" if k == "setup_from" else "packup_time"
                 await update_booking_field(lead_id, FieldUpdateRequest(
-                    field_key=fk, customer_choice_override=v, changed_by=SYNC_WHO), settings.ADMIN_PASSWORD)
+                    field_key=fk, customer_choice_override=v, changed_by=who or SYNC_WHO), settings.ADMIN_PASSWORD)
             elif k == "event_end":
                 n = await database.fetch_val("SELECT COUNT(*) FROM lead_sales_playbook WHERE lead_id = :id", values={"id": lead_id})
                 # Only where a sales-panel sheet already exists — creating one
@@ -252,12 +337,15 @@ async def push_times_to_booking(lead_id: int, answers: dict, keys) -> None:
             logger.warning(f"Lead #{lead_id}: venue form couldn't update {k} on the booking — {exc}")
 
 
-SYNC_KEYS = ("event_start", "event_end", "setup_from", "clear_by", "maps_link", "venue_type")   # maps_link <-> Venue Maps Link
+SYNC_KEYS = ("event_start", "event_end", "setup_from", "clear_by", "maps_link", "venue_type",
+             "venue_address", "venue_contact_name", "venue_contact_phone")
+TEXT_SYNC = {"maps_link": "venue_maps_link", "venue_type": "location_type", "venue_address": "venue",
+             "venue_contact_name": "venue_contact_name", "venue_contact_phone": "venue_contact_phone"}   # maps_link <-> Venue Maps Link
 
 
-def _missing(answers: dict) -> List[str]:
+def _missing(answers: dict, keys=None) -> List[str]:
     out = []
-    for k in REQUIRED:
+    for k in (REQUIRED if keys is None else keys):
         if not str(answers.get(k) or "").strip():
             out.append(k)
     return out
@@ -304,10 +392,10 @@ async def _media(lead_id: int, base: str) -> list:
              "url": f"{base}/{r['id']}", "uploaded_at": _to_ist_str(r["created_at"])} for r in rows]
 
 
-def _questions_out() -> list:
+def _questions_out(recce: bool = False) -> list:
     out = []
-    for title, qs in SECTIONS:
-        out.append({"title": title, "questions": [
+    for title, qs in SECTIONS + (RECCE_SECTIONS if recce else []):
+        out.append({"title": title, "team_only": title.startswith("Recce"), "questions": [
             {"key": k, "label": l, "type": t, "required": req,
              "options": [{"value": v, "label": ol} for v, ol in (opts or [])],
              "followup": ({"key": fu[0], "label": fu[1], "when": fu[2]} if fu else None)}
@@ -348,7 +436,7 @@ async def _by_token(token: str) -> dict:
 
 
 @router.get("/venue-info/{token}")
-async def public_get(token: str):
+async def public_get(token: str, recce: bool = False):
     row = await _by_token(token)
     lead = await _lead(row["lead_id"])
     if not row["opened_at"]:
@@ -356,10 +444,13 @@ async def public_get(token: str):
     answers = await _with_booking_times(row["lead_id"], _j(row["answers"]) or {})
     return {
         "booking": _booking_header(lead),
-        "sections": _questions_out(),
+        "sections": _questions_out(recce),
         "answers": answers,
         "missing": _missing(answers),
-        "tags": [{"key": k, "label": l} for k, l in TAGS],
+        "recce": recce,
+        "recce_missing": _missing(answers, RECCE_REQUIRED) if recce else [],
+        "recce_at": answers.get("_recce_at"), "recce_by": answers.get("_recce_by"),
+        "tags": [{"key": k, "label": l} for k, l in TAGS + (RECCE_TAGS if recce else [])],
         "media": await _media(row["lead_id"], f"/api/venue-info/{token}/media"),
         "limits": {"image_mb": MAX_IMAGE_BYTES // (1024 * 1024), "video_mb": MAX_VIDEO_BYTES // (1024 * 1024),
                    "images": MAX_IMAGES, "videos": MAX_VIDEOS},
@@ -373,6 +464,8 @@ class VenueAnswers(BaseModel):
     answers: Dict[str, Optional[str]] = {}
     accept_tnc: Optional[bool] = None
     submit: bool = False
+    recce: bool = False          # saved from the team's recce view (filled on the customer's behalf)
+    recce_submit: bool = False   # "Save recce" button
 
 
 def _clean_answers(raw: Dict[str, Optional[str]]) -> dict:
@@ -401,12 +494,18 @@ async def public_save(token: str, body: VenueAnswers):
     row = await _by_token(token)
     answers = _j(row["answers"]) or {}
     cleaned = _clean_answers(body.answers)
+    if not body.recce and any(k in RECCE_KEYS for k in cleaned):
+        cleaned = {k: v for k, v in cleaned.items() if k not in RECCE_KEYS}
     answers.update(cleaned)
+    if body.recce_submit:
+        answers["_recce_at"] = _to_ist_str(datetime.now(timezone.utc))
+        answers["_recce_by"] = (answers.get("recce_by") or "Team")[:80]
     answers = {k: v for k, v in answers.items() if v}
-    await push_times_to_booking(row["lead_id"], answers, [k for k in SYNC_KEYS if cleaned.get(k)])
+    who = f"{answers.get('recce_by') or 'Team'} (venue recce)" if body.recce else None
+    await push_times_to_booking(row["lead_id"], answers, [k for k in SYNC_KEYS if cleaned.get(k)], who)
     answers = await _with_booking_times(row["lead_id"], answers)
     tnc = bool(row["tnc_accepted_at"]) if body.accept_tnc is None else bool(body.accept_tnc)
-    if body.submit and not tnc:
+    if body.submit and not tnc and not body.recce:
         raise HTTPException(status_code=400, detail="Please tick that you've read the Terms & Conditions.")
     await database.execute(
         """UPDATE venue_info SET answers = CAST(:a AS JSONB), updated_at = NOW(),
@@ -416,7 +515,10 @@ async def public_save(token: str, body: VenueAnswers):
         values={"a": json.dumps(answers), "tnc": tnc, "sub": bool(body.submit), "id": row["id"]})
     if body.submit:
         logger.info(f"Lead #{row['lead_id']}: venue details submitted ({len(_missing(answers))} missing)")
-    return {"success": True, "answers": answers, "missing": _missing(answers), "tnc_accepted": tnc}
+    if body.recce_submit:
+        logger.info(f"Lead #{row['lead_id']}: venue recce saved by {answers.get('_recce_by')}")
+    return {"success": True, "answers": answers, "missing": _missing(answers), "tnc_accepted": tnc,
+            "recce_missing": _missing(answers, RECCE_REQUIRED), "recce_at": answers.get("_recce_at")}
 
 
 def _clean_tags(tags: str) -> list:
@@ -502,18 +604,21 @@ async def admin_get(lead_id: int, x_admin_password: Optional[str] = Header(None)
     row = dict(await database.fetch_one("SELECT * FROM venue_info WHERE lead_id = :id", values={"id": lead_id}))
     answers = await _with_booking_times(lead_id, _j(row["answers"]) or {})
     rows = []
-    for title, qs in SECTIONS:
+    for title, qs in SECTIONS + RECCE_SECTIONS:
         for k, l, _t, _o, _req, fu in qs:
             v = answers.get(k)
             txt = _answer_text(k, v) if v else None
             if fu and answers.get(fu[0]) and v in fu[2]:
                 txt = (txt or "") + " — " + answers[fu[0]]
-            rows.append({"section": title, "key": k, "label": l, "answer": txt, "required": _req})
+            rows.append({"section": title, "key": k, "label": l, "answer": txt, "required": _req,
+                         "team_only": title.startswith("Recce")})
     return {
-        "url": url, "booking": _booking_header(lead), "email": lead["email"], "phone": lead["phone"],
+        "url": url, "recce_url": url + "&recce=1", "booking": _booking_header(lead), "email": lead["email"], "phone": lead["phone"],
+        "recce_at": answers.get("_recce_at"), "recce_by": answers.get("_recce_by"),
+        "recce_missing": [_label(k) for k in _missing(answers, RECCE_REQUIRED)],
         "rows": rows, "missing": [_label(k) for k in _missing(answers)],
         "answered": len(REQUIRED) - len(_missing(answers)), "total": len(REQUIRED),
-        "tags": [{"key": k, "label": l} for k, l in TAGS],
+        "tags": [{"key": k, "label": l} for k, l in TAGS + RECCE_TAGS],
         "media": await _media(lead_id, f"/api/admin/bookings/{lead_id}/venue-info/media"),
         "tnc_accepted_at": _to_ist_str(row["tnc_accepted_at"]),
         "opened_at": _to_ist_str(row["opened_at"]), "updated_at": _to_ist_str(row["updated_at"]),

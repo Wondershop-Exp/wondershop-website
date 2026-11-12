@@ -17,7 +17,17 @@
   Every answer saves as soon as it's picked; photos are shrunk in the browser
   before upload; videos up to 30 MB each.
 -->
+<!--
+  Venue recce (2026-11-12): venue.html?t=<token>&recce=1 is the team's view.
+  It shows the customer's questions (the volunteer can fill or correct them on
+  the customer's behalf) plus team-only "Recce" sections, recce photo tags, and
+  a "Save recce" button instead of the T&C tick. Guide: training-venue-recce.html
+-->
 <style>
+.team-badge{display:inline-block;background:#2D2140;color:#fff;font-family:var(--fb);font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px;vertical-align:middle;letter-spacing:.03em}
+.card.team{border:2px solid #C9B3EE}
+.recce-bar{background:#2D2140;color:#fff;border-radius:14px;padding:12px 14px;font-size:13.5px;margin-bottom:14px}
+.recce-bar a{color:#F7B6D2;font-weight:700}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--pk:#E65A96;--pu:#8A67BE;--pu-d:#6C4AB6;--li2:#EDE6FA;--li3:#F7F3FF;--bk:#2D2140;--gy:#6B6280;
   --fd:'Lora',serif;--fb:'DM Sans',sans-serif}
@@ -44,7 +54,7 @@ body{font-family:var(--fb);color:var(--bk);background:#FBF9FF;line-height:1.5;mi
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:1.5px solid var(--li2);background:#fff;color:var(--bk);border-radius:999px;padding:9px 15px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .chip.on{background:var(--pk);border-color:var(--pk);color:#fff;font-weight:700}
-input[type=time],input[type=text],input[type=url],textarea{width:100%;font:inherit;font-size:16px;border:1.5px solid var(--li2);border-radius:14px;padding:11px 14px;background:#fff;color:var(--bk)}
+input[type=time],input[type=text],input[type=tel],input[type=url],textarea{width:100%;font:inherit;font-size:16px;border:1.5px solid var(--li2);border-radius:14px;padding:11px 14px;background:#fff;color:var(--bk)}
 input[type=time]{max-width:200px}
 textarea{min-height:84px;resize:vertical}
 input:focus,textarea:focus{outline:none;border-color:var(--pu)}
@@ -95,6 +105,7 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
   var API = 'https://wondershop-website-production.up.railway.app';
   if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).get('api')) API = new URLSearchParams(location.search).get('api');
   var TOKEN = new URLSearchParams(location.search).get('t');
+  var RECCE = new URLSearchParams(location.search).get('recce') === '1';
   var app = document.getElementById('app');
   var D = null, A = {}, saveTimer = null, pending = {};
 
@@ -107,10 +118,10 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
   }
 
   if(!TOKEN){ app.innerHTML = '<div class="card msg">This link is incomplete — please open the link we sent you.</div>'; return; }
-  api('/api/venue-info/' + encodeURIComponent(TOKEN)).then(function(d){ D = d; A = d.answers || {}; render(); })
+  api('/api/venue-info/' + encodeURIComponent(TOKEN) + (RECCE ? '?recce=1' : '')).then(function(d){ D = d; A = d.answers || {}; render(); })
     .catch(function(e){ app.innerHTML = '<div class="card msg">' + esc(e.message) + '</div>'; });
 
-  function requiredKeys(){ var k = []; D.sections.forEach(function(s){ s.questions.forEach(function(q){ if(q.required) k.push(q.key); }); }); return k; }
+  function requiredKeys(){ var k = []; D.sections.forEach(function(s){ if(!RECCE && s.team_only) return; s.questions.forEach(function(q){ if(q.required) k.push(q.key); }); }); return k; }
   function progress(){
     var req = requiredKeys(), n = req.filter(function(k){ return A[k]; }).length;
     var el = document.getElementById('prog'); if(!el) return;
@@ -119,10 +130,12 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
 
   function render(){
     var b = D.booking;
-    document.getElementById('title').textContent = 'Venue check' + (b.child_name ? ' for ' + b.child_name + '’s party' : '');
+    document.getElementById('title').textContent = (RECCE ? 'Venue recce' : 'Venue check') + (b.child_name ? ' for ' + b.child_name + '’s party' : '');
     var age = b.child_age ? ' (turning ' + b.child_age + ')' : '';
     var h = '';
-    if(D.submitted_at) h += '<div class="banner">✓ Thank you! You shared these on ' + esc(D.submitted_at) + '. You can still update anything below.</div>';
+    if(RECCE) h += '<div class="recce-bar"><b>Team recce view.</b> Fill in the customer’s questions too if they haven’t (or correct them), then the team-only recce sections. New to recces? <a href="training-venue-recce.html" target="_blank" rel="noopener">Read the guide ↗</a>'
+      + (D.recce_at ? '<br>✓ Recce saved ' + esc(D.recce_at) + (D.recce_by ? ' by ' + esc(D.recce_by) : '') : '') + '</div>';
+    if(D.submitted_at && !RECCE) h += '<div class="banner">✓ Thank you! You shared these on ' + esc(D.submitted_at) + '. You can still update anything below.</div>';
     h += '<div class="card"><div class="bk">'
       + '<span>Booking</span><b>#' + esc(b.lead_id) + '</b>'
       + (b.parent_name ? '<span>Name</span><b>' + esc(b.parent_name) + '</b>' : '')
@@ -133,16 +146,20 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
       + 'Every venue — a society hall, banquet, restaurant or turf — has its own rules that change how we set up and pack up. Tell us what you know — tap “Not sure” if you don’t, and you can come back to this link anytime.</div>'
       + '<div class="prog" id="prog"></div></div>';
     D.sections.forEach(function(s, si){
-      h += '<div class="card"><div class="sec-h">' + (si + 1) + ' · ' + esc(s.title) + '</div>';
+      h += '<div class="card' + (s.team_only ? ' team' : '') + '"><div class="sec-h">' + (si + 1) + ' · ' + esc(s.title) + (s.team_only ? '<span class="team-badge">TEAM ONLY</span>' : '') + '</div>';
       s.questions.forEach(function(q){ h += qHtml(q); });
       h += '</div>';
     });
     h += '<div class="card"><div class="sec-h">' + (D.sections.length + 1) + ' · Show us the space <span style="font-family:var(--fb);font-size:13px;font-weight:400;color:var(--gy)">(recommended)</span></div>'
-      + '<div class="hint" style="margin-top:0">Photos or short videos of the party area, entrance and lift help us plan. Tag where things should go — decor wall, DJ corner, gift table…</div>'
+      + '<div class="hint" style="margin-top:0">' + (RECCE ? 'Add the 4 decor photos (front, left, right, wide), the plug points, the medical kit, and the full walkthrough video. Tag each one.' : 'Photos or short videos of the party area, entrance and lift help us plan. Tag where things should go — decor wall, DJ corner, gift table…') + '</div>'
       + '<label class="up-btn"><input type="file" id="upIn" accept="image/*,video/*" multiple style="display:none">＋ Add photos or videos</label>'
       + '<div class="hint">Up to ' + D.limits.images + ' photos and ' + D.limits.videos + ' videos (' + D.limits.video_mb + ' MB each).</div>'
       + '<div class="media" id="media"></div></div>';
-    h += '<div class="card"><div id="miss"></div>'
+    if(RECCE) h += '<div class="card"><div id="miss"></div>'
+      + '<button class="btn" id="sub">' + (D.recce_at ? 'Update recce' : 'Save recce') + '</button>'
+      + '<div class="hint" style="text-align:center">Everything already saves as you go. Tap this when you’re done so the team knows the recce is complete.</div>'
+      + '<div class="err" id="err"></div></div>';
+    else h += '<div class="card"><div id="miss"></div>'
       + '<label class="tnc"><input type="checkbox" id="tnc"' + (D.tnc_accepted ? ' checked' : '') + '><span>I have read and understood the <a href="' + esc(D.tnc_url) + '" target="_blank" rel="noopener">Terms &amp; Conditions</a></span></label>'
       + '<div style="margin-top:16px"><button class="btn" id="sub">' + (D.submitted_at ? 'Update venue details' : 'Submit venue details') + '</button></div>'
       + '<div class="err" id="err"></div></div>';
@@ -159,6 +176,8 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
       h += '<input type="url" inputmode="url" data-k="' + q.key + '" value="' + esc(v) + '" placeholder="Paste the link from Google Maps → Share">'
         + '<div class="hint">' + (v ? '<a href="' + esc(v) + '" target="_blank" rel="noopener" style="color:var(--pu-d);font-weight:700">Open in Maps ↗</a> · ' : '')
         + 'In Google Maps, search the venue, tap <b>Share</b> → <b>Copy link</b>, and paste it here.</div>';
+    }else if(q.type === 'short' || q.type === 'phone'){
+      h += '<input type="' + (q.type === 'phone' ? 'tel' : 'text') + '"' + (q.type === 'phone' ? ' inputmode="tel"' : '') + ' class="short" data-k="' + q.key + '" value="' + esc(v) + '">';
     }else if(q.type === 'time'){
       h += '<input type="time" data-k="' + q.key + '" value="' + esc(v) + '">';
     }else{
@@ -179,8 +198,8 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
   function flush(){
     var body = pending; pending = {};
     if(!Object.keys(body).length) return Promise.resolve();
-    return api('/api/venue-info/' + encodeURIComponent(TOKEN), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({answers: body})})
-      .then(function(j){ D.missing = j.missing; drawMissing(); toast(); })
+    return api('/api/venue-info/' + encodeURIComponent(TOKEN), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({answers: body, recce: RECCE})})
+      .then(function(j){ D.missing = j.missing; D.recce_missing = j.recce_missing; drawMissing(); toast(); })
       .catch(function(e){ toast('Couldn’t save — ' + e.message); });
   }
 
@@ -195,24 +214,35 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
         queueSave(k, v);
       });
     });
-    app.querySelectorAll('input[type=time][data-k],input[type=url][data-k],textarea[data-k],.fu input[data-k]').forEach(function(el){
+    app.querySelectorAll('input[type=time][data-k],input[type=url][data-k],input.short[data-k],textarea[data-k],.fu input[data-k]').forEach(function(el){
       el.addEventListener('change', function(){ queueSave(el.dataset.k, el.value.trim()); });
-      if(el.tagName === 'TEXTAREA' || el.type === 'text') el.addEventListener('input', function(){ A[el.dataset.k] = el.value; pending[el.dataset.k] = el.value; clearTimeout(saveTimer); saveTimer = setTimeout(flush, 1200); });
+      if(el.tagName === 'TEXTAREA' || el.type === 'text' || el.type === 'tel') el.addEventListener('input', function(){ A[el.dataset.k] = el.value; pending[el.dataset.k] = el.value; clearTimeout(saveTimer); saveTimer = setTimeout(flush, 1200); });
     });
     document.getElementById('upIn').addEventListener('change', function(e){ var files = Array.prototype.slice.call(e.target.files || []); e.target.value = ''; uploadAll(files); });
-    document.getElementById('tnc').addEventListener('change', function(){ document.getElementById('err').textContent = ''; });
+    if(!RECCE) document.getElementById('tnc').addEventListener('change', function(){ document.getElementById('err').textContent = ''; });
     document.getElementById('sub').addEventListener('click', submit);
   }
   function findQ(k){ var f = null; D.sections.forEach(function(s){ s.questions.forEach(function(q){ if(q.key === k) f = q; }); }); return f; }
 
   function drawMissing(){
     var el = document.getElementById('miss'); if(!el) return;
-    var m = (D.missing || []).map(function(k){ var q = findQ(k); return q ? q.label : k; });
+    var keys = (D.missing || []).concat(RECCE ? (D.recce_missing || []) : []);
+    var m = keys.map(function(k){ var q = findQ(k); return q ? q.label : k; });
     el.innerHTML = m.length ? '<div class="miss"><b>Still to answer (' + m.length + '):</b> ' + m.map(esc).join(' · ') + '<br><span style="font-size:12px">You can submit now and fill these in later — just open this link again.</span></div>' : '';
   }
 
   function submit(){
     var err = document.getElementById('err'), btn = document.getElementById('sub');
+    if(RECCE){
+      if(!A.recce_by){ err.textContent = 'Please write your name in “Recce done by”.'; return; }
+      btn.disabled = true; err.textContent = ''; clearTimeout(saveTimer);
+      var rb = {answers: pending, recce: true, recce_submit: true}; pending = {};
+      api('/api/venue-info/' + encodeURIComponent(TOKEN), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(rb)})
+        .then(function(j){ D.missing = j.missing; D.recce_missing = j.recce_missing; D.recce_at = j.recce_at; D.recce_by = A.recce_by; render(); window.scrollTo(0, 0);
+          toast((j.missing.length + j.recce_missing.length) ? 'Recce saved — a few questions still open' : 'Recce saved ✓'); })
+        .catch(function(e){ err.textContent = e.message; btn.disabled = false; });
+      return;
+    }
     if(!document.getElementById('tnc').checked){ err.textContent = 'Please tick that you’ve read the Terms & Conditions.'; return; }
     btn.disabled = true; err.textContent = '';
     clearTimeout(saveTimer);

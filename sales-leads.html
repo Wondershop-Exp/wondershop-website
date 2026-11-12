@@ -1206,6 +1206,41 @@ function updateGrandTotalBar(agreedLive){
 }
 
 // ── detail / composer ───────────────────────────────────────────────────
+// ── Venue form on leads (2026-11-12, per Shruti) ─────────────────────
+// "a lot of times we meet the client at the venue, so we can fill the form
+// there itself. even if the booking doesn't confirm, we'll have information
+// for the venue". Same venue form as the booking page (venue.html?t=…; one
+// link per lead — the lead keeps its id when it converts, so answers carry
+// over to the booking). "Fill at venue" opens the team recce view.
+let VENC = null, VENC_ID = null, VENC_AT = 0;
+async function loadVenueCard(id){
+  let body = document.getElementById('venCardBody'); if(!body) return;
+  // renderDetail runs on many edits — reuse the last fetch for 60 s
+  if(!(VENC && VENC_ID === id && Date.now() - VENC_AT < 60000)){
+    try{ VENC = await apiCall('/api/admin/bookings/'+id+'/venue-info'); VENC_ID = id; VENC_AT = Date.now(); }
+    catch(e){ body.innerHTML = '<span style="color:var(--pk)">Could not load: '+esc(e.message)+'</span>'; return; }
+  }
+  if(CURRENT_ID !== id) return;
+  body = document.getElementById('venCardBody'); if(!body) return;
+  const v = VENC, b = v.booking;
+  const st = v.recce_at ? 'Recce saved '+esc(v.recce_at)+(v.recce_by?' by '+esc(v.recce_by):'')
+    : v.submitted_at ? 'Client submitted '+esc(v.submitted_at)
+    : v.answered ? v.answered+' of '+v.total+' client questions answered' : 'Not filled yet';
+  const msg = 'Hi'+(b.first_name?' '+b.first_name:'')+'! 🎈 To plan '+(b.child_name?b.child_name+'\u2019s':'your')+' party setup smoothly, please share a few details about the venue (timings, lift & parking, venue rules) and a few photos. It takes about 2 minutes:\n'+v.url+'\n\nTeam Wondershop Experiences';
+  const digits = String(DATA.mobile||v.phone||'').replace(/\D/g,'');
+  const wa = digits ? 'https://wa.me/'+(digits.length===10?'91'+digits:digits)+'?text='+encodeURIComponent(msg) : '';
+  const answered = (v.rows||[]).filter(r=>r.answer);
+  body.innerHTML = '<div>Meeting the client at the venue? Fill the venue form right there — the client\u2019s questions and our recce questions, with photos. It stays on this lead, and moves with it if it becomes a booking.</div>'
+    + '<div style="margin-top:6px"><b style="color:var(--bk)">Status:</b> '+st+(v.media.length?' · '+v.media.length+' photos/videos':'')+'</div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'
+    + '<a class="btn sm pk" href="'+esc(v.recce_url)+'" target="_blank" rel="noopener" style="text-decoration:none">📝 Fill at venue (team view) ↗</a>'
+    + (wa ? '<a class="btn sm gh" href="'+esc(wa)+'" target="_blank" rel="noopener" style="text-decoration:none">WhatsApp form to client</a>' : '')
+    + '<button type="button" class="btn sm gh" onclick="navigator.clipboard.writeText('+esc(JSON.stringify(v.url))+').then(()=>alert(\'Client link copied\'))">Copy client link</button></div>'
+    + (answered.length ? '<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--bk);font-weight:700">See answers ('+answered.length+')</summary><table style="width:100%;font-size:12.5px;margin-top:6px;border-collapse:collapse">'
+      + answered.map(r=>'<tr><td style="padding:4px 8px 4px 0;color:var(--gy);vertical-align:top;width:45%">'+esc(r.label)+'</td><td style="padding:4px 0;color:var(--bk)">'+(/^https?:\/\//.test(r.answer)?'<a href="'+esc(r.answer)+'" target="_blank" rel="noopener">Open in Maps ↗</a>':esc(r.answer))+'</td></tr>').join('')
+      + '</table></details>' : '');
+}
+
 async function openDetail(id, preloaded){
   if(CURRENT_ID !== null && CURRENT_ID !== id && hasPendingChanges()){
     if(!confirm('You have unsaved changes on this lead. Discard them and open a different lead?')) return;
@@ -1382,6 +1417,7 @@ function renderDetail(){
     + sectionStatus()
     + sectionCalls()
     + sectionClientDetails()
+    + '<div class="card" id="venCard"><h2 style="font-size:15px;margin-bottom:6px">📍 Venue details &amp; recce</h2><div id="venCardBody" style="font-size:13px;color:var(--gy)">Loading…</div></div>'
     // Same order as Build-a-Birthday and the booking page (2026-10-17, per
     // Shruti): Decor, Activities, Host, Music, Pinata, Invite, Photo, Gifts.
     + sectionDecor()
@@ -1397,7 +1433,8 @@ function renderDetail(){
   renderActivities();
   renderSchedule();
   renderHistory();
-  if(typeof decorRefMount === 'function') decorRefMount(DATA.lead_id);   // decor reference picture (2026-10-06)
+  if(typeof decorRefMount === 'function') decorRefMount(DATA.lead_id);   
+  loadVenueCard(DATA.lead_id);   // decor reference picture (2026-10-06)
   // Collapsible sections (see secWire) — a small Collapse/Expand-all link
   // under the header card, then every card that has a heading gets a fold.
   const hdrCard = document.getElementById('detailBody').firstElementChild;

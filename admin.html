@@ -2075,6 +2075,15 @@ function _venWaMsg(){
     + 'please share a few details about the venue — timings, lift & parking, venue rules — and a few photos of the space. '
     + 'It takes about 2 minutes and you can come back to it anytime:\n'+VEN.url+'\n\nTeam Wondershop Experiences';
 }
+// Venue recce (2026-11-12, per Shruti): same form with &recce=1 for the
+// volunteer — fills the customer's part on their behalf + team-only recce questions.
+function _venRecceMsg(){
+  const b = VEN.booking;
+  return 'Hi! Please do the venue recce for '+(b.child_name?b.child_name+'\u2019s':'this')+' party'
+    + (b.event_date?' on '+b.event_date:'')+(b.venue?' at '+b.venue:'')+' (Booking #'+b.lead_id+').\n\n'
+    + 'Fill this form at the venue (photos, video, plug points, ceiling height, medical kit):\n'+VEN.recce_url
+    + '\n\nHow to do a recce: https://www.wondershopexperiences.com/training-venue-recce.html';
+}
 function drawVenueBlock(){
   const block = document.getElementById('venBlock'); if(!block || !VEN) return;
   const st = VEN.submitted_at ? (VEN.missing.length ? ['part','Submitted · '+VEN.missing.length+' still open'] : ['ok','Submitted ✓'])
@@ -2089,6 +2098,12 @@ function drawVenueBlock(){
     + '<button class="fb-btn pk" onclick="emailVenue(this)"'+(VEN.email?'':' disabled title="No email on file"')+'>Email</button>'
     + '<button class="fb-btn gh" onclick="navigator.clipboard.writeText('+attrJson(VEN.url)+').then(()=>showToast(\'Link copied\'))">Copy link</button>'
     + '<a class="fb-btn gh" href="'+esc(VEN.url)+'" target="_blank" rel="noopener">Open ↗</a></div>'
+    + '<div style="font-size:13px;color:var(--gy);margin-top:12px"><b style="color:var(--bk)">Venue recce</b> — the volunteer fills the customer\u2019s part on their behalf (if needed) plus the recce questions.'
+      + '<span class="ven-st '+(VEN.recce_at?(VEN.recce_missing.length?'part':'ok'):'no')+'">'+(VEN.recce_at?('Recce saved '+esc(VEN.recce_at)+(VEN.recce_by?' by '+esc(VEN.recce_by):'')+(VEN.recce_missing.length?' · '+VEN.recce_missing.length+' open':'')):'Recce not done yet')+'</span></div>'
+    + '<div class="fb-btns" style="margin-top:8px">'
+    + '<a class="fb-btn wa" href="https://wa.me/?text='+encodeURIComponent(_venRecceMsg())+'" target="_blank" rel="noopener">WhatsApp recce link to volunteer</a>'
+    + '<button class="fb-btn gh" onclick="navigator.clipboard.writeText('+attrJson(_venRecceMsg())+').then(()=>showToast(\'Recce message copied\'))">Copy recce message</button>'
+    + '<a class="fb-btn gh" href="'+esc(VEN.recce_url)+'" target="_blank" rel="noopener">Open recce form ↗</a></div>'
     + '<div class="fb-meta">'+[VEN.emailed_at?'Emailed '+esc(VEN.emailed_at):null, VEN.whatsapp_at?'WhatsApp '+esc(VEN.whatsapp_at):null,
         VEN.opened_at?'Opened '+esc(VEN.opened_at):null, VEN.updated_at?'Last updated '+esc(VEN.updated_at):null,
         VEN.tnc_accepted_at?'T&amp;C accepted '+esc(VEN.tnc_accepted_at):null].filter(Boolean).join(' · ')+'</div>';
@@ -2097,7 +2112,7 @@ function drawVenueBlock(){
     h += '<table class="ven-tbl">' + VEN.rows.map(r=>{
       let out = '';
       if(r.section !== last){ last = r.section; out += '<tr class="sec"><td colspan="2">'+esc(r.section)+'</td></tr>'; }
-      return out + '<tr><td>'+esc(r.label)+'</td><td>'+(r.answer ? (/^https?:\/\//.test(r.answer) ? '<a href="'+esc(r.answer)+'" target="_blank" rel="noopener">Open in Maps ↗</a>' : esc(r.answer)) : (r.required ? '<span class="miss">Not answered</span>' : '—'))+'</td></tr>';
+      return out + '<tr><td>'+esc(r.label)+'</td><td>'+(r.answer ? (/^https?:\/\//.test(r.answer) ? '<a href="'+esc(r.answer)+'" target="_blank" rel="noopener">Open in Maps ↗</a>' : esc(r.answer)) : ((r.required && (!r.team_only || VEN.recce_at)) ? '<span class="miss">Not answered</span>' : '—'))+'</td></tr>';
     }).join('') + '</table>';
   }
   if(VEN.media.length){

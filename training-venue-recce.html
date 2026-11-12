@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Venue Recce — Wondershop Training</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo-square.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<!--
+  Training module: Venue recce (2026-11-12, per Shruti).
+  Listed on training.html. Content lives in the MODULE object below. To edit
+  a step, change its text there; listen/share buttons pick it up by themselves.
+  Voice: js/training-voice.js. Optional ready-made audio: set data-audio on <body>.
+-->
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--pk:#E65A96;--pu:#8A67BE;--pu-d:#6C4AB6;--li2:#EDE6FA;--li3:#F7F3FF;--bk:#2D2140;--gy:#6B6280;--gr:#1FA855;--rd:#D64545;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:70px}
+body{font-family:var(--fb);color:var(--bk);background:#FBF9FF;line-height:1.55;min-height:100vh;padding-bottom:90px}
+a{color:var(--pu-d)}
+.top{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--li2);display:flex;align-items:center;gap:10px;padding:10px 16px}
+.top a.back{text-decoration:none;font-weight:700;font-size:14px}
+.top img{height:26px;margin-left:auto}
+.hero{background:linear-gradient(135deg,#F7B6D2 0%,#C9B3EE 100%);padding:26px 16px 30px}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+.hero .wrap{padding:0}
+.tag{display:inline-block;background:#fff;color:var(--pu-d);font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;letter-spacing:.04em;text-transform:uppercase}
+h1{font-family:var(--fd);font-size:30px;line-height:1.2;margin:10px 0 6px}
+.hero p{font-size:16px;max-width:600px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;font-size:13px}
+.meta span{background:rgba(255,255,255,.7);padding:4px 10px;border-radius:8px}
+
+.voicebar{background:#fff;border:1px solid var(--li2);border-radius:16px;padding:14px;margin:-16px auto 18px;max-width:728px;box-shadow:0 6px 20px rgba(108,74,182,.10);display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:relative}
+.btn{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:10px;padding:10px 14px;font:700 14px var(--fb);cursor:pointer;background:var(--li3);color:var(--pu-d);min-height:42px}
+.btn svg{width:18px;height:18px;flex:none}
+.btn.main{background:var(--pu-d);color:#fff}
+.btn.wa{background:#E7F8EE;color:#127A3D}
+.btn.on{background:var(--pk);color:#fff}
+.btn.rec{background:var(--rd);color:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.75}}
+.speed{margin-left:auto;font-size:13px;color:var(--gy);display:flex;align-items:center;gap:6px}
+.speed select{font:inherit;padding:6px;border-radius:8px;border:1px solid var(--li2);background:#fff}
+.recbox{flex-basis:100%;display:none;background:var(--li3);border-radius:12px;padding:12px;font-size:14px}
+.recbox.show{display:block}
+.recbox audio{width:100%;margin:8px 0}
+
+.toc{background:#fff;border:1px solid var(--li2);border-radius:14px;padding:14px 16px;margin-bottom:18px}
+.toc h2{font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:var(--gy);margin-bottom:6px}
+.toc ol{padding-left:20px}.toc li{margin:3px 0}
+
+.sec{background:#fff;border:1px solid var(--li2);border-radius:16px;padding:18px 16px;margin-bottom:16px;transition:box-shadow .2s}
+.sec.speaking{box-shadow:0 0 0 3px var(--pk)}
+.sechead{display:flex;gap:12px;align-items:flex-start}
+.num{flex:none;width:36px;height:36px;border-radius:50%;background:var(--pu-d);color:#fff;font:700 16px var(--fb);display:grid;place-items:center}
+.sechead h2{font-family:var(--fd);font-size:21px;line-height:1.25;flex:1}
+.sechead .why{font-size:14px;color:var(--gy);margin-top:2px;font-family:var(--fb);font-weight:400}
+.secbtns{display:flex;gap:6px;margin:12px 0 4px;flex-wrap:wrap}
+.secbtns .btn{padding:7px 11px;min-height:36px;font-size:13px}
+ul.pts{list-style:none;margin-top:10px}
+ul.pts li{position:relative;padding:8px 0 8px 28px;border-top:1px dashed var(--li2)}
+ul.pts li:first-child{border-top:0}
+ul.pts li::before{content:"";position:absolute;left:4px;top:15px;width:10px;height:10px;border-radius:50%;background:var(--pk)}
+.ptimg{display:block;width:100%;max-width:560px;margin:10px 0 4px;border-radius:12px;border:1px solid var(--li2)}
+ul.pts li.speaking{background:#FFF1F7;border-radius:8px}
+.ask{background:var(--li3);border-radius:12px;padding:12px 14px;margin-top:12px}
+.ask h3{font-size:14px;color:var(--pu-d);margin-bottom:4px}
+.ask ul{padding-left:18px;font-size:15px}
+.tip{border-left:4px solid var(--pk);background:#FFF5F9;padding:10px 12px;border-radius:0 10px 10px 0;margin-top:12px;font-size:15px}
+.tip b{color:var(--pk)}
+.script{background:#2D2140;color:#F3EEFF;border-radius:12px;padding:14px;margin-top:12px;font-size:15px;font-style:italic}
+.script b{font-style:normal;color:#F7B6D2;display:block;margin-bottom:4px;font-size:12px;letter-spacing:.05em;text-transform:uppercase}
+.media{margin-top:12px;border:2px dashed var(--li2);border-radius:12px;padding:14px;text-align:center;color:var(--gy);font-size:14px}
+.media video,.media img{width:100%;border-radius:10px}
+
+.check{background:#fff;border:2px solid var(--pu);border-radius:16px;padding:18px 16px;margin-bottom:16px}
+.check h2{font-family:var(--fd);font-size:21px;margin-bottom:4px}
+.check p.sub{color:var(--gy);font-size:14px;margin-bottom:8px}
+.check label{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px dashed var(--li2);font-size:15px;cursor:pointer}
+.check input{width:20px;height:20px;accent-color:var(--pu-d);flex:none;margin-top:2px}
+.check label:has(input:checked){color:var(--gy);text-decoration:line-through}
+.prog{height:8px;background:var(--li2);border-radius:9px;margin:8px 0 4px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--gr);transition:width .3s}
+.checkbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+.tv-toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,40px);opacity:0;background:var(--bk);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;transition:.25s;z-index:50;max-width:90vw;text-align:center}
+.tv-toast.show{opacity:1;transform:translate(-50%,0)}
+@media (max-width:520px){h1{font-size:25px}.speed{margin-left:0}.voicebar{margin:-16px 16px 18px}}
+</style>
+</head>
+<body data-audio="">
+<!-- data-audio: put a ready audio file path here later, e.g. "audio/venue-recce.m4a" -->
+
+<div class="top">
+  <a class="back" href="training.html">← All training</a>
+  <img src="logo-horizontal.png" alt="Wondershop">
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="tag">Operations · Before the party</span>
+    <h1>How to do a venue recce</h1>
+    <p>A recce means visiting the party venue before the event to check everything we need. A good recce means no surprises on party day.</p>
+    <div class="meta"><span>⏱ 30–45 min at venue</span><span>👤 Event lead / coordinator</span><span>📅 3–10 days before party</span></div>
+  </div>
+</header>
+
+<div class="voicebar" id="voicebar">
+  <button class="btn main" id="playAll" aria-pressed="false"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span>Listen to full guide</span></button>
+  <button class="btn wa" id="shareVoice"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11z"/></svg><span>Voice note for WhatsApp</span></button>
+  <button class="btn wa" id="shareAll"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.3 0 .5l-.3.5-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l2 1c.3.1.5.2.5.3.1.2.1.7-.1 1.2z"/></svg><span>Share steps (text)</span></button>
+  <label class="speed">Speed
+    <select id="rate"><option value="0.85">Slow</option><option value="1" selected>Normal</option><option value="1.2">Fast</option></select>
+  </label>
+  <div class="recbox" id="recbox">
+    <b>Send this guide as a voice note</b>
+    <p id="recIntro">Tap <b>Record</b> and read the steps in your own voice (Hindi or English, whatever the team is comfortable with). When you stop, you can play it back and share it on WhatsApp.</p>
+    <div class="secbtns">
+      <button class="btn" id="recBtn"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="7"/></svg><span>Record</span></button>
+      <button class="btn wa" id="recShare" hidden><span>Share recording on WhatsApp</span></button>
+    </div>
+    <audio id="recPlay" controls hidden></audio>
+  </div>
+</div>
+
+<main class="wrap">
+  <nav class="toc"><h2>In this guide</h2><ol id="toc"></ol></nav>
+  <div id="sections"></div>
+
+  <section class="check" id="checklist">
+    <h2>✅ Recce checklist</h2>
+    <p class="sub">Tick these off at the venue. Your ticks stay on this phone.</p>
+    <div class="prog"><i id="progBar"></i></div>
+    <div id="progTxt" style="font-size:13px;color:var(--gy)"></div>
+    <div id="checkItems"></div>
+    <div class="checkbtns">
+      <button class="btn wa" id="shareCheck"><span>Share checklist on WhatsApp</span></button>
+      <button class="btn" id="resetCheck"><span>Clear ticks</span></button>
+    </div>
+  </section>
+</main>
+
+<script src="js/training-voice.js"></script>
+<script>
+/* ================== CONTENT — edit here ================== */
+const MODULE = {
+  title: 'How to do a venue recce',
+  intro: 'A recce means visiting the party venue before the event to check everything we need. A good recce means no surprises on party day.',
+  sections: [
+    {
+      title: 'Before you leave for the venue',
+      why: '10 minutes of preparation saves a second trip.',
+      points: [
+        'Know the party details: child’s name, party date, party time, number of guests, and what we are setting up (decor, shows, activities).',
+        'Call the venue manager and fix a time for the recce. Save their name and number.',
+        'Carry a fully charged phone and a power bank, and keep enough phone storage free for photos and videos.',
+        'Carry a measuring tape. If you do not have one, you can use steps or the phone’s measure app.',
+        'Open the recce link for this party on your phone. The team lead sends it to you on WhatsApp from the booking page. It opens the venue form with a “Team recce view” at the top. You will fill it in during the visit.',
+        'The form has two parts. The top part is the customer’s questions (timings, address, Google Maps link, lift, parking, rules). If the customer has not filled them, or something is wrong, fill or correct them for the customer. The bottom part, marked TEAM ONLY, is the recce questions.'
+      ]
+    },
+    {
+      title: 'Find and photograph the decor area',
+      why: 'The decor area is the photo spot of the party, so it has to be right.',
+      points: [
+        'Walk around the venue and see which spot looks best for the main decor.',
+        'Most venues have a fixed decor area. Ask the venue person: “Where do people usually put their decor?”',
+        {text: 'Take 4 photos of the decor area. 1, front: stand straight in front of the decor, about 8 to 10 steps away. 2 and 3, sides: stand on the left and then on the right, and point the phone at the decor. 4, wide: go to the far end of the room, near the door, so the whole room is in the photo. See the picture below.',
+         img: 'img/training/decor-photo-angles.svg', alt: 'Top view of a room showing the 4 places to stand: front, left side, right side, and wide from the far end'},
+        'Check for a plug point near the decor area. We need one if there are any lights, a neon sign, a bubble machine, or music. Note how far it is and how many sockets there are.',
+        'Check the floor-to-ceiling height. Measure it, or estimate it (one floor is usually 9 to 10 feet). This tells us how tall the backdrop and balloon arch can be.',
+        'Ask whether tape is allowed on walls, floors and ceilings. Ask about nails, pins and hooks too. Some venues fine you for marks on the walls.',
+        'Note anything that could get in the way: pillars, AC vents, fans, windows behind the decor (backlight spoils photos), uneven floor.'
+      ],
+      ask: ['Where do people usually set up decor?', 'Which plug point can we use? Is there power backup?', 'Can we use tape? Which tape (masking or double-sided)?', 'Can we hang anything from the ceiling?'],
+      tip: 'Stand where the birthday child will stand and take one photo looking out. This shows which way the guests and the photographer will face.'
+    },
+    {
+      title: 'Check space and power for booked activities',
+      why: 'Some activities need special power or a lot of table space. Check each one that is booked for this party.',
+      points: [
+        'Look at the booking and list every activity and show for this party.',
+        'Live T-shirt printing needs a 16 amp plug point (the big, heavy-duty socket used for ACs and geysers, not the normal small socket) and space for 4 tables.',
+        'For T-shirt printing: find where the 16 amp plug point is, and check that 4 tables can fit next to it, with space for kids to stand in a line. Take a photo of the plug point and the area.',
+        'LED decor (LED walls, LED letters, big light setups) also needs a 16 amp plug point near the decor area. Find it and take a photo showing both the plug point and the decor area.',
+        'If there is no 16 amp plug point, or it is far from where it is needed, tell the team lead the same day. Do not run the heat press or LED decor on an extension cord from a normal socket.',
+        'Ask the venue whether they can give us the tables, or whether we need to bring our own.'
+      ],
+      ask: ['Where is the 16 amp plug point? Is there one near the decor area (for LED decor)?', 'Can 4 tables fit next to it (for T-shirt printing)?', 'Can the venue give us 4 tables?'],
+      tip: 'A 16 amp socket is bigger than a normal one and has three thick round holes. If you are not sure, take a photo of it next to a normal socket and send it to the team lead.'
+    },
+    {
+      title: 'Check how materials will come in',
+      why: 'Decor, props and show equipment are heavy. We need a smooth way in.',
+      points: [
+        'Ask: Is there a service lift? Are we allowed to use it?',
+        'How far is the service lift from the party area? Walk the route yourself.',
+        'Check the lift size. Will a big backdrop, arch frame or trolley fit inside?',
+        'If there is no service lift: ask how materials come up (stairs, guest lift at fixed times, or another entrance).',
+        'Find out where the vehicle can stop to unload, and if there is parking for our team.',
+        'Ask what time we are allowed to enter for setup, and by when everything must be removed after the party.',
+        'Ask if any security gate pass or vendor ID is needed for the team.',
+        'Fill all these answers in the venue form for this party.'
+      ],
+      ask: ['Service lift: yes or no? Can we use it?', 'Where can our tempo or car unload?', 'Earliest setup time? Last time to clear out?', 'Do our team members need a gate pass?']
+    },
+    {
+      title: 'Take a full walkthrough video',
+      why: 'The whole team, including people who did not visit, can “see” the venue from this one video.',
+      points: [
+        'Start the video outside the venue, at the main entrance.',
+        'Hold the phone sideways (landscape) and walk slowly. Keep talking as you walk.',
+        'Say where you are and why at the start (see the example below).',
+        'Show and name each spot: main entrance, welcome board spot, welcome arch spot, main decor area, music or DJ spot, show or stage area, activity stations, cake table, food area, return gift table, washrooms, and exits.',
+        'Point the camera at plug points and say “plug point here”.',
+        'Keep it in one long video if possible. If you stop, start the next video by saying where you are.',
+        'Upload the video to the venue form the same day.'
+      ],
+      script: 'Hi team, today we are at the Royal Orchid for the venue recce for Dr. Vyoma’s party on 10th December. This is the main entrance. This is where the welcome board will go. This is the spot for the welcome arch. Now we are walking in. This is the main decor area, and there is a plug point here on the right. This is where the music will be…',
+      tip: 'Before recording, wipe the camera lens and switch on the lights in the hall. Dark videos are not useful.'
+    },
+    {
+      title: 'Safety and medical kit',
+      why: 'If a child gets hurt, we should know where to go within a minute.',
+      points: [
+        'Ask where the first-aid or medical kit is kept and take a photo of the spot.',
+        'Ask who is responsible for it on the party day. Save their name and phone number.',
+        'Find out the nearest clinic or hospital and how long it takes to get there.',
+        'Note the fire exits and emergency staircase.',
+        'Look for dangers for kids: swimming pool, open balcony, steep stairs, glass doors, sharp corners, wires on the floor, a road right outside. Tell the team lead about each one.',
+        'Check where the washrooms are and whether a child can reach them easily.'
+      ],
+      ask: ['Where is the first-aid kit? Who is in charge of it?', 'Nearest hospital or doctor?', 'Where are the fire exits?']
+    },
+    {
+      title: 'Other things to check',
+      why: 'Small things that become big problems on the day.',
+      points: [
+        'Sound: is there a time limit or volume limit for music? Does the venue have its own speakers or mic we can use?',
+        'Shows: is there space for the magic, science or bubble show, with room for kids to sit on the floor in front?',
+        'Is there a small room or corner where our performers and team can keep bags and get ready?',
+        'Are there other events at the venue on the same day? Will that affect setup time or noise?',
+        'Air conditioning, fans and lighting: can they be controlled? Bubble shows need fans off.',
+        'Drinking water for the team, and Wi-Fi or mobile signal (needed for music and payments).',
+        'Rules on confetti, glitter, balloons, fire (sparklers, candles) or food from outside.'
+      ]
+    },
+    {
+      title: 'After the recce',
+      why: 'A recce is complete only when the team has the information.',
+      points: [
+        'On the same day, upload all photos and the walkthrough video in the form’s photos section. Tag each one: Decor – front, Decor – left side, Decor – right side, Wide – whole room, Plug point, 16 amp plug, Medical kit, Walkthrough video.',
+        'Answer every question in the form. If you do not know something, tap “Not sure” rather than leaving it blank. Answers save by themselves as you go.',
+        'At the end, write your name in “Recce done by” and tap “Save recce”. This tells the team the recce is complete.',
+        'Send a short summary on the party’s WhatsApp group: decor area OK or not, plug point, lift, setup time, and any problems.',
+        'If something will not work (no plug point, low ceiling, no tape allowed), tell the team lead immediately so we can plan a solution or talk to the client.'
+      ],
+      tip: 'Good summary example: “Royal Orchid recce done ✅ Decor area: banquet left wall, 10 ft ceiling, 2 plug points. Tape allowed (masking only). Service lift yes, 20 m from hall. Setup from 1 pm. Medical kit at reception, Mr. Rakesh. Problem: AC vent above decor, need to tie balloons tight.”'
+    }
+  ],
+  checklist: [
+    'Party details and venue manager’s number saved',
+    'Photos of decor area (front, both sides, wide)',
+    'Plug point near decor checked',
+    'Ceiling height noted',
+    'Tape / nails / hanging rules asked',
+    'Power and table space for each booked activity checked (T-shirt printing: 16 amp plug + 4 tables; LED decor: 16 amp plug near decor)',
+    'Service lift: available and allowed?',
+    'Lift distance and size checked',
+    'Unloading spot and parking noted',
+    'Setup start time and clear-out time',
+    'Full walkthrough video recorded',
+    'Medical kit location and person in charge',
+    'Nearest hospital and fire exits',
+    'Sound / music rules asked',
+    'Space for show and team room checked',
+    'Venue form filled with photos and video',
+    'Summary sent on WhatsApp group'
+  ]
+};
+/* ========================================================= */
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+
+function sectionText(s, i){
+  let t = 'Step ' + (i+1) + '. ' + s.title + '. ' + (s.why||'') + ' ';
+  return t;
+}
+function sectionPlain(s, i){
+  let t = '*' + (i+1) + '. ' + s.title + '*\n' + s.points.map(p=>'• '+p).join('\n');
+  if(s.ask) t += '\n\nAsk the venue:\n' + s.ask.map(a=>'– '+a).join('\n');
+  return t;
+}
+function itemsFor(i){
+  const sec = MODULE.sections[i], el = $('sec'+i);
+  const items = [{text: sectionText(sec, i), el}];
+  el.querySelectorAll('ul.pts li').forEach((li, k) => { const p = sec.points[k]; items.push({text: typeof p === 'string' ? p : p.text, el: li}); });
+  if(sec.ask) items.push({text: 'Questions to ask the venue: ' + sec.ask.join(' '), el});
+  if(sec.script) items.push({text: 'Example of what to say in the video: ' + sec.script, el});
+  if(sec.tip) items.push({text: 'Tip: ' + sec.tip, el});
+  return items;
+}
+
+function render(){
+  $('toc').innerHTML = MODULE.sections.map((s,i)=>'<li><a href="#sec'+i+'">'+esc(s.title)+'</a></li>').join('') + '<li><a href="#checklist">Recce checklist</a></li>';
+  $('sections').innerHTML = MODULE.sections.map((s,i)=>{
+    let h = '<section class="sec" id="sec'+i+'"><div class="sechead"><div class="num">'+(i+1)+'</div><h2>'+esc(s.title)+(s.why?'<div class="why">'+esc(s.why)+'</div>':'')+'</h2></div>';
+    h += '<div class="secbtns"><button class="btn" data-play="'+i+'" aria-pressed="false">'+ICON_PLAY+'<span>Listen</span></button><button class="btn wa" data-share="'+i+'"><span>Share this step</span></button></div>';
+    h += '<ul class="pts">' + s.points.map(p=>{
+      const t = typeof p === 'string' ? p : p.text;
+      return '<li>'+esc(t)+(p.img ? '<img class="ptimg" src="'+esc(p.img)+'" alt="'+esc(p.alt||'')+'" loading="lazy">' : '')+'</li>';
+    }).join('') + '</ul>';
+    if(s.ask) h += '<div class="ask"><h3>🗣 Ask the venue person</h3><ul>'+s.ask.map(a=>'<li>'+esc(a)+'</li>').join('')+'</ul></div>';
+    if(s.script) h += '<div class="script"><b>Example: what to say in the video</b>“'+esc(s.script)+'”</div>';
+    if(s.tip) h += '<div class="tip"><b>Tip:</b> '+esc(s.tip)+'</div>';
+    if(s.media) h += '<div class="media">'+s.media+'</div>';
+    return h + '</section>';
+  }).join('');
+}
+render();
+
+/* Listen */
+document.addEventListener('click', e => {
+  const p = e.target.closest('[data-play]');
+  if(p){ TrainingVoice.play(itemsFor(+p.dataset.play), p); return; }
+  const s = e.target.closest('[data-share]');
+  if(s){ const i = +s.dataset.share; TrainingVoice.shareText(MODULE.title, sectionPlain(MODULE.sections[i], i)); }
+});
+$('playAll').onclick = () => {
+  let items = [{text: MODULE.title + '. ' + MODULE.intro, el: null}];
+  MODULE.sections.forEach((_,i)=> items = items.concat(itemsFor(i)));
+  TrainingVoice.play(items, $('playAll'));
+};
+$('rate').onchange = e => TrainingVoice.setRate(+e.target.value);
+if(!TrainingVoice.supported){ $('playAll').hidden = true; }
+
+/* Share all as text */
+$('shareAll').onclick = () => TrainingVoice.shareText(MODULE.title, MODULE.sections.map(sectionPlain).join('\n\n'));
+
+/* Voice note */
+const READY_AUDIO = document.body.dataset.audio;
+$('shareVoice').onclick = async () => {
+  if(READY_AUDIO){
+    try{
+      const b = await (await fetch(READY_AUDIO)).blob();
+      await TrainingVoice.shareFile(b, 'Venue recce guide.' + READY_AUDIO.split('.').pop(), MODULE.title);
+      return;
+    }catch(e){ /* fall through to recorder */ }
+  }
+  $('recbox').classList.toggle('show');
+};
+let recBlob = null;
+$('recBtn').onclick = () => TrainingVoice.toggleRecord($('recBtn'), blob => {
+  recBlob = blob;
+  const a = $('recPlay'); a.src = URL.createObjectURL(blob); a.hidden = false;
+  $('recShare').hidden = false;
+});
+$('recShare').onclick = () => recBlob && TrainingVoice.shareFile(recBlob, 'Venue recce guide.' + TrainingVoice.ext(recBlob), MODULE.title);
+
+/* Checklist */
+const CK = 'ws_train_venue_recce_check';
+let ticks = {};
+try{ ticks = JSON.parse(localStorage.getItem(CK) || '{}'); }catch(e){}
+function renderCheck(){
+  $('checkItems').innerHTML = MODULE.checklist.map((c,i)=>'<label><input type="checkbox" data-ck="'+i+'"'+(ticks[i]?' checked':'')+'> '+esc(c)+'</label>').join('');
+  prog();
+}
+function prog(){
+  const n = MODULE.checklist.length, d = Object.values(ticks).filter(Boolean).length;
+  $('progBar').style.width = (d/n*100)+'%';
+  $('progTxt').textContent = d + ' of ' + n + ' done' + (d===n ? ' 🎉' : '');
+}
+$('checkItems').addEventListener('change', e => {
+  const i = e.target.dataset.ck; if(i==null) return;
+  ticks[i] = e.target.checked;
+  try{ localStorage.setItem(CK, JSON.stringify(ticks)); }catch(err){}
+  prog();
+});
+$('resetCheck').onclick = () => { ticks = {}; try{ localStorage.removeItem(CK); }catch(e){} renderCheck(); };
+$('shareCheck').onclick = () => TrainingVoice.shareText('Venue recce checklist',
+  MODULE.checklist.map((c,i)=>(ticks[i]?'✅ ':'⬜ ')+c).join('\n'));
+renderCheck();
+</script>
+</body>
+</html>

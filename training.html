@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Team Training — Wondershop</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo-square.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<!--
+  Training hub (2026-11-12, per Shruti). Lists every training module.
+  To add a module: add an entry to MODULES below. status 'live' links to
+  its page; 'soon' shows as Coming soon. Not in sitemap.xml (staff only).
+-->
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--pk:#E65A96;--pu:#8A67BE;--pu-d:#6C4AB6;--li2:#EDE6FA;--li3:#F7F3FF;--bk:#2D2140;--gy:#6B6280;
+  --fd:'Lora',serif;--fb:'DM Sans',sans-serif}
+body{font-family:var(--fb);color:var(--bk);background:#FBF9FF;line-height:1.5;min-height:100vh}
+.hero{background:linear-gradient(135deg,#F7B6D2 0%,#C9B3EE 100%);padding:24px 16px 34px;text-align:center}
+.hero img{height:34px;margin-bottom:10px}
+h1{font-family:var(--fd);font-size:30px}
+.hero p{max-width:520px;margin:6px auto 0}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px 40px}
+.search{display:block;width:100%;max-width:520px;margin:-22px auto 20px;padding:13px 16px;border-radius:14px;border:1px solid var(--li2);font:16px var(--fb);box-shadow:0 6px 20px rgba(108,74,182,.10);position:relative}
+.group{margin-top:22px}
+.group h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--gy);margin-bottom:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.card{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--li2);border-radius:16px;padding:14px;text-decoration:none;color:inherit;transition:.15s}
+a.card:hover{border-color:var(--pu);transform:translateY(-2px);box-shadow:0 6px 16px rgba(108,74,182,.12)}
+.card .ic{flex:none;width:44px;height:44px;border-radius:12px;background:var(--li3);display:grid;place-items:center;font-size:22px}
+.card h3{font-size:16px;line-height:1.3}
+.card p{font-size:13px;color:var(--gy);margin-top:3px}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;margin-top:6px}
+.badge.live{background:#E7F8EE;color:#127A3D}
+.badge.soon{background:#F1EEF6;color:var(--gy)}
+.card.soon{opacity:.7}
+.empty{text-align:center;color:var(--gy);padding:30px}
+</style>
+</head>
+<body>
+<header class="hero">
+  <img src="logo-horizontal.png" alt="Wondershop">
+  <h1>Team Training</h1>
+  <p>Step-by-step guides for everything we do at a party. Tap a guide to read it, listen to it, or share it on WhatsApp.</p>
+</header>
+<div class="wrap">
+  <input class="search" id="q" type="search" placeholder="Search guides… e.g. slime, recce, lost child" aria-label="Search guides">
+  <div id="list"></div>
+</div>
+<script>
+/* ============ MODULES — add new guides here ============ */
+const MODULES = [
+  {group:'Before the party', icon:'📍', title:'Venue recce', desc:'What to check, photograph and ask when visiting a venue.', href:'training-venue-recce.html', status:'live'},
+
+  {group:'Activities', icon:'🎨', title:'Art activities', desc:'Common art-station SOP, plus fridge magnet, mandala and more.', status:'soon'},
+  {group:'Activities', icon:'🧪', title:'Slime making', desc:'Setup, recipe, mess control and safety.', status:'soon'},
+  {group:'Activities', icon:'🕵️', title:'Spy party stations', desc:'Mission flow plus Nerf, puzzles, riddles and more.', status:'soon'},
+
+  {group:'Shows', icon:'🎩', title:'Magic show', desc:'Running a magic show and handling volunteers.', status:'soon'},
+  {group:'Shows', icon:'🔬', title:'Science show', desc:'Experiments, safety and keeping kids engaged.', status:'soon'},
+  {group:'Shows', icon:'🫧', title:'Bubble show', desc:'Setup, bubble solution and show flow.', status:'soon'},
+
+  {group:'Kids & parents', icon:'💬', title:'Talking to children and parents', desc:'How to greet, guide and keep everyone happy.', status:'soon'},
+  {group:'Kids & parents', icon:'😤', title:'Angry or upset child / parent', desc:'Calming a situation, and a child who is not listening.', status:'soon'},
+
+  {group:'Safety', icon:'🩹', title:'Child hurt or lost', desc:'Exactly what to do, step by step, and who to call.', status:'soon'},
+
+  {group:'Website & tools', icon:'💻', title:'Website: creating a lead', desc:'How to add and manage leads on our website.', status:'soon'}
+];
+/* ======================================================= */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function render(q){
+  q = (q||'').toLowerCase().trim();
+  const rows = MODULES.filter(m => !q || (m.title+' '+m.desc+' '+m.group).toLowerCase().includes(q));
+  if(!rows.length){ document.getElementById('list').innerHTML = '<p class="empty">No guide found.</p>'; return; }
+  const groups = [...new Set(rows.map(m=>m.group))];
+  document.getElementById('list').innerHTML = groups.map(g =>
+    '<div class="group"><h2>'+esc(g)+'</h2><div class="grid">' +
+    rows.filter(m=>m.group===g).map(m => {
+      const inner = '<div class="ic">'+m.icon+'</div><div><h3>'+esc(m.title)+'</h3><p>'+esc(m.desc)+'</p><span class="badge '+m.status+'">'+(m.status==='live'?'Ready':'Coming soon')+'</span></div>';
+      return m.status==='live' ? '<a class="card" href="'+m.href+'">'+inner+'</a>' : '<div class="card soon">'+inner+'</div>';
+    }).join('') + '</div></div>').join('');
+}
+document.getElementById('q').addEventListener('input', e => render(e.target.value));
+render();
+</script>
+</body>
+</html>
