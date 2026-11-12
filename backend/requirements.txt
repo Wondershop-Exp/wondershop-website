@@ -20,3 +20,4 @@ openpyxl==3.1.5
 reportlab==5.0.1
 google-analytics-data==0.23.1
 edge-tts==7.2.8   # 2026-11-12 AI voice for training guides (routers/training_tts.py)
+pypdfium2==5.13.0   # 2026-11-12 vendor catalogue PDFs -> item photos (vendor_catalogue_reader.py)

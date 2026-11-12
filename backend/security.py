@@ -42,6 +42,9 @@ PARTNER_FORM_MAX_BYTES = 60 * 1024 * 1024
 # Venue form uploads (2026-10-31): one video up to 30 MB per request.
 VENUE_MEDIA_MAX_BYTES = 32 * 1024 * 1024
 _VENUE_MEDIA_RX = re.compile(r"/api/venue-info/[A-Za-z0-9_-]+/media")
+# Partner catalogue upload in the Partners tab (2026-11-12): PDFs up to 40 MB.
+CATALOGUE_MAX_BYTES = 45 * 1024 * 1024
+_CATALOGUE_RX = re.compile(r"/api/admin/vendors/\d+/items/import")
 
 # (method, path, path_is_prefix, max_requests, window_seconds)
 PUBLIC_LIMITS = [
@@ -167,7 +170,8 @@ async def security_middleware(request: Request, call_next):
 
     cl = request.headers.get("content-length", "")
     _cap = (PARTNER_FORM_MAX_BYTES if path == "/api/vendor-onboarding/submit"
-            else VENUE_MEDIA_MAX_BYTES if _VENUE_MEDIA_RX.fullmatch(path) else MAX_BODY_BYTES)
+            else VENUE_MEDIA_MAX_BYTES if _VENUE_MEDIA_RX.fullmatch(path)
+            else CATALOGUE_MAX_BYTES if _CATALOGUE_RX.fullmatch(path) else MAX_BODY_BYTES)
     if cl.isdigit() and int(cl) > _cap:
         return JSONResponse({"detail": "That upload is too large."}, status_code=413)
 

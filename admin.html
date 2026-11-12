@@ -3541,6 +3541,130 @@ function vendorOriginCellHtml(v){
 // "give a comments box where I can input my thoughts so that later on I can
 // fetch them." Notes come from here or from Slack #vendor-contacts (the post
 // and replies in its thread); the Partners search also looks through them.
+// ── Vendor item master (2026-11-12, per Shruti) ─────────────────────────
+// What this partner offers — photo, name, size, price … read from their
+// catalogue (PDF / page photos, here or in Slack #vendor-contacts) or added
+// by hand. Price = what the partner charges us.
+let VITEMS = {vid:null, items:[], photos:{}, poll:null};
+function vendorItemsHtml(v){
+  setTimeout(()=>loadVendorItems(v.vendor_id), 0);
+  return '<div class="section-block" style="padding:16px 18px;margin-top:14px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0">🧾 Items &amp; prices</h3>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap"><label class="mini-btn" style="cursor:pointer">📚 Read a catalogue<input type="file" id="viFiles" multiple accept="application/pdf,image/jpeg,image/png,image/webp" style="display:none" onchange="importVendorCatalogue('+v.vendor_id+',this)"></label>'
+    + '<button class="mini-btn" onclick="editVendorItem(null)">+ Add item</button></div></div>'
+    + '<div style="font-size:12.5px;color:var(--gy);margin:6px 0 10px">Upload their catalogue PDF (or photos of its pages) and Claude fills in each item — photo, name, size, price. You can also post it in Slack #vendor-contacts. Prices are what the partner charges us.</div>'
+    + '<div id="viStatus"></div><div id="viEdit"></div>'
+    + '<div id="viList" style="font-size:13px;color:var(--gy)">Loading…</div>'
+    + '</div>';
+}
+async function loadVendorItems(vid){
+  const el = document.getElementById('viList'); if(!el) return;
+  if(VITEMS.vid !== vid){ Object.values(VITEMS.photos).forEach(u=>URL.revokeObjectURL(u)); VITEMS = {vid, items:[], photos:{}, poll:VITEMS.poll}; }
+  try{
+    const r = await apiCall('/api/admin/vendors/'+vid+'/items');
+    VITEMS.items = r.items||[];
+    const st = document.getElementById('viStatus'), job = r.import;
+    if(st) st.innerHTML = job ? '<div class="vol-miss'+(job.state==='done'?' ok':'')+'" style="margin:0 0 10px">'+(job.state==='running'?'⏳ ':job.state==='done'?'✓ ':'⚠️ ')+esc(job.msg||'')+'</div>' : '';
+    clearTimeout(VITEMS.poll);
+    if(job && job.state==='running') VITEMS.poll = setTimeout(()=>{ if(CURRENT_VENDOR_ID===vid) loadVendorItems(vid); }, 8000);
+    el.innerHTML = vendorItemsListHtml(VITEMS.items, vid);
+    VITEMS.items.filter(i=>i.has_photo).forEach(i=>loadItemPhoto(vid, i.id));
+  }catch(e){ el.textContent = 'Could not load the items.'; }
+}
+function vendorItemsListHtml(items, vid){
+  if(!items.length) return '<span>No items yet.</span>';
+  const inr = n => '₹'+Number(n).toLocaleString('en-IN');
+  return '<div style="font-size:12px;margin-bottom:8px">'+items.length+' item'+(items.length>1?'s':'')+'</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px">'
+    + items.map(i=>'<div style="border:1px solid var(--li2);border-radius:10px;overflow:hidden;background:#fff;color:var(--bk,#191919)'+(i.is_active?'':';opacity:.55')+'">'
+      + '<div style="aspect-ratio:4/3;background:#F4F1F8;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--gy)">'
+        + (i.has_photo ? '<img id="viPh'+i.id+'" alt="" style="width:100%;height:100%;object-fit:cover;cursor:zoom-in" onclick="if(this.src)window.open(this.src)">' : 'No photo')+'</div>'
+      + '<div style="padding:8px 10px;font-size:12.5px">'
+        + '<div style="font-weight:700;font-size:13.5px">'+esc(i.name)+'</div>'
+        + (i.category?'<div style="color:var(--gy)">'+esc(i.category)+'</div>':'')
+        + (i.size_text?'<div>📐 '+esc(i.size_text)+'</div>':'')
+        + '<div>'+(i.price!=null?'<b>'+inr(i.price)+'</b> '+esc(i.price_unit||''):'<span style="color:#B45309">No price yet</span>')+'</div>'
+        + (i.price_note?'<div style="color:var(--gy)">'+esc(i.price_note)+'</div>':'')
+        + (i.capacity?'<div>👥 '+esc(i.capacity)+'</div>':'') + (i.age_group?'<div>Age '+esc(i.age_group)+'</div>':'')
+        + (i.description?'<div style="color:var(--gy);margin-top:3px">'+esc(i.description)+'</div>':'')
+        + (i.source_ref?'<div style="color:var(--gy);font-size:11px;margin-top:4px">From '+esc(i.source_ref)+'</div>':'')
+        + (i.is_active?'':'<div style="font-size:11px;color:#B42318">Not offered any more</div>')
+        + '<div style="margin-top:6px;display:flex;gap:10px;font-size:12px"><a href="javascript:void 0" onclick="editVendorItem('+i.id+')">Edit</a>'
+        + '<a href="javascript:void 0" style="color:#B42318" onclick="deleteVendorItem('+vid+','+i.id+')">Delete</a></div>'
+      + '</div></div>').join('')
+    + '</div>';
+}
+async function loadItemPhoto(vid, iid){
+  try{
+    let url = VITEMS.photos[iid];
+    if(!url){
+      const res = await fetch(API+'/api/admin/vendors/'+vid+'/items/'+iid+'/photo', {headers:{'X-Admin-Password':getPw()}});
+      if(!res.ok) return;
+      url = VITEMS.photos[iid] = URL.createObjectURL(await res.blob());
+    }
+    const img = document.getElementById('viPh'+iid); if(img) img.src = url;
+  }catch(e){}
+}
+function editVendorItem(iid){
+  const i = iid ? (VITEMS.items.find(x=>x.id===iid)||{}) : {is_active:true};
+  const box = document.getElementById('viEdit'); if(!box) return;
+  const f = (k, label, ph, type) => '<div class="fld"><label class="vl">'+label+'</label><input type="'+(type||'text')+'" id="vi_'+k+'" value="'+esc(i[k]==null?'':i[k])+'" placeholder="'+esc(ph||'')+'"></div>';
+  box.innerHTML = '<div style="border:1.5px solid var(--li2);border-radius:12px;padding:12px;margin-bottom:12px;background:#FBF9FF">'
+    + '<b>'+(iid?'Edit item':'New item')+'</b>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:8px">'
+    + f('name','Name *','e.g. Roller Coaster') + f('category','Category','e.g. Ride, Inflatable, Game') + f('size_text','Size','e.g. 40 ft L x 14 ft W x 8 ft H')
+    + f('price','Price (₹)','', 'number') + f('price_unit','Price is for','e.g. per day, per 4 hours') + f('price_note','Price note','GST, transport, extra hour…')
+    + f('capacity','Capacity','e.g. 8 kids at a time') + f('age_group','Age group','e.g. 3–10 years') + f('item_code','Item code','')
+    + '</div>'
+    + '<div class="fld" style="margin-top:8px"><label class="vl">Description</label><textarea id="vi_description" rows="2" style="width:100%;box-sizing:border-box">'+esc(i.description||'')+'</textarea></div>'
+    + '<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:8px">'
+    + '<label style="font-size:13px"><input type="checkbox" id="vi_active" '+(i.is_active!==false?'checked':'')+'> They still offer this</label>'
+    + '<label style="font-size:13px">Photo: <input type="file" id="vi_photo" accept="image/jpeg,image/png,image/webp"></label></div>'
+    + '<div style="margin-top:10px;display:flex;gap:8px"><button class="mini-btn" onclick="saveVendorItem('+(iid||'null')+')">Save</button>'
+    + '<button class="mini-btn" onclick="document.getElementById(\'viEdit\').innerHTML=\'\'">Cancel</button></div></div>';
+  box.scrollIntoView({behavior:'smooth', block:'center'});
+}
+async function saveVendorItem(iid){
+  const vid = VITEMS.vid, g = k => (document.getElementById('vi_'+k).value||'').trim();
+  const body = {name:g('name'), category:g('category'), size_text:g('size_text'), price: g('price')===''?null:Number(g('price')),
+    price_unit:g('price_unit'), price_note:g('price_note'), capacity:g('capacity'), age_group:g('age_group'), item_code:g('item_code'),
+    description:g('description'), is_active: document.getElementById('vi_active').checked};
+  if(!body.name){ showToast('Please give the item a name.'); return; }
+  try{
+    let id = iid;
+    if(iid) await apiCall('/api/admin/vendors/'+vid+'/items/'+iid, {method:'PUT', body: JSON.stringify(body)});
+    else id = (await apiCall('/api/admin/vendors/'+vid+'/items', {method:'POST', headers:{'X-Admin-Name':getName()}, body: JSON.stringify(body)})).id;
+    const ph = document.getElementById('vi_photo').files[0];
+    if(ph){
+      const fd = new FormData(); fd.append('photo', ph);
+      const res = await fetch(API+'/api/admin/vendors/'+vid+'/items/'+id+'/photo', {method:'POST', headers:{'X-Admin-Password':getPw()}, body: fd});
+      if(!res.ok) showToast((await res.json().catch(()=>({}))).detail || 'Could not save the photo.');
+      if(VITEMS.photos[id]){ URL.revokeObjectURL(VITEMS.photos[id]); delete VITEMS.photos[id]; }
+    }
+    document.getElementById('viEdit').innerHTML = '';
+    showToast('✓ Item saved.'); loadVendorItems(vid);
+  }catch(e){ showToast(e.message==='unauthorized' ? 'Session expired — please log in again.' : e.message); }
+}
+async function deleteVendorItem(vid, iid){
+  const i = VITEMS.items.find(x=>x.id===iid)||{};
+  if(!confirm('Delete "'+(i.name||'this item')+'" from this partner\'s items?')) return;
+  try{ await apiCall('/api/admin/vendors/'+vid+'/items/'+iid, {method:'DELETE'}); showToast('Item deleted.'); loadVendorItems(vid); }
+  catch(e){ showToast(e.message); }
+}
+async function importVendorCatalogue(vid, input){
+  const files = Array.from(input.files||[]);
+  if(!files.length) return;
+  const fd = new FormData(); files.forEach(f=>fd.append('files', f, f.name));
+  const st = document.getElementById('viStatus');
+  if(st) st.innerHTML = '<div class="vol-miss" style="margin:0 0 10px">⏳ Uploading…</div>';
+  try{
+    const res = await fetch(API+'/api/admin/vendors/'+vid+'/items/import', {method:'POST', headers:{'X-Admin-Password':getPw(),'X-Admin-Name':getName()}, body: fd});
+    const d = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(d.detail || ('Upload failed ('+res.status+')'));
+    loadVendorItems(vid);
+  }catch(e){ if(st) st.innerHTML = '<div class="vol-miss" style="margin:0 0 10px">⚠️ '+esc(e.message)+'</div>'; }
+  input.value = '';   // after the upload, so the same file can be picked again
+}
 function vendorNotesHtml(v){
   setTimeout(()=>{ loadVendorNotes(v.vendor_id); loadVendorCards(v.vendor_id); }, 0);
   return '<div class="section-block" style="padding:16px 18px;margin-top:14px">'
@@ -3857,6 +3981,7 @@ function renderVendorForm(v){
     + volMissingHtml(v)
     + '<div class="status-card" style="align-items:flex-start">'+fieldsHtml+'</div>'
     + (v.vendor_id ? vendorNotesHtml(v) : '')
+    + (v.vendor_id ? vendorItemsHtml(v) : '')
     + (isVolunteerVendor(v) ? volunteerSectionHtml(v) : '')
     + (isCarnivalVendor(v) ? carnivalSectionHtml(v) : '')
     + (isHostVendor(v) ? hostSectionHtml(v) : '')

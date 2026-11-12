@@ -1108,13 +1108,8 @@ async def slack_events(request: Request):
             post = await database.fetch_one("SELECT * FROM slack_vendor_posts WHERE channel = :c AND ts = :t",
                                             values={"c": ev.get("channel"), "t": ev.get("thread_ts")})
 
-            async def _thread_reply(post=post):
-                # 2026-11-02: "yes" / "no" to a new-category question first; otherwise a note.
-                if await slack_vendors.handle_category_reply(ev):
-                    return
-                if post:
-                    await slack_vendors.handle_reply(ev, dict(post))
-            asyncio.get_running_loop().create_task(_safe(_thread_reply()))
+            # 2026-11-02 new-category yes/no; 2026-11-12 catalogue threads; else a note.
+            asyncio.get_running_loop().create_task(_safe(slack_vendors.handle_thread(ev, dict(post) if post else None)))
             return {"ok": True}
         asyncio.get_running_loop().create_task(_safe(slack_vendors.handle_message(ev)))
         return {"ok": True}

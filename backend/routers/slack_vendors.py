@@ -31,6 +31,13 @@ Slack vendor contacts bot (2026-10-28, per Shruti).
      yes / no") and only adds it after a "yes" in that thread. Added
      categories show on the partner form and in the Partners tab
      (partner_categories.py, migrations/082).
+  6. CATALOGUES (2026-11-12, per Shruti): post a partner's catalogue PDF (or
+     photos of it with the word "catalogue") with their name or #number — or
+     drop it in the thread of their saved contact. The bot reads every item
+     (photo, name, size, price ...) into the vendor item master
+     (vendor_catalogue_reader.py, vendor_items), keeps the PDF with the
+     partner's files, and lists what it read. Reply in that thread with prices
+     ("roller coaster 25000 per day, joker swing 18k") to fill them in.
   4. FETCH later: type "find riya" / "find decorator andheri" in the channel ->
      the bot lists matching partners with their notes. Notes also show (and can
      be added) in the Partners tab of the admin panel, and the Partners search
@@ -258,6 +265,9 @@ async def handle_message(ev: Dict[str, Any]) -> None:
     channel, ts = ev.get("channel"), ev.get("ts")
     text = clean_slack_text(ev.get("text") or "")
     who = await slack_user_name(ev.get("user") or "")
+    if _catalogue_files(ev, text):
+        await handle_catalogue_post(ev, text, who)
+        return
     reply = []
     try:
         cm = re.match(r"^\s*(?:add|new|create)\s+(?:a\s+)?(?:new\s+)?(?:deals?[- ]in\s+)?categor(?:y|ies)\s*[:\-]?\s*(.+)$", text, re.I | re.S)
@@ -445,3 +455,196 @@ async def handle_category_reply(ev: Dict[str, Any]) -> bool:
     await slack_api("chat.postMessage", channel=ev.get("channel"), thread_ts=ev.get("thread_ts"),
                     text="\n".join(out), unfurl_links=False)
     return True
+
+
+# ─── Catalogues -> vendor item master (2026-11-12) ────────────────────────
+CATALOGUE_WORDS = re.compile(r"\b(catalog(?:ue)?s?|brochures?|rate ?cards?|price ?lists?|menu)\b", re.I)
+MAX_FILE = 40 * 1024 * 1024
+
+
+def _catalogue_files(ev: Dict[str, Any], text: str) -> List[Dict[str, Any]]:
+    """Files that are a catalogue: any PDF; photos only when the text says catalogue."""
+    files = ev.get("files") or []
+    pdfs = [f for f in files if (f.get("mimetype") or "") == "application/pdf"]
+    pics = [f for f in files if (f.get("mimetype") or "").startswith("image/")]
+    return pdfs + (pics if CATALOGUE_WORDS.search(text or "") else [])
+
+
+def _file_refs(files: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return [{"id": f.get("id"), "name": f.get("name") or f.get("title") or "catalogue", "mimetype": f.get("mimetype"),
+             "url": f.get("url_private_download") or f.get("url_private"), "size": f.get("size")} for f in files]
+
+
+async def _download_any(ref: Dict[str, Any]) -> Optional[Tuple[bytes, str, str]]:
+    if not ref.get("url") or (ref.get("size") or 0) > MAX_FILE:
+        return None
+    async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
+        r = await client.get(ref["url"], headers={"Authorization": f"Bearer {settings.SLACK_BOT_TOKEN}"})
+    if r.status_code != 200 or r.headers.get("content-type", "").startswith("text/html") or len(r.content) > MAX_FILE:
+        logger.warning(f"Slack file download failed ({r.status_code}) — is the files:read scope added?")
+        return None
+    mime = "application/pdf" if r.content[:5] == b"%PDF-" else (ref.get("mimetype") or "image/jpeg")
+    return r.content, mime, ref.get("name") or "catalogue"
+
+
+async def _match_vendor(text: str) -> Tuple[Optional[int], List[Any]]:
+    """(#id named / the one partner whose name matches, other candidates)."""
+    m = re.search(r"#(\d{1,7})\b", text or "")
+    if m:
+        row = await database.fetch_one("SELECT vendor_id, name FROM vendor_master WHERE vendor_id = :v", {"v": int(m.group(1))})
+        return (row["vendor_id"] if row else None), []
+    q = CATALOGUE_WORDS.sub(" ", text or "")
+    q = re.sub(r"\b(for|of|from|the|this|is|a|an|new|their|here|pdf|attached|updated|latest|please|add|upload)\b", " ", q, flags=re.I)
+    words = [w for w in re.findall(r"[\w&']{2,}", q)][:4]
+    if not words:
+        return None, []
+    conds = " AND ".join(f"v.name ILIKE :w{i}" for i in range(len(words)))
+    rows = await database.fetch_all(
+        f"SELECT v.vendor_id, v.name, v.deals_in FROM vendor_master v WHERE v.duplicate_of_id IS NULL AND {conds} "
+        f"ORDER BY v.name LIMIT 6", {f"w{i}": f"%{w}%" for i, w in enumerate(words)})
+    if len(rows) == 1:
+        return rows[0]["vendor_id"], []
+    return None, rows
+
+
+async def handle_catalogue_post(ev: Dict[str, Any], text: str, who: str, vendor_id: Optional[int] = None) -> None:
+    channel, ts = ev.get("channel"), ev.get("thread_ts") or ev.get("ts")
+    refs = _file_refs(_catalogue_files(ev, text) or [f for f in (ev.get("files") or [])
+                                                     if (f.get("mimetype") or "") == "application/pdf"])
+    cands: List[Any] = []
+    if vendor_id is None:
+        vendor_id, cands = await _match_vendor(text)
+    pid = await database.fetch_val(
+        "INSERT INTO slack_catalogue_posts (channel, ts, vendor_id, files, status) VALUES (:c, :t, :v, CAST(:f AS JSONB), :s) RETURNING id",
+        {"c": channel, "t": ts, "v": vendor_id, "f": json.dumps({"refs": refs, "note": text[:500]}),
+         "s": "pending" if vendor_id is None else "reading"})
+    if vendor_id is None:
+        opts = "\n".join(f"• #{r['vendor_id']} {r['name']}" + (f" ({r['deals_in']})" if r["deals_in"] else "") for r in cands)
+        await slack_api("chat.postMessage", channel=channel, thread_ts=ts, unfurl_links=False, text=(
+            "📚 Which partner is this catalogue for?" + (f" These match:\n{opts}\n" if opts else "\n")
+            + "Reply in this thread with their *#number*, or *new: Business name, phone* to save them as a new contact."))
+        return
+    await _run_catalogue(pid, channel, ts, vendor_id, refs, text, who)
+
+
+async def _run_catalogue(pid: int, channel: str, ts: str, vendor_id: int, refs: List[Dict[str, Any]], note: str, who: str) -> None:
+    from vendor_catalogue_reader import import_catalogue, money
+    name = await database.fetch_val("SELECT name FROM vendor_master WHERE vendor_id = :v", {"v": vendor_id}) or f"#{vendor_id}"
+    await database.execute("UPDATE slack_catalogue_posts SET vendor_id = :v, status = 'reading' WHERE id = :i", {"v": vendor_id, "i": pid})
+    label = ", ".join(r["name"] for r in refs[:3]) + ("…" if len(refs) > 3 else "")
+    await slack_api("chat.postMessage", channel=channel, thread_ts=ts, unfurl_links=False,
+                    text=f"📚 Reading *{label}* for {_link(vendor_id, name)} — this takes a minute or two…")
+    try:
+        files = [x for x in [await _download_any(r) for r in refs] if x]
+        if not files:
+            raise RuntimeError("I couldn't download the file (files over 40 MB are skipped; the Slack app needs files:read).")
+        note = CATALOGUE_WORDS.sub("", re.sub(r"#\d+", "", note or "")).strip()
+        res = await import_catalogue(vendor_id, files, who, note if len(note) > 12 else "")
+    except Exception as exc:
+        logger.exception("Slack catalogue: failed")
+        await database.execute("UPDATE slack_catalogue_posts SET status = 'error' WHERE id = :i", {"i": pid})
+        await slack_api("chat.postMessage", channel=channel, thread_ts=ts, text=f"Couldn't read the catalogue: {str(exc)[:250]}")
+        return
+    await database.execute("UPDATE slack_catalogue_posts SET status = 'done' WHERE id = :i", {"i": pid})
+    items = res["items"]
+    lines = [f"✅ Read {res['pages']} page(s) for {_link(vendor_id, name)}: *{res['added']} new item(s)*"
+             + (f", {res['updated']} updated" if res["updated"] else "") + " in their item list."]
+    for it in items[:40]:
+        bits = [it.get("size_text"), (money(it["price"]) + (" " + it["price_unit"] if it.get("price_unit") else "")) if it.get("price") else "no price"]
+        lines.append(f"• *{it['name']}*" + (f" ({it['category']})" if it.get("category") else "") + " · " + " · ".join(b for b in bits if b)
+                     + ("" if it.get("has_photo") else " · no photo"))
+    if len(items) > 40:
+        lines.append(f"…and {len(items) - 40} more — see the partner's page.")
+    if not items:
+        lines.append("I didn't find any items in it.")
+    elif any(not it.get("price") for it in items):
+        lines.append("_Reply here with prices to fill them in, e.g. *Roller coaster 25000 per day, Joker swing 18k*._")
+    await slack_api("chat.postMessage", channel=channel, thread_ts=ts, text="\n".join(lines), unfurl_links=False)
+
+
+PRICE_PROMPT = """A supplier's item list: {names}
+Shruti (Wondershop Experiences) replied: {text!r}
+Match each price she gives to one item from the list (use the exact item name from the list). Reply with ONLY JSON:
+{{"prices": [{{"name": "...", "price": 25000, "price_unit": "per day" or null, "price_note": "..." or null}}], "note": "anything in her reply that is not a price, else null"}}"""
+
+
+async def _apply_prices(vendor_id: int, text: str) -> Tuple[List[str], Optional[str]]:
+    from vendor_catalogue_reader import money, _num
+    rows = await database.fetch_all("SELECT id, name FROM vendor_items WHERE vendor_id = :v", {"v": vendor_id})
+    if not rows or not settings.ANTHROPIC_API_KEY:
+        return [], text
+    async with httpx.AsyncClient(timeout=60) as client:
+        r = await client.post("https://api.anthropic.com/v1/messages",
+                              headers={"x-api-key": settings.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01",
+                                       "content-type": "application/json"},
+                              json={"model": settings.ANTHROPIC_MODEL, "max_tokens": 2000, "messages": [{"role": "user", "content":
+                                    PRICE_PROMPT.format(names="; ".join(x["name"] for x in rows), text=text)}]})
+    if r.status_code != 200:
+        return [], text
+    out = "".join(b.get("text", "") for b in r.json().get("content", []) if b.get("type") == "text")
+    m = re.search(r"\{.*\}", out, re.S)
+    data = json.loads(m.group(0)) if m else {}
+    ids = {x["name"].lower(): x["id"] for x in rows}
+    done = []
+    for p in data.get("prices") or []:
+        iid, price = ids.get(str(p.get("name") or "").lower()), _num(p.get("price"))
+        if iid and price:
+            await database.execute(
+                "UPDATE vendor_items SET price = :p, price_unit = COALESCE(:u, price_unit), price_note = COALESCE(:n, price_note), "
+                "updated_on = NOW() WHERE id = :i",
+                {"p": price, "u": _s(p.get("price_unit"), 40), "n": _s(p.get("price_note"), 300), "i": iid})
+            done.append(f"{p['name']} {money(price)}" + (f" {p['price_unit']}" if p.get("price_unit") else ""))
+    return done, (_s(data.get("note"), 3000) if done else text)
+
+
+async def handle_thread(ev: Dict[str, Any], post: Optional[Dict[str, Any]]) -> None:
+    """Every reply in a #vendor-contacts thread: new-category yes/no, catalogue
+    threads (name the partner / add prices), a catalogue dropped in a saved
+    contact's thread, else a note on the contact."""
+    if await handle_category_reply(ev):
+        return
+    text = clean_slack_text(ev.get("text") or "")
+    who = await slack_user_name(ev.get("user") or "")
+    channel, thread = ev.get("channel"), ev.get("thread_ts")
+    cat = await database.fetch_one(
+        "SELECT * FROM slack_catalogue_posts WHERE channel = :c AND ts = :t ORDER BY id DESC LIMIT 1", {"c": channel, "t": thread})
+    if cat and cat["status"] == "pending":
+        stored = cat["files"] if isinstance(cat["files"], dict) else json.loads(cat["files"] or "{}")
+        vid = None
+        nm = re.match(r"^\s*new\s*[:\-]?\s*(.+)$", text, re.I | re.S)
+        if nm:
+            c = _clean(_parse_plain(nm.group(1), await all_categories())[0], await all_categories())
+            c["notes"] = None
+            vid = (await save_contact(c, who, [], thread))["vendor_id"]
+            await database.execute(
+                "INSERT INTO slack_vendor_posts (channel, ts, vendor_ids) VALUES (:c, :t, :v) "
+                "ON CONFLICT (channel, ts) DO UPDATE SET vendor_ids = EXCLUDED.vendor_ids", {"c": channel, "t": thread, "v": str(vid)})
+        else:
+            vid, _c = await _match_vendor(text)
+        if not vid:
+            await slack_api("chat.postMessage", channel=channel, thread_ts=thread,
+                            text="I couldn't tell which partner — reply with their *#number* (type *find name* in the channel to look it up), "
+                                 "or *new: Business name, phone*.")
+            return
+        await _run_catalogue(cat["id"], channel, thread, vid, stored.get("refs") or [], stored.get("note") or "", who)
+        return
+    if ev.get("files") and _catalogue_files(ev, text):
+        ids = [int(x) for x in ((post or {}).get("vendor_ids") or "").split(",") if x.strip().isdigit()]
+        if not ids and cat and cat["vendor_id"]:
+            ids = [cat["vendor_id"]]
+        m = re.search(r"#(\d{1,7})\b", text)
+        vid = int(m.group(1)) if m and (not ids or int(m.group(1)) in ids) else (ids[0] if len(ids) == 1 else None)
+        await handle_catalogue_post(ev, text or "catalogue", who, vendor_id=vid)
+        return
+    if cat and cat["vendor_id"] and cat["status"] == "done" and text.strip():
+        done, rest = await _apply_prices(cat["vendor_id"], text)
+        if done:
+            await slack_api("chat.postMessage", channel=channel, thread_ts=thread, unfurl_links=False,
+                            text="💰 Prices saved: " + "; ".join(done))
+        if rest:
+            await add_note(cat["vendor_id"], rest, who, "slack", ev.get("ts"))
+            if not done:
+                await slack_api("chat.postMessage", channel=channel, thread_ts=thread, text="📝 Note added to the partner.")
+        return
+    if post:
+        await handle_reply(ev, post)

@@ -33,7 +33,10 @@ import json
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Header, HTTPException, Response
+import asyncio
+from typing import List
+
+from fastapi import APIRouter, File, Form, Header, HTTPException, Response, UploadFile
 from pydantic import BaseModel
 
 from database import database
@@ -348,6 +351,174 @@ async def delete_vendor_catalogue(vendor_id: int, file_id: int, x_admin_password
     _require_admin(x_admin_password)
     await database.execute("DELETE FROM vendor_catalogues WHERE id = :f AND vendor_id = :v", {"f": file_id, "v": vendor_id})
     return {"success": True}
+
+
+# ─── Vendor item master (2026-11-12, per Shruti) ────────────────────────────
+# What each partner offers: name, category, size, price, photo ... read from
+# their catalogue (vendor_catalogue_reader.py, from Slack or the upload below)
+# or added / edited by hand in the Partners tab. migrations/084.
+ITEM_COLS = ["name", "category", "size_text", "price", "price_unit", "price_note", "description",
+             "item_code", "age_group", "capacity", "is_active"]
+IMPORT_JOBS: dict = {}   # vendor_id -> {"state": running|done|error, "msg": ...}
+
+
+class VendorItemIn(BaseModel):
+    name: Optional[str] = None
+    category: Optional[str] = None
+    size_text: Optional[str] = None
+    price: Optional[float] = None
+    price_unit: Optional[str] = None
+    price_note: Optional[str] = None
+    description: Optional[str] = None
+    item_code: Optional[str] = None
+    age_group: Optional[str] = None
+    capacity: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+def _item_out(r) -> dict:
+    d = {k: r[k] for k in ["id"] + ITEM_COLS + ["source_ref", "created_by"]}
+    d["price"] = float(d["price"]) if d["price"] is not None else None
+    d["has_photo"] = bool(r["has_photo"])
+    d["updated_on_ist"] = _to_ist_str(r["updated_on"])
+    return d
+
+
+def _item_vals(body: VendorItemIn, partial: bool) -> dict:
+    vals = body.model_dump(exclude_unset=partial)
+    limits = {"name": 150, "category": 60, "size_text": 200, "price_unit": 40, "price_note": 300,
+              "description": 2000, "item_code": 60, "age_group": 60, "capacity": 100}
+    for k, n in limits.items():
+        if k in vals:
+            vals[k] = (re.sub(r"[ \t]+", " ", str(vals[k] or "")).strip()[:n]) or None
+    if "price" in vals and vals["price"] is not None and not (0 <= vals["price"] < 1e9):
+        raise HTTPException(status_code=400, detail="Please check the price.")
+    if ("name" in vals or not partial) and not vals.get("name"):
+        raise HTTPException(status_code=400, detail="Please give the item a name.")
+    return vals
+
+
+@router.get("/vendors/{vendor_id}/items")
+async def list_vendor_items(vendor_id: int, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    try:
+        rows = await database.fetch_all(
+            f"SELECT id, {', '.join(ITEM_COLS)}, source_ref, created_by, updated_on, photo_data IS NOT NULL AS has_photo "
+            "FROM vendor_items WHERE vendor_id = :v ORDER BY is_active DESC, category NULLS LAST, name", {"v": vendor_id})
+    except Exception:
+        rows = []   # table not created yet (migration 084)
+    return {"items": [_item_out(r) for r in rows], "import": IMPORT_JOBS.get(vendor_id)}
+
+
+@router.get("/vendors/{vendor_id}/items/{item_id}/photo")
+async def get_vendor_item_photo(vendor_id: int, item_id: int, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    row = await database.fetch_one(
+        "SELECT photo_data, photo_type FROM vendor_items WHERE id = :i AND vendor_id = :v", {"i": item_id, "v": vendor_id})
+    if not row or not row["photo_data"]:
+        raise HTTPException(status_code=404, detail="No photo.")
+    ct = row["photo_type"] if row["photo_type"] in ("image/jpeg", "image/png", "image/webp") else "image/jpeg"
+    return Response(content=bytes(row["photo_data"]), media_type=ct,
+                    headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=600"})
+
+
+@router.post("/vendors/{vendor_id}/items")
+async def add_vendor_item(vendor_id: int, body: VendorItemIn, x_admin_password: Optional[str] = Header(None),
+                          x_admin_name: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    vals = _item_vals(body, partial=False)
+    vals.pop("is_active", None)
+    if await database.fetch_val("SELECT 1 FROM vendor_items WHERE vendor_id = :v AND LOWER(name) = LOWER(:n)",
+                                {"v": vendor_id, "n": vals["name"]}):
+        raise HTTPException(status_code=400, detail="This partner already has an item with that name.")
+    cols = list(vals)
+    iid = await database.fetch_val(
+        f"INSERT INTO vendor_items (vendor_id, {', '.join(cols)}, source_ref, created_by) "
+        f"VALUES (:vendor_id, {', '.join(':' + c for c in cols)}, 'Added by hand', :by) RETURNING id",
+        {"vendor_id": vendor_id, **vals, "by": (x_admin_name or "")[:100]})
+    return {"success": True, "id": iid}
+
+
+@router.put("/vendors/{vendor_id}/items/{item_id}")
+async def update_vendor_item(vendor_id: int, item_id: int, body: VendorItemIn, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    vals = _item_vals(body, partial=True)
+    if not vals:
+        return {"success": True}
+    try:
+        await database.execute(
+            f"UPDATE vendor_items SET {', '.join(f'{k} = :{k}' for k in vals)}, updated_on = NOW() "
+            "WHERE id = :id AND vendor_id = :v", {**vals, "id": item_id, "v": vendor_id})
+    except Exception as exc:
+        if "vendor_items_vendor_name" in str(exc):
+            raise HTTPException(status_code=400, detail="This partner already has an item with that name.")
+        raise
+    return {"success": True}
+
+
+@router.post("/vendors/{vendor_id}/items/{item_id}/photo")
+async def set_vendor_item_photo(vendor_id: int, item_id: int, photo: UploadFile = File(...),
+                                x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    raw = await photo.read(10 * 1024 * 1024 + 1)
+    if len(raw) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="The photo is larger than 10 MB.")
+    try:
+        from PIL import Image
+        import io
+        from vendor_catalogue_reader import _jpeg
+        data = _jpeg(Image.open(io.BytesIO(raw)))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Please upload a JPG or PNG photo.")
+    await database.execute("UPDATE vendor_items SET photo_data = :d, photo_type = 'image/jpeg', updated_on = NOW() "
+                           "WHERE id = :i AND vendor_id = :v", {"d": data, "i": item_id, "v": vendor_id})
+    return {"success": True}
+
+
+@router.delete("/vendors/{vendor_id}/items/{item_id}")
+async def delete_vendor_item(vendor_id: int, item_id: int, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    await database.execute("DELETE FROM vendor_items WHERE id = :i AND vendor_id = :v", {"i": item_id, "v": vendor_id})
+    return {"success": True}
+
+
+@router.post("/vendors/{vendor_id}/items/import")
+async def import_vendor_catalogue(vendor_id: int, files: List[UploadFile] = File(...), note: str = Form(""),
+                                  x_admin_password: Optional[str] = Header(None), x_admin_name: Optional[str] = Header(None)):
+    """Read a catalogue (PDFs and/or page photos) into this partner's items.
+    Runs in the background (a long PDF takes a minute or two); the page polls
+    GET /vendors/{id}/items, whose "import" says how it went."""
+    _require_admin(x_admin_password)
+    if not await database.fetch_val("SELECT 1 FROM vendor_master WHERE vendor_id = :v", {"v": vendor_id}):
+        raise HTTPException(status_code=404, detail="Vendor not found.")
+    if (IMPORT_JOBS.get(vendor_id) or {}).get("state") == "running":
+        raise HTTPException(status_code=400, detail="A catalogue for this partner is already being read.")
+    got = []
+    for f in files[:10]:
+        raw = await f.read(40 * 1024 * 1024 + 1)
+        if len(raw) > 40 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail=f"{f.filename} is larger than 40 MB.")
+        mime = "application/pdf" if raw[:5] == b"%PDF-" else (
+            "image/jpeg" if raw[:3] == b"\xff\xd8\xff" else "image/png" if raw[:8] == b"\x89PNG\r\n\x1a\n" else
+            "image/webp" if raw[:4] == b"RIFF" and raw[8:12] == b"WEBP" else "")
+        if not mime:
+            raise HTTPException(status_code=400, detail=f"{f.filename} is not a PDF or a photo.")
+        got.append((raw, mime, f.filename or "catalogue"))
+    if not got:
+        raise HTTPException(status_code=400, detail="Please choose the catalogue file.")
+    IMPORT_JOBS[vendor_id] = {"state": "running", "msg": f"Reading {len(got)} file(s)…"}
+
+    async def run():
+        from vendor_catalogue_reader import import_catalogue
+        try:
+            res = await import_catalogue(vendor_id, got, x_admin_name or "admin", note.strip()[:500])
+            IMPORT_JOBS[vendor_id] = {"state": "done", "msg":
+                f"Read {res['pages']} page(s): {res['added']} new item(s), {res['updated']} updated."}
+        except Exception as exc:
+            logger.exception("Catalogue import failed")
+            IMPORT_JOBS[vendor_id] = {"state": "error", "msg": f"Couldn't read the catalogue: {str(exc)[:200]}"}
+    asyncio.get_running_loop().create_task(run())
+    return {"started": True}
 
 
 @router.post("/vendors/{vendor_id}/update-link")

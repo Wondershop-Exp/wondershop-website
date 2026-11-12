@@ -60,6 +60,7 @@ SAFE_MIGRATIONS = [
     "080_venue_info.sql",
     "082_partner_categories.sql",
     "083_base_salary.sql",
+    "084_vendor_items.sql",
 ]
 
 
