@@ -520,7 +520,7 @@ ACTIVITIES = [
     ("magic-show", "Magic Show", 8500, True),
     # 2026-10-25, per Shruti — on the website but missing from the sales /
     # bookings dropdown. Prices as builder.html (T-shirt: r1 band per child).
-    ("tshirt-printing", "Live T-shirt Printing", 550, False),
+    ("tshirt-printing", "Live T-shirt Printing", 0, True),   # price on request (2026-11-12, per Shruti — setup cost + varies by size)
     ("chitrakathi-show", "Chitrakathi Shadow Puppet Show", 40000, True),
     ("bhajan-jamming", "Bhajan Jamming", 25000, True),
 ]
