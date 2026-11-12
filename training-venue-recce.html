@@ -46,6 +46,7 @@ h1{font-family:var(--fd);font-size:30px;line-height:1.2;margin:10px 0 6px}
 .speed select{font:inherit;padding:6px;border-radius:8px;border:1px solid var(--li2);background:#fff}
 .recbox{flex-basis:100%;display:none;background:var(--li3);border-radius:12px;padding:12px;font-size:14px}
 .recbox.show{display:block}
+[hidden]{display:none!important}
 .recbox audio{width:100%;margin:8px 0}
 
 .toc{background:#fff;border:1px solid var(--li2);border-radius:14px;padding:14px 16px;margin-bottom:18px}
@@ -116,8 +117,17 @@ ul.pts li.speaking{background:#FFF1F7;border-radius:8px}
     <select id="rate"><option value="0.85">Slow</option><option value="1" selected>Normal</option><option value="1.2">Fast</option></select>
   </label>
   <div class="recbox" id="recbox">
-    <b>Send this guide as a voice note</b>
-    <p id="recIntro">Tap <b>Record</b> and read the steps in your own voice (Hindi or English, whatever the team is comfortable with). When you stop, you can play it back and share it on WhatsApp.</p>
+    <b>🤖 AI voice note</b>
+    <p>An AI voice reads the whole guide in Indian English. Make it once, listen, then share it on WhatsApp. To send just one step, use “Voice note” on that step.</p>
+    <div class="secbtns">
+      <select id="aiVoiceSel" class="btn" style="padding-right:8px"><option value="female">Female voice</option><option value="male">Male voice</option></select>
+      <button class="btn main" id="aiGen"><span>Make AI voice note</span></button>
+      <button class="btn wa" id="aiShare" hidden><span>Share on WhatsApp</span></button>
+    </div>
+    <audio id="aiPlay" controls hidden></audio>
+    <hr style="border:0;border-top:1px dashed var(--li2);margin:14px 0">
+    <b>🎙 Or record your own voice</b>
+    <p id="recIntro">Tap <b>Record</b> and read the steps yourself (Hindi or English). When you stop, play it back and share it.</p>
     <div class="secbtns">
       <button class="btn" id="recBtn"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="7"/></svg><span>Record</span></button>
       <button class="btn wa" id="recShare" hidden><span>Share recording on WhatsApp</span></button>
@@ -214,10 +224,12 @@ const MODULE = {
         'Start the video outside the venue, at the main entrance.',
         'Hold the phone sideways (landscape) and walk slowly. Keep talking as you walk.',
         'Say where you are and why at the start (see the example below).',
-        'Show and name each spot: main entrance, welcome board spot, welcome arch spot, main decor area, music or DJ spot, show or stage area, activity stations, cake table, food area, return gift table, washrooms, and exits.',
+        'Show and name the spot for every item, even if someone else (the client or another vendor) is handling it: welcome board, welcome arch, main decor, music or DJ, buffet, adult hangout zone, seating (if any), return gifts table, gifts table, cake table, show area. For a spy party: the registration desk and each of the 5 or 8 stations. Also show washrooms and exits.',
+        'Count tables as you go: 1 table holds up to 30 gifts. Return gifts usually need 1 table per 30 kids, but live T-shirt printing needs 4 tables.',
         'Point the camera at plug points and say “plug point here”.',
         'Keep it in one long video if possible. If you stop, start the next video by saying where you are.',
-        'Upload the video to the venue form the same day.'
+        'Upload the video to the venue form the same day.',
+        'Then fill “Where things go” in the form: write where each item goes in a few words (e.g. “left of entrance”), and mark it on the floor map. Pick the room shape, tap a label (Decor, Music, Buffet…) to add it, and drag it to its place. A rough sketch is fine.'
       ],
       script: 'Hi team, today we are at the Royal Orchid for the venue recce for Dr. Vyoma’s party on 10th December. This is the main entrance. This is where the welcome board will go. This is the spot for the welcome arch. Now we are walking in. This is the main decor area, and there is a plug point here on the right. This is where the music will be…',
       tip: 'Before recording, wipe the camera lens and switch on the lights in the hall. Dark videos are not useful.'
@@ -262,23 +274,23 @@ const MODULE = {
     }
   ],
   checklist: [
-    'Party details and venue manager’s number saved',
-    'Photos of decor area (front, both sides, wide)',
-    'Plug point near decor checked',
-    'Ceiling height noted',
-    'Tape / nails / hanging rules asked',
-    'Power and table space for each booked activity checked (T-shirt printing: 16 amp plug + 4 tables; LED decor: 16 amp plug near decor)',
-    'Service lift: available and allowed?',
-    'Lift distance and size checked',
-    'Unloading spot and parking noted',
-    'Setup start time and clear-out time',
-    'Full walkthrough video recorded',
-    'Medical kit location and person in charge',
-    'Nearest hospital and fire exits',
-    'Sound / music rules asked',
-    'Space for show and team room checked',
-    'Venue form filled with photos and video',
-    'Summary sent on WhatsApp group'
+    'Venue address, Google Maps link and venue manager’s name and number → form: “Getting our things in” and “Venue rules”',
+    'Decor area decided with the venue → form: Recce · Decor area → “Where will the main decor go?”',
+    '4 decor photos (front, left, right, wide) → upload in photos section and tag each one',
+    'Ceiling height: measure with a tape or the phone’s Measure app, or guess (one floor ≈ 9–10 ft) → form: “Floor-to-ceiling height” (type the exact height if measured)',
+    'Width of the decor wall → form: “Width of the wall / space”',
+    'Normal plug point near decor → form: “Normal plug point near the decor area” + photo tagged “Plug point”',
+    '16 amp plug point (LED decor, T-shirt printing) → form: “16 amp plug point”, where it is, “Can 4 tables fit?” + photo tagged “16 amp plug”',
+    'Tape and ceiling hanging rules → form: “Can we use tape?” and “Can we hang things from the ceiling?”',
+    'Lift, unloading point, parking, trolleys → form: “Getting our things in”',
+    'Setup start time and clear-out time → form: “Timings”',
+    'Medical kit location and person in charge → form: Recce · Safety + photo tagged “Medical kit”',
+    'Nearest hospital, fire exits, dangers for kids → form: Recce · Safety',
+    'Sound rules, show space, team room, AC/fans → form: Recce · Shows, sound & team',
+    'Full walkthrough video, naming the spot for every item → upload and tag “Walkthrough video”',
+    'Location of welcome board, arch, decor, music, buffet, adult zone, seating, return gifts, gifts, spy desk/stations, other → form: “Where things go” + floor map',
+    '“Recce done by” filled and “Save recce” tapped',
+    'Summary sent on the party’s WhatsApp group'
   ]
 };
 /* ========================================================= */
@@ -310,7 +322,7 @@ function render(){
   $('toc').innerHTML = MODULE.sections.map((s,i)=>'<li><a href="#sec'+i+'">'+esc(s.title)+'</a></li>').join('') + '<li><a href="#checklist">Recce checklist</a></li>';
   $('sections').innerHTML = MODULE.sections.map((s,i)=>{
     let h = '<section class="sec" id="sec'+i+'"><div class="sechead"><div class="num">'+(i+1)+'</div><h2>'+esc(s.title)+(s.why?'<div class="why">'+esc(s.why)+'</div>':'')+'</h2></div>';
-    h += '<div class="secbtns"><button class="btn" data-play="'+i+'" aria-pressed="false">'+ICON_PLAY+'<span>Listen</span></button><button class="btn wa" data-share="'+i+'"><span>Share this step</span></button></div>';
+    h += '<div class="secbtns"><button class="btn" data-play="'+i+'" aria-pressed="false">'+ICON_PLAY+'<span>Listen</span></button><button class="btn wa" data-aivoice="'+i+'"><span>🔊 Voice note</span></button><button class="btn wa" data-share="'+i+'"><span>Share as text</span></button></div>';
     h += '<ul class="pts">' + s.points.map(p=>{
       const t = typeof p === 'string' ? p : p.text;
       return '<li>'+esc(t)+(p.img ? '<img class="ptimg" src="'+esc(p.img)+'" alt="'+esc(p.alt||'')+'" loading="lazy">' : '')+'</li>';
@@ -328,6 +340,8 @@ render();
 document.addEventListener('click', e => {
   const p = e.target.closest('[data-play]');
   if(p){ TrainingVoice.play(itemsFor(+p.dataset.play), p); return; }
+  const av = e.target.closest('[data-aivoice]');
+  if(av){ stepVoice(+av.dataset.aivoice, av); return; }
   const s = e.target.closest('[data-share]');
   if(s){ const i = +s.dataset.share; TrainingVoice.shareText(MODULE.title, sectionPlain(MODULE.sections[i], i)); }
 });
@@ -354,6 +368,39 @@ $('shareVoice').onclick = async () => {
   }
   $('recbox').classList.toggle('show');
 };
+/* AI voice (2026-11-12) */
+const speechOf = items => items.map(i => i.text).join(' ');
+function fullSpeech(){
+  let items = [{text: MODULE.title + '. ' + MODULE.intro}];
+  MODULE.sections.forEach((_,i)=> items = items.concat(itemsFor(i)));
+  return speechOf(items);
+}
+let aiBlob = null;
+$('aiGen').onclick = async () => {
+  const btn = $('aiGen'), lab = btn.querySelector('span');
+  btn.disabled = true; lab.textContent = 'Making voice… (up to a minute)';
+  try{
+    aiBlob = await TrainingVoice.aiVoice(fullSpeech(), $('aiVoiceSel').value, +$('rate').value);
+    const a = $('aiPlay'); a.src = URL.createObjectURL(aiBlob); a.hidden = false;
+    $('aiShare').hidden = false; lab.textContent = 'Make again';
+  }catch(e){ TrainingVoice.toast(e.message); lab.textContent = 'Make AI voice note'; }
+  btn.disabled = false;
+};
+$('aiShare').onclick = () => aiBlob && TrainingVoice.shareFile(aiBlob, 'Venue recce guide.mp3', MODULE.title);
+// Two taps: make it, then share. Phones only allow the share sheet straight
+// after a tap, and making the voice takes a few seconds.
+const stepBlobs = {};
+async function stepVoice(i, btn){
+  const lab = btn.querySelector('span');
+  if(stepBlobs[i]){ TrainingVoice.shareFile(stepBlobs[i], 'Venue recce - step ' + (i+1) + '.mp3', MODULE.title); return; }
+  btn.disabled = true; lab.textContent = 'Making…';
+  try{
+    stepBlobs[i] = await TrainingVoice.aiVoice(speechOf(itemsFor(i)), $('aiVoiceSel').value, +$('rate').value);
+    lab.textContent = '📤 Share voice note';
+  }catch(e){ TrainingVoice.toast(e.message); lab.textContent = '🔊 Voice note'; }
+  btn.disabled = false;
+}
+
 let recBlob = null;
 $('recBtn').onclick = () => TrainingVoice.toggleRecord($('recBtn'), blob => {
   recBlob = blob;

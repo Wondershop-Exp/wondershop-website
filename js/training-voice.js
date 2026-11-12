@@ -106,6 +106,20 @@
   }
   function ext(b){ return /webm/.test(b.type) ? 'webm' : /ogg/.test(b.type) ? 'ogg' : 'm4a'; }
 
-  window.TrainingVoice = { play, stop, shareText, shareFile, toggleRecord, ext, toast: alertBox,
+  /* ---------- AI voice (server: backend/routers/training_tts.py) ---------- */
+  var API = 'https://wondershop-website-production.up.railway.app';
+  var aiCache = {};
+  async function aiVoice(text, voice, speed){
+    var key = voice + '|' + speed + '|' + text;
+    if(aiCache[key]) return aiCache[key];
+    var r = await fetch(API + '/api/training/tts', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text: text, voice: voice || 'female', speed: speed || 1})});
+    if(!r.ok){ var j = await r.json().catch(function(){ return {}; }); throw new Error(j.detail || ('Could not make the voice (' + r.status + ')')); }
+    var b = await r.blob();
+    aiCache[key] = b;
+    return b;
+  }
+
+  window.TrainingVoice = { aiVoice, play, stop, shareText, shareFile, toggleRecord, ext, toast: alertBox,
     setRate(r){ rate = r; }, supported: !!synth };
 })();
