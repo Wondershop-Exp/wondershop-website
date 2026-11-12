@@ -1238,7 +1238,8 @@ async function loadVenueCard(id){
     + '<button type="button" class="btn sm gh" onclick="navigator.clipboard.writeText('+esc(JSON.stringify(v.url))+').then(()=>alert(\'Client link copied\'))">Copy client link</button></div>'
     + (answered.length ? '<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--bk);font-weight:700">See answers ('+answered.length+')</summary><table style="width:100%;font-size:12.5px;margin-top:6px;border-collapse:collapse">'
       + answered.map(r=>'<tr><td style="padding:4px 8px 4px 0;color:var(--gy);vertical-align:top;width:45%">'+esc(r.label)+'</td><td style="padding:4px 0;color:var(--bk)">'+(/^https?:\/\//.test(r.answer)?'<a href="'+esc(r.answer)+'" target="_blank" rel="noopener">Open in Maps ↗</a>':esc(r.answer))+'</td></tr>').join('')
-      + '</table></details>' : '');
+      + '</table></details>' : '')
+    + ((v.floor_map && window.FloorMap && FloorMap.svg(v.floor_map)) ? '<details style="margin-top:8px"><summary style="cursor:pointer;color:var(--bk);font-weight:700">Floor map</summary><div style="max-width:480px;margin-top:6px;border:1px solid #EDE6FA;border-radius:10px;overflow:hidden">'+FloorMap.svg(v.floor_map)+'</div></details>' : '');
 }
 
 async function openDetail(id, preloaded){
@@ -3926,5 +3927,6 @@ async function decorRefRemove(btn){
   [300, 1000, 2500].forEach(function(ms){ setTimeout(function(){ if(!typed && q.value){ q.value = ''; if(typeof doSearch==='function' && document.getElementById('app') && getComputedStyle(document.getElementById('app')).display!=='none') doSearch(); } }, ms); });
 })();
 </script>
+<script src="js/floor-map.js"></script>
 </body>
 </html>

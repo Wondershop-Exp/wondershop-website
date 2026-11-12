@@ -100,6 +100,7 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
 <div class="saved" id="saved">Saved ✓</div>
 <footer>Wondershop Experiences · +91 90044 35362</footer>
 
+<script src="js/floor-map.js"></script>
 <script>
 (function(){
   var API = 'https://wondershop-website-production.up.railway.app';
@@ -165,6 +166,10 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
       + '<div class="err" id="err"></div></div>';
     app.innerHTML = h;
     wire(); drawMedia(); progress(); drawMissing();
+    app.querySelectorAll('[data-fm]').forEach(function(el){
+      var k = el.dataset.fm;
+      if(window.FloorMap) FloorMap.editor(el, A[k] || '', function(v){ queueSave(k, v); });
+    });
   }
 
   function qHtml(q){
@@ -176,6 +181,8 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
       h += '<input type="url" inputmode="url" data-k="' + q.key + '" value="' + esc(v) + '" placeholder="Paste the link from Google Maps → Share">'
         + '<div class="hint">' + (v ? '<a href="' + esc(v) + '" target="_blank" rel="noopener" style="color:var(--pu-d);font-weight:700">Open in Maps ↗</a> · ' : '')
         + 'In Google Maps, search the venue, tap <b>Share</b> → <b>Copy link</b>, and paste it here.</div>';
+    }else if(q.type === 'floormap'){
+      h += '<div class="hint" style="margin:-2px 0 8px">A rough sketch is fine. Tap a label to add it, then drag it to where it goes in the room.</div><div data-fm="' + q.key + '"></div>';
     }else if(q.type === 'short' || q.type === 'phone'){
       h += '<input type="' + (q.type === 'phone' ? 'tel' : 'text') + '"' + (q.type === 'phone' ? ' inputmode="tel"' : '') + ' class="short" data-k="' + q.key + '" value="' + esc(v) + '">';
     }else if(q.type === 'time'){

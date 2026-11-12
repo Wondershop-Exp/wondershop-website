@@ -104,6 +104,23 @@ SECTIONS = [
         ("trolleys", "Are trolleys available?", "chips",
          [("yes", "Yes"), ("no", "No"), ("unsure", "Not sure")], True, None),
     ]),
+    # 2026-11-12, per Shruti — "venue should have location for all elements,
+    # irrespective of who is doing it ... if possible mark the position on the
+    # floor map". Shown to the customer and the team; all optional.
+    ("Where things go", [
+        ("loc_decor", "Main decor", "short", None, False, None),
+        ("loc_welcome_board", "Welcome board", "short", None, False, None),
+        ("loc_welcome_arch", "Welcome arch", "short", None, False, None),
+        ("loc_music", "Music / DJ", "short", None, False, None),
+        ("loc_buffet", "Buffet / food", "short", None, False, None),
+        ("loc_adult_zone", "Adult hangout zone", "short", None, False, None),
+        ("loc_seating", "Seating (if any)", "short", None, False, None),
+        ("loc_return_gifts", "Return gifts table(s) — 1 table holds up to 30 gifts; live T-shirt printing needs 4 tables", "short", None, False, None),
+        ("loc_gifts", "Gifts table(s) for presents — 1 table holds up to 30 gifts", "short", None, False, None),
+        ("loc_spy", "Spy party only: registration desk and the 5 / 8 stations", "short", None, False, None),
+        ("loc_other", "Anything else (cake table, show area, photo booth…)", "short", None, False, None),
+        ("floor_map", "Floor map — mark where everything goes", "floormap", None, False, None),
+    ]),
     ("Venue rules", [
         ("gate_pass", "Does the venue or building need an entry pass / permission for our team?", "chips",
          [("yes", "Yes, I'll arrange it"), ("no", "No"), ("unsure", "Not sure")], True, None),
@@ -360,6 +377,12 @@ def _label(key: str) -> str:
 
 def _answer_text(key: str, val) -> str:
     q = QUESTIONS.get(key)
+    if q and q[2] == "floormap":
+        try:
+            items = json.loads(val).get("items") or []
+        except Exception:
+            items = []
+        return f"{len(items)} thing(s) marked on the map" if items else ""
     if q and q[3]:
         return dict(q[3]).get(val, str(val))
     if q and q[2] == "time":
@@ -478,6 +501,19 @@ def _clean_answers(raw: Dict[str, Optional[str]]) -> dict:
                 raise HTTPException(status_code=400, detail=f"Please pick one of the options for: {q[1]}")
             if v and q[2] == "time" and not re.fullmatch(r"\d{1,2}:\d{2}", v):
                 raise HTTPException(status_code=400, detail=f"Please pick a time for: {q[1]}")
+            if q[2] == "floormap":
+                if v:
+                    try:
+                        fm = json.loads(v)
+                        items = [{"k": str(i.get("k", ""))[:20], "l": str(i.get("l", ""))[:40],
+                                  "x": max(0.0, min(1.0, float(i.get("x", 0)))), "y": max(0.0, min(1.0, float(i.get("y", 0))))}
+                                 for i in (fm.get("items") or [])[:60]]
+                        v = json.dumps({"shape": fm.get("shape") if fm.get("shape") in ("square", "wide", "long") else "wide",
+                                        "items": items}, separators=(",", ":"))
+                    except Exception:
+                        raise HTTPException(status_code=400, detail="Couldn't read the floor map — please try again.")
+                out[k] = v
+                continue
             if v and q[2] == "url":
                 m = re.search(r"https?://\S+", v)   # pasted share text often has words around the link
                 if not m:
@@ -616,6 +652,7 @@ async def admin_get(lead_id: int, x_admin_password: Optional[str] = Header(None)
         "url": url, "recce_url": url + "&recce=1", "booking": _booking_header(lead), "email": lead["email"], "phone": lead["phone"],
         "recce_at": answers.get("_recce_at"), "recce_by": answers.get("_recce_by"),
         "recce_missing": [_label(k) for k in _missing(answers, RECCE_REQUIRED)],
+        "floor_map": answers.get("floor_map"),
         "rows": rows, "missing": [_label(k) for k in _missing(answers)],
         "answered": len(REQUIRED) - len(_missing(answers)), "total": len(REQUIRED),
         "tags": [{"key": k, "label": l} for k, l in TAGS + RECCE_TAGS],

@@ -2115,6 +2115,7 @@ function drawVenueBlock(){
       return out + '<tr><td>'+esc(r.label)+'</td><td>'+(r.answer ? (/^https?:\/\//.test(r.answer) ? '<a href="'+esc(r.answer)+'" target="_blank" rel="noopener">Open in Maps ↗</a>' : esc(r.answer)) : ((r.required && (!r.team_only || VEN.recce_at)) ? '<span class="miss">Not answered</span>' : '—'))+'</td></tr>';
     }).join('') + '</table>';
   }
+  if(VEN.floor_map && window.FloorMap){ const fm = FloorMap.svg(VEN.floor_map); if(fm) h += '<div style="font-weight:700;font-size:13px;margin-top:14px">Floor map</div><div style="max-width:520px;margin-top:6px;border:1px solid #EDE6FA;border-radius:10px;overflow:hidden">'+fm+'</div>'; }
   if(VEN.media.length){
     const lbl = {}; (VEN.tags||[]).forEach(t=>lbl[t.key]=t.label);
     h += '<div style="font-weight:700;font-size:13px;margin-top:14px">Venue photos &amp; videos ('+VEN.media.length+')</div><div class="ven-media">'
@@ -6731,5 +6732,6 @@ async function decorRefRemove(btn){
   [300, 1000, 2500].forEach(function(ms){ setTimeout(function(){ if(!typed && q.value){ q.value = ''; if(typeof doSearch==='function' && document.getElementById('app') && getComputedStyle(document.getElementById('app')).display!=='none') doSearch(); } }, ms); });
 })();
 </script>
+<script src="js/floor-map.js"></script>
 </body>
 </html>
