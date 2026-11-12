@@ -182,13 +182,13 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
         + '<div class="hint">' + (v ? '<a href="' + esc(v) + '" target="_blank" rel="noopener" style="color:var(--pu-d);font-weight:700">Open in Maps ↗</a> · ' : '')
         + 'In Google Maps, search the venue, tap <b>Share</b> → <b>Copy link</b>, and paste it here.</div>';
     }else if(q.type === 'floormap'){
-      h += '<div class="hint" style="margin:-2px 0 8px">A rough sketch is fine. Tap a label to add it, then drag it to where it goes in the room.</div><div data-fm="' + q.key + '"></div>';
+      h += '<div class="hint" style="margin:-2px 0 8px">A rough sketch is fine — no typing needed. Tap a label to add it, then drag it to where it goes: decor, welcome board, arch, music, buffet, adult zone, seating, return gifts, gifts, cake, show area (spy party: desk + each station). Add everything, even if someone else is handling it. <b>1 table holds up to 30 gifts; live T-shirt printing needs 4 tables.</b></div><div data-fm="' + q.key + '"></div>';
     }else if(q.type === 'short' || q.type === 'phone'){
       h += '<input type="' + (q.type === 'phone' ? 'tel' : 'text') + '"' + (q.type === 'phone' ? ' inputmode="tel"' : '') + ' class="short" data-k="' + q.key + '" value="' + esc(v) + '">';
     }else if(q.type === 'time'){
       h += '<input type="time" data-k="' + q.key + '" value="' + esc(v) + '">';
     }else{
-      h += '<textarea data-k="' + q.key + '" placeholder="e.g. no music after 9 PM, no confetti, lift booking needed">' + esc(v) + '</textarea>';
+      h += '<textarea data-k="' + q.key + '" placeholder="' + (q.key === 'loc_notes' ? 'e.g. buffet is in the next hall, adults sit on the lawn outside' : 'e.g. no music after 9 PM, no confetti, lift booking needed') + '">' + esc(v) + '</textarea>';
     }
     if(q.followup){
       var show = q.followup.when.indexOf(v) >= 0;

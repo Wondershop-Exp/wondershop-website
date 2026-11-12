@@ -108,18 +108,10 @@ SECTIONS = [
     # irrespective of who is doing it ... if possible mark the position on the
     # floor map". Shown to the customer and the team; all optional.
     ("Where things go", [
-        ("loc_decor", "Main decor", "short", None, False, None),
-        ("loc_welcome_board", "Welcome board", "short", None, False, None),
-        ("loc_welcome_arch", "Welcome arch", "short", None, False, None),
-        ("loc_music", "Music / DJ", "short", None, False, None),
-        ("loc_buffet", "Buffet / food", "short", None, False, None),
-        ("loc_adult_zone", "Adult hangout zone", "short", None, False, None),
-        ("loc_seating", "Seating (if any)", "short", None, False, None),
-        ("loc_return_gifts", "Return gifts table(s) — 1 table holds up to 30 gifts; live T-shirt printing needs 4 tables", "short", None, False, None),
-        ("loc_gifts", "Gifts table(s) for presents — 1 table holds up to 30 gifts", "short", None, False, None),
-        ("loc_spy", "Spy party only: registration desk and the 5 / 8 stations", "short", None, False, None),
-        ("loc_other", "Anything else (cake table, show area, photo booth…)", "short", None, False, None),
-        ("floor_map", "Floor map — mark where everything goes", "floormap", None, False, None),
+        # 2026-11-12 — typing a box per item was too much ("might become
+        # cumbersome"): the floor map is the main input, plus one optional note.
+        ("floor_map", "Mark where everything goes", "floormap", None, False, None),
+        ("loc_notes", "Anything the map doesn't show?", "text", None, False, None),
     ]),
     ("Venue rules", [
         ("gate_pass", "Does the venue or building need an entry pass / permission for our team?", "chips",
