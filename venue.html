@@ -135,7 +135,8 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
     var age = b.child_age ? ' (turning ' + b.child_age + ')' : '';
     var h = '';
     if(RECCE) h += '<div class="recce-bar"><b>Team recce view.</b> Fill in the customer’s questions too if they haven’t (or correct them), then the team-only recce sections. New to recces? <a href="training-venue-recce.html" target="_blank" rel="noopener">Read the guide ↗</a>'
-      + (D.recce_at ? '<br>✓ Recce saved ' + esc(D.recce_at) + (D.recce_by ? ' by ' + esc(D.recce_by) : '') : '') + '</div>';
+      + (D.recce_at ? '<br>✓ Recce saved ' + esc(D.recce_at) + (D.recce_by ? ' by ' + esc(D.recce_by) : '') : '')
+      + (D.venue_master ? '<br>📍 Linked venue: <b>' + esc(D.venue_master.name) + '</b> — venue details you fill here also update the venue list.' : '') + '</div>';
     if(D.submitted_at && !RECCE) h += '<div class="banner">✓ Thank you! You shared these on ' + esc(D.submitted_at) + '. You can still update anything below.</div>';
     h += '<div class="card"><div class="bk">'
       + '<span>Booking</span><b>#' + esc(b.lead_id) + '</b>'

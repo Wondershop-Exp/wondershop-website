@@ -827,6 +827,7 @@ body.role-sales .admin-only{display:none!important}
       Editing as <input type="text" id="whoName" name="ws-editor" autocomplete="off" data-lpignore="true" data-1p-ignore onchange="saveName()">
       <a class="linkbtn admin-only" href="packaging.html" target="_blank">📦 Packing lists</a>
       <a class="linkbtn" href="sales-dashboard.html" target="_blank">Sales Dashboard</a>
+      <a class="linkbtn" href="venues.html" target="_blank">Venues</a>
       <a class="linkbtn" href="sales-leads.html" target="_blank">🗒️ Sales leads</a>
       <button class="linkbtn admin-only" onclick="checkEmail()" title="Sends a test email to the team inbox and reports why if it can't">✉ Check email</button>
       <button class="linkbtn" onclick="logout()">Log out</button>
@@ -968,6 +969,9 @@ body.role-sales .admin-only{display:none!important}
     <!-- Venue & society form (2026-10-31, per Shruti) — venue.html?t=<token> -->
     <div class="log-section" id="venSection" style="display:none">
       <h3>📍 Venue Details</h3>
+      <div style="font-weight:700;font-size:13.5px;margin:4px 0 6px">Venues for this party</div>
+      <div id="venMaster" style="margin-bottom:14px"></div>
+      <div style="font-weight:700;font-size:13.5px;margin:4px 0 6px">Venue form for this party</div>
       <div id="venBlock"></div>
     </div>
     <div class="log-section" id="teamSection" style="display:none">
@@ -2063,6 +2067,7 @@ async function renderVenueBlock(d){
   if(!sec || !block) return;
   if(!d.is_booking){ sec.style.display = 'none'; block.innerHTML = ''; return; }
   sec.style.display = 'block';
+  if(window.LeadVenues) LeadVenues.mount(document.getElementById('venMaster'), d.lead_id, apiCall);   // venue master (2026-11-13)
   block.innerHTML = '<span style="font-size:12.5px;color:var(--gy)">Loading…</span>';
   try{ VEN = await apiCall('/api/admin/bookings/'+d.lead_id+'/venue-info'); }
   catch(e){ block.innerHTML = '<div style="color:var(--pk);font-size:13px">Could not load: '+esc(e.message)+'</div>'; return; }
@@ -6858,5 +6863,6 @@ async function decorRefRemove(btn){
 })();
 </script>
 <script src="js/floor-map.js"></script>
+<script src="js/lead-venues.js"></script>
 </body>
 </html>

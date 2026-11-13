@@ -398,6 +398,7 @@ body.role-sales .admin-only{display:none!important}
       <a class="linkbtn" href="admin.html">Leads &amp; Bookings</a>
       <a class="linkbtn" href="sales-performance.html">My performance</a>
       <a class="linkbtn" href="sales-dashboard.html" target="_blank">Sales Dashboard</a>
+      <a class="linkbtn" href="venues.html" target="_blank">Venues</a>
       <a class="linkbtn" href="admin.html#cal">📅 Calendar</a>
       <a class="linkbtn admin-only" href="packaging.html">Packing lists</a>
       <button class="linkbtn" onclick="logout()">Log out</button>
@@ -1418,7 +1419,9 @@ function renderDetail(){
     + sectionStatus()
     + sectionCalls()
     + sectionClientDetails()
-    + '<div class="card" id="venCard"><h2 style="font-size:15px;margin-bottom:6px">📍 Venue details &amp; recce</h2><div id="venCardBody" style="font-size:13px;color:var(--gy)">Loading…</div></div>'
+    + '<div class="card" id="venCard"><h2 style="font-size:15px;margin-bottom:6px">📍 Venue details &amp; recce</h2>'
+      + '<div style="font-weight:700;font-size:13.5px;margin:4px 0 6px">Venues the client is considering</div><div id="venMaster" style="margin-bottom:14px"></div>'
+      + '<div style="font-weight:700;font-size:13.5px;margin:4px 0 6px">Venue form for this party</div><div id="venCardBody" style="font-size:13px;color:var(--gy)">Loading…</div></div>'
     // Same order as Build-a-Birthday and the booking page (2026-10-17, per
     // Shruti): Decor, Activities, Host, Music, Pinata, Invite, Photo, Gifts.
     + sectionDecor()
@@ -1435,7 +1438,8 @@ function renderDetail(){
   renderSchedule();
   renderHistory();
   if(typeof decorRefMount === 'function') decorRefMount(DATA.lead_id);   
-  loadVenueCard(DATA.lead_id);   // decor reference picture (2026-10-06)
+  loadVenueCard(DATA.lead_id);
+  if(window.LeadVenues) LeadVenues.mount(document.getElementById('venMaster'), DATA.lead_id, apiCall);   // venue master (2026-11-13)   // decor reference picture (2026-10-06)
   // Collapsible sections (see secWire) — a small Collapse/Expand-all link
   // under the header card, then every card that has a heading gets a fold.
   const hdrCard = document.getElementById('detailBody').firstElementChild;
@@ -3928,5 +3932,6 @@ async function decorRefRemove(btn){
 })();
 </script>
 <script src="js/floor-map.js"></script>
+<script src="js/lead-venues.js"></script>
 </body>
 </html>

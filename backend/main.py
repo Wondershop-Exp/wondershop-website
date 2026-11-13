@@ -102,6 +102,8 @@ import booking_quote
 app.include_router(booking_quote.router, prefix="/api", tags=["Booking Quotation"])
 from routers import venue_info
 app.include_router(venue_info.router, prefix="/api", tags=["Venue Info"])   # 2026-10-31 venue & society form
+from routers import venues
+app.include_router(venues.router, prefix="/api/admin", tags=["Venues"])   # 2026-11-13 venue master
 from routers import training_tts
 app.include_router(training_tts.router, prefix="/api", tags=["Training"])   # 2026-11-12 AI voice for training guides
 

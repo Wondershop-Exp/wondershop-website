@@ -41,7 +41,7 @@ MAX_BODY_BYTES = 12 * 1024 * 1024  # partner form: cheque (5MB) + volunteer resu
 PARTNER_FORM_MAX_BYTES = 60 * 1024 * 1024
 # Venue form uploads (2026-10-31): one video up to 30 MB per request.
 VENUE_MEDIA_MAX_BYTES = 32 * 1024 * 1024
-_VENUE_MEDIA_RX = re.compile(r"/api/venue-info/[A-Za-z0-9_-]+/media")
+_VENUE_MEDIA_RX = re.compile(r"/api/venue-info/[A-Za-z0-9_-]+/media|/api/admin/venues/\d+/media")
 # Partner catalogue upload in the Partners tab (2026-11-12): PDFs up to 40 MB.
 CATALOGUE_MAX_BYTES = 45 * 1024 * 1024
 _CATALOGUE_RX = re.compile(r"/api/admin/vendors/\d+/items/import")
@@ -120,6 +120,9 @@ SALES_ALLOWED = [(m, re.compile(p)) for m, p in [
     ("*",    rf"/api/admin/bookings/{_ID}/invite(/.*)?"),
     # Venue & society form on a booking (2026-10-31).
     ("*",    rf"/api/admin/bookings/{_ID}/venue-info(/.*)?"),
+    # Venue master (2026-11-13) — delete is checked for admin inside routers/venues.py.
+    ("*",    r"/api/admin/venues(/.*)?"),
+    ("GET",  rf"/api/admin/lead-venues/{_ID}"),
 ]]
 
 

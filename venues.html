@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Venues — Wondershop</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo-square.png">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<!--
+  Venue master (2026-11-13, per Shruti). Listing of every venue with its
+  details and photos/videos, a page per venue to fill in / update details,
+  and links to the leads & bookings that shortlisted it.
+  Backend: backend/routers/venues.py. Login: the admin / sales password saved
+  by admin.html or sales-leads.html (localStorage ws_admin_pw).
+    venues.html                     list
+    venues.html#v=12                one venue
+    venues.html?new=1&lead=345      create a venue (optionally linked to lead #345)
+-->
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--pk:#E65A96;--pu:#8A67BE;--pu-d:#6C4AB6;--li2:#EDE6FA;--li3:#F7F3FF;--bk:#2D2140;--gy:#6B6280;--fd:'Lora',serif;--fb:'DM Sans',sans-serif}
+body{font-family:var(--fb);color:var(--bk);background:#FBF9FF;line-height:1.5;min-height:100vh}
+a{color:var(--pu-d)}
+.top{background:#fff;border-bottom:1px solid var(--li2);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+.top h1{font-family:var(--fd);font-size:21px}
+.top .links{margin-left:auto;display:flex;gap:12px;font-size:13px}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+.btn{font:inherit;font-weight:700;border:0;border-radius:10px;padding:9px 14px;background:var(--pk);color:#fff;cursor:pointer;font-size:14px;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn.gh{background:var(--li3);color:var(--pu-d)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn:disabled{opacity:.6}
+input,select,textarea{font:inherit;font-size:15px;border:1.5px solid var(--li2);border-radius:10px;padding:9px 12px;background:#fff;color:var(--bk);width:100%}
+textarea{min-height:70px;resize:vertical}
+.bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.bar input{flex:1;min-width:200px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.vc{background:#fff;border:1px solid var(--li2);border-radius:16px;overflow:hidden;cursor:pointer;transition:.15s;display:flex;flex-direction:column}
+.vc:hover{border-color:var(--pu);box-shadow:0 6px 18px rgba(108,74,182,.12);transform:translateY(-2px)}
+.vc .th{height:150px;background:var(--li3) center/cover;display:grid;place-items:center;color:#A99FBA;font-size:13px}
+.vc .bd{padding:12px 14px;flex:1}
+.vc h3{font-size:16px}
+.vc .ad{font-size:12.5px;color:var(--gy);margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.facts{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.facts span{font-size:11.5px;background:var(--li3);color:var(--pu-d);padding:2px 8px;border-radius:99px}
+.vc .ft{font-size:12px;color:var(--gy);padding:8px 14px;border-top:1px solid #F1ECF8}
+.empty{text-align:center;color:var(--gy);padding:40px}
+.card{background:#fff;border:1px solid var(--li2);border-radius:16px;padding:16px;margin-bottom:14px}
+.card h2{font-family:var(--fd);font-size:18px;margin-bottom:8px}
+.team-badge{display:inline-block;background:#2D2140;color:#fff;font-family:var(--fb);font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px;vertical-align:middle}
+.q{padding:10px 0;border-bottom:1px solid #F1ECF8}
+.q:last-child{border-bottom:0}
+.q-lbl{font-weight:700;font-size:14px;margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1.5px solid var(--li2);background:#fff;color:var(--bk);border-radius:99px;padding:6px 12px;font:inherit;font-size:13.5px;cursor:pointer}
+.chip.on{background:var(--pk);border-color:var(--pk);color:#fff;font-weight:700}
+.fu{margin-top:8px}
+.cols{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;align-items:start}
+@media(max-width:860px){.cols{grid-template-columns:1fr}}
+.links-t{width:100%;border-collapse:collapse;font-size:13.5px}
+.links-t td{padding:7px 4px;border-top:1px solid #F1ECF8;vertical-align:middle}
+.st{font-size:12px;font-weight:700;padding:2px 9px;border-radius:99px}
+.st.final{background:#E7F8EE;color:#127A3D}.st.shortlisted{background:#FFF6E3;color:#8A5A00}.st.rejected{background:#F1EEF6;color:var(--gy)}
+.media{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
+.mi{border:1px solid var(--li2);border-radius:12px;overflow:hidden;background:#fff;font-size:12px}
+.mi .ph{height:110px;background:var(--li3);display:grid;place-items:center;cursor:pointer;color:var(--gy)}
+.mi .ph img{width:100%;height:110px;object-fit:cover;display:block}
+.mi .tg{display:flex;flex-wrap:wrap;gap:4px;padding:6px}
+.mi .tg button{border:1px solid var(--li2);background:#fff;border-radius:99px;padding:2px 7px;font:inherit;font-size:11px;cursor:pointer;color:var(--gy)}
+.mi .tg button.on{background:#F3EDFD;border-color:var(--pu);color:var(--pu-d);font-weight:700}
+.mi .tg span{background:#F3EDFD;color:var(--pu-d);border-radius:99px;padding:2px 7px;font-size:11px}
+.mi .meta{padding:0 6px 6px;color:var(--gy)}
+.mi input{font-size:12px;padding:5px 8px;border-radius:8px;margin:0 6px 6px;width:calc(100% - 12px)}
+.mi .rm{background:none;border:0;color:#B4232C;font:inherit;font-size:12px;cursor:pointer;padding:0 6px 6px}
+.saved{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#2D2140;color:#fff;font-size:13px;padding:8px 14px;border-radius:99px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.saved.show{opacity:.92}
+#gate{max-width:380px;margin:80px auto;text-align:center}
+.mut{color:var(--gy);font-size:13px}
+</style>
+</head>
+<body>
+<div id="gate" hidden>
+  <h1 style="font-size:22px;margin-bottom:10px">Please log in</h1>
+  <p class="mut">Log in on the <a href="admin.html">Admin</a> or <a href="sales-leads.html">Sales Leads</a> page first, then come back here.</p>
+</div>
+<div id="app" hidden>
+  <div class="top">
+    <h1 id="hTitle">Venues</h1>
+    <div class="links"><a href="#" onclick="goList();return false">All venues</a><a href="sales-leads.html">Sales leads</a><a href="admin.html">Admin</a><a href="training-venue-recce.html" target="_blank">Recce guide</a></div>
+  </div>
+  <div class="wrap" id="main"></div>
+</div>
+<div class="saved" id="saved">Saved ✓</div>
+
+<script>
+const API = 'https://wondershop-website-production.up.railway.app';
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function pw(){ try{ return localStorage.getItem('ws_admin_pw')||''; }catch(e){ return ''; } }
+function who(){ try{ return localStorage.getItem('ws_admin_name')||''; }catch(e){ return ''; } }
+function toast(t){ const el=$('saved'); el.textContent=t||'Saved ✓'; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1500); }
+async function api(path, opts){
+  opts = opts || {};
+  opts.headers = Object.assign({'X-Admin-Password': pw()}, opts.body && !(opts.body instanceof FormData) ? {'Content-Type':'application/json'} : {}, opts.headers||{});
+  const r = await fetch(API + path, opts);
+  if(r.status === 401){ $('app').hidden = true; $('gate').hidden = false; throw new Error('unauthorized'); }
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.detail || ('Request failed (' + r.status + ')'));
+  return j;
+}
+const blobCache = {};
+async function blobUrl(path){
+  if(blobCache[path]) return blobCache[path];
+  const r = await fetch(API + path, {headers:{'X-Admin-Password': pw()}});
+  if(!r.ok) throw new Error('load failed');
+  return blobCache[path] = URL.createObjectURL(await r.blob());
+}
+
+let META = null, V = null, pending = {}, timer = null;
+async function meta(){ if(!META) META = await api('/api/admin/venues/meta'); return META; }
+
+/* ── list ── */
+let LIST_Q = '';
+function goList(){ history.replaceState(null, '', 'venues.html'); renderList(); }
+async function renderList(){
+  $('hTitle').textContent = 'Venues';
+  $('main').innerHTML = '<div class="bar"><input id="q" type="search" placeholder="Search by venue name or address…" value="'+esc(LIST_Q)+'"><button class="btn" onclick="newVenue()">＋ New venue</button></div><div id="list" class="mut">Loading…</div>';
+  let t = null;
+  $('q').oninput = e => { clearTimeout(t); t = setTimeout(()=>{ LIST_Q = e.target.value; loadList(); }, 300); };
+  loadList();
+}
+async function loadList(){
+  let d;
+  try{ d = await api('/api/admin/venues?q=' + encodeURIComponent(LIST_Q)); }
+  catch(e){ if(e.message!=='unauthorized') $('list').innerHTML = '<div class="empty">'+esc(e.message)+'</div>'; return; }
+  if(!d.venues.length){ $('list').innerHTML = '<div class="empty">'+(LIST_Q ? 'No venue matches “'+esc(LIST_Q)+'”.' : 'No venues yet. Tap “New venue” to add the first one.')+'</div>'; return; }
+  $('list').className = 'grid';
+  $('list').innerHTML = d.venues.map(v => {
+    const facts = [v.venue_type, v.floor ? 'Floor: '+v.floor : null, v.route, v.ceiling ? 'Ceiling '+v.ceiling : null, v.plug16 ? '16A: '+v.plug16 : null].filter(Boolean);
+    return '<div class="vc" onclick="openVenue('+v.id+')"><div class="th" data-thumb="'+esc(v.thumb_url||'')+'">'+(v.thumb_url?'':'No photo yet')+'</div>'
+      + '<div class="bd"><h3>'+esc(v.name)+'</h3>'+(v.address?'<div class="ad">'+esc(v.address)+'</div>':'')
+      + (facts.length?'<div class="facts">'+facts.map(f=>'<span>'+esc(f)+'</span>').join('')+'</div>':'')+'</div>'
+      + '<div class="ft">'+v.parties+' part'+(v.parties===1?'y':'ies')+' · '+v.media+' photo/video'+(v.recce_at?' · Recce '+esc(v.recce_at):'')+'</div></div>';
+  }).join('');
+  $('list').querySelectorAll('[data-thumb]').forEach(async el => {
+    const u = el.dataset.thumb; if(!u) return;
+    try{ el.style.backgroundImage = 'url("'+await blobUrl(u)+'")'; }catch(e){}
+  });
+}
+
+/* ── create ── */
+async function newVenue(leadId, status){
+  const name = (prompt('Venue name (e.g. Royal Orchid Banquet, Andheri)') || '').trim();
+  if(!name) return;
+  try{
+    const r = await api('/api/admin/venues', {method:'POST', body: JSON.stringify({name, lead_id: leadId || null, status: status || 'shortlisted', changed_by: who()})});
+    openVenue(r.id);
+  }catch(e){ if(e.message!=='unauthorized') alert(e.message); }
+}
+
+/* ── one venue ── */
+async function openVenue(id){
+  history.replaceState(null, '', 'venues.html#v=' + id);
+  $('main').innerHTML = '<div class="mut">Loading…</div>';
+  try{ await meta(); V = await api('/api/admin/venues/' + id); }
+  catch(e){ if(e.message!=='unauthorized') $('main').innerHTML = '<div class="empty">'+esc(e.message)+'</div>'; return; }
+  renderVenue();
+  window.scrollTo(0,0);
+}
+function renderVenue(){
+  $('hTitle').textContent = V.name;
+  const A = V.answers, s = V.summary;
+  let h = '<div class="card" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">'
+    + '<div style="flex:1;min-width:240px"><input id="vName" value="'+esc(V.name)+'" style="font-family:var(--fd);font-size:20px;font-weight:700;border-color:transparent;padding:4px 6px">'
+    + '<div class="mut" style="padding:0 6px">'+(s.address?esc(s.address)+' · ':'')+(s.maps_link?'<a href="'+esc(s.maps_link)+'" target="_blank" rel="noopener">Open in Maps ↗</a> · ':'')
+    + 'Updated '+esc(V.updated_at||V.created_at||'')+(V.updated_by?' by '+esc(V.updated_by):'')+(V.recce_at?' · Recce '+esc(V.recce_at)+(V.recce_by?' by '+esc(V.recce_by):''):'')+'</div></div>'
+    + '<button class="btn gh sm" onclick="goList()">← All venues</button>'
+    + '<button class="btn gh sm" style="color:#B4232C" onclick="delVenue()">Delete</button></div>';
+  h += '<div class="cols"><div>';
+  META.sections.forEach(sec => {
+    h += '<div class="card"><h2>'+esc(sec.title)+(sec.team_only?'<span class="team-badge">RECCE</span>':'')+'</h2>';
+    sec.questions.forEach(q => { h += qHtml(q, A); });
+    h += '</div>';
+  });
+  h += '</div><div>';
+  // parties
+  h += '<div class="card"><h2>Parties</h2>'
+    + (V.links.length ? '<table class="links-t">'+V.links.map(l=>'<tr><td><a href="'+(l.is_booking?'admin.html#booking-'+l.lead_id:'sales-leads.html?lead_id='+l.lead_id)+'" target="_blank">#'+l.lead_id+'</a> '
+        + esc(l.client||'')+(l.child?' · '+esc(l.child):'')+(l.event_date?'<div class="mut">'+esc(l.event_date)+(l.is_booking?' · Booking':' · Lead')+'</div>':'')+'</td>'
+        + '<td><select data-link="'+l.lead_id+'" style="width:auto;font-size:12.5px;padding:4px 6px">'+META.statuses.map(st=>'<option value="'+st.key+'"'+(st.key===l.status?' selected':'')+'>'+esc(st.label)+'</option>').join('')+'</select></td>'
+        + '<td><button class="btn gh sm" data-unlink="'+l.lead_id+'" title="Unlink">✕</button></td></tr>').join('')+'</table>'
+      : '<div class="mut">Not linked to any lead or booking yet.</div>')
+    + '<div style="display:flex;gap:6px;margin-top:10px"><input id="linkLead" type="number" placeholder="Lead / booking #" style="width:140px"><select id="linkSt" style="width:auto">'+META.statuses.map(st=>'<option value="'+st.key+'">'+esc(st.label)+'</option>').join('')+'</select><button class="btn sm" onclick="linkLead()">Link</button></div></div>';
+  // media
+  h += '<div class="card"><h2>Photos &amp; videos</h2><label class="btn gh sm" style="cursor:pointer"><input type="file" id="upIn" accept="image/*,video/*" multiple hidden>＋ Add photos or videos</label>'
+    + '<span class="mut" id="upl" style="margin-left:8px"></span><div class="media" id="media"></div></div>';
+  h += '</div></div>';
+  $('main').innerHTML = h;
+  wire(); drawMedia();
+}
+function qHtml(q, A){
+  const v = A[q.key] || '';
+  let h = '<div class="q"><div class="q-lbl">'+esc(q.label)+'</div>';
+  if(q.type === 'chips') h += '<div class="chips">'+q.options.map(o=>'<button type="button" class="chip'+(v===o.value?' on':'')+'" data-k="'+q.key+'" data-v="'+esc(o.value)+'">'+esc(o.label)+'</button>').join('')+'</div>';
+  else if(q.type === 'text') h += '<textarea data-k="'+q.key+'">'+esc(v)+'</textarea>';
+  else h += '<input type="'+(q.type==='url'?'url':q.type==='phone'?'tel':q.type==='time'?'time':'text')+'" data-k="'+q.key+'" value="'+esc(v)+'"'+(q.type==='url'?' placeholder="Paste the Google Maps share link"':'')+'>';
+  if(q.followup){
+    const show = q.followup.when.indexOf(v) >= 0;
+    h += '<div class="fu" data-fu="'+q.key+'" style="'+(show?'':'display:none')+'"><input type="text" data-k="'+q.followup.key+'" placeholder="'+esc(q.followup.label)+'" value="'+esc(A[q.followup.key]||'')+'"></div>';
+  }
+  return h + '</div>';
+}
+function findQ(k){ let f=null; META.sections.forEach(s=>s.questions.forEach(q=>{ if(q.key===k) f=q; })); return f; }
+function queue(k, v){ V.answers[k] = v; pending[k] = v; clearTimeout(timer); timer = setTimeout(flush, 700); }
+async function flush(extra){
+  const body = Object.assign({answers: pending, changed_by: who()}, extra||{}); pending = {};
+  try{ await api('/api/admin/venues/'+V.id, {method:'POST', body: JSON.stringify(body)}); toast(); }
+  catch(e){ if(e.message!=='unauthorized') toast('Couldn’t save — '+e.message); }
+}
+function wire(){
+  $('main').querySelectorAll('.chip').forEach(b => b.onclick = () => {
+    let k = b.dataset.k, v = b.dataset.v; if(V.answers[k] === v) v = '';
+    b.parentNode.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on', x.dataset.v === v));
+    const q = findQ(k); if(q && q.followup){ const fu = $('main').querySelector('[data-fu="'+k+'"]'); if(fu) fu.style.display = q.followup.when.indexOf(v) >= 0 ? '' : 'none'; }
+    queue(k, v);
+  });
+  $('main').querySelectorAll('input[data-k],textarea[data-k]').forEach(el => el.onchange = () => queue(el.dataset.k, el.value.trim()));
+  $('vName').onchange = e => { const n = e.target.value.trim(); if(!n) return; V.name = n; $('hTitle').textContent = n; flush({name: n}); };
+  $('main').querySelectorAll('[data-link]').forEach(sel => sel.onchange = async () => {
+    try{ await api('/api/admin/venues/'+V.id+'/link', {method:'POST', body: JSON.stringify({lead_id: +sel.dataset.link, status: sel.value, changed_by: who()})}); toast(); openVenue(V.id); }
+    catch(e){ alert(e.message); }
+  });
+  $('main').querySelectorAll('[data-unlink]').forEach(b => b.onclick = async () => {
+    if(!confirm('Unlink this venue from #'+b.dataset.unlink+'?')) return;
+    try{ await api('/api/admin/venues/'+V.id+'/link/'+b.dataset.unlink, {method:'DELETE'}); openVenue(V.id); }catch(e){ alert(e.message); }
+  });
+  $('upIn').onchange = e => { const f = Array.from(e.target.files||[]); e.target.value=''; upload(f); };
+}
+async function linkLead(){
+  const id = +$('linkLead').value; if(!id) return;
+  try{ await api('/api/admin/venues/'+V.id+'/link', {method:'POST', body: JSON.stringify({lead_id: id, status: $('linkSt').value, changed_by: who()})}); openVenue(V.id); }
+  catch(e){ alert(e.message); }
+}
+async function delVenue(){
+  if(!confirm('Delete “'+V.name+'” and its photos? Parties linked to it keep their own venue forms.')) return;
+  try{ await api('/api/admin/venues/'+V.id, {method:'DELETE'}); goList(); }catch(e){ alert(e.message); }
+}
+
+/* ── media ── */
+function drawMedia(){
+  const lbl = {}; V.tags.forEach(t=>lbl[t.key]=t.label);
+  $('media').innerHTML = V.media.length ? V.media.map(m => {
+    const own = !m.from_lead;
+    return '<div class="mi" data-m="'+m.id+'"><div class="ph" data-src="'+esc(m.url)+'" data-kind="'+m.kind+'">'+(m.kind==='video'?'▶ Video':'…')+'</div>'
+      + (own ? '<div class="tg">'+V.tags.map(t=>'<button type="button" data-t="'+t.key+'" class="'+(m.tags.indexOf(t.key)>=0?'on':'')+'">'+esc(t.label)+'</button>').join('')+'</div>'
+             + '<input type="text" placeholder="Note" value="'+esc(m.caption||'')+'"><button class="rm">Remove</button>'
+             : '<div class="tg">'+m.tags.map(t=>'<span>'+esc(lbl[t]||t)+'</span>').join('')+'</div><div class="meta">From party #'+m.from_lead+(m.caption?' · '+esc(m.caption):'')+'</div>')
+      + '</div>';
+  }).join('') : '<div class="mut">No photos yet.</div>';
+  $('media').querySelectorAll('.ph').forEach(async el => {
+    el.onclick = async () => { const w = window.open('', '_blank'); try{ w.location = await blobUrl(el.dataset.src); }catch(e){ w.close(); } };
+    if(el.dataset.kind === 'image'){ try{ el.innerHTML = '<img src="'+await blobUrl(el.dataset.src)+'" alt="">'; }catch(e){ el.textContent = 'Photo'; } }
+  });
+  $('media').querySelectorAll('.mi').forEach(row => {
+    const m = V.media.find(x => x.id === +row.dataset.m); if(m.from_lead) return;
+    row.querySelectorAll('.tg button').forEach(b => b.onclick = () => {
+      const i = m.tags.indexOf(b.dataset.t); if(i>=0) m.tags.splice(i,1); else m.tags.push(b.dataset.t);
+      b.classList.toggle('on', i<0); saveMedia(m);
+    });
+    const cap = row.querySelector('input'); cap.onchange = () => { m.caption = cap.value.trim(); saveMedia(m); };
+    row.querySelector('.rm').onclick = async () => {
+      if(!confirm('Remove this '+(m.kind==='video'?'video':'photo')+'?')) return;
+      try{ await api('/api/admin/venues/'+V.id+'/media/'+m.id, {method:'DELETE'}); V.media = V.media.filter(x=>x.id!==m.id); drawMedia(); }catch(e){ alert(e.message); }
+    };
+  });
+}
+async function saveMedia(m){
+  try{ await api('/api/admin/venues/'+V.id+'/media/'+m.id, {method:'POST', body: JSON.stringify({tags: m.tags, caption: m.caption||''})}); toast(); }catch(e){ toast(e.message); }
+}
+function shrink(file){
+  return new Promise(res => {
+    if(!/^image\/(jpeg|png|webp|heic|heif)/i.test(file.type) || !window.createImageBitmap){ res(file); return; }
+    createImageBitmap(file).then(bm => {
+      const s = Math.min(1, 1600 / Math.max(bm.width, bm.height)), c = document.createElement('canvas');
+      c.width = Math.round(bm.width*s); c.height = Math.round(bm.height*s); c.getContext('2d').drawImage(bm,0,0,c.width,c.height);
+      c.toBlob(b => res(b && b.size < file.size ? new File([b], (file.name||'photo').replace(/\.\w+$/,'')+'.jpg', {type:'image/jpeg'}) : file), 'image/jpeg', .82);
+    }).catch(()=>res(file));
+  });
+}
+async function upload(files){
+  for(let i=0;i<files.length;i++){
+    $('upl').textContent = 'Uploading '+(i+1)+' of '+files.length+'…';
+    const fd = new FormData(); fd.append('file', await shrink(files[i])); fd.append('tags','');
+    try{ const r = await api('/api/admin/venues/'+V.id+'/media', {method:'POST', body: fd}); V.media = r.media; }
+    catch(e){ if(e.message!=='unauthorized') alert((files[i].name||'File')+': '+e.message); }
+  }
+  $('upl').textContent = ''; drawMedia();
+}
+
+/* ── start ── */
+(function init(){
+  if(!pw()){ $('gate').hidden = false; return; }
+  $('app').hidden = false;
+  const p = new URLSearchParams(location.search), m = location.hash.match(/v=(\d+)/);
+  if(p.get('new')){ history.replaceState(null,'','venues.html'); renderList(); newVenue(+p.get('lead')||null, p.get('status')||'shortlisted'); }
+  else if(m) openVenue(+m[1]);
+  else renderList();
+})();
+</script>
+</body>
+</html>

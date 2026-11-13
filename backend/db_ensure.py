@@ -61,6 +61,7 @@ SAFE_MIGRATIONS = [
     "082_partner_categories.sql",
     "083_base_salary.sql",
     "084_vendor_items.sql",
+    "085_venues.sql",   # 2026-11-13 venue master + lead links
 ]
 
 

@@ -191,6 +191,60 @@ RECCE_TAGS = [("decor_front", "Decor – front"), ("decor_left", "Decor – left
               ("medical", "Medical kit"), ("walkthrough", "Walkthrough video")]
 TAG_KEYS = [k for k, _ in TAGS + RECCE_TAGS]
 
+# ── Venue master link (2026-11-13, per Shruti) ─────────────────────────
+# Party-only answers stay on this booking's form; everything else is about
+# the venue itself and is shared with the venue master (routers/venues.py)
+# once a venue is linked to the lead as Final (or is its only linked venue).
+PARTY_KEYS = {"event_start", "event_end", "setup_from", "clear_by", "other_event", "other_event_note",
+              "floor_map", "loc_notes", "recce_by", "recce_summary", "walkthrough"}
+
+
+def venue_level_sections() -> list:
+    out = []
+    for title, qs in SECTIONS + RECCE_SECTIONS:
+        keep = [q for q in qs if q[0] not in PARTY_KEYS]
+        if keep:
+            out.append((title, keep))
+    return out
+
+
+async def linked_venue(lead_id: int):
+    """The venue master row this lead's form shares answers with, or None."""
+    try:
+        rows = await database.fetch_all(
+            "SELECT v.id, v.name, v.answers, lv.status FROM lead_venues lv JOIN venues v ON v.id = lv.venue_id "
+            "WHERE lv.lead_id = :id AND lv.status <> 'rejected' ORDER BY (lv.status = 'final') DESC, lv.id", values={"id": lead_id})
+    except Exception:
+        return None
+    if not rows:
+        return None
+    if rows[0]["status"] == "final" or len(rows) == 1:
+        return dict(rows[0])
+    return None
+
+
+def _venue_fill(answers: dict, venue: Optional[dict]) -> dict:
+    """Lead's own answer wins; blanks come from the venue master."""
+    if not venue:
+        return answers
+    va = _j(venue["answers"]) or {}
+    a = dict(answers)
+    for k, v in va.items():
+        if k not in PARTY_KEYS and not k.startswith("_") and v and not a.get(k):
+            a[k] = v
+    return a
+
+
+async def push_to_venue(venue: Optional[dict], cleaned: dict, who: Optional[str]) -> None:
+    if not venue:
+        return
+    upd = {k: v for k, v in cleaned.items() if k not in PARTY_KEYS and not k.startswith("_")}
+    if not upd:
+        return
+    await database.execute(
+        "UPDATE venues SET answers = answers || CAST(:a AS JSONB), updated_at = NOW(), updated_by = :by WHERE id = :id",
+        values={"a": json.dumps(upd), "by": (who or "Venue form")[:80], "id": venue["id"]})
+
 
 def venue_url(token: str) -> str:
     return f"{SITE_BASE_URL}/venue.html?t={token}"
@@ -456,9 +510,11 @@ async def public_get(token: str, recce: bool = False):
     lead = await _lead(row["lead_id"])
     if not row["opened_at"]:
         await database.execute("UPDATE venue_info SET opened_at = NOW() WHERE id = :id", values={"id": row["id"]})
-    answers = await _with_booking_times(row["lead_id"], _j(row["answers"]) or {})
+    venue = await linked_venue(row["lead_id"])
+    answers = _venue_fill(await _with_booking_times(row["lead_id"], _j(row["answers"]) or {}), venue)
     return {
         "booking": _booking_header(lead),
+        "venue_master": {"id": venue["id"], "name": venue["name"]} if venue else None,
         "sections": _questions_out(recce),
         "answers": answers,
         "missing": _missing(answers),
@@ -531,6 +587,13 @@ async def public_save(token: str, body: VenueAnswers):
     answers = {k: v for k, v in answers.items() if v}
     who = f"{answers.get('recce_by') or 'Team'} (venue recce)" if body.recce else None
     await push_times_to_booking(row["lead_id"], answers, [k for k in SYNC_KEYS if cleaned.get(k)], who)
+    venue = await linked_venue(row["lead_id"])
+    await push_to_venue(venue, cleaned, who or "Customer (venue form)")
+    if body.recce_submit and venue:
+        await database.execute(
+            "UPDATE venues SET answers = answers || CAST(:a AS JSONB) WHERE id = :id",
+            values={"a": json.dumps({"_recce_at": answers.get("_recce_at"), "_recce_by": answers.get("_recce_by"),
+                                     "_recce_lead": row["lead_id"]}), "id": venue["id"]})
     answers = await _with_booking_times(row["lead_id"], answers)
     tnc = bool(row["tnc_accepted_at"]) if body.accept_tnc is None else bool(body.accept_tnc)
     if body.submit and not tnc and not body.recce:
@@ -630,7 +693,7 @@ async def admin_get(lead_id: int, x_admin_password: Optional[str] = Header(None)
         logger.exception("venue_info table missing (migration 080?)")
         raise HTTPException(status_code=500, detail="The venue form isn't set up yet — the server needs a restart to add its table.")
     row = dict(await database.fetch_one("SELECT * FROM venue_info WHERE lead_id = :id", values={"id": lead_id}))
-    answers = await _with_booking_times(lead_id, _j(row["answers"]) or {})
+    answers = _venue_fill(await _with_booking_times(lead_id, _j(row["answers"]) or {}), await linked_venue(lead_id))
     rows = []
     for title, qs in SECTIONS + RECCE_SECTIONS:
         for k, l, _t, _o, _req, fu in qs:
