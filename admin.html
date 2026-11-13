@@ -3429,7 +3429,7 @@ function updateBubble(id, count){
 // Clicking a new column defaults to ascending; clicking the active column
 // again flips asc/desc. Keys must match backend SORTABLE_COLUMNS in
 // routers/admin.py (status/created/event_date/modified).
-let SORT_STATE = { lead: {key:'created', dir:'desc'}, booking: {key:'created', dir:'desc'} };
+let SORT_STATE = { lead: {key:'created', dir:'desc'}, booking: {key:'modified', dir:'desc'} };   // bookings: Last Modified first (2026-11-13)
 function toggleSort(kind, key){
   const s = SORT_STATE[kind];
   if(s.key===key){ s.dir = s.dir==='asc' ? 'desc' : 'asc'; }

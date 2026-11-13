@@ -1101,6 +1101,9 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
     # flip them to the front instead.
     with_val = [r for r in enriched if _sort_val(r) is not None]
     without_val = [r for r in enriched if _sort_val(r) is None]
+    # Ties (e.g. same Last Modified timestamp) fall back to event date,
+    # soonest first (2026-11-13, per Shruti). Python's sort is stable.
+    with_val.sort(key=lambda r: (r.get("event_date") is None, str(r.get("event_date") or "")))
     with_val.sort(key=_sort_val, reverse=sort_desc)
     ordered = (with_val + without_val)[:limit]
 
