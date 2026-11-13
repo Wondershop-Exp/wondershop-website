@@ -120,6 +120,8 @@ SALES_ALLOWED = [(m, re.compile(p)) for m, p in [
     ("*",    rf"/api/admin/bookings/{_ID}/invite(/.*)?"),
     # Venue & society form on a booking (2026-10-31).
     ("*",    rf"/api/admin/bookings/{_ID}/venue-info(/.*)?"),
+    # Ops sheet of a booking (2026-11-13).
+    ("GET",  rf"/api/admin/bookings/{_ID}/ops-sheet"),
     # Venue master (2026-11-13) — delete is checked for admin inside routers/venues.py.
     ("*",    r"/api/admin/venues(/.*)?"),
     ("GET",  rf"/api/admin/lead-venues/{_ID}"),

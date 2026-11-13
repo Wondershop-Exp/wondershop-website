@@ -101,6 +101,8 @@ app.include_router(sorting_hat.router, prefix="/api", tags=["Sorting Hat"])  # 2
 import booking_quote
 app.include_router(booking_quote.router, prefix="/api", tags=["Booking Quotation"])
 from routers import venue_info
+import ops_sheet
+app.include_router(ops_sheet.router, prefix="/api", tags=["Ops Sheet"])   # 2026-11-13 booking ops sheet
 app.include_router(venue_info.router, prefix="/api", tags=["Venue Info"])   # 2026-10-31 venue & society form
 from routers import venues
 app.include_router(venues.router, prefix="/api/admin", tags=["Venues"])   # 2026-11-13 venue master

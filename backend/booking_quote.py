@@ -12,6 +12,7 @@ window); a not-yet-booked lead prints as a normal QUOTATION.
 Also home of apply_decor_ref(): puts the lead's uploaded decor reference
 image (routers/decor_refs.py) on the Decor line of either PDF.
 """
+import json
 import logging
 import re
 from datetime import date, datetime, timedelta
@@ -277,6 +278,27 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
                       "details": [inner.replace(" own gifts", " gifts")] if inner else [], "image": None, "price": amt})
         _strike(lines, label, amt)
     add("Return Gifts", lines, billed_separately=gifts_sep_on)
+
+    # Sales-panel notes per service (2026-11-13, per Shruti — booking #1267's
+    # decor note showed on the sales quote but not here). Read live from the
+    # sales sheet, so notes edited after conversion still show.
+    try:
+        from database import database as _db
+        _pb = await _db.fetch_one("SELECT requirements FROM lead_sales_playbook WHERE lead_id = :id", values={"id": lead_id})
+        _rq = (_pb and _pb["requirements"]) or {}
+        _rq = json.loads(_rq) if isinstance(_rq, str) else (_rq or {})
+    except Exception:
+        _rq = {}
+    _sec_req = {"Decor": "decor", "Host": "host", "Music": "music", "Pinata": "pinata_type", "Photographer": "photographer",
+                "Cake": "cake", "E-Invite": "einvite_type", "Return Gifts": "return_gifts", "Activities": "activity_notes"}
+    for _s in sections:
+        _k = _sec_req.get(_s["label"])
+        _c = ((_rq.get(_k) or {}).get("customization") or "").strip() if _k and isinstance(_rq.get(_k), dict) else ""
+        if not _c or not _s["lines"]:
+            continue
+        if _k == "activity_notes" and cust_val("activities_notes"):
+            continue   # already listed as "Activity notes"
+        _s["lines"][0].setdefault("details", []).append(f"Notes: {_c}")
 
     # Anything else on the bill (confirmed TBC items, packaging fees, …)
     others = [{"name": l, "details": [], "image": None, "price": a} for l, a in items + extras]

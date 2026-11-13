@@ -1646,7 +1646,8 @@ function renderBookingHead(d){
   if(typeof decorRefMount === 'function') decorRefMount(d.lead_id);   // decor reference picture (2026-10-06)
   // Quotation / party-plan PDF of this booking (2026-10-06, per Shruti).
   const quoteBtns = '<button type="button" class="mini-btn save" id="bdQuoteBtn" onclick="getBookingQuote(false)" title="Party plan PDF with pictures, prices and every detail — to send to the client">📄 '+(d.is_booking?'Party plan PDF':'Quotation PDF')+'</button>'
-    + (bookingCanShareFiles() ? ' <button type="button" class="mini-btn" id="bdQuoteShareBtn" onclick="getBookingQuote(true)" title="Share the PDF straight to WhatsApp">📤 Share</button>' : '');
+    + (bookingCanShareFiles() ? ' <button type="button" class="mini-btn" id="bdQuoteShareBtn" onclick="getBookingQuote(true)" title="Share the PDF straight to WhatsApp">📤 Share</button>' : '')
+    + (d.is_booking ? ' <button type="button" class="mini-btn" onclick="openOpsSheet('+d.lead_id+')" title="Everything ops needs on one printable page: services, partners, remarks, sales notes, venue details, requests and T&amp;C">📋 Ops sheet</button>' : '');
   document.getElementById('bdTopRight').innerHTML = quoteBtns + (CURRENT_ORIGIN === 'Sales'
     ? ' <a class="linkbtn" href="sales-leads.html?lead_id='+d.lead_id+'" target="_blank">Open sales playbook ↗</a>' : '');
 }
@@ -4354,7 +4355,7 @@ function updateBookingTotals(rows){
 }
 function bookingRowHtml(r){
   const pack = '<a class="mini-btn admin-only" href="packaging.html?lead_id='+r.lead_id+'&title='+encodeURIComponent((r.parent_name||('Booking #'+r.lead_id))+"'s Party")+'&event_lead=" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">📦 Pack list</a>';
-  const print = '<button class="mini-btn" onclick="event.stopPropagation();printBooking('+r.lead_id+')">🖨 Print</button>';
+  const print = '<button class="mini-btn" onclick="event.stopPropagation();openOpsSheet('+r.lead_id+')" title="Ops sheet — every option with remarks, sales notes, requests and T&amp;C">📋 Ops sheet</button>';
   const cancel = r.status==='Cancelled' ? '' : '<button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button>';
   return '<tr onclick="openBooking('+r.lead_id+')">'
     +'<td>#'+r.lead_id+'</td>'
@@ -4388,6 +4389,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const t = document.getElementById('bookingTable');
   if(t && window.ResizeObserver) new ResizeObserver(()=>freezeBookingCols()).observe(t);
 });
+// Ops sheet (2026-11-13, per Shruti — booking #1267's sales-panel decor note
+// never reached the old Print): one printable page, built live by the server.
+async function openOpsSheet(id){
+  const w = window.open('', '_blank');
+  try{
+    const res = await fetch(API+'/api/admin/bookings/'+id+'/ops-sheet', {headers:{'X-Admin-Password':getPw()}});
+    if(!res.ok){ const b = await res.json().catch(()=>({})); throw new Error(b.detail || ('HTTP '+res.status)); }
+    const url = URL.createObjectURL(new Blob([await res.text()], {type:'text/html'}));
+    if(w) w.location.href = url; else window.open(url, '_blank');
+    setTimeout(()=>URL.revokeObjectURL(url), 120000);
+  }catch(e){ if(w) w.close(); showToast('Could not open the ops sheet: '+e.message); }
+}
 async function printBooking(id){
   try{
     const res = await fetch(API+'/api/admin/bookings/'+id+'/quotation.pdf', {headers:{'X-Admin-Password':getPw()}});
