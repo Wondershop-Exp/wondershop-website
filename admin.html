@@ -4958,7 +4958,30 @@ function multiPickerHtml(rid, options, currentStr, withQty, lockedItems){
     +'<input type="hidden" id="'+rid+'_cc" value="'+esc(startStr)+'">'
     +'<div class="mp-rows" id="'+rid+'_mprows">'+mpRowsHtml(rid)+'</div>'
     +'<button type="button" class="mini-btn" onclick="mpAdd('+attrJson(rid)+')">'+addLabel+'</button>'
+    +(rid==='fld_svc_activities' ? customActsHtml() : '')
     +'</div>';
+}
+// Custom activities (typed on the sales panel, kept on the To be confirmed
+// list) shown under Activities with MRP + sales quote (2026-11-13, per
+// Shruti — booking #99 "cannot find it on the booking page").
+function customActsHtml(){
+  const P = (CURRENT_DETAIL && CURRENT_DETAIL.pricing) || {};
+  const cs = ((CURRENT_DETAIL && CURRENT_DETAIL.to_be_confirmed) || []).filter(t=>t.kind==='custom');
+  if(!cs.length) return '';
+  return '<div style="margin-top:10px">' + cs.map(t=>{
+    const it = (P.items||[]).find(i=>/\(custom\)/.test(i.label) && i.label.indexOf(t.name)>=0) || {};
+    const m = it.amount!=null ? Number(it.amount) : (t.price!=null ? Number(t.price) : null);
+    const q = it.quote!=null ? Number(it.quote) : (t.price!=null ? Number(t.price) : null);
+    const box = CURRENT_DETAIL.locked ? '<b>'+(q==null?'—':_inr(q))+'</b>'
+      : '<span class="lq-inp"><span>₹</span><input type="number" min="0" step="1" value="'+(q==null?'':q)+'" data-old="'+(q==null?'':q)+'" data-ck="'+esc(t.key)+'" onblur="saveOneQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()"></span>';
+    return '<div class="mp-row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0">'
+      + '<span><b>'+esc(t.name)+'</b> <span style="font-size:10.5px;font-weight:700;color:#7B5DAE;background:#F3EEFB;border-radius:6px;padding:1px 6px">CUSTOM</span>'
+      + ' <small style="color:var(--gy)">'+(t.status==='confirmed'?'confirmed':'to be confirmed')+'</small></span>'
+      + '<span style="font-size:12.5px;color:var(--gy)">MRP '+(m==null?'—':_inr(m))+'</span>'
+      + '<span style="font-size:12.5px">Sales quote '+box+'</span>'
+      + (m!=null && q!=null && q<m ? '<span class="lq-off">−'+_inr(m-q)+'</span>' : '')
+      + '</div>';
+  }).join('') + '</div>';
 }
 
 function mpRowsHtml(rid){
@@ -5968,10 +5991,11 @@ function actQuoteCardsHtml(locked){
     const m = Number(i.amount||0), q = Number(i.quote==null?m:i.quote); tot += q;
     const qu = _lqQtyUnit(i.label, m), perKid = qu.qty > 1;
     const name = String(i.label).replace(/^Activity:\s*/,'').replace(/\s*\(.*$/,'');
+    const cust = /\(custom\)/.test(i.label) ? (CURRENT_DETAIL.to_be_confirmed||[]).find(t=>t.kind==='custom' && t.name===name) : null;
     const qVal = perKid ? Math.round(q/qu.qty*100)/100 : q;
     const inp = locked ? '<span class="aq-ro">'+_inr(qVal)+'</span>'
-      : '<input type="number" min="0" step="1" value="'+qVal+'" data-k="'+esc(i.key)+'" data-q="'+qu.qty+'" data-pk="'+(perKid?1:0)+'" data-old="'+qVal+'" onblur="saveOneQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()">';
-    return '<div class="aq-card"><div class="aq-name"><div>'+esc(name)+'</div><small>'+(perKid?'Per child · list price '+_inr(qu.unit)+'/child':'Flat · list price '+_inr(m))+(q<m?' · <span class="neg">−'+_inr(m-q)+'</span>':'')+'</small></div>'
+      : '<input type="number" min="0" step="1" value="'+qVal+'" data-k="'+esc(i.key)+'" data-q="'+qu.qty+'" data-pk="'+(perKid?1:0)+'" data-old="'+qVal+'"'+(cust?' data-ck="'+esc(cust.key)+'"':'')+' onblur="saveOneQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()">';
+    return '<div class="aq-card"><div class="aq-name"><div>'+esc(name)+(cust?' <span style="font-size:10.5px;font-weight:700;color:#7B5DAE;background:#F3EEFB;border-radius:6px;padding:1px 6px">CUSTOM</span>':'')+'</div><small>'+(perKid?'Per child · list price '+_inr(qu.unit)+'/child':'Flat · list price '+_inr(m))+(q<m?' · <span class="neg">−'+_inr(m-q)+'</span>':'')+'</small></div>'
       + (perKid ? '<div class="aq-f"><label>Kids</label><span class="aq-ro">'+qu.qty+'</span></div><span class="aq-x">×</span>' : '')
       + '<div class="aq-f"><label>Sales quote ₹'+(perKid?'/child':'')+'</label>'+inp+'</div>'
       + '<div class="aq-tot">= '+_inr(q)+'</div></div>';
@@ -6210,6 +6234,17 @@ async function saveOneQuote(el){
   if(el.value === el.dataset.old) return;
   const who = getName();
   if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); el.value = el.dataset.old; return; }
+  // Custom activity (2026-11-13, per Shruti — booking #99): its sales quote
+  // is the price on its To be confirmed entry, so save it there.
+  const cust = el.dataset.ck ? (CURRENT_DETAIL.to_be_confirmed||[]).find(x=>x.key===el.dataset.ck) : null;
+  if(cust){
+    try{
+      await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/tbc', {method:'POST', body: JSON.stringify({changed_by: who, key: cust.key,
+        status: cust.status || 'pending', price: el.value.trim()==='' ? null : Number(el.value), note: cust.note || null})});
+      el.dataset.old = el.value; showToast('✓ '+cust.name+' sales quote saved'); await loadDetail();
+    }catch(e){ if(e.message!=='unauthorized') showToast('Save failed: '+e.message); el.value = el.dataset.old; }
+    return;
+  }
   const v = el.value.trim()==='' ? null : Number(el.value) * (el.dataset.pk==='1' ? Number(el.dataset.q) : 1);
   try{
     const r = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/line-quotes', {method:'POST', body: JSON.stringify({quotes:{[el.dataset.k]: v}, changed_by: who})});

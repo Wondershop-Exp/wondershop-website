@@ -694,6 +694,7 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
 
     # To-be-confirmed items with a price ops has confirmed (see
     # to_be_confirmed()) replace their unpriced / list-price line.
+    _custom_quotes: dict = {}
     for t in to_be_confirmed(cur, removed, snap, lead):
         if t.get("price") in (None, ""):
             if t["kind"] == "custom":
@@ -713,7 +714,19 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
             drop = (lambda l, n=t["name"]: l == f"E-Invite: {n}")
         unpriced[:] = [u for u in unpriced if not drop(u)]
         items[:] = [(l, a) for l, a in items if not drop(l)]
-        add(f"{t['label']} ({'confirmed' if t.get('status') == 'confirmed' else 'quoted, to be confirmed'})", price)
+        lbl = f"{t['label']} ({'confirmed' if t.get('status') == 'confirmed' else 'quoted, to be confirmed'})"
+        if t["kind"] == "custom":
+            # 2026-11-13, per Shruti (booking #99) — a custom activity's first
+            # quoted price (copied into bill_line_quotes at conversion) is its
+            # MRP; the price on the To be confirmed card is the negotiated
+            # sales quote.
+            _first = line_quotes(cur, removed).get(line_key(lbl))
+            if _first is not None and float(_first) > price:
+                _custom_quotes[line_key(lbl)] = price
+                price = float(_first)
+            else:
+                _custom_quotes[line_key(lbl)] = price
+        add(lbl, price)
 
     total_mrp = round(sum(a for _l, a in items), 2)
 
@@ -793,6 +806,7 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
     except ValueError:
         quote_adj = 0.0
     _lq = line_quotes(cur, removed)
+    _lq.update(_custom_quotes)   # custom activity: TBC card price = sales quote
     # 2026-11-04, per Shruti: Grand Total = sum of the sales quotes (minus any
     # special discount on top). The stored discount is "item gap + special";
     # if it's below the item gap (quotes saved without re-syncing it), the
