@@ -192,10 +192,10 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
         if k == "addon_custom":   # JSON [{"name","price"}]
             items = _j(v) or []
             v = ", ".join(f"{x.get('name')} (₹{x.get('price')})" for x in items if isinstance(x, dict) and x.get("name")) or None
-        if not (_has(v) or _has(partner) or _has(rm)):
+        if not (_has(v) or _has(partner) or _has(rm) or f.get("sales_remarks")):
             return None
         sel = (f"{_e(sub)}: " if sub else "") + (_nl(v) if _has(v) else "—")
-        return sel, (_e(partner) if _has(partner) else ""), (_nl(rm) if _has(rm) else "")
+        return sel, (_e(partner) if _has(partner) else ""), (_nl(rm) if _has(rm) else ""), (f.get("sales_remarks") or "")
 
     def sreq(k):
         r = reqs.get(k)
@@ -210,7 +210,11 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
 
     def row(label, parts, always=True, extra=None, pic="", notes=()):
         parts = [x for x in parts if x]
-        notes = [n for n in notes if n]
+        # the booking's Sales remarks (conversion note + live sales note) when
+        # it has them, else the sales panel's note for this section
+        srm = [x[3] for x in parts if x[3]]
+        notes = srm or [n for n in notes if n]
+        parts = [x for x in parts if not (x[0].endswith("—") and not x[1] and not x[2])] if srm else parts
         if not parts and not notes and not always:
             return
         if parts:
@@ -228,7 +232,7 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
 
     def sales_part(k, sub=None):
         x = sreq(k)
-        return ((f"{_e(sub)}: " if sub else "") + _e(x) + " <span class='hint'>(sales panel)</span>", "", "") if x else None
+        return ((f"{_e(sub)}: " if sub else "") + _e(x) + " <span class='hint'>(sales panel)</span>", "", "", "") if x else None
 
     pic = f"<div><img class='dimg' src='{_e(decor_img)}' alt='Decor'></div>" if decor_img else ""
     row("Decor", [part("svc_decor")] + [part(k, l) for k, l in (

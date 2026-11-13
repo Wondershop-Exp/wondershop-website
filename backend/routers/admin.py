@@ -1223,6 +1223,16 @@ async def _is_spy_booking(lead: dict, snap: dict, svc_activities_field: Optional
     return False
 
 
+# Booking field -> sales panel requirement whose note shows as its Sales remarks.
+SALES_REMARK_KEYS = {
+    "svc_decor": "decor", "svc_host": "host", "svc_dj": "music", "svc_photo": "photographer",
+    "svc_einvite": "einvite_type", "einvite_save_the_date": "save_the_date", "svc_pinata": "pinata_type",
+    "svc_cake": "cake", "svc_gifts": "return_gifts", "addon_gift_packaging": "packaging",
+    "addon_gift_note": "return_gift_tags", "addon_pinata_bags": "pinata_bags", "addon_pinata_fillings": "pinata_fillings",
+    "addon_rent_tables": "rentals", "addon_phys_inv_qty": "physical_invites",
+}
+
+
 @router.get("/bookings/{lead_id}")
 async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
@@ -1482,6 +1492,31 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
             "updated_by": ov["updated_by"],
             "updated_at_ist": _to_ist_str(ov["updated_at"]),
         })
+
+    # Sales remarks — read-only column next to Remarks (2026-11-13, per
+    # Shruti): what came over from the sales panel at conversion
+    # (booking_field_overrides.sales_remarks, migration 086) plus the sales
+    # panel's current note for that service, read live so later edits show.
+    # Remarks stays for what the team types on the booking page.
+    try:
+        _pbr = await database.fetch_one("SELECT requirements FROM lead_sales_playbook WHERE lead_id = :id",
+                                        values={"id": lead_id})
+        _reqs = (json.loads(_pbr["requirements"]) if isinstance(_pbr["requirements"], str) else _pbr["requirements"]) if _pbr else {}
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: couldn't read sales notes for Sales remarks")
+        _reqs = {}
+    for _fl in sections.values():
+        for _f in _fl:
+            _ov = overrides.get(_f["field_key"]) or {}
+            stored = (_ov.get("sales_remarks") or "").strip()
+            rk = SALES_REMARK_KEYS.get(_f["field_key"])
+            _r = (_reqs or {}).get(rk) if rk else None
+            live = (str(_r.get("customization") or "").strip() if isinstance(_r, dict) else "")
+            if live and stored and live not in stored:
+                txt = f"{stored}\nUpdated on the sales panel: {live}"
+            else:
+                txt = stored or live
+            _f["sales_remarks"] = txt or None
 
     log_rows = await database.fetch_all(
         "SELECT * FROM booking_change_log WHERE lead_id = :id ORDER BY changed_at ASC",
@@ -2382,20 +2417,32 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
 
     for key, cc, remark in to_write:
         cat_entry = CATALOG_BY_KEY.get(key, {})
-        await database.execute(
-            """
-            INSERT INTO booking_field_overrides
-                (lead_id, field_key, field_label, section, customer_choice_override,
-                 assigned_value, remarks, removed, is_custom, updated_by, updated_at)
-            VALUES
-                (:lead_id, :key, :label, :section, :cco, NULL, :rm, FALSE, FALSE, :by, :now)
-            """,
-            values={
-                "lead_id": lead_id, "key": key,
-                "label": cat_entry.get("label", key), "section": cat_entry.get("section", "Services"),
-                "cco": cc, "rm": remark, "by": who, "now": now,
-            },
-        )
+        _vals = {
+            "lead_id": lead_id, "key": key,
+            "label": cat_entry.get("label", key), "section": cat_entry.get("section", "Services"),
+            "cco": cc, "rm": remark, "by": who, "now": now,
+        }
+        # Sales notes go to Sales remarks (2026-11-13); before migration 086
+        # is run, fall back to Remarks so a conversion never fails.
+        try:
+            await database.execute(
+                """
+                INSERT INTO booking_field_overrides
+                    (lead_id, field_key, field_label, section, customer_choice_override,
+                     assigned_value, sales_remarks, removed, is_custom, updated_by, updated_at)
+                VALUES
+                    (:lead_id, :key, :label, :section, :cco, NULL, :rm, FALSE, FALSE, :by, :now)
+                """, values=_vals)
+        except Exception:
+            logger.exception(f"Lead #{lead_id}: sales_remarks column missing? (run migration 086) — using Remarks")
+            await database.execute(
+                """
+                INSERT INTO booking_field_overrides
+                    (lead_id, field_key, field_label, section, customer_choice_override,
+                     assigned_value, remarks, removed, is_custom, updated_by, updated_at)
+                VALUES
+                    (:lead_id, :key, :label, :section, :cco, NULL, :rm, FALSE, FALSE, :by, :now)
+                """, values=_vals)
         await database.execute(
             """
             INSERT INTO booking_change_log

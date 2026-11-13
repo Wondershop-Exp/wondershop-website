@@ -368,6 +368,9 @@ table.list.static tr:hover td{background:inherit}
 .status-card .btn.cancel{background:var(--pk);color:#fff}
 .section-block h3{font-size:12px;font-weight:700;color:#fff;background:var(--plum);text-transform:uppercase;letter-spacing:1.1px;margin:0;padding:13px 18px}
 .readonly-cell{color:var(--gy);font-size:13px;padding:6px 2px;display:block}
+.sales-rm{position:relative;background:#FFF8E6;border:1px solid #F3E2B8;border-radius:8px;padding:6px 26px 6px 8px;font-size:12.5px;color:#5B4B2A;white-space:pre-wrap;word-break:break-word;user-select:text;-webkit-user-select:text;cursor:text;max-height:140px;overflow:auto;min-width:140px}
+.sales-rm-copy{position:absolute;top:3px;right:3px;border:none;background:transparent;cursor:pointer;font-size:12px;padding:2px;opacity:.7}
+.sales-rm-copy:hover{opacity:1}
 /* 2026-09-23, per Shruti -- Event Schedule editor in admin should look
    like the Sales panel's Time/Item row editor (sales-leads.html
    .sched-row), not a single free-text textarea. */
@@ -630,13 +633,14 @@ table.list.static tr:hover td{background:inherit}
 
 table.fields,table.fields tbody{display:block;width:100%}
 table.fields thead{display:none}
-table.fields tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"label label act" "cc av rm";gap:12px 20px;align-items:start;padding:18px 24px;border-top:1px solid var(--li2);transition:background .15s}
+table.fields tr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-areas:"label label label act" "cc av srm rm";gap:12px 20px;align-items:start;padding:18px 24px;border-top:1px solid var(--li2);transition:background .15s}
 table.fields td{display:block;min-width:0;padding:0}
 table.fields td:nth-child(1){grid-area:label}
 table.fields td:nth-child(2){grid-area:cc}
 table.fields td:nth-child(3){grid-area:av}
-table.fields td:nth-child(4){grid-area:rm}
-table.fields td:nth-child(5){grid-area:act;justify-self:end}
+table.fields td:nth-child(4){grid-area:srm}
+table.fields td:nth-child(5){grid-area:rm}
+table.fields td:nth-child(6){grid-area:act;justify-self:end}
 table.fields td:empty{display:none}
 table.fields td[data-label]::before{content:attr(data-label);display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.35px;color:var(--gy);margin-bottom:6px}
 table.fields td.field-label{align-self:center;font-size:15px;font-weight:700}
@@ -646,7 +650,13 @@ table.fields tr.ro td:nth-child(2){grid-area:val}
 table.fields tr.ro .readonly-cell{font-style:normal;font-size:14px}
 table.fields tr.ro .computed-note{font-size:11.5px;margin-top:3px}
 table.fields tr.removed td{opacity:.45;text-decoration:line-through}
-table.fields tr.removed td:nth-child(5){opacity:1;text-decoration:none}
+table.fields tr.removed td:nth-child(6){opacity:1;text-decoration:none}
+/* grouped add-on rows (one wide cell for the inputs) */
+table.fields tr.ag-row td:nth-child(2){grid-area:auto;grid-row:2;grid-column:1 / span 2}
+table.fields tr.ag-row td:nth-child(3){grid-area:srm}
+table.fields tr.ag-row td:nth-child(4){grid-area:rm}
+table.fields tr.ag-row td:nth-child(5){grid-area:act;justify-self:end}
+table.fields tr.ag-row.removed td:nth-child(5){opacity:1;text-decoration:none}
 table.fields tr.dirty{background:#FFFAEB;box-shadow:inset 3px 0 0 var(--pk)}
 table.fields input,table.fields textarea,table.fields select{width:100%;border:1px solid var(--li2);border-radius:8px;padding:10px 12px;font-size:14px;background-color:#fff;color:var(--bk)}
 table.fields input:focus,table.fields textarea:focus,table.fields select:focus{outline:2px solid var(--li);outline-offset:0;border-color:var(--li)}
@@ -680,8 +690,10 @@ table.fields .mini-btn{padding:8px 16px;font-size:12.5px;border-radius:8px}
   .bd-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
   .section-block h3{padding:18px 16px 8px}
   .section-block .add-field-btn{margin:6px 16px 16px}
-  table.fields tr{grid-template-columns:minmax(0,1fr);grid-template-areas:"label" "cc" "av" "rm" "act";gap:12px;padding:16px}
-  table.fields td:nth-child(5){justify-self:stretch}
+  table.fields tr{grid-template-columns:minmax(0,1fr);grid-template-areas:"label" "cc" "av" "srm" "rm" "act";gap:12px;padding:16px}
+  table.fields td:nth-child(6){justify-self:stretch}
+  table.fields tr.ag-row td:nth-child(2){grid-area:cc;grid-row:auto;grid-column:auto}
+  table.fields tr.ag-row td:nth-child(5){justify-self:stretch}
   table.fields tr.ro{grid-template-columns:minmax(0,1fr);grid-template-areas:"label" "val"}
   .log-section{padding:18px 16px}
   .bd-bar{padding-left:14px;padding-right:14px}
@@ -4853,7 +4865,7 @@ function renderDetail(d){
     }
     return '<div class="section-block" id="sect-'+secId(sec.section)+'">'
       +'<h3>'+esc(sec.section)+'</h3>'
-      +'<table class="fields"><thead><tr><th>Field</th><th>Current Value</th><th>'+col3Label+'</th><th>Remarks</th><th></th></tr></thead>'
+      +'<table class="fields"><thead><tr><th>Field</th><th>Current Value</th><th>'+col3Label+'</th><th>Sales remarks</th><th>Remarks</th><th></th></tr></thead>'
       +'<tbody id="sec-'+secId(sec.section)+'">'+rowsHtml+'</tbody></table>'
       +(sec.section === 'Billing & Rewards' && giftOrderBox ? '<div class="go-in-sec">'+giftOrderBox+'</div>' : '')
       +(d.locked ? '' : '<button class="add-field-btn" onclick="addCustomField('+attrJson(sec.section)+')">+ Add field to '+esc(sec.section)+'</button>')
@@ -5413,7 +5425,7 @@ function advancePaymentRowHtml(f, methodField, locked){
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
       +'<td data-label="Amount Paid"><span class="readonly-cell">'+(f.customer_choice ? bdRupees(f.customer_choice) : '—')+'</span></td>'
       +'<td data-label="Payment Method"><span class="readonly-cell">'+esc(methodPicked||'—')+'</span></td>'
-      +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
+      +salesRmTd(f)+'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
       +'</tr>';
   }
@@ -5425,7 +5437,7 @@ function advancePaymentRowHtml(f, methodField, locked){
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
     +'<td data-label="Amount Paid">'+ccCell+'</td>'
     +'<td data-label="Payment Method">'+avCell+'</td>'
-    +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks..." style="height:64px;min-height:64px">'+esc(f.remarks||'')+'</textarea></td>'
+    +salesRmTd(f)+'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks..." style="height:64px;min-height:64px">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
       +'<button class="mini-btn save" onclick="saveAdvancePaymentRow()">Save</button>'
       +'<button class="mini-btn remove" onclick="removeAdvancePaid()">Remove</button>'
@@ -5504,7 +5516,7 @@ function eventPaymentRowHtml(f, modeField, locked){
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
       +'<td data-label="Amount Paid"><span class="readonly-cell">'+(f.customer_choice ? bdRupees(f.customer_choice) : '—')+'</span></td>'
       +'<td data-label="Payment Mode"><span class="readonly-cell">'+esc(modeField.customer_choice||'—')+'</span></td>'
-      +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
+      +salesRmTd(f)+'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
       +'</tr>';
   }
@@ -5516,7 +5528,7 @@ function eventPaymentRowHtml(f, modeField, locked){
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
     +'<td data-label="Amount Paid">'+ccCell+'</td>'
     +'<td data-label="Payment Mode">'+avCell+'</td>'
-    +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Required if amount is less than Balance Due..." style="height:64px;min-height:64px">'+esc(f.remarks||'')+'</textarea></td>'
+    +salesRmTd(f)+'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Required if amount is less than Balance Due..." style="height:64px;min-height:64px">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
       +'<button class="mini-btn save" onclick="saveEventPaymentRow()">Save</button>'
       +'<button class="mini-btn remove" onclick="removeEventPaymentConfirmed()">Remove</button>'
@@ -5707,7 +5719,7 @@ function discountRowHtml(f, locked){
   if(locked){
     return '<tr id="'+rid+'" data-key="bill_discount_type"><td class="field-label">Special Discount'+note+'</td>'
       +'<td data-label="Current value"><span class="readonly-cell">'+esc(shown)+'</span></td><td></td>'
-      +'<td data-label="Remarks"><span class="readonly-cell">'+esc(remarks||'—')+'</span></td><td></td></tr>';
+      +salesRmTd(f)+'<td data-label="Remarks"><span class="readonly-cell">'+esc(remarks||'—')+'</span></td><td></td></tr>';
   }
   window.__DISC_VALS = {value: special ? String(special) : '', '%': special ? String(spPct) : ''};
   return '<tr id="'+rid+'" data-key="bill_discount_type">'
@@ -5720,7 +5732,7 @@ function discountRowHtml(f, locked){
         + '<span class="pct-suffix" id="discSuf" style="'+(type==='value'?'display:none':'')+'">%</span>'
       + '</span></div></td>'
     +'<td><input type="hidden" id="'+rid+'_av" value=""></td>'
-    +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(remarks)+'</textarea></td>'
+    +salesRmTd(f)+'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(remarks)+'</textarea></td>'
     +'<td><div class="row-actions"><button class="mini-btn save" onclick="saveDiscountRow()">Save</button></div></td>'
     +'</tr>';
 }
@@ -5791,7 +5803,7 @@ function decorAddonChipsRow(locked){
   }).join('');
   const note = (tier==='Luxury'||tier==='Signature') && !chips ? 'Cake table, age light, cutouts, welcome board &amp; arch are included with '+tier+' decor.' : (locked ? '' : 'Decor add-ons · tap to add / remove');
   if(!chips && !note) return '';
-  return '<tr class="sugg-tr decor-addons-tr"><td colspan="5"><div class="sugg-box">'
+  return '<tr class="sugg-tr decor-addons-tr"><td colspan="6"><div class="sugg-box">'
     + (note ? '<div class="sugg-head" style="color:var(--gy);font-weight:600">'+note+'</div>' : '')
     + (chips ? '<div class="chips">'+chips+'</div>' : '')
     + '</div></td></tr>';
@@ -5818,7 +5830,7 @@ async function toggleDecorAddonField(key){
 function salesActivityRequestsRow(){
   const reqs = (CURRENT_DETAIL && CURRENT_DETAIL.sales_activity_requests) || [];
   if(!reqs.length) return '';
-  return '<tr class="sugg-tr"><td colspan="5"><div class="sugg-box">'
+  return '<tr class="sugg-tr"><td colspan="6"><div class="sugg-box">'
     + '<div class="sugg-head">⚠ Custom activities requested by sales — action needed: these aren\'t in the activity list, so they are not priced or included in the totals yet.</div>'
     + reqs.map(r=>'<div class="sugg-item"><b>'+esc(r.text)+'</b>'+(r.added_by?' — added by '+esc(r.added_by):'')+'</div>').join('')
     + '</div></td></tr>';
@@ -5845,7 +5857,7 @@ function einviteCardHtml(locked){
                 : '<input type="text" id="ei_'+x.key+'" value="'+esc(v)+'" placeholder="'+esc(x.ph)+'" data-orig="'+esc(v)+'">')
       + '</div>';
   }).join('');
-  return '<tr id="fld_einvite_card" data-key="einvite_card"><td colspan="5"><div class="ei-card">'
+  return '<tr id="fld_einvite_card" data-key="einvite_card"><td colspan="6"><div class="ei-card">'
     + '<div class="ei-head"><span>E-Invite Details</span>'
     + (locked ? '' : '<button class="mini-btn save" onclick="saveEinviteCard()">Save</button>')
     + '</div><div class="ei-grid">'+cells+'</div></div></td></tr>';
@@ -5935,7 +5947,7 @@ function lineQuotesRowHtml(locked){
   const extra = (Math.abs(other) >= 1 ? '<tr class="lq-other"><td>Other discount (not split by item)</td><td></td><td class="neg">−'+_inr(other)+'</td></tr>' : '')
     + (Math.abs(otherAdj) >= 1 ? '<tr class="lq-other"><td>Above list price (internal)</td><td></td><td>+'+_inr(otherAdj)+'</td></tr>' : '');
   const finalQt = qt - Math.max(0,other) + Math.max(0,otherAdj);
-  return '<tr data-key="bill_line_quotes"><td colspan="5" style="padding:8px 6px">'
+  return '<tr data-key="bill_line_quotes"><td colspan="6" style="padding:8px 6px">'
     + '<div class="gt-breakup"><div class="lq-top"><span class="gb-hd">Price by item (MRP and discounted price)</span>'
       + (locked ? '' : (edit
           ? '<span><button class="mini-btn" onclick="renderDetailAgain()">Reset</button> <button class="mini-btn save" onclick="saveLineQuotes(this)">Save prices</button></span>'
@@ -6336,7 +6348,7 @@ function addonGroupRowHtml(g, locked){
   return '<tr id="'+rid+'" class="ag-row'+(removed?' removed':'')+'" data-key="'+esc(G.head)+'">'
     + '<td class="field-label">'+esc(G.title)+'<small>Original: '+esc(orig||'None selected')+'</small></td>'
     + '<td colspan="2"><div class="ag-grid">'+fs.map(cell).join('')+'</div></td>'
-    + '<td data-label="Remarks">'+(locked?'<span class="readonly-cell">'+esc(head.remarks||'—')+'</span>':'<textarea id="'+rid+'_rm" placeholder="Remarks..." data-old="'+esc(head.remarks||'')+'">'+esc(head.remarks||'')+'</textarea>')+'</td>'
+    + salesRmTd(head) + '<td data-label="Remarks">'+(locked?'<span class="readonly-cell">'+esc(head.remarks||'—')+'</span>':'<textarea id="'+rid+'_rm" placeholder="Remarks..." data-old="'+esc(head.remarks||'')+'">'+esc(head.remarks||'')+'</textarea>')+'</td>'
     + '<td>'+actions+'</td></tr>';
 }
 function addonGroupChip(rid, key, o, btn){
@@ -6371,6 +6383,20 @@ async function saveAddonGroup(g, removeFlag){
     console.error('saveAddonGroup failed:', e);
     showToast(e.message==='unauthorized' ? 'Session expired — please log in again.' : ('Save failed: '+e.message));
   }
+}
+// Sales remarks (2026-11-13, per Shruti): read-only, what came from the sales
+// panel — selectable, with a copy button. Remarks next to it stays for the team.
+function salesRmTd(f){
+  const t = (f && f.sales_remarks) || '';
+  if(!t) return '<td data-label="Sales remarks"><span class="readonly-cell">—</span></td>';
+  return '<td data-label="Sales remarks"><div class="sales-rm">'+esc(t)
+    +'<button type="button" class="sales-rm-copy" title="Copy" onclick="copySalesRm(this)">📋</button></div></td>';
+}
+function copySalesRm(btn){
+  const box = btn.parentElement; const t = box.firstChild ? box.textContent.replace(/📋$/,'').trim() : '';
+  const done = ()=>{ btn.textContent='✓'; setTimeout(()=>btn.textContent='📋', 1200); };
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done, ()=>{}); }
+  else { const r=document.createRange(); r.selectNodeContents(box); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); try{document.execCommand('copy');done();}catch(e){} }
 }
 function fieldRowHtml(f, isCustEvent, locked){
   if(f.field_key==='einvite_save_the_date') return einviteCardHtml(locked);
@@ -6438,7 +6464,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     const valueDisplay = (isMoneyField && f.customer_choice) ? bdRupees(f.customer_choice) : esc(f.customer_choice||'—');
     return '<tr id="'+rid+'" class="ro" data-key="'+esc(f.field_key)+'">'
       +'<td class="field-label">'+esc(f.label)+'</td>'
-      +'<td colspan="3"><div class="readonly-cell computed">'+valueDisplay+'<div class="computed-note">'+note+'</div></div></td>'
+      +'<td colspan="4"><div class="readonly-cell computed">'+valueDisplay+'<div class="computed-note">'+note+'</div></div></td>'
       +'<td></td>'
       +'</tr>';
   }
@@ -6454,7 +6480,7 @@ function fieldRowHtml(f, isCustEvent, locked){
       +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
       +'<td data-label="Current value"><span class="readonly-cell" style="'+(['event_photos_link','terms_conditions'].includes(f.field_key)?'white-space:pre-line':'')+'">'+(f.field_key==='event_schedule_text'?scheduleReadOnlyHtml(f.customer_choice||''):esc(f.customer_choice||'—'))+'</span></td>'
       +((noPartner || ['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','bill_quote_adjustment'].includes(f.field_key)) ? '<td>'+quoteStripHtml(f, true)+'</td>' : '<td data-label="'+col3+'"><span class="readonly-cell">'+esc(f.assigned_value||'—')+'</span></td>')
-      +'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
+      +salesRmTd(f)+'<td data-label="Remarks"><span class="readonly-cell">'+esc(f.remarks||'—')+'</span></td>'
       +'<td></td>'
       +'</tr>';
   }
@@ -6607,7 +6633,7 @@ function fieldRowHtml(f, isCustEvent, locked){
     +'<td class="field-label">'+esc(f.label)+originalNote+'</td>'
     +'<td data-label="Current value">'+ccCell+(noPartner?'':quoteStripHtml(f, locked))+'</td>'
     +'<td'+((noPartner || ['bill_discount_type','bill_discount_pct','bill_discount_value','bill_advance','event_photos_link','terms_conditions','event_schedule_text','bill_quote_adjustment'].includes(f.field_key))?'':' data-label="'+col3+'"')+'>'+(noPartner?quoteStripHtml(f, locked):'')+avCell+'</td>'
-    +'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
+    +salesRmTd(f)+'<td data-label="Remarks"><textarea id="'+rid+'_rm" placeholder="Remarks...">'+esc(f.remarks||'')+'</textarea></td>'
     +'<td><div class="row-actions">'
       // 2026-09-24, per Shruti — "i clicked on remove - then it was striked
       // out. I then clicked on save. it didn't save and reflect on the
