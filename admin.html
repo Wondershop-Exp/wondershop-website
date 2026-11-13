@@ -5802,11 +5802,35 @@ function decorAddonChipsRow(locked){
     return '<button type="button" class="'+(on?'sel':'')+'" onclick="toggleDecorAddonField(\''+a.key+'\')">'+esc(label)+'</button>';
   }).join('');
   const note = (tier==='Luxury'||tier==='Signature') && !chips ? 'Cake table, age light, cutouts, welcome board &amp; arch are included with '+tier+' decor.' : (locked ? '' : 'Decor add-ons · tap to add / remove');
-  if(!chips && !note) return '';
+  // Custom decor items (2026-11-13, per Shruti — e.g. an extra sunboard or
+  // buntings): name + price, like custom activities. JSON in addon_decor_custom.
+  const cf = _decorAddonField('addon_decor_custom');
+  const cval = (cf && !cf.removed && cf.customer_choice) || '';
+  const custom = cf ? '<div class="sugg-head" style="color:var(--gy);font-weight:600;margin-top:10px">Custom decor items · name &amp; price (counted in the total)</div>'
+    + customAddonRowsHtml('fld_decor_custom', cval, locked, '+ Add custom decor item')
+    + (locked ? '' : ' <button type="button" class="mini-btn" style="background:var(--pk);color:#fff;border-color:var(--pk)" onclick="saveDecorCustom()">Save custom items</button>')
+    : '';
+  if(!chips && !note && !custom) return '';
   return '<tr class="sugg-tr decor-addons-tr"><td colspan="6"><div class="sugg-box">'
     + (note ? '<div class="sugg-head" style="color:var(--gy);font-weight:600">'+note+'</div>' : '')
     + (chips ? '<div class="chips">'+chips+'</div>' : '')
+    + custom
     + '</div></td></tr>';
+}
+async function saveDecorCustom(){
+  const f = _decorAddonField('addon_decor_custom'); if(!f) return;
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
+  caSync('fld_decor_custom');
+  const bad = [...document.querySelectorAll('#fld_decor_custom_carows .ca-row')].some(r=>r.querySelector('.ca-n').value.trim() && r.querySelector('.ca-p').value==='');
+  if(bad){ showToast('Add a price for each custom decor item (0 if free).'); return; }
+  const val = document.getElementById('fld_decor_custom_cc').value;
+  try{
+    const res = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {method:'POST', body: JSON.stringify({
+      field_key:'addon_decor_custom', customer_choice_override: val, assigned_value: f.assigned_value || '', remarks: f.remarks || '', removed:false, changed_by: who})});
+    showToast(saveResultMessage(res));
+    await loadDetail();
+  }catch(e){ showToast('Could not save: '+e.message); }
 }
 async function toggleDecorAddonField(key){
   const f = _decorAddonField(key); if(!f) return;
@@ -6172,13 +6196,13 @@ async function saveGiftQuote(el){
   }catch(e){ if(e.message!=='unauthorized') showToast('Save failed: '+e.message); el.value = el.dataset.old; }
 }
 // Custom add-ons (2026-10-25, per Shruti): name + price rows, added to Total MRP.
-function customAddonRowsHtml(rid, val, locked){
+function customAddonRowsHtml(rid, val, locked, btnLabel){
   let list = []; try{ list = JSON.parse(val||'[]'); }catch(e){}
   if(!Array.isArray(list)) list = [];
   if(locked) return list.length ? list.map(c=>esc(c.name)+' — '+_inr(Number(c.price)||0)).join('<br>') : '—';
   const row = c => '<div class="ca-row" style="display:flex;gap:6px;margin-bottom:6px"><input type="text" class="ca-n" placeholder="Add-on name" value="'+esc(c.name||'')+'" style="flex:1" oninput="caSync(\''+rid+'\')"><input type="number" class="ca-p" min="0" step="1" placeholder="₹ Price" value="'+(c.price==null?'':c.price)+'" style="width:110px" oninput="caSync(\''+rid+'\')"><button type="button" class="mini-btn remove" onclick="this.parentNode.remove();caSync(\''+rid+'\')">✕</button></div>';
   return '<div id="'+rid+'_carows">'+list.map(row).join('')+'</div>'
-    + '<button type="button" class="mini-btn" onclick="caAdd(\''+rid+'\')">+ Add custom add-on</button>'
+    + '<button type="button" class="mini-btn" onclick="caAdd(\''+rid+'\')">'+(btnLabel||'+ Add custom add-on')+'</button>'
     + '<input type="hidden" id="'+rid+'_cc" value="'+esc(val||'')+'">';
 }
 function caAdd(rid){

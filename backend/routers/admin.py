@@ -239,6 +239,7 @@ FIELD_CATALOG = [
     {"key": "addon_decor_welcome",    "label": "Decor: Welcome Arch + Welcome Board", "section": "Add-ons"},   # 2026-11-01, Rs 3,000
     {"key": "addon_decor_welcome_board", "label": "Decor: Welcome Board", "section": "Add-ons"},   # 2026-11-13, Rs 1,000
     {"key": "addon_decor_welcome_arch",  "label": "Decor: Welcome Arch",  "section": "Add-ons"},   # 2026-11-13, Rs 1,750
+    {"key": "addon_decor_custom",        "label": "Decor: Custom items",  "section": "Add-ons", "admin_only": True},   # 2026-11-13, JSON [{"name","price"}]
     # Tables & chairs on rent (2026-10-25, per Shruti) — quantities + cover from
     # the website / sales panel; Quote (₹) is what goes into Total MRP.
     {"key": "addon_rent_tables",      "label": "Tables & Chairs: Tables (2×4 ft)", "section": "Add-ons"},
@@ -2157,6 +2158,11 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
     for _key, _name, _p in DECOR_ADDONS:
         if _key not in already and _name in picked_da:
             to_write.append((_key, "Yes", None))
+    # Custom decor items (2026-11-13) — name + price typed on the sales panel.
+    _cust_da = [{"name": str(a["name"]).strip(), "price": a.get("price")} for a in (d.get("addons") or [])
+                if isinstance(a, dict) and a.get("custom") and str(a.get("name") or "").strip()]
+    if "addon_decor_custom" not in already and _cust_da:
+        to_write.append(("addon_decor_custom", json.dumps(_cust_da), None))
 
     # ── Activities (multi-select — comma-joined names, same as this page's
     # own multi-select Save). 2026-09-25, per Shruti — no more generic

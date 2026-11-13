@@ -86,6 +86,21 @@ DECOR_ADDONS = [
     ("addon_decor_welcome_arch", "Welcome Arch", 1750),     # 2026-11-13 — Classic / Premium / Luxury
 ]
 DECOR_ADDON_LABEL = "{} (decor add-on)"
+
+
+def custom_decor_items(cur: dict, removed: set) -> list:
+    """Custom decor items typed on the sales panel / booking (2026-11-13, per
+    Shruti — e.g. an extra sunboard or buntings): JSON [{"name","price"}] in
+    addon_decor_custom. Returns [(name, price)]."""
+    try:
+        lst = json.loads(_resolved(cur, "addon_decor_custom", removed) or "[]")
+    except (TypeError, ValueError):
+        lst = []
+    out = []
+    for c in lst if isinstance(lst, list) else []:
+        if isinstance(c, dict) and str(c.get("name") or "").strip():
+            out.append((str(c["name"]).strip(), money(c.get("price")) or 0.0))
+    return out
 # 2026-09-22, per Shruti — Piñata Bags admin dropdown (Add-ons section):
 # flat per-bag rate, deliberately no MOQ/tiering ("don't add an MOQ, just
 # give per bag pricing"). Not yet priced into Total MRP below — the admin
@@ -276,6 +291,8 @@ def compute_adjustments(lead: dict, snap: dict, cur: dict, removed: set) -> dict
             add(sub, f"{DECOR_ADDON_LABEL.format(name)} added", price)
         elif was_on and not now_on:
             add(sub, f"{DECOR_ADDON_LABEL.format(name)} removed", -price)
+    for name, price in custom_decor_items(cur, removed):
+        add(sub, f"{DECOR_ADDON_LABEL.format(name)} added", price)
 
     # ── activities ────────────────────────────────────────────────────────
     orig_acts = {a["n"]: (money(a.get("p")) or 0.0) for a in (snap.get("activities") or []) if a.get("n")}
@@ -633,6 +650,8 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
     for key, name, price in DECOR_ADDONS:
         if _resolved(cur, key, removed) == "Yes":
             add(DECOR_ADDON_LABEL.format(name), price)
+    for name, price in custom_decor_items(cur, removed):   # custom decor items (2026-11-13)
+        add(DECOR_ADDON_LABEL.format(name), price)
     # Tables & chairs on rent (2026-10-25) — billed at the quote the team enters.
     rent_price = money(_resolved(cur, "addon_rent_price", removed))
     if rent_price:

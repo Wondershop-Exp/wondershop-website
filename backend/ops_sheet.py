@@ -189,7 +189,7 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
         if not f or f.get("removed"):
             return None
         v, partner, rm = f.get("customer_choice"), f.get("assigned_value"), f.get("remarks")
-        if k == "addon_custom":   # JSON [{"name","price"}]
+        if k in ("addon_custom", "addon_decor_custom"):   # JSON [{"name","price"}]
             items = _j(v) or []
             v = ", ".join(f"{x.get('name')} (₹{x.get('price')})" for x in items if isinstance(x, dict) and x.get("name")) or None
         if not (_has(v) or _has(partner) or _has(rm) or f.get("sales_remarks")):
@@ -238,7 +238,7 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
     row("Decor", [part("svc_decor")] + [part(k, l) for k, l in (
         ("addon_decor_cake_table", "Cake table"), ("addon_decor_age_light", "Age light"), ("addon_decor_cutouts", "Cutouts"),
         ("addon_decor_welcome", "Welcome arch + board"), ("addon_decor_welcome_board", "Welcome board"),
-        ("addon_decor_welcome_arch", "Welcome arch"))], pic=pic, notes=notes_for("decor"))
+        ("addon_decor_welcome_arch", "Welcome arch"), ("addon_decor_custom", "Custom items"))], pic=pic, notes=notes_for("decor"))
     row("Host", [part("svc_host")], notes=notes_for("host"))
     sugg = [str(x.get("text")).strip() for x in (_j((pb or {}).get("new_activity_suggestions")) or [])
             if isinstance(x, dict) and str(x.get("text") or "").strip()]
