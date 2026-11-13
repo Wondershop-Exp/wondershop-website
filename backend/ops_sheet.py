@@ -178,27 +178,84 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
         if c and str(c).strip():
             req_note[k] = str(c).strip()
     decor_img = await _decor_photo(lead_id, val("svc_decor"), reqs.get("decor") if isinstance(reqs.get("decor"), dict) else None)
+    # Every service / add-on is listed, selected or not (2026-11-13, per
+    # Shruti: "so that our team knows that they have not selected").
+    F = {f["field_key"]: f for sec in ("Services", "Add-ons") for f in (secs.get(sec) or [])}
+
+    def part(k, sub=None):
+        """(selection, partner, remark) for one booking field, or None when empty."""
+        f = F.get(k)
+        if not f or f.get("removed"):
+            return None
+        v, partner, rm = f.get("customer_choice"), f.get("assigned_value"), f.get("remarks")
+        if k == "addon_custom":   # JSON [{"name","price"}]
+            items = _j(v) or []
+            v = ", ".join(f"{x.get('name')} (₹{x.get('price')})" for x in items if isinstance(x, dict) and x.get("name")) or None
+        if not (_has(v) or _has(partner) or _has(rm)):
+            return None
+        sel = (f"{_e(sub)}: " if sub else "") + (_nl(v) if _has(v) else "—")
+        return sel, (_e(partner) if _has(partner) else ""), (_nl(rm) if _has(rm) else "")
+
+    def sreq(k):
+        r = reqs.get(k)
+        x = (r.get("selected") if isinstance(r, dict) else None)
+        return str(x).strip() if _has(x) else None
+
+    NS = "<span class='ns'>Not selected</span>"
     rows = []
-    for sec in ("Services", "Add-ons"):
-        for f in secs.get(sec) or []:
-            k = f["field_key"]
-            if k in ("bill_line_quotes", "activities_notes") or f.get("removed"):
-                continue
-            v, partner, rm = f.get("customer_choice"), f.get("assigned_value"), f.get("remarks")
-            if k == "addon_custom":   # JSON [{"name","price"}]
-                items = _j(v) or []
-                v = ", ".join(f"{x.get('name')} (₹{x.get('price')})" for x in items if isinstance(x, dict) and x.get("name")) or None
-            if not (_has(v) or _has(partner) or _has(rm)):
-                continue
-            pic = (f"<div><img class='dimg' src='{_e(decor_img)}' alt='Decor'></div>" if k == "svc_decor" and decor_img else "")
-            rows.append(f"<tr><td class='lbl'>{_e(f.get('label'))}</td><td>{_nl(v) if _has(v) else '—'}{pic}</td>"
-                        f"<td>{_e(partner) if _has(partner) else ''}</td>"
-                        f"<td>{_nl(rm) if _has(rm) else ''}</td></tr>")
+
+    def row(label, parts, always=True, extra=None, pic=""):
+        parts = [x for x in parts if x]
+        if not parts and not always:
+            return
+        if parts:
+            sel = "<br>".join(x[0] for x in parts)
+            partner = "<br>".join(x[1] for x in parts if x[1])
+            rm = "<br>".join(x[2] for x in parts if x[2])
+        else:
+            sel, partner, rm = NS, "", ""
+        if extra:
+            sel += "".join(f"<div class='xsub'>{x}</div>" for x in extra)
+        rows.append(f"<tr{'' if parts else ' class=nsr'}><td class='lbl'>{_e(label)}</td><td>{sel}{pic if parts else ''}</td>"
+                    f"<td>{partner}</td><td>{rm}</td></tr>")
+
+    def sales_part(k, sub=None):
+        x = sreq(k)
+        return ((f"{_e(sub)}: " if sub else "") + _e(x) + " <span class='hint'>(sales panel)</span>", "", "") if x else None
+
+    pic = f"<div><img class='dimg' src='{_e(decor_img)}' alt='Decor'></div>" if decor_img else ""
+    row("Decor", [part("svc_decor")] + [part(k, l) for k, l in (
+        ("addon_decor_cake_table", "Cake table"), ("addon_decor_age_light", "Age light"), ("addon_decor_cutouts", "Cutouts"),
+        ("addon_decor_welcome", "Welcome arch + board"), ("addon_decor_welcome_board", "Welcome board"),
+        ("addon_decor_welcome_arch", "Welcome arch"))], pic=pic)
+    row("Host", [part("svc_host")])
+    row("Activities", [part("svc_activities")])
+    row("Music", [part("svc_dj"), part("addon_dj_lights", "Lights"), part("addon_dj_smoke", "Smoke machine")])
+    row("Piñata", [part("svc_pinata")])
+    row("Photographer", [part("svc_photo")])
+    pk, nt, own = part("addon_gift_packaging"), part("addon_gift_note"), part("addon_gift_pack_qty", "Customer's own gifts to pack")
+    row("Return gifts", [part("svc_gifts"), own], extra=[
+        "Packaging: " + (pk[0] if pk else "No packaging"),
+        "Personalised thank-you notes: " + (nt[0] if nt else "No"),
+    ] + [x for x in ((pk[2] if pk else ""), (nt[2] if nt else "")) if x])
+    row("E-Invite", [part("svc_einvite")], always=False)
+    row("Cake", [part("svc_cake"), part("svc_cake_price", "Price")], always=False)
+    rows.append("<tr class='grp'><td colspan='4'>Add-ons</td></tr>")
+    row("Tables", [part("addon_rent_tables"), part("addon_rent_table_cover", "Table cover")])
+    row("Chairs", [part("addon_rent_chairs", "Chiavari chairs"), part("addon_rent_kids_chairs", "Kids' crossback chairs")])
+    row("Tables & chairs setup notes", [part("addon_rent_notes")], always=False)
+    row("Host gifts", [sales_part("host_gifts")])
+    row("Piñata bags", [part("addon_pinata_bags") or sales_part("pinata_bags")])
+    row("Piñata fillings", [part("addon_pinata_fillings") or sales_part("pinata_fillings")])
+    row("Physical invites", [part("addon_phys_inv_qty", "Quantity"), part("addon_phys_inv_notes", "Notes")], always=False)
+    row("Custom add-ons", [part("addon_custom")], always=False)
+    rows.append("<tr class='grp'><td colspan='4'>Requests</td></tr>")
+    for k, lbl in (("notes_special_instructions", "Special requests"), ("notes_changes_updates", "Last-minute changes")):
+        x = val(k)
+        rows.append(f"<tr{'' if x else ' class=nsr'}><td class='lbl'>{lbl}</td><td colspan='3'>"
+                    f"{_nl(x) if x else '<span class=ns>None</span>'}</td></tr>")
     out.append("<h2>Services &amp; add-ons</h2><table class='grid'><tr><th>Item</th><th>Selection</th><th>Partner</th>"
-               "<th>Booking remarks</th></tr>" + "".join(rows) + "</table>"
-               if rows else "<h2>Services &amp; add-ons</h2><p class='muted'>Nothing selected.</p>")
-    if decor_img and not any("class='dimg'" in r for r in rows):
-        out.append(f"<h3>Decor</h3><img class='dimg' src='{_e(decor_img)}' alt='Decor'>")
+               "<th>Booking remarks</th></tr>" + "".join(rows) + "</table>")
 
     # ── sales notes (2026-11-13: their own section, apart from booking remarks) ──
     # Read live from the sales sheet, so edits made after conversion show.
@@ -266,9 +323,7 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
         logger.exception(f"Lead #{lead_id}: ops sheet couldn't read the venue form")
 
     # ── customer requests, notes, T&C ──
-    notes = [("Customer's remarks (website)", lead.get("remarks")),
-             ("Notes / special instructions", val("notes_special_instructions")),
-             ("Changes / last-minute updates", val("notes_changes_updates"))]
+    notes = [("Customer's remarks (website)", lead.get("remarks"))]   # special requests / changes are in the table above
     notes = [(k, x) for k, x in notes if x and str(x).strip()]
     if notes:
         out.append("<h2>Requests &amp; notes</h2>" + "".join(f"<h3>{_e(k)}</h3><div class='box'>{_nl(x)}</div>" for k, x in notes))
@@ -306,6 +361,9 @@ table{border-collapse:collapse;width:100%}
 .kvi span{color:#6B6280;font-weight:600;min-width:110px;flex:none}.kvi b{font-weight:500}
 .dimg{max-width:240px;max-height:170px;border-radius:8px;margin-top:6px;border:1px solid #EDE6FA;display:block}
 .sn td{background:#FFFBF0}
+.ns{color:#B0A6C2;font-style:italic}.nsr td.lbl{color:#9A90AD}
+.grp td{background:#F7F3FF;font-weight:700;color:#6C4AB6;font-size:12px;padding:5px 8px}
+.xsub{font-size:12px;color:#5B4F70;margin-top:3px}
 .note{background:#FFF6E3;border-radius:6px;padding:4px 7px;margin-top:4px;color:#5B4B2A}
 .hint{font-weight:400;color:#8B7FA0}
 .box{background:#FBF9FF;border:1px solid #EDE6FA;border-radius:8px;padding:8px 10px;white-space:normal}
