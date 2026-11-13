@@ -66,6 +66,37 @@ def _nl(v) -> str:
     return _e(v).replace("\n", "<br>")
 
 
+SITE = "https://www.wondershopexperiences.com/"
+
+
+async def _decor_photo(lead_id: int, decor_val, sales_decor) -> Optional[str]:
+    """Decor photo for the sheet: the customer's uploaded reference picture
+    first, then the booked decor's catalogue photo, then the sales panel's
+    tier/theme photo. None when nothing fits; never raises."""
+    try:
+        from routers.decor_refs import current_for_lead
+        ref = await current_for_lead(lead_id)
+        if ref and ref.get("image_url"):
+            return ref["image_url"]
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: ops sheet couldn't read the decor reference")
+    try:
+        import catalogue_data as cat
+        from urllib.parse import quote
+        path = None
+        if decor_val:
+            from routers.admin import _resolve_decor_override
+            o = _resolve_decor_override(decor_val) or {}
+            r = cat.resolve_decor(o.get("id"), o.get("p")) if o.get("id") else None
+            path = r and r.get("image_path")
+        if not path and sales_decor:
+            path = cat.resolve_decor_image_by_name((sales_decor.get("theme_name") or "").strip() or None, sales_decor.get("selected"))
+        return (SITE + quote(path)) if path else None
+    except Exception:
+        logger.exception(f"Lead #{lead_id}: ops sheet couldn't resolve the decor photo")
+        return None
+
+
 def _has(v) -> bool:
     return str(v or "").strip().lower() not in SKIP_VALUES
 
@@ -114,13 +145,20 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
             return ""
         return "<table class='kv'>" + "".join(f"<tr><th>{_e(k)}</th><td>{v}</td></tr>" for k, v in rows) + "</table>"
 
+    def kv_grid(rows):
+        """Two columns of label/value pairs (2026-11-13: saves space at the top)."""
+        rows = [(k, v) for k, v in rows if v not in (None, "")]
+        if not rows:
+            return ""
+        return "<div class='kv2'>" + "".join(f"<div class='kvi'><span>{_e(k)}</span><b>{v}</b></div>" for k, v in rows) + "</div>"
+
     maps = val("venue_maps_link")
     _ed = val("event_date")
     try:
         _ed = datetime.strptime(_ed[:10], "%Y-%m-%d").strftime("%a, %d %b %Y") if _ed else _ed
     except ValueError:
         pass
-    out.append("<h2>Event &amp; customer</h2>" + kv_table([
+    out.append("<h2>Event &amp; customer</h2>" + kv_grid([
         ("Event date", _e(_ed)), ("Event time", _e(t12("event_time"))),
         ("Venue handover", _e(t12("venue_handover_time") or "To be confirmed")),
         ("Packup", _e(t12("packup_time") or "To be confirmed")),
@@ -139,12 +177,7 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
         c = (reqs.get(k) or {}).get("customization") if isinstance(reqs.get(k), dict) else None
         if c and str(c).strip():
             req_note[k] = str(c).strip()
-    svc_req = {"svc_decor": "decor", "svc_host": "host", "svc_dj": "music", "svc_photo": "photographer",
-               "svc_einvite": "einvite_type", "svc_pinata": "pinata_type", "svc_cake": "cake",
-               "svc_activities": "activity_notes", "svc_gifts": "return_gifts", "addon_gift_packaging": "packaging",
-               "addon_gift_note": "return_gift_tags", "addon_rent_tables": "rentals", "addon_phys_inv_qty": "physical_invites",
-               "addon_pinata_bags": "pinata_bags"}
-    used_notes = set()
+    decor_img = await _decor_photo(lead_id, val("svc_decor"), reqs.get("decor") if isinstance(reqs.get("decor"), dict) else None)
     rows = []
     for sec in ("Services", "Add-ons"):
         for f in secs.get(sec) or []:
@@ -155,22 +188,32 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
             if k == "addon_custom":   # JSON [{"name","price"}]
                 items = _j(v) or []
                 v = ", ".join(f"{x.get('name')} (₹{x.get('price')})" for x in items if isinstance(x, dict) and x.get("name")) or None
-            rk = svc_req.get(k)
-            note = req_note.get(rk) if rk else None
-            if not (_has(v) or _has(partner) or _has(rm) or note):
+            if not (_has(v) or _has(partner) or _has(rm)):
                 continue
-            if rk:
-                used_notes.add(rk)
-            rows.append(f"<tr><td class='lbl'>{_e(f.get('label'))}</td><td>{_nl(v) if _has(v) else '—'}</td>"
+            pic = (f"<div><img class='dimg' src='{_e(decor_img)}' alt='Decor'></div>" if k == "svc_decor" and decor_img else "")
+            rows.append(f"<tr><td class='lbl'>{_e(f.get('label'))}</td><td>{_nl(v) if _has(v) else '—'}{pic}</td>"
                         f"<td>{_e(partner) if _has(partner) else ''}</td>"
-                        f"<td>{_nl(rm) if _has(rm) else ''}{('<div class=note>📝 ' + _nl(note) + '</div>') if note else ''}</td></tr>")
-    # sales notes for services not on the booking yet
-    for k, lbl in REQ_LABELS:
-        if k in req_note and k not in used_notes:
-            rows.append(f"<tr><td class='lbl'>{_e(lbl)}</td><td>—</td><td></td><td><div class=note>📝 {_nl(req_note[k])}</div></td></tr>")
+                        f"<td>{_nl(rm) if _has(rm) else ''}</td></tr>")
     out.append("<h2>Services &amp; add-ons</h2><table class='grid'><tr><th>Item</th><th>Selection</th><th>Partner</th>"
-               "<th>Remarks &amp; notes <span class='hint'>(📝 = sales panel note)</span></th></tr>" + "".join(rows) + "</table>"
+               "<th>Booking remarks</th></tr>" + "".join(rows) + "</table>"
                if rows else "<h2>Services &amp; add-ons</h2><p class='muted'>Nothing selected.</p>")
+    if decor_img and not any("class='dimg'" in r for r in rows):
+        out.append(f"<h3>Decor</h3><img class='dimg' src='{_e(decor_img)}' alt='Decor'>")
+
+    # ── sales notes (2026-11-13: their own section, apart from booking remarks) ──
+    # Read live from the sales sheet, so edits made after conversion show.
+    sn = [(lbl, req_note[k]) for k, lbl in REQ_LABELS if k in req_note]
+    sugg = [str(x.get("text")).strip() for x in (_j((pb or {}).get("new_activity_suggestions")) or [])
+            if isinstance(x, dict) and str(x.get("text") or "").strip()]
+    if sugg:
+        sn.append(("Activities not in the list (to evaluate)", "\n".join(sugg)))
+    for k, lbl in (("notes_special_instructions", "Special instructions"), ("notes_changes_updates", "Changes / updates")):
+        x = (pb or {}).get(k)
+        if x and str(x).strip() and str(x).strip() != (val(k) or "").strip():
+            sn.append((lbl + " (sales sheet)", str(x).strip()))
+    if sn:
+        out.append("<h2>Sales notes <span class='hint'>— from the sales panel</span></h2><table class='grid sn'>"
+                   + "".join(f"<tr><td class='lbl'>{_e(l)}</td><td>{_nl(x)}</td></tr>" for l, x in sn) + "</table>")
 
     if val("activities_notes"):
         out.append("<h2>Activity notes</h2><div class='box'>" + _nl(val("activities_notes")) + "</div>")
@@ -235,10 +278,12 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
                + "<p class='muted'>Standard T&amp;C: wondershopexperiences.com/terms.html</p>")
 
     # ── money ──
-    out.append("<h2>Billing</h2>" + kv_table([
+    bill = kv_table([
         ("Grand total", _e(val("bill_grand_total"))), ("Advance", _e(val("bill_advance"))),
         ("Balance due", _e(val("bill_balance"))), ("Payment status", _e(val("bill_payment_status"))),
-    ]))
+    ])
+    if bill:
+        out.append("<h2>Billing</h2>" + bill)
     pe = [(k, val(k)) for k in ("post_event_missing_items", "post_event_client_feedback", "post_event_internal_notes")]
     if any(x for _k, x in pe):
         out.append("<h2>Post-event notes</h2>" + kv_table([(fields[k]["label"] if k in fields else k, _nl(x)) for k, x in pe]))
@@ -256,6 +301,11 @@ table{border-collapse:collapse;width:100%}
 .grid th{background:#F7F3FF;text-align:left;padding:6px 8px;font-size:12px}
 .grid td{border-top:1px solid #F0E9FA;padding:6px 8px;vertical-align:top}
 .grid td.lbl{font-weight:700;white-space:nowrap}
+.kv2{display:grid;grid-template-columns:1fr 1fr;gap:2px 22px}
+.kvi{display:flex;gap:8px;padding:3px 0;border-bottom:1px dashed #F0E9FA;break-inside:avoid}
+.kvi span{color:#6B6280;font-weight:600;min-width:110px;flex:none}.kvi b{font-weight:500}
+.dimg{max-width:240px;max-height:170px;border-radius:8px;margin-top:6px;border:1px solid #EDE6FA;display:block}
+.sn td{background:#FFFBF0}
 .note{background:#FFF6E3;border-radius:6px;padding:4px 7px;margin-top:4px;color:#5B4B2A}
 .hint{font-weight:400;color:#8B7FA0}
 .box{background:#FBF9FF;border:1px solid #EDE6FA;border-radius:8px;padding:8px 10px;white-space:normal}

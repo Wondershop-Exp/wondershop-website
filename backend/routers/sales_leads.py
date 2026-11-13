@@ -592,7 +592,7 @@ def _list_breakdown(requirements: dict, activities: list, kids_count: Optional[i
             mrp = 0.0
             for g in gifts:
                 p = cat_price(C["return_gifts_catalogue"], "name", g.get("name"))
-                mrp += (p if p is not None else (num(g.get("price")) or 0)) * (num(g.get("quantity")) or 0)
+                mrp += (p if p else (num(g.get("price")) or 0)) * (num(g.get("quantity")) or 0)   # MRP 0 = price on request -> sales price
         line("return_gifts", f"Return gifts ({gift_qty})" if gift_qty else "Return gifts", rg.get("cost"), mrp)
     pk = sel("packaging")
     if pk.get("selected") and pk.get("selected") != "None":
@@ -2103,6 +2103,11 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
                 d_unit = float(g.get("price")) if g.get("price") not in (None, "") else unit
             except (TypeError, ValueError):
                 d_unit = unit
+            if not unit:   # price on request (e.g. Live T-shirt Printing, 2026-11-13): the sales price, if any
+                lines.append({"name": g["name"], "details": [f"{qty} × {inr(d_unit)}"] if (qty and d_unit) else ([f"{qty} pieces"] if qty else []),
+                              "image": resolve_gift_image_by_name(g["name"]), "price": (d_unit * qty) if d_unit else None,
+                              **({} if d_unit else {"price_text": "Price on request"})})
+                continue
             if qty and d_unit < unit - 0.005:
                 lines.append({"name": g["name"], "details": [f"{qty} × ~~{inr(unit)}~~ {inr(d_unit)}"],
                               "image": resolve_gift_image_by_name(g["name"]), "price": d_unit * qty, "strike": unit * qty})
@@ -2113,7 +2118,7 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
         # per-gift rate struck out like activities; several -> the list
         # prices stay struck and one "special price" line gives the total.
         it = first("return_gifts")
-        g_mrp = sum(l["price"] for l in lines)   # already at the per-gift discounted prices
+        g_mrp = sum(l["price"] or 0 for l in lines)   # already at the per-gift discounted prices
         if it and it.get("quote") is not None and it["quote"] < g_mrp - 0.5:
             for l in lines:
                 l["strike"] = l["price"]

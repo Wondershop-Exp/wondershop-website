@@ -476,7 +476,7 @@ function chips(id,key,opts,countFn){
 }
 function setF(k,v){F[k]=v;apply();}
 function clearFilters(){F.theme=F.type=F.budget='all';apply();}
-function waLink(g){return 'https://wa.me/'+WA+'?text='+encodeURIComponent('Hi Wondershop! I\'m interested in this return gift: '+g.n+' ('+inr(g.unit)+' per child).');}
+function waLink(g){return 'https://wa.me/'+WA+'?text='+encodeURIComponent('Hi Wondershop! I\'m interested in this return gift: '+g.n+(g.por?' (price on request).':' ('+inr(g.unit)+' per child).'));}
 function apply(){
   chips('fTheme','theme',THEMES,v=>live.filter(g=>matches(g,'theme')&&(v==='all'||themesOf(g).includes(v))).length);
   chips('fType','type',TYPES,v=>live.filter(g=>matches(g,'type')&&(v==='all'||g.type===v)).length);
@@ -497,7 +497,7 @@ function apply(){
       +'</button>'
       +'<div class="rg-b"><div class="rg-n">'+esc(g.n)+'</div>'
       +'<div class="rg-m">'+esc(TYPE_LBL[g.type]||'')+' · Ages '+esc(g.age)+'</div>'
-      +'<div class="rg-f"><div class="rg-p">'+inr(g.unit)+' <small>/ child</small></div>'
+      +'<div class="rg-f"><div class="rg-p">'+(g.por?'Price on request':inr(g.unit)+' <small>/ child</small>')+'</div>'
       +'<a class="rg-ask" href="'+waLink(g)+'" target="_blank" rel="noopener">Ask on WhatsApp</a></div></div>'
       +'</article>';
   }).join('');
@@ -530,7 +530,7 @@ function openGift(id){
   document.getElementById('rgLbName').textContent=LB.n;
   const th=themesOf(LB).map(t=>THEME_LBL[t]).filter(Boolean).join(' · ');
   document.getElementById('rgLbMeta').textContent=[TYPE_LBL[LB.type],'Ages '+LB.age,th].filter(Boolean).join(' · ');
-  document.getElementById('rgLbPrice').innerHTML=inr(LB.unit)+' <small>/ child</small>';
+  document.getElementById('rgLbPrice').innerHTML=LB.por?'Price on request':inr(LB.unit)+' <small>/ child</small>';
   document.getElementById('rgLbExtra').innerHTML=(LB.info||'')+'<p style="margin-top:12px;font-size:12.5px;color:var(--gy)">'+esc(window.WS_GIFT_STOCK_NOTE||'')+'</p>';
   document.getElementById('rgLbAsk').href=waLink(LB);
   showMedia();

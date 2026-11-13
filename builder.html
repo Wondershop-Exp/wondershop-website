@@ -3847,7 +3847,7 @@ function cItems(){
   // design name and never wraps mid-badge on a narrow phone.
   if(S.einvite){const gt=rawNoInv();const isFree=!S._pkgOrigin&&gt>=S.FIT;const ep=isFree?0:S.einvite.p;const eItem={cat:'E-Invite',n:S.einvite.n,p:ep,id:S.einvite.id};if(isFree&&S.einvite.p>0)eItem.wasP=S.einvite.p;items.push(eItem);}
   if(S.photo){items.push({cat:'Photographer',n:S.photo.tier+' Package',p:S.photo.p,id:S.photo.tier});}
-  S.gifts.forEach(g=>items.push({cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty,id:g.id}));
+  S.gifts.forEach(g=>{const it={cat:'Return Gifts',n:g.n+' ×'+g.qty,p:g.unit*g.qty,id:g.id};if(window.wsGiftById&&(wsGiftById(g.id)||{}).por)it.por=true;items.push(it);});
   S.spyExtras.forEach(x=>items.push({cat:'Addons',n:x.n,p:x.p,id:x.id}));
   return items;
 }
@@ -5276,7 +5276,7 @@ function openGallery(kind,id){
     : kind==='pinata'
     ? ('₹'+obj.p.toLocaleString('en-IN')+'  ·  '+obj.d)
     : kind==='gift'
-    ? ('₹'+obj.unit.toLocaleString('en-IN')+'/child  ·  Ages '+obj.age)
+    ? ((obj.por?'Price on request':'₹'+obj.unit.toLocaleString('en-IN')+'/child')+'  ·  Ages '+obj.age)
     : kind==='invite'
     ? ((rawNoInv()>=S.FIT?'<img src="img/icons/icon-free-gift.png" alt="" style="height:1em;vertical-align:-0.15em"> Unlocked!':'₹'+obj.p.toLocaleString('en-IN'))+'  ·  E-Invite design')
     : ('📍 '+obj.req+'  ·  ⏱ '+obj.dur+'  ·  Ages '+obj.age);
@@ -5667,7 +5667,7 @@ function renderGifts(){
     const actionsHtml=added
       ? '<div class="qty-ctrl"><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',-1)">−</button><span class="qty-val" id="qv-'+g.id+'">'+qty+'</span><button class="qty-btn" onclick="chgQty(\''+g.id+'\','+g.unit+',1)">+</button></div><button class="gc-remove" onclick="rmGift(\''+g.id+'\')">Remove</button>'
       : '<button class="card-btn gc-add-btn" onclick="addGift(\''+g.id+'\',\''+g.n+'\','+g.unit+')">Add</button>';
-    w.innerHTML+='<div class="gift-card'+(added?' added':'')+'" id="gc-'+g.id+'">'+imgHtml+'<div class="gc-body"><div class="g-name">'+g.n+'</div><div class="g-meta">Ages '+g.age+' · ₹'+g.unit+'/child</div>'+tagHtml+'<div class="gc-price-row"><span class="gc-unit-txt">₹'+g.unit+' × <span id="qty-'+g.id+'">'+qty+'</span> kids</span><span class="gift-total">₹<span id="qtot-'+g.id+'">'+(qty*g.unit).toLocaleString('en-IN')+'</span></span></div><div class="gift-actions">'+actionsHtml+'</div></div></div>';
+    w.innerHTML+='<div class="gift-card'+(added?' added':'')+'" id="gc-'+g.id+'">'+imgHtml+'<div class="gc-body"><div class="g-name">'+g.n+'</div><div class="g-meta">Ages '+g.age+' · '+(g.por?'Price on request':'₹'+g.unit+'/child')+'</div>'+tagHtml+'<div class="gc-price-row"><span class="gc-unit-txt">'+(g.por?'':'₹'+g.unit+' × ')+'<span id="qty-'+g.id+'">'+qty+'</span> kids</span><span class="gift-total">'+(g.por?'Price on request<span id="qtot-'+g.id+'" hidden></span>':'₹<span id="qtot-'+g.id+'">'+(qty*g.unit).toLocaleString('en-IN')+'</span>')+'</span></div><div class="gift-actions">'+actionsHtml+'</div></div></div>';
   });
   if(!list.length)w.innerHTML='<div style="text-align:center;padding:24px;color:var(--gy);font-size:13px">No gifts match. Try clearing a filter.</div>';
 }
@@ -6029,7 +6029,7 @@ function updGiftBill(boxId,rowsId,totalId){
   if(!show)return;
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
   const row=(l,v)=>'<div class="amt-row"><span>'+l+'</span><span>₹'+v.toLocaleString('en-IN')+'</span></div>';
-  let h=S.gifts.map(g=>row(esc(g.n)+' × '+g.qty,g.unit*g.qty)).join('');
+  let h=S.gifts.map(g=>(window.wsGiftById&&(wsGiftById(g.id)||{}).por)?'<div class="amt-row"><span>'+esc(g.n)+' × '+g.qty+'</span><span>Price on request</span></div>':row(esc(g.n)+' × '+g.qty,g.unit*g.qty)).join('');
   if(packagingCost()>0)h+=row('Packaging ('+(PACKAGING_LABELS[S.packaging]||'')+')',packagingCost());
   if(tagFee()>0)h+=row('Thank You Note',tagFee());
   document.getElementById(rowsId).innerHTML=h;

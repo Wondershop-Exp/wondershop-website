@@ -1820,7 +1820,7 @@ function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
         '</div>' +
       '</div>' +
       '<div class="addon-act-foot">' +
-        '<div class="addon-act-price">' + fmtINR(price) + priceNote + '</div>' +
+        '<div class="addon-act-price">' + (item.por ? 'Price on request' : fmtINR(price) + priceNote) + '</div>' +
         '<button class="btn-addon-add' + (added ? ' added' : '') + '" onclick="' + toggleFnName + '(\'' + item.id + '\')">' + (added ? '✓ Added' : '+ Add') + '</button>' +
       '</div>' +
     '</div>';

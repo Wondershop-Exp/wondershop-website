@@ -589,7 +589,7 @@ ACTIVITY_OPTIONS = [
     {**_opt(n, (f'{n} - price on request' if not p else f'{n} - Rs. {p}' + ('' if flat else '/child'))), "price": p, "flat": flat}
     for _id, n, p, flat in cat.ACTIVITIES
 ]
-GIFT_OPTIONS = [_opt(n, f'{n} - Rs. {p}') for _id, n, _img, p in cat.ACTIVE_GIFTS]
+GIFT_OPTIONS = [_opt(n, f'{n} - price on request' if not p else f'{n} - Rs. {p}') for _id, n, _img, p in cat.ACTIVE_GIFTS]
 MULTI_OPTIONS = {
     "svc_activities": ACTIVITY_OPTIONS,
     "svc_gifts": GIFT_OPTIONS,
@@ -2706,7 +2706,8 @@ async def _copy_sales_line_quotes(lead_id: int, who: str) -> None:
         except (KeyError, TypeError, ValueError):
             continue
         mrp = cat_gift_price(name)
-        if mrp is not None and price < mrp - 0.005:
+        # price-on-request gifts (MRP 0, e.g. Live T-shirt Printing): the sales price is the price
+        if mrp is not None and (price < mrp - 0.005 or (not mrp and price > 0)):
             out["giftunit:" + name.lower()] = round(price, 2)
     await update_booking_field(lead_id, FieldUpdateRequest(
         field_key="bill_line_quotes", customer_choice_override=json.dumps(out) if out else "",

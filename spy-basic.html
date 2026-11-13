@@ -972,6 +972,7 @@ function renderToggleGrid(gridId, items, selectedArr, priceFn, toggleFnName) {
     else if (item.r1 != null) priceNote = ' <span style="font-size:11px;color:var(--gy);font-weight:500">(per child)</span>';
     else if (item.flat == null && item.base != null) priceNote = ' <span style="font-size:11px;color:var(--gy);font-weight:500">(upto ' + item.cap + ' kids)</span>';
     let priceHtml = fmtINR(price) + priceNote;
+    if (item.por) priceHtml = 'Price on request';
     if (item.discountFromGeneric) {
       const g = item.discountFromGeneric;
       const wasR = kidsCount <= 12 ? g.r1 : kidsCount <= 25 ? g.r2 : g.r3;

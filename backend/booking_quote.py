@@ -259,6 +259,11 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         m = re.match(r"^(.*?) × (\d+)$", name)
         gname, qty = (m.group(1), int(m.group(2))) if m else (name, 0)
         q = gift_quote.get(label, amt)
+        if not amt:   # price on request (e.g. Live T-shirt Printing, 2026-11-13)
+            lines.append({"name": gname, "details": [f"{qty} × {inr(q / qty)}"] if (qty and q) else ([f"{qty} pieces"] if qty else []),
+                          "image": cat.resolve_gift_image_by_name(gname), "price": q or None,
+                          **({} if q else {"price_text": "Price on request"})})
+            continue
         if qty and q < amt - 0.005:
             lines.append({"name": gname, "details": [f"{qty} × ~~{inr(amt / qty)}~~ {inr(q / qty)}"],
                           "image": cat.resolve_gift_image_by_name(gname), "price": q, "strike": amt})

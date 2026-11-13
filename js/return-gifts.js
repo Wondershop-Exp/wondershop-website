@@ -49,7 +49,7 @@ window.WS_GIFTS=[
   {id:'g23',hidden:true,n:'Train Night Lamp',img:'return-gifts/train-night-lamp.jpg',e:'🚂',type:'home',gtheme:'generic',age:'3-8',unit:300,bg:'#F0FDF4',tag:''},
   {id:'g24',n:'5 Pcs Steel Straw Set',img:'return-gifts/steel-straw-set.jpg',e:'🥤',type:'home',gtheme:'generic',age:'3-12',unit:190,bg:'#F0FDF4',tag:''},
   {id:'g25',pkgs:['spy-basic', 'turf-basic'],n:'Personalized Cap',img:'return-gifts/personalized-cap.png',e:'🧢',type:'personalized',gtheme:'generic',age:'3-12',unit:500,bg:'#F0F7FF',tag:''},
-  {id:'g26',pkgs:['unicorn-basic', 'spy-basic', 'turf-basic'],n:'Live T-shirt Printing',img:'return-gifts/live-tshirt-printing.png',info:TSHIRT_INFO,gallery:[{type:'img',src:'img/return-gifts/live-tshirt-printing.png'},{type:'video',src:'img/return-gifts/live-tshirt-video.mp4'}],e:'👕',type:'personalized',gtheme:'generic',age:'5-14',unit:550,bg:'#F0F7FF',tag:''},
+  {id:'g26',pkgs:['unicorn-basic', 'spy-basic', 'turf-basic'],n:'Live T-shirt Printing',img:'return-gifts/live-tshirt-printing.png',info:TSHIRT_INFO,gallery:[{type:'img',src:'img/return-gifts/live-tshirt-printing.png'},{type:'video',src:'img/return-gifts/live-tshirt-video.mp4'}],e:'👕',type:'personalized',gtheme:'generic',age:'5-14',unit:0,por:true,bg:'#F0F7FF',tag:''},   // price on request (2026-11-13, per Shruti — setup cost + varies by size; was ₹550)
   // Added 2026-10-02, per Shruti. Priced per piece.
   {id:'g27',n:'Squishy Dumpling',img:'return-gifts/squishy-dumpling-plain-1.jpg',gallery:[{type:'img',src:'img/return-gifts/squishy-dumpling-plain-1.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-2.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-3.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-4.jpg'},{type:'img',src:'img/return-gifts/squishy-dumpling-plain-5.jpg'}],e:'🥟',type:'games',gtheme:'generic',age:'3-12',unit:199,bg:'#FFF0F7',tag:''},
   {id:'g28',n:'Bath Bomb',img:'return-gifts/bath-bombs-small.jpg',gallery:[{type:'img',src:'img/return-gifts/bath-bombs-small.jpg'},{type:'img',src:'img/return-gifts/bath-bombs-small-1.jpg'},{type:'img',src:'img/return-gifts/bath-bombs-small-2.jpg'}],e:'🛁',type:'home',gtheme:'generic',age:'3-12',unit:85,bg:'#F0FDF4',tag:''},
@@ -181,7 +181,7 @@ window.wsGiftsFor=function(pkg,limit){
 };
 // Card shape the package pages' renderToggleGrid() expects.
 window.wsPkgGiftItem=function(g){
-  return {id:g.id, ic:g.e, img:'img/'+g.img, name:g.n, d:'Ages '+g.age+' · vendor item, subject to stock', perChild:g.unit};
+  return {id:g.id, ic:g.e, img:'img/'+g.img, name:g.n, d:'Ages '+g.age+' · vendor item, subject to stock', perChild:g.por?null:g.unit, por:!!g.por};
 };
 
 // ── "View all return gifts" picker for the package pages ─────────────────
@@ -228,7 +228,7 @@ function render(){
   ov.querySelector('.wsg-list').innerHTML=live.map(g=>{
     const on=sel.includes(g.id);
     const img=g.img?'style="background-image:url(\'img/'+g.img+'\')"':'';
-    return '<div class="wsg-card'+(on?' on':'')+'"><div class="wsg-img" '+img+'>'+(g.img?'':g.e)+'</div><div class="wsg-b"><div class="wsg-n">'+g.n+'</div><div class="wsg-m">Ages '+g.age+' · '+fmt(g.unit)+' per child</div><div class="wsg-f"><span class="wsg-p">'+(kids?fmt(g.unit*kids):fmt(g.unit))+'</span><button type="button" class="wsg-add'+(on?' on':'')+'" data-id="'+g.id+'">'+(on?'✓ Added':'+ Add')+'</button></div></div></div>';
+    return '<div class="wsg-card'+(on?' on':'')+'"><div class="wsg-img" '+img+'>'+(g.img?'':g.e)+'</div><div class="wsg-b"><div class="wsg-n">'+g.n+'</div><div class="wsg-m">Ages '+g.age+' · '+(g.por?'Price on request':fmt(g.unit)+' per child')+'</div><div class="wsg-f"><span class="wsg-p">'+(g.por?'On request':kids?fmt(g.unit*kids):fmt(g.unit))+'</span><button type="button" class="wsg-add'+(on?' on':'')+'" data-id="'+g.id+'">'+(on?'✓ Added':'+ Add')+'</button></div></div></div>';
   }).join('')||'<div class="wsg-m">No gifts in this category yet.</div>';
   ov.querySelector('.wsg-cnt').textContent=sel.length?(sel.length+' gift'+(sel.length>1?'s':'')+' selected'+(kids?' · '+kids+' of each':'')):'No gifts selected';
 }

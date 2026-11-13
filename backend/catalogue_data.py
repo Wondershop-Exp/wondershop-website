@@ -705,7 +705,7 @@ GIFTS = [
     ("g23", "Train Night Lamp", "return-gifts/train-night-lamp.jpg", 300),
     ("g24", "5 Pcs Steel Straw Set", "return-gifts/steel-straw-set.jpg", 190),
     ("g25", "Personalized Cap", "return-gifts/personalized-cap.png", 500),
-    ("g26", "Live T-shirt Printing", "return-gifts/live-tshirt-printing.png", 550),
+    ("g26", "Live T-shirt Printing", "return-gifts/live-tshirt-printing.png", 0),   # price on request (2026-11-13, per Shruti; was 550) — existing bookings keep their billed price
     ("g27", "Squishy Dumpling", "return-gifts/squishy-dumpling-plain-1.jpg", 199),
     ("g28", "Bath Bomb", "return-gifts/bath-bombs-small.jpg", 85),
     # Harry Potter & K-pop range, added 2026-10-02 per Shruti.
