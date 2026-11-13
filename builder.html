@@ -2924,20 +2924,20 @@ const DECOR_TIER_META=[
     // as standard, so this only applies at Classic tier.
     {l:'Happy Birthday & Age',v:'Paper bunting (HBD), foil balloon (age)'},
     {l:'Name on Bunting',v:'Not included — add for ₹200',na:true},
-    {l:'Cutouts',v:'Not included — add for ₹1,500',na:true},{l:'Welcome Decor',v:'Not included',na:true},
+    {l:'Cutouts',v:'Not included — add for ₹1,500',na:true},{l:'Welcome Decor',v:'Not included — add welcome board ₹1,000 / welcome arch ₹1,750',na:true},
     {l:'Cake Table',v:'Not included — add for ₹1,500',na:true},{l:'Age Light',v:'Not included — add for ₹1,500',na:true},{l:'Decor Width',v:'5-6 ft'},
   ]},
   {tier:'Premium',price:11000,spec:[
     {l:'Panels',v:'1 Flex based panel of dimensions Width = 5Ft and Height 7Ft'},{l:'Balloons',v:'Up to 300'},{l:'Balloon Colours',v:'As per the reference image'},
     {l:'Happy Birthday and Name',v:'Printed on Flex'},{l:'Age',v:'Foil Balloon'},
-    {l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included',na:true},
-    {l:'Cake Table',v:'Not included — add for ₹1,500',na:true},{l:'Welcome Board',v:'Not included',na:true},
+    {l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Not included — add welcome board ₹1,000 / welcome arch ₹1,750',na:true},
+    {l:'Cake Table',v:'Not included — add for ₹1,500',na:true},
     {l:'Age Light',v:'Not included — add for ₹1,500',na:true},{l:'Floor Flex',v:'Not included',na:true},{l:'Decor Width',v:'6-7Ft'},
   ]},
   {tier:'Luxury',price:18000,spec:[
     {l:'Panels',v:'2 flex based panels'},{l:'Balloons',v:'Up to 400'},{l:'Balloon Colours',v:'As per the reference image'},
     {l:'Happy Birthday, Name and Age',v:'Printed on Flex, 3ft age light'},
-    {l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board'},
+    {l:'Cutouts',v:'As per reference photo'},{l:'Welcome Decor',v:'Welcome board (welcome arch: add for ₹1,750)'},
     {l:'Cake Table',v:'1 Cylindrical Cake Table'},{l:'Decor Width',v:'8-9 ft'},
   ]},
   {tier:'Signature',price:25000,origPrice:30000,spec:[
@@ -2964,9 +2964,13 @@ const DECOR_ADDONS=[
   {key:'cutouts',n:'Cutouts',e:'✂️',p:1500,tiers:['classic']},
   // 2026-11-01, per Shruti — Science Luxury decor only (decors = exact decor ids).
   {key:'welcomeArch',n:'Welcome Arch + Welcome Board',e:'🎪',p:3000,tiers:['luxury'],decors:['science-luxury']},
+  // 2026-11-13, per Shruti — welcome board / arch for tiers that don't include them
+  // (Luxury already has a welcome board; Signature has both).
+  {key:'welcomeBoard',n:'Welcome Board',e:'🪧',p:1000,tiers:['classic','premium']},
+  {key:'welcomeArchOnly',n:'Welcome Arch',e:'🎈',p:1750,tiers:['classic','premium','luxury'],notDecors:['science-luxury']},
 ];
 function decorTierKey(){const m=S.decor&&S.decor.id?/-(classic|premium|luxury|signature)$/.exec(S.decor.id):null;return m?m[1]:'';}
-function decorAddonsAvail(){const t=decorTierKey();return DECOR_ADDONS.filter(a=>a.tiers.includes(t)&&(!a.decors||(S.decor&&a.decors.includes(S.decor.id))));}
+function decorAddonsAvail(){const t=decorTierKey();return DECOR_ADDONS.filter(a=>a.tiers.includes(t)&&(!a.decors||(S.decor&&a.decors.includes(S.decor.id)))&&!(a.notDecors&&S.decor&&a.notDecors.includes(S.decor.id)));}
 function decorAddonsOn(){return decorAddonsAvail().filter(a=>S.decorAddons[a.key]);}
 function decorAddonsTotal(){return decorAddonsOn().reduce((t,a)=>t+a.p,0);}
 const THEMES=[
@@ -5347,7 +5351,7 @@ function syncDecorAddonsUI(scroll){
   const tierName=tier[0].toUpperCase()+tier.slice(1);
   const panel=document.createElement('div');panel.className='dec-addon-panel';
   if(!avail.length&&!isClassic){
-    panel.innerHTML='<div class="dap-s" style="margin:0">✓ Cake table, age light &amp; cutouts are already included with '+tierName+' decor.</div>';
+    panel.innerHTML='<div class="dap-s" style="margin:0">✓ Cake table, age light, cutouts, welcome board &amp; welcome arch are already included with '+tierName+' decor.</div>';
   }else{
     panel.innerHTML='<div class="dap-h">✨ Make it extra special — add-ons for your '+tierName+' decor</div>'
       +'<div class="dap-s">Tap to add, tap again to remove'+(tier==='premium'?' · Cutouts are already included in Premium':'')+'</div><div class="dap-btns"></div>';

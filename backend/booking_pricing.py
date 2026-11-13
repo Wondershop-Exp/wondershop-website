@@ -82,6 +82,8 @@ DECOR_ADDONS = [
     ("addon_decor_age_light", "Age Light", 1500),
     ("addon_decor_cutouts", "Cutouts", 1500),
     ("addon_decor_welcome", "Welcome Arch + Welcome Board", 3000),   # 2026-11-01 — Science Luxury decor
+    ("addon_decor_welcome_board", "Welcome Board", 1000),   # 2026-11-13 — Classic / Premium
+    ("addon_decor_welcome_arch", "Welcome Arch", 1750),     # 2026-11-13 — Classic / Premium / Luxury
 ]
 DECOR_ADDON_LABEL = "{} (decor add-on)"
 # 2026-09-22, per Shruti — Piñata Bags admin dropdown (Add-ons section):

@@ -2349,7 +2349,7 @@ function decorAddonsHtml(r){
   const picked = (r.addons||[]).map(a=>a.name);
   const tierKnown = ['Classic','Premium','Luxury','Signature'].includes(r.selected);
   const list = all.filter(a => !tierKnown || (a.tiers||[]).includes(r.selected) || picked.includes(a.name));
-  if(!list.length) return tierKnown ? '<div class="req-note" style="margin:8px 0 4px">Cake table, age light &amp; cutouts are included with '+esc(r.selected)+' decor.</div>' : '';
+  if(!list.length) return tierKnown ? '<div class="req-note" style="margin:8px 0 4px">Cake table, age light, cutouts, welcome board &amp; arch are included with '+esc(r.selected)+' decor.</div>' : '';
   return '<div class="req-note" style="margin:8px 0 4px">Decor add-ons — tap to add / remove</div><div class="chip-row">' + list.map(a=>{
     const on = picked.includes(a.name);
     const extra = tierKnown && !(a.tiers||[]).includes(r.selected) ? ' (included in '+esc(r.selected)+')' : '';

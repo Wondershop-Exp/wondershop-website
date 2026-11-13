@@ -100,7 +100,10 @@ DECOR_ADDONS = [{"name": "Cake Table", "price": 1500, "tiers": ["Classic", "Prem
                 {"name": "Age Light", "price": 1500, "tiers": ["Classic", "Premium"]},
                 {"name": "Cutouts", "price": 1500, "tiers": ["Classic"]},
                 # 2026-11-01, per Shruti — offered with Science Luxury decor (Luxury tier).
-                {"name": "Welcome Arch + Welcome Board", "price": 3000, "tiers": ["Luxury"]}]
+                {"name": "Welcome Arch + Welcome Board", "price": 3000, "tiers": ["Luxury"]},
+                # 2026-11-13, per Shruti — for the tiers that don't include them.
+                {"name": "Welcome Board", "price": 1000, "tiers": ["Classic", "Premium"]},
+                {"name": "Welcome Arch", "price": 1750, "tiers": ["Classic", "Premium", "Luxury"]}]
 # Photographer tier cards in builder.html display "Classic Package" /
 # "Premium Package" / "Signature Package" — not the bare tier word.
 PHOTO_LABELS = {"Classic": "Classic Package", "Premium": "Premium Package", "Signature": "Signature Package"}
