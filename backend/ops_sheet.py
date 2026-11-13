@@ -44,6 +44,7 @@ REQ_LABELS = [
     ("pinata_bags", "Piñata bags"), ("cake", "Cake"), ("activity_notes", "Activities"),
     ("return_gifts", "Return gifts"), ("packaging", "Gift packaging"), ("return_gift_tags", "Gift tags"),
     ("rentals", "Tables & chairs"), ("physical_invites", "Physical invites"),
+    ("host_gifts", "Host gifts"), ("pinata_fillings", "Piñata fillings"),
 ]
 
 
@@ -204,9 +205,13 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
     NS = "<span class='ns'>Not selected</span>"
     rows = []
 
-    def row(label, parts, always=True, extra=None, pic=""):
+    def notes_for(*keys):
+        return [req_note[k] for k in keys if k in req_note]
+
+    def row(label, parts, always=True, extra=None, pic="", notes=()):
         parts = [x for x in parts if x]
-        if not parts and not always:
+        notes = [n for n in notes if n]
+        if not parts and not notes and not always:
             return
         if parts:
             sel = "<br>".join(x[0] for x in parts)
@@ -216,6 +221,8 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
             sel, partner, rm = NS, "", ""
         if extra:
             sel += "".join(f"<div class='xsub'>{x}</div>" for x in extra)
+        # sales panel notes for this section, read live (2026-11-13)
+        sel += "".join(f"<div class='note'>📝 <b>Sales:</b> {_nl(n)}</div>" for n in notes)
         rows.append(f"<tr{'' if parts else ' class=nsr'}><td class='lbl'>{_e(label)}</td><td>{sel}{pic if parts else ''}</td>"
                     f"<td>{partner}</td><td>{rm}</td></tr>")
 
@@ -227,50 +234,42 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
     row("Decor", [part("svc_decor")] + [part(k, l) for k, l in (
         ("addon_decor_cake_table", "Cake table"), ("addon_decor_age_light", "Age light"), ("addon_decor_cutouts", "Cutouts"),
         ("addon_decor_welcome", "Welcome arch + board"), ("addon_decor_welcome_board", "Welcome board"),
-        ("addon_decor_welcome_arch", "Welcome arch"))], pic=pic)
-    row("Host", [part("svc_host")])
-    row("Activities", [part("svc_activities")])
-    row("Music", [part("svc_dj"), part("addon_dj_lights", "Lights"), part("addon_dj_smoke", "Smoke machine")])
-    row("Piñata", [part("svc_pinata")])
-    row("Photographer", [part("svc_photo")])
+        ("addon_decor_welcome_arch", "Welcome arch"))], pic=pic, notes=notes_for("decor"))
+    row("Host", [part("svc_host")], notes=notes_for("host"))
+    sugg = [str(x.get("text")).strip() for x in (_j((pb or {}).get("new_activity_suggestions")) or [])
+            if isinstance(x, dict) and str(x.get("text") or "").strip()]
+    row("Activities", [part("svc_activities")], notes=notes_for("activity_notes")
+        + (["Not in our list yet (to evaluate): " + ", ".join(sugg)] if sugg else []))
+    row("Music", [part("svc_dj"), part("addon_dj_lights", "Lights"), part("addon_dj_smoke", "Smoke machine")], notes=notes_for("music"))
+    row("Piñata", [part("svc_pinata")], notes=notes_for("pinata_type"))
+    row("Photographer", [part("svc_photo")], notes=notes_for("photographer"))
     pk, nt, own = part("addon_gift_packaging"), part("addon_gift_note"), part("addon_gift_pack_qty", "Customer's own gifts to pack")
     row("Return gifts", [part("svc_gifts"), own], extra=[
         "Packaging: " + (pk[0] if pk else "No packaging"),
         "Personalised thank-you notes: " + (nt[0] if nt else "No"),
-    ] + [x for x in ((pk[2] if pk else ""), (nt[2] if nt else "")) if x])
-    row("E-Invite", [part("svc_einvite")], always=False)
-    row("Cake", [part("svc_cake"), part("svc_cake_price", "Price")], always=False)
+    ] + [x for x in ((pk[2] if pk else ""), (nt[2] if nt else "")) if x],
+        notes=notes_for("return_gifts", "packaging", "return_gift_tags"))
+    row("E-Invite", [part("svc_einvite")], notes=notes_for("einvite_type", "save_the_date"))
+    row("Cake", [part("svc_cake"), part("svc_cake_price", "Price")], notes=notes_for("cake"))
     rows.append("<tr class='grp'><td colspan='4'>Add-ons</td></tr>")
-    row("Tables", [part("addon_rent_tables"), part("addon_rent_table_cover", "Table cover")])
+    row("Tables", [part("addon_rent_tables"), part("addon_rent_table_cover", "Table cover")], notes=notes_for("rentals"))
     row("Chairs", [part("addon_rent_chairs", "Chiavari chairs"), part("addon_rent_kids_chairs", "Kids' crossback chairs")])
     row("Tables & chairs setup notes", [part("addon_rent_notes")], always=False)
-    row("Host gifts", [sales_part("host_gifts")])
-    row("Piñata bags", [part("addon_pinata_bags") or sales_part("pinata_bags")])
-    row("Piñata fillings", [part("addon_pinata_fillings") or sales_part("pinata_fillings")])
-    row("Physical invites", [part("addon_phys_inv_qty", "Quantity"), part("addon_phys_inv_notes", "Notes")], always=False)
-    row("Custom add-ons", [part("addon_custom")], always=False)
+    row("Host gifts", [sales_part("host_gifts")], notes=notes_for("host_gifts"))
+    row("Piñata bags", [part("addon_pinata_bags") or sales_part("pinata_bags")], notes=notes_for("pinata_bags"))
+    row("Piñata fillings", [part("addon_pinata_fillings") or sales_part("pinata_fillings")], notes=notes_for("pinata_fillings"))
+    row("Physical invites", [part("addon_phys_inv_qty", "Quantity"), part("addon_phys_inv_notes", "Notes")],
+        notes=notes_for("physical_invites"))
+    row("Custom add-ons", [part("addon_custom")])
     rows.append("<tr class='grp'><td colspan='4'>Requests</td></tr>")
     for k, lbl in (("notes_special_instructions", "Special requests"), ("notes_changes_updates", "Last-minute changes")):
         x = val(k)
-        rows.append(f"<tr{'' if x else ' class=nsr'}><td class='lbl'>{lbl}</td><td colspan='3'>"
-                    f"{_nl(x) if x else '<span class=ns>None</span>'}</td></tr>")
+        sx = str((pb or {}).get(k) or "").strip()
+        sales = (f"<div class='note'>📝 <b>Sales sheet:</b> {_nl(sx)}</div>" if sx and sx != (x or "").strip() else "")
+        rows.append(f"<tr{'' if (x or sales) else ' class=nsr'}><td class='lbl'>{lbl}</td><td colspan='3'>"
+                    f"{_nl(x) if x else '<span class=ns>None</span>'}{sales}</td></tr>")
     out.append("<h2>Services &amp; add-ons</h2><table class='grid'><tr><th>Item</th><th>Selection</th><th>Partner</th>"
                "<th>Booking remarks</th></tr>" + "".join(rows) + "</table>")
-
-    # ── sales notes (2026-11-13: their own section, apart from booking remarks) ──
-    # Read live from the sales sheet, so edits made after conversion show.
-    sn = [(lbl, req_note[k]) for k, lbl in REQ_LABELS if k in req_note]
-    sugg = [str(x.get("text")).strip() for x in (_j((pb or {}).get("new_activity_suggestions")) or [])
-            if isinstance(x, dict) and str(x.get("text") or "").strip()]
-    if sugg:
-        sn.append(("Activities not in the list (to evaluate)", "\n".join(sugg)))
-    for k, lbl in (("notes_special_instructions", "Special instructions"), ("notes_changes_updates", "Changes / updates")):
-        x = (pb or {}).get(k)
-        if x and str(x).strip() and str(x).strip() != (val(k) or "").strip():
-            sn.append((lbl + " (sales sheet)", str(x).strip()))
-    if sn:
-        out.append("<h2>Sales notes <span class='hint'>— from the sales panel</span></h2><table class='grid sn'>"
-                   + "".join(f"<tr><td class='lbl'>{_e(l)}</td><td>{_nl(x)}</td></tr>" for l, x in sn) + "</table>")
 
     if val("activities_notes"):
         out.append("<h2>Activity notes</h2><div class='box'>" + _nl(val("activities_notes")) + "</div>")
