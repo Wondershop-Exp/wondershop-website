@@ -273,11 +273,18 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
 
     if val("activities_notes"):
         out.append("<h2>Activity notes</h2><div class='box'>" + _nl(val("activities_notes")) + "</div>")
-    tbc = d.get("to_be_confirmed") or []
+    # Only items still open (2026-11-13, booking #1267: confirmed ones were
+    # listed here too, which read as if they still needed confirming).
+    def _inr(v):
+        try:
+            return f"₹{float(v):,.0f}"
+        except (TypeError, ValueError):
+            return _e(v)
+    tbc = [t for t in (d.get("to_be_confirmed") or []) if str(t.get("status") or "pending").strip().lower() != "confirmed"]
     if tbc:
         out.append("<h2>To be confirmed</h2><ul>" + "".join(
             f"<li>{_e(t.get('label') or t.get('name'))} — {_e(t.get('status') or 'pending')}"
-            f"{(' · ₹' + _e(t.get('price'))) if t.get('price') not in (None, '') else ''}</li>" for t in tbc) + "</ul>")
+            f"{(' · ' + _inr(t.get('price'))) if t.get('price') not in (None, '') else ''}</li>" for t in tbc) + "</ul>")
 
     sched = val("event_schedule_text")
     if sched:
