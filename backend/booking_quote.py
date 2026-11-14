@@ -153,6 +153,24 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
     for label, amt in [x for x in items if x[0].endswith(" (decor add-on)")]:   # custom decor items (2026-11-13)
         items.remove((label, amt))
         lines.append({"name": f"Add-on: {label[:-len(' (decor add-on)')]}", "details": [], "image": None, "price": amt})
+    # 2026-11-14, per Shruti (#1312) — custom decor items at ₹0 aren't on the
+    # bill, but are still part of the decor: list them as included.
+    try:
+        _cd = json.loads(cust_val("addon_decor_custom") or "[]")
+    except (TypeError, ValueError):
+        _cd = []
+    for c in _cd if isinstance(_cd, list) else []:
+        nm = str((c or {}).get("name") or "").strip() if isinstance(c, dict) else ""
+        try:
+            pr = float((c or {}).get("price") or 0)
+        except (TypeError, ValueError):
+            pr = 0.0
+        if nm and pr <= 0:
+            lines.append({"name": f"Add-on: {nm}", "details": [], "image": None, "price": None, "price_text": "Included"})
+    # Remarks typed on the booking's Decor row show on the plan too.
+    _drm = ((fields.get("svc_decor") or {}).get("remarks") or "").strip()
+    if _drm and lines:
+        lines[0].setdefault("details", []).append(f"Notes: {_drm}")
     add("Decor", lines)
 
     # 2. Activities
