@@ -93,10 +93,12 @@ SOURCES = {
     "stall":     ("Stall",              None),
     "website":   ("Website",            None),
     "chatgpt":   ("ChatGpt",            None),   # 2026-10-23
+    "wagroup":   ("WhatsApp Group Enquiry", None),   # 2026-11-14
 }
 _HELP_LABELS = [("ad", "Instagram ad"), ("dm", "Instagram DM"), ("broadcast", "WhatsApp broadcast"),
                 ("facebook", "Facebook"), ("google", "Google"), ("referral", "Referral (referred by …)"),
-                ("repeat", "Repeat"), ("wsr", "WSR Repeat"), ("stall", "Stall"), ("website", "Website"), ("chatgpt", "ChatGpt")]
+                ("repeat", "Repeat"), ("wsr", "WSR Repeat"), ("stall", "Stall"), ("website", "Website"), ("chatgpt", "ChatGpt"),
+                ("wagroup", "WhatsApp group")]
 
 
 def source_help() -> str:
@@ -111,6 +113,7 @@ MONTHS = {m: i for i, m in enumerate(
 # ─── text lists ────────────────────────────────────────────────────────────
 
 _SOURCE_RULES = [   # first match wins
+    ("wagroup",   r"whats\s*-?app\s*(?:group|grp)|\bwa\s*(?:group|grp)\b"),
     ("broadcast", r"broadcast|\brevert|repl(?:ied|y)\s+to\b"),
     ("wsr",       r"\bwsr\b"),
     ("repeat",    r"\brepeat\b|returning|existing (?:customer|client)|booked (?:with us )?before|past (?:customer|client)"),
@@ -289,6 +292,90 @@ Their answers usually follow our questionnaire 1) Age 2) Gender 3) Venue/Locatio
 
 Reply with ONLY a JSON object: {{"leads": [ ... ]}}"""
 
+# 2026-11-14, per Shruti — leads typed as a block, one detail per line:
+#     +91 98215 80011 / Supriya / Girl 10 / Turf party / Worli / Dec 13 /
+#     4-7pm / 15-20 kids / 2 hour football match / Football theme
+# The one-line list parser only took the phone (and name if on the same
+# line), so the rest was lost. Such posts (a line that is only a phone
+# number) are read by Claude into every field.
+TEXT_PROMPT = """A sales teammate at Wondershop Experiences (kids' birthday parties, Mumbai) posted new lead(s) in Slack as free text. Today is {today} (India time). Each lead usually starts with the parent's phone number, then lines of details in any order.
+
+Return every DIFFERENT customer (a new phone number = a new customer). For each:
+- name: the parent's / contact's name (not the child's); null if none
+- phone: digits with country code, e.g. "+919821580011"
+- child_name: the birthday child's name; null if none
+- child_age: age as text, e.g. "10"; null if none
+- child_gender: "Male" (boy/son/M) or "Female" (girl/daughter/F); null if none
+- venue: the venue or area exactly as written (e.g. "Worli/parel/bandra", "Godrej platinum clubhouse"); null if none
+- venue_type: one of "Home", "Society Banquet", "Society Banquet Hall", "Club", "Restaurant", "Turf", "Play Area", "Other", "Not Decided" when the text says or clearly implies it (turf party -> "Turf", clubhouse -> "Club", society hall -> "Society Banquet Hall", at home -> "Home"); null if not given
+- kids_count: number of kids as an integer (for a range like "15-20" use the higher number); null if none
+- theme: the party theme (e.g. "Football"); null if none
+- services: activities / services they want (e.g. "2 hour football match"); null if none
+- event_date: "YYYY-MM-DD" — the next such date on or after today — when a day and month are given; else null
+- event_start_time: "HH:MM" 24h (e.g. "4-7pm" -> "16:00"); null if none
+- event_end_time: "HH:MM" 24h (e.g. "4-7pm" -> "19:00"); null if none
+- source_words: the words that say where the lead came from (e.g. "Instagram", "Whatsapp lead", "referred by Neha"); null if none
+- summary: one short line, e.g. "10 yr old girl, football turf party, Dec 13, 15-20 kids"
+- other_notes: any detail that fits none of the fields above; null if none
+
+Only report what is written; never invent a phone number. Reply with ONLY a JSON object: {{"leads": [ ... ]}}
+
+The message:
+{text}"""
+
+VENUE_TYPE_VALUES = {"Home", "Society Banquet", "Society Banquet Hall", "Club", "Restaurant", "Turf", "Play Area", "Other", "Not Decided"}
+PHONE_ONLY_LINE = re.compile(r"^\s*\+?[\d\s\-()]{10,18}\s*$")
+
+
+def looks_like_detail_blocks(text: str) -> bool:
+    """A line that is only a phone number = the block format (details on the next lines)."""
+    return any(PHONE_ONLY_LINE.match(l) and len(re.sub(r"\D", "", l)) >= 10 for l in (text or "").splitlines())
+
+
+async def read_text_leads(text: str, today: date) -> List[Dict[str, Any]]:
+    if not settings.ANTHROPIC_API_KEY:
+        raise RuntimeError("ANTHROPIC_API_KEY is not set on Railway, so I can't read detailed leads yet.")
+    async with httpx.AsyncClient(timeout=90) as client:
+        r = await client.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={"x-api-key": settings.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01",
+                     "content-type": "application/json"},
+            json={"model": settings.ANTHROPIC_MODEL, "max_tokens": 3000,
+                  "messages": [{"role": "user", "content": TEXT_PROMPT.format(today=today.isoformat(), text=text[:8000])}]},
+        )
+    if r.status_code != 200:
+        raise RuntimeError(f"Claude API error {r.status_code}: {r.text[:300]}")
+    out_text = "".join(b.get("text", "") for b in r.json().get("content", []) if b.get("type") == "text")
+    m = re.search(r"\{.*\}", out_text, re.S)
+    if not m:
+        raise RuntimeError("Couldn't read the lead details (no data came back).")
+    leads = json.loads(m.group(0)).get("leads") or []
+    return [l for l in leads if isinstance(l, dict)]
+
+
+def _hhmm(v) -> Optional[str]:
+    m = re.match(r"^\s*(\d{1,2}):(\d{2})", str(v or ""))
+    return f"{int(m.group(1)):02d}:{m.group(2)}" if m and int(m.group(1)) < 24 else None
+
+
+def _clean_text_lead(l: Dict[str, Any], posted_at: datetime) -> Dict[str, Any]:
+    it = _clean_screenshot_lead(dict(l, first_message_at=None, kind=None), posted_at)
+    sw = (l.get("source_words") or "") if isinstance(l.get("source_words"), str) else ""
+    it["source"], it["referred_by"] = source_from_text(sw) if sw else (None, None)
+    it["generated_at"] = None   # = when it was posted
+    child = (str(l.get("child_name")).strip()[:255] if l.get("child_name") else None)
+    it["fields"]["child_names"] = child
+    it["fields"]["event_time"] = _hhmm(l.get("event_start_time"))
+    vt = str(l.get("venue_type") or "").strip()
+    it["playbook"] = {"event_end_time": _hhmm(l.get("event_end_time")),
+                      "venue_type": vt if vt in VENUE_TYPE_VALUES else None}
+    extra = [x for x in ((f"Source: {sw}" if sw and not it["source"] else None),
+                         (str(l.get("other_notes")).strip()[:300] if l.get("other_notes") else None)) if x]
+    if extra:
+        it["note"] = " · ".join([x for x in [it.get("note")] + extra if x])
+    return it
+
+
 IMAGE_MAX_EDGE = 1568
 
 
@@ -380,7 +467,7 @@ def _clean_screenshot_lead(l: Dict[str, Any], posted_at: datetime) -> Dict[str, 
 
 # ─── creating / updating leads ─────────────────────────────────────────────
 
-DETAIL_LABELS = {"child_ages": "age", "child_genders": "gender", "venue": "venue", "kids_count": "# kids",
+DETAIL_LABELS = {"event_time": "start time", "child_ages": "age", "child_genders": "gender", "venue": "venue", "kids_count": "# kids",
                  "theme": "theme", "event_date": "event date", "child_names": "child's name",
                  "earlier_conversations": "earlier conversations", "event_sales_lead": "sales lead",
                  "email": "email"}
@@ -736,6 +823,18 @@ async def intake(item: Dict[str, Any], who: str, how: str) -> Dict[str, Any]:
                     moved = item["generated_at"]
             if sets:
                 await database.execute(f"UPDATE leads SET {', '.join(sets)} WHERE lead_id = :id", values=vals)
+            # 2026-11-14 — end time / venue type live on the sales sheet: fill blanks.
+            pbx = {k: v for k, v in (item.get("playbook") or {}).items() if v}
+            if pbx:
+                cur = await database.fetch_one("SELECT event_end_time, venue_type FROM lead_sales_playbook WHERE lead_id = :id",
+                                               values={"id": lead_id})
+                for col, v in pbx.items():
+                    if cur is not None and not (cur[col] or "").strip():
+                        await database.execute(f"UPDATE lead_sales_playbook SET {col} = :v WHERE lead_id = :id",
+                                               values={"v": v, "id": lead_id})
+                        filled.append({"event_end_time": "end time", "venue_type": "venue type"}[col])
+                    elif cur is not None and not _same(cur[col], v):
+                        changes.append(f"{col.replace('_', ' ')}: {_show(cur[col])} → {v}")
             # A note that only names the source ("google", "insta ad") isn't news.
             just_source = bool(note) and len(re.findall(r"\w+", note)) <= 3 and bool(source_from_text(note)[0])
             new_note = bool(note) and not just_source and note.lower() not in (await _playbook_text(lead_id)).lower()
@@ -772,10 +871,11 @@ async def intake(item: Dict[str, Any], who: str, how: str) -> Dict[str, Any]:
             names = ", ".join(cols)
             lead_id = await database.execute(
                 f"INSERT INTO leads ({names}) VALUES ({', '.join(':' + k for k in cols)}) RETURNING lead_id", values=cols)
+            pbx = item.get("playbook") or {}
             pid = await database.execute(
-                "INSERT INTO lead_sales_playbook (lead_id, created_by, notes_special_instructions, call_log) "
-                "VALUES (:id, :by, :n, CAST(:cl AS JSONB)) RETURNING id",
-                values={"id": lead_id, "by": actor, "n": note,
+                "INSERT INTO lead_sales_playbook (lead_id, created_by, notes_special_instructions, call_log, event_end_time, venue_type) "
+                "VALUES (:id, :by, :n, CAST(:cl AS JSONB), :eet, :vt) RETURNING id",
+                values={"id": lead_id, "by": actor, "n": note, "eet": pbx.get("event_end_time"), "vt": pbx.get("venue_type"),
                         "cl": json.dumps([{**c, "by": c["by"] or who} for c in item["call_log"]]) if item.get("call_log") else None})
             label = platform or source
             earlier_txt = None
@@ -792,6 +892,7 @@ async def intake(item: Dict[str, Any], who: str, how: str) -> Dict[str, Any]:
                       "platform": label, "generated_at": gen, "needs_source": not source,
                       "earlier": earlier["lead_id"] if earlier else None,
                       "filled": [DETAIL_LABELS[k] for k in fields if k in DETAIL_LABELS]
+                                + [{"event_end_time": "end time", "venue_type": "venue type"}[k] for k, v in pbx.items() if v]
                                 + (["first call"] if item.get("call_log") else [])}
     if result["outcome"] in ("created", "updated"):
         sheet_sync.schedule_sync(result["lead_id"])
@@ -1004,7 +1105,24 @@ async def handle_message(ev: Dict[str, Any]) -> None:
     results, errors = [], []
     try:
         kv = parse_kv_records(text, posted_at)
-        items = [(i, "sheet row") for i in kv] if kv else [(i, "text list") for i in parse_lead_list(text, posted_at)]
+        items = []
+        if kv:
+            items = [(i, "sheet row") for i in kv]
+        elif looks_like_detail_blocks(text):
+            try:
+                msg_src = source_from_text(text)
+                for l in await read_text_leads(text, posted_at.astimezone(IST).date()):
+                    it = _clean_text_lead(l, posted_at)
+                    if not it.get("phone") and not it.get("name"):
+                        continue
+                    items.append((it, "text details"))
+            except Exception as exc:
+                logger.exception("Slack leads: reading the detail block failed")
+                errors.append(str(exc)[:300])
+            if not items:   # fall back to the one-line reader
+                items = [(i, "text list") for i in parse_lead_list(text, posted_at)]
+        else:
+            items = [(i, "text list") for i in parse_lead_list(text, posted_at)]
         files = [f for f in (ev.get("files") or []) if (f.get("mimetype") or "").startswith("image/")]
         if files:
             images = [x for x in [await download_slack_file(f) for f in files] if x]
