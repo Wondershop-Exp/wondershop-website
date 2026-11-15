@@ -170,6 +170,7 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
     # Finalized design picked on the booking (2026-11-15, per Shruti): its
     # name under the decor line, and its photo when it's a catalogue design.
     _dz = cust_val("addon_decor_design")
+    decor_design_id = (_dz or "").partition("|")[0].strip()
     if _dz and lines:
         _did, _, _dnm = _dz.partition("|")
         lines[0].setdefault("details", []).insert(0, f"Design: {_dnm or _did}")
@@ -462,6 +463,7 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
     paths = [MASCOT_PATH] + list(SECTION_ICONS.values())
     for s in sections:
         paths += [ln.get("image") for ln in s["lines"] if ln.get("image")]
+    data["decor_design_id"] = decor_design_id   # finalized design (booking_pdf uses it for the photo)
     return data, paths
 
 
@@ -533,9 +535,18 @@ async def booking_pdf(lead_id: int, pw: Optional[str], by: Optional[str] = None,
     images = await fetch_images([p for p in paths if not str(p).startswith("aref:")])
     from routers.sales_leads import load_activity_photos
     await load_activity_photos(images, paths)
-    ref = await current_for_lead(lead_id, with_image=True)
+    # 2026-11-15, per Shruti — the finalized design picked on the booking
+    # decides the Decor photo, over the website pick and any uploaded
+    # reference: a website design ("ref-<n>") brings its uploaded photo; a
+    # catalogue design's photo is already on the line.
+    final_id = data.get("decor_design_id") or ""
+    ref = None if final_id else await current_for_lead(lead_id, with_image=True)
     own = bool(ref)
-    if not ref:
+    if final_id:
+        from routers.decor_refs import item_with_image
+        if final_id.startswith("ref-") and final_id[4:].isdigit():
+            ref = await item_with_image(int(final_id[4:]))
+    elif not ref:
         # A website design picked in Build-a-Birthday (decor id "ref-<n>").
         from database import database
         import json
@@ -643,7 +654,7 @@ async def pre_event_message_text(lead_id: int, pw: Optional[str]) -> dict:
         "",
         f"We're all set for *{title}* tomorrow! Here's a quick recap of the plan:",
         "",
-        f"📅 *Date:* {event_date}",
+        f"🗓️ *Date:* {event_date}",
         f"⏰ *Event start time:* {t('event_time')}",
         f"🔑 *Venue handover time:* {t('venue_handover_time')}",
     ]

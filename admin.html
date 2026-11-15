@@ -2571,29 +2571,29 @@ function _bkVal(key){ const f = _billField(key); return String(f.customer_choice
 // general party message.
 const WA_THEMES = [
   {re:/spy|detective|agent|imposter|mystery/i, head:'🕵️ *TOP SECRET — AGENT ALERT* 🕵️', intro:'Attention, Agent! You have been recruited for a classified mission:',
-   kid:k=>'*Agent '+k+'*', line:'needs the best spies in town to crack the birthday case! 🎂🔍', date:'📅 *Mission date:*', time:'⏰ *Report at:*', venue:'📍 *HQ:*', rsvp:'📞 *RSVP to the mission handler:*',
+   kid:k=>'*Agent '+k+'*', line:'needs the best spies in town to crack the birthday case! 🎂🔍', date:'🗓️ *Mission date:*', time:'⏰ *Report at:*', venue:'📍 *HQ:*', rsvp:'📞 *RSVP to the mission handler:*',
    reg:'🔐 *Get your agent clearance* — register your little agent here (needed for the mission ID card):', end:'This message will self-destruct… just kidding 😉 See you on the mission, Agent! 🕶️'},
   {re:/unicorn|rainbow/i, head:'🦄✨ *A Magical Unicorn Invitation* ✨🦄', intro:'Sprinkle on some glitter — you’re invited to a magical celebration!',
-   line:'and we’d love for you to join the rainbow fun! 🌈🎂', date:'📅 *Date:*', time:'⏰ *Time:*', venue:'🏰 *Where the magic happens:*', rsvp:'💌 *RSVP to:*', end:'See you there for a sparkly good time! 🌟'},
+   line:'and we’d love for you to join the rainbow fun! 🌈🎂', date:'🗓️ *Date:*', time:'⏰ *Time:*', venue:'🏰 *Where the magic happens:*', rsvp:'💌 *RSVP to:*', end:'See you there for a sparkly good time! 🌟'},
   {re:/frozen|elsa|anna|snow/i, head:'❄️ *You’re Invited to a Frozen Celebration* ❄️', intro:'Bundle up for a snowy, magical day!',
-   line:'and the kingdom of Arendelle is throwing a party! ⛄🎂', date:'📅 *Date:*', time:'⏰ *Time:*', venue:'🏰 *Venue:*', rsvp:'💌 *RSVP to:*', end:'Let it go… and come celebrate with us! ❄️💙'},
+   line:'and the kingdom of Arendelle is throwing a party! ⛄🎂', date:'🗓️ *Date:*', time:'⏰ *Time:*', venue:'🏰 *Venue:*', rsvp:'💌 *RSVP to:*', end:'Let it go… and come celebrate with us! ❄️💙'},
   {re:/super ?hero|avenger|spider|batman|marvel|hero/i, head:'💥 *CALLING ALL SUPERHEROES!* 💥', intro:'Suit up — a super mission awaits!',
-   line:'and needs a league of heroes to celebrate! 🦸🎂', date:'📅 *Mission date:*', time:'⏰ *Assemble at:*', venue:'📍 *Hero HQ:*', rsvp:'📞 *RSVP to:*', end:'Capes optional, fun guaranteed! ⚡'},
+   line:'and needs a league of heroes to celebrate! 🦸🎂', date:'🗓️ *Mission date:*', time:'⏰ *Assemble at:*', venue:'📍 *Hero HQ:*', rsvp:'📞 *RSVP to:*', end:'Capes optional, fun guaranteed! ⚡'},
   {re:/k-?pop|idol|blackpink|bts|katseye|demon hunter/i, head:'🎤✨ *It’s Time to Shine!* ✨🎤', intro:'Get ready for music, dance and K-Pop vibes!',
-   line:'and we’re throwing a star-studded party! 💜🎂', date:'📅 *Date:*', time:'⏰ *Showtime:*', venue:'📍 *Stage:*', rsvp:'💌 *RSVP to:*', end:'Come ready to sing, dance & sparkle! 🌟'},
+   line:'and we’re throwing a star-studded party! 💜🎂', date:'🗓️ *Date:*', time:'⏰ *Showtime:*', venue:'📍 *Stage:*', rsvp:'💌 *RSVP to:*', end:'Come ready to sing, dance & sparkle! 🌟'},
   {re:/foot ?ball|cricket|soccer|sport|turf/i, head:'⚽🏆 *Game On — You’re Invited!* 🏆⚽', intro:'Lace up — it’s match day!',
-   line:'and we need the best team on the field to celebrate! 🎂', date:'📅 *Match day:*', time:'⏰ *Kick-off:*', venue:'🏟️ *Ground:*', rsvp:'📞 *RSVP to the coach:*', end:'See you on the field, champ! 🥇'},
+   line:'and we need the best team on the field to celebrate! 🎂', date:'🗓️ *Match day:*', time:'⏰ *Kick-off:*', venue:'🏟️ *Ground:*', rsvp:'📞 *RSVP to the coach:*', end:'See you on the field, champ! 🥇'},
   {re:/harry|potter|wizard|hogwarts|magic/i, head:'🪄 *Your Letter Has Arrived!* 🪄', intro:'You have been chosen for a magical celebration.',
-   line:'and the wizarding world is celebrating! ⚡🎂', date:'📅 *Date:*', time:'⏰ *Time:*', venue:'🏰 *Venue:*', rsvp:'🦉 *Owl your RSVP to:*', end:'Mischief managed — see you there! ✨'},
+   line:'and the wizarding world is celebrating! ⚡🎂', date:'🗓️ *Date:*', time:'⏰ *Time:*', venue:'🏰 *Venue:*', rsvp:'🦉 *Owl your RSVP to:*', end:'Mischief managed — see you there! ✨'},
   {re:/movie|cinema|film/i, head:'🎬🍿 *Lights, Camera, Celebrate!* 🍿🎬', intro:'Grab your popcorn — you’re invited to a movie party!',
-   line:'and it’s going to be a blockbuster! 🎂', date:'📅 *Date:*', time:'⏰ *Showtime:*', venue:'📍 *Venue:*', rsvp:'🎟️ *RSVP to:*', end:'See you on the red carpet! 🌟'},
+   line:'and it’s going to be a blockbuster! 🎂', date:'🗓️ *Date:*', time:'⏰ *Showtime:*', venue:'📍 *Venue:*', rsvp:'🎟️ *RSVP to:*', end:'See you on the red carpet! 🌟'},
   {re:/art|paint|craft/i, head:'🎨 *It’s Art Time — You’re Invited!* 🖌️', intro:'Come splash some colour with us!',
-   line:'and we’re celebrating with a colourful art party! 🎂', date:'📅 *Date:*', time:'⏰ *Time:*', venue:'📍 *Venue:*', rsvp:'💌 *RSVP to:*', end:'Get ready to get creative! 🌈'},
+   line:'and we’re celebrating with a colourful art party! 🎂', date:'🗓️ *Date:*', time:'⏰ *Time:*', venue:'📍 *Venue:*', rsvp:'💌 *RSVP to:*', end:'Get ready to get creative! 🌈'},
   {re:/stitch|lilo|tropical|aloha|hawai/i, head:'🌺 *Aloha! You’re Invited!* 🌺', intro:'Join us for a tropical adventure!',
-   line:'and we’re throwing a fun-filled island party! 🌴🎂', date:'📅 *Date:*', time:'⏰ *Time:*', venue:'📍 *Venue:*', rsvp:'💌 *RSVP to:*', end:'Ohana means family — see you there! 💙'},
+   line:'and we’re throwing a fun-filled island party! 🌴🎂', date:'🗓️ *Date:*', time:'⏰ *Time:*', venue:'📍 *Venue:*', rsvp:'💌 *RSVP to:*', end:'Ohana means family — see you there! 💙'},
 ];
 const WA_GENERIC = {head:'🎉 *You’re Invited!* 🎉', intro:'Join us for a fun-filled birthday celebration!',
-  line:'and we’d love for you to celebrate with us! 🎂🎈', date:'📅 *Date:*', time:'⏰ *Time:*', venue:'📍 *Venue:*', rsvp:'💌 *RSVP to:*',
+  line:'and we’d love for you to celebrate with us! 🎂🎈', date:'🗓️ *Date:*', time:'⏰ *Time:*', venue:'📍 *Venue:*', rsvp:'💌 *RSVP to:*',
   reg:'📝 *Register here:*', end:'See you there! 🥳'};
 function inviteMsg(link){
   const themeText = [_bkVal('theme'), _bkVal('svc_decor'), _bkVal('svc_einvite')].join(' ');
@@ -5815,10 +5815,13 @@ function decorAddonChipsRow(locked){
   const df = _decorAddonField('addon_decor_design');
   const dval = (df && !df.removed && df.customer_choice) || '';
   const dname = dval.split('|').slice(1).join('|') || dval;
+  if(df && !DECOR_DESIGNS) loadDecorDesigns().then(()=>setDecorDesignThumb(dval));
   const design = df ? '<div class="sugg-head" style="color:var(--gy);font-weight:600;margin-top:10px">Finalized design · shown on the party plan (price unchanged)</div>'
-    + (locked ? '<div>'+esc(dname||'—')+'</div>'
-      : '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="text" id="fld_decor_design" list="decorDesignList" autocomplete="off" placeholder="Search designs, e.g. Harry Potter…" value="'+esc(dname)+'" style="flex:1;min-width:240px;padding:9px 12px;border:1px solid var(--li2);border-radius:10px;font:inherit" onfocus="loadDecorDesigns()">'
-        + '<datalist id="decorDesignList">'+decorDesignOptionsHtml()+'</datalist>'
+    + (locked ? '<div style="display:flex;gap:8px;align-items:center"><img id="decorDesignThumbImg" src="'+esc(decorDesignThumb(dval))+'" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:8px;'+(decorDesignThumb(dval)?'':'display:none')+'"><span>'+esc(dname||'—')+'</span></div>'
+      : '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+        + '<img id="decorDesignThumbImg" src="'+esc(decorDesignThumb(dval))+'" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--li2);'+(decorDesignThumb(dval)?'':'display:none')+'">'
+        + '<div style="position:relative;flex:1;min-width:240px"><input type="text" id="fld_decor_design" autocomplete="off" placeholder="Search designs, e.g. Harry Potter…" value="'+esc(dname)+'" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid var(--li2);border-radius:10px;font:inherit" onfocus="openDecorDesignPick()" oninput="renderDecorDesignPick()" onblur="setTimeout(closeDecorDesignPick,200)">'
+        + '<div id="decorDesignPick" style="display:none;position:absolute;left:0;right:0;top:100%;margin-top:4px;max-height:340px;overflow-y:auto;background:#fff;border:1px solid var(--li2);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:50"></div></div>'
         + '<button type="button" class="mini-btn" style="background:var(--pk);color:#fff;border-color:var(--pk)" onclick="saveDecorDesign()">Save design</button>'
         + (dval ? '<button type="button" class="mini-btn" onclick="saveDecorDesign(true)">Clear</button>' : '') + '</div>')
     : '';
@@ -5831,15 +5834,44 @@ function decorAddonChipsRow(locked){
     + '</div></td></tr>';
 }
 let DECOR_DESIGNS = null;
-function decorDesignOptionsHtml(){
-  return (DECOR_DESIGNS||[]).map(o=>'<option value="'+esc(o.name)+'">'+(o.price?'₹'+Number(o.price).toLocaleString('en-IN'):'')+'</option>').join('');
+// Picker with small photos (2026-11-15, per Shruti — "show small image
+// thumbnails to understand which decor is what").
+function decorDesignThumb(val){
+  const id = String(val||'').split('|')[0];
+  const o = id && (DECOR_DESIGNS||[]).find(x=>x.id===id);
+  return (o && o.image) || '';
+}
+function renderDecorDesignPick(){
+  const box = document.getElementById('decorDesignPick'); if(!box) return;
+  if(!DECOR_DESIGNS){ box.innerHTML = '<div style="padding:10px 12px;color:var(--gy)">Loading designs…</div>'; box.style.display='block'; return; }
+  const q = ((document.getElementById('fld_decor_design')||{}).value||'').trim().toLowerCase();
+  const list = DECOR_DESIGNS.filter(o=>!q || o.name.toLowerCase().includes(q)).slice(0,80);
+  box.innerHTML = list.length ? list.map(o=>'<div onmousedown="pickDecorDesign(\''+esc(o.id)+'\')" style="display:flex;gap:10px;align-items:center;padding:6px 10px;cursor:pointer;border-bottom:1px solid var(--li2)" onmouseover="this.style.background=\'#f6f4fb\'" onmouseout="this.style.background=\'\'">'
+      + (o.image ? '<img src="'+esc(o.image)+'" alt="" loading="lazy" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex:none">' : '<div style="width:48px;height:48px;border-radius:6px;background:var(--li2);flex:none"></div>')
+      + '<div style="flex:1;min-width:0">'+esc(o.name)+'</div>'
+      + (o.price ? '<div style="color:var(--gy);white-space:nowrap">₹'+Number(o.price).toLocaleString('en-IN')+'</div>' : '')
+      + '</div>').join('')
+    : '<div style="padding:10px 12px;color:var(--gy)">No design matches.</div>';
+  box.style.display = 'block';
+}
+async function openDecorDesignPick(){ renderDecorDesignPick(); await loadDecorDesigns(); renderDecorDesignPick(); }
+function setDecorDesignThumb(val){
+  const im = document.getElementById('decorDesignThumbImg'); if(!im) return;
+  const src = decorDesignThumb(val);
+  if(src){ im.src = src; im.style.display = ''; } else { im.style.display = 'none'; }
+}
+function closeDecorDesignPick(){ const b = document.getElementById('decorDesignPick'); if(b) b.style.display='none'; }
+function pickDecorDesign(id){
+  const o = (DECOR_DESIGNS||[]).find(x=>x.id===id); if(!o) return;
+  const inp = document.getElementById('fld_decor_design'); if(inp) inp.value = o.name;
+  setDecorDesignThumb(o.id);
+  closeDecorDesignPick();
 }
 async function loadDecorDesigns(){
   if(DECOR_DESIGNS) return;
   try{
     const c = await apiCall('/api/admin/sales-leads/catalogue');
     DECOR_DESIGNS = c.decor_options || [];
-    const dl = document.getElementById('decorDesignList'); if(dl) dl.innerHTML = decorDesignOptionsHtml();
   }catch(e){ DECOR_DESIGNS = null; }
 }
 async function saveDecorDesign(clear){

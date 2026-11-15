@@ -169,7 +169,7 @@ async def get_catalogue(x_admin_password: Optional[str] = Header(None)):
     refs = await website_ref_options()
     have = {o["id"] for o in c.get("decor_options") or []}
     c["decor_options"] = (c.get("decor_options") or []) + [
-        {k: o[k] for k in ("id", "name", "price", "tier", "theme", "tag")} for o in refs if o["id"] not in have]
+        {k: o.get(k) for k in ("id", "name", "price", "tier", "theme", "tag", "image")} for o in refs if o["id"] not in have]
     names = {t["name"].lower() for t in c.get("decor_themes") or []}
     for o in refs:
         if o["theme"].lower() not in names:
@@ -191,7 +191,7 @@ def _build_catalogue() -> dict:
     decor_themes = [{"id": t["id"], "name": t["n"]} for t in THEMES]
     # Decor options to show the client side by side (2026-10-08).
     from catalogue_data import decor_options as _decor_options
-    decor_option_list = [{"id": x["id"], "name": x["name"], "price": x["price"], "tier": x["tier"], "theme": x["theme"], "tag": x.get("tag")} for x in _decor_options()]
+    decor_option_list = [{"id": x["id"], "name": x["name"], "price": x["price"], "tier": x["tier"], "theme": x["theme"], "tag": x.get("tag"), "image": x.get("image")} for x in _decor_options()]
     # Host: no tier dropdown anymore (Shruti — "remove dropdown, just keep
     # cost") — reference prices are still sent for the hint text next to
     # the free-entry cost field.
