@@ -5810,12 +5810,56 @@ function decorAddonChipsRow(locked){
     + customAddonRowsHtml('fld_decor_custom', cval, locked, '+ Add custom decor item')
     + (locked ? '' : ' <button type="button" class="mini-btn" style="background:var(--pk);color:#fff;border-color:var(--pk)" onclick="saveDecorCustom()">Save custom items</button>')
     : '';
-  if(!chips && !note && !custom) return '';
+  // Finalized design (2026-11-15, per Shruti — "select the design we
+  // finalized"): pick from every Build-a-Birthday design; doesn't change price.
+  const df = _decorAddonField('addon_decor_design');
+  const dval = (df && !df.removed && df.customer_choice) || '';
+  const dname = dval.split('|').slice(1).join('|') || dval;
+  const design = df ? '<div class="sugg-head" style="color:var(--gy);font-weight:600;margin-top:10px">Finalized design · shown on the party plan (price unchanged)</div>'
+    + (locked ? '<div>'+esc(dname||'—')+'</div>'
+      : '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="text" id="fld_decor_design" list="decorDesignList" autocomplete="off" placeholder="Search designs, e.g. Harry Potter…" value="'+esc(dname)+'" style="flex:1;min-width:240px;padding:9px 12px;border:1px solid var(--li2);border-radius:10px;font:inherit" onfocus="loadDecorDesigns()">'
+        + '<datalist id="decorDesignList">'+decorDesignOptionsHtml()+'</datalist>'
+        + '<button type="button" class="mini-btn" style="background:var(--pk);color:#fff;border-color:var(--pk)" onclick="saveDecorDesign()">Save design</button>'
+        + (dval ? '<button type="button" class="mini-btn" onclick="saveDecorDesign(true)">Clear</button>' : '') + '</div>')
+    : '';
+  if(!chips && !note && !custom && !design) return '';
   return '<tr class="sugg-tr decor-addons-tr"><td colspan="6"><div class="sugg-box">'
+    + design
     + (note ? '<div class="sugg-head" style="color:var(--gy);font-weight:600">'+note+'</div>' : '')
     + (chips ? '<div class="chips">'+chips+'</div>' : '')
     + custom
     + '</div></td></tr>';
+}
+let DECOR_DESIGNS = null;
+function decorDesignOptionsHtml(){
+  return (DECOR_DESIGNS||[]).map(o=>'<option value="'+esc(o.name)+'">'+(o.price?'₹'+Number(o.price).toLocaleString('en-IN'):'')+'</option>').join('');
+}
+async function loadDecorDesigns(){
+  if(DECOR_DESIGNS) return;
+  try{
+    const c = await apiCall('/api/admin/sales-leads/catalogue');
+    DECOR_DESIGNS = c.decor_options || [];
+    const dl = document.getElementById('decorDesignList'); if(dl) dl.innerHTML = decorDesignOptionsHtml();
+  }catch(e){ DECOR_DESIGNS = null; }
+}
+async function saveDecorDesign(clear){
+  const f = _decorAddonField('addon_decor_design'); if(!f) return;
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
+  let val = '';
+  if(!clear){
+    await loadDecorDesigns();
+    const typed = document.getElementById('fld_decor_design').value.trim();
+    const o = (DECOR_DESIGNS||[]).find(x=>x.name.toLowerCase()===typed.toLowerCase());
+    if(!o){ showToast('Pick a design from the list.'); return; }
+    val = o.id+'|'+o.name;
+  }
+  try{
+    const res = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {method:'POST', body: JSON.stringify({
+      field_key:'addon_decor_design', customer_choice_override: val, assigned_value: f.assigned_value || '', remarks: f.remarks || '', removed:false, changed_by: who})});
+    showToast(clear ? 'Design cleared' : saveResultMessage(res));
+    await loadDetail();
+  }catch(e){ showToast('Could not save: '+e.message); }
 }
 async function saveDecorCustom(){
   const f = _decorAddonField('addon_decor_custom'); if(!f) return;

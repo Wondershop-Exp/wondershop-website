@@ -167,6 +167,15 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
             pr = 0.0
         if nm and pr <= 0:
             lines.append({"name": f"Add-on: {nm}", "details": [], "image": None, "price": None, "price_text": "Included"})
+    # Finalized design picked on the booking (2026-11-15, per Shruti): its
+    # name under the decor line, and its photo when it's a catalogue design.
+    _dz = cust_val("addon_decor_design")
+    if _dz and lines:
+        _did, _, _dnm = _dz.partition("|")
+        lines[0].setdefault("details", []).insert(0, f"Design: {_dnm or _did}")
+        _opt = cat.decor_option(_did.strip())
+        if _opt and _opt.get("image"):
+            lines[0]["image"] = _opt["image"]
     # Remarks typed on the booking's Decor row show on the plan too.
     _drm = ((fields.get("svc_decor") or {}).get("remarks") or "").strip()
     if _drm and lines:
