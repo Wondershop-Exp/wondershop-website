@@ -2,6 +2,7 @@ User-agent: *
 Allow: /
 Disallow: /admin.html
 Disallow: /tools/
+Disallow: /api/
 Disallow: /sorting-hat-admin.html
 
 Sitemap: https://www.wondershopexperiences.com/sitemap.xml
