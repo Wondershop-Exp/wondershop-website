@@ -379,15 +379,19 @@ _STD_DECOR_NAMES = {
 
 
 def _build_decor_options():
+    # "image" (2026-11-16, per Shruti — "decor dropdown in bookings - can you
+    # add small images as well"): the design's photo, a site path the booking
+    # page shows as a thumbnail in its decor picker.
     opts = []
     for theme in cat.THEMES:
-        for tier in theme["tierPhotos"].keys():
+        for tier, photo in theme["tierPhotos"].items():
             price = ((theme.get("tierOverrides") or {}).get(tier) or {}).get("price", cat.DECOR_TIER_META[tier]["price"])
             value = f'{theme["n"]} - {tier}'
-            opts.append(_opt(value, f'{value} - Rs. {price}'))
+            opts.append(dict(_opt(value, f'{value} - Rs. {price}'), image=f"img/{photo}" if photo else None))
     for tier, std_name in _STD_DECOR_NAMES.items():
         price = cat.DECOR_TIER_META[tier]["price"]
-        opts.append(_opt(std_name, f'{std_name} - Rs. {price}'))
+        std_photo = cat.STD_META.get(tier)
+        opts.append(dict(_opt(std_name, f'{std_name} - Rs. {price}'), image=f"img/{std_photo}" if std_photo else None))
     opts.append(_opt("Custom Design"))
     return opts
 

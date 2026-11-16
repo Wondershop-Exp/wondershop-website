@@ -289,11 +289,23 @@ async def website_ref_options(refresh: bool = True) -> list:
     try:
         from routers import admin as _a
         import booking_pricing as _bp
-        known = {o["value"] for o in _a.DECOR_OPTIONS}
+        # 2026-11-16, per Shruti ("I added a new premium decor - science design
+        # 13, but that's not showing up on the list"): a website design used to
+        # go to the very end of the Decor dropdown, just above Custom Design —
+        # far from its theme. Now it sits right after its theme's designs
+        # (else just above the standard decors), with its photo, and its
+        # photo / price / name stay current when edited.
+        by_value = {o["value"]: o for o in _a.DECOR_OPTIONS}
         for o in out:
-            if o["value"] not in known:
-                known.add(o["value"])
-                _a.DECOR_OPTIONS.insert(len(_a.DECOR_OPTIONS) - 1, {"value": o["value"], "label": f"{o['value']} - Rs. {o['price']}"})
+            entry = {"value": o["value"], "label": f"{o['value']} - Rs. {o['price']}", "image": o["image"]}
+            if o["value"] in by_value:
+                by_value[o["value"]].update(entry)
+                continue
+            opts = _a.DECOR_OPTIONS
+            same = [i for i, x in enumerate(opts) if str(x.get("value", "")).lower().startswith(str(o["theme"]).lower() + " - ")]
+            std = next((i for i, x in enumerate(opts) if x.get("value") in _a._STD_DECOR_NAMES.values()), len(opts) - 1)
+            opts.insert(same[-1] + 1 if same else std, entry)
+            by_value[o["value"]] = entry
             _a.DROPDOWN_VALUES.setdefault("svc_decor", set()).add(o["value"])
             _bp.DECOR_PRICES.setdefault(o["value"], o["price"])
     except Exception:

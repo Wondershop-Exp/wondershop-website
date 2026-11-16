@@ -466,6 +466,8 @@ table.list.static tr:hover td{background:inherit}
 .einvite-combo-opt img{width:28px;height:28px;object-fit:cover;border-radius:4px;flex-shrink:0}
 .einvite-combo-opt .einvite-combo-noimg{width:28px;height:28px;flex-shrink:0}
 .einvite-combo-opt span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.decor-combo .einvite-combo-thumb{width:34px;height:34px}
+.decor-combo .einvite-combo-opt img,.decor-combo .einvite-combo-noimg{width:46px;height:46px}
 /* 2026-09-10, per Shruti — Discount % should read "2%" not "2.00". The %
    is a plain visual suffix layered over the input (not part of its value),
    so saving/validation still send a bare number underneath. */
@@ -5279,11 +5281,11 @@ function einviteImgSrc(name){
 }
 
 function einviteComboOptRowHtml(rid, opt, isSelected){
-  const src = einviteImgSrc(opt.value);
+  const src = opt.image || einviteImgSrc(opt.value);   // decor options carry their own photo (2026-11-16)
   const imgHtml = src
     ? '<img src="'+esc(src)+'" alt="" onerror="this.style.visibility=\'hidden\'">'
     : '<span class="einvite-combo-noimg"></span>';
-  return '<div class="einvite-combo-opt'+(isSelected?' selected':'')+'" onclick="einviteComboPick('+attrJson(rid)+','+attrJson(opt.value)+')">'
+  return '<div class="einvite-combo-opt'+(isSelected?' selected':'')+'" data-value="'+esc(opt.value)+'" data-label="'+esc(opt.label)+'" data-img="'+esc(src)+'" onclick="einviteComboPick('+attrJson(rid)+','+attrJson(opt.value)+')">'
     + imgHtml
     + '<span>'+esc(opt.label)+'</span>'
     + '</div>';
@@ -5299,9 +5301,9 @@ function einviteComboHtml(rid, options, current){
   const opts = options.map(o=> (typeof o==='string') ? {value:o,label:o} : o);
   if(current && !opts.some(o=>o.value===current)) opts.unshift({value:current, label:current});
   const selectedOpt = opts.find(o=>o.value===current);
-  const btnSrc = einviteImgSrc(current);
+  const btnSrc = (selectedOpt && selectedOpt.image) || einviteImgSrc(current);
   const btnImgHidden = btnSrc ? '' : ' style="display:none"';
-  return '<div class="einvite-combo" id="'+rid+'_combo">'
+  return '<div class="einvite-combo'+(rid==='fld_svc_decor'?' decor-combo':'')+'" id="'+rid+'_combo">'
     +'<button type="button" class="einvite-combo-btn" onclick="einviteComboToggle('+attrJson(rid)+')">'
       +'<img class="einvite-combo-thumb" id="'+rid+'_combothumb" src="'+esc(btnSrc)+'"'+btnImgHidden+' alt="" onerror="this.style.display=\'none\'">'
       +'<span class="einvite-combo-label" id="'+rid+'_combolabel">'+esc(selectedOpt?selectedOpt.label:'No selection')+'</span>'
@@ -5338,7 +5340,7 @@ function einviteComboToggle(rid){
     const r = btn.getBoundingClientRect();
     panel.style.left = r.left+'px';
     panel.style.top = (r.bottom+4)+'px';
-    panel.style.width = Math.max(r.width, 240)+'px';
+    panel.style.width = Math.max(r.width, rid==='fld_svc_decor' ? 400 : 240)+'px';   // decor names are long (2026-11-16)
     panel.hidden = false;
     const se = panel.querySelector('.einvite-combo-search');
     if(se){ se.value=''; einviteComboFilter(se); setTimeout(()=>se.focus({preventScroll:true}), 0); }
@@ -5361,21 +5363,26 @@ function einviteComboPick(rid, value){
   const panel = document.getElementById(rid+'_combopanel');
   if(!ccEl) return;
   ccEl.value = value;
-  if(label) label.textContent = value || 'No selection';
+  const optEl = panel && Array.from(panel.querySelectorAll('.einvite-combo-opt')).find(el=>el.dataset.value===value);
+  if(label) label.textContent = (optEl && optEl.dataset.label) || value || 'No selection';
   if(thumb){
-    const src = einviteImgSrc(value);
+    const src = (optEl && optEl.dataset.img) || einviteImgSrc(value);
     if(src){ thumb.src = src; thumb.style.display = ''; }
     else{ thumb.style.display = 'none'; }
   }
   if(panel){
     panel.querySelectorAll('.einvite-combo-opt').forEach((el,i)=>{
-      el.classList.toggle('selected', el.querySelector('span:last-child').textContent===value);
+      el.classList.toggle('selected', el.dataset.value===value);
     });
     panel.hidden = true;
   }
   checkRowDirty(rid);  // hidden-input value change isn't a real DOM event, so nudge dirty-tracking directly
   const tr = ccEl.closest('tr[data-key]');
-  if(tr && LQ_FIELD_KEYS[tr.dataset.key]) lqPendingStrip(tr, _einviteListPrice(value));
+  if(tr && LQ_FIELD_KEYS[tr.dataset.key]){
+    // Decor: the list price is in the option's label ("… - Rs. 11000").
+    const m = tr.dataset.key==='svc_decor' && optEl && String(optEl.dataset.label||'').match(/Rs\.?\s*([\d,]+)/i);
+    lqPendingStrip(tr, tr.dataset.key==='svc_decor' ? (value && m ? Number(m[1].replace(/,/g,'')) : null) : _einviteListPrice(value));
+  }
 }
 // Close any open combo panel on an outside click (delegated once, not
 // re-attached per render — same pattern as initDirtyTracking() below).
@@ -6674,8 +6681,10 @@ function fieldRowHtml(f, isCustEvent, locked){
     // have small thumbnails to avoid confusion?"): a native <select> can't
     // render images inside its own popup in any browser, so this swaps in
     // a hand-built combo just for this field (see einviteComboHtml()).
-    if(f.field_key==='svc_einvite'){
-      ccCell = einviteComboHtml(rid, f.options, f.customer_choice||'');
+    if(f.field_key==='svc_einvite' || f.field_key==='svc_decor'){
+      // Decor too (2026-11-16, per Shruti — "decor dropdown in bookings - can
+      // you add small images as well"): each design with its photo, type to search.
+      ccCell = einviteComboHtml(rid, f.field_key==='svc_decor' ? [{value:'', label:'— Not selected —'}].concat(f.options) : f.options, f.customer_choice||'');
     }else{
       ccCell = selectHtml(rid+'_cc', f.options, f.customer_choice||'');
       // Customer's own gifts (2026-10-25): no gifts bought from us, so ask
