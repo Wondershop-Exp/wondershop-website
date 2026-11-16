@@ -67,6 +67,8 @@ PUBLIC_LIMITS = [
     ("POST", "/api/venue-info/", True, 300, 3600),
     # Training guides' AI voice (2026-11-12): public, so keep it tight.
     ("POST", "/api/training/tts", False, 40, 3600),
+    # Decorator job card link (2026-11-16): completion photos from the decorator's phone.
+    ("POST", "/api/decor-job/", True, 120, 3600),
 ]
 
 # ─── Roles (2026-10-01, per Shruti: "separate out logins for the sales team.

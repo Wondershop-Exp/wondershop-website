@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Decor Job – Wondershop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<!--
+  Decorator job card — the decorator's link (2026-11-16, per Shruti).
+  Opened from WhatsApp on a basic phone: big text, few words, no login, no
+  "confirm" steps. Shows the job (never the client's name or phone) and has
+  one big box per completion photo: tap, take the photo, it uploads on its
+  own and turns green. Backend: backend/routers/decor_jobs.py (/api/decor-job/<token>).
+-->
+<style>
+:root{--li:#B59DDE;--li2:#EDE6FA;--li3:#F5F0FF;--pk:#E65A96;--spk:#F5C3D7;--plum:#2E2438;--bk:#191919;--gy:#5B5568;--ok:#1E7A46;--okbg:#EAF6EF;--bad:#B42318;--badbg:#FDECEA;--fd:'Lora',serif;--fb:'DM Sans',system-ui,sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:var(--fb);color:var(--bk);background:var(--li3);font-size:17px;line-height:1.45}
+h1,h2{margin:0;line-height:1.15}
+h2{font-size:21px}
+a{color:var(--plum)}
+#msg{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:28px;text-align:center;color:var(--gy)}
+#msg h2{color:var(--pk);font-family:var(--fd)}
+#app{display:none;max-width:520px;margin:0 auto;padding-bottom:40px}
+.top{background:var(--plum);color:#fff;padding:18px 18px 22px;display:flex;flex-direction:column;gap:6px}
+.top .brand{font-size:14px;font-weight:700;color:var(--li)}
+.top h1{font-family:var(--fd);font-size:30px}
+.top .sub{font-size:19px;font-weight:700;color:var(--spk)}
+.badge{align-self:flex-start;margin-top:6px;background:var(--pk);color:#fff;font-weight:800;font-size:17px;padding:6px 14px;border-radius:999px}
+.wrap{padding:14px;display:flex;flex-direction:column;gap:14px}
+.times{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.times div{background:#fff;border-radius:14px;padding:12px 6px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.times span{font-size:13px;font-weight:700;color:var(--gy)}
+.times b{font-size:20px;font-weight:800}
+.times .main{background:var(--plum);color:#fff}
+.times .main span{color:var(--spk)}
+.card{background:#fff;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.big{display:flex;align-items:center;justify-content:center;gap:10px;min-height:56px;border-radius:12px;background:var(--pk);color:#fff;text-decoration:none;font-weight:800;font-size:18px;border:0;width:100%;font-family:var(--fb)}
+.big.dark{background:var(--plum)}
+.big.line{background:#fff;color:var(--plum);border:2px solid var(--plum)}
+.note{background:#FFF6DA;border-radius:10px;padding:10px 12px;font-size:16px}
+.pic{display:block;width:100%;border-radius:12px;background:var(--li2);min-height:120px;object-fit:cover}
+.list{display:flex;flex-direction:column}
+.list div{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--li2)}
+.list div:last-child{border-bottom:0}
+.list b{text-align:right}
+.req{background:var(--li2);border-radius:12px;padding:12px 14px}
+.req span{display:block;font-size:13px;font-weight:800;color:var(--plum);letter-spacing:.4px}
+.num{display:flex;gap:12px;align-items:flex-start;padding:5px 0}
+.num i{font-style:normal;flex:0 0 28px;height:28px;border-radius:8px;background:var(--plum);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+.ret{background:#FFF6DA;border:2px solid #F1D27A}
+.amt{flex-direction:row;justify-content:space-between;align-items:center}
+.amt b{font-size:28px;font-weight:800}
+.photos{border:3px solid var(--pk)}
+.ph-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ph-head b{color:var(--ok);font-size:16px;font-weight:800;white-space:nowrap}
+.ph{position:relative;display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;border:2px solid #CFC7E0;background:#fff;min-height:88px;width:100%;text-align:left;font-family:var(--fb);color:var(--bk);cursor:pointer}
+.ph input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.ph .th{flex:0 0 64px;height:64px;border-radius:10px;background:var(--li2) center/cover no-repeat;display:flex;align-items:center;justify-content:center}
+.ph .tx{flex:1 1 auto;display:flex;flex-direction:column;gap:2px;min-width:0}
+.ph .tx b{font-size:18px}
+.ph .tx span{font-size:14px;font-weight:700;color:var(--gy)}
+.ph .ic{flex:0 0 42px;height:42px;border-radius:50%;background:var(--pk);color:#fff;display:flex;align-items:center;justify-content:center}
+.ph.done{border-color:var(--ok);background:var(--okbg)}
+.ph.done .tx span{color:var(--ok)}
+.ph.done .ic{background:var(--ok)}
+.ph.bad{border-color:var(--bad);background:var(--badbg)}
+.ph.bad .tx span{color:var(--bad)}
+.ph.bad .ic{background:var(--bad)}
+.ph.busy .ic{background:var(--li)}
+.ph.busy{pointer-events:none}
+.alldone{background:var(--okbg);border:2px solid var(--ok);border-radius:14px;padding:16px;text-align:center;font-size:19px;font-weight:800;color:var(--ok)}
+.hint{font-size:15px;color:var(--gy);text-align:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{width:22px;height:22px;border:3px solid rgba(255,255,255,.5);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+</style>
+</head>
+<body>
+<div id="msg"><div class="spin" style="border-color:var(--li2);border-top-color:var(--pk)"></div><div>Loading…</div></div>
+<div id="app"></div>
+
+<script>
+var API = 'https://wondershop-website-production.up.railway.app';
+var TOKEN = new URLSearchParams(location.search).get('t') || '';
+var V = null;
+var STATE = {};   // slot -> 'done' | 'busy' | 'bad'
+
+var IC = {
+  pin: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  phone: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>',
+  cam: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  tick: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  retry: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>'
+};
+
+function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showMsg(title, text){
+  document.getElementById('app').style.display = 'none';
+  var m = document.getElementById('msg'); m.style.display = 'flex';
+  m.innerHTML = '<h2>'+esc(title)+'</h2><div>'+esc(text)+'</div>';
+}
+function mapsUrl(q){ return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q); }
+function telUrl(p){ return 'tel:'+String(p).replace(/[^\d+]/g,''); }
+
+function load(){
+  if(!TOKEN){ showMsg('Link not complete', 'Please open the full link from WhatsApp.'); return; }
+  fetch(API+'/api/decor-job/'+encodeURIComponent(TOKEN)).then(function(r){
+    if(r.status === 404) throw new Error('404');
+    if(!r.ok) throw new Error('x');
+    return r.json();
+  }).then(function(v){
+    V = v; STATE = {};
+    (v.photos||[]).forEach(function(p){ if(p.url) STATE[p.slot] = 'done'; });
+    draw();
+  }).catch(function(e){
+    if(e.message === '404') showMsg('Link not valid', 'Please ask the Wondershop coordinator for the link again.');
+    else showMsg('No internet?', 'Could not open the job. Please check internet and open the link again.');
+  });
+}
+
+function draw(){
+  var v = V, t = v.times || {}, h = '';
+  h += '<div class="top"><div class="brand">Wondershop · Decor job</div>'
+    + '<h1>'+esc([v.date, v.area].filter(Boolean).join(' | ') || v.title)+'</h1>'
+    + '<div class="sub">'+esc([v.package, t.ready ? 'Ready by '+t.ready : ''].filter(Boolean).join(' · '))+'</div>'
+    + ((v.age || v.theme) ? '<div class="badge">'+esc([v.age ? 'AGE '+v.age : '', v.theme].filter(Boolean).join(' · '))+'</div>' : '')
+    + '</div><div class="wrap">';
+
+  if(t.handover || t.ready || t.packup){
+    h += '<div class="times">'
+      + '<div><span>Handover</span><b>'+esc(t.handover || '–')+'</b></div>'
+      + '<div class="main"><span>READY BY</span><b>'+esc(t.ready || '–')+'</b></div>'
+      + '<div><span>Packup</span><b>'+esc(t.packup || '–')+'</b></div></div>';
+  }
+
+  if(v.venue || v.maps){
+    h += '<div class="card"><h2>Venue</h2>'
+      + (v.venue ? '<div style="font-size:18px">'+esc(v.venue)+(v.floor ? '<br><b>'+esc(v.floor)+'</b>' : '')+'</div>' : '')
+      + (v.venue_notes ? '<div class="note">'+esc(v.venue_notes)+'</div>' : '')
+      + '<a class="big" href="'+esc(v.maps || mapsUrl(v.venue))+'" target="_blank" rel="noopener">'+IC.pin+' Open in Maps</a></div>';
+  }
+
+  h += '<div class="card"><h2>Decor to make</h2>';
+  (v.pictures||[]).forEach(function(p){ h += '<a href="'+esc(p.url)+'" target="_blank" rel="noopener"><img class="pic" src="'+esc(p.url)+'" alt="'+esc(p.label || 'Decor picture')+'" loading="lazy"></a>'; });
+  if(v.colours) h += '<div class="note"><b>Colours:</b> '+esc(v.colours)+'</div>';
+  if((v.components||[]).length){
+    h += '<div class="list">';
+    v.components.forEach(function(c){
+      h += '<div><span>'+esc(c.label)+(c.notes ? '<br><small style="color:var(--gy)">'+esc(c.notes)+'</small>' : '')+'</span><b>'+esc(c.qty)+'</b></div>';
+    });
+    h += '</div>';
+  }
+  if(v.name_request) h += '<div class="req"><span>NAME</span>'+esc(v.name_request.replace(/^Child's name:\s*/, ''))+'</div>';
+  if(v.custom_requests) h += '<div class="req"><span>SPECIAL REQUEST</span>'+esc(v.custom_requests)+'</div>';
+  h += '</div>';
+
+  if((v.bring||[]).length){
+    h += '<div class="card"><h2>You bring</h2>';
+    v.bring.forEach(function(b, i){ h += '<div class="num"><i>'+(i+1)+'</i><span>'+esc(b)+'</span></div>'; });
+    h += '</div>';
+  }
+
+  if((v.ours||[]).length){
+    h += '<div class="card"><h2>Pick up from Wondershop</h2><div style="font-size:18px">'+esc(v.ours.join(' · '))+'</div>'
+      + ((v.pickup_location || v.pickup_by) ? '<div><b>'+esc(v.pickup_location)+'</b>'+(v.pickup_by ? '<br>Before <b>'+esc(v.pickup_by)+'</b>' : '')+'</div>' : '')
+      + (v.pickup_location ? '<a class="big line" href="'+esc(mapsUrl(v.pickup_location))+'" target="_blank" rel="noopener">Open pickup in Maps</a>' : '')
+      + '</div>';
+  }
+
+  if((v.returns||[]).length){
+    h += '<div class="card ret"><h2>Give back after party</h2>';
+    v.returns.forEach(function(r){ h += '<div style="font-size:18px">'+esc((r.qty ? r.qty+' ' : '')+r.item)+'</div>'; });
+    h += '</div>';
+  }
+
+  if(v.amount) h += '<div class="card amt"><span style="font-weight:700;color:var(--gy)">Your amount</span><b>'+esc(v.amount)+'</b></div>';
+
+  h += '<div class="card photos" id="photos">'+photosHtml()+'</div>';
+
+  if(v.coordinator_phone || v.coordinator_name){
+    h += '<div class="hint">Any problem? Call the coordinator</div>'
+      + (v.coordinator_phone ? '<a class="big dark" href="'+esc(telUrl(v.coordinator_phone))+'">'+IC.phone+' Call '+esc(v.coordinator_name || v.coordinator_phone)+'</a>'
+                             : '<div class="hint"><b>'+esc(v.coordinator_name)+'</b></div>');
+  }
+  h += '</div>';
+
+  document.getElementById('msg').style.display = 'none';
+  var app = document.getElementById('app'); app.innerHTML = h; app.style.display = 'block';
+}
+
+function photosHtml(){
+  var list = V.photos || [], n = 0;
+  list.forEach(function(p){ if(STATE[p.slot] === 'done') n++; });
+  var h = '<div class="ph-head"><h2>Send photos</h2>'+(list.length ? '<b>'+n+' of '+list.length+' done</b>' : '')+'</div>';
+  if(V.approved){
+    return h + '<div class="alldone">Decor approved. Thank you!</div>';
+  }
+  h += '<div class="hint" style="text-align:left">When decor is ready, tap each box and take the photo.</div>';
+  list.forEach(function(p){
+    var st = STATE[p.slot] || '', thumb = p.url ? ' style="background-image:url(\''+esc(p.url)+'\')"' : '';
+    var sub = st === 'done' ? 'Sent ✓ (tap to send again)' : st === 'busy' ? 'Sending… please wait' : st === 'bad' ? 'Not sent – tap to try again' : (p.hint || 'Tap to take photo');
+    var icon = st === 'done' ? IC.tick : st === 'bad' ? IC.retry : st === 'busy' ? '<div class="spin"></div>' : IC.cam;
+    h += '<label class="ph '+(st==='done'?'done':st==='bad'?'bad':st==='busy'?'busy':'')+'">'
+      + '<input type="file" accept="image/*" capture="environment" aria-label="'+esc(p.label)+'" onchange="pick(\''+esc(p.slot)+'\', this)">'
+      + '<span class="th"'+thumb+'></span>'
+      + '<span class="tx"><b>'+esc(p.label)+'</b><span>'+esc(sub)+'</span></span>'
+      + '<span class="ic">'+icon+'</span></label>';
+  });
+  if(list.length && n === list.length) h += '<div class="alldone">All photos sent. Thank you!</div>';
+  return h;
+}
+function redrawPhotos(){ var el = document.getElementById('photos'); if(el) el.innerHTML = photosHtml(); }
+
+// Shrink the photo on the phone before sending: quick on slow internet, saves data.
+function shrink(file){
+  return new Promise(function(resolve){
+    try{
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function(){
+        try{
+          var max = 1600, w = img.naturalWidth, h = img.naturalHeight, s = Math.min(1, max / Math.max(w, h));
+          var c = document.createElement('canvas'); c.width = Math.round(w * s); c.height = Math.round(h * s);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          URL.revokeObjectURL(url);
+          c.toBlob(function(b){ resolve(b && b.size > 1000 ? b : file); }, 'image/jpeg', 0.82);
+        }catch(e){ resolve(file); }
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    }catch(e){ resolve(file); }
+  });
+}
+
+function pick(slot, input){
+  var f = input.files && input.files[0];
+  if(!f) return;
+  STATE[slot] = 'busy'; redrawPhotos();
+  shrink(f).then(function(blob){
+    var fd = new FormData(); fd.append('image', blob, 'photo.jpg');
+    return fetch(API+'/api/decor-job/'+encodeURIComponent(TOKEN)+'/photo/'+encodeURIComponent(slot), {method:'POST', body: fd});
+  }).then(function(r){
+    if(r.status === 409){ V.approved = true; throw new Error('approved'); }
+    if(!r.ok) throw new Error('x');
+    return r.json();
+  }).then(function(b){
+    STATE[slot] = 'done';
+    (V.photos||[]).forEach(function(p){ if(p.slot === slot) p.url = b.url; });
+    redrawPhotos();
+  }).catch(function(e){
+    STATE[slot] = e.message === 'approved' ? 'done' : 'bad';
+    redrawPhotos();
+  });
+}
+
+load();
+</script>
+</body>
+</html>

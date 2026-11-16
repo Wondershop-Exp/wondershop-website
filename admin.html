@@ -156,6 +156,43 @@ table.list th.sortable:hover{color:var(--bk)}
 .team-tbl td{padding:4px 6px;vertical-align:middle}
 .team-tbl input[type=text],.team-tbl input[type=number],.team-tbl input[type=date],.team-tbl select{width:100%;box-sizing:border-box;height:36px;padding:7px 8px;border:1px solid var(--li2);border-radius:8px;font:inherit;font-size:13px;background-color:#fff;margin:0}
 .team-tbl tr.paid td{background:#F3FBF5}
+/* Decorator Job Card (2026-11-16) — js/decor-job-admin.js */
+.dj-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.dj-chip{display:inline-block;padding:5px 11px;border-radius:999px;background:var(--li2);color:var(--plum);font-size:12px;font-weight:700}
+.dj-chip.ok{background:#DCF3E4;color:#166534}.dj-chip.warn{background:#FFF1C9;color:#6B4A00}
+.dj-title{background:var(--li3);border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:6px}
+.dj-title b{font-size:15px}.dj-title small{display:block;color:var(--gy);font-size:11.5px;margin-top:2px}
+.dj-h{font-weight:700;font-size:13.5px;margin:16px 0 8px;color:var(--plum)}
+.dj-h small{font-weight:500;color:var(--gy);font-size:12px;margin-left:6px}
+.dj-auto{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px 14px;background:#F7F5FB;border-radius:10px;padding:10px 12px}
+.dj-auto div{display:flex;flex-direction:column;font-size:13px;min-width:0}
+.dj-auto span{font-size:11px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.3px}
+.dj-auto b{font-weight:600;overflow-wrap:anywhere}.dj-auto em{color:#B4232C;font-style:normal;font-weight:600}
+.dj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px 14px}
+.dj-f{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:var(--gy);margin-bottom:8px}
+.dj-f input,.dj-f select,.dj-f textarea{width:100%;box-sizing:border-box;min-height:38px;padding:8px 10px;border:1px solid var(--li2);border-radius:8px;font:inherit;font-size:13.5px;font-weight:400;color:var(--bk);background:#fff;margin:0}
+.dj-f textarea{resize:vertical}
+.dj-f small{font-weight:500;font-size:11.5px}
+.dj-check{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;margin:6px 0 2px;cursor:pointer}
+.dj-check input{width:18px;height:18px}
+.dj-muted{font-size:12px;color:var(--gy)}
+.dj-pics{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.dj-pics img,.dj-ref img{width:120px;height:120px;object-fit:cover;border-radius:10px;display:block;border:1px solid var(--li2)}
+.dj-ref{position:relative}
+.dj-ref .icon-btn{position:absolute;top:4px;right:4px;background:#fff;border-radius:50%}
+.dj-ref.add{width:120px;height:120px;border:2px dashed var(--li);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--pk);cursor:pointer}
+.dj-tbl tr.off input[type=text]{color:#9CA3AF;text-decoration:line-through}
+.dj-phs{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.dj-ph{border:1px dashed var(--li);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px}
+.dj-ph.got{border-style:solid;border-color:#86D19F;background:#F3FBF5}
+.dj-ph-img{display:block;height:110px;border-radius:8px;overflow:hidden;background:#FAF8FD}
+.dj-ph-img img{width:100%;height:100%;object-fit:cover;display:block}
+.dj-ph-img.empty{display:flex;align-items:center;justify-content:center;color:var(--gy);font-size:12px}
+.dj-ph input{width:100%;box-sizing:border-box;height:32px;padding:5px 8px;border:1px solid var(--li2);border-radius:7px;font:inherit;font-size:12.5px}
+.dj-ph-act{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px}
+.dj-ph-act .ok{color:#166534;font-weight:700}
+.dj-ph-act label.mini-btn{cursor:pointer}
+.dj-tbl .icon-btn,.dj-ph .icon-btn,.dj-ref .icon-btn{border:none;background:none;color:var(--gy);font-size:14px;padding:4px 6px;cursor:pointer}
 .team-sum{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;margin:10px 0}
 .team-sum b{font-size:14px}
 .team-sum2{font-size:13.5px;margin:12px 0;display:flex;flex-direction:column;gap:5px}
@@ -986,6 +1023,12 @@ body.role-sales .admin-only{display:none!important}
       <div id="venMaster" style="margin-bottom:14px"></div>
       <div style="font-weight:700;font-size:13.5px;margin:4px 0 6px">Venue form for this party</div>
       <div id="venBlock"></div>
+    </div>
+    <!-- Decorator Job Card (2026-11-16, per Shruti) — admin only; js/decor-job-admin.js,
+         decorator's link decor-job.html?t=<token>. -->
+    <div class="log-section" id="djSection" style="display:none">
+      <h3>🎈 Decorator Job Card <span style="font-size:11px;font-weight:600;color:var(--gy);text-transform:none;letter-spacing:0">admin only</span></h3>
+      <div id="djBlock"></div>
     </div>
     <div class="log-section" id="teamSection" style="display:none">
       <h3>Partners &amp; Expenses <span style="font-size:11px;font-weight:600;color:var(--gy);text-transform:none;letter-spacing:0">admin only</span></h3>
@@ -4845,6 +4888,7 @@ function renderDetail(d){
   renderSpyRegistrationBlock(d);
   renderInviteBlock(d);
   renderTeamBlock(d);
+  if(typeof renderDecorJob === 'function') renderDecorJob(d);   // 2026-11-16 decorator job card
   renderFeedbackBlock(d);
   renderVenueBlock(d);
   // Return Gift Order sits inside Billing & Rewards (2026-10-25, per Shruti).
@@ -7065,5 +7109,6 @@ async function decorRefRemove(btn){
 </script>
 <script src="js/floor-map.js"></script>
 <script src="js/lead-venues.js"></script>
+<script src="js/decor-job-admin.js?v=20261116a"></script>
 </body>
 </html>
