@@ -491,7 +491,7 @@ LEAD_STATUSES = ["New", "Unanswered", "Initial Discussions Done", "Proposal Sent
 # dropdown's full option list.
 LEAD_STATUS_DROPDOWN_VALUES = ["New", "Unanswered", "Re-engage later", "Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing", "Converted", "Not Interested", "DND", "Did not Enquire"]
 LEAD_STATUS_OPTIONS = [_opt(x) for x in LEAD_STATUS_DROPDOWN_VALUES]
-BOOKING_DISPLAY_STATUSES = ["New", "Upcoming", "Complete", "Cancelled"]
+BOOKING_DISPLAY_STATUSES = ["New", "Upcoming", "Payment Pending", "Complete", "Cancelled"]
 
 # Shown only when a lead is marked Not Interested / DND — i.e. it left the
 # pipeline without converting.
@@ -513,8 +513,12 @@ def _booking_display_status(lead: dict, paid: bool = False) -> str:
     ed = event_date if isinstance(event_date, date_cls) else datetime.strptime(str(event_date), "%Y-%m-%d").date()
     # 2026-11-02, per Shruti: on the event day, recording the final payment
     # (or Payment Status = Complete) marks it Complete straight away.
-    if ed < today or (paid and ed <= today):
+    # 2026-11-16, per Shruti (#1299) — Complete only once the payment is
+    # recorded; an event that has happened without it is "Payment Pending".
+    if paid and ed <= today:
         return "Complete"
+    if ed < today:
+        return "Payment Pending"
     return "Upcoming"
 
 

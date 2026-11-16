@@ -747,6 +747,11 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
                 price = float(_first)
             else:
                 _custom_quotes[line_key(lbl)] = price
+        elif t["kind"] == "activity":
+            # Price-on-request activity (2026-11-16, per Shruti — #1299): the
+            # price set on its To be confirmed entry is the agreed price, so
+            # it replaces any older sales quote for that line.
+            _custom_quotes[line_key(lbl)] = price
         add(lbl, price)
 
     total_mrp = round(sum(a for _l, a in items), 2)
