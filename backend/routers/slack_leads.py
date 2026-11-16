@@ -1231,6 +1231,17 @@ async def slack_events(request: Request):
             return {"ok": True}
         asyncio.get_running_loop().create_task(_safe(slack_vendors.handle_message(ev)))
         return {"ok": True}
+    # #packing (2026-11-16): "ishani f8 ghatkopar" + items -> that booking's packing list.
+    if settings.SLACK_PACKING_CHANNEL and ev.get("channel") == settings.SLACK_PACKING_CHANNEL:
+        from routers import slack_packing
+        if ev.get("thread_ts") and ev.get("thread_ts") != ev.get("ts"):
+            post = await database.fetch_one("SELECT * FROM slack_packing_posts WHERE channel = :c AND ts = :t",
+                                            values={"c": ev.get("channel"), "t": ev.get("thread_ts")})
+            if post:
+                asyncio.get_running_loop().create_task(_safe(slack_packing.handle_thread(ev, dict(post))))
+            return {"ok": True}
+        asyncio.get_running_loop().create_task(_safe(slack_packing.handle_message(ev)))
+        return {"ok": True}
     if settings.SLACK_LEADS_CHANNEL and ev.get("channel") != settings.SLACK_LEADS_CHANNEL:
         return {"ok": True}
     if ev.get("thread_ts") and ev.get("thread_ts") != ev.get("ts"):

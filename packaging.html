@@ -159,7 +159,7 @@ table.list tr:hover td{background:var(--li3)}
     <div class="card">
       <h3>Party details</h3>
       <div class="grid3">
-        <div class="fld"><label>Title</label><input type="text" id="cTitle" placeholder="e.g. Advit's 8th Birthday"></div>
+        <div class="fld"><label>Title</label><input type="text" id="cTitle" placeholder="e.g. Ishani F8 Ghatkopar" title="Standard event name: Name, gender + age, area — e.g. Ishani F8 Ghatkopar"></div>
         <div class="fld"><label>Event lead</label><input type="text" id="cEventLead" placeholder="e.g. Mitika"></div>
         <div class="fld"><label>Booking ID</label><input type="number" id="cLeadId" placeholder="e.g. 214" onchange="prefillFromBooking(this.value)"></div>
       </div>
@@ -291,7 +291,10 @@ function enterApp(){
   document.getElementById('whoName').value = getName();
   loadTemplates();
   const params = new URLSearchParams(location.search);
-  if(params.get('lead_id') || params.get('title')){
+  // One packing list per booking (2026-11-16): coming from a booking opens
+  // its list if it has one; else a new list with the standard event name.
+  if(params.get('lead_id')){ openForBooking(params.get('lead_id')); return; }
+  if(params.get('title')){
     openComposer();
     if(params.get('title')) document.getElementById('cTitle').value = params.get('title');
     if(params.get('event_lead')) document.getElementById('cEventLead').value = params.get('event_lead');
@@ -618,9 +621,31 @@ function fmtPackTime(t){
   const h = parseInt(m[1],10);
   return ((h%12)||12)+(m[2]==='00'?'':':'+m[2])+(h<12?'am':'pm');
 }
+async function openForBooking(id){
+  try{
+    const d = await apiCall('/api/admin/packaging/for-booking/'+encodeURIComponent(id));
+    if(d.list){ await editList(d.list.id); return; }
+    openComposer();
+    document.getElementById('cTitle').value = d.suggested_title || '';
+    document.getElementById('cLeadId').value = id; lockBookingId(true);
+    prefillFromBooking(id);
+  }catch(e){ openComposer(); showToast(e.message||('Couldn\'t open booking #'+id)); }
+}
 async function prefillFromBooking(id){
   id = String(id||'').trim();
   if(!id) return;
+  // Typed a booking that already has a list -> say so (one list per event).
+  if(!CURRENT_LIST_ID){
+    try{
+      const pb = await apiCall('/api/admin/packaging/for-booking/'+encodeURIComponent(id));
+      if(pb.list){
+        if(confirm('Booking #'+id+' already has a packing list: "'+pb.list.title+'". Open it?')){ editList(pb.list.id); }
+        else { document.getElementById('cLeadId').value=''; }
+        return;
+      }
+      const t = document.getElementById('cTitle'); if(t && !t.value.trim()) t.value = pb.suggested_title || '';
+    }catch(e){}
+  }
   try{
     const d = await apiCall('/api/admin/bookings/'+id);
     const f = {};

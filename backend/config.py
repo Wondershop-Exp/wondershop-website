@@ -65,6 +65,10 @@ class Settings(BaseSettings):
     # cards / contact notes posted here are saved to the vendor master.
     # Default: the private #vendor-contacts channel. Blank = off.
     SLACK_VENDOR_CHANNEL: str = "C0CCKURLL0K"
+    # Packing bot (2026-11-16, routers/slack_packing.py): "ishani f8 ghatkopar"
+    # + items posted here are added to that booking's packing list. Channel
+    # ID (C0...). Default: the private #packing channel. Blank = off.
+    SLACK_PACKING_CHANNEL: str = "C0CHVURV3TP"
     # Daily business update (routers/daily_report.py, 2026-10-20): channel ID to post
     # to (name or ID), and the IST time (HH:MM) to post at. Blank channel = off.
     SLACK_REPORT_CHANNEL: str = "#business-performance"

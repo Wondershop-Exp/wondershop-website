@@ -62,6 +62,7 @@ SAFE_MIGRATIONS = [
     "083_base_salary.sql",
     "084_vendor_items.sql",
     "085_venues.sql",   # 2026-11-13 venue master + lead links
+    "087_packing_one_per_booking.sql",   # 2026-11-16 one packing list per booking + Slack packing bot
 ]
 
 
@@ -101,6 +102,13 @@ async def ensure_schema() -> None:
             except Exception as exc:
                 logger.warning(f"ensure_schema: {name}: {exc}")
     logger.info("ensure_schema: done")
+    try:   # 2026-11-16 - old "<parent>'s Party" packing-list titles -> "Ishani F8 Ghatkopar"
+        from routers.packaging import rename_old_default_titles
+        n = await rename_old_default_titles()
+        if n:
+            logger.info(f"ensure_schema: {n} packing list(s) renamed to the standard event name")
+    except Exception as exc:
+        logger.warning(f"rename_old_default_titles: {exc}")
     try:
         await rename_activities()
     except Exception as exc:

@@ -1660,9 +1660,33 @@ function renderBookingHead(d){
   // Quotation / party-plan PDF of this booking (2026-10-06, per Shruti).
   const quoteBtns = '<button type="button" class="mini-btn save" id="bdQuoteBtn" onclick="getBookingQuote(false)" title="Party plan PDF with pictures, prices and every detail — to send to the client">📄 '+(d.is_booking?'Party plan PDF':'Quotation PDF')+'</button>'
     + (bookingCanShareFiles() ? ' <button type="button" class="mini-btn" id="bdQuoteShareBtn" onclick="getBookingQuote(true)" title="Share the PDF straight to WhatsApp">📤 Share</button>' : '')
-    + (d.is_booking ? ' <button type="button" class="mini-btn" onclick="openOpsSheet('+d.lead_id+')" title="Everything ops needs on one printable page: services, partners, remarks, sales notes, venue details, requests and T&amp;C">📋 Ops sheet</button>' : '');
+    + (d.is_booking ? ' <button type="button" class="mini-btn" onclick="openOpsSheet('+d.lead_id+')" title="Everything ops needs on one printable page: services, partners, remarks, sales notes, venue details, requests and T&amp;C">📋 Ops sheet</button>' : '')
+    + (d.is_booking ? ' <span id="bdPackBox" class="admin-only" style="display:inline-flex;gap:6px;align-items:center"></span>' : '');
   document.getElementById('bdTopRight').innerHTML = quoteBtns + (CURRENT_ORIGIN === 'Sales'
     ? ' <a class="linkbtn" href="sales-leads.html?lead_id='+d.lead_id+'" target="_blank">Open sales playbook ↗</a>' : '');
+  if(d.is_booking) bdPackMount(d.lead_id);
+}
+
+// Packing list on the booking page (2026-11-16, per Shruti — "1 event will
+// have only 1 packing list. give packing list access from the booking page").
+// Shows the booking's list with how much is packed + the staff link, or a
+// button to make it (named the standard way, e.g. "Ishani F8 Ghatkopar").
+async function bdPackMount(id){
+  const box = document.getElementById('bdPackBox'); if(!box) return;
+  try{
+    const p = await apiCall('/api/admin/packaging/for-booking/'+id);
+    if(String(CURRENT_LEAD_ID)!==String(id) || !document.getElementById('bdPackBox')) return;
+    const open = 'packaging.html?lead_id='+id;
+    if(!p.list){
+      box.innerHTML = '<a class="mini-btn" href="'+open+'" target="_blank" style="text-decoration:none" title="New packing list: '+esc(p.suggested_title||'')+'">📦 Make packing list</a>';
+      return;
+    }
+    const pr = p.list.progress||{checked:0,total:0};
+    const state = p.list.submitted_at ? '✅ packed' : (pr.checked+'/'+pr.total+' packed');
+    const staff = location.origin + location.pathname.replace(/admin\.html$/,'') + p.list.share_url.replace(/^\//,'');
+    box.innerHTML = '<a class="mini-btn" href="'+open+'" target="_blank" style="text-decoration:none" title="'+esc(p.list.title)+'">📦 Packing list · '+state+'</a>'
+      + '<button type="button" class="mini-btn" onclick="navigator.clipboard.writeText(\''+esc(staff)+'\').then(()=>showToast(\'Staff link copied.\'))" title="Link for the team packing on the tablet">🔗 Staff link</button>';
+  }catch(e){ box.innerHTML=''; }
 }
 
 // ── 1-day-before WhatsApp message (2026-10-09, per Shruti) ──────────────
@@ -4367,7 +4391,7 @@ function updateBookingTotals(rows){
     t.innerHTML = 'Total booking value: <b>'+_bkMoney(sum)+'</b> <span>'+rows.length+' booking'+(rows.length===1?'':'s')+' shown · cancelled not counted</span>'; }
 }
 function bookingRowHtml(r){
-  const pack = '<a class="mini-btn admin-only" href="packaging.html?lead_id='+r.lead_id+'&title='+encodeURIComponent((r.parent_name||('Booking #'+r.lead_id))+"'s Party")+'&event_lead=" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">📦 Pack list</a>';
+  const pack = '<a class="mini-btn admin-only" href="packaging.html?lead_id='+r.lead_id+'" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">📦 Pack list</a>';
   const print = '<button class="mini-btn" onclick="event.stopPropagation();openOpsSheet('+r.lead_id+')" title="Ops sheet — every option with remarks, sales notes, requests and T&amp;C">📋 Ops sheet</button>';
   const cancel = r.status==='Cancelled' ? '' : '<button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button>';
   return '<tr onclick="openBooking('+r.lead_id+')">'
@@ -4505,7 +4529,7 @@ function listActionsCellHtml(r, kind){
   }
   // 2026-09-08, per Shruti — packaging assist module: quick jump from a
   // confirmed booking row straight into a pre-filled packing-list composer.
-  const packLink = '<a class="mini-btn admin-only" href="packaging.html?lead_id='+r.lead_id+'&title='+encodeURIComponent((r.parent_name||('Booking #'+r.lead_id))+"'s Party")+'&event_lead=" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">📦 Pack list</a>';
+  const packLink = '<a class="mini-btn admin-only" href="packaging.html?lead_id='+r.lead_id+'" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">📦 Pack list</a>';
   // 2026-10-18 — Sorting Hat event code for this booking (admin only).
   const hatLink = '<a class="mini-btn admin-only" href="sorting-hat-admin.html?lead_id='+r.lead_id+'" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">🎩 Sorting Hat</a>';
   if(r.status==='Cancelled') return '<div style="display:flex">'+packLink+'</div>';

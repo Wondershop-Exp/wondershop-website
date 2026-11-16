@@ -41,6 +41,7 @@ from database import database
 from routers.admin import _require_admin
 from routers.leads import _gmail_send, SITE_BASE_URL
 from config import settings
+from event_naming import event_name
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -249,6 +250,12 @@ async def create_list(body: ListCreateIn, x_admin_password: Optional[str] = Head
     _require_admin(x_admin_password)
     if not body.title.strip():
         raise HTTPException(status_code=400, detail="Title is required.")
+    # One packing list per event (2026-11-16, per Shruti).
+    if body.lead_id:
+        dup = await list_for_booking(body.lead_id)
+        if dup:
+            raise HTTPException(status_code=409, detail=f"Booking #{body.lead_id} already has a packing list "
+                                                        f"(\"{dup['title']}\") — open that one instead.")
     token = secrets.token_urlsafe(18)
     list_id = await database.execute(
         """INSERT INTO packaging_lists (lead_id, title, event_lead, event_date, event_time, venue, share_token, created_by)
@@ -282,6 +289,10 @@ async def update_list_meta(list_id: int, body: ListMetaIn, x_admin_password: Opt
     if body.lead_id and not row["lead_id"]:
         if not await database.fetch_one("SELECT 1 FROM leads WHERE lead_id = :l", values={"l": body.lead_id}):
             raise HTTPException(status_code=400, detail=f"No booking #{body.lead_id}.")
+        dup = await list_for_booking(body.lead_id)
+        if dup and dup["id"] != list_id:
+            raise HTTPException(status_code=409, detail=f"Booking #{body.lead_id} already has a packing list "
+                                                        f"(\"{dup['title']}\").")
         sets.append("lead_id = :lead_id"); values["lead_id"] = body.lead_id
     if body.title is not None:
         sets.append("title = :title"); values["title"] = body.title.strip()
@@ -297,6 +308,180 @@ async def update_list_meta(list_id: int, body: ListMetaIn, x_admin_password: Opt
         sets.append("updated_at = NOW()")
         await database.execute(f"UPDATE packaging_lists SET {', '.join(sets)} WHERE id = :id", values=values)
     return await _full_list(list_id)
+
+
+# ─── one list per booking (2026-11-16, per Shruti) ──────────────────────────
+# "1 event will have only 1 packing list. give packing list access from the
+# booking page as well." The booking page asks /for-booking/{id}: the list if
+# there is one (to open it), else the standard name for a new one
+# ("Ishani F8 Ghatkopar", event_naming.py). The Slack packing bot
+# (routers/slack_packing.py) uses get_or_create_for_booking + add_items.
+
+BOOKING_COLS = ("lead_id, parent_name, child_names, child_ages, child_genders, kids_count, "
+                "event_date, event_time, venue, city, status, is_booking")
+
+
+async def list_for_booking(lead_id: int):
+    return await database.fetch_one(
+        "SELECT * FROM packaging_lists WHERE lead_id = :l ORDER BY id LIMIT 1", values={"l": lead_id})
+
+
+def _pack_date(d) -> Optional[str]:
+    # Same "12 Sep" style the composer uses (packaging.html fmtPackDate).
+    return f"{d.day} {d.strftime('%b')}" if d else None
+
+
+def _pack_time(t) -> Optional[str]:
+    m = __import__("re").match(r"^\s*(\d{1,2}):(\d{2})", str(t or ""))
+    if not m:
+        return (str(t).strip() or None) if t else None
+    h, mi = int(m.group(1)), int(m.group(2))
+    ap = "am" if h < 12 else "pm"
+    h = h % 12 or 12
+    return f"{h}{'' if mi == 0 else ':%02d' % mi}{ap}"
+
+
+async def _summary(lst) -> dict:
+    counts = await database.fetch_one(
+        """SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE i.checked) AS checked
+           FROM packaging_items i JOIN packaging_sections s ON i.section_id = s.id
+           WHERE s.packaging_list_id = :lid""", values={"lid": lst["id"]})
+    return {"id": lst["id"], "title": lst["title"], "lead_id": lst["lead_id"],
+            "share_url": f"/pack.html?t={lst['share_token']}",
+            "submitted_at": _to_ist_str(lst["submitted_at"]), "submitted_by": lst["submitted_by"],
+            "progress": {"checked": counts["checked"], "total": counts["total"]}}
+
+
+@router.get("/admin/packaging/for-booking/{lead_id}")
+async def packing_for_booking(lead_id: int, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    b = await database.fetch_one(f"SELECT {BOOKING_COLS} FROM leads WHERE lead_id = :l", values={"l": lead_id})
+    if not b:
+        raise HTTPException(status_code=404, detail=f"No booking #{lead_id}.")
+    lst = await list_for_booking(lead_id)
+    return {"lead_id": lead_id, "suggested_title": event_name(b),
+            "event_date": _pack_date(b["event_date"]), "event_time": _pack_time(b["event_time"]), "venue": b["venue"],
+            "list": (await _summary(lst)) if lst else None}
+
+
+async def rename_old_default_titles() -> int:
+    """Lists made from the booking page before 2026-11-16 got the old default
+    title "<parent>'s Party"; give those the standard name. A title someone
+    typed themselves is left alone. Runs on startup (db_ensure.py); running
+    it again changes nothing."""
+    cols = ", ".join("l." + c.strip() for c in BOOKING_COLS.split(","))
+    rows = await database.fetch_all(
+        f"SELECT p.id AS list_id, p.title, {cols} FROM packaging_lists p JOIN leads l ON l.lead_id = p.lead_id "
+        "WHERE p.title = COALESCE(l.parent_name, 'Booking #' || l.lead_id) || :suffix",
+        values={"suffix": "'s Party"})
+    n = 0
+    for r in rows:
+        name = event_name(r)
+        if name and name != r["title"]:
+            await database.execute("UPDATE packaging_lists SET title = :t WHERE id = :id", values={"t": name, "id": r["list_id"]})
+            n += 1
+    return n
+
+
+async def get_or_create_for_booking(b, created_by: str):
+    """(list row, created?) for booking row b."""
+    lst = await list_for_booking(b["lead_id"])
+    if lst:
+        return lst, False
+    try:
+        lid = await database.execute(
+            """INSERT INTO packaging_lists (lead_id, title, event_date, event_time, venue, share_token, created_by)
+               VALUES (:lead_id, :title, :d, :t, :v, :token, :by) RETURNING id""",
+            values={"lead_id": b["lead_id"], "title": event_name(b), "d": _pack_date(b["event_date"]),
+                    "t": _pack_time(b["event_time"]), "v": b["venue"], "token": secrets.token_urlsafe(18),
+                    "by": created_by})
+    except Exception:
+        # Someone created it at the same moment (unique index) — use theirs.
+        lst = await list_for_booking(b["lead_id"])
+        if lst:
+            return lst, False
+        raise
+    return await database.fetch_one("SELECT * FROM packaging_lists WHERE id = :id", values={"id": lid}), True
+
+
+def _norm(t: str) -> str:
+    return __import__("re").sub(r"\s+", " ", (t or "").strip().lower())
+
+
+async def add_items(list_id: int, sections: List[SectionIn], default_header: str = "Items") -> dict:
+    """Adds items to a list without touching what's there. An item goes under
+    the section with the same header (made if missing); with no header, under
+    the default one. An item already on the list (anywhere) is skipped; a
+    new qty on it updates the qty. Adding to a submitted list reopens it.
+    Returns {"added": [...], "skipped": [...], "qty": [...]}."""
+    secs = await database.fetch_all(
+        "SELECT * FROM packaging_sections WHERE packaging_list_id = :lid ORDER BY sort_order, id", values={"lid": list_id})
+    by_header = {_norm(s["header"]): dict(s) for s in secs}
+    next_sec = (max([s["sort_order"] for s in secs]) + 1) if secs else 0
+    existing = await database.fetch_all(
+        """SELECT i.id, i.text, i.qty FROM packaging_items i JOIN packaging_sections s ON i.section_id = s.id
+           WHERE s.packaging_list_id = :lid""", values={"lid": list_id})
+    have = {_norm(i["text"]): dict(i) for i in existing}
+    out = {"added": [], "skipped": [], "qty": []}
+    for sec in sections:
+        header = (sec.header or "").strip() or default_header
+        for item in sec.items:
+            text = (item.text or "").strip()
+            if not text:
+                continue
+            old = have.get(_norm(text))
+            if old:
+                if item.qty and item.qty != old["qty"]:
+                    await database.execute("UPDATE packaging_items SET qty = :q WHERE id = :id",
+                                           values={"q": item.qty, "id": old["id"]})
+                    out["qty"].append(f"{text} x{item.qty}")
+                else:
+                    out["skipped"].append(text)
+                continue
+            s = by_header.get(_norm(header))
+            if not s:
+                sid = await database.execute(
+                    "INSERT INTO packaging_sections (packaging_list_id, header, sort_order) VALUES (:lid, :h, :o) RETURNING id",
+                    values={"lid": list_id, "h": header[:255], "o": next_sec})
+                s = {"id": sid, "header": header, "sort_order": next_sec}
+                by_header[_norm(header)] = s
+                next_sec += 1
+            nxt = await database.fetch_one(
+                "SELECT COALESCE(MAX(sort_order), -1) + 1 AS o FROM packaging_items WHERE section_id = :sid",
+                values={"sid": s["id"]})
+            iid = await database.execute(
+                "INSERT INTO packaging_items (section_id, text, sort_order, checked, qty) VALUES (:sid, :t, :o, FALSE, :q) RETURNING id",
+                values={"sid": s["id"], "t": text, "o": nxt["o"], "q": item.qty})
+            have[_norm(text)] = {"id": iid, "text": text, "qty": item.qty}
+            out["added"].append(f"{text} x{item.qty}" if item.qty else text)
+    if out["added"] or out["qty"]:
+        await database.execute(
+            "UPDATE packaging_lists SET updated_at = NOW(), submitted_at = NULL, submitted_by = NULL WHERE id = :id",
+            values={"id": list_id})
+    return out
+
+
+async def remove_items(list_id: int, texts: List[str]) -> dict:
+    """Removes items by name (exact, else the one item that contains it)."""
+    out = {"removed": [], "not_found": []}
+    for t in texts:
+        rows = await database.fetch_all(
+            """SELECT i.id, i.text FROM packaging_items i JOIN packaging_sections s ON i.section_id = s.id
+               WHERE s.packaging_list_id = :lid""", values={"lid": list_id})
+        exact = [r for r in rows if _norm(r["text"]) == _norm(t)]
+        part = [r for r in rows if _norm(t) in _norm(r["text"])]
+        hit = exact[0] if exact else (part[0] if len(part) == 1 else None)
+        if not hit:
+            out["not_found"].append(t + (f" (matches {len(part)} items — be more exact)" if len(part) > 1 else ""))
+            continue
+        await database.execute("DELETE FROM packaging_items WHERE id = :id", values={"id": hit["id"]})
+        out["removed"].append(hit["text"])
+    if out["removed"]:
+        await database.execute(
+            """DELETE FROM packaging_sections s WHERE s.packaging_list_id = :lid
+               AND NOT EXISTS (SELECT 1 FROM packaging_items i WHERE i.section_id = s.id)""", values={"lid": list_id})
+        await database.execute("UPDATE packaging_lists SET updated_at = NOW() WHERE id = :id", values={"id": list_id})
+    return out
 
 
 async def _write_sections(list_id: int, sections: List[SectionIn], merge: bool):

@@ -1724,12 +1724,9 @@ async def _push_event_photos_to_sheet(lead_id: int, lead: dict, snap: dict, phot
     # same field admin.html's own summary card uses for "Address". Only the
     # first child is used for multi-child bookings (this is a quick-ID
     # column, not the full record — admin.html itself has the rest).
-    event_name = ", ".join(filter(None, [
-        _first(lead.get("child_names")),
-        _first(lead.get("child_genders")),
-        _first(lead.get("child_ages")),
-        (lead.get("city") or "").strip(),
-    ]))
+    # 2026-11-16: the standard event name, "Ishani F8 Ghatkopar" (event_naming.py).
+    from event_naming import event_name as _std_event_name
+    event_name = _std_event_name(lead)
 
     cols = _sheet_service_columns(snap)
     services = ", ".join(label for key, label in [
