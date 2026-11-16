@@ -59,7 +59,10 @@ function djDraw(){
   else if(card.copied_at) status = '<span class="dj-chip">Message copied · link not opened yet</span>';
   else status = '<span class="dj-chip">Saved · not sent yet</span>';
 
-  const pics = (a.pictures||[]).map(p=>'<a href="'+v(p.url)+'" target="_blank"><img src="'+v(p.url)+'" alt="'+v(p.label)+'"></a>').join('');
+  const hidden = new Set(d.hide_pics||[]);
+  const pics = (a.pictures||[]).map(p=>'<div class="dj-pic"><a href="'+v(p.url)+'" target="_blank"><img src="'+v(p.url)+'" alt="'+v(p.label)+'"></a>'
+    + '<span>'+v(p.label)+'</span>'
+    + '<label><input type="checkbox" class="dj-pic-show" data-url="'+v(p.url)+'" '+(hidden.has(p.url)?'':'checked')+'> Send to decorator</label></div>').join('');
   const refBoxes = ['ref-1','ref-2','ref-3'].map(s=>refs[s]
     ? '<div class="dj-ref"><a href="'+v(refs[s].url)+'" target="_blank"><img src="'+v(refs[s].url)+'" alt="Extra reference"></a><button type="button" class="icon-btn" title="Remove" onclick="djRemovePhoto(\''+s+'\',\'ref\')">✕</button></div>'
     : '<label class="dj-ref add"'+(card?'':' title="Save the job card first"')+'>+ Add pic<input type="file" accept="image/*" hidden '+(card?'':'disabled')+' onchange="djUpload(\''+s+'\',\'ref\',this)"></label>').join('');
@@ -119,7 +122,7 @@ function djDraw(){
     + '</div>'
     + row('Venue notes', '<textarea id="djVenueNotes" rows="2" placeholder="e.g. Use service lift. No tape on walls.">'+v(d.venue_notes)+'</textarea>')
 
-    + '<div class="dj-h">3. Decor pictures</div>'
+    + '<div class="dj-h">3. Decor pictures <small>from the booking: uploaded picture, finalized design, decor dropdown. Untick any the decorator shouldn\'t get. The first ticked one goes on the WhatsApp image.</small></div>'
     + '<div class="dj-pics">'+(pics || '<span class="dj-muted">No decor picture on the booking yet (finalize the decor design or upload a reference).</span>')+refBoxes+'</div>'
 
     + '<div class="dj-h">4. Decor components <small>unticked rows are hidden from the decorator</small></div>'
@@ -178,6 +181,7 @@ function readForm(){
     item: tr.querySelector('.dj-r-item').value.trim(), qty: tr.querySelector('.dj-r-qty').value.trim()}));
   d.photos = Array.from(document.querySelectorAll('#djPhotos .dj-ph')).map(el=>({
     slot: el.dataset.slot||'', label: el.querySelector('.dj-p-label').value.trim(), hint: el.querySelector('.dj-p-hint').value.trim()}));
+  d.hide_pics = Array.from(document.querySelectorAll('.dj-pic-show')).filter(c=>!c.checked).map(c=>c.dataset.url);
   d.ready_by = g('djReady').trim(); d.floor = g('djFloor').trim(); d.colours = g('djColours').trim();
   d.venue_notes = g('djVenueNotes').trim(); d.custom_requests = g('djCustom').trim();
   d.child_name_needed = !!(document.getElementById('djNameNeeded')||{}).checked; d.child_name = g('djChildName').trim();
@@ -300,6 +304,13 @@ window.djImage = async function(share, btn){
     showToast('✓ Image downloaded');
   }catch(e){ if(e.message!=='unauthorized') showToast('Could not make the image: '+e.message); }
   finally{ btn.disabled = false; }
+};
+
+// The booking's decor picture changed (reference uploaded / removed):
+// refresh what the card shows from the booking, keeping unsaved edits.
+window.djRefreshAuto = async function(){
+  if(!DJ || !document.getElementById('djBlock')) return;
+  try{ const b = await apiCall('/api/admin/decor-job/'+DJ_LEAD); keepForm(b); }catch(e){}
 };
 
 // ── photos ──────────────────────────────────────────────────────────────

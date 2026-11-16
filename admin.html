@@ -178,6 +178,10 @@ table.list th.sortable:hover{color:var(--bk)}
 .dj-muted{font-size:12px;color:var(--gy)}
 .dj-pics{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .dj-pics img,.dj-ref img{width:120px;height:120px;object-fit:cover;border-radius:10px;display:block;border:1px solid var(--li2)}
+.dj-pic{display:flex;flex-direction:column;gap:4px;width:130px;font-size:11.5px}
+.dj-pic span{font-weight:700;color:var(--gy)}
+.dj-pic label{display:flex;align-items:center;gap:5px;cursor:pointer}
+.dj-pic img{width:130px;height:120px}
 .dj-ref{position:relative}
 .dj-ref .icon-btn{position:absolute;top:4px;right:4px;background:#fff;border-radius:50%}
 .dj-ref.add{width:120px;height:120px;border:2px dashed var(--li);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--pk);cursor:pointer}
@@ -7062,7 +7066,7 @@ async function decorRefUpload(btn){
     const res = await fetch(API+'/api/admin/decor-refs/'+DREF.leadId, {method:'POST', headers:{'X-Admin-Password':getPw()}, body:fd});
     const b = await res.json().catch(()=>({}));
     if(!res.ok) throw new Error(b.detail || ('Upload failed ('+res.status+')'));
-    DREF.current = b.current; DREF.file = null;
+    DREF.current = b.current; DREF.file = null; if(typeof djRefreshAuto==='function') djRefreshAuto();
     showToast(meta.show_on_website ? 'Uploaded — and it\'s now on the website.' : 'Reference picture uploaded.');
   }catch(e){ showToast(e.message); btn.disabled = false; btn.textContent = 'Upload'; return; }
   decorRefRender();
@@ -7088,7 +7092,7 @@ async function decorRefRemove(btn){
     const res = await fetch(API+'/api/admin/decor-refs/item/'+DREF.current.id+'/remove', {method:'POST', headers:{'X-Admin-Password':getPw()}});
     const b = await res.json().catch(()=>({}));
     if(!res.ok) throw new Error(b.detail || ('Could not remove ('+res.status+')'));
-    DREF.current = null;
+    DREF.current = null; if(typeof djRefreshAuto==='function') djRefreshAuto();
     showToast('Reference picture removed.');
   }catch(e){ showToast(e.message); btn.disabled = false; return; }
   decorRefRender();
@@ -7109,6 +7113,6 @@ async function decorRefRemove(btn){
 </script>
 <script src="js/floor-map.js"></script>
 <script src="js/lead-venues.js"></script>
-<script src="js/decor-job-admin.js?v=20261116a"></script>
+<script src="js/decor-job-admin.js?v=20261116b"></script>
 </body>
 </html>

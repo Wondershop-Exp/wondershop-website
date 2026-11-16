@@ -183,6 +183,7 @@ async def _auto_from_booking(lead_id: int, pw: Optional[str]) -> dict:
 
     # Decor line, its inclusions and add-ons — exactly as on the party plan.
     final_id = ""
+    quote_img = ""
     try:
         from booking_quote import booking_quotation_data
         data, _paths = await booking_quotation_data(lead_id, pw)
@@ -200,7 +201,7 @@ async def _auto_from_booking(lead_id: int, pw: Optional[str]) -> dict:
                            and not str(x).startswith("Design as per")][:6]
             img = main.get("image")
             if img and str(img).startswith("img/"):
-                out["pictures"].append({"url": SITE + "/" + quote(str(img)), "label": "Decor design"})
+                quote_img = SITE + "/" + quote(str(img))
         out["addons"] = [_s(str(ln.get("name"))[len("Add-on: "):], 80) for ln in lines
                          if str(ln.get("name") or "").startswith("Add-on: ")]
     except Exception:
@@ -224,12 +225,6 @@ async def _auto_from_booking(lead_id: int, pw: Optional[str]) -> dict:
             if res:
                 incl = [f"{l}: {v}" for l, v, na in res["spec"] if not na]
                 out["spec"] = [" · ".join(incl[i:i + 3]) for i in range(0, len(incl), 3)][:6]
-                if not out["pictures"] and str(res.get("image_path") or "").startswith("img/"):
-                    out["pictures"].append({"url": SITE + "/" + quote(res["image_path"]), "label": "Decor design"})
-        if final_id and not final_id.startswith("ref-"):
-            opt = cat.decor_option(final_id)
-            if opt and str(opt.get("image") or "").startswith("img/"):
-                out["pictures"] = [{"url": SITE + "/" + quote(opt["image"]), "label": "Decor design"}]
         addons = list(out["addons"])
         for key, name in (("addon_decor_cake_table", "Cake Table"), ("addon_decor_age_light", "Age Light"),
                           ("addon_decor_cutouts", "Cutouts"), ("addon_decor_welcome", "Welcome Arch + Welcome Board"),
@@ -247,22 +242,68 @@ async def _auto_from_booking(lead_id: int, pw: Optional[str]) -> dict:
     except Exception:
         logger.exception(f"Decor job card #{lead_id}: couldn't read the decor fields")
 
-    # The decor photo the party plan shows: the finalized design, else the
-    # uploaded reference image, else the catalogue photo above.
-    try:
-        from routers.decor_refs import current_for_lead, item_with_image
-        pic = None
-        if final_id.startswith("ref-") and final_id[4:].isdigit():
-            it = await item_with_image(int(final_id[4:]))
-            pic = (it or {}).get("image_url")
-        elif not final_id:
-            ref = await current_for_lead(lead_id)
-            pic = (ref or {}).get("image_url")
-        if pic:
-            out["pictures"] = [{"url": pic, "label": "Decor design"}]
-    except Exception:
-        logger.exception(f"Decor job card #{lead_id}: couldn't read the decor reference image")
+    out["pictures"] = await _decor_pictures(lead_id, cust("svc_decor"), final_id, quote_img)
     return out
+
+
+async def _decor_pictures(lead_id: int, decor_value: str, final_id: str, quote_img: str) -> List[dict]:
+    """Every decor picture the booking has, so the card shows what the team
+    picked (2026-11-16, per Shruti — "I created a custom decor using image
+    uploaded on top. the same image should come here. similarly, if I select a
+    decor from the decor dropdown, that should be shown here"):
+      1. the decor reference picture uploaded on the booking,
+      2. the finalized design (Build-a-Birthday design picker),
+      3. the decor picked in the Decor dropdown (catalogue design or a
+         website-uploaded design), else the booking's website decor pick.
+    Duplicates dropped. The team can untick any of them for the decorator."""
+    import catalogue_data as cat
+    from routers.decor_refs import current_for_lead, item_with_image, website_ref_options
+    pics: List[dict] = []
+
+    def add(url, label):
+        if url and url not in {p["url"] for p in pics}:
+            pics.append({"url": url, "label": label})
+
+    def site(path):
+        return SITE + "/" + quote(str(path)) if path and str(path).startswith("img/") else ""
+
+    async def ref_url(rid: str) -> str:
+        if rid.startswith("ref-") and rid[4:].isdigit():
+            it = await item_with_image(int(rid[4:]))
+            return (it or {}).get("image_url") or ""
+        return ""
+
+    try:
+        ref = await current_for_lead(lead_id)
+        add((ref or {}).get("image_url"), "Uploaded decor picture")
+    except Exception:
+        logger.exception(f"Decor job card #{lead_id}: uploaded decor picture")
+    try:
+        if final_id:
+            url = await ref_url(final_id) or site((cat.decor_option(final_id) or {}).get("image"))
+            add(url, "Finalized design")
+    except Exception:
+        logger.exception(f"Decor job card #{lead_id}: finalized design picture")
+    try:
+        url = ""
+        v = (decor_value or "").strip()
+        if v:
+            web = next((o for o in await website_ref_options(refresh=False) if o.get("value") == v), None)
+            url = (web or {}).get("image") or ""
+            if not url:
+                from routers.admin import _resolve_decor_override
+                r = _resolve_decor_override(v) or {}
+                res = cat.resolve_decor(r.get("id"), r.get("p")) if r.get("id") else None
+                url = site((res or {}).get("image_path"))
+        if not url:   # a website booking: the decor picked in Build-a-Birthday
+            row = await database.fetch_one("SELECT builder_snapshot FROM leads WHERE lead_id = :id", values={"id": lead_id})
+            d = (_j(row["builder_snapshot"], {}) if row else {}).get("decor") or {}
+            did = str(d.get("id") or "")
+            url = await ref_url(did) if did.startswith("ref-") else site((cat.resolve_decor(did, d.get("p")) or {}).get("image_path")) if did else ""
+        add(url or quote_img, "Decor selected")
+    except Exception:
+        logger.exception(f"Decor job card #{lead_id}: selected decor picture")
+    return pics
 
 
 def _spec_has(auto: dict, needle: str) -> bool:
@@ -371,6 +412,7 @@ def clean_data(raw: dict) -> dict:
         "bring_other": _s(r.get("bring_other"), 300), "amount": amt,
         "coordinator_name": _s(r.get("coordinator_name"), 60), "coordinator_phone": _s(r.get("coordinator_phone"), 20),
         "returns": rets, "photos": photos,
+        "hide_pics": [_s(x, 500) for x in (r.get("hide_pics") or [])[:10] if _s(x, 500)],
     }
 
 
@@ -400,7 +442,8 @@ def view_of(card: dict, photos: List[dict]) -> dict:
     inside the name request when the team ticked it."""
     a, dt = card["auto"], card["data"]
     done = {p["slot"]: p for p in photos if p["kind"] == "done"}
-    pics = list(a.get("pictures") or []) + [
+    hidden = set(dt.get("hide_pics") or [])
+    pics = [p for p in a.get("pictures") or [] if p.get("url") not in hidden] + [
         {"url": _img_url(p["token"]), "label": "Reference"} for p in photos if p["kind"] == "ref"]
     bring = []
     if dt.get("stand"):
@@ -571,7 +614,8 @@ async def _admin_payload(lead_id: int, pw: Optional[str]) -> dict:
         # booking changed since the card was saved -> the link still shows the old details
         "stale": any(str(live.get(k) or "") != str(card["auto"].get(k) or "")
                      for k in ("event_date", "event_time", "handover", "packup", "venue", "maps", "age",
-                               "theme", "package", "area")),
+                               "theme", "package", "area"))
+                 or [p.get("url") for p in live.get("pictures") or []] != [p.get("url") for p in card["auto"].get("pictures") or []],
     }
 
 
