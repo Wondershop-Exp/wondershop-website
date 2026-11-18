@@ -76,7 +76,7 @@ table{width:100%;border-collapse:collapse;font-size:15px}td,th{padding:6px;borde
       <p style="font-size:13px;margin:8px 0 0">Number of children comes from the booking; change it here if the guest list changed. It's only used for this setup.</p>
       <div id="teams"></div>
       <label id="askNamesRow" style="margin-top:14px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="askNames" style="width:auto;margin:0">Volunteer types each child's name before sorting (shows on the reveal and in the tablet's log)</label>
-      <p style="font-size:13px;margin:10px 0 0"><b>Audio:</b> All four houses (Gryffindor, Hufflepuff, Ravenclaw, Slytherin) use Wondershop's built-in Sorting Hat recordings automatically (2 each), and the birthday child gets the special birthday recording when they're in Gryffindor. Upload clips here only to replace them for this party (mp3, m4a, wav · under 7 MB). A team with no recording gets a cheer when it's revealed; the Hat never uses a computer voice.</p>
+      <p style="font-size:13px;margin:10px 0 0"><b>Audio:</b> All four houses (Gryffindor, Hufflepuff, Ravenclaw, Slytherin) use Wondershop's built-in Sorting Hat recordings automatically (2 each), and the birthday child gets the special birthday recording when they're in Gryffindor. Upload clips here only to replace them for this party (mp3, m4a, wav · under 7 MB). Any other house (e.g. Phoenixwing) has its name called out by the tablet's own voice, then a cheer.</p>
       <div class="row" style="margin-top:16px;justify-content:center"><button class="btn big" id="save">Save setup</button></div>
       <div id="saveMsg" style="text-align:center;margin-top:8px"></div>
     </div>
@@ -143,6 +143,9 @@ function parseRoster(){const lines=$("#roster").value.split(/\r?\n/).map(l=>l.tr
     if(/^card|^#|^name$/i.test(cells[0])&&/house|team/i.test(line))continue; // header row
     // CSV from the i-card roster: Card#,House,Colour,Child,...  ->  find the cell that is a team name
     let hi=cells.findIndex(c=>names.includes(houseKey(c))||HOUSE_ORDER.includes(houseKey(c)));
+    // a new house name: "Name, House" (2 cells) or the i-card CSV "#,House,Name,..."
+    if(hi<0&&cells.length===2)hi=1;
+    if(hi<0&&cells.length>=3&&/^\d+$/.test(cells[0]))hi=1;
     if(hi<0){bad.push(line);continue}
     const house=cells[hi];let rest=cells.filter((c,i)=>i!==hi&&!/^\d+$/.test(c)&&!/^(red|green|blue|yellow|gold|silver)$/i.test(c)&&!/^(yes|no)$/i.test(c)&&!/photo|icon/i.test(c));
     let name=(rest[0]||"").trim();let bday=false;if(/^[*🎂]/.test(name)){bday=true;name=name.replace(/^[*🎂\s]+/,"")}
