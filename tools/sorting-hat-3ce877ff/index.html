@@ -83,6 +83,8 @@ input[type=color]{padding:2px;height:42px}
 #ring circle{fill:none;stroke:var(--gold2);stroke-width:5;stroke-linecap:round;filter:drop-shadow(0 0 8px var(--gold2))}
 #pad.holding svg.finger{animation:glow .6s ease-in-out infinite alternate}
 @keyframes glow{to{filter:drop-shadow(0 0 22px #fff3c4);opacity:1}}
+#pendingBar{position:absolute;top:58vh;left:0;right:0;text-align:center;z-index:3;color:#fff;font-size:clamp(15px,2.4vh,20px);text-shadow:0 2px 6px #000}
+#pendingBar #pendingName{font-weight:bold;margin-right:8px}
 .padlabel{position:absolute;top:90.5vh;left:0;right:0;text-align:center;color:#e6d8b4;font-size:clamp(14px,2.2vh,19px);font-style:italic;text-shadow:0 2px 6px #000;z-index:1}
 #tally{position:absolute;left:50%;transform:translateX(-50%);top:0;display:flex;gap:8px;flex-wrap:nowrap;justify-content:center;max-width:calc(100% - 380px)}
 .tl{background:rgba(0,0,0,.5);border:1px solid;border-radius:6px;padding:4px 10px;font-size:14px;min-width:96px;text-align:center;color:#f7ecd0}
@@ -178,6 +180,7 @@ td,th{padding:6px;border-bottom:1px solid #b89a5a;text-align:left}
     <svg class="finger" viewBox="0 0 100 112" fill="none" stroke="#ffeab0" stroke-width="3.2" stroke-linecap="round" aria-hidden="true"><ellipse cx="50" cy="56" rx="4.7" ry="6.0" stroke-dasharray="30 8" transform="rotate(10 50 56)"/><ellipse cx="50" cy="56" rx="8.6" ry="11.0" stroke-dasharray="52 9" transform="rotate(40 50 56)"/><ellipse cx="50" cy="56" rx="12.5" ry="16.0" stroke-dasharray="70 12" transform="rotate(-20 50 56)"/><ellipse cx="50" cy="56" rx="16.4" ry="21.0" stroke-dasharray="95 14" transform="rotate(70 50 56)"/><ellipse cx="50" cy="56" rx="20.3" ry="26.0" stroke-dasharray="120 16" transform="rotate(15 50 56)"/><ellipse cx="50" cy="56" rx="24.2" ry="31.0" stroke-dasharray="140 22" transform="rotate(-35 50 56)"/><ellipse cx="50" cy="56" rx="28.1" ry="36.0" stroke-dasharray="165 26" transform="rotate(55 50 56)"/><ellipse cx="50" cy="56" rx="32.0" ry="41.0" stroke-dasharray="180 40" transform="rotate(-10 50 56)"/><ellipse cx="50" cy="56" rx="35.9" ry="46.0" stroke-dasharray="200 60" transform="rotate(30 50 56)"/></svg>
   </div>
   <div class="padlabel" id="padLabel"></div>
+  <div id="pendingBar" class="hidden"><span id="pendingName"></span> <button class="iconbtn" id="pendingChange">↺ Choose someone else</button></div>
 </section>
 
 <div id="reveal" class="hidden"></div>
@@ -266,7 +269,9 @@ function renderEvent(){if(!cfg)return;
   const done=cfg.sorted.length,total=cfg.teams.reduce((a,t)=>a+t.cap,0);
   $("#evTeams").innerHTML=cfg.teams.length?`<div class="row">${cfg.teams.map((t,i)=>`<span class="chip" style="background:${t.color}">${esc(t.name)} · ${cfg.sorted.filter(s=>s.team===i).length}/${t.cap}${t.audio.length?" · 🔊":""}</span>`).join("")}</div><p style="margin:8px 0 0;font-size:14px">${done} of ${total} children sorted</p>`:"";
   const w=[];if(!cfg.teams.length)w.push("This party has no teams set up yet. Please ask Wondershop to finish the Sorting Hat setup.");
-  $("#evWarn").innerHTML=w.map(x=>`<p class="warn">${x}</p>`).join("");
+  const mode=cfg.preassigned&&cfg.roster&&cfg.roster.length?`<b>Houses already decided</b> · ${cfg.roster.length} children on the list (tap the mark to pick a name)`:`<b>The Hat decides</b> (random) · no name list`;
+  const when=cfg.loadedAt?new Date(cfg.loadedAt).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"—";
+  $("#evWarn").innerHTML=`<p style="font-size:14px;margin:10px 0 0">Mode: ${mode}<br><span style="color:#5a3a12">Party details last downloaded ${when} · app ${APP_VER}</span></p>`+w.map(x=>`<p class="warn">${x}</p>`).join("");
   $("#begin").disabled=!cfg.teams.length}
 $("#refreshEv").onclick=async()=>{const b=$("#refreshEv");b.textContent="Loading…";try{await loadEvent(cfg.code);renderEvent();b.textContent="✓ Up to date"}catch(e){b.textContent="↻ Reload from Wondershop";$("#evWarn").innerHTML=`<p class="warn">${esc(navigator.onLine?e.message:"No internet. Using the copy saved on this tablet.")}</p>`}};
 $("#resetEv").onclick=()=>{const b=$("#resetEv");if(!cfg||!cfg.sorted.length){b.textContent="Nothing to reset";setTimeout(()=>b.textContent="↺ Reset sorting (clear test sorts)",1800);return}
@@ -274,7 +279,11 @@ $("#resetEv").onclick=()=>{const b=$("#resetEv");if(!cfg||!cfg.sorted.length){b.
   cfg.sorted=[];cfg.sortStarted=null;save();b.dataset.c="";b.textContent="✓ Cleared. Every child can be sorted again";renderEvent();setTimeout(()=>b.textContent="↺ Reset sorting (clear test sorts)",2500)};
 $("#changeEv").onclick=()=>{$("#gatePw").value="";showGate("")};
 
-$("#begin").onclick=()=>{
+const APP_VER="v17";
+const withTimeout=(pr,ms)=>Promise.race([pr,new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),ms))]);
+$("#begin").onclick=async()=>{
+  if(cfg&&!EMB&&navigator.onLine){const b=$("#begin");const old=b.textContent;b.textContent="Checking for updates…";b.disabled=true;
+    try{await withTimeout(loadEvent(cfg.code),6000);renderEvent()}catch(e){}b.textContent=old;b.disabled=false}
   const m=$("#setupMsg");
   if(!cfg||!cfg.teams.length){m.innerHTML='<p class="warn">This party has no teams set up yet.</p>';return}
   m.innerHTML="";startSorting()};
@@ -302,15 +311,16 @@ function chooseClip(t,bday){const k=houseKey(t.name);
   return{src:CHEER,at:null,tts:true}}   // extra houses (e.g. Phoenixwing): the tablet's voice calls the name, then the cheer
 // 2026-11-18, per Shruti: "for the 5th house, use ai audio". Uses the tablet's built-in voice (works offline).
 function hatVoice(){try{const vs=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));return vs.find(v=>/Daniel|Arthur|UK English Male|en-gb-x-rjs|en-gb-x-gbd/i.test(v.name))||vs.find(v=>/en[-_]GB/i.test(v.lang))||vs[0]}catch(e){return null}}
-function speakHat(text){return new Promise(res=>{try{if(!window.speechSynthesis)return res();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const v=hatVoice();if(v){u.voice=v;u.lang=v.lang}
-  u.rate=.78;u.pitch=.5;u.volume=1;let done=false;const fin=()=>{if(!done){done=true;res()}};u.onend=fin;u.onerror=fin;setTimeout(fin,6000);speechSynthesis.speak(u)}catch(e){res()}})}
+function speakHat(text){return new Promise(res=>{try{if(!window.speechSynthesis)return res();if(speechSynthesis.paused)speechSynthesis.resume();const u=new SpeechSynthesisUtterance(text);const v=hatVoice();if(v){u.voice=v;u.lang=v.lang}
+  u.rate=.78;u.pitch=.5;u.volume=1;let done=false;const fin=()=>{if(!done){done=true;res()}};let started=false;u.onstart=()=>started=true;u.onend=fin;u.onerror=fin;setTimeout(()=>{if(!started)fin()},2500);setTimeout(fin,6000);speechSynthesis.speak(u)}catch(e){res()}})}
 try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices()}catch(e){}
 const player=new Audio();player.preload="auto";let unlocked=false;
 function silentUrl(){const n=2205,b=new ArrayBuffer(44+n*2),v=new DataView(b),w=(o,s)=>[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));
   w(0,"RIFF");v.setUint32(4,36+n*2,true);w(8,"WAVEfmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,22050,true);v.setUint32(28,44100,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,"data");v.setUint32(40,n*2,true);
   return URL.createObjectURL(new Blob([b],{type:"audio/wav"}))}
 // iPad only lets a page play sound that starts from a tap, so the same player is "woken" on the first tap and reused.
-function unlockAudio(){if(unlocked)return;unlocked=true;try{player.src=silentUrl();player.play().catch(()=>{})}catch(e){}}
+function unlockAudio(){try{if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(" ");u.volume=0;speechSynthesis.speak(u)}}catch(e){}
+  if(unlocked)return;unlocked=true;try{player.src=silentUrl();player.play().catch(()=>{})}catch(e){}}
 async function playSrc(c){try{let src=c.src?A(c.src):(EMB&&EMB.files[c.id]);if(!src){const b=memAudio[c.id]||await getAudio(c.id);if(!b)return false;src=URL.createObjectURL(b)}
   player.pause();player.src=src;player.currentTime=0;await player.play();return true}catch(e){return false}}
 function untilTime(at){return new Promise(res=>{const lim=Date.now()+(at+5)*1000;const iv=setInterval(()=>{if(player.currentTime>=at||player.ended||Date.now()>lim){clearInterval(iv);res()}},40)})}
@@ -321,6 +331,9 @@ $("#soundTest").onclick=()=>{unlockAudio();playSrc({src:CHEER});setTimeout(stopA
 
 /* ---------- sorting ---------- */
 let busy=false,pending=null,bdayNext=false;
+// 2026-11-18: the chosen child is shown on screen and can be changed, so a lost hold never hides the name list.
+function setPending(k){pending=k;const bar=$("#pendingBar");if(!bar)return;
+  if(k&&isPre()){$("#pendingName").textContent="Up next: "+(k.bday?"🎂 ":"")+k.name;bar.classList.remove("hidden")}else bar.classList.add("hidden")}
 function remaining(){return cfg.teams.map((t,i)=>t.cap-cfg.sorted.filter(s=>s.team===i).length)}
 function rnd(){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]/4294967296}
 // Weighted by places left: identical odds to drawing a hidden token from a bag. No visible rotation.
@@ -344,6 +357,7 @@ function say(t){const s=$("#speech");s.style.opacity=0;setTimeout(()=>{s.textCon
 
 /* hold-to-sort */
 const pad=$("#pad"),ringC=$("#ring circle"),HOLD=1800;let t0=0,raf=0,holding=false;
+pad.addEventListener("click",()=>{if(busy||holding)return;if(isPre()&&!pending&&$("#pickModal").classList.contains("hidden"))openPick();else if(!isPre()&&cfg.askNames&&!pending&&$("#nameModal").classList.contains("hidden"))openName()});
 pad.addEventListener("pointerdown",e=>{if(busy)return;e.preventDefault();unlockAudio();
   if(isPre()&&!pending){openPick();return}
   if(!isPre()&&cfg.askNames&&!pending){openName();return}
@@ -357,16 +371,17 @@ async function runSort(){busy=true;
   else{name=pending?pending.name:"";bday=bdayNext||!!(pending&&pending.bday);
     if(bday){const g=cfg.teams.findIndex(t=>houseKey(t.name)===BDAY.house);if(g>=0&&remaining()[g]>0)team=g}
     if(team<0)team=pickTeam()}
-  pending=null;bdayNext=false;$("#bdayBtn").classList.remove("on");
+  setPending(null);bdayNext=false;$("#bdayBtn").classList.remove("on");
   if(team<0||!cfg.teams[team]){busy=false;return}
   const t=cfg.teams[team],clip=chooseClip(t,bday);
   $("#hatWrap").classList.add("talk");say(name?`${name}… the Hat is deciding…`:"The Hat is deciding…");
-  if(clip.at!=null){if(await playSrc(clip))await untilTime(clip.at);else await wait(2500)}
+  if(clip.tts){const sp=speakHat("Hmm… "+t.name+"!");await wait(1700);sp.then(()=>{});}
+  else if(clip.at!=null){if(await playSrc(clip))await untilTime(clip.at);else await wait(2500)}
   else await wait(2600);
   $("#hatWrap").classList.remove("talk");ringC.style.strokeDashoffset=289;
   if(!cfg.sortStarted)cfg.sortStarted=Date.now();cfg.sorted.push({team,name,bday,ri,at:new Date().toISOString()});save();
   reveal(team,name,bday);
-  if(clip.tts){await speakHat(t.name+"!");playSrc(clip)}
+  if(clip.tts){setTimeout(()=>playSrc(clip),900)}
   else if(clip.at==null)playSrc(clip)}
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
@@ -393,8 +408,9 @@ function reveal(i,name,bday){
 function openPick(){const done=new Set(cfg.sorted.map(s=>s.ri).filter(x=>x!=null));
   const left=cfg.roster.map((k,i)=>({...k,i})).filter(k=>!done.has(k.i)).sort((a,b)=>(b.bday-a.bday)||a.name.localeCompare(b.name));
   $("#pickList").innerHTML=left.map(k=>`<button class="pick${k.bday?" bday":""}" data-i="${k.i}">${k.bday?"🎂 ":""}${esc(k.name)}</button>`).join("")||"<p>Everyone has been sorted.</p>";
-  $("#pickList").querySelectorAll(".pick").forEach(b=>b.onclick=()=>{const k=cfg.roster[+b.dataset.i];pending={...k,i:+b.dataset.i};$("#pickModal").classList.add("hidden");say(`${k.name}, place your finger upon the mark…`)});
+  $("#pickList").querySelectorAll(".pick").forEach(b=>b.onclick=()=>{const k=cfg.roster[+b.dataset.i];setPending({...k,i:+b.dataset.i});$("#pickModal").classList.add("hidden");say(`${k.name}, place your finger upon the mark…`)});
   $("#pickModal").classList.remove("hidden")}
+$("#pendingChange").onclick=e=>{e.stopPropagation();setPending(null);openPick()};
 $("#pickCancel").onclick=()=>$("#pickModal").classList.add("hidden");
 // 2026-11-18, per Shruti: "1-2 kids might come and we don't know their name, can we input it on the spot?"
 // A walk-in joins the list on this tablet; the Hat picks randomly among the houses with the fewest children.
@@ -402,7 +418,7 @@ function addWalkIn(){const name=$("#walkName").value.trim();if(!name){$("#walkNa
   const size=cfg.teams.map((t,i)=>cfg.roster.filter(k=>k.team===i).length),min=Math.min(...size);
   const opts=size.map((n,i)=>n===min?i:-1).filter(i=>i>=0),team=opts[Math.floor(rnd()*opts.length)];
   cfg.roster.push({name,team,bday:false,walkin:true});cfg.teams[team].cap+=1;cfg.kidCount=(+cfg.kidCount||0)+1;save();
-  const i=cfg.roster.length-1;pending={...cfg.roster[i],i};$("#walkName").value="";$("#pickModal").classList.add("hidden");renderTally();say(`${name}, place your finger upon the mark…`)}
+  const i=cfg.roster.length-1;setPending({...cfg.roster[i],i});$("#walkName").value="";$("#pickModal").classList.add("hidden");renderTally();say(`${name}, place your finger upon the mark…`)}
 $("#walkBtn").onclick=addWalkIn;$("#walkName").addEventListener("keydown",e=>{if(e.key==="Enter")addWalkIn()});
 
 /* ---------- name modal (random sorting) ---------- */
@@ -425,7 +441,7 @@ $("#closeLog").onclick=()=>$("#logModal").classList.add("hidden");
 $("#undoBtn").onclick=()=>{cfg.sorted.pop();save();renderLog();renderTally()};
 $("#resetBtn").onclick=()=>{if(!$("#resetBtn").dataset.c){$("#resetBtn").dataset.c=1;$("#resetBtn").textContent="Tap again to confirm";setTimeout(()=>{delete $("#resetBtn").dataset.c;$("#resetBtn").textContent="Reset sorting"},3000);return}cfg.sorted=[];save();renderLog();renderTally();idleSpeech()};
 $("#csvBtn").onclick=()=>{const rows=[["Booking ID","Birthday child","#","Child","Team","Time"],...cfg.sorted.map((s,i)=>[cfg.bookingId,cfg.childName,i+1,s.name.trim(),cfg.teams[s.team]?.name,s.at])];const csv=rows.map(r=>r.map(c=>`"${String(c??"").replace(/"/g,'""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`sorting-${cfg.bookingId}.csv`;a.click()};
-$("#backBtn").onclick=()=>{stopAudio();$("#sort").classList.add("hidden");$("#setup").classList.remove("hidden");document.body.classList.remove("sorting");renderEvent()};
+$("#backBtn").onclick=()=>{stopAudio();setPending(null);$("#sort").classList.add("hidden");$("#setup").classList.remove("hidden");document.body.classList.remove("sorting");renderEvent()};
 
 /* ---------- visuals ---------- */
 const st=$("#stars"),sx=st.getContext("2d");let stars=[];
@@ -444,9 +460,12 @@ async function openCode(){const v=$("#gatePw").value.trim();if(!v)return;$("#gat
 $("#gateBtn").onclick=openCode;$("#gatePw").addEventListener("keydown",e=>{if(e.key==="Enter")openCode()});
 (()=>{if(EMB){const mine=store.get("sh_ev_"+EMB.cfg.code,null);cfg=mine||EMB.cfg;persist();$("#gate").classList.add("hidden");
     $("#hatWrap img").src=A("hat.png");$("#refreshEv").remove();$("#changeEv").remove();renderEvent();return}
+  const urlCode=(new URLSearchParams(location.search).get("code")||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+  if(urlCode&&urlCode!==store.get("sh_code",null)&&!store.get("sh_ev_"+urlCode,null)){$("#gatePw").value=urlCode;showGate("Opening the party…");openCode();return}
+  if(urlCode&&store.get("sh_ev_"+urlCode,null))store.set("sh_code",urlCode);
   const last=store.get("sh_code",null),saved=last&&store.get("sh_ev_"+last,null);
   if(saved){cfg=saved;expire();$("#gate").classList.add("hidden");renderEvent();
-    if(navigator.onLine)loadEvent(last).then(renderEvent).catch(e=>{if(e.code===404){cfg=null;showGate("This party's code was changed. Please enter the new code.")}})}
+    if(navigator.onLine)loadEvent(last).then(renderEvent).catch(e=>{if(e.code===404){cfg=null;showGate("This party's code was changed. Please enter the new code.")}else $("#evWarn").insertAdjacentHTML("beforeend",'<p class="warn">Couldn\'t check Wondershop for changes, so this is the copy saved on this phone. Connect to the internet and tap “Reload from Wondershop” if the setup was changed.</p>')})}
   else showGate("")})();
 
 
