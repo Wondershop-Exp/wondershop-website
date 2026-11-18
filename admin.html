@@ -2524,6 +2524,18 @@ function renderSpyRegistrationBody(leadId, status){
   const noInviteBtn = !status.exists
     ? '<button type="button" class="sr-btn ghost" onclick="generateSpyLinkNoInvite('+leadId+')">Generate Link without Invite</button>'
     : '';
+  // 2026-11-17, per Shruti \u2014 private link for the birthday family to see
+  // who has registered (no DOB / marketing answer; T-shirt only if asked).
+  const hostUrl = status.host_url ? (window.location.origin + status.host_url) : '';
+  const hostHtml = hostUrl
+    ? '<div class="sr-pickup-drop" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Registrations List \u2014 for the host</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><div class="sr-link" id="srHostLink">'+esc(hostUrl)+'</div>'
+      + '<button type="button" class="sr-btn ghost" onclick="copySpyHostLink()">Copy Link</button>'
+      + '<a class="sr-btn ghost" href="'+esc(hostUrl)+'" target="_blank" rel="noopener" style="text-decoration:none">Open</a></div>'
+      + '<div style="font-size:11.5px;color:var(--gy);margin-top:8px">Send this to the birthday child&rsquo;s parent only (not to guests). It lists the agents who&rsquo;ve registered with parent name, phone and photo'+(status.tshirt_size_enabled?' and T-shirt size':'')+' \u2014 no DOB or marketing answer.</div>'
+      + '</div>'
+    : '';
   // 2026-10-29, per Shruti \u2014 "change their to her/him based on the gender".
   const bkG = status.booking_gender || '', ovG = status.child_gender_override || '';
   const pron = status.child_pronoun || 'their';
@@ -2580,6 +2592,7 @@ function renderSpyRegistrationBody(leadId, status){
     +   (status.exists && status.has_invite ? '<span class="sr-status">\u2713 Invite uploaded'+(status.invite_image_name ? ' ('+esc(status.invite_image_name)+')' : '')+'</span>' : '')
     + '</div>'
     + helpText
+    + hostHtml
     + genderHtml
     + '<div class="sr-pickup-drop" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--li2)">'
     +   '<div style="font-size:12px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Drop-off / Pick-up Time</div>'
@@ -2703,6 +2716,12 @@ function copySpyWaMsg(){
   (navigator.clipboard ? navigator.clipboard.writeText(el.value) : Promise.reject())
     .then(()=>showToast('✓ Message copied — paste it in WhatsApp'))
     .catch(()=>{ el.select(); showToast('Select all and copy the message'); });
+}
+function copySpyHostLink(){
+  const el = document.getElementById('srHostLink'); if(!el) return;
+  (navigator.clipboard ? navigator.clipboard.writeText(el.textContent) : Promise.reject())
+    .then(()=>showToast('Host link copied'))
+    .catch(()=>showToast('Could not copy \u2014 long-press to select the link text'));
 }
 function copySpyRegLink(){
   const el = document.getElementById('srLinkText');

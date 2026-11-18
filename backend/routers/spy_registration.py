@@ -43,6 +43,7 @@ can't hold an image directly.
 import base64
 import json
 import logging
+import re
 import secrets
 from datetime import datetime
 from typing import Optional
@@ -252,6 +253,23 @@ async def _gender_info(lead_id: int, override: Optional[str]) -> dict:
     }
 
 
+async def _host_token(lead_id: int) -> str:
+    """The private token for the host's "who has registered" page
+    (2026-11-17). Created the first time it's needed, so every page row --
+    however it was created -- gets one without touching each INSERT."""
+    row = await database.fetch_one(
+        "SELECT host_token FROM spy_registration_pages WHERE lead_id = :id", values={"id": lead_id})
+    if row and row["host_token"]:
+        return row["host_token"]
+    token = secrets.token_urlsafe(18)
+    await database.execute(
+        "UPDATE spy_registration_pages SET host_token = :t WHERE lead_id = :id AND host_token IS NULL",
+        values={"t": token, "id": lead_id})
+    row = await database.fetch_one(
+        "SELECT host_token FROM spy_registration_pages WHERE lead_id = :id", values={"id": lead_id})
+    return row["host_token"] if row else token
+
+
 @router.get("/admin/{lead_id}")
 async def admin_get_status(lead_id: int, x_admin_password: Optional[str] = Header(None)):
     _require_admin(x_admin_password)
@@ -299,6 +317,7 @@ async def admin_get_status(lead_id: int, x_admin_password: Optional[str] = Heade
         "has_tshirt_chart": bool(row["has_tshirt_chart"]),
         "tshirt_chart_image_name": row["tshirt_chart_image_name"],
         **(await _gender_info(lead_id, row["child_gender_override"])),
+        "host_url": f"/spy-registrations.html?h={await _host_token(lead_id)}",
     }
 
 
@@ -749,6 +768,84 @@ async def register_spy_agent(
         raise HTTPException(status_code=502, detail="Something went wrong saving the registration — please try again.")
 
     return {"success": True}
+
+
+def _drive_file_id(url: str) -> str:
+    m = re.search(r"/d/([A-Za-z0-9_-]{10,})", url or "") or re.search(r"[?&]id=([A-Za-z0-9_-]{10,})", url or "")
+    return m.group(1) if m else ""
+
+
+@router.get("/host/{host_token}")
+async def get_host_registrations(host_token: str):
+    """2026-11-17, per Shruti -- "a lot of parents keep asking about
+    registrations, can we give them a link to see the registrations, only
+    for their party. don't show additional columns like dob, marketing
+    communication answer, tshirt size (if not applicable)".
+
+    Registrations live only in the dedicated Spy Google Sheet (one tab per
+    party), so this asks that sheet's Apps Script for this party's tab
+    (action="list_spy_registrations", see spy_sheet_webhook.js) and returns
+    ONLY: agent name, parent name, parent phone, photo, registered time,
+    and T-shirt size when this party asks for it. DOB and the marketing
+    answer never leave the backend."""
+    host_token = _clean(host_token)
+    row = await database.fetch_one(
+        """SELECT srp.share_token, srp.tshirt_size_enabled,
+                  l.child_names, l.event_date, l.event_time, l.venue
+           FROM spy_registration_pages srp
+           JOIN leads l ON l.lead_id = srp.lead_id
+           WHERE srp.host_token = :t""",
+        values={"t": host_token},
+    )
+    if not host_token or not row:
+        raise HTTPException(status_code=404, detail="This link isn't valid — please check the link your host team shared.")
+    row = dict(row)
+    show_tshirt = bool(row.get("tshirt_size_enabled"))
+
+    if not settings.SPY_SHEET_WEBHOOK_URL:
+        raise HTTPException(status_code=503, detail="Registrations can't be loaded right now — please try again later.")
+    try:
+        async with httpx.AsyncClient(timeout=25, follow_redirects=True) as client:
+            r = await client.post(settings.SPY_SHEET_WEBHOOK_URL, json={
+                "action": "list_spy_registrations",
+                "event_id": row["share_token"],
+                "mission_label": _mission_label(row),
+            })
+        data = r.json()
+    except Exception as exc:
+        logger.error(f"Spy host view ({host_token}): sheet read failed — {exc}")
+        raise HTTPException(status_code=502, detail="Registrations can't be loaded right now — please try again in a minute.")
+    if not data.get("success"):
+        logger.error(f"Spy host view ({host_token}): sheet reported failure — {str(data)[:300]}")
+        raise HTTPException(status_code=502, detail="Registrations can't be loaded right now — please try again in a minute.")
+
+    out = []
+    for rec in data.get("rows") or []:
+        name = _clean(str(rec.get("Agent Name") or ""))
+        if not name:
+            continue
+        photo = _clean(str(rec.get("Agent Photo") or ""))
+        fid = _drive_file_id(photo)
+        item = {
+            "agent_name": name,
+            "parent_name": _clean(str(rec.get("Parent Name") or "")),
+            "parent_phone": _clean(str(rec.get("Parent Phone") or "")),
+            "registered_at": _clean(str(rec.get("Timestamp") or "")),
+            "photo_url": photo if photo.startswith("http") else "",
+            "photo_thumb": f"https://drive.google.com/thumbnail?id={fid}&sz=w200" if fid else "",
+        }
+        if show_tshirt:
+            item["tshirt_size"] = _clean(str(rec.get("T-Shirt Size") or ""))
+        out.append(item)
+
+    return {
+        "child_name": _clean(row.get("child_names")) or "the birthday child",
+        "event_date_display": _format_date(row.get("event_date")),
+        "event_time_display": _format_time(row.get("event_time")),
+        "venue": _clean(row.get("venue")),
+        "show_tshirt": show_tshirt,
+        "registrations": out,
+    }
 
 
 class ConfirmPickupDropRequest(BaseModel):

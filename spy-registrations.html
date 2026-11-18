@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Agent Registrations — Wondershop Experiences</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!--
+  Host's "who has registered" page for a Spy party (2026-11-17, per Shruti:
+  "a lot of parents keep asking about registrations, can we give them a link
+  to see the registrations, only for their party. don't show additional
+  columns like dob, marketing communication answer, tshirt size (if not
+  applicable)"). Opened as spy-registrations.html?h=<host_token> — a private
+  token separate from the guests' registration link. Data comes from
+  GET /api/spy-registration/host/{token}, which already leaves out DOB and
+  the marketing answer, and T-shirt size unless this party asks for it.
+-->
+<style>
+  :root{
+    --bg-deep:#0a0414; --bg-mid:#1a0b2e; --card:#1c0d33; --line:rgba(199,125,255,.22);
+    --neon:#c77dff; --neon-rgb:199,125,255; --magenta:#e040fb; --grad-end:#7b2ff7;
+    --ink:#f4ecff; --ink-dim:#c9b8e8; --faint:#8a7aa8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(ellipse at top, var(--bg-mid) 0%, var(--bg-deep) 60%) fixed;background-color:var(--bg-deep);
+       color:var(--ink);font-family:'Poppins',sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+  .wrap{max-width:640px;margin:0 auto;padding:28px 16px 48px}
+  .brand{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--faint);text-align:center}
+  .stamp{display:inline-block;border:2px solid var(--ink);padding:4px 14px;margin:16px auto 8px;font-family:'Bebas Neue',sans-serif;
+         letter-spacing:3px;font-size:20px;transform:rotate(-2deg)}
+  .head{text-align:center}
+  h1{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:1px;line-height:1.05;
+     background:linear-gradient(90deg,var(--neon),var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .meta{color:var(--ink-dim);font-size:13px;margin-top:6px}
+  .stats{display:flex;gap:10px;margin:22px 0 14px;flex-wrap:wrap}
+  .stat{flex:1 1 140px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+  .stat .n{font-family:'Bebas Neue',sans-serif;font-size:34px;line-height:1;color:var(--neon)}
+  .stat .l{font-size:11.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.6px;margin-top:4px}
+  .sizes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--ink-dim);white-space:nowrap}
+  .chip b{color:var(--ink)}
+  .tools{display:flex;gap:8px;margin-bottom:14px}
+  .tools input{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:10px;
+               padding:11px 12px;font:inherit;font-size:14px}
+  .tools input::placeholder{color:var(--faint)}
+  .tools input:focus{outline:2px solid rgba(var(--neon-rgb),.5);outline-offset:1px}
+  .btn{background:linear-gradient(90deg,var(--neon),var(--grad-end));color:#fff;border:0;border-radius:10px;padding:0 14px;
+       font:inherit;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap}
+  .btn:disabled{opacity:.6;cursor:default}
+  .list{display:flex;flex-direction:column;gap:10px}
+  .agent{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+  .num{flex:0 0 auto;width:26px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--faint)}
+  .ph{flex:0 0 auto;width:52px;height:52px;border-radius:50%;overflow:hidden;background:rgba(var(--neon-rgb),.12);
+      display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--neon)}
+  .ph img{width:100%;height:100%;object-fit:cover;display:block}
+  .info{flex:1;min-width:0}
+  .an{font-weight:600;font-size:15.5px;overflow-wrap:anywhere}
+  .pn{font-size:12.5px;color:var(--ink-dim);margin-top:2px;overflow-wrap:anywhere}
+  .pn a{color:var(--ink-dim)}
+  .when{font-size:11px;color:var(--faint);margin-top:3px}
+  .size{flex:0 0 auto;text-align:center;border:1px solid var(--line);border-radius:10px;padding:6px 9px;min-width:52px}
+  .size .v{font-weight:700;font-size:14px}
+  .size .k{font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.5px}
+  .msg{text-align:center;color:var(--ink-dim);background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:28px 18px;font-size:14px}
+  .err{color:#ff9db0}
+  .foot{text-align:center;color:var(--faint);font-size:11.5px;margin-top:28px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">A Wondershop Experiences Event</div>
+  <div class="head">
+    <div class="stamp">TOP SECRET</div>
+    <h1 id="title">Agent Registrations</h1>
+    <div class="meta" id="meta"></div>
+  </div>
+
+  <div id="content"><div class="msg">Loading the agent list&hellip;</div></div>
+
+  <div class="foot">Only you have this link &mdash; please don&rsquo;t forward it to guests.<br>Questions? Message the Wondershop team.</div>
+</div>
+
+<script>
+(function(){
+  var API_BASE = 'https://wondershop-website-production.up.railway.app';
+  var token = new URLSearchParams(location.search).get('h') || '';
+  var content = document.getElementById('content');
+  var ALL = [], SHOW_TSHIRT = false;
+
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function fmtWhen(s){
+    if(!s) return '';
+    var d = new Date(/Z$|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z');
+    if(isNaN(d)) return '';
+    return 'Registered ' + d.toLocaleString('en-IN', {timeZone:'Asia/Kolkata', day:'numeric', month:'short', hour:'numeric', minute:'2-digit'});
+  }
+  function initials(n){ return n.trim().split(/\s+/).slice(0,2).map(function(w){ return w[0]; }).join('').toUpperCase(); }
+
+  function render(){
+    var q = (document.getElementById('q') || {}).value || '';
+    q = q.trim().toLowerCase();
+    var rows = ALL.map(function(r, i){ r._n = i + 1; return r; }).filter(function(r){
+      return !q || (r.agent_name + ' ' + r.parent_name + ' ' + r.parent_phone).toLowerCase().indexOf(q) !== -1;
+    });
+    var list = document.getElementById('list');
+    if(!ALL.length){ list.innerHTML = '<div class="msg">No agents have registered yet.<br>Check back once the registration link has gone out.</div>'; return; }
+    if(!rows.length){ list.innerHTML = '<div class="msg">No one matches &ldquo;' + esc(q) + '&rdquo;.</div>'; return; }
+    list.innerHTML = rows.map(function(r){
+      var ph = r.photo_thumb
+        ? '<a class="ph" href="' + esc(r.photo_url || r.photo_thumb) + '" target="_blank" rel="noopener"><img src="' + esc(r.photo_thumb) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.textContent=\'' + esc(initials(r.agent_name)) + '\'"></a>'
+        : '<div class="ph">' + esc(initials(r.agent_name)) + '</div>';
+      var parent = [r.parent_name ? esc(r.parent_name) : '', r.parent_phone ? '<a href="tel:' + esc(r.parent_phone.replace(/[^\d+]/g,'')) + '">' + esc(r.parent_phone) + '</a>' : ''].filter(Boolean).join(' &middot; ');
+      var size = SHOW_TSHIRT ? '<div class="size"><div class="v">' + (r.tshirt_size ? esc(r.tshirt_size) : '&mdash;') + '</div><div class="k">T-shirt</div></div>' : '';
+      return '<div class="agent"><div class="num">' + r._n + '</div>' + ph
+        + '<div class="info"><div class="an">' + esc(r.agent_name) + '</div>'
+        + (parent ? '<div class="pn">Parent: ' + parent + '</div>' : '')
+        + (fmtWhen(r.registered_at) ? '<div class="when">' + esc(fmtWhen(r.registered_at)) + '</div>' : '')
+        + '</div>' + size + '</div>';
+    }).join('');
+  }
+
+  function shell(d){
+    var tally = '';
+    if(SHOW_TSHIRT && ALL.length){
+      var counts = {};
+      ALL.forEach(function(r){ var k = r.tshirt_size || 'Not given'; counts[k] = (counts[k] || 0) + 1; });
+      tally = '<div class="stat"><div class="l">T-shirt sizes</div><div class="sizes">'
+        + Object.keys(counts).sort(function(a,b){ return (parseFloat(a)||999) - (parseFloat(b)||999) || a.localeCompare(b); })
+            .map(function(k){ return '<span class="chip">' + esc(k) + ' &times; <b>' + counts[k] + '</b></span>'; }).join('')
+        + '</div></div>';
+    }
+    content.innerHTML = '<div class="stats"><div class="stat"><div class="n">' + ALL.length + '</div><div class="l">Agent' + (ALL.length === 1 ? '' : 's') + ' registered</div></div>' + tally + '</div>'
+      + (ALL.length > 5 ? '<div class="tools"><input id="q" type="search" placeholder="Search by child or parent name" autocomplete="off"><button class="btn" id="refresh">Refresh</button></div>'
+                        : '<div class="tools" style="justify-content:flex-end"><button class="btn" id="refresh" style="padding:10px 14px">Refresh</button></div>')
+      + '<div class="list" id="list"></div>';
+    var q = document.getElementById('q'); if(q) q.addEventListener('input', render);
+    document.getElementById('refresh').addEventListener('click', function(){ this.disabled = true; this.textContent = 'Loading…'; load(); });
+    render();
+  }
+
+  function fail(text){ content.innerHTML = '<div class="msg err">' + esc(text) + '</div>'; }
+
+  function load(){
+    if(!token){ fail('This link is incomplete — please use the link exactly as the Wondershop team shared it.'); return; }
+    fetch(API_BASE + '/api/spy-registration/host/' + encodeURIComponent(token))
+      .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); })
+      .then(function(res){
+        if(!res.ok){ fail(res.d.detail || 'Could not load registrations — please try again.'); return; }
+        var d = res.d;
+        document.title = d.child_name + "'s Agents — Wondershop Experiences";
+        document.getElementById('title').textContent = d.child_name + "'s Agents";
+        document.getElementById('meta').textContent = [d.event_date_display, d.event_time_display, d.venue].filter(Boolean).join(' · ');
+        SHOW_TSHIRT = !!d.show_tshirt;
+        ALL = d.registrations || [];
+        shell(d);
+      })
+      .catch(function(){ fail('Could not load registrations — please check your internet and try again.'); });
+  }
+  load();
+})();
+</script>
+</body>
+</html>

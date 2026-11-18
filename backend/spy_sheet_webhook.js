@@ -41,6 +41,9 @@ var SPY_HEADERS = [
 function doPost(e) {
   try {
     var d = JSON.parse(e.postData.contents);
+    // 2026-11-17: the backend reads one party's tab for the host's
+    // "who has registered" page (see spy_registration.py's /host/{token}).
+    if (d.action === "list_spy_registrations") return _listSpyRegistrations(d);
     if (d.action !== "spy_agent_registration") {
       return ContentService
         .createTextOutput(JSON.stringify({ success: false, error: "Unknown action: " + d.action }))
@@ -148,6 +151,31 @@ function _appendSpyRegistration(d) {
 
   return ContentService
     .createTextOutput(JSON.stringify({ success: true }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Returns every row of this party's tab as {header: value} objects
+ * (by header name, so older tabs with columns added later still read
+ * right). The backend picks which fields the host gets to see.
+ */
+function _listSpyRegistrations(d) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(_sheetNameForParty(d));
+  var rows = [];
+  if (sheet && sheet.getLastRow() > 1) {
+    var values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
+    var headers = values[0];
+    for (var r = 1; r < values.length; r++) {
+      var obj = {};
+      for (var c = 0; c < headers.length; c++) {
+        var v = values[r][c];
+        obj[headers[c]] = (v instanceof Date) ? v.toISOString() : v;
+      }
+      rows.push(obj);
+    }
+  }
+  return ContentService
+    .createTextOutput(JSON.stringify({ success: true, found: !!sheet, rows: rows }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
