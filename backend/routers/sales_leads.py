@@ -1928,7 +1928,11 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
     from catalogue_data import decor_option, DECOR_OPTIONS_PAGE
     opt_ids = [x for x in (r("decor_options").get("ids") or []) if isinstance(x, str)]
     opt_quotes = r("decor_options").get("quotes") or {}
-    opts = [o for o in (decor_option(x) for x in dict.fromkeys(opt_ids)) if o]
+    # Website-uploaded designs ("ref-<n>", 2026-11-19 — #1312's "Sports —
+    # Classic · Design 12" was dropped) come from decor_refs' cached list.
+    from routers.decor_refs import _REF_OPTS as _refs
+    _ref_by = {o["id"]: dict(o, included=[], needed=[]) for o in (_refs or [])}
+    opts = [o for o in ((decor_option(x) or _ref_by.get(x)) for x in dict.fromkeys(opt_ids)) if o]
     if opts:   # link first, so it sits with the options even across a page break
         def _tok(o):   # "uni-signature:22000" carries the sales quote to the page
             q = opt_quotes.get(o["id"])
@@ -2267,6 +2271,11 @@ async def quotation_pdf(lead_id: int, by: Optional[str] = None, hide_total: bool
     lead_row = await _get_lead_row(lead_id)
     pb_row = await _get_playbook_row(lead_id)
     d = await _full_detail(lead_row)
+    try:
+        from routers.decor_refs import website_ref_options
+        await website_ref_options()   # uploaded decor designs for "Decor options"
+    except Exception:
+        pass
     data, paths = _quotation_data(d, datetime.utcnow())
     images = await fetch_images([p for p in paths if not str(p).startswith("aref:")])
     await load_activity_photos(images, paths)

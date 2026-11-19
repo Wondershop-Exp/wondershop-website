@@ -4927,7 +4927,7 @@ function populateThemeCatalogSelects(){
     // they aren't decor-catalogue THEMES): picking one shows every decor
     // design on the decor step (same as any theme with no designs) and
     // surfaces the matching e-invites first (INVITES t:'imposter').
-    const PREF_ONLY_THEMES=[{id:'among-us',n:'Among Us',e:'🚀'},{id:'imposter',n:'Imposter',e:'🕵️'}];
+    const PREF_ONLY_THEMES=[{id:'among-us',n:'Among Us',e:'🚀'},{id:'imposter',n:'Imposter',e:'🕵️'},{id:'sports',n:'Sports',e:'🏅'}];
     [...sorted, ...PREF_ONLY_THEMES].sort((a,b)=>a.n.localeCompare(b.n)).forEach(t=>{
       const opt=document.createElement('option');
       opt.value=t.id;opt.textContent=(t.e?t.e+' ':'')+t.n;

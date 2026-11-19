@@ -212,7 +212,7 @@ async def fetch_images(paths: Iterable[str], *, timeout: float = 8.0) -> Dict[st
     async def one(client, path):
         raw = None
         local = os.path.join(_SITE_ROOT, *path.split("/"))
-        if os.path.isfile(local):
+        if not path.startswith(("http://", "https://")) and os.path.isfile(local):
             try:
                 with open(local, "rb") as fh:
                     raw = fh.read()
@@ -220,7 +220,8 @@ async def fetch_images(paths: Iterable[str], *, timeout: float = 8.0) -> Dict[st
                 raw = None
         if raw is None and client is not None:
             try:
-                r = await client.get(f"{SITE_BASE_URL}/{urllib.parse.quote(path)}")
+                # full URLs too (uploaded decor designs, 2026-11-19)
+                r = await client.get(path if path.startswith(("http://", "https://")) else f"{SITE_BASE_URL}/{urllib.parse.quote(path)}")
                 if r.status_code == 200:
                     raw = r.content
             except Exception:
