@@ -226,7 +226,8 @@ table.list tr:hover td{background:var(--li3)}
     </div>
     <div class="fld" style="margin-bottom:12px"><label>Items (one per line)</label><textarea id="ntItems" rows="6" style="padding:10px;border:1px solid var(--li2);border-radius:8px;font-size:13px"></textarea></div>
     <div style="display:flex;gap:10px">
-      <button class="btn pk" onclick="createTemplate()">Add template</button>
+      <button class="btn pk" id="tplSaveBtn" onclick="createTemplate()">Add template</button>
+      <button class="btn gh" id="tplCancelBtn" style="display:none" onclick="cancelTemplateEdit()">Cancel edit</button>
       <button class="btn gh" onclick="closeTemplatesModal()">Close</button>
     </div>
   </div>
@@ -569,11 +570,41 @@ function renderTemplateList(){
     return '<div class="tpl-item"><div class="tpl-name">'+esc(t.name)+'</div>'
       +'<div class="tpl-cat">'+esc(t.category)+'</div>'
       +'<div class="tpl-items">'+esc((t.items||[]).join(', '))+'</div>'
-      +'<div style="margin-top:6px"><button class="btn sm gh" onclick="deleteTemplate('+t.id+')">Delete</button></div>'
+      +'<div style="margin-top:6px;display:flex;gap:6px"><button class="btn sm gh" onclick="editTemplate('+t.id+')">Edit</button><button class="btn sm gh" onclick="deleteTemplate('+t.id+')">Delete</button></div>'
       +'</div>';
   }).join('');
 }
+// Edit a template (2026-11-19, per Shruti — "how can I update the packing templates?").
+let TPL_EDIT_ID = null;
+function editTemplate(id){
+  const t = TEMPLATES.find(x=>x.id===id); if(!t) return;
+  TPL_EDIT_ID = id;
+  document.getElementById('ntName').value = t.name;
+  document.getElementById('ntCategory').value = t.category || 'other';
+  document.getElementById('ntItems').value = (t.items||[]).join('\n');
+  document.getElementById('tplSaveBtn').textContent = 'Save changes';
+  document.getElementById('tplCancelBtn').style.display = '';
+  document.getElementById('ntName').scrollIntoView({block:'center'}); document.getElementById('ntName').focus();
+}
+function cancelTemplateEdit(){
+  TPL_EDIT_ID = null;
+  document.getElementById('ntName').value=''; document.getElementById('ntItems').value='';
+  document.getElementById('tplSaveBtn').textContent = 'Add template';
+  document.getElementById('tplCancelBtn').style.display = 'none';
+}
 async function createTemplate(){
+  if(TPL_EDIT_ID){
+    const name = document.getElementById('ntName').value.trim();
+    const category = document.getElementById('ntCategory').value;
+    const items = document.getElementById('ntItems').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    if(!name){ showToast('Give the template a name.'); return; }
+    if(!items.length){ showToast('Add at least one item.'); return; }
+    try{
+      await apiCall('/api/admin/packaging/templates/'+TPL_EDIT_ID, {method:'PUT', body:JSON.stringify({name, category, items, created_by:getName()})});
+      showToast('Template updated.'); cancelTemplateEdit(); loadTemplates();
+    }catch(e){ showToast(e.message); }
+    return;
+  }
   const name = document.getElementById('ntName').value.trim();
   const category = document.getElementById('ntCategory').value;
   const items = document.getElementById('ntItems').value.split('\n').map(s=>s.trim()).filter(Boolean);
