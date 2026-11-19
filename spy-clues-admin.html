@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Spy Clue Prep – Wondershop Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<!--
+  Spy clue prep — Shruti / Sid's side (2026-11-19, per Shruti).
+  Pick teams x stations, pick a saved matrix (clues are reused, so matrices
+  are too) or make a new one, map each station to a room / game / volunteer,
+  set the host, then make Shilpa's private link (spy-clues.html?t=...), which
+  expires on its own and can be stopped any time.
+  ADMIN login only: /api/admin/spy-clues/* is not open to the sales login.
+  Backend: backend/routers/spy_clues.py.
+-->
+<style>
+:root{--li:#B59DDE;--li2:#EDE6FA;--li3:#F7F3FE;--pk:#E65A96;--spk:#F5C3D7;--plum:#2E2438;--bk:#191919;--gy:#5B5568;--line:#E2DAF0;--ok:#1E7A46;--okbg:#EAF6EF;--bad:#B42318;--badbg:#FDECEA;--warnbg:#FFF6DA;--fd:'Lora',serif;--fb:'DM Sans',system-ui,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--fb);color:var(--bk);background:var(--li3);font-size:15px;line-height:1.45}
+h1,h2,h3{margin:0;line-height:1.2}
+h2{font-family:var(--fd);font-size:20px;color:var(--plum)}
+h3{font-size:15px;color:var(--plum)}
+.top{background:var(--plum);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.top h1{font-family:var(--fd);font-size:24px}
+.top .tag{background:var(--pk);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800}
+.top .sp{flex:1}
+.top input{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:6px 10px;font:inherit;width:150px}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 16px 80px;display:flex;flex-direction:column;gap:16px}
+.card{background:#fff;border-radius:14px;padding:18px;border:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700;color:var(--gy)}
+input,select{font:inherit;font-size:15px;padding:8px 10px;border:1px solid #CFC5E2;border-radius:8px;background:#fff;color:var(--bk);min-width:0}
+input:focus,select:focus{outline:2px solid var(--li);border-color:var(--li)}
+.btn{border:0;border-radius:10px;background:var(--plum);color:#fff;font:inherit;font-weight:700;padding:9px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.btn.pk{background:var(--pk)}
+.btn.line{background:#fff;color:var(--plum);border:1.5px solid var(--plum)}
+.btn.ghost{background:transparent;color:var(--gy);padding:6px 10px}
+.btn.red{background:#fff;color:var(--bad);border:1.5px solid var(--bad)}
+.btn.sm{padding:6px 11px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.muted{color:var(--gy);font-size:13px}
+.hidden{display:none!important}
+.err{background:var(--badbg);color:var(--bad);border-radius:10px;padding:10px 12px;font-weight:700}
+.okm{background:var(--okbg);color:var(--ok);border-radius:10px;padding:10px 12px;font-weight:700}
+.warn{background:var(--warnbg);border-radius:10px;padding:10px 12px}
+/* parties list */
+.jobs{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.job{border:1.5px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:4px;background:#fff}
+.job:hover{border-color:var(--li)}
+.job.on{border-color:var(--pk);background:#FFF7FB}
+.job b{font-size:15px}
+.pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:800}
+.pill.live{background:var(--okbg);color:var(--ok)}.pill.none{background:#EEE;color:#555}.pill.expired,.pill.revoked{background:var(--badbg);color:var(--bad)}
+.bar{height:7px;border-radius:9px;background:var(--li2);overflow:hidden}.bar i{display:block;height:100%;background:var(--ok)}
+/* station table */
+table{border-collapse:collapse;width:100%}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:12px;color:var(--gy);text-transform:uppercase;letter-spacing:.03em}
+td input{width:100%}
+.num{width:40px;font-weight:800;color:var(--plum);font-size:16px;text-align:center}
+/* matrix */
+.lib{display:flex;gap:8px;flex-wrap:wrap}
+.mx{border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;background:#fff;text-align:left;font:inherit}
+.mx:hover{border-color:var(--li)}.mx.on{border-color:var(--pk);background:#FFF7FB}
+.mx b{display:block}.mx span{font-size:12px;color:var(--gy)}
+.mtables{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+.mtables>div{overflow-x:auto}
+.mt th,.mt td{border:1px solid #BFB4D6;text-align:center;padding:4px 6px;font-size:14px;white-space:nowrap}
+.mt th{background:#ECE8F2;color:var(--bk);text-transform:none;letter-spacing:0;font-size:14px}
+.mt td.tm{text-align:left;font-weight:800;background:#F6F4F9}
+.mt select{padding:4px 2px;font-weight:800;text-align:center;width:52px}
+.mt td.bad select,.mt td.bad{background:var(--badbg);color:var(--bad)}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:6px;border:1px solid rgba(0,0,0,.2)}
+/* colours */
+.cols{display:flex;gap:10px;flex-wrap:wrap}
+.cols label{flex-direction:row;align-items:center;gap:6px}
+/* envelope preview */
+.envs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.team{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.team h4{margin:0;padding:8px 12px;font-size:15px}
+.team table td{font-size:14px;padding:5px 10px}
+.team td.n{font-weight:800;width:34px}
+.team td.v{font-weight:800}
+/* link */
+.linkbox{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.linkbox code{background:var(--li3);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;word-break:break-all;flex:1;min-width:200px}
+.savebar{position:sticky;bottom:0;background:rgba(247,243,254,.96);backdrop-filter:blur(4px);border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;z-index:5}
+.modal{position:fixed;inset:0;background:rgba(25,25,25,.6);display:grid;place-items:center;padding:16px;z-index:20}
+.modal .card{max-width:380px;width:100%}
+@media print{
+  .top,.savebar,.noprint,#jobsCard,#libCard{display:none!important}
+  body{background:#fff}.card{border:0;padding:0}
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>🕵️ Spy Clue Prep</h1><span class="tag">ADMIN ONLY</span>
+  <span class="sp"></span>
+  <span style="font-size:13px">Editing as</span><input id="who" placeholder="Your name" autocomplete="off">
+  <a class="btn sm line" style="background:transparent;color:#fff;border-color:#fff" href="admin.html">← Admin</a>
+</div>
+
+<div class="wrap">
+  <div class="card" id="jobsCard">
+    <div class="row"><h2 style="flex:1">Parties</h2><button class="btn pk" id="newBtn">＋ New spy party</button></div>
+    <div id="jobs" class="jobs"><div class="muted">Loading…</div></div>
+  </div>
+
+  <div id="editor" class="hidden" style="display:flex;flex-direction:column;gap:16px">
+    <div id="msg"></div>
+
+    <div class="card">
+      <h2>1 · Party</h2>
+      <div class="grid2">
+        <label>Party name<input id="title" placeholder="e.g. Ishani F8 Ghatkopar"></label>
+        <label>Party date<input id="edate" type="date"></label>
+        <label>Host (hands over clue 1)<input id="host" placeholder="e.g. Sunny"></label>
+        <label>No. of kids<input id="kids" type="number" min="1" max="500" inputmode="numeric" placeholder="e.g. 24"></label>
+        <label>Teams<select id="teams"></select></label>
+        <label>Stations<select id="stations"></select></label>
+      </div>
+      <div class="muted">Teams can be equal to or fewer than stations. Each team gets stations + 1 envelopes. <b id="perTeam"></b></div>
+    </div>
+
+    <div class="card">
+      <h2>2 · Stations → room, game, volunteer</h2>
+      <table><thead><tr><th>#</th><th>Room</th><th>Game / activity</th><th>Volunteer (station master)</th></tr></thead><tbody id="st"></tbody></table>
+      <datalist id="roomList"></datalist>
+      <label style="max-width:360px">Last envelope says<input id="finalLabel" placeholder="Final clue"></label>
+    </div>
+
+    <div class="card">
+      <h2>3 · Team colours</h2>
+      <div class="cols" id="cols"></div>
+    </div>
+
+    <div class="card">
+      <div class="row"><h2 style="flex:1">4 · Movement matrix</h2><button class="btn line" id="genBtn">🎲 Make a new matrix</button></div>
+      <div>
+        <h3 style="margin-bottom:6px">Saved matrices for <span id="sizeLbl"></span> <span class="muted">(reuse one to reuse its printed clues)</span></h3>
+        <div class="lib" id="lib"></div>
+      </div>
+      <div id="mxStatus"></div>
+      <div class="mtables">
+        <div><table class="mt" id="mtNum"></table><div class="muted" style="margin-top:4px">Numbers are stations. Change any box if needed.</div></div>
+        <div><table class="mt" id="mtName"></table></div>
+      </div>
+      <div class="row">
+        <label style="flex:1;max-width:360px">Save this matrix in the library as<input id="saveAs" placeholder="e.g. 6×6 Set B (leave empty to skip)"></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row"><h2 style="flex:1">5 · Envelopes (what Shilpa will see)</h2><button class="btn sm line noprint" onclick="window.print()">🖨 Print</button></div>
+      <div class="muted noprint">Envelope 1 is given by the host. Every next envelope is given by the volunteer of the station the team just finished.</div>
+      <div class="envs" id="envs"></div>
+    </div>
+
+    <div class="card noprint" id="linkCard">
+      <h2>6 · Shilpa's link</h2>
+      <div id="linkBody"></div>
+    </div>
+
+    <div class="card noprint">
+      <div class="row"><button class="btn red sm" id="delBtn">Delete this party</button><span class="muted">Deleting removes the party and its link. Saved matrices stay in the library.</span></div>
+    </div>
+  </div>
+
+  <div class="card" id="libCard">
+    <h2>Matrix library</h2>
+    <div class="muted">All saved matrices. Hiding one doesn't change parties that already used it.</div>
+    <div id="libAll"></div>
+  </div>
+</div>
+
+<div class="savebar hidden" id="savebar">
+  <span class="muted" id="dirtyLbl"></span>
+  <button class="btn ghost" id="cancelBtn">Close</button>
+  <button class="btn pk" id="saveBtn">💾 Save party</button>
+</div>
+
+<div id="login" class="modal hidden"><div class="card">
+  <h2>Admin sign in</h2>
+  <div class="muted">Spy clue prep is only for Shruti and Sid.</div>
+  <input id="pw" type="password" placeholder="Admin password" autocomplete="current-password">
+  <button class="btn pk" id="pwBtn">Sign in</button>
+  <div id="pwMsg" style="color:var(--bad);font-weight:700"></div>
+</div></div>
+
+<script>
+const API = 'https://wondershop-website-production.up.railway.app';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function pw(){ try { return localStorage.getItem('ws_admin_pw') || ''; } catch(e){ return ''; } }
+async function api(path, opt = {}){
+  opt.headers = Object.assign({'X-Admin-Password': pw()}, opt.body ? {'Content-Type':'application/json'} : {}, opt.headers || {});
+  const r = await fetch(API + path, opt);
+  if (r.status === 401){ showLogin('Please sign in.'); throw new Error('auth'); }
+  if (r.status === 403){ showLogin('Spy clue prep needs the admin password (not sales).'); throw new Error('auth'); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.detail || ('Error ' + r.status));
+  return j;
+}
+function showLogin(m){ $('#login').classList.remove('hidden'); $('#pwMsg').textContent = m || ''; $('#pw').focus(); }
+$('#pwBtn').onclick = async () => {
+  const v = $('#pw').value.trim();
+  const r = await fetch(API + '/api/admin/whoami', {headers: {'X-Admin-Password': v}}).catch(() => null);
+  if (!r || !r.ok){ $('#pwMsg').textContent = "That password isn't right."; return; }
+  const j = await r.json();
+  if (j.role !== 'admin'){ $('#pwMsg').textContent = 'Please use the admin password.'; return; }
+  try { localStorage.setItem('ws_admin_pw', v); } catch(e){}
+  $('#login').classList.add('hidden'); boot();
+};
+$('#pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('#pwBtn').click(); });
+$('#who').value = (() => { try { return localStorage.getItem('ws_admin_name') || ''; } catch(e){ return ''; } })();
+$('#who').onchange = () => { try { localStorage.setItem('ws_admin_name', $('#who').value.trim()); } catch(e){} };
+
+let SETUP = null;      // rooms, colours, matrices, jobs
+let cur = null;        // party being edited (local copy)
+let dirty = false;
+
+const DEFAULT_STATIONS = [
+  {room:'Surveillance Room', activity:'Photobooth + Fingerprint matching', volunteer:''},
+  {room:'Hotel', activity:'Floor Puzzle', volunteer:''},
+  {room:'Fortune Parlor (Tarot)', activity:'Riddles', volunteer:''},
+  {room:'Royal Treasury', activity:'Nerf', volunteer:''},
+  {room:'Bookstore', activity:'Crack the Code A4 (7-9 yrs)', volunteer:''},
+];
+const ICONS = [['surveil','📷'],['photo','📷'],['hotel','🏨'],['tarot','🔮'],['fortune','🔮'],['scarlet','🔮'],['treasur','👑'],['vault','👑'],['book','📚'],['lab','🧪'],['laser','🔦'],['museum','🏛️'],['bank','🏦'],['airport','✈️'],['cafe','☕']];
+function iconFor(room){ const r = (room || '').toLowerCase(); for (const [k, i] of ICONS) if (r.includes(k)) return i; return '🎯'; }
+function colourOf(name){
+  const c = (SETUP?.colours || []).find(x => x.name.toLowerCase() === String(name || '').toLowerCase());
+  return c ? c : {bg:'#6B7280', fg:'#fff'};
+}
+
+// ─── matrix maths ─────────────────────────────────────────────────────────
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function makeMatrix(T, S){
+  // random Latin square of size S (shuffle rows, columns and symbols of the
+  // cyclic one), keep T rows: every team visits each station once and no two
+  // teams are ever at the same station in the same round.
+  const rows = shuffle([...Array(S).keys()]), cols = shuffle([...Array(S).keys()]), sym = shuffle([...Array(S).keys()].map(x => x + 1));
+  const sq = rows.map(r => cols.map(c => sym[(r + c) % S]));
+  // avoid giving an exact copy of a saved matrix
+  const same = (SETUP?.matrices || []).some(m => m.teams === T && m.stations === S && JSON.stringify(m.grid) === JSON.stringify(sq.slice(0, T)));
+  return same ? makeMatrix(T, S) : sq.slice(0, T);
+}
+function gridProblems(g, T, S){
+  const bad = new Set(), msgs = [];
+  for (let t = 0; t < T; t++){
+    const row = g[t] || [];
+    const seen = {};
+    row.forEach((v, c) => { if (!v){ bad.add(t + ',' + c); return; } (seen[v] = seen[v] || []).push(c); });
+    Object.values(seen).forEach(cs => { if (cs.length > 1){ cs.forEach(c => bad.add(t + ',' + c)); msgs.push(`${teamName(t)} goes to the same station twice.`); } });
+    if (row.filter(Boolean).length < S) msgs.push(`${teamName(t)} has an empty box.`);
+  }
+  for (let c = 0; c < S; c++){
+    const seen = {};
+    for (let t = 0; t < T; t++){ const v = (g[t] || [])[c]; if (v) (seen[v] = seen[v] || []).push(t); }
+    Object.values(seen).forEach(ts => { if (ts.length > 1){ ts.forEach(t => bad.add(t + ',' + c)); msgs.push(`Round ${c + 1}: two teams at the same station.`); } });
+  }
+  return {bad, msgs: [...new Set(msgs)]};
+}
+function teamName(t){ return (cur.team_colours[t] || ('Team ' + (t + 1))); }
+
+// envelope rule — same as backend/routers/spy_clues.py envelopes_of()
+function envelopes(){
+  const out = [];
+  cur.grid.forEach((row, t) => {
+    const envs = [];
+    for (let k = 1; k <= row.length + 1; k++){
+      let giver;
+      if (k === 1) giver = cur.host_name || 'Host';
+      else giver = (cur.station_setup[row[k - 2] - 1] || {}).volunteer || '?';
+      const clue = k <= row.length ? ((cur.station_setup[row[k - 1] - 1] || {}).room || ('Station ' + row[k - 1])) : (cur.final_label || 'Final clue');
+      envs.push({no: k, giver, clue, final: k > row.length});
+    }
+    out.push(envs);
+  });
+  return out;
+}
+
+// ─── boot / lists ─────────────────────────────────────────────────────────
+async function boot(){
+  if (!pw()){ showLogin(); return; }
+  try { SETUP = await api('/api/admin/spy-clues/setup'); } catch(e){ if (e.message !== 'auth') $('#jobs').innerHTML = '<div class="err">' + esc(e.message) + '</div>'; return; }
+  $('#roomList').innerHTML = SETUP.rooms.map(r => `<option value="${esc(r.room)}">`).join('');
+  renderJobs(); renderLibAll();
+  const q = new URLSearchParams(location.search);
+  if (q.get('job')) openJob(+q.get('job'));
+  else if (q.get('lead_id') && !cur) newFromBooking(+q.get('lead_id'));
+}
+function renderJobs(){
+  const j = SETUP.jobs;
+  if (!j.length){ $('#jobs').innerHTML = '<div class="muted">No spy parties yet. Click “New spy party”.</div>'; return; }
+  $('#jobs').innerHTML = j.map(x => `<div class="job ${cur && cur.id === x.id ? 'on' : ''}" onclick="openJob(${x.id})">
+    <b>${esc(x.title)}</b><span class="muted">${esc(x.date_label || 'No date')} · ${esc(x.size)}</span>
+    <div class="row" style="gap:8px"><span class="pill ${x.link_state}">${({live:'Link live',none:'No link',expired:'Link expired',revoked:'Link stopped'})[x.link_state]}</span>
+    <span class="muted">${x.done}/${x.total} envelopes</span></div>
+    <div class="bar"><i style="width:${x.total ? Math.round(100 * x.done / x.total) : 0}%"></i></div></div>`).join('');
+}
+function renderLibAll(){
+  const m = SETUP.matrices;
+  $('#libAll').innerHTML = !m.length ? '<div class="muted">Empty.</div>' :
+    '<table><thead><tr><th>Name</th><th>Size</th><th>Used</th><th>Last party</th><th></th></tr></thead><tbody>' +
+    m.map(x => `<tr><td><b>${esc(x.name)}</b></td><td>${x.teams} × ${x.stations}</td><td>${x.used}×</td><td>${esc(x.last_used || '—')}</td>
+      <td style="text-align:right"><button class="btn ghost sm" onclick="archiveMatrix(${x.id})">Hide</button></td></tr>`).join('') + '</tbody></table>';
+}
+async function archiveMatrix(id){
+  if (!confirm('Hide this matrix from the library?')) return;
+  const r = await api('/api/admin/spy-clues/matrices/' + id + '/archive', {method:'POST'});
+  SETUP.matrices = r.matrices; renderLibAll(); if (cur) renderMatrix();
+}
+
+// ─── open / new ───────────────────────────────────────────────────────────
+function blankParty(){
+  const T = 5, S = 5;
+  const lib = SETUP.matrices.find(m => m.teams === T && m.stations === S);
+  return {id:null, lead_id:null, title:'', event_date:'', host_name:'', kids:null, teams:T, stations:S,
+    grid: lib ? lib.grid.map(r => r.slice()) : makeMatrix(T, S), matrix_id: lib ? lib.id : null,
+    team_colours: SETUP.default_colours.slice(0, T), station_setup: DEFAULT_STATIONS.map(s => ({...s})),
+    final_label:'', link_state:'none'};
+}
+function startEditing(p){
+  cur = p; dirty = false;
+  $('#editor').classList.remove('hidden'); $('#savebar').classList.remove('hidden');
+  $('#msg').innerHTML = '';
+  fillForm(); renderAll(); renderJobs();
+  $('#editor').scrollIntoView({behavior:'smooth', block:'start'});
+}
+$('#newBtn').onclick = () => { if (dirty && !confirm('Drop unsaved changes?')) return; startEditing(blankParty()); };
+async function newFromBooking(leadId){
+  const p = blankParty();
+  try {
+    const pre = await api('/api/admin/spy-clues/prefill/' + leadId);
+    if (pre.existing_id){ openJob(pre.existing_id); return; }
+    Object.assign(p, {lead_id: leadId, title: pre.title || '', event_date: pre.event_date || '', host_name: pre.host_name || '', kids: pre.kids || null});
+  } catch(e){}
+  startEditing(p); setDirty();
+}
+async function openJob(id){
+  if (dirty && !confirm('Drop unsaved changes?')) return;
+  try { absorb(await api('/api/admin/spy-clues/jobs/' + id)); startEditing(cur); history.replaceState(null, '', '?job=' + id); } catch(e){ if (e.message !== 'auth') alert(e.message); }
+}
+$('#cancelBtn').onclick = () => {
+  if (dirty && !confirm('Drop unsaved changes?')) return;
+  cur = null; dirty = false; $('#editor').classList.add('hidden'); $('#savebar').classList.add('hidden'); renderJobs();
+};
+
+// ─── form ─────────────────────────────────────────────────────────────────
+function fillForm(){
+  $('#title').value = cur.title || ''; $('#edate').value = cur.event_date || ''; $('#host').value = cur.host_name || '';
+  $('#finalLabel').value = cur.final_label || ''; $('#kids').value = cur.kids || ''; perTeam();
+  $('#stations').innerHTML = [5, 6, 7, 8].concat(cur.stations < 5 || cur.stations > 8 ? [cur.stations] : []).map(n => `<option ${n === cur.stations ? 'selected' : ''}>${n}</option>`).join('');
+  fillTeams();
+}
+function fillTeams(){
+  const opts = []; for (let n = 2; n <= cur.stations; n++) opts.push(n);
+  $('#teams').innerHTML = opts.map(n => `<option ${n === cur.teams ? 'selected' : ''}>${n}</option>`).join('');
+}
+function setDirty(){ dirty = true; $('#dirtyLbl').textContent = 'Unsaved changes'; renderLink(); }
+function perTeam(){
+  const k = +cur.kids || 0, T = cur.teams;
+  if (!k){ $('#perTeam').textContent = ''; return; }
+  const lo = Math.floor(k / T), ex = k % T;
+  $('#perTeam').textContent = `${k} kids → ${ex ? lo + '-' + (lo + 1) : lo} per team.` + (lo < 3 ? ' (Small teams — fewer teams?)' : lo > 8 ? ' (Big teams — more teams?)' : '');
+}
+['title','edate','host','finalLabel','kids'].forEach(id => $('#' + id).addEventListener('input', () => {
+  cur.title = $('#title').value; cur.event_date = $('#edate').value; cur.host_name = $('#host').value.trim(); cur.final_label = $('#finalLabel').value.trim();
+  cur.kids = +$('#kids').value || null; perTeam();
+  setDirty(); renderEnvs(); renderMatrixNames();
+}));
+$('#stations').onchange = () => resize(cur.teams, +$('#stations').value);
+$('#teams').onchange = () => resize(+$('#teams').value, cur.stations);
+function resize(T, S){
+  if (T > S) T = S;
+  const sizeChanged = S !== cur.stations || T !== cur.teams;
+  cur.stations = S; cur.teams = T;
+  while (cur.station_setup.length < S) cur.station_setup.push({room:'', activity:'', volunteer:''});
+  cur.station_setup = cur.station_setup.slice(0, S);
+  while (cur.team_colours.length < T) cur.team_colours.push(SETUP.default_colours.find(c => !cur.team_colours.includes(c)) || '');
+  cur.team_colours = cur.team_colours.slice(0, T);
+  if (sizeChanged){
+    const lib = SETUP.matrices.find(m => m.teams === T && m.stations === S);
+    if (lib){ cur.grid = lib.grid.map(r => r.slice()); cur.matrix_id = lib.id; }
+    else { cur.grid = makeMatrix(T, S); cur.matrix_id = null; }
+  }
+  fillTeams(); perTeam(); setDirty(); renderAll();
+}
+function renderAll(){ renderStations(); renderCols(); renderMatrix(); renderEnvs(); renderLink(); }
+
+function renderStations(){
+  $('#st').innerHTML = cur.station_setup.map((s, i) => {
+    const games = (SETUP.rooms.find(r => r.room.toLowerCase() === (s.room || '').toLowerCase()) || {}).games || [];
+    return `<tr><td class="num">${i + 1}</td>
+      <td><input list="roomList" value="${esc(s.room)}" data-i="${i}" data-k="room" placeholder="Room name"></td>
+      <td><input list="g${i}" value="${esc(s.activity)}" data-i="${i}" data-k="activity" placeholder="Game"><datalist id="g${i}">${games.map(g => `<option value="${esc(g)}">`).join('')}</datalist></td>
+      <td><input value="${esc(s.volunteer)}" data-i="${i}" data-k="volunteer" placeholder="Volunteer name"></td></tr>`;
+  }).join('');
+  $('#st').querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => {
+    cur.station_setup[+inp.dataset.i][inp.dataset.k] = inp.value.trim();
+    setDirty(); renderEnvs(); renderMatrixNames();
+    if (inp.dataset.k === 'room'){   // refresh that row's game suggestions
+      const games = (SETUP.rooms.find(r => r.room.toLowerCase() === inp.value.trim().toLowerCase()) || {}).games || [];
+      $('#g' + inp.dataset.i).innerHTML = games.map(g => `<option value="${esc(g)}">`).join('');
+    }
+  }));
+}
+function renderCols(){
+  $('#cols').innerHTML = cur.team_colours.map((c, t) => `<label>Team ${t + 1}
+    <select data-t="${t}">${SETUP.colours.map(x => `<option ${x.name === c ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
+    <span class="dot" style="background:${colourOf(c).bg}"></span></label>`).join('');
+  $('#cols').querySelectorAll('select').forEach(sel => sel.onchange = () => {
+    cur.team_colours[+sel.dataset.t] = sel.value; setDirty(); renderCols(); renderMatrix(); renderEnvs();
+  });
+}
+
+function renderMatrix(){
+  const T = cur.teams, S = cur.stations;
+  $('#sizeLbl').textContent = `${T} teams × ${S} stations`;
+  const lib = SETUP.matrices.filter(m => m.teams === T && m.stations === S);
+  const matchId = (lib.find(m => JSON.stringify(m.grid) === JSON.stringify(cur.grid)) || {}).id || null;
+  $('#lib').innerHTML = lib.length ? lib.map(m => `<button class="mx ${m.id === matchId ? 'on' : ''}" onclick="useMatrix(${m.id})"><b>${esc(m.name)}</b><span>Used ${m.used}×${m.last_used ? ' · last ' + esc(m.last_used) : ''}</span></button>`).join('')
+    : '<span class="muted">None saved for this size yet — “Make a new matrix”, then save it in the library.</span>';
+  const {bad, msgs} = gridProblems(cur.grid, T, S);
+  $('#mxStatus').innerHTML = msgs.length ? '<div class="err">⚠ ' + msgs.map(esc).join('<br>⚠ ') + '</div>'
+    : (matchId ? `<div class="okm">✓ Using saved matrix “${esc(lib.find(m => m.id === matchId).name)}”.</div>` : '<div class="warn">New matrix (not in the library). Name it below if you want to reuse it.</div>');
+  let h = '<tr><th>Clue #</th>' + Array.from({length: S}, (_, c) => `<th>${c + 1}</th>`).join('') + '</tr>';
+  for (let t = 0; t < T; t++){
+    h += `<tr><td class="tm"><span class="dot" style="background:${colourOf(cur.team_colours[t]).bg}"></span>${t + 1} - ${esc(teamName(t))}</td>`;
+    for (let c = 0; c < S; c++){
+      const v = cur.grid[t][c];
+      h += `<td class="${bad.has(t + ',' + c) ? 'bad' : ''}"><select data-t="${t}" data-c="${c}"><option value=""></option>${Array.from({length: S}, (_, n) => `<option ${n + 1 === v ? 'selected' : ''}>${n + 1}</option>`).join('')}</select></td>`;
+    }
+    h += '</tr>';
+  }
+  $('#mtNum').innerHTML = h;
+  $('#mtNum').querySelectorAll('select').forEach(sel => sel.onchange = () => {
+    cur.grid[+sel.dataset.t][+sel.dataset.c] = sel.value ? +sel.value : null; setDirty(); renderMatrix(); renderEnvs();
+  });
+  renderMatrixNames();
+}
+function renderMatrixNames(){
+  const T = cur.teams, S = cur.stations;
+  let h = '<tr><th>Clue #</th>' + Array.from({length: S}, (_, c) => `<th>${c + 1}</th>`).join('') + '</tr>';
+  for (let t = 0; t < T; t++){
+    h += `<tr><td class="tm">${t + 1} - ${esc(teamName(t))}</td>` + cur.grid[t].map(v => `<td>${v ? esc((cur.station_setup[v - 1] || {}).room || ('Station ' + v)) : ''}</td>`).join('') + '</tr>';
+  }
+  $('#mtName').innerHTML = h;
+}
+function useMatrix(id){ const m = SETUP.matrices.find(x => x.id === id); cur.grid = m.grid.map(r => r.slice()); cur.matrix_id = id; setDirty(); renderMatrix(); renderEnvs(); }
+$('#genBtn').onclick = () => { cur.grid = makeMatrix(cur.teams, cur.stations); cur.matrix_id = null; setDirty(); renderMatrix(); renderEnvs(); };
+
+function renderEnvs(){
+  if (gridProblems(cur.grid, cur.teams, cur.stations).msgs.length){ $('#envs').innerHTML = '<div class="muted">Fix the matrix first.</div>'; return; }
+  const tick = {};
+  (cur.teams_view || []).forEach((tm, t) => tm.envelopes.forEach(e => tick[(t + 1) + '-' + e.no] = e.done));
+  $('#envs').innerHTML = envelopes().map((envs, t) => {
+    const c = colourOf(cur.team_colours[t]);
+    return `<div class="team"><h4 style="background:${c.bg};color:${c.fg}">${esc(teamName(t))} team</h4><table>
+      <tr><th>#</th><th>Clue inside</th><th>Write name</th></tr>
+      ${envs.map(e => `<tr><td class="n">${e.no}</td><td>${e.final ? '🏁' : iconFor(e.clue)} ${esc(e.clue)}</td><td class="v">${esc(e.giver)}${dirty ? '' : (tick[(t + 1) + '-' + e.no] ? ' <span style="color:var(--ok)">✓</span>' : '')}</td></tr>`).join('')}
+    </table></div>`;
+  }).join('');
+}
+
+// ─── link ─────────────────────────────────────────────────────────────────
+function renderLink(){
+  const b = $('#linkBody');
+  if (!cur.id){ b.innerHTML = '<div class="muted">Save the party first, then you can make Shilpa’s link.</div>'; return; }
+  const st = cur.link_state;
+  const hasDate = !!cur.event_date;
+  const opts = `<select id="lkMode">${hasDate ? '<option value="party">Till the day after the party</option>' : ''}<option value="1">1 day from now</option><option value="3" ${hasDate ? '' : 'selected'}>3 days from now</option><option value="7">7 days from now</option></select>`;
+  let h = '';
+  if (dirty) h += '<div class="warn">You have unsaved changes — save so Shilpa sees them.</div>';
+  if (st === 'live'){
+    h += `<div class="linkbox"><code id="lkUrl">${esc(cur.link)}</code>
+      <button class="btn sm" onclick="copyLink()">Copy</button>
+      <a class="btn sm pk" target="_blank" href="https://wa.me/?text=${encodeURIComponent('Spy clues for ' + cur.title + ' — open this, fill each envelope and press Done:\n' + cur.link)}">WhatsApp</a>
+      <a class="btn sm line" target="_blank" href="${esc(cur.link)}">Open</a></div>
+      <div class="muted">Works till <b>${esc(cur.expires_label)}</b>. ${cur.opened_label ? 'Shilpa first opened it ' + esc(cur.opened_label) + '.' : 'Not opened yet.'}</div>
+      <div class="row"><span class="muted">Change expiry:</span>${opts}<button class="btn sm line" onclick="makeLink(false)">Update</button>
+      <button class="btn sm red" onclick="revoke()">Stop link now</button>
+      <button class="btn sm ghost" onclick="makeLink(true)" title="The old link stops working">New link (old one stops)</button></div>`;
+  } else {
+    h += `<div class="muted">${({none:'No link yet.', expired:'The last link has expired.', revoked:'The last link was stopped.'})[st]}</div>
+      <div class="row"><span class="muted">Link works</span>${opts}<button class="btn pk" onclick="makeLink(${st !== 'none'})">🔗 Make Shilpa’s link</button></div>`;
+  }
+  if (cur.total){
+    h += `<div><b>${cur.done} of ${cur.total}</b> envelopes done <div class="bar" style="margin-top:4px"><i style="width:${Math.round(100 * cur.done / cur.total)}%"></i></div></div>
+      <div class="row">${(cur.teams_view || []).map(tm => `<span class="pill" style="background:${tm.bg};color:${tm.fg}">${esc(tm.name)} ${tm.done}/${tm.envelopes.length}</span>`).join('')}
+      ${cur.done ? '<button class="btn sm ghost" onclick="resetTicks()">Clear all ticks</button>' : ''}</div>`;
+  }
+  b.innerHTML = h;
+}
+function absorb(v){
+  // server view -> editor state (teams_view keeps the per-envelope ticks)
+  cur = Object.assign({}, v, {teams: v.teams_count, stations: v.stations_count, teams_view: v.teams});
+  dirty = false; $('#dirtyLbl').textContent = '';
+}
+async function makeLink(fresh){
+  if (dirty && !confirm('Save your changes first? (OK = save now)')) return;
+  if (dirty){ if (!await save()) return; }
+  const m = $('#lkMode').value;
+  try {
+    absorb(await api(`/api/admin/spy-clues/jobs/${cur.id}/link`, {method:'POST', body: JSON.stringify({mode: m === 'party' ? 'party' : 'days', days: m === 'party' ? 3 : +m, new_token: !!fresh})}));
+    renderAll(); refreshList();
+  } catch(e){ if (e.message !== 'auth') alert(e.message); }
+}
+async function revoke(){
+  if (!confirm('Stop this link now? Shilpa will see “link expired”.')) return;
+  absorb(await api(`/api/admin/spy-clues/jobs/${cur.id}/revoke`, {method:'POST'})); renderAll(); refreshList();
+}
+async function resetTicks(){
+  if (!confirm('Clear every envelope tick for this party?')) return;
+  absorb(await api(`/api/admin/spy-clues/jobs/${cur.id}/reset-ticks`, {method:'POST'})); renderAll(); refreshList();
+}
+function copyLink(){ navigator.clipboard.writeText(cur.link).then(() => { const c = $('#lkUrl'); c.style.background = '#EAF6EF'; setTimeout(() => c.style.background = '', 800); }); }
+
+// ─── save / delete ────────────────────────────────────────────────────────
+async function save(){
+  $('#msg').innerHTML = '';
+  const body = {title: cur.title, event_date: cur.event_date || null, lead_id: cur.lead_id || null, teams: cur.teams, stations: cur.stations, kids: cur.kids || null,
+    grid: cur.grid, save_matrix_as: $('#saveAs').value.trim() || null, team_colours: cur.team_colours,
+    station_setup: cur.station_setup, host_name: cur.host_name, final_label: cur.final_label, changed_by: $('#who').value.trim() || null};
+  if (!body.host_name){ $('#msg').innerHTML = '<div class="err">Add the host’s name — it goes on every envelope 1.</div>'; window.scrollTo({top: 0, behavior: 'smooth'}); return false; }
+  const missing = cur.station_setup.map((s, i) => s.volunteer ? null : i + 1).filter(Boolean);
+  if (missing.length && !confirm(`No volunteer for station ${missing.join(', ')}. Save anyway?`)) return false;
+  try {
+    const v = await api('/api/admin/spy-clues/jobs' + (cur.id ? '/' + cur.id : ''), {method:'POST', body: JSON.stringify(body)});
+    absorb(v); $('#saveAs').value = '';
+    $('#msg').innerHTML = '<div class="okm">✓ Saved.</div>'; setTimeout(() => { if ($('#msg').textContent === '✓ Saved.') $('#msg').innerHTML = ''; }, 2500);
+    history.replaceState(null, '', '?job=' + cur.id);
+    await refreshList(); renderAll(); fillForm();
+    return true;
+  } catch(e){ if (e.message !== 'auth'){ $('#msg').innerHTML = '<div class="err">' + esc(e.message) + '</div>'; window.scrollTo({top: 0, behavior: 'smooth'}); } return false; }
+}
+$('#saveBtn').onclick = save;
+async function refreshList(){ try { const s = await api('/api/admin/spy-clues/setup'); SETUP.jobs = s.jobs; SETUP.matrices = s.matrices; renderJobs(); renderLibAll(); if (cur) renderMatrix(); } catch(e){} }
+$('#delBtn').onclick = async () => {
+  if (!cur.id){ $('#cancelBtn').click(); return; }
+  if (!confirm('Delete “' + cur.title + '” and its link?')) return;
+  await api(`/api/admin/spy-clues/jobs/${cur.id}/delete`, {method:'POST'});
+  cur = null; dirty = false; $('#editor').classList.add('hidden'); $('#savebar').classList.add('hidden');
+  history.replaceState(null, '', location.pathname); refreshList();
+};
+window.addEventListener('beforeunload', e => { if (dirty){ e.preventDefault(); e.returnValue = ''; } });
+boot();
+</script>
+</body>
+</html>

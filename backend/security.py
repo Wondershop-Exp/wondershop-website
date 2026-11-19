@@ -69,6 +69,9 @@ PUBLIC_LIMITS = [
     ("POST", "/api/training/tts", False, 40, 3600),
     # Decorator job card link (2026-11-16): completion photos from the decorator's phone.
     ("POST", "/api/decor-job/", True, 120, 3600),
+    # Spy clue prep link (2026-11-19): Shilpa ticks each envelope as she fills it.
+    ("POST", "/api/spy-clue-job/", True, 600, 3600),
+    ("GET", "/api/spy-clue-job/", True, 300, 3600),
 ]
 
 # ─── Roles (2026-10-01, per Shruti: "separate out logins for the sales team.

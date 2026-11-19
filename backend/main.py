@@ -108,6 +108,8 @@ from routers import venues
 app.include_router(venues.router, prefix="/api/admin", tags=["Venues"])   # 2026-11-13 venue master
 from routers import decor_jobs
 app.include_router(decor_jobs.router, prefix="/api", tags=["Decorator Job Card"])   # 2026-11-16 decorator job card
+from routers import spy_clues
+app.include_router(spy_clues.router, prefix="/api", tags=["Spy Clue Prep"])   # 2026-11-19 spy clue matrices + Shilpa's envelope link (admin only)
 from routers import training_tts
 app.include_router(training_tts.router, prefix="/api", tags=["Training"])   # 2026-11-12 AI voice for training guides
 

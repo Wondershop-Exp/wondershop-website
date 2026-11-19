@@ -882,6 +882,7 @@ body.role-sales .admin-only{display:none!important}
     <div class="who">
       Editing as <input type="text" id="whoName" name="ws-editor" autocomplete="off" data-lpignore="true" data-1p-ignore onchange="saveName()">
       <a class="linkbtn admin-only" href="packaging.html" target="_blank">📦 Packing lists</a>
+      <a class="linkbtn admin-only" href="spy-clues-admin.html" target="_blank">🕵️ Spy clues</a>
       <a class="linkbtn" href="sales-dashboard.html" target="_blank">Sales Dashboard</a>
       <a class="linkbtn" href="venues.html" target="_blank">Venues</a>
       <a class="linkbtn" href="sales-leads.html" target="_blank">🗒️ Sales leads</a>
@@ -4600,8 +4601,10 @@ function listActionsCellHtml(r, kind){
   const packLink = '<a class="mini-btn admin-only" href="packaging.html?lead_id='+r.lead_id+'" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">📦 Pack list</a>';
   // 2026-10-18 — Sorting Hat event code for this booking (admin only).
   const hatLink = '<a class="mini-btn admin-only" href="sorting-hat-admin.html?lead_id='+r.lead_id+'" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">🎩 Sorting Hat</a>';
+  // 2026-11-19 — spy clue prep (matrix, volunteers, Shilpa's envelope link); admin only.
+  const spyLink = '<a class="mini-btn admin-only" href="spy-clues-admin.html?lead_id='+r.lead_id+'" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">🕵️ Spy clues</a>';
   if(r.status==='Cancelled') return '<div style="display:flex">'+packLink+'</div>';
-  return '<div style="display:flex;flex-wrap:wrap;gap:8px">'+packLink+hatLink+'<button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button></div>';
+  return '<div style="display:flex;flex-wrap:wrap;gap:8px">'+packLink+hatLink+spyLink+'<button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button></div>';
 }
 async function quickSetStatus(leadId, newStatus){
   const who = getName();

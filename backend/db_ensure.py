@@ -65,6 +65,7 @@ SAFE_MIGRATIONS = [
     "087_packing_one_per_booking.sql",   # 2026-11-16 one packing list per booking + Slack packing bot
     "088_decor_job_cards.sql",   # 2026-11-16 decorator job card (booking page + decorator link)
     "089_spy_reg_host_view.sql",   # 2026-11-17 host link to see their party's registrations
+    "090_spy_clue_matrices.sql",   # 2026-11-19 spy clue matrices + clue-prep link for ops
 ]
 
 
