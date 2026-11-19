@@ -126,7 +126,7 @@ _SOURCE_RULES = [   # first match wins
     ("stall",     r"\bstall\b|exhibition|\bflea\b|pop-?up"),
     ("website",   r"\bwebsite\b|\bweb\b|build-?a-?birthday|\bbuilder\b"),
 ]
-REFERRER_RE = re.compile(r"(?:referred|referral|ref|reference|recommended)\s*(?:by|from|of)?\s*[:\-–]?\s*"
+REFERRER_RE = re.compile(r"(?:referred|referral|reference|recommended|ref)\b\s*(?:by|from|of)?\s*[:\-–]?\s*"
                          r"([A-Za-z][A-Za-z .']{1,40}?)\s*(?=$|[,;()\-–—|]|\s+(?:for|wants|looking|needs|and)\b)", re.I)
 
 
@@ -328,8 +328,19 @@ PHONE_ONLY_LINE = re.compile(r"^\s*\+?[\d\s\-()]{10,18}\s*$")
 
 
 def looks_like_detail_blocks(text: str) -> bool:
-    """A line that is only a phone number = the block format (details on the next lines)."""
-    return any(PHONE_ONLY_LINE.match(l) and len(re.sub(r"\D", "", l)) >= 10 for l in (text or "").splitlines())
+    """The block format: details on their own lines. Either a line that is
+    only a phone number, or (2026-11-19) a single lead whose number sits on a
+    line with its name and 2+ more detail lines under it. A dated list
+    ("17 Nov Leads:" / "1. NAME (+91...)") is not a block."""
+    lines = [l for l in (text or "").splitlines() if l.strip()]
+    if any(PHONE_ONLY_LINE.match(l) and len(re.sub(r"\D", "", l)) >= 10 for l in lines):
+        return True
+    with_phone = [l for l in lines if PHONE_IN_LINE.search(l)]
+    if len(with_phone) != 1 or len(lines) < 3:
+        return False
+    if re.match(r"^\s*\d{1,3}[.)]", with_phone[0]) or any(re.search(r"\bleads?\b", l, re.I) and parse_heading_date(l, date.today()) for l in lines):
+        return False
+    return True
 
 
 async def read_text_leads(text: str, today: date) -> List[Dict[str, Any]]:
@@ -470,7 +481,7 @@ def _clean_screenshot_lead(l: Dict[str, Any], posted_at: datetime) -> Dict[str, 
 DETAIL_LABELS = {"event_time": "start time", "child_ages": "age", "child_genders": "gender", "venue": "venue", "kids_count": "# kids",
                  "theme": "theme", "event_date": "event date", "child_names": "child's name",
                  "earlier_conversations": "earlier conversations", "event_sales_lead": "sales lead",
-                 "email": "email"}
+                 "email": "email", "child_dobs": "birthday"}
 
 
 # ─── "Key = value" records (2026-10-21, per Shruti) ────────────────────────
@@ -792,7 +803,9 @@ async def intake(item: Dict[str, Any], who: str, how: str) -> Dict[str, Any]:
             # "=" in a name = a sheet row an older bot version saved whole as the
             # name (2026-10-21): posting the row again repairs it.
             garbled = "=" in (row.get("parent_name") or "")
-            placeholder = garbled or (row.get("parent_name") or "").startswith(("Instagram lead", "New lead", "New Sales Lead", "@"))
+            import lead_details
+            placeholder = garbled or not lead_details.clean(row.get("parent_name") or "").strip() \
+                or (row.get("parent_name") or "").startswith(("Instagram lead", "New lead", "New Sales Lead", "@"))
             if garbled:
                 await database.execute(
                     "UPDATE lead_sales_playbook SET notes_special_instructions = NULL "
@@ -1019,14 +1032,148 @@ def clean_slack_text(text: str) -> str:
     escapes & < >. Turn it back into what the person typed."""
     t = _SLACK_LINK.sub(lambda m: m.group(1) or m.group(2) or m.group(3) or "", text or "")
     t = re.sub(r"<[@#!][^>]*>", "", t)
-    return t.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+    t = t.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+    # Numbers copied from WhatsApp carry invisible direction marks (2026-11-19).
+    import lead_details
+    return lead_details.clean(t)
 
 LEAD_REF_RE = re.compile(r"#(\d{1,7})\b")
 POS_RE = re.compile(r"^\s*(\d{1,2})\s*(?:[.)\-–:]|\s)")
 
 
+UPDATE_LABELS = {"name": "parent name", "child_names": "child's name", "child_ages": "age", "child_genders": "gender",
+                 "child_dobs": "birthday", "event_date": "event date", "event_time": "start time", "event_end_time": "end time",
+                 "kids_count": "# kids", "venue": "venue / locality", "venue_type": "venue type", "theme": "theme",
+                 "email": "email", "event_sales_lead": "sales lead"}
+LEAD_COLS = {"name": "parent_name", "child_names": "child_names", "child_ages": "child_ages", "child_genders": "child_genders",
+             "child_dobs": "child_dobs", "event_date": "event_date", "event_time": "event_time", "kids_count": "kids_count",
+             "venue": "venue", "theme": "theme", "email": "email", "event_sales_lead": "event_sales_lead"}
+
+
+async def apply_updates(lead_id: int, changes: Dict[str, Any], who: str) -> List[str]:
+    """Details given in a thread reply ("Parent name Supriya", "event date 26
+    Dec", "locality Juhu") replace what the lead has — the old value goes into
+    its Changes / Updates note. Returns "label → value" lines for the reply."""
+    row = await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id})
+    if not row:
+        return []
+    row = dict(row)
+    ch = dict(changes)
+    note = ch.pop("note", None)
+    bday = ch.pop("birthday", None)
+    if bday:
+        age = ch.get("child_ages") or row.get("child_ages")
+        if age and str(age).strip().isdigit():
+            ch["child_dobs"] = date(bday.year - int(str(age).strip()), bday.month, bday.day).isoformat()
+        else:
+            note = " · ".join(x for x in [note, f"Birthday: {bday.strftime('%d %b')}"] if x)
+        if not row.get("event_date") and "event_date" not in ch:
+            ch["event_date"] = bday
+    sets, vals, done, was = [], {"id": lead_id}, [], []
+    for k, v in ch.items():
+        col = LEAD_COLS.get(k)
+        if not col:
+            continue
+        if isinstance(v, str):
+            v = v[:255]
+        sets.append(f"{col} = :{col}"); vals[col] = v
+        if k == "event_date":
+            sets.append("date_precision = 'exact'")
+        shown = date.fromisoformat(v).strftime("%d %b %Y") if k == "child_dobs" else _show(v)
+        done.append(f"{UPDATE_LABELS[k]} → {shown}")
+        placeholder = k == "name" and str(row.get(col) or "").startswith(("New lead", "Instagram lead", "New Sales Lead", "@"))
+        if row.get(col) not in (None, "") and not placeholder and not _same(row.get(col), v):
+            was.append(f"{UPDATE_LABELS[k]}: {_show(row.get(col))} → {_show(v)}")
+    if sets:
+        await database.execute(f"UPDATE leads SET {', '.join(sets)} WHERE lead_id = :id", values=vals)
+    pid = await _playbook_id(lead_id)
+    pb = {k: ch[k] for k in ("venue_type", "event_end_time") if ch.get(k)}
+    if pb:
+        cur = await database.fetch_one("SELECT venue_type, event_end_time FROM lead_sales_playbook WHERE lead_id = :id",
+                                       values={"id": lead_id})
+        for k, v in pb.items():
+            await database.execute(f"UPDATE lead_sales_playbook SET {k} = :v WHERE lead_id = :id", values={"v": v, "id": lead_id})
+            done.append(f"{UPDATE_LABELS[k]} → {v}")
+            if cur is not None and (cur[k] or "").strip() and not _same(cur[k], v):
+                was.append(f"{UPDATE_LABELS[k]}: {cur[k]} → {v}")
+    if note:
+        await database.execute(
+            "UPDATE lead_sales_playbook SET notes_special_instructions = CASE WHEN COALESCE(notes_special_instructions, '') = '' "
+            "THEN :n ELSE notes_special_instructions || E'\n' || :n END WHERE lead_id = :id", values={"n": note, "id": lead_id})
+        done.append(f"note: {note}")
+    if not done:
+        return []
+    stamp = datetime.now(IST).strftime("%d %b, %I:%M %p")
+    if was:
+        await _append_change_note(lead_id, f"[{stamp} · {who} via Slack] changed " + "; ".join(was))
+    await _playbook_log(pid, "updated", f"Updated by {who} on Slack: " + "; ".join(done))
+    sheet_sync.schedule_sync(lead_id)
+    return done
+
+
+async def handle_detail_reply(ev: Dict[str, Any], items: List[Dict[str, Any]]) -> Optional[str]:
+    """Reply lines that give lead details are applied to the lead; returns
+    the text still left for the lead-source logic (None if nothing was
+    taken). With several leads in the post, a line names its lead: #id,
+    "2." / "2 -" (its number in the list) or the name."""
+    import lead_details
+    channel, thread = ev.get("channel"), ev.get("thread_ts")
+    text = clean_slack_text(ev.get("text") or "")
+    today = datetime.now(IST).date()
+    by_lead: Dict[int, Dict[str, Any]] = {}
+    left, unsure = [], []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        target, body = None, line
+        if len(items) == 1:
+            target = items[0]["lead_id"]
+            body = re.sub(rf"#\s*{target}\b", "", body)
+        else:
+            m = LEAD_REF_RE.search(body)
+            if m and int(m.group(1)) in {i["lead_id"] for i in items}:
+                target, body = int(m.group(1)), body[:m.start()] + body[m.end():]
+            else:
+                pm = re.match(r"^\s*(\d{1,2})\s*[.)\-–:]\s+", body)
+                if pm and 1 <= int(pm.group(1)) <= len(items):
+                    target = next(i["lead_id"] for i in items if i["pos"] == int(pm.group(1)))
+                    body = body[pm.end():]
+                else:
+                    low = body.lower()
+                    hits = [i["lead_id"] for i in items if (i.get("name") or "").strip()
+                            and len(i["name"].split()[0]) >= 3 and re.search(rf"\b{re.escape(i['name'].split()[0].lower())}\b", low)]
+                    if len(hits) == 1:
+                        target = hits[0]
+        changes, other = lead_details.parse_updates(body, today, source_from_text)
+        if not changes:
+            left.append(line); continue
+        if not target:
+            unsure.append(line); continue
+        cur = by_lead.setdefault(target, {})
+        if "note" in changes and "note" in cur:
+            changes["note"] = cur["note"] + " · " + changes["note"]
+        cur.update(changes)
+    if not by_lead and not unsure:
+        return None
+    who = await slack_user_name(ev.get("user") or "")
+    names = {i["lead_id"]: i.get("name") or "" for i in items}
+    out = []
+    for lead_id, changes in by_lead.items():
+        done = await apply_updates(lead_id, changes, who)
+        if done:
+            out.append(f"✏️ Updated #{lead_id} {names.get(lead_id, '')}: " + "; ".join(done))
+    if unsure:
+        out.append("❓ Which lead is this for? Start the line with its number, e.g. `2. parent name Supriya` or `#1383 kids 20`:\n"
+                   + "\n".join(f"> {u}" for u in unsure))
+    if out:
+        await slack_api("chat.postMessage", channel=channel, thread_ts=thread, text="\n".join(out), unfurl_links=False)
+    return "\n".join(left)
+
+
 async def handle_reply(ev: Dict[str, Any], post: Dict[str, Any]) -> None:
-    """A reply in the thread of a lead post: set the lead source. One line
+    """A reply in the thread of a lead post: details ("parent name Supriya",
+    "event date 26 Dec", "20 kids" ...) update the lead (2026-11-19); a
+    source sets the lead source. One line
     with just a source = every lead in that post still missing one; lines
     naming a lead (#123, its number in the list, or its name) set that lead,
     even if it already has a source (a correction)."""
@@ -1035,6 +1182,11 @@ async def handle_reply(ev: Dict[str, Any], post: Dict[str, Any]) -> None:
     items = post["items"]
     items = json.loads(items) if isinstance(items, str) else (items or [])
     by_id = {i["lead_id"]: i for i in items}
+    rest = await handle_detail_reply(ev, items)
+    if rest is not None:
+        if not rest.strip():
+            return
+        ev = dict(ev, text=rest)
     lines = [l.strip() for l in clean_slack_text(ev.get("text") or "").splitlines() if l.strip()]
     plan: Dict[int, Tuple[str, Optional[str]]] = {}
     general = None
@@ -1109,16 +1261,35 @@ async def handle_message(ev: Dict[str, Any]) -> None:
         if kv:
             items = [(i, "sheet row") for i in kv]
         elif looks_like_detail_blocks(text):
-            try:
-                msg_src = source_from_text(text)
-                for l in await read_text_leads(text, posted_at.astimezone(IST).date()):
-                    it = _clean_text_lead(l, posted_at)
-                    if not it.get("phone") and not it.get("name"):
-                        continue
-                    items.append((it, "text details"))
-            except Exception as exc:
-                logger.exception("Slack leads: reading the detail block failed")
-                errors.append(str(exc)[:300])
+            # 2026-11-19: read line by line here (lead_details.py) — no API
+            # key needed. With ANTHROPIC_API_KEY set, Claude's reading fills
+            # anything the line reader left blank.
+            import lead_details
+            today_ist = posted_at.astimezone(IST).date()
+            ruled = [i for i in lead_details.parse_block(text, today_ist, source_from_text) if i.get("phone") or i.get("name")]
+            ai = {}
+            if settings.ANTHROPIC_API_KEY:
+                try:
+                    for l in await read_text_leads(text, today_ist):
+                        it = _clean_text_lead(l, posted_at)
+                        if it.get("phone"):
+                            ai[_last10(it["phone"])] = it
+                except Exception:
+                    logger.exception("Slack leads: Claude reading of the detail block failed (line reader used)")
+            for it in ruled:
+                extra = ai.get(_last10(it.get("phone") or "")) or {}
+                for k, v in (extra.get("fields") or {}).items():
+                    if v not in (None, "") and it["fields"].get(k) in (None, ""):
+                        it["fields"][k] = v
+                for k, v in (extra.get("playbook") or {}).items():
+                    if v and not it["playbook"].get(k):
+                        it["playbook"][k] = v
+                for k in ("name", "source", "referred_by"):
+                    if not it.get(k) and extra.get(k):
+                        it[k] = extra[k]
+                if it["fields"].get("event_date"):
+                    it["fields"]["date_precision"] = "exact"
+                items.append((it, "text details"))
             if not items:   # fall back to the one-line reader
                 items = [(i, "text list") for i in parse_lead_list(text, posted_at)]
         else:
