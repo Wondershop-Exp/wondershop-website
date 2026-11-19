@@ -64,17 +64,13 @@ COLOURS = {   # name -> (background, text)
 }
 DEFAULT_COLOURS = ["Red", "Blue", "Green", "Purple", "Yellow", "Orange", "Pink", "Black", "White", "Brown"]
 
-# The traditional rooms and the games usually played in them (Shruti, 19 Nov 2026).
-ROOMS = [
-    {"room": "Surveillance Room", "icon": "📷", "games": ["Photobooth + Fingerprint matching", "Photobooth"]},
-    {"room": "Hotel", "icon": "🏨", "games": ["Floor Puzzle", "House of Cards"]},
-    {"room": "Fortune Parlor (Tarot)", "icon": "🔮", "games": ["Riddles"]},
-    {"room": "Royal Treasury", "icon": "👑", "games": ["Nerf", "Dizzy Football"]},
-    {"room": "Bookstore", "icon": "📚", "games": ["Crack the Code A4 (7-9 yrs)", "Crack the Code Books (10+ yrs)"]},
-]
+# Room names are standard per theme and live in clue_rooms (migration 091):
+# picked from a dropdown, and a room added from any party shows in all of them
+# (Shruti, 19 Nov 2026). Spy is seeded with its 5 rooms.
+THEMES = ["Spy", "Harry Potter"]
 _ICONS = [("surveil", "📷"), ("photo", "📷"), ("hotel", "🏨"), ("tarot", "🔮"), ("fortune", "🔮"),
           ("scarlet", "🔮"), ("treasur", "👑"), ("vault", "👑"), ("book", "📚"), ("lab", "🧪"),
-          ("laser", "🔦"), ("museum", "🏛️"), ("bank", "🏦"), ("airport", "✈️"), ("cafe", "☕")]
+          ("laser", "🔦"), ("potion", "🧪"), ("wand", "🪄"), ("owl", "🦉"), ("quidditch", "🧹"), ("gringott", "🏦"), ("library", "📚"), ("great hall", "🏰"),  ("museum", "🏛️"), ("bank", "🏦"), ("airport", "✈️"), ("cafe", "☕")]
 
 
 def _s(v, n: int = 120) -> str:
@@ -152,7 +148,7 @@ def envelopes_of(grid: List[List[int]], setup: List[dict], host: str, final_labe
             if k <= len(row):
                 nxt = st(row[k - 1])
                 clue = nxt.get("room") or f"Station {row[k - 1]}"
-                envs.append({"no": k, "station": row[k - 1], "clue": clue, "icon": icon_for(clue),
+                envs.append({"no": k, "station": row[k - 1], "clue": clue, "icon": nxt.get("icon") or icon_for(clue),
                              "activity": nxt.get("activity") or "", "final": False,
                              "giver": giver, "giver_at": giver_at})
             else:
@@ -234,7 +230,7 @@ def view_of(job: dict, for_admin: bool) -> dict:
         teams.append({"name": names[t], "bg": bg, "fg": fg, "envelopes": rows,
                       "done": sum(r["done"] for r in rows)})
     out = {
-        "title": job["title"], "event_date": job["event_date"].isoformat() if job.get("event_date") else "",
+        "title": job["title"], "theme": job.get("theme") or "Spy", "event_date": job["event_date"].isoformat() if job.get("event_date") else "",
         "date_label": _fmt_date(job.get("event_date")), "teams_count": job["teams"], "stations_count": job["stations"],
         "kids": job.get("kids"), "kids_label": kids_label(job.get("kids"), job["teams"]),
         "host_name": job.get("host_name") or "", "final_label": job.get("final_label") or "Final clue",
@@ -277,30 +273,37 @@ def _admin_only(pw: Optional[str]) -> None:
 
 async def _matrices() -> List[dict]:
     rows = await database.fetch_all(
-        """SELECT m.id, m.name, m.teams, m.stations, m.grid, m.notes, m.created_at,
+        """SELECT m.id, m.name, m.theme, m.teams, m.stations, m.grid, m.notes, m.created_at,
                   COUNT(j.id) AS used, MAX(j.event_date) AS last_used
            FROM spy_matrices m LEFT JOIN spy_clue_jobs j ON j.matrix_id = m.id
            WHERE NOT m.archived GROUP BY m.id ORDER BY m.stations, m.teams, m.id""")
-    return [{"id": r["id"], "name": r["name"], "teams": r["teams"], "stations": r["stations"],
+    return [{"id": r["id"], "name": r["name"], "theme": r["theme"], "teams": r["teams"], "stations": r["stations"],
              "grid": _j(r["grid"], []), "notes": r["notes"] or "", "used": r["used"],
              "last_used": _fmt_date(r["last_used"])} for r in rows]
+
+
+async def _rooms() -> List[dict]:
+    rows = await database.fetch_all(
+        "SELECT id, theme, name, icon, games FROM clue_rooms WHERE NOT archived ORDER BY theme, sort_order, id")
+    return [{"id": r["id"], "theme": r["theme"], "room": r["name"], "icon": r["icon"] or icon_for(r["name"]),
+             "games": _j(r["games"], [])} for r in rows]
 
 
 @router.get("/admin/spy-clues/setup")
 async def admin_setup(x_admin_password: Optional[str] = Header(None)):
     _admin_only(x_admin_password)
     rows = await database.fetch_all(
-        """SELECT id, title, event_date, teams, stations, kids, token, revoked, expires_at, progress, grid,
+        """SELECT id, title, theme, event_date, teams, stations, kids, token, revoked, expires_at, progress, grid,
                   station_setup, host_name, final_label, team_colours
            FROM spy_clue_jobs ORDER BY event_date DESC NULLS LAST, id DESC LIMIT 200""")
     jobs = []
     for r in rows:
         j = _job_dict(r)
         v = view_of(dict(j, opened_at=None, updated_at=None, created_at=None, lead_id=None, matrix_id=None), True)
-        jobs.append({"id": j["id"], "title": j["title"], "date_label": v["date_label"],
+        jobs.append({"id": j["id"], "title": j["title"], "theme": j.get("theme") or "Spy", "date_label": v["date_label"],
                      "event_date": v["event_date"], "size": f"{j['teams']} teams × {j['stations']} stations" + (f" · {j['kids']} kids" if j.get("kids") else ""),
                      "done": v["done"], "total": v["total"], "link_state": v["link_state"]})
-    return {"matrices": await _matrices(), "jobs": jobs, "rooms": ROOMS,
+    return {"matrices": await _matrices(), "jobs": jobs, "rooms": await _rooms(), "themes": THEMES,
             "colours": [{"name": k, "bg": v[0], "fg": v[1]} for k, v in COLOURS.items()],
             "default_colours": DEFAULT_COLOURS}
 
@@ -360,6 +363,7 @@ class StationIn(BaseModel):
 
 class JobIn(BaseModel):
     title: str
+    theme: str = "Spy"
     event_date: Optional[str] = None
     lead_id: Optional[int] = None
     teams: int
@@ -374,10 +378,10 @@ class JobIn(BaseModel):
     changed_by: Optional[str] = None
 
 
-async def _match_or_save_matrix(grid, teams, stations, save_as: Optional[str], who) -> Optional[int]:
+async def _match_or_save_matrix(grid, teams, stations, save_as: Optional[str], who, theme: str = "Spy") -> Optional[int]:
     rows = await database.fetch_all(
-        "SELECT id, grid FROM spy_matrices WHERE teams = :t AND stations = :s AND NOT archived ORDER BY id",
-        values={"t": teams, "s": stations})
+        "SELECT id, grid FROM spy_matrices WHERE teams = :t AND stations = :s AND theme = :th AND NOT archived ORDER BY id",
+        values={"t": teams, "s": stations, "th": theme})
     for r in rows:
         if _j(r["grid"], []) == grid:
             if save_as:   # same grid already in the library: just (re)name it
@@ -387,8 +391,8 @@ async def _match_or_save_matrix(grid, teams, stations, save_as: Optional[str], w
     if not save_as:
         return None
     return await database.execute(
-        "INSERT INTO spy_matrices (name, teams, stations, grid, created_by) VALUES (:n, :t, :s, :g, :by) RETURNING id",
-        values={"n": _s(save_as, 80), "t": teams, "s": stations, "g": json.dumps(grid), "by": who})
+        "INSERT INTO spy_matrices (name, theme, teams, stations, grid, created_by) VALUES (:n, :th, :t, :s, :g, :by) RETURNING id",
+        values={"n": _s(save_as, 80), "th": theme, "t": teams, "s": stations, "g": json.dumps(grid), "by": who})
 
 
 async def _save(job_id: Optional[int], body: JobIn) -> int:
@@ -400,9 +404,21 @@ async def _save(job_id: Optional[int], body: JobIn) -> int:
              for s in body.station_setup][:body.stations]
     if len(setup) != body.stations:
         raise HTTPException(status_code=400, detail=f"Fill in all {body.stations} stations.")
+    theme = body.theme if body.theme in THEMES else None
+    if not theme:
+        raise HTTPException(status_code=400, detail="Pick the theme.")
+    master = {r["room"].lower(): r for r in await _rooms() if r["theme"] == theme}
+    seen = set()
     for i, s in enumerate(setup):
         if not s["room"]:
-            raise HTTPException(status_code=400, detail=f"Station {i + 1} needs a room name.")
+            raise HTTPException(status_code=400, detail=f"Station {i + 1} needs a room.")
+        m = master.get(s["room"].lower())
+        if not m:
+            raise HTTPException(status_code=400, detail=f"Station {i + 1}: pick the room from the list (or add it as a new room).")
+        if m["room"].lower() in seen:
+            raise HTTPException(status_code=400, detail=f"{m['room']} is used for two stations.")
+        seen.add(m["room"].lower())
+        s["room"], s["icon"] = m["room"], m["icon"]
     colours = [_s(c, 30) for c in body.team_colours][:body.teams]
     if len(set(c.lower() for c in colours if c)) != len([c for c in colours if c]):
         raise HTTPException(status_code=400, detail="Two teams have the same colour.")
@@ -414,22 +430,22 @@ async def _save(job_id: Optional[int], body: JobIn) -> int:
             raise HTTPException(status_code=400, detail="Party date isn't a valid date.")
     kids = body.kids if body.kids and 0 < body.kids <= 500 else None
     who = _s(body.changed_by, 60) or None
-    mid = await _match_or_save_matrix(grid, body.teams, body.stations, _s(body.save_matrix_as, 80) or None, who)
-    vals = {"lid": body.lead_id, "title": title, "ed": ed, "mid": mid, "t": body.teams, "s": body.stations, "kids": kids,
+    mid = await _match_or_save_matrix(grid, body.teams, body.stations, _s(body.save_matrix_as, 80) or None, who, theme)
+    vals = {"lid": body.lead_id, "title": title, "theme": theme, "ed": ed, "mid": mid, "t": body.teams, "s": body.stations, "kids": kids,
             "g": json.dumps(grid), "tc": json.dumps(colours), "ss": json.dumps(setup),
             "host": _s(body.host_name, 60) or None, "fl": _s(body.final_label, 60) or None, "by": who}
     if job_id:
         await _job(job_id)
         await database.execute(
-            """UPDATE spy_clue_jobs SET lead_id = :lid, title = :title, event_date = :ed, matrix_id = :mid,
+            """UPDATE spy_clue_jobs SET lead_id = :lid, title = :title, theme = :theme, event_date = :ed, matrix_id = :mid,
                    teams = :t, stations = :s, kids = :kids, grid = :g, team_colours = :tc, station_setup = :ss,
                    host_name = :host, final_label = :fl, updated_at = NOW(), updated_by = :by
                WHERE id = :id""", values=dict(vals, id=job_id))
         return job_id
     return await database.execute(
-        """INSERT INTO spy_clue_jobs (lead_id, title, event_date, matrix_id, teams, stations, kids, grid, team_colours,
+        """INSERT INTO spy_clue_jobs (lead_id, title, theme, event_date, matrix_id, teams, stations, kids, grid, team_colours,
                station_setup, host_name, final_label, created_by, updated_at, updated_by)
-           VALUES (:lid, :title, :ed, :mid, :t, :s, :kids, :g, :tc, :ss, :host, :fl, :by, NOW(), :by) RETURNING id""",
+           VALUES (:lid, :title, :theme, :ed, :mid, :t, :s, :kids, :g, :tc, :ss, :host, :fl, :by, NOW(), :by) RETURNING id""",
         values=vals)
 
 
@@ -497,6 +513,7 @@ async def admin_delete(job_id: int, x_admin_password: Optional[str] = Header(Non
 
 class MatrixIn(BaseModel):
     name: str
+    theme: str = "Spy"
     teams: int
     stations: int
     grid: List[List[Any]]
@@ -509,7 +526,8 @@ async def admin_matrix_save(body: MatrixIn, x_admin_password: Optional[str] = He
     if not _s(body.name):
         raise HTTPException(status_code=400, detail="Give the matrix a name.")
     grid = check_grid(body.grid, body.teams, body.stations)
-    mid = await _match_or_save_matrix(grid, body.teams, body.stations, body.name, _s(body.changed_by, 60) or None)
+    mid = await _match_or_save_matrix(grid, body.teams, body.stations, body.name, _s(body.changed_by, 60) or None,
+                                      body.theme if body.theme in THEMES else "Spy")
     return {"id": mid, "matrices": await _matrices()}
 
 
@@ -519,6 +537,39 @@ async def admin_matrix_archive(matrix_id: int, x_admin_password: Optional[str] =
     _admin_only(x_admin_password)
     await database.execute("UPDATE spy_matrices SET archived = TRUE WHERE id = :id", values={"id": matrix_id})
     return {"matrices": await _matrices()}
+
+
+class RoomIn(BaseModel):
+    theme: str
+    name: str
+    games: List[str] = []
+    changed_by: Optional[str] = None
+
+
+@router.post("/admin/spy-clues/rooms")
+async def admin_room_add(body: RoomIn, x_admin_password: Optional[str] = Header(None)):
+    """A new standard room for a theme — from then on it's in every party's dropdown."""
+    _admin_only(x_admin_password)
+    if body.theme not in THEMES:
+        raise HTTPException(status_code=400, detail="Unknown theme.")
+    name = _s(body.name, 60)
+    if len(name) < 2:
+        raise HTTPException(status_code=400, detail="Type the room name.")
+    ex = await database.fetch_one("SELECT id, archived FROM clue_rooms WHERE theme = :t AND lower(name) = lower(:n)",
+                                  values={"t": body.theme, "n": name})
+    if ex:
+        if ex["archived"]:
+            await database.execute("UPDATE clue_rooms SET archived = FALSE WHERE id = :id", values={"id": ex["id"]})
+    else:
+        nxt = await database.fetch_val("SELECT COALESCE(MAX(sort_order), 0) + 1 FROM clue_rooms WHERE theme = :t",
+                                       values={"t": body.theme})
+        await database.execute(
+            """INSERT INTO clue_rooms (theme, name, icon, games, sort_order, created_by)
+               VALUES (:t, :n, :i, :g, :o, :by)""",
+            values={"t": body.theme, "n": name, "i": icon_for(name),
+                    "g": json.dumps([_s(g, 80) for g in body.games if _s(g)][:6]), "o": nxt,
+                    "by": _s(body.changed_by, 60) or None})
+    return {"rooms": await _rooms()}
 
 
 # ─── Shilpa's link ─────────────────────────────────────────────────────────

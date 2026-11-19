@@ -75,6 +75,7 @@ td input{width:100%}
 .mt td.tm{text-align:left;font-weight:800;background:#F6F4F9}
 .mt select{padding:6px 28px 6px 12px;font-weight:800;width:68px;background-position:right 10px center}
 .mt td.bad select,.mt td.bad{background:var(--badbg);color:var(--bad)}
+select.badsel{border-color:var(--bad);background-color:var(--badbg)}
 .dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:6px;border:1px solid rgba(0,0,0,.2)}
 /* colours */
 .cols{display:flex;gap:10px;flex-wrap:wrap}
@@ -110,7 +111,7 @@ td input{width:100%}
 </head>
 <body>
 <div class="top">
-  <h1>🕵️ Spy Clue Prep</h1><span class="tag">ADMIN ONLY</span>
+  <h1>🕵️ Clue Prep</h1><span class="tag">ADMIN ONLY</span>
   <span class="sp"></span>
   <span style="font-size:13px">Editing as</span><input id="who" placeholder="Your name" autocomplete="off">
   <a class="btn sm line" style="background:transparent;color:#fff;border-color:#fff" href="admin.html">← Admin</a>
@@ -118,7 +119,7 @@ td input{width:100%}
 
 <div class="wrap">
   <div class="card" id="jobsCard">
-    <div class="row"><h2 style="flex:1">Parties</h2><button class="btn pk" id="newBtn">＋ New spy party</button></div>
+    <div class="row"><h2 style="flex:1">Parties</h2><button class="btn pk" id="newBtn">＋ New party</button></div>
     <div id="jobs" class="jobs"><div class="muted">Loading…</div></div>
   </div>
 
@@ -128,6 +129,7 @@ td input{width:100%}
     <div class="card">
       <h2>1 · Party</h2>
       <div class="grid2">
+        <label>Theme<select id="theme"></select></label>
         <label>Party name<input id="title" placeholder="e.g. Ishani F8 Ghatkopar"></label>
         <label>Party date<input id="edate" type="date"></label>
         <label>Host (hands over clue 1)<input id="host" placeholder="e.g. Sunny"></label>
@@ -141,7 +143,7 @@ td input{width:100%}
     <div class="card">
       <h2>2 · Stations → room, game, volunteer</h2>
       <table><thead><tr><th>#</th><th>Room</th><th>Game / activity</th><th>Volunteer (station master)</th></tr></thead><tbody id="st"></tbody></table>
-      <datalist id="roomList"></datalist>
+      <div class="muted">Rooms come from one standard list for each theme. Pick “＋ Add a new room” to add one — it then shows for every party.</div>
       <label style="max-width:360px">Last envelope says<input id="finalLabel" placeholder="Final clue"></label>
     </div>
 
@@ -235,15 +237,14 @@ let SETUP = null;      // rooms, colours, matrices, jobs
 let cur = null;        // party being edited (local copy)
 let dirty = false;
 
-const DEFAULT_STATIONS = [
-  {room:'Surveillance Room', activity:'Photobooth + Fingerprint matching', volunteer:''},
-  {room:'Hotel', activity:'Floor Puzzle', volunteer:''},
-  {room:'Fortune Parlor (Tarot)', activity:'Riddles', volunteer:''},
-  {room:'Royal Treasury', activity:'Nerf', volunteer:''},
-  {room:'Bookstore', activity:'Crack the Code A4 (7-9 yrs)', volunteer:''},
-];
+function themeRooms(theme){ return (SETUP?.rooms || []).filter(r => r.theme === (theme || cur?.theme || 'Spy')); }
+function roomOf(name){ return themeRooms().find(r => r.room.toLowerCase() === String(name || '').toLowerCase()); }
+function defaultStations(theme, n){
+  const rs = themeRooms(theme);
+  return Array.from({length: n}, (_, i) => rs[i] ? {room: rs[i].room, activity: rs[i].games[0] || '', volunteer: ''} : {room:'', activity:'', volunteer:''});
+}
 const ICONS = [['surveil','📷'],['photo','📷'],['hotel','🏨'],['tarot','🔮'],['fortune','🔮'],['scarlet','🔮'],['treasur','👑'],['vault','👑'],['book','📚'],['lab','🧪'],['laser','🔦'],['museum','🏛️'],['bank','🏦'],['airport','✈️'],['cafe','☕']];
-function iconFor(room){ const r = (room || '').toLowerCase(); for (const [k, i] of ICONS) if (r.includes(k)) return i; return '🎯'; }
+function iconFor(room){ const k = roomOf(room); if (k && k.icon) return k.icon; const r = (room || '').toLowerCase(); for (const [k, i] of ICONS) if (r.includes(k)) return i; return '🎯'; }
 function colourOf(name){
   const c = (SETUP?.colours || []).find(x => x.name.toLowerCase() === String(name || '').toLowerCase());
   return c ? c : {bg:'#6B7280', fg:'#fff'};
@@ -258,7 +259,7 @@ function makeMatrix(T, S){
   const rows = shuffle([...Array(S).keys()]), cols = shuffle([...Array(S).keys()]), sym = shuffle([...Array(S).keys()].map(x => x + 1));
   const sq = rows.map(r => cols.map(c => sym[(r + c) % S]));
   // avoid giving an exact copy of a saved matrix
-  const same = (SETUP?.matrices || []).some(m => m.teams === T && m.stations === S && JSON.stringify(m.grid) === JSON.stringify(sq.slice(0, T)));
+  const same = (SETUP?.matrices || []).some(m => m.theme === (cur?.theme || 'Spy') && m.teams === T && m.stations === S && JSON.stringify(m.grid) === JSON.stringify(sq.slice(0, T)));
   return same ? makeMatrix(T, S) : sq.slice(0, T);
 }
 function gridProblems(g, T, S){
@@ -300,7 +301,6 @@ function envelopes(){
 async function boot(){
   if (!pw()){ showLogin(); return; }
   try { SETUP = await api('/api/admin/spy-clues/setup'); } catch(e){ if (e.message !== 'auth') $('#jobs').innerHTML = '<div class="err">' + esc(e.message) + '</div>'; return; }
-  $('#roomList').innerHTML = SETUP.rooms.map(r => `<option value="${esc(r.room)}">`).join('');
   renderJobs(); renderLibAll();
   const q = new URLSearchParams(location.search);
   if (q.get('job')) openJob(+q.get('job'));
@@ -310,7 +310,7 @@ function renderJobs(){
   const j = SETUP.jobs;
   if (!j.length){ $('#jobs').innerHTML = '<div class="muted">No spy parties yet. Click “New spy party”.</div>'; return; }
   $('#jobs').innerHTML = j.map(x => `<div class="job ${cur && cur.id === x.id ? 'on' : ''}" onclick="openJob(${x.id})">
-    <b>${esc(x.title)}</b><span class="muted">${esc(x.date_label || 'No date')} · ${esc(x.size)}</span>
+    <b>${esc(x.title)}</b><span class="muted">${esc(x.theme)} · ${esc(x.date_label || 'No date')} · ${esc(x.size)}</span>
     <div class="row" style="gap:8px"><span class="pill ${x.link_state}">${({live:'Link live',none:'No link',expired:'Link expired',revoked:'Link stopped'})[x.link_state]}</span>
     <span class="muted">${x.done}/${x.total} envelopes</span></div>
     <div class="bar"><i style="width:${x.total ? Math.round(100 * x.done / x.total) : 0}%"></i></div></div>`).join('');
@@ -330,11 +330,11 @@ async function archiveMatrix(id){
 
 // ─── open / new ───────────────────────────────────────────────────────────
 function blankParty(){
-  const T = 5, S = 5;
-  const lib = SETUP.matrices.find(m => m.teams === T && m.stations === S);
-  return {id:null, lead_id:null, title:'', event_date:'', host_name:'', kids:null, teams:T, stations:S,
+  const T = 5, S = 5, theme = 'Spy';
+  const lib = SETUP.matrices.find(m => m.theme === theme && m.teams === T && m.stations === S);
+  return {id:null, theme, lead_id:null, title:'', event_date:'', host_name:'', kids:null, teams:T, stations:S,
     grid: lib ? lib.grid.map(r => r.slice()) : makeMatrix(T, S), matrix_id: lib ? lib.id : null,
-    team_colours: SETUP.default_colours.slice(0, T), station_setup: DEFAULT_STATIONS.map(s => ({...s})),
+    team_colours: SETUP.default_colours.slice(0, T), station_setup: defaultStations(theme, S),
     final_label:'', link_state:'none'};
 }
 function startEditing(p){
@@ -365,6 +365,7 @@ $('#cancelBtn').onclick = () => {
 
 // ─── form ─────────────────────────────────────────────────────────────────
 function fillForm(){
+  $('#theme').innerHTML = SETUP.themes.map(t => `<option ${t === (cur.theme || 'Spy') ? 'selected' : ''}>${esc(t)}</option>`).join('');
   $('#title').value = cur.title || ''; $('#edate').value = cur.event_date || ''; $('#host').value = cur.host_name || '';
   $('#finalLabel').value = cur.final_label || ''; $('#kids').value = cur.kids || ''; perTeam();
   $('#stations').innerHTML = [5, 6, 7, 8].concat(cur.stations < 5 || cur.stations > 8 ? [cur.stations] : []).map(n => `<option ${n === cur.stations ? 'selected' : ''}>${n}</option>`).join('');
@@ -386,18 +387,28 @@ function perTeam(){
   cur.kids = +$('#kids').value || null; perTeam();
   setDirty(); renderEnvs(); renderMatrixNames();
 }));
+$('#theme').onchange = () => {
+  cur.theme = $('#theme').value;
+  cur.station_setup = defaultStations(cur.theme, cur.stations).map((d, i) => Object.assign(d, {volunteer: (cur.station_setup[i] || {}).volunteer || ''}));
+  const lib = SETUP.matrices.find(m => m.theme === cur.theme && m.teams === cur.teams && m.stations === cur.stations);
+  if (lib){ cur.grid = lib.grid.map(r => r.slice()); cur.matrix_id = lib.id; }
+  setDirty(); renderAll();
+};
 $('#stations').onchange = () => resize(cur.teams, +$('#stations').value);
 $('#teams').onchange = () => resize(+$('#teams').value, cur.stations);
 function resize(T, S){
   if (T > S) T = S;
   const sizeChanged = S !== cur.stations || T !== cur.teams;
   cur.stations = S; cur.teams = T;
-  while (cur.station_setup.length < S) cur.station_setup.push({room:'', activity:'', volunteer:''});
+  while (cur.station_setup.length < S){
+    const free = themeRooms().find(r => !cur.station_setup.some(x => x.room.toLowerCase() === r.room.toLowerCase()));
+    cur.station_setup.push(free ? {room: free.room, activity: free.games[0] || '', volunteer: ''} : {room:'', activity:'', volunteer:''});
+  }
   cur.station_setup = cur.station_setup.slice(0, S);
   while (cur.team_colours.length < T) cur.team_colours.push(SETUP.default_colours.find(c => !cur.team_colours.includes(c)) || '');
   cur.team_colours = cur.team_colours.slice(0, T);
   if (sizeChanged){
-    const lib = SETUP.matrices.find(m => m.teams === T && m.stations === S);
+    const lib = SETUP.matrices.find(m => m.theme === cur.theme && m.teams === T && m.stations === S);
     if (lib){ cur.grid = lib.grid.map(r => r.slice()); cur.matrix_id = lib.id; }
     else { cur.grid = makeMatrix(T, S); cur.matrix_id = null; }
   }
@@ -406,21 +417,42 @@ function resize(T, S){
 function renderAll(){ renderStations(); renderCols(); renderMatrix(); renderEnvs(); renderLink(); }
 
 function renderStations(){
+  const rs = themeRooms();
   $('#st').innerHTML = cur.station_setup.map((s, i) => {
-    const games = (SETUP.rooms.find(r => r.room.toLowerCase() === (s.room || '').toLowerCase()) || {}).games || [];
+    const known = roomOf(s.room);
+    const games = (known || {}).games || [];
+    const taken = new Set(cur.station_setup.filter((_, j) => j !== i).map(x => (x.room || '').toLowerCase()));
+    const opts = '<option value="">Pick a room</option>'
+      + (s.room && !known ? `<option value="${esc(s.room)}" selected>${esc(s.room)} (old name, pick again)</option>` : '')
+      + rs.map(r => `<option value="${esc(r.room)}" ${known && known.room === r.room ? 'selected' : ''} ${taken.has(r.room.toLowerCase()) ? 'disabled' : ''}>${esc(r.icon)} ${esc(r.room)}${taken.has(r.room.toLowerCase()) ? ' (used)' : ''}</option>`).join('')
+      + '<option value="__new">＋ Add a new room…</option>';
     return `<tr><td class="num">${i + 1}</td>
-      <td><input list="roomList" value="${esc(s.room)}" data-i="${i}" data-k="room" placeholder="Room name"></td>
+      <td><select data-i="${i}" class="roomSel ${s.room && !known ? 'badsel' : ''}">${opts}</select></td>
       <td><input list="g${i}" value="${esc(s.activity)}" data-i="${i}" data-k="activity" placeholder="Game"><datalist id="g${i}">${games.map(g => `<option value="${esc(g)}">`).join('')}</datalist></td>
       <td><input value="${esc(s.volunteer)}" data-i="${i}" data-k="volunteer" placeholder="Volunteer name"></td></tr>`;
   }).join('');
   $('#st').querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => {
     cur.station_setup[+inp.dataset.i][inp.dataset.k] = inp.value.trim();
     setDirty(); renderEnvs(); renderMatrixNames();
-    if (inp.dataset.k === 'room'){   // refresh that row's game suggestions
-      const games = (SETUP.rooms.find(r => r.room.toLowerCase() === inp.value.trim().toLowerCase()) || {}).games || [];
-      $('#g' + inp.dataset.i).innerHTML = games.map(g => `<option value="${esc(g)}">`).join('');
-    }
   }));
+  $('#st').querySelectorAll('.roomSel').forEach(sel => sel.onchange = async () => {
+    const i = +sel.dataset.i, st = cur.station_setup[i];
+    let name = sel.value;
+    if (name === '__new'){
+      name = (prompt(`New ${cur.theme || 'Spy'} room name (it will show for every party):`) || '').trim();
+      if (!name){ renderStations(); return; }
+      try {
+        const r = await api('/api/admin/spy-clues/rooms', {method:'POST', body: JSON.stringify({theme: cur.theme || 'Spy', name, games: [], changed_by: $('#who').value.trim() || null})});
+        SETUP.rooms = r.rooms;
+      } catch(e){ if (e.message !== 'auth') alert(e.message); renderStations(); return; }
+      const added = roomOf(name); if (added) name = added.room;
+    }
+    const prevDefault = (roomOf(st.room) || {}).games || [];
+    st.room = name;
+    const g = (roomOf(name) || {}).games || [];
+    if (!st.activity || prevDefault.includes(st.activity)) st.activity = g[0] || '';
+    setDirty(); renderStations(); renderEnvs(); renderMatrixNames();
+  });
 }
 function renderCols(){
   $('#cols').innerHTML = cur.team_colours.map((c, t) => `<label>Team ${t + 1}
@@ -434,7 +466,7 @@ function renderCols(){
 function renderMatrix(){
   const T = cur.teams, S = cur.stations;
   $('#sizeLbl').textContent = `${T} teams × ${S} stations`;
-  const lib = SETUP.matrices.filter(m => m.teams === T && m.stations === S);
+  const lib = SETUP.matrices.filter(m => m.theme === (cur.theme || 'Spy') && m.teams === T && m.stations === S);
   const matchId = (lib.find(m => JSON.stringify(m.grid) === JSON.stringify(cur.grid)) || {}).id || null;
   $('#lib').innerHTML = lib.length ? lib.map(m => `<button class="mx ${m.id === matchId ? 'on' : ''}" onclick="useMatrix(${m.id})"><b>${esc(m.name)}</b><span>Used ${m.used}×${m.last_used ? ' · last ' + esc(m.last_used) : ''}</span></button>`).join('')
     : '<span class="muted">None saved for this size yet — “Make a new matrix”, then save it in the library.</span>';
@@ -543,7 +575,7 @@ function copyLink(){ navigator.clipboard.writeText(cur.link).then(() => { const 
 // ─── save / delete ────────────────────────────────────────────────────────
 async function save(){
   $('#msg').innerHTML = '';
-  const body = {title: cur.title, event_date: cur.event_date || null, lead_id: cur.lead_id || null, teams: cur.teams, stations: cur.stations, kids: cur.kids || null,
+  const body = {title: cur.title, theme: cur.theme || 'Spy', event_date: cur.event_date || null, lead_id: cur.lead_id || null, teams: cur.teams, stations: cur.stations, kids: cur.kids || null,
     grid: cur.grid, save_matrix_as: $('#saveAs').value.trim() || null, team_colours: cur.team_colours,
     station_setup: cur.station_setup, host_name: cur.host_name, final_label: cur.final_label, changed_by: $('#who').value.trim() || null};
   if (!body.host_name){ $('#msg').innerHTML = '<div class="err">Add the host’s name — it goes on every envelope 1.</div>'; window.scrollTo({top: 0, behavior: 'smooth'}); return false; }

@@ -132,6 +132,7 @@ function load(first){
 function render(){
   $('#msg').style.display = 'none'; $('#app').style.display = 'block';
   $('#title').textContent = V.title;
+  document.querySelector('.top .brand').textContent = 'Wondershop ' + (V.theme === 'Spy' || !V.theme ? 'spy' : V.theme) + ' clues';
   $('#date').textContent = V.date_label + (V.kids ? ', ' + V.kids + ' kids' : '');
   $('#count').textContent = V.done + ' of ' + V.total + ' done';
   $('#bar').style.width = (V.total ? Math.round(100 * V.done / V.total) : 0) + '%';
