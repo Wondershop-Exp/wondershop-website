@@ -103,7 +103,7 @@
     var q = (document.getElementById('q') || {}).value || '';
     q = q.trim().toLowerCase();
     var rows = ALL.map(function(r, i){ r._n = i + 1; return r; }).filter(function(r){
-      return !q || (r.agent_name + ' ' + r.parent_name + ' ' + r.parent_phone).toLowerCase().indexOf(q) !== -1;
+      return !q || (r.agent_name + ' ' + r.parent_name).toLowerCase().indexOf(q) !== -1;
     });
     var list = document.getElementById('list');
     if(!ALL.length){ list.innerHTML = '<div class="msg">No agents have registered yet.<br>Check back once the registration link has gone out.</div>'; return; }
@@ -112,7 +112,7 @@
       var ph = r.photo_thumb
         ? '<a class="ph" href="' + esc(r.photo_url || r.photo_thumb) + '" target="_blank" rel="noopener"><img src="' + esc(r.photo_thumb) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.textContent=\'' + esc(initials(r.agent_name)) + '\'"></a>'
         : '<div class="ph">' + esc(initials(r.agent_name)) + '</div>';
-      var parent = [r.parent_name ? esc(r.parent_name) : '', r.parent_phone ? '<a href="tel:' + esc(r.parent_phone.replace(/[^\d+]/g,'')) + '">' + esc(r.parent_phone) + '</a>' : ''].filter(Boolean).join(' &middot; ');
+      var parent = r.parent_name ? esc(r.parent_name) : '';
       var size = SHOW_TSHIRT ? '<div class="size"><div class="v">' + (r.tshirt_size ? esc(r.tshirt_size) : '&mdash;') + '</div><div class="k">T-shirt</div></div>' : '';
       return '<div class="agent"><div class="num">' + r._n + '</div>' + ph
         + '<div class="info"><div class="an">' + esc(r.agent_name) + '</div>'

@@ -785,7 +785,8 @@ async def get_host_registrations(host_token: str):
     Registrations live only in the dedicated Spy Google Sheet (one tab per
     party), so this asks that sheet's Apps Script for this party's tab
     (action="list_spy_registrations", see spy_sheet_webhook.js) and returns
-    ONLY: agent name, parent name, parent phone, photo, registered time,
+    ONLY: agent name, parent name, photo, registered time (no parent phone
+    either -- 2026-11-19, per Shruti),
     and T-shirt size when this party asks for it. DOB and the marketing
     answer never leave the backend."""
     host_token = _clean(host_token)
@@ -829,7 +830,6 @@ async def get_host_registrations(host_token: str):
         item = {
             "agent_name": name,
             "parent_name": _clean(str(rec.get("Parent Name") or "")),
-            "parent_phone": _clean(str(rec.get("Parent Phone") or "")),
             "registered_at": _clean(str(rec.get("Timestamp") or "")),
             "photo_url": photo if photo.startswith("http") else "",
             "photo_thumb": f"https://drive.google.com/thumbnail?id={fid}&sz=w200" if fid else "",
