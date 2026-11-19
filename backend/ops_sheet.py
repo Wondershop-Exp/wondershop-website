@@ -290,6 +290,20 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
             f"<li>{_e(t.get('label') or t.get('name'))} — {_e(t.get('status') or 'pending')}"
             f"{(' · ' + _inr(t.get('price'))) if t.get('price') not in (None, '') else ''}</li>" for t in tbc) + "</ul>")
 
+    # Live T-shirt printing reminder + checklist (2026-11-19, per Shruti).
+    _ts = " ".join(x or "" for x in (val("svc_activities"), val("svc_gifts"))).lower()
+    if "t-shirt printing" in _ts or "tshirt printing" in _ts:
+        try:
+            _ck = json.loads(val("ops_tshirt_checklist") or "{}") or {}
+        except (TypeError, ValueError):
+            _ck = {}
+        _bx = lambda k: "☑" if _ck.get(k) else "☐"
+        out.append("<h2>Live T-shirt printing — get from the client (WhatsApp)</h2><ul style='list-style:none;padding-left:4px'>"
+                   f"<li>{_bx('card')} Design card shared with the client</li>"
+                   f"<li>{_bx('designs')} Designs received from the client"
+                   f"{(' — ' + _e(str(_ck.get('count'))) + ' design(s)') if _ck.get('count') else ' (count to be confirmed by the party planner)'}</li>"
+                   f"<li>{_bx('names')} List of kids' names received</li></ul>")
+
     sched = val("event_schedule_text")
     if sched:
         rows = []

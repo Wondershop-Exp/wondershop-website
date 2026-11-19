@@ -567,6 +567,7 @@ ACTIVITY_VENUE_NOTES = {
     "karaoke": "Includes Music Plus setup (2 speakers, 1 mixer, 1 operator), 1 projector, 1 screen with stand and 1 projector operator · 3 hours. Needs 3 tables for the setup, plug points and space to put the screen.",   # 2026-10-23
     "rc-cycle": "Pedal-powered RC race track with 1 station master · 3 hours. Needs an open area for the track setup.",   # 2026-10-30
     "pickleball": "Court, net, paddles and balls with 1 station master · 3 hours. Needs a space 12 ft wide × 5 ft.",   # 2026-10-30
+    "tshirt-printing": "Theme & names: our party planner will share a design card on WhatsApp — please send the designs (count confirmed by the planner) and the list of kids' names.",   # 2026-11-19, per Shruti
     "popcorn": "Needs a spacious, well-ventilated venue — the popcorn machine gives off heat and some smoke, so it isn't suitable for a home setup.",
 }
 

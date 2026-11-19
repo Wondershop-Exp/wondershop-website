@@ -2603,7 +2603,7 @@ function reqReturnGiftsRow(){
           + '<label style="font-size:11px;color:var(--gy);display:flex;flex-direction:column">Discounted price<input type="number" min="0" step="1" style="width:90px;padding:6px 8px;border:1px solid '+(disc?'#F4C7C3':'var(--li2)')+';border-radius:8px;font-size:13px;color:'+(disc?'#B42318':'inherit')+'" value="'+(g.price==null?'':Number(g.price))+'" title="Per piece — defaults to the MRP" onchange="onReturnGiftPrice(\''+nameJs+'\',this.value)"></label>'
           + '<div class="ap">'+money(sub)+'</div>'
           + '<button type="button" class="icon-btn" onclick="removeReturnGift(\''+nameJs+'\')" title="Remove">✕</button>'
-        + '</div></div>';
+        + '</div>'+(/t-?shirt printing/i.test(g.name) ? '<div class="act-warn">📝 Theme &amp; names: the party planner shares a design card on WhatsApp — the client sends the designs (count confirmed by the planner) and the list of kids\' names.</div>' : '')+'</div>';
       }).join('')
     : '<div style="font-size:12.5px;color:var(--gy);padding:4px 0 8px">No gifts added yet — search below.</div>';
   const giftsTotal = selectedGifts.reduce((s,g)=>s+(Number(g.price)||0)*(Number(g.quantity)||0), 0);

@@ -3400,7 +3400,7 @@ function actPriceRaw(a,kids){
   const r=kids<=12?a.r1:kids<=25?a.r2:a.r3;return a.flat?r:r*kids;
 }
 // Live T-shirt Printing Q&A (2026-10-02, per Shruti) — activity + return gift.
-const TSHIRT_INFO="<h4>👕 What is the t-shirt quality?</h4><ul><li>100% cotton t-shirts.</li></ul><h4>🎨 Can it be customised to the theme?</h4><ul><li>Yes — we print both <b>names</b> and <b>designs</b>.</li><li>Designs are chosen from our pre-decided theme designs; your child's (or each guest's) name can be printed along with it.</li></ul><div class=\"gal-info-note\">Our Party Experience Lead will share the design options for your theme before the party.</div>";
+const TSHIRT_INFO="<h4>👕 What is the t-shirt quality?</h4><ul><li>100% cotton t-shirts.</li></ul><h4>🎨 Can it be customised to the theme?</h4><ul><li>Yes — we print both <b>names</b> and <b>designs</b>.</li><li>Designs are chosen from our pre-decided theme designs; your child's (or each guest's) name can be printed along with it.</li></ul><div class=\"gal-info-note\">📝 We'll need your <b>theme</b> and <b>name details</b> for live t-shirt printing. Our party planner will get in touch on WhatsApp with a design card — you share the designs (the planner confirms how many) and the list of kids' names.</div>";
 const ACTS=[
   // ── Art (per child) ──
   {id:'a1',n:'Canvas Painting',e:'🖼️',img:'act-canvas-painting',realImg:true,cat:'art',age:'4-12',dur:'45 min',req:'Tables & chairs (arranged by client)',r1:850,r2:800,r3:750,flat:false,bgs:['linear-gradient(135deg,#F5C3D7,#E65A96)','linear-gradient(135deg,#F2D147,#F57A1A)'],tag:'pop',pers:true,rating:4.8,cnt:95},

@@ -5992,6 +5992,42 @@ async function saveDecorDesign(clear){
     await loadDetail();
   }catch(e){ showToast('Could not save: '+e.message); }
 }
+// Live T-shirt printing (2026-11-19, per Shruti): the team shares a design
+// card on WhatsApp; the client sends designs (count confirmed by the party
+// planner) + kids' names. A note and a checklist, also on the Ops sheet.
+function _tshirtIn(key){
+  const f = _decorAddonField(key);
+  return !!(f && !f.removed && /t-?shirt printing/i.test(String(f.customer_choice||'')));
+}
+function tshirtChecklistRow(key, locked){
+  const cf = _decorAddonField('ops_tshirt_checklist');
+  if(!cf || !_tshirtIn(key)) return '';
+  if(key==='svc_gifts' && _tshirtIn('svc_activities')) return '';   // show once
+  let c = {}; try{ c = JSON.parse(cf.customer_choice||'{}')||{}; }catch(e){}
+  const box = (k, lbl) => '<label style="display:flex;gap:8px;align-items:center;padding:3px 0;cursor:pointer"><input type="checkbox" '+(c[k]?'checked':'')+(locked?' disabled':'')+' onchange="saveTshirtChecklist(\''+k+'\', this.checked)"> '+lbl+'</label>';
+  return '<tr class="sugg-tr"><td colspan="6"><div class="sugg-box" style="background:#FFF8EC;border-color:#F5DDB0">'
+    + '<div class="sugg-head" style="font-weight:700">👕 Live T-shirt printing — coordinate on WhatsApp</div>'
+    + '<div style="font-size:12.5px;color:var(--gy);margin-bottom:6px">Share the design card; the client sends the designs (count confirmed by the party planner) and the list of kids\' names.</div>'
+    + box('card','Design card shared with the client')
+    + box('designs','Designs received')
+    + ' <span style="font-size:12.5px;margin-left:26px">Designs count: '+(locked?esc(c.count||'—'):'<input type="number" min="0" value="'+esc(c.count||'')+'" style="width:70px;padding:4px 6px;border:1px solid var(--li2);border-radius:6px" onchange="saveTshirtChecklist(\'count\', this.value)">')+'</span>'
+    + box('names',"List of kids' names received")
+    + (c.by ? '<div style="font-size:11.5px;color:var(--gy);margin-top:4px">Last updated by '+esc(c.by)+'</div>' : '')
+    + '</div></td></tr>';
+}
+async function saveTshirtChecklist(k, v){
+  const f = _decorAddonField('ops_tshirt_checklist'); if(!f) return;
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); return; }
+  let c = {}; try{ c = JSON.parse(f.customer_choice||'{}')||{}; }catch(e){}
+  c[k] = v; c.by = who;
+  try{
+    await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {method:'POST', body: JSON.stringify({
+      field_key:'ops_tshirt_checklist', customer_choice_override: JSON.stringify(c), assigned_value: f.assigned_value || '', remarks: f.remarks || '', removed:false, changed_by: who})});
+    f.customer_choice = JSON.stringify(c);
+    showToast('✓ T-shirt printing checklist saved');
+  }catch(e){ showToast('Could not save: '+e.message); }
+}
 async function saveDecorCustom(){
   const f = _decorAddonField('addon_decor_custom'); if(!f) return;
   const who = getName();
@@ -6606,6 +6642,7 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(f.field_key==='bill_line_quotes') return '';
   if(f.field_key==='svc_cake_price') return '';   // shown on the Cake row (2026-10-25)
   if(f.field_key==='addon_gift_pack_qty') return '';   // shown on the Gift Packaging row (2026-10-25)
+  if(f.field_key==='ops_tshirt_checklist') return '';   // shown under Activities / Return Gifts (2026-11-19)
   if(f.field_key==='bill_discount_type') return discountRowHtml(f, locked);
   // Decor add-ons (2026-10-24): shown as buttons under the Decor row, not as rows.
   if(f.field_key.indexOf('addon_decor_')===0) return '';
@@ -6615,7 +6652,10 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(f.field_key==='svc_activities' && !f._withReq){
     const base = fieldRowHtml(Object.assign({}, f, {_withReq:true}), isCustEvent, locked);
     const cards = '';   // 2026-10-12: quotes now sit on each activity row (mpRowsHtml)
-    return (cards ? base.replace(/<\/tr>\s*$/, '<td class="lq-wide">'+cards+'</td></tr>') : base) + salesActivityRequestsRow();
+    return (cards ? base.replace(/<\/tr>\s*$/, '<td class="lq-wide">'+cards+'</td></tr>') : base) + salesActivityRequestsRow() + tshirtChecklistRow('svc_activities', locked);
+  }
+  if(f.field_key==='svc_gifts' && !f._withTs){
+    return fieldRowHtml(Object.assign({}, f, {_withTs:true}), isCustEvent, locked) + tshirtChecklistRow('svc_gifts', locked);
   }
   const rid = 'fld_'+f.field_key;
   const noPartner = !isCustEvent && NO_PARTNER_SECTIONS.includes(CUR_SEC);   // 2026-10-12

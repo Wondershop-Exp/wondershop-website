@@ -240,6 +240,7 @@ FIELD_CATALOG = [
     {"key": "addon_decor_welcome_board", "label": "Decor: Welcome Board", "section": "Add-ons"},   # 2026-11-13, Rs 1,000
     {"key": "addon_decor_welcome_arch",  "label": "Decor: Welcome Arch",  "section": "Add-ons"},   # 2026-11-13, Rs 1,750
     {"key": "addon_decor_custom",        "label": "Decor: Custom items",  "section": "Add-ons", "admin_only": True},
+    {"key": "ops_tshirt_checklist",      "label": "Live T-shirt printing checklist", "section": "Add-ons", "admin_only": True},   # 2026-11-19, JSON {card,designs,names,count}
     {"key": "addon_decor_design",        "label": "Decor: Finalized design", "section": "Add-ons", "admin_only": True},   # 2026-11-15, "<option id>|<name>"   # 2026-11-13, JSON [{"name","price"}]
     # Tables & chairs on rent (2026-10-25, per Shruti) — quantities + cover from
     # the website / sales panel; Quote (₹) is what goes into Total MRP.
