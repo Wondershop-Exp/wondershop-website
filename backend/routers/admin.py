@@ -1093,9 +1093,36 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
                 if ov and ov["removed"]:
                     removed_r.add(k)
             row["_tbc_pending"] = sum(1 for t in to_be_confirmed(cur_r, removed_r, snap_r, row) if t["status"] != "confirmed")
+            row["_acts_now"] = None if "svc_activities" in removed_r else cur_r.get("svc_activities")
         except Exception:
             logger.exception(f"Lead #{row['lead_id']}: couldn't compute to-be-confirmed items")
             row["_tbc_pending"] = 0
+
+    # 2026-11-19 — spy flag per booking row, so the 🕵️ Spy clues button shows
+    # only on spy events. Same rules as _is_spy_booking() (detail page), with
+    # the sales-panel check done in one query for all rows.
+    if is_booking and lead_ids:
+        pb_spy = set()
+        sales_ids = {row["lead_id"] for row in enriched if row.get("lead_origin") == "sales_module"}
+        if sales_ids:
+            try:
+                for r in await database.fetch_all(
+                        f"SELECT lead_id, activities FROM lead_sales_playbook WHERE lead_id IN ({placeholders})",
+                        values=id_params):
+                    acts = r["activities"]
+                    acts = json.loads(acts) if isinstance(acts, str) else (acts or [])
+                    if r["lead_id"] in sales_ids and any((a.get("id") in cat.SPY_ACTIVITY_IDS) for a in acts):
+                        pb_spy.add(r["lead_id"])
+            except Exception:
+                logger.exception("Couldn't read sales activities for the spy flag")
+        for row in enriched:
+            try:
+                snap_r = _parse_snapshot(row.get("builder_snapshot"))
+                row["_is_spy"] = (snap_r.get("package_origin") == "spy-basic" or _snapshot_has_spy_activity(snap_r)
+                                  or _override_text_has_spy_activity(row.get("_acts_now"))
+                                  or row["lead_id"] in pb_spy)
+            except Exception:
+                row["_is_spy"] = False
 
     sort_key = sort if sort in SORTABLE_COLUMNS else "created"
     sort_desc = dir != "asc"
@@ -1139,6 +1166,7 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
         # generic field-table editor for everything else).
         "origin": "Sales" if row.get("lead_origin") == "sales_module" else "Website",
         "tbc_pending": row.get("_tbc_pending", 0),
+        "is_spy": bool(row.get("_is_spy")),
         # 2026-10-12, per Shruti — Bookings list columns + filters.
         "venue": row.get("venue"), "theme": row.get("theme"),
         "child_ages": row.get("child_ages"), "child_genders": row.get("child_genders"),

@@ -35,6 +35,7 @@ h3{font-size:15px;color:var(--plum)}
 label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700;color:var(--gy)}
 input,select{font:inherit;font-size:15px;padding:8px 10px;border:1px solid #CFC5E2;border-radius:8px;background:#fff;color:var(--bk);min-width:0}
 input:focus,select:focus{outline:2px solid var(--li);border-color:var(--li)}
+select{-webkit-appearance:none;appearance:none;padding-right:36px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%235B5568' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 13px center;cursor:pointer}
 .btn{border:0;border-radius:10px;background:var(--plum);color:#fff;font:inherit;font-weight:700;padding:9px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
 .btn.pk{background:var(--pk)}
 .btn.line{background:#fff;color:var(--plum);border:1.5px solid var(--plum)}
@@ -69,10 +70,10 @@ td input{width:100%}
 .mx b{display:block}.mx span{font-size:12px;color:var(--gy)}
 .mtables{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
 .mtables>div{overflow-x:auto}
-.mt th,.mt td{border:1px solid #BFB4D6;text-align:center;padding:4px 6px;font-size:14px;white-space:nowrap}
+.mt th,.mt td{border:1px solid #D6CDE6;text-align:center;padding:6px 10px;font-size:14px;white-space:nowrap}
 .mt th{background:#ECE8F2;color:var(--bk);text-transform:none;letter-spacing:0;font-size:14px}
 .mt td.tm{text-align:left;font-weight:800;background:#F6F4F9}
-.mt select{padding:4px 2px;font-weight:800;text-align:center;width:52px}
+.mt select{padding:6px 28px 6px 12px;font-weight:800;width:68px;background-position:right 10px center}
 .mt td.bad select,.mt td.bad{background:var(--badbg);color:var(--bad)}
 .dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:6px;border:1px solid rgba(0,0,0,.2)}
 /* colours */
@@ -86,8 +87,18 @@ td input{width:100%}
 .team td.n{font-weight:800;width:34px}
 .team td.v{font-weight:800}
 /* link */
-.linkbox{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.linkbox code{background:var(--li3);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;word-break:break-all;flex:1;min-width:200px}
+.linkbox{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.linkbox code{background:var(--li3);border:1px solid var(--line);border-radius:10px;padding:11px 14px;font-size:13px;word-break:break-all;flex:1;min-width:220px}
+.lk{display:flex;flex-direction:column;gap:22px}
+.lk-sec{display:flex;flex-direction:column;gap:10px}
+.lk-sec+.lk-sec{border-top:1px solid var(--line);padding-top:20px}
+.lk-sec h3{font-size:14px;color:var(--gy);font-weight:700}
+.lk .meta{font-size:14px;color:var(--gy)}
+.lk .ctrl{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.lk .ctrl select{min-width:240px}
+.lk .spacer{flex:1}
+.lk .teams{display:flex;gap:8px;flex-wrap:wrap}
+.lk .teams .pill{padding:5px 12px;font-size:13px}
 .savebar{position:sticky;bottom:0;background:rgba(247,243,254,.96);backdrop-filter:blur(4px);border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;z-index:5}
 .modal{position:fixed;inset:0;background:rgba(25,25,25,.6);display:grid;place-items:center;padding:16px;z-index:20}
 .modal .card{max-width:380px;width:100%}
@@ -464,7 +475,7 @@ function renderEnvs(){
     const c = colourOf(cur.team_colours[t]);
     return `<div class="team"><h4 style="background:${c.bg};color:${c.fg}">${esc(teamName(t))} team</h4><table>
       <tr><th>#</th><th>Clue inside</th><th>Write name</th></tr>
-      ${envs.map(e => `<tr><td class="n">${e.no}</td><td>${e.final ? '🏁' : iconFor(e.clue)} ${esc(e.clue)}</td><td class="v">${esc(e.giver)}${dirty ? '' : (tick[(t + 1) + '-' + e.no] ? ' <span style="color:var(--ok)">✓</span>' : '')}</td></tr>`).join('')}
+      ${envs.map(e => `<tr><td class="n">${e.no}</td><td>${e.final ? '🏁' : iconFor(e.clue)} ${esc(e.clue)}</td><td class="v">${e.giver === '?' ? '<span style="color:var(--bad)">No volunteer</span>' : esc(e.giver)}${dirty ? '' : (tick[(t + 1) + '-' + e.no] ? ' <span style="color:var(--ok)">✓</span>' : '')}</td></tr>`).join('')}
     </table></div>`;
   }).join('');
 }
@@ -475,28 +486,35 @@ function renderLink(){
   if (!cur.id){ b.innerHTML = '<div class="muted">Save the party first, then you can make Shilpa’s link.</div>'; return; }
   const st = cur.link_state;
   const hasDate = !!cur.event_date;
-  const opts = `<select id="lkMode">${hasDate ? '<option value="party">Till the day after the party</option>' : ''}<option value="1">1 day from now</option><option value="3" ${hasDate ? '' : 'selected'}>3 days from now</option><option value="7">7 days from now</option></select>`;
-  let h = '';
-  if (dirty) h += '<div class="warn">You have unsaved changes — save so Shilpa sees them.</div>';
+  const opts = `<select id="lkMode">${hasDate ? '<option value="party">Till the end of the day after the party</option>' : ''}<option value="1">1 day from now</option><option value="3" ${hasDate ? '' : 'selected'}>3 days from now</option><option value="7">7 days from now</option></select>`;
+  let h = '<div class="lk">';
+  if (dirty) h += '<div class="warn">You have unsaved changes. Save so Shilpa sees them.</div>';
   if (st === 'live'){
-    h += `<div class="linkbox"><code id="lkUrl">${esc(cur.link)}</code>
-      <button class="btn sm" onclick="copyLink()">Copy</button>
-      <a class="btn sm pk" target="_blank" href="https://wa.me/?text=${encodeURIComponent('Spy clues for ' + cur.title + ' — open this, fill each envelope and press Done:\n' + cur.link)}">WhatsApp</a>
-      <a class="btn sm line" target="_blank" href="${esc(cur.link)}">Open</a></div>
-      <div class="muted">Works till <b>${esc(cur.expires_label)}</b>. ${cur.opened_label ? 'Shilpa first opened it ' + esc(cur.opened_label) + '.' : 'Not opened yet.'}</div>
-      <div class="row"><span class="muted">Change expiry:</span>${opts}<button class="btn sm line" onclick="makeLink(false)">Update</button>
-      <button class="btn sm red" onclick="revoke()">Stop link now</button>
-      <button class="btn sm ghost" onclick="makeLink(true)" title="The old link stops working">New link (old one stops)</button></div>`;
+    h += `<div class="lk-sec">
+        <div class="linkbox"><code id="lkUrl">${esc(cur.link)}</code>
+          <button class="btn" onclick="copyLink()">Copy</button>
+          <a class="btn pk" target="_blank" href="https://wa.me/?text=${encodeURIComponent('Spy clues for ' + cur.title + '. Open this, fill each envelope and press Done:\n' + cur.link)}">Send on WhatsApp</a>
+          <a class="btn line" target="_blank" href="${esc(cur.link)}">Open</a></div>
+        <div class="meta">Works till <b>${esc(cur.expires_label)}</b>. ${cur.opened_label ? 'Shilpa first opened it on ' + esc(cur.opened_label) + '.' : 'Shilpa hasn’t opened it yet.'}</div>
+      </div>
+      <div class="lk-sec"><h3>How long it works</h3>
+        <div class="ctrl">${opts}<button class="btn line" onclick="makeLink(false)">Update expiry</button>
+          <span class="spacer"></span>
+          <button class="btn ghost" onclick="makeLink(true)" title="The old link stops working">Make a new link</button>
+          <button class="btn red" onclick="revoke()">Stop link now</button></div>
+      </div>`;
   } else {
-    h += `<div class="muted">${({none:'No link yet.', expired:'The last link has expired.', revoked:'The last link was stopped.'})[st]}</div>
-      <div class="row"><span class="muted">Link works</span>${opts}<button class="btn pk" onclick="makeLink(${st !== 'none'})">🔗 Make Shilpa’s link</button></div>`;
+    h += `<div class="lk-sec"><div class="meta">${({none:'No link yet.', expired:'The last link has expired.', revoked:'The last link was stopped.'})[st]}</div>
+      <div class="ctrl">${opts}<button class="btn pk" onclick="makeLink(${st !== 'none'})">Make Shilpa’s link</button></div></div>`;
   }
   if (cur.total){
-    h += `<div><b>${cur.done} of ${cur.total}</b> envelopes done <div class="bar" style="margin-top:4px"><i style="width:${Math.round(100 * cur.done / cur.total)}%"></i></div></div>
-      <div class="row">${(cur.teams_view || []).map(tm => `<span class="pill" style="background:${tm.bg};color:${tm.fg}">${esc(tm.name)} ${tm.done}/${tm.envelopes.length}</span>`).join('')}
-      ${cur.done ? '<button class="btn sm ghost" onclick="resetTicks()">Clear all ticks</button>' : ''}</div>`;
+    h += `<div class="lk-sec"><h3>Shilpa’s progress</h3>
+      <div class="row" style="gap:14px"><b style="font-size:16px">${cur.done} of ${cur.total} envelopes done</b>
+        <div class="bar" style="flex:1;min-width:160px"><i style="width:${Math.round(100 * cur.done / cur.total)}%"></i></div></div>
+      <div class="ctrl"><div class="teams">${(cur.teams_view || []).map(tm => `<span class="pill" style="background:${tm.bg};color:${tm.fg}">${esc(tm.name)} ${tm.done}/${tm.envelopes.length}</span>`).join('')}</div>
+      <span class="spacer"></span>${cur.done ? '<button class="btn sm ghost" onclick="resetTicks()">Clear all ticks</button>' : ''}</div></div>`;
   }
-  b.innerHTML = h;
+  b.innerHTML = h + '</div>';
 }
 function absorb(v){
   // server view -> editor state (teams_view keeps the per-envelope ticks)

@@ -1711,10 +1711,32 @@ function renderBookingHead(d){
   const quoteBtns = '<button type="button" class="mini-btn save" id="bdQuoteBtn" onclick="getBookingQuote(false)" title="Party plan PDF with pictures, prices and every detail — to send to the client">📄 '+(d.is_booking?'Party plan PDF':'Quotation PDF')+'</button>'
     + (bookingCanShareFiles() ? ' <button type="button" class="mini-btn" id="bdQuoteShareBtn" onclick="getBookingQuote(true)" title="Share the PDF straight to WhatsApp">📤 Share</button>' : '')
     + (d.is_booking ? ' <button type="button" class="mini-btn" onclick="openOpsSheet('+d.lead_id+')" title="Everything ops needs on one printable page: services, partners, remarks, sales notes, venue details, requests and T&amp;C">📋 Ops sheet</button>' : '')
-    + (d.is_booking ? ' <span id="bdPackBox" class="admin-only" style="display:inline-flex;gap:6px;align-items:center"></span>' : '');
+    + (d.is_booking ? ' <span id="bdPackBox" class="admin-only" style="display:inline-flex;gap:6px;align-items:center"></span>' : '')
+    + (d.is_spy_booking ? ' <span id="bdSpyBox" class="admin-only" style="display:inline-flex;gap:6px;align-items:center"></span>' : '');
   document.getElementById('bdTopRight').innerHTML = quoteBtns + (CURRENT_ORIGIN === 'Sales'
     ? ' <a class="linkbtn" href="sales-leads.html?lead_id='+d.lead_id+'" target="_blank">Open sales playbook ↗</a>' : '');
   if(d.is_booking) bdPackMount(d.lead_id);
+  if(d.is_spy_booking && ROLE !== 'sales') bdSpyMount(d.lead_id);
+}
+
+// Spy clue prep on a spy booking (2026-11-19, per Shruti — "add this icon in
+// events where spy is present in activities, like the packing list").
+// Shows how many envelopes ops has done + the link state, or a button to set
+// up the matrix / volunteers. Admin only (the API refuses the sales login).
+async function bdSpyMount(id){
+  const box = document.getElementById('bdSpyBox'); if(!box) return;
+  try{
+    const p = await apiCall('/api/admin/spy-clues/for-booking/'+id);
+    if(String(CURRENT_LEAD_ID)!==String(id) || !document.getElementById('bdSpyBox')) return;
+    if(!p.job){
+      box.innerHTML = '<a class="mini-btn" href="spy-clues-admin.html?lead_id='+id+'" target="_blank" style="text-decoration:none" title="Set up the spy matrix, volunteers and Shilpa\'s envelope link">🕵️ Set up spy clues</a>';
+      return;
+    }
+    const j = p.job;
+    const link = ({live:'link live', none:'no link yet', expired:'link expired', revoked:'link stopped'})[j.link_state] || '';
+    const state = (j.total && j.done === j.total) ? '✅ envelopes ready' : (j.done+'/'+j.total+' envelopes');
+    box.innerHTML = '<a class="mini-btn" href="spy-clues-admin.html?job='+j.id+'" target="_blank" style="text-decoration:none" title="'+esc(j.size)+' · '+esc(link)+'">🕵️ Spy clues · '+esc(state)+'</a>';
+  }catch(e){ box.innerHTML = ''; }
 }
 
 // Packing list on the booking page (2026-11-16, per Shruti — "1 event will
@@ -4602,7 +4624,7 @@ function listActionsCellHtml(r, kind){
   // 2026-10-18 — Sorting Hat event code for this booking (admin only).
   const hatLink = '<a class="mini-btn admin-only" href="sorting-hat-admin.html?lead_id='+r.lead_id+'" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">🎩 Sorting Hat</a>';
   // 2026-11-19 — spy clue prep (matrix, volunteers, Shilpa's envelope link); admin only.
-  const spyLink = '<a class="mini-btn admin-only" href="spy-clues-admin.html?lead_id='+r.lead_id+'" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">🕵️ Spy clues</a>';
+  const spyLink = r.is_spy ? '<a class="mini-btn admin-only" href="spy-clues-admin.html?lead_id='+r.lead_id+'" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;display:inline-block">🕵️ Spy clues</a>' : '';
   if(r.status==='Cancelled') return '<div style="display:flex">'+packLink+'</div>';
   return '<div style="display:flex;flex-wrap:wrap;gap:8px">'+packLink+hatLink+spyLink+'<button class="mini-btn remove" onclick="event.stopPropagation();quickCancel('+r.lead_id+')">Cancel</button></div>';
 }

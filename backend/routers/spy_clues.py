@@ -333,6 +333,19 @@ async def admin_prefill(lead_id: int, x_admin_password: Optional[str] = Header(N
     return out
 
 
+@router.get("/admin/spy-clues/for-booking/{lead_id}")
+async def admin_for_booking(lead_id: int, x_admin_password: Optional[str] = Header(None)):
+    """The booking page's 🕵️ box: this booking's latest spy party (or none)."""
+    _admin_only(x_admin_password)
+    r = await database.fetch_one("SELECT * FROM spy_clue_jobs WHERE lead_id = :id ORDER BY id DESC LIMIT 1",
+                                 values={"id": lead_id})
+    if not r:
+        return {"job": None}
+    v = view_of(_job_dict(r), True)
+    return {"job": {"id": v["id"], "done": v["done"], "total": v["total"], "link_state": v["link_state"],
+                    "size": f"{v['teams_count']} teams × {v['stations_count']} stations"}}
+
+
 @router.get("/admin/spy-clues/jobs/{job_id}")
 async def admin_get(job_id: int, x_admin_password: Optional[str] = Header(None)):
     _admin_only(x_admin_password)
