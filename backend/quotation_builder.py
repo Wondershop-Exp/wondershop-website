@@ -568,6 +568,11 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
     party_lbl = ("Party Grand Total" if gift_sep else "Grand Total") if data.get("booked") else ("Party Estimated Total" if gift_sep else "Estimated Total")
     trows.append([Paragraph(party_lbl, _style("gl", font=HEAD, size=13, color=WHITE, leading=16)),
                   Paragraph(inr(T.get("estimate") or 0), _style("gr", font=BODY_BOLD, size=15, color=WHITE, align=TA_RIGHT, leading=18))])
+    _sav = float(T.get("savings") or 0)
+    if _sav > 0.5 and not INV:
+        # "You save" line under the total (2026-11-20, per Shruti).
+        trows.append([Paragraph("Total savings on this party", _style("svl", font=BODY_BOLD, size=10.5, color=colors.HexColor("#1E8A4C"))),
+                      Paragraph(inr(_sav), _style("svr", font=BODY_BOLD, size=12, color=colors.HexColor("#1E8A4C"), align=TA_RIGHT))])
     # Advance + balance under the party total (2026-10-25, per Shruti).
     if INV and INV.get("payments") is not None:
         for lbl, amt in INV["payments"]:

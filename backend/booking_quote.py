@@ -446,6 +446,10 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
             "balance": balance if booked else None,
             "advance_confirmed": bool((fields.get("bill_advance") or {}).get("advance_confirmed")),
             "gift_mrp": 0, "has_unpriced": has_unpriced["any"],
+            # Total savings vs list prices (2026-11-20, per Shruti): item-wise
+            # sales-quote discounts + any special discount on the total.
+            "savings": round(max(0.0, float(P.get("total_mrp") or 0) + extra_total - grand), 2)
+                       if not float(P.get("quote_adjustment") or 0) > 0.5 else 0,
         },
         "extra_terms": cust_val("terms_conditions"),
         # Payment box (bank details + UPI QR) only until the advance is paid (2026-10-16).
