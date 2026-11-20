@@ -6028,13 +6028,13 @@ function tshirtChecklistRow(key, locked){
   if(!cf || !_tshirtIn(key)) return '';
   if(key==='svc_gifts' && _tshirtIn('svc_activities')) return '';   // show once
   let c = {}; try{ c = JSON.parse(cf.customer_choice||'{}')||{}; }catch(e){}
-  const box = (k, lbl) => '<label style="display:flex;gap:8px;align-items:center;padding:3px 0;cursor:pointer"><input type="checkbox" '+(c[k]?'checked':'')+(locked?' disabled':'')+' onchange="saveTshirtChecklist(\''+k+'\', this.checked)"> '+lbl+'</label>';
-  return '<tr class="sugg-tr"><td colspan="6"><div class="sugg-box" style="background:#FFF8EC;border-color:#F5DDB0">'
+  const box = (k, lbl) => '<label style="display:flex!important;flex-direction:row!important;justify-content:flex-start!important;gap:8px;align-items:center;padding:4px 0;cursor:pointer;width:auto!important;text-align:left!important;font-size:13.5px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--bk)"><input type="checkbox" style="width:16px!important;height:16px;flex:none;margin:0;min-height:0" '+(c[k]?'checked':'')+(locked?' disabled':'')+' onchange="saveTshirtChecklist(\''+k+'\', this.checked)"><span>'+lbl+'</span></label>';
+  return '<tr class="sugg-tr"><td colspan="6"><div class="sugg-box" style="background:#FFF8EC;border-color:#F5DDB0;text-align:left;display:block">'
     + '<div class="sugg-head" style="font-weight:700">👕 Live T-shirt printing — coordinate on WhatsApp</div>'
     + '<div style="font-size:12.5px;color:var(--gy);margin-bottom:6px">Share the design card; the client sends the designs (count confirmed by the party planner) and the list of kids\' names.</div>'
     + box('card','Design card shared with the client')
     + box('designs','Designs received')
-    + ' <span style="font-size:12.5px;margin-left:26px">Designs count: '+(locked?esc(c.count||'—'):'<input type="number" min="0" value="'+esc(c.count||'')+'" style="width:70px;padding:4px 6px;border:1px solid var(--li2);border-radius:6px" onchange="saveTshirtChecklist(\'count\', this.value)">')+'</span>'
+    + '<div style="font-size:13px;margin:2px 0 4px 24px;display:flex;align-items:center;gap:6px;text-align:left">Designs count: '+(locked?esc(c.count||'—'):'<input type="number" min="0" value="'+esc(c.count||'')+'" style="width:70px;padding:4px 6px;border:1px solid var(--li2);border-radius:6px" onchange="saveTshirtChecklist(\'count\', this.value)">')+'</div>'
     + box('names',"List of kids' names received")
     + (c.by ? '<div style="font-size:11.5px;color:var(--gy);margin-top:4px">Last updated by '+esc(c.by)+'</div>' : '')
     + '</div></td></tr>';

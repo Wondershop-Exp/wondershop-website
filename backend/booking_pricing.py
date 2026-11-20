@@ -705,12 +705,25 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
     # Separately-billed gifts (and the packaging / note fees that follow
     # their quantity) go on their own Return Gifts bill, not Total MRP.
     sep_gift_items: list = []
+    _glq = line_quotes(cur, removed)
     for label, amt in gift_items:
         if gifts_sep:
-            if amt:
+            # price-on-request gifts (MRP 0, e.g. Live T-shirt Printing) stay
+            # on the gift bill so their per-piece price box shows (2026-11-20)
+            if amt or _GIFT_LABEL.match(label):
                 sep_gift_items.append((label, round(float(amt), 2)))
-        else:
+        elif amt:
             add(label, amt)
+        else:
+            # Price on request inside Grand Total (2026-11-20, per Shruti): the
+            # price typed in its Sales quote box is its price (MRP = quote).
+            # Listed at ₹0 until a price is entered, so the box shows.
+            _m = _GIFT_LABEL.match(label)
+            _q = _glq.get(line_key(label))
+            if _q is None and _m:
+                _u = _glq.get("giftunit:" + _m.group(1).lower())
+                _q = (float(_u) * int(_m.group(2))) if _u is not None else None
+            items.append((label, round(float(_q or 0), 2)))
     unpriced += gift_unpriced
 
     # To-be-confirmed items with a price ops has confirmed (see
