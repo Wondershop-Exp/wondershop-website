@@ -734,7 +734,11 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
     # To-be-confirmed items with a price ops has confirmed (see
     # to_be_confirmed()) replace their unpriced / list-price line.
     _custom_quotes: dict = {}
+    _ts_field = money(_resolved(cur, "addon_tshirt_setup", removed))
     for t in to_be_confirmed(cur, removed, snap, lead):
+        # the T-shirt setup cost field replaces a "… T-shirt … setup …" custom activity (2026-11-20)
+        if _ts_field and t["kind"] == "custom" and re.search(r"t-?\s?shirt.*setup", str(t.get("name") or ""), re.I):
+            continue
         if t.get("price") in (None, ""):
             if t["kind"] == "custom":
                 unpriced.append(t["label"])   # custom activity, no price yet

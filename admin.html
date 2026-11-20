@@ -5109,7 +5109,8 @@ function multiPickerHtml(rid, options, currentStr, withQty, lockedItems){
 // Shruti — booking #99 "cannot find it on the booking page").
 function customActsHtml(){
   const P = (CURRENT_DETAIL && CURRENT_DETAIL.pricing) || {};
-  const cs = ((CURRENT_DETAIL && CURRENT_DETAIL.to_be_confirmed) || []).filter(t=>t.kind==='custom');
+  const _tsf = _decorAddonField('addon_tshirt_setup'), _tsOn = !!(_tsf && !_tsf.removed && Number(_tsf.customer_choice||0) > 0);
+  const cs = ((CURRENT_DETAIL && CURRENT_DETAIL.to_be_confirmed) || []).filter(t=>t.kind==='custom' && !(_tsOn && /t-?\s?shirt.*setup/i.test(t.name||'')));
   if(!cs.length) return '';
   return '<div style="margin-top:10px">' + cs.map(t=>{
     const it = (P.items||[]).find(i=>/\(custom\)/.test(i.label) && i.label.indexOf(t.name)>=0) || {};
@@ -6029,7 +6030,7 @@ function tshirtChecklistRow(key, locked){
   if(key==='svc_gifts' && _tshirtIn('svc_activities')) return '';   // show once
   let c = {}; try{ c = JSON.parse(cf.customer_choice||'{}')||{}; }catch(e){}
   const box = (k, lbl) => '<label style="display:flex!important;flex-direction:row!important;justify-content:flex-start!important;gap:8px;align-items:center;padding:4px 0;cursor:pointer;width:auto!important;text-align:left!important;font-size:13.5px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--bk)"><input type="checkbox" style="width:16px!important;height:16px;flex:none;margin:0;min-height:0" '+(c[k]?'checked':'')+(locked?' disabled':'')+' onchange="saveTshirtChecklist(\''+k+'\', this.checked)"><span>'+lbl+'</span></label>';
-  return '<tr class="sugg-tr"><td colspan="6"><div class="sugg-box" style="background:#FFF8EC;border-color:#F5DDB0;text-align:left;display:block">'
+  return '<tr class="sugg-tr"><td colspan="6"><div class="sugg-box" style="background:#FFF8EC;border:1px solid #F3DFB0;border-radius:12px;padding:12px 16px;text-align:left;display:block;box-sizing:border-box;width:100%">'
     + '<div class="sugg-head" style="font-weight:700">👕 Live T-shirt printing — coordinate on WhatsApp</div>'
     + '<div style="font-size:12.5px;color:var(--gy);margin-bottom:6px">Share the design card; the client sends the designs (count confirmed by the party planner) and the list of kids\' names.</div>'
     + box('card','Design card shared with the client')
@@ -6042,15 +6043,17 @@ function tshirtChecklistRow(key, locked){
 }
 function tshirtSetupHtml(locked){
   const f = _decorAddonField('addon_tshirt_setup'); if(!f) return '';
+  const old = ((CURRENT_DETAIL && CURRENT_DETAIL.to_be_confirmed) || []).find(t=>t.kind==='custom' && /t-?\s?shirt.*setup/i.test(t.name||''));
   const v = (!f.removed && f.customer_choice) || '';
   const P = (CURRENT_DETAIL && CURRENT_DETAIL.pricing) || {};
   const it = (P.items||[]).find(i=>i.field==='addon_tshirt_setup');
+  const oldNote = old && !v ? '<span style="font-size:12px;color:#8A6A1E">Currently a custom activity "'+esc(old.name)+'" ('+(old.price!=null?_inr(Number(old.price)):'no price')+') — enter the cost here and that activity is dropped automatically.</span>' : '';
   return '<div style="margin-top:10px;padding-top:8px;border-top:1px dashed #F0D9A8;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;text-align:left">'
     + '<b>Setup cost</b> <span style="color:var(--gy);font-size:12px">(counted in the total, shown as its own line)</span>'
     + (locked ? '<b>'+(v?_inr(Number(v)):'—')+'</b>'
       : '<span class="lq-inp"><span>₹</span><input type="number" min="0" step="1" value="'+esc(v)+'" data-old="'+esc(v)+'" onblur="saveTshirtSetup(this)" onkeydown="if(event.key===\'Enter\')this.blur()"></span>')
     + (it && it.quote!=null && Number(it.quote)!==Number(it.amount) ? '<span style="font-size:12px;color:var(--gy)">sales quote '+_inr(Number(it.quote))+'</span>' : '')
-    + '</div>';
+    + oldNote + '</div>';
 }
 async function saveTshirtSetup(el){
   if(el.value === el.dataset.old) return;
@@ -6288,7 +6291,11 @@ function _lqItems(fieldKey){
 }
 function _lqQtyUnit(label, amount){
   const m = String(label||'').match(/\((\d+)\s*kids?\s*×\s*₹\s*([\d,]+(?:\.\d+)?)\)/);
-  return m ? {qty:Number(m[1]), unit:Number(m[2].replace(/,/g,''))} : {qty:1, unit:Number(amount||0)};
+  if(m) return {qty:Number(m[1]), unit:Number(m[2].replace(/,/g,''))};
+  // Return gift "Gift: Live T-shirt Printing × 45" — price per piece (2026-11-20)
+  const g = String(label||'').match(/^Gift:.*×\s*(\d+)$/);
+  if(g && Number(g[1]) > 1) return {qty:Number(g[1]), unit:Math.round(Number(amount||0)/Number(g[1])*100)/100, per:'piece'};
+  return {qty:1, unit:Number(amount||0)};
 }
 // Activities: one card per priced activity, laid out like the sales panel
 // (name + list price, KIDS × SALES QUOTE ₹/CHILD = total), full row width.
@@ -6488,7 +6495,7 @@ function quoteStripHtml(f, locked){
     const qVal = perKid ? Math.round(q/qu.qty*100)/100 : q;
     const box = locked ? '<b'+(q<m?' class="neg"':'')+'>'+_inr(q)+'</b>'
       : '<span class="lq-inp"><span>₹</span><input type="number" min="0" step="1" value="'+qVal+'" data-k="'+esc(i.key)+'" data-q="'+qu.qty+'" data-pk="'+(perKid?1:0)+'" data-old="'+qVal+'" onblur="saveOneQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()"></span>'
-        + (perKid ? '<span class="lq-per">/child = <b'+(q<m?' class="neg"':'')+'>'+_inr(q)+'</b></span>' : '');
+        + (perKid ? '<span class="lq-per">/'+(qu.per||'child')+' × '+qu.qty+' = <b'+(q<m?' class="neg"':'')+'>'+_inr(q)+'</b></span>' : '');
     return '<div class="lq-line">'+name+'<span class="lq-q">'+box+'</span>'
       + (m-q>0 ? '<span class="lq-off">−'+_inr(m-q)+'</span>' : (q>m ? '<span class="lq-off up">+'+_inr(q-m)+'</span>' : '')) + '</div>';
   }).join('') + '</div>';
