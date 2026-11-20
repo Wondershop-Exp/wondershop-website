@@ -9,7 +9,14 @@ booking's print, so the ops manager would have missed it):
 
 One printable page with everything ops needs, pulled live every time:
   * the booking's details, services and add-ons — the current value, the
-    partner assigned and the booking remarks for each;
+    partner doing it and the booking remarks for each;
+  * (2026-11-20, per Shruti) the partners from Partners & Expenses — "mention
+    the partner as well, partner is mentioned in partner expenses, who is
+    doing what" — on each service row and in a "Team — who is doing what"
+    list (job, details, phone; never amounts). Partners are admin only, so
+    the sales login sees neither (as on the booking page);
+  * (2026-11-20) the booking's packing list: name, how much is packed and
+    its links. Laid out for printing on A4 ("print friendly").
   * the sales panel's notes for each service (requirements.*.customization),
     read straight from the sales sheet, so edits made there after the lead
     was converted still show;
@@ -106,8 +113,34 @@ def _has(v) -> bool:
 async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)):
     from routers.admin import _require_admin, get_booking_detail
     from routers.sales_leads import _fmt_time_12h
-    _require_admin(x_admin_password)
+    role = _require_admin(x_admin_password)
     d = await get_booking_detail(lead_id, x_admin_password)
+    is_admin = role == "admin"
+    team, phones = [], {}
+    if is_admin:
+        try:
+            from routers.event_team import team_rows
+            team = [r for r in await team_rows(lead_id) if (r.get("partner") or "").strip()]
+            names = list({r["partner"].strip().lower() for r in team})
+            if names:
+                for vr in await database.fetch_all(
+                        "SELECT name, primary_contact_name, primary_mobile, alternate_mobile FROM vendor_master "
+                        "WHERE LOWER(TRIM(name)) = ANY(:n) OR LOWER(TRIM(primary_contact_name)) = ANY(:n)", values={"n": names}):
+                    ph = vr["primary_mobile"] or vr["alternate_mobile"]
+                    if ph and ph != "1111111111":
+                        for k in (vr["name"], vr["primary_contact_name"]):
+                            if k:
+                                phones.setdefault(k.strip().lower(), ph)
+        except Exception:
+            logger.exception(f"Lead #{lead_id}: ops sheet couldn't read Partners & Expenses")
+    packing = None
+    if is_admin:
+        try:
+            from routers.packaging import list_for_booking, _summary
+            pl = await list_for_booking(lead_id)
+            packing = await _summary(pl) if pl else None
+        except Exception:
+            logger.exception(f"Lead #{lead_id}: ops sheet couldn't read the packing list")
     lead = dict(await database.fetch_one("SELECT * FROM leads WHERE lead_id = :id", values={"id": lead_id}))
     pb = None
     try:
@@ -135,10 +168,14 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
     # ── header ──
     child = val("child_names") or ""
     ages = val("child_ages") or ""
-    title = f"{child.split(',')[0].strip()}'s Birthday" if child else "Birthday party"
+    try:
+        from event_naming import event_name
+        title = event_name(lead)
+    except Exception:
+        title = f"{child.split(',')[0].strip()}'s Birthday" if child else "Birthday party"
     now = (datetime.utcnow() + IST).strftime("%d %b %Y, %I:%M %p")
-    out.append(f"<h1>Ops sheet · Booking #{lead_id}</h1><div class='sub'>{_e(title)} · {_e(d.get('status') or '')}"
-               f" · generated {now} IST</div>")
+    out.append(f"<h1>{_e(title)} <span class='bk'>· Booking #{lead_id}</span></h1><div class='sub'>Ops sheet · {_e(d.get('status') or '')}"
+               f" · printed {now} IST</div>")
 
     def kv_table(rows):
         rows = [(k, v) for k, v in rows if v not in (None, "")]
@@ -172,6 +209,21 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
         ("Lead source", _e(lead.get("lead_source"))),
     ]))
 
+    if is_admin:
+        if packing:
+            pr = packing["progress"]
+            state = (f"✅ Packed by {_e(packing['submitted_by'])} ({_e(packing['submitted_at'])})" if packing.get("submitted_at")
+                     else f"{pr['checked']} of {pr['total']} items packed")
+            staff = SITE + packing["share_url"].lstrip("/")
+            edit = f"{SITE}packaging.html?lead_id={lead_id}"
+            out.append("<h2>Packing list</h2><div class='pack'>"
+                       f"<b>📦 {_e(packing['title'])}</b> · {state}"
+                       f"<div class='lnk'>Staff link (for packing): <a href='{_e(staff)}'>{_e(staff)}</a></div>"
+                       f"<div class='lnk noprint'>Edit the list: <a href='{_e(edit)}'>{_e(edit)}</a></div></div>")
+        else:
+            out.append("<h2>Packing list</h2><p class='muted'>No packing list yet — make one from the booking page "
+                       "(📦 Make packing list) or in Slack #packing.</p>")
+
     # ── services & add-ons: value | partner | booking remarks | sales notes ──
     req_note = {}
     for k, lbl in REQ_LABELS:
@@ -183,19 +235,45 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
     # Shruti: "so that our team knows that they have not selected").
     F = {f["field_key"]: f for sec in ("Services", "Add-ons") for f in (secs.get(sec) or [])}
 
+    # Which Partners & Expenses categories belong to which service row.
+    SVC_CATS = {"svc_decor": ("decor",), "svc_host": ("host",), "svc_activities": ("activit", "volunteer", "lead volunteer"),
+                "svc_dj": ("music", "dj"), "svc_photo": ("photo",), "svc_gifts": ("return gift",), "svc_cake": ("cake",),
+                "svc_pinata": ("pinata", "piñata"), "svc_einvite": ("e-invite", "einvite", "invite")}
+    used_team = set()
+
+    def team_for(k):
+        cats = SVC_CATS.get(k)
+        if not cats or not team:
+            return None
+        hits = [r for r in team if (r.get("category") or "").strip().lower().startswith(cats)]
+        if not hits:
+            return None
+        used_team.update(id(r) for r in hits)
+        seen, out_ = set(), []
+        for r in hits:
+            line = _e(r["partner"].strip()) + (f" <span class='hint'>· {_e(r['details'])}</span>" if (r.get("details") or "").strip() else "")
+            if line not in seen:
+                seen.add(line); out_.append(line)
+        return "<br>".join(out_)
+
     def part(k, sub=None):
         """(selection, partner, remark) for one booking field, or None when empty."""
         f = F.get(k)
         if not f or f.get("removed"):
             return None
         v, partner, rm = f.get("customer_choice"), f.get("assigned_value"), f.get("remarks")
+        if not is_admin:
+            partner = None          # partners are not shown to the sales team
+        elif team_for(k):
+            partner = None          # filled from Partners & Expenses below
         if k in ("addon_custom", "addon_decor_custom"):   # JSON [{"name","price"}]
             items = _j(v) or []
             v = ", ".join(f"{x.get('name')} (₹{x.get('price')})" for x in items if isinstance(x, dict) and x.get("name")) or None
         if not (_has(v) or _has(partner) or _has(rm) or f.get("sales_remarks")):
             return None
         sel = (f"{_e(sub)}: " if sub else "") + (_nl(v) if _has(v) else "—")
-        return sel, (_e(partner) if _has(partner) else ""), (_nl(rm) if _has(rm) else ""), (f.get("sales_remarks") or "")
+        tp = team_for(k) if is_admin and not sub else None
+        return sel, (tp or (_e(partner) if _has(partner) else "")), (_nl(rm) if _has(rm) else ""), (f.get("sales_remarks") or "")
 
     def sreq(k):
         r = reqs.get(k)
@@ -272,8 +350,22 @@ async def ops_sheet(lead_id: int, x_admin_password: Optional[str] = Header(None)
         sales = (f"<div class='note'>📝 <b>Sales sheet:</b> {_nl(sx)}</div>" if sx and sx != (x or "").strip() else "")
         rows.append(f"<tr{'' if (x or sales) else ' class=nsr'}><td class='lbl'>{lbl}</td><td colspan='3'>"
                     f"{_nl(x) if x else '<span class=ns>None</span>'}{sales}</td></tr>")
-    out.append("<h2>Services &amp; add-ons</h2><table class='grid'><tr><th>Item</th><th>Selection</th><th>Partner</th>"
-               "<th>Booking remarks</th></tr>" + "".join(rows) + "</table>")
+    out.append("<h2>Services &amp; add-ons</h2><table class='grid svc'><thead><tr><th>Item</th><th>Selection</th>"
+               f"<th>{'Partner' if is_admin else ''}</th><th>Booking remarks</th></tr></thead><tbody>"
+               + "".join(rows) + "</tbody></table>")
+
+    # Who is doing what (Partners & Expenses, admin only — no amounts).
+    if is_admin and team:
+        trs = []
+        for r in team:
+            ph = phones.get(r["partner"].strip().lower())
+            trs.append(f"<tr><td class='lbl'>{_e(r.get('category') or '—')}</td><td>{_e(r['partner'])}</td>"
+                       f"<td>{_e(r.get('details') or '')}</td><td class='ph'>{_e(ph or '')}</td></tr>")
+        out.append("<h2>Team — who is doing what</h2><table class='grid'><thead><tr><th>Job</th><th>Partner</th>"
+                   "<th>Details</th><th>Phone</th></tr></thead><tbody>" + "".join(trs) + "</tbody></table>")
+    elif is_admin:
+        out.append("<h2>Team — who is doing what</h2><p class='muted'>No partners added yet — add them in "
+                   "Partners &amp; Expenses on the booking page.</p>")
 
     if val("activities_notes"):
         out.append("<h2>Activity notes</h2><div class='box'>" + _nl(val("activities_notes")) + "</div>")
@@ -394,7 +486,35 @@ table{border-collapse:collapse;width:100%}
 .muted{color:#8B7FA0}
 a{color:#6C4AB6}
 tr{break-inside:avoid}
-@media print{.bar{display:none}body{padding:0}}
+.bk{font-weight:500;color:#6B6280;font-size:16px}
+.pack{background:#FBF9FF;border:1px solid #EDE6FA;border-radius:8px;padding:8px 10px}
+.lnk{font-size:11.5px;color:#5B4F70;margin-top:3px;word-break:break-all}
+.ph{white-space:nowrap}
+.svc td:nth-child(1){width:15%}.svc td:nth-child(3){width:20%}.svc td:nth-child(4){width:24%}
+thead{display:table-header-group}
+/* Print (2026-11-20, per Shruti — "the ops sheet should be print friendly"):
+   A4, black on white, compact; table headers repeat on every page, rows and
+   headings don't split; links print as plain text; buttons hidden. */
+@page{size:A4;margin:11mm 10mm}
+@media print{
+  .bar,.noprint{display:none!important}
+  body{padding:0;font-size:10.5pt;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  h1{font-size:16pt}.bk{font-size:12pt;color:#333}.sub{color:#333;margin-bottom:8px}
+  h2{font-size:11.5pt;color:#000;border-bottom:1.5px solid #000;margin:12px 0 5px;break-after:avoid;page-break-after:avoid}
+  h3{color:#000}
+  .grid th{background:#eee!important;color:#000;border:1px solid #999;font-size:9.5pt;padding:3px 5px}
+  .grid td{border:1px solid #bbb;padding:3px 5px}
+  .kv th,.kv td{padding:2px 5px;border-bottom:1px solid #ddd}
+  .kvi{border-bottom:1px solid #ddd;padding:1px 0}.kvi span{color:#333}
+  .grp td{background:#f2f2f2!important;color:#000;border:1px solid #999}
+  .nsr td{padding-top:1px;padding-bottom:1px;font-size:9pt}.ns,.nsr td.lbl{color:#777}
+  .note{background:#f7f7f7!important;border:1px solid #ddd;color:#000}
+  .box,.pack{background:#fff!important;border:1px solid #999}
+  .hint,.muted,.xsub,.lnk{color:#333}
+  a{color:#000;text-decoration:none}
+  .dimg{max-width:150px;max-height:105px}
+  table,tr,td,.kvi,.box,.pack{break-inside:avoid;page-break-inside:avoid}
+}
 """
     page = (f"<!DOCTYPE html><html><head><meta charset='utf-8'><title>Ops sheet #{lead_id}</title>"
             f"<style>{css}</style></head><body><div class='bar'><button onclick='window.print()'>🖨 Print</button></div>"
