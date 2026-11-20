@@ -6036,8 +6036,32 @@ function tshirtChecklistRow(key, locked){
     + box('designs','Designs received')
     + '<div style="font-size:13px;margin:2px 0 4px 24px;display:flex;align-items:center;gap:6px;text-align:left">Designs count: '+(locked?esc(c.count||'—'):'<input type="number" min="0" value="'+esc(c.count||'')+'" style="width:70px;padding:4px 6px;border:1px solid var(--li2);border-radius:6px" onchange="saveTshirtChecklist(\'count\', this.value)">')+'</div>'
     + box('names',"List of kids' names received")
+    + tshirtSetupHtml(locked)
     + (c.by ? '<div style="font-size:11.5px;color:var(--gy);margin-top:4px">Last updated by '+esc(c.by)+'</div>' : '')
     + '</div></td></tr>';
+}
+function tshirtSetupHtml(locked){
+  const f = _decorAddonField('addon_tshirt_setup'); if(!f) return '';
+  const v = (!f.removed && f.customer_choice) || '';
+  const P = (CURRENT_DETAIL && CURRENT_DETAIL.pricing) || {};
+  const it = (P.items||[]).find(i=>i.field==='addon_tshirt_setup');
+  return '<div style="margin-top:10px;padding-top:8px;border-top:1px dashed #F0D9A8;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;text-align:left">'
+    + '<b>Setup cost</b> <span style="color:var(--gy);font-size:12px">(counted in the total, shown as its own line)</span>'
+    + (locked ? '<b>'+(v?_inr(Number(v)):'—')+'</b>'
+      : '<span class="lq-inp"><span>₹</span><input type="number" min="0" step="1" value="'+esc(v)+'" data-old="'+esc(v)+'" onblur="saveTshirtSetup(this)" onkeydown="if(event.key===\'Enter\')this.blur()"></span>')
+    + (it && it.quote!=null && Number(it.quote)!==Number(it.amount) ? '<span style="font-size:12px;color:var(--gy)">sales quote '+_inr(Number(it.quote))+'</span>' : '')
+    + '</div>';
+}
+async function saveTshirtSetup(el){
+  if(el.value === el.dataset.old) return;
+  const f = _decorAddonField('addon_tshirt_setup'); if(!f) return;
+  const who = getName();
+  if(!who){ showToast('⚠ Set "Editing as" name at the top first — nothing was saved.'); highlightWhoName(); el.value = el.dataset.old; return; }
+  try{
+    const res = await apiCall('/api/admin/bookings/'+CURRENT_LEAD_ID+'/field', {method:'POST', body: JSON.stringify({
+      field_key:'addon_tshirt_setup', customer_choice_override: el.value.trim(), assigned_value: f.assigned_value || '', remarks: f.remarks || '', removed:false, changed_by: who})});
+    showToast('✓ T-shirt setup cost saved'); await loadDetail();
+  }catch(e){ showToast('Could not save: '+e.message); el.value = el.dataset.old; }
 }
 async function saveTshirtChecklist(k, v){
   const f = _decorAddonField('ops_tshirt_checklist'); if(!f) return;
@@ -6666,7 +6690,7 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(f.field_key==='bill_line_quotes') return '';
   if(f.field_key==='svc_cake_price') return '';   // shown on the Cake row (2026-10-25)
   if(f.field_key==='addon_gift_pack_qty') return '';   // shown on the Gift Packaging row (2026-10-25)
-  if(f.field_key==='ops_tshirt_checklist') return '';
+  if(f.field_key==='ops_tshirt_checklist' || f.field_key==='addon_tshirt_setup') return '';
   if(f.field_key==='venue_maps_link' && !f._withVen){   // venue list under Venue / Maps link (2026-11-20)
     return fieldRowHtml(Object.assign({}, f, {_withVen:true}), isCustEvent, locked)
       + '<tr class="sugg-tr"><td colspan="6"><div class="sugg-box"><div class="sugg-head" style="font-weight:700">📍 Venue list</div><div id="venMaster"></div></div></td></tr>';

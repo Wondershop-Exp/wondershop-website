@@ -313,6 +313,9 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         lines.append({"name": base + (" — your own gifts" if own else ""),
                       "details": [inner.replace(" own gifts", " gifts")] if inner else [], "image": None, "price": amt})
         _strike(lines, label, amt)
+    for label, amt in take("T-shirt printing setup cost"):   # 2026-11-20
+        lines.append({"name": "Live T-shirt printing — setup cost", "details": [], "image": None, "price": amt})
+        _strike(lines, label, amt)
     add("Return Gifts", lines, billed_separately=gifts_sep_on)
 
     # Sales-panel notes per service (2026-11-13, per Shruti — booking #1267's

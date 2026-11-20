@@ -402,7 +402,7 @@ def field_for_label(label: str) -> Optional[str]:
                     ("tables & chairs on rent", "addon_rent_price"), ("physical invites", "addon_phys_inv_price"),
                     ("e-invite", "svc_einvite"), ("cake:", "svc_cake"), ("activity:", "svc_activities"),
                     ("custom activity:", "svc_activities"), ("gift:", "svc_gifts"), ("packaging", "addon_gift_packaging"),
-                    ("thank-you note", "addon_gift_note"), ("add-on:", "addon_custom")):
+                    ("thank-you note", "addon_gift_note"), ("t-shirt printing setup", "addon_tshirt_setup"), ("add-on:", "addon_custom")):
         if low.startswith(pre):
             return fk
     return None
@@ -725,6 +725,11 @@ def compute_billing(lead: dict, snap: dict, cur: dict, removed: set,
                 _q = (float(_u) * int(_m.group(2))) if _u is not None else None
             items.append((label, round(float(_q or 0), 2)))
     unpriced += gift_unpriced
+    # Live T-shirt printing setup cost (2026-11-20, per Shruti — its own line
+    # instead of a custom activity), typed on the booking's T-shirt box.
+    _ts_setup = money(_resolved(cur, "addon_tshirt_setup", removed))
+    if _ts_setup:
+        add("T-shirt printing setup cost", _ts_setup)
 
     # To-be-confirmed items with a price ops has confirmed (see
     # to_be_confirmed()) replace their unpriced / list-price line.
