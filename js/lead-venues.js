@@ -16,7 +16,7 @@
     + '.lv-res div{padding:7px 10px;cursor:pointer;font-size:13px;border-top:1px solid #F7F3FF}.lv-res div:hover{background:#F7F3FF}'
     + '.lv-search{font:inherit;font-size:13.5px;padding:7px 10px;border:1px solid #EDE6FA;border-radius:8px;width:100%;max-width:340px}</style>';
 
-  function mount(el, leadId, apiCall){
+  function mount(el, leadId, apiCall, onVenue){
     if(!el || !leadId) return;
     var rows = [];
     function load(){
@@ -24,7 +24,7 @@
         .catch(function(e){ el.innerHTML = '<span style="color:#E65A96;font-size:13px">Could not load venues: ' + esc(e.message) + '</span>'; });
     }
     function draw(){
-      var h = CSS + '<div style="font-size:12.5px;color:#6B6280;margin-bottom:6px">Venues the client is considering — mark the one they pick as <b>Final</b>. The Final venue shares its details (lift, rules, ceiling, plug points, photos) with this party’s venue form, and each new recce updates it for next time.</div>';
+      var h = CSS + '<div style="font-size:12.5px;color:#6B6280;margin-bottom:6px">Venues the client is considering — mark the one they pick as <b>Final</b>: its name and Maps link fill the Venue fields above (you can still edit Venue, e.g. add the flat number). The Final venue shares its details (lift, rules, ceiling, plug points, photos) with this party’s venue form, and each new recce updates it for next time.</div>';
       h += rows.length ? rows.map(function(v){
         var facts = [v.venue_type, v.ceiling ? 'Ceiling ' + v.ceiling : null, v.plug16 ? '16A: ' + v.plug16 : null, v.media ? v.media + ' photos' : null, v.recce_at ? 'Recce ' + v.recce_at : null].filter(Boolean);
         return '<div class="lv-row"><div class="lv-name"><a href="venues.html#v=' + v.id + '" target="_blank" rel="noopener">' + esc(v.name) + ' ↗</a>'
@@ -60,7 +60,8 @@
     }
     function link(vid, status){
       apiCall('/api/admin/venues/' + vid + '/link', {method:'POST', body: JSON.stringify({lead_id: leadId, status: status, changed_by: who()})})
-        .then(function(d){ rows = d.venues; draw(); }).catch(function(e){ alert(e.message); });
+        .then(function(d){ rows = d.venues; CACHE[leadId] = {rows: rows, at: Date.now()}; draw();
+          if(d.lead_venue && typeof onVenue === 'function') onVenue(d.lead_venue); }).catch(function(e){ alert(e.message); });
     }
     // Refresh when the user comes back from the venue page (e.g. after creating one).
     if(!el._lvFocus){ el._lvFocus = true; window.addEventListener('focus', function(){ if(document.body.contains(el)) load(); }); }

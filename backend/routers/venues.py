@@ -320,6 +320,21 @@ async def _link(vid: int, lead_id: int, status: str, who: str):
         # Only one Final per party: the others go back to Shortlisted.
         await database.execute("UPDATE lead_venues SET status = 'shortlisted' WHERE lead_id = :l AND venue_id <> :v AND status = 'final'",
                                values={"l": lead_id, "v": vid})
+        # 2026-11-20, per Shruti — the Final venue fills the party's Venue and
+        # Maps link at the top. Venue stays editable: if it already names this
+        # venue (e.g. "501, Godrej Platinum, Vikhroli East"), it's kept as is.
+        v0 = await _get(vid)
+        a0 = _j(v0["answers"])
+        lead = await database.fetch_one("SELECT venue, venue_maps_link FROM leads WHERE lead_id = :id", values={"id": lead_id})
+        cur_v = ((lead and lead["venue"]) or "").strip()
+        sets, vals = [], {"id": lead_id}
+        if v0["name"] and v0["name"].strip().lower() not in cur_v.lower():
+            sets.append("venue = :venue"); vals["venue"] = v0["name"].strip()
+        ml = (a0.get("maps_link") or "").strip()
+        if ml and ml != ((lead and lead["venue_maps_link"]) or ""):
+            sets.append("venue_maps_link = :ml"); vals["ml"] = ml
+        if sets:
+            await database.execute(f"UPDATE leads SET {', '.join(sets)}, updated_on = NOW() WHERE lead_id = :id", values=vals)
         # Fill the venue's blanks from what the party's form already knows.
         row = await database.fetch_one("SELECT answers FROM venue_info WHERE lead_id = :id", values={"id": lead_id})
         if row:
@@ -342,7 +357,9 @@ async def link(vid: int, body: LinkIn, x_admin_password: Optional[str] = Header(
     _require_admin(x_admin_password)
     await _get(vid)
     await _link(vid, body.lead_id, body.status, body.changed_by)
-    return {"success": True, "venues": await _lead_venues(body.lead_id)}
+    lead = await database.fetch_one("SELECT venue, venue_maps_link FROM leads WHERE lead_id = :id", values={"id": body.lead_id})
+    return {"success": True, "venues": await _lead_venues(body.lead_id),
+            "lead_venue": {"venue": lead["venue"], "venue_maps_link": lead["venue_maps_link"]} if lead else None}
 
 
 @router.delete("/venues/{vid}/link/{lead_id}")

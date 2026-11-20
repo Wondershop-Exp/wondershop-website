@@ -1420,9 +1420,6 @@ function renderDetail(){
     + sectionStatus()
     + sectionCalls()
     + sectionClientDetails()
-    + '<div class="card" id="venCard"><h2 style="font-size:15px;margin-bottom:6px">📍 Venue details &amp; recce</h2>'
-      + '<div style="font-weight:700;font-size:13.5px;margin:4px 0 6px">Venues the client is considering</div><div id="venMaster" style="margin-bottom:14px"></div>'
-      + '<div style="font-weight:700;font-size:13.5px;margin:4px 0 6px">Venue form for this party</div><div id="venCardBody" style="font-size:13px;color:var(--gy)">Loading…</div></div>'
     // Same order as Build-a-Birthday and the booking page (2026-10-17, per
     // Shruti): Decor, Activities, Host, Music, Pinata, Invite, Photo, Gifts.
     + sectionDecor()
@@ -1431,6 +1428,9 @@ function renderDetail(){
     + sectionSchedule()
     + sectionNotes()
     + sectionBilling()
+    // Venue form & recce details at the bottom (2026-11-20, per Shruti).
+    + '<div class="card" id="venCard"><h2 style="font-size:15px;margin-bottom:6px">📍 Venue details &amp; recce</h2>'
+      + '<div style="font-weight:700;font-size:13.5px;margin:4px 0 6px">Venue form for this party</div><div id="venCardBody" style="font-size:13px;color:var(--gy)">Loading…</div></div>'
     // Post-Event Notes moved to the booking page (2026-10-12, per Shruti —
     // only applies to confirmed events); sectionPostEvent() kept unused.
     + '<div class="hist-toggle" onclick="toggleHistory()">View edit history</div>'
@@ -1440,7 +1440,12 @@ function renderDetail(){
   renderHistory();
   if(typeof decorRefMount === 'function') decorRefMount(DATA.lead_id);   
   loadVenueCard(DATA.lead_id);
-  if(window.LeadVenues) LeadVenues.mount(document.getElementById('venMaster'), DATA.lead_id, apiCall);   // venue master (2026-11-13)   // decor reference picture (2026-10-06)
+  if(window.LeadVenues) LeadVenues.mount(document.getElementById('venMaster'), DATA.lead_id, apiCall, lv=>{
+    DATA.venue = lv.venue; DATA.venue_maps_link = lv.venue_maps_link;
+    const a = document.getElementById('f_venue'), b = document.getElementById('f_venue_maps_link');
+    if(a) a.value = lv.venue || ''; if(b) b.value = lv.venue_maps_link || '';
+    if(typeof showToast==='function') showToast('Venue & Maps link updated from the venue list');
+  });   // venue master (2026-11-13)   // decor reference picture (2026-10-06)
   // Collapsible sections (see secWire) — a small Collapse/Expand-all link
   // under the header card, then every card that has a heading gets a fold.
   const hdrCard = document.getElementById('detailBody').firstElementChild;
@@ -2182,6 +2187,7 @@ function sectionClientDetails(){
     + '<div class="fld" style="margin-top:10px"><label>Venue Maps Link'
     +   (/^https?:\/\//i.test(d.venue_maps_link||'') ? ' <a href="'+esc(d.venue_maps_link)+'" target="_blank" rel="noopener" style="font-weight:600;text-transform:none;letter-spacing:0;margin-left:6px">Open in Maps</a>' : '')
     +   '</label><input type="url" id="f_venue_maps_link" value="'+esc(d.venue_maps_link||'')+'" placeholder="Paste the Google Maps link" onblur="saveField(\'venue_maps_link\', this.value.trim(), this.type)"></div>'
+    + '<div class="fld" style="margin-top:10px"><label>Venue list</label><div id="venMaster"></div></div>'
     + '<div class="grid2" style="margin-top:10px">' + tf('venue_handover_time','Venue Handover Time') + tf('packup_time','Packup Time') + '</div>'
     + '</div>';
 }

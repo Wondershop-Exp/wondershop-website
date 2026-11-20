@@ -1026,8 +1026,6 @@ body.role-sales .admin-only{display:none!important}
     <!-- Venue & society form (2026-10-31, per Shruti) — venue.html?t=<token> -->
     <div class="log-section" id="venSection" style="display:none">
       <h3>📍 Venue Details</h3>
-      <div style="font-weight:700;font-size:13.5px;margin:4px 0 6px">Venues for this party</div>
-      <div id="venMaster" style="margin-bottom:14px"></div>
       <div style="font-weight:700;font-size:13.5px;margin:4px 0 6px">Venue form for this party</div>
       <div id="venBlock"></div>
     </div>
@@ -2175,9 +2173,10 @@ let VEN = null;
 async function renderVenueBlock(d){
   const sec = document.getElementById('venSection'), block = document.getElementById('venBlock');
   if(!sec || !block) return;
+  // venue list under Venue at the top (2026-11-20): mounted once the sections are drawn
+  setTimeout(()=>{ const vm = document.getElementById('venMaster'); if(window.LeadVenues && vm && !vm.childElementCount) LeadVenues.mount(vm, d.lead_id, apiCall, ()=>loadDetail()); }, 0);
   if(!d.is_booking){ sec.style.display = 'none'; block.innerHTML = ''; return; }
   sec.style.display = 'block';
-  if(window.LeadVenues) LeadVenues.mount(document.getElementById('venMaster'), d.lead_id, apiCall);   // venue master (2026-11-13)
   block.innerHTML = '<span style="font-size:12.5px;color:var(--gy)">Loading…</span>';
   try{ VEN = await apiCall('/api/admin/bookings/'+d.lead_id+'/venue-info'); }
   catch(e){ block.innerHTML = '<div style="color:var(--pk);font-size:13px">Could not load: '+esc(e.message)+'</div>'; return; }
@@ -6667,7 +6666,11 @@ function fieldRowHtml(f, isCustEvent, locked){
   if(f.field_key==='bill_line_quotes') return '';
   if(f.field_key==='svc_cake_price') return '';   // shown on the Cake row (2026-10-25)
   if(f.field_key==='addon_gift_pack_qty') return '';   // shown on the Gift Packaging row (2026-10-25)
-  if(f.field_key==='ops_tshirt_checklist') return '';   // shown under Activities / Return Gifts (2026-11-19)
+  if(f.field_key==='ops_tshirt_checklist') return '';
+  if(f.field_key==='venue_maps_link' && !f._withVen){   // venue list under Venue / Maps link (2026-11-20)
+    return fieldRowHtml(Object.assign({}, f, {_withVen:true}), isCustEvent, locked)
+      + '<tr class="sugg-tr"><td colspan="6"><div class="sugg-box"><div class="sugg-head" style="font-weight:700">📍 Venue list</div><div id="venMaster"></div></div></td></tr>';
+  }   // shown under Activities / Return Gifts (2026-11-19)
   if(f.field_key==='bill_discount_type') return discountRowHtml(f, locked);
   // Decor add-ons (2026-10-24): shown as buttons under the Decor row, not as rows.
   if(f.field_key.indexOf('addon_decor_')===0) return '';
