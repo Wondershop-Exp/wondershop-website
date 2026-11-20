@@ -6049,10 +6049,12 @@ function tshirtSetupHtml(locked){
   const it = (P.items||[]).find(i=>i.field==='addon_tshirt_setup');
   const oldNote = old && !v ? '<span style="font-size:12px;color:#8A6A1E">Currently a custom activity "'+esc(old.name)+'" ('+(old.price!=null?_inr(Number(old.price)):'no price')+') — enter the cost here and that activity is dropped automatically.</span>' : '';
   return '<div style="margin-top:10px;padding-top:8px;border-top:1px dashed #F0D9A8;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;text-align:left">'
-    + '<b>Setup cost</b> <span style="color:var(--gy);font-size:12px">(counted in the total, shown as its own line)</span>'
+    + '<b>Setup cost</b> <span style="color:var(--gy);font-size:12px">MRP</span>'
     + (locked ? '<b>'+(v?_inr(Number(v)):'—')+'</b>'
       : '<span class="lq-inp"><span>₹</span><input type="number" min="0" step="1" value="'+esc(v)+'" data-old="'+esc(v)+'" onblur="saveTshirtSetup(this)" onkeydown="if(event.key===\'Enter\')this.blur()"></span>')
-    + (it && it.quote!=null && Number(it.quote)!==Number(it.amount) ? '<span style="font-size:12px;color:var(--gy)">sales quote '+_inr(Number(it.quote))+'</span>' : '')
+    + (it ? '<span style="font-size:12px;color:var(--gy)">Sales quote</span>' + (locked ? '<b>'+_inr(Number(it.quote))+'</b>'
+        : '<span class="lq-inp"><span>₹</span><input type="number" min="0" step="1" value="'+Number(it.quote)+'" data-old="'+Number(it.quote)+'" data-k="'+esc(it.key)+'" data-q="1" data-pk="0" onblur="saveOneQuote(this)" onkeydown="if(event.key===\'Enter\')this.blur()"></span>')
+        + (Number(it.quote) < Number(it.amount) ? '<span class="lq-off">−'+_inr(Number(it.amount)-Number(it.quote))+'</span>' : '') : '')
     + oldNote + '</div>';
 }
 async function saveTshirtSetup(el){

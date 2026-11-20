@@ -150,9 +150,11 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
     for nm in ("Cake Table", "Age Light", "Cutouts", "Welcome Arch + Welcome Board", "Welcome Board", "Welcome Arch"):
         for label, amt in take(nm + " (decor add-on)"):
             lines.append({"name": f"Add-on: {nm}", "details": [], "image": None, "price": amt})
+            _strike(lines, label, amt)
     for label, amt in [x for x in items if x[0].endswith(" (decor add-on)")]:   # custom decor items (2026-11-13)
         items.remove((label, amt))
         lines.append({"name": f"Add-on: {label[:-len(' (decor add-on)')]}", "details": [], "image": None, "price": amt})
+        _strike(lines, label, amt)
     # 2026-11-14, per Shruti (#1312) — custom decor items at ₹0 aren't on the
     # bill, but are still part of the decor: list them as included.
     try:
@@ -374,6 +376,7 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
     grand = _money(val("bill_grand_total"))
     discount = max(0.0, float(P.get("discount_amt") or 0) - max(0.0, _q_gap))
     subtotal = round(total_mrp + extra_total, 2)
+    _show_gap = round(max(0.0, _q_gap), 2) if not float(P.get("quote_adjustment") or 0) > 0.5 else 0.0
     if grand is None:
         grand = round(subtotal - discount, 2)
     # Advance / balance on the party bill (2026-10-25, per Shruti).
@@ -437,8 +440,10 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         "details": details,
         "sections": sections,
         "totals": {
-            "subtotal": subtotal, "discount": round(subtotal - grand, 2), "estimate": grand,
-            "discount_items": 0, "discount_extra": 0,
+            # Total at list prices, then the item-wise discount, then any special
+            # discount (2026-11-20, per Shruti).
+            "subtotal": round(subtotal + _show_gap, 2), "discount": round(subtotal + _show_gap - grand, 2), "estimate": grand,
+            "discount_items": _show_gap, "discount_extra": round(max(0.0, subtotal - grand), 2) if _show_gap else 0,
             "gift_total": gift_grand or 0,
             "gift_status": go.get("status_label") if gifts_sep_on else None,
             "gift_paid": go.get("status") == "paid",

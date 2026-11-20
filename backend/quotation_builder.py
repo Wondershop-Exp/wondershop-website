@@ -546,14 +546,16 @@ def build_quotation_pdf(data: dict, images: Dict[str, bytes]) -> bytes:
     s_tr = _style("tr", size=9.6, font=BODY_BOLD, align=TA_RIGHT)
     sub_label = ("Total" if booked else "Total at list price") if T.get("discount") else "Total (all selected services)"
     trows = [[Paragraph(sub_label, s_tl), Paragraph(inr(T.get("subtotal") or 0), s_tr)]]
-    if T.get("discount_extra") and float(T["discount_extra"]) > 0.004:
-        # Line-quote discount + an additional one on the total (2026-10-05).
+    if (T.get("discount_extra") and float(T["discount_extra"]) > 0.004) or float(T.get("discount_items") or 0) > 0.004:
+        # Total (list prices) → Discount (item-wise sales quotes) → Special
+        # discount (anything more on the total) → Grand Total (2026-11-20, per Shruti).
         g = colors.HexColor("#1E8A4C")
         if float(T.get("discount_items") or 0) > 0.004:
-            trows.append([Paragraph("Special discount", _style("dl", size=9.6, color=g)),
+            trows.append([Paragraph("Discount", _style("dl", size=9.6, color=g)),
                           Paragraph("− " + inr(T["discount_items"]), _style("dr", size=9.6, font=BODY_BOLD, align=TA_RIGHT, color=g))])
-        trows.append([Paragraph("Additional discount", _style("dl2", size=9.6, color=g)),
-                      Paragraph("− " + inr(T["discount_extra"]), _style("dr2", size=9.6, font=BODY_BOLD, align=TA_RIGHT, color=g))])
+        if float(T.get("discount_extra") or 0) > 0.004:
+            trows.append([Paragraph("Special discount", _style("dl2", size=9.6, color=g)),
+                          Paragraph("− " + inr(T["discount_extra"]), _style("dr2", size=9.6, font=BODY_BOLD, align=TA_RIGHT, color=g))])
     elif T.get("discount"):
         d = float(T["discount"])
         if d > 0:
