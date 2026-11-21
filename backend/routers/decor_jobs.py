@@ -46,7 +46,7 @@ from datetime import date, datetime
 from typing import Any, List, Optional
 from urllib.parse import quote
 
-from fastapi import APIRouter, File, Form, Header, HTTPException, Response, UploadFile
+from fastapi import APIRouter, File, Form, Header, HTTPException, Request, Response, UploadFile
 from pydantic import BaseModel
 
 from database import database
@@ -57,6 +57,12 @@ router = APIRouter()
 
 SITE = "https://www.wondershopexperiences.com"
 MAX_IMG_BYTES = 8 * 1024 * 1024
+# Completion videos (2026-11-21, per Shruti — "can we give an option to upload
+# videos also"): a short walk-around clip from the decorator's phone. Videos
+# can't be shrunk on a basic phone, so a 30-second clip is the practical cap.
+MAX_VIDEO_BYTES = 30 * 1024 * 1024
+_VIDEO_BRANDS = (b"isom", b"iso2", b"mp41", b"mp42", b"avc1", b"M4V ", b"qt  ", b"3gp4", b"3gp5", b"3gp6",
+                 b"3g2a", b"dash", b"mmp4", b"MSNV", b"XAVC")
 TIERS = ("Classic", "Premium", "Luxury", "Signature")
 
 
@@ -80,7 +86,16 @@ def _sniff(raw: bytes) -> Optional[str]:
         return "image/png"
     if raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
         return "image/webp"
+    if raw[4:8] == b"ftyp" and raw[8:12] in _VIDEO_BRANDS:
+        return ("video/quicktime" if raw[8:12] == b"qt  " else
+                "video/3gpp" if raw[8:11] in (b"3gp", b"3g2") else "video/mp4")
+    if raw[:4] == b"\x1a\x45\xdf\xa3":
+        return "video/webm"
     return None
+
+
+def _box_type(p: dict) -> str:
+    return "video" if (p or {}).get("type") == "video" else "photo"
 
 
 def _j(v, default):
@@ -361,6 +376,8 @@ def default_data(auto: dict, decor_row: Optional[dict] = None) -> dict:
             photos.append({"slot": _slug(c["label"], taken), "label": c["label"], "hint": ""})
     if cake:
         photos.append({"slot": _slug("Cake table", taken), "label": "Cake table", "hint": "Front view"})
+    photos.append({"slot": _slug("Decor video", taken), "label": "Decor video", "hint": "Walk around slowly, 20–30 seconds",
+                   "type": "video"})
 
     return {
         "colours": "", "ready_by": "", "floor": "", "venue_notes": "",
@@ -392,7 +409,7 @@ def clean_data(raw: dict) -> dict:
         if not slot or slot in taken:
             slot = _slug(_s(p.get("label"), 60), taken)
         taken.add(slot)
-        photos.append({"slot": slot, "label": _s(p.get("label"), 60), "hint": _s(p.get("hint"), 80)})
+        photos.append({"slot": slot, "label": _s(p.get("label"), 60), "hint": _s(p.get("hint"), 80), "type": _box_type(p)})
     rets = [{"item": _s(x.get("item"), 80), "qty": _s(x.get("qty"), 20)}
             for x in (r.get("returns") or [])[:15] if isinstance(x, dict) and _s(x.get("item"), 80)]
     amt = r.get("amount")
@@ -480,7 +497,7 @@ def view_of(card: dict, photos: List[dict]) -> dict:
         "returns": dt.get("returns") or [],
         "amount": _inr(dt.get("amount")) if dt.get("amount") is not None else "",
         "coordinator_name": dt.get("coordinator_name") or "", "coordinator_phone": dt.get("coordinator_phone") or "",
-        "photos": [{"slot": p["slot"], "label": p["label"], "hint": p.get("hint") or "",
+        "photos": [{"slot": p["slot"], "label": p["label"], "hint": p.get("hint") or "", "type": _box_type(p),
                     "url": _img_url(done[p["slot"]]["token"]) if p["slot"] in done else None}
                    for p in dt.get("photos") or []],
         "approved": bool(card.get("approved_at")),
@@ -522,7 +539,8 @@ def message_of(v: dict, link: str) -> str:
         L.append(f"Amount: {v['amount']}")
     if v["coordinator_name"] or v["coordinator_phone"]:
         L.append("Coordinator: " + " ".join(x for x in [v["coordinator_name"], v["coordinator_phone"]] if x))
-    L += ["", "Full details + send photos:", link]
+    has_video = any(p.get("type") == "video" for p in v.get("photos") or [])
+    L += ["", "Full details + send photos" + (" & video:" if has_video else ":"), link]
     out, prev = [], None
     for ln in L:   # no double blank lines
         if ln == "" and prev == "":
@@ -572,11 +590,19 @@ async def _decor_partner_row(lead_id: int) -> Optional[dict]:
 
 
 async def _store_photo(card: dict, kind: str, slot: str, raw: bytes, source: str, by: Optional[str]) -> dict:
+    box = next((p for p in card["data"].get("photos") or [] if p.get("slot") == slot), None)
+    want = _box_type(box) if kind == "done" else "photo"
     mime = _sniff(raw)
-    if not mime:
-        raise HTTPException(status_code=400, detail="Please send a photo (JPG, PNG or WEBP).")
-    if len(raw) > MAX_IMG_BYTES:
-        raise HTTPException(status_code=413, detail="That photo is too large.")
+    if want == "video":
+        if not mime or not mime.startswith("video/"):
+            raise HTTPException(status_code=400, detail="Please send a video (MP4 / MOV).")
+        if len(raw) > MAX_VIDEO_BYTES:
+            raise HTTPException(status_code=413, detail="That video is too long. Please record 30 seconds or less.")
+    else:
+        if not mime or not mime.startswith("image/"):
+            raise HTTPException(status_code=400, detail="Please send a photo (JPG, PNG or WEBP).")
+        if len(raw) > MAX_IMG_BYTES:
+            raise HTTPException(status_code=413, detail="That photo is too large.")
     token = secrets.token_urlsafe(18)
     await database.execute(
         """INSERT INTO decor_job_photos (card_id, kind, slot, token, image, image_type, size_bytes, source, uploaded_by)
@@ -729,12 +755,15 @@ async def admin_approve(lead_id: int, body: ApproveIn, x_admin_password: Optiona
 # ─── decorator's link (no login — the token is the access) ────────────────
 
 @router.get("/decor-job/img/{token}")
-async def public_img(token: str):
+async def public_img(token: str, request: Request):
     if not token or len(token) > 64:
         raise HTTPException(status_code=404, detail="Not found.")
     r = await database.fetch_one("SELECT image, image_type FROM decor_job_photos WHERE token = :t", values={"t": token})
     if not r:
         raise HTTPException(status_code=404, detail="Not found.")
+    if str(r["image_type"]).startswith("video/"):   # Safari needs byte ranges to play a video
+        from routers.venue_info import _range_response
+        return _range_response(bytes(r["image"]), r["image_type"], request.headers.get("range"))
     return Response(content=bytes(r["image"]), media_type=r["image_type"],
                     headers={"Cache-Control": "public, max-age=604800"})
 

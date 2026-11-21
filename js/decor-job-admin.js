@@ -79,15 +79,16 @@ function djDraw(){
     + '<td style="width:30px"><button type="button" class="icon-btn" title="Remove" onclick="djRemoveRow(\'returns\','+i+')">✕</button></td></tr>').join('');
 
   const boxes = (d.photos||[]).map((p,i)=>{
-    const got = done[p.slot];
-    return '<div class="dj-ph'+(got?' got':'')+'" data-i="'+i+'" data-slot="'+v(p.slot)+'">'
-      + (got ? '<a href="'+v(got.url)+'" target="_blank" class="dj-ph-img"><img src="'+v(got.url)+'" alt="'+v(p.label)+'"></a>'
-             : '<div class="dj-ph-img empty">Waiting</div>')
+    const got = done[p.slot], vid = p.type === 'video';
+    return '<div class="dj-ph'+(got?' got':'')+'" data-i="'+i+'" data-slot="'+v(p.slot)+'" data-type="'+(vid?'video':'photo')+'">'
+      + (got ? (vid ? '<div class="dj-ph-img"><video src="'+v(got.url)+'" controls preload="metadata" playsinline></video></div>'
+                    : '<a href="'+v(got.url)+'" target="_blank" class="dj-ph-img"><img src="'+v(got.url)+'" alt="'+v(p.label)+'"></a>')
+             : '<div class="dj-ph-img empty">'+(vid ? '🎥 Video · waiting' : 'Waiting')+'</div>')
       + '<input type="text" class="dj-p-label" value="'+v(p.label)+'" placeholder="Photo name" aria-label="Photo name">'
       + '<input type="text" class="dj-p-hint" value="'+v(p.hint)+'" placeholder="Hint for the decorator" aria-label="Hint">'
       + '<div class="dj-ph-act">'
         + (got ? '<span class="ok">✓ '+(got.source==='team'?'added by team':'sent')+'</span><button type="button" class="mini-btn" onclick="djRemovePhoto(\''+v(p.slot)+'\',\'done\')" title="Empty this box so the decorator sends it again">Ask re-take</button>'
-               : (card && p.slot ? '<label class="mini-btn" title="Got it on WhatsApp? Add it here">Upload<input type="file" accept="image/*" hidden onchange="djUpload(\''+v(p.slot)+'\',\'done\',this)"></label>' : '')
+               : (card && p.slot ? '<label class="mini-btn" title="Got it on WhatsApp? Add it here">Upload<input type="file" accept="'+(vid?'video/*':'image/*')+'" hidden onchange="djUpload(\''+v(p.slot)+'\',\'done\',this)"></label>' : '')
                  + '<button type="button" class="icon-btn" title="Remove this box" onclick="djRemoveRow(\'photos\','+i+')">✕</button>')
       + '</div></div>';
   }).join('');
@@ -158,9 +159,9 @@ function djDraw(){
     + '<table class="team-tbl dj-tbl" id="djReturns"><tbody>'+rets+'</tbody></table>'
     + '<div class="fb-btns" style="margin-top:6px"><button class="fb-btn gh" onclick="djAddRow(\'returns\')">+ Add item</button></div>'
 
-    + '<div class="dj-h">8. Completion photos <small>'+(card ? nDone+' of '+nBoxes+' in' : 'each box is a photo the decorator sends')+'</small></div>'
+    + '<div class="dj-h">8. Completion photos &amp; videos <small>'+(card ? nDone+' of '+nBoxes+' in' : 'each box is a photo or video the decorator sends (videos up to 30 seconds)')+'</small></div>'
     + '<div class="dj-phs" id="djPhotos">'+boxes+'</div>'
-    + '<div class="fb-btns" style="margin-top:8px"><button class="fb-btn gh" onclick="djAddRow(\'photos\')">+ Add photo box</button>'
+    + '<div class="fb-btns" style="margin-top:8px"><button class="fb-btn gh" onclick="djAddRow(\'photos\')">+ Add photo box</button><button class="fb-btn gh" onclick="djAddRow(\'videos\')">+ Add video box</button>'
       + (card ? (card.approved_at
           ? '<button class="fb-btn gh" onclick="djApprove(false,this)">Undo approval</button>'
           : '<button class="fb-btn pk" '+(nDone?'':'disabled title="No photos yet"')+' onclick="djApprove(true,this)">✓ Approve decor</button>') : '')
@@ -180,7 +181,8 @@ function readForm(){
   d.returns = Array.from(document.querySelectorAll('#djReturns tbody tr')).map(tr=>({
     item: tr.querySelector('.dj-r-item').value.trim(), qty: tr.querySelector('.dj-r-qty').value.trim()}));
   d.photos = Array.from(document.querySelectorAll('#djPhotos .dj-ph')).map(el=>({
-    slot: el.dataset.slot||'', label: el.querySelector('.dj-p-label').value.trim(), hint: el.querySelector('.dj-p-hint').value.trim()}));
+    slot: el.dataset.slot||'', label: el.querySelector('.dj-p-label').value.trim(), hint: el.querySelector('.dj-p-hint').value.trim(),
+    type: el.dataset.type==='video' ? 'video' : 'photo'}));
   d.hide_pics = Array.from(document.querySelectorAll('.dj-pic-show')).filter(c=>!c.checked).map(c=>c.dataset.url);
   d.ready_by = g('djReady').trim(); d.floor = g('djFloor').trim(); d.colours = g('djColours').trim();
   d.venue_notes = g('djVenueNotes').trim(); d.custom_requests = g('djCustom').trim();
@@ -199,7 +201,8 @@ window.djAddRow = function(kind){
   readForm();
   if(kind==='components') DJ_DATA.components.push({key:'', label:'', on:true, qty:'', notes:''});
   if(kind==='returns') DJ_DATA.returns.push({item:'', qty:''});
-  if(kind==='photos') DJ_DATA.photos.push({slot:'', label:'', hint:''});
+  if(kind==='photos') DJ_DATA.photos.push({slot:'', label:'', hint:'', type:'photo'});
+  if(kind==='videos') DJ_DATA.photos.push({slot:'', label:'Decor video', hint:'Walk around slowly, 20–30 seconds', type:'video'});
   djDraw();
 };
 window.djRemoveRow = function(kind, i){ readForm(); DJ_DATA[kind].splice(i,1); djDraw(); };
@@ -319,6 +322,7 @@ function keepForm(body){ readForm(); const keep = DJ_DATA; DJ = body; DJ_DATA = 
 window.djUpload = async function(slot, kind, input){
   const f = input.files && input.files[0]; if(!f) return;
   const fd = new FormData(); fd.append('image', f); fd.append('kind', kind); fd.append('uploaded_by', getName()||'');
+  if(f.type.indexOf('video/')===0 && f.size > 30*1024*1024){ showToast('Video too large — up to 30 MB (about 30 seconds).'); return; }
   showToast('Uploading…');
   try{
     const res = await fetch(API+'/api/admin/decor-job/'+DJ_LEAD+'/photo/'+encodeURIComponent(slot), {method:'POST', headers:{'X-Admin-Password': getPw()}, body: fd});

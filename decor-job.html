@@ -86,10 +86,14 @@ var API = 'https://wondershop-website-production.up.railway.app';
 var TOKEN = new URLSearchParams(location.search).get('t') || '';
 var V = null;
 var STATE = {};   // slot -> 'done' | 'busy' | 'bad'
+var PROG = {};    // slot -> upload % (videos)
+var ERR = {};     // slot -> why it failed
+var MAX_VIDEO = 30 * 1024 * 1024;   // 2026-11-21: completion videos, about 30 seconds
 
 var IC = {
   pin: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>',
   phone: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>',
+  video: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg>',
   cam: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
   tick: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   retry: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>'
@@ -193,22 +197,27 @@ function draw(){
 function photosHtml(){
   var list = V.photos || [], n = 0;
   list.forEach(function(p){ if(STATE[p.slot] === 'done') n++; });
-  var h = '<div class="ph-head"><h2>Send photos</h2>'+(list.length ? '<b>'+n+' of '+list.length+' done</b>' : '')+'</div>';
+  var hasVideo = list.some(function(p){ return p.type === 'video'; });
+  var h = '<div class="ph-head"><h2>Send photos'+(hasVideo ? ' &amp; video' : '')+'</h2>'+(list.length ? '<b>'+n+' of '+list.length+' done</b>' : '')+'</div>';
   if(V.approved){
     return h + '<div class="alldone">Decor approved. Thank you!</div>';
   }
-  h += '<div class="hint" style="text-align:left">When decor is ready, tap each box and take the photo.</div>';
+  h += '<div class="hint" style="text-align:left">When decor is ready, tap each box and take the photo'+(hasVideo ? ' or video' : '')+'.</div>';
   list.forEach(function(p){
-    var st = STATE[p.slot] || '', thumb = p.url ? ' style="background-image:url(\''+esc(p.url)+'\')"' : '';
-    var sub = st === 'done' ? 'Sent ✓ (tap to send again)' : st === 'busy' ? 'Sending… please wait' : st === 'bad' ? 'Not sent – tap to try again' : (p.hint || 'Tap to take photo');
-    var icon = st === 'done' ? IC.tick : st === 'bad' ? IC.retry : st === 'busy' ? '<div class="spin"></div>' : IC.cam;
+    var vid = p.type === 'video';
+    var st = STATE[p.slot] || '', thumb = (p.url && !vid) ? ' style="background-image:url(\''+esc(p.url)+'\')"' : '';
+    var sub = st === 'done' ? 'Sent ✓ (tap to send again)'
+      : st === 'busy' ? (vid && PROG[p.slot] != null ? 'Sending… '+PROG[p.slot]+'%' : 'Sending… please wait')
+      : st === 'bad' ? (ERR[p.slot] || 'Not sent – tap to try again')
+      : (p.hint || (vid ? 'Tap to record video' : 'Tap to take photo'));
+    var icon = st === 'done' ? IC.tick : st === 'bad' ? IC.retry : st === 'busy' ? '<div class="spin"></div>' : (vid ? IC.video : IC.cam);
     h += '<label class="ph '+(st==='done'?'done':st==='bad'?'bad':st==='busy'?'busy':'')+'">'
-      + '<input type="file" accept="image/*" capture="environment" aria-label="'+esc(p.label)+'" onchange="pick(\''+esc(p.slot)+'\', this)">'
-      + '<span class="th"'+thumb+'></span>'
+      + '<input type="file" accept="'+(vid ? 'video/*' : 'image/*')+'" capture="environment" aria-label="'+esc(p.label)+'" onchange="pick(\''+esc(p.slot)+'\', this, '+(vid?'true':'false')+')">'
+      + '<span class="th"'+thumb+'>'+(vid ? '<span style="color:var(--plum)">'+IC.video+'</span>' : '')+'</span>'
       + '<span class="tx"><b>'+esc(p.label)+'</b><span>'+esc(sub)+'</span></span>'
       + '<span class="ic">'+icon+'</span></label>';
   });
-  if(list.length && n === list.length) h += '<div class="alldone">All photos sent. Thank you!</div>';
+  if(list.length && n === list.length) h += '<div class="alldone">All sent. Thank you!</div>';
   return h;
 }
 function redrawPhotos(){ var el = document.getElementById('photos'); if(el) el.innerHTML = photosHtml(); }
@@ -233,9 +242,34 @@ function shrink(file){
   });
 }
 
-function pick(slot, input){
+function setUrl(slot, url){ (V.photos||[]).forEach(function(p){ if(p.slot === slot) p.url = url; }); }
+
+// A video can't be made smaller on the phone: sent as it is, with a % so the
+// decorator knows it's still going on slow internet.
+function sendVideo(slot, f){
+  delete ERR[slot];
+  if(f.size > MAX_VIDEO){ STATE[slot] = 'bad'; ERR[slot] = 'Video too long – record 30 seconds or less'; redrawPhotos(); return; }
+  STATE[slot] = 'busy'; PROG[slot] = 0; redrawPhotos();
+  var fd = new FormData(); fd.append('image', f, f.name || 'video.mp4');
+  var x = new XMLHttpRequest();
+  x.open('POST', API+'/api/decor-job/'+encodeURIComponent(TOKEN)+'/photo/'+encodeURIComponent(slot));
+  x.upload.onprogress = function(e){ if(e.lengthComputable){ PROG[slot] = Math.min(99, Math.round(e.loaded * 100 / e.total)); redrawPhotos(); } };
+  x.onload = function(){
+    delete PROG[slot];
+    if(x.status === 409){ V.approved = true; STATE[slot] = 'done'; }
+    else if(x.status >= 200 && x.status < 300){ STATE[slot] = 'done'; try{ setUrl(slot, JSON.parse(x.responseText).url); }catch(e){} }
+    else { STATE[slot] = 'bad'; if(x.status === 413) ERR[slot] = 'Video too long – record 30 seconds or less'; }
+    redrawPhotos();
+  };
+  x.onerror = function(){ delete PROG[slot]; STATE[slot] = 'bad'; ERR[slot] = 'No internet – tap to try again'; redrawPhotos(); };
+  x.send(fd);
+}
+
+function pick(slot, input, vid){
   var f = input.files && input.files[0];
   if(!f) return;
+  if(vid){ sendVideo(slot, f); return; }
+  delete ERR[slot];
   STATE[slot] = 'busy'; redrawPhotos();
   shrink(f).then(function(blob){
     var fd = new FormData(); fd.append('image', blob, 'photo.jpg');
@@ -245,8 +279,7 @@ function pick(slot, input){
     if(!r.ok) throw new Error('x');
     return r.json();
   }).then(function(b){
-    STATE[slot] = 'done';
-    (V.photos||[]).forEach(function(p){ if(p.slot === slot) p.url = b.url; });
+    STATE[slot] = 'done'; setUrl(slot, b.url);
     redrawPhotos();
   }).catch(function(e){
     STATE[slot] = e.message === 'approved' ? 'done' : 'bad';
