@@ -58,6 +58,7 @@ CATEGORIES = [
     ("cake", "Cake"),
     ("music", "Music"),
     ("mascot", "Mascot"),
+    ("pinata", "Piñata"),   # 2026-11-21
     ("photography", "Photography"),
     ("return_gifts", "Return gifts"),
 ]
@@ -103,6 +104,8 @@ async def _defaults(lead_id: int, pw: Optional[str]) -> dict:
         cats.append("music")
     if "mascot" in everything:
         cats.append("mascot")
+    if val("svc_pinata") and val("svc_pinata").lower() not in ("no selection", "none"):
+        cats.append("pinata")
     if val("svc_photo") and val("svc_photo").lower() not in ("no selection", "none"):
         cats.append("photography")
     if val("svc_gifts"):
