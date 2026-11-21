@@ -60,7 +60,7 @@ function djDraw(){
   else status = '<span class="dj-chip">Saved · not sent yet</span>';
 
   const hidden = new Set(d.hide_pics||[]);
-  const pics = (a.pictures||[]).map(p=>'<div class="dj-pic"><a href="'+v(p.url)+'" target="_blank"><img src="'+v(p.url)+'" alt="'+v(p.label)+'"></a>'
+  const pics = (a.pictures||[]).map(p=>'<div class="dj-pic'+(p.kind==='venue'?' venue':'')+'"><a href="'+v(p.url)+'" target="_blank"><img src="'+v(p.url)+'" alt="'+v(p.label)+'"></a>'
     + '<span>'+v(p.label)+'</span>'
     + '<label><input type="checkbox" class="dj-pic-show" data-url="'+v(p.url)+'" '+(hidden.has(p.url)?'':'checked')+'> Send to decorator</label></div>').join('');
   const refBoxes = ['ref-1','ref-2','ref-3'].map(s=>refs[s]
@@ -123,7 +123,7 @@ function djDraw(){
     + '</div>'
     + row('Venue notes', '<textarea id="djVenueNotes" rows="2" placeholder="e.g. Use service lift. No tape on walls.">'+v(d.venue_notes)+'</textarea>')
 
-    + '<div class="dj-h">3. Decor pictures <small>from the booking: uploaded picture, finalized design, decor dropdown. Untick any the decorator shouldn\'t get. The first ticked one goes on the WhatsApp image.</small></div>'
+    + '<div class="dj-h">3. Decor pictures <small>from the booking: uploaded picture, finalized design, decor dropdown, and decor-area photos from the venue form / recce. Untick any the decorator shouldn\'t get. The first ticked decor picture goes on the WhatsApp image.</small></div>'
     + '<div class="dj-pics">'+(pics || '<span class="dj-muted">No decor picture on the booking yet (finalize the decor design or upload a reference).</span>')+refBoxes+'</div>'
 
     + '<div class="dj-h">4. Decor components <small>unticked rows are hidden from the decorator</small></div>'

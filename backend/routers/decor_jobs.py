@@ -258,6 +258,7 @@ async def _auto_from_booking(lead_id: int, pw: Optional[str]) -> dict:
         logger.exception(f"Decor job card #{lead_id}: couldn't read the decor fields")
 
     out["pictures"] = await _decor_pictures(lead_id, cust("svc_decor"), final_id, quote_img)
+    out["pictures"] += await _venue_decor_photos(lead_id)
     return out
 
 
@@ -319,6 +320,57 @@ async def _decor_pictures(lead_id: int, decor_value: str, final_id: str, quote_i
     except Exception:
         logger.exception(f"Decor job card #{lead_id}: selected decor picture")
     return pics
+
+
+# ─── decor-area photos from the venue form / recce ────────────────────────
+# 2026-11-21, per Shruti — "in decorator job card, add the photo of decor area
+# if available in the recce form". Photos tagged Decor / Decor – front / left
+# / right / Wide – whole room on this party's venue form (customer or recce),
+# plus the same tags on the party's final venue in the venue master. Served
+# through a signed link of their own, so the decorator never gets the venue
+# form's link (which can edit the form).
+DECOR_AREA_TAGS = [("decor_front", "Decor area – front"), ("decor_left", "Decor area – left side"),
+                   ("decor_right", "Decor area – right side"), ("decor_wide", "Whole room"), ("decor", "Decor area")]
+MAX_VENUE_PHOTOS = 6
+
+
+def _venue_sig(mid: int) -> str:
+    import hashlib
+    import hmac
+    from config import settings
+    key = f"{settings.SECRET_KEY}|{settings.ADMIN_PASSWORD or ''}".encode()
+    return hmac.new(key, f"decor-job-venue:{mid}".encode(), hashlib.sha256).hexdigest()[:24]
+
+
+def venue_photo_url(mid: int) -> str:
+    return f"{_api_base()}/api/decor-job/venue-photo/{mid}/{_venue_sig(mid)}"
+
+
+async def _venue_decor_photos(lead_id: int) -> List[dict]:
+    try:
+        rows = await database.fetch_all(
+            """SELECT id, tags, caption FROM venue_media
+               WHERE kind = 'image' AND tags ?| CAST(:tags AS TEXT[])
+                 AND (lead_id = :id OR venue_id IN (SELECT venue_id FROM lead_venues
+                                                    WHERE lead_id = :id AND status = 'final'))
+               ORDER BY (lead_id = :id) DESC NULLS LAST, created_at""",
+            values={"id": lead_id, "tags": [k for k, _ in DECOR_AREA_TAGS]})
+    except Exception:
+        logger.exception(f"Decor job card #{lead_id}: couldn't read the venue's decor-area photos")
+        return []
+    order = {k: i for i, (k, _) in enumerate(DECOR_AREA_TAGS)}
+    label = dict(DECOR_AREA_TAGS)
+    out = []
+    for r in rows:
+        tags = [t for t in _j(r["tags"], []) if t in label]
+        if not tags:
+            continue
+        first = min(tags, key=lambda t: order[t])
+        cap = _s(r["caption"], 60)
+        out.append((order[first], {"url": venue_photo_url(r["id"]), "label": label[first] + (f" · {cap}" if cap else ""),
+                                   "kind": "venue"}))
+    out.sort(key=lambda x: x[0])
+    return [p for _, p in out][:MAX_VENUE_PHOTOS]
 
 
 def _spec_has(auto: dict, needle: str) -> bool:
@@ -460,8 +512,10 @@ def view_of(card: dict, photos: List[dict]) -> dict:
     a, dt = card["auto"], card["data"]
     done = {p["slot"]: p for p in photos if p["kind"] == "done"}
     hidden = set(dt.get("hide_pics") or [])
-    pics = [p for p in a.get("pictures") or [] if p.get("url") not in hidden] + [
+    shown = [p for p in a.get("pictures") or [] if p.get("url") not in hidden]
+    pics = [p for p in shown if p.get("kind") != "venue"] + [
         {"url": _img_url(p["token"]), "label": "Reference"} for p in photos if p["kind"] == "ref"]
+    venue_pics = [p for p in shown if p.get("kind") == "venue"]
     bring = []
     if dt.get("stand"):
         bring.append(f"Stand: {dt['stand']}")
@@ -488,7 +542,7 @@ def view_of(card: dict, photos: List[dict]) -> dict:
                   "packup": fmt_time(a.get("packup"))},
         "venue": a.get("venue") or "", "floor": dt.get("floor") or "", "venue_notes": dt.get("venue_notes") or "",
         "maps": a.get("maps") or "",
-        "pictures": pics,
+        "pictures": pics, "venue_photos": venue_pics,
         "components": [{"label": c["label"], "qty": c.get("qty") or "", "notes": c.get("notes") or ""}
                        for c in dt.get("components") or [] if c.get("on")],
         "custom_requests": dt.get("custom_requests") or "", "name_request": name_req,
@@ -766,6 +820,17 @@ async def public_img(token: str, request: Request):
         return _range_response(bytes(r["image"]), r["image_type"], request.headers.get("range"))
     return Response(content=bytes(r["image"]), media_type=r["image_type"],
                     headers={"Cache-Control": "public, max-age=604800"})
+
+
+@router.get("/decor-job/venue-photo/{mid}/{sig}")
+async def public_venue_photo(mid: int, sig: str):
+    import hmac
+    if not hmac.compare_digest(sig, _venue_sig(mid)):
+        raise HTTPException(status_code=404, detail="Not found.")
+    r = await database.fetch_one("SELECT data, mime FROM venue_media WHERE id = :m AND kind = 'image'", values={"m": mid})
+    if not r:
+        raise HTTPException(status_code=404, detail="Not found.")
+    return Response(content=bytes(r["data"]), media_type=r["mime"], headers={"Cache-Control": "public, max-age=86400"})
 
 
 @router.get("/decor-job/{token}")

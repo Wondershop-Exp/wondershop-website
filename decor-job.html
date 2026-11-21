@@ -139,10 +139,12 @@ function draw(){
       + '<div><span>Packup</span><b>'+esc(t.packup || '–')+'</b></div></div>';
   }
 
-  if(v.venue || v.maps){
+  if(v.venue || v.maps || (v.venue_photos||[]).length){
     h += '<div class="card"><h2>Venue</h2>'
       + (v.venue ? '<div style="font-size:18px">'+esc(v.venue)+(v.floor ? '<br><b>'+esc(v.floor)+'</b>' : '')+'</div>' : '')
       + (v.venue_notes ? '<div class="note">'+esc(v.venue_notes)+'</div>' : '')
+      + ((v.venue_photos||[]).length ? '<div style="font-weight:800">Where the decor goes</div>' : '')
+      + (v.venue_photos||[]).map(function(p){ return '<a href="'+esc(p.url)+'" target="_blank" rel="noopener"><img class="pic" src="'+esc(p.url)+'" alt="'+esc(p.label)+'" loading="lazy"></a><div style="font-size:14px;color:var(--gy);margin-top:-4px">'+esc(p.label)+'</div>'; }).join('')
       + '<a class="big" href="'+esc(v.maps || mapsUrl(v.venue))+'" target="_blank" rel="noopener">'+IC.pin+' Open in Maps</a></div>';
   }
 
