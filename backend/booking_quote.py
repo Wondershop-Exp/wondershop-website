@@ -151,9 +151,16 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         for label, amt in take(nm + " (decor add-on)"):
             lines.append({"name": f"Add-on: {nm}", "details": [], "image": None, "price": amt})
             _strike(lines, label, amt)
+    try:
+        _dcl = json.loads(cust_val("addon_decor_custom") or "[]")
+    except (TypeError, ValueError):
+        _dcl = []
+    _dcp = {str(c.get("name") or "").strip(): "aref:" + str(c["photo"]) for c in (_dcl if isinstance(_dcl, list) else [])
+            if isinstance(c, dict) and c.get("photo")}   # photos (2026-11-21)
     for label, amt in [x for x in items if x[0].endswith(" (decor add-on)")]:   # custom decor items (2026-11-13)
         items.remove((label, amt))
-        lines.append({"name": f"Add-on: {label[:-len(' (decor add-on)')]}", "details": [], "image": None, "price": amt})
+        _nm = label[:-len(' (decor add-on)')]
+        lines.append({"name": f"Add-on: {_nm}", "details": [], "image": _dcp.get(_nm.strip()), "price": amt})
         _strike(lines, label, amt)
     # 2026-11-14, per Shruti (#1312) — custom decor items at ₹0 aren't on the
     # bill, but are still part of the decor: list them as included.
@@ -168,7 +175,7 @@ async def booking_quotation_data(lead_id: int, pw: Optional[str], by: Optional[s
         except (TypeError, ValueError):
             pr = 0.0
         if nm and pr <= 0:
-            lines.append({"name": f"Add-on: {nm}", "details": [], "image": None, "price": None, "price_text": "Included"})
+            lines.append({"name": f"Add-on: {nm}", "details": [], "image": _dcp.get(nm), "price": None, "price_text": "Included"})
     # Finalized design picked on the booking (2026-11-15, per Shruti): its
     # name under the decor line, and its photo when it's a catalogue design.
     _dz = cust_val("addon_decor_design")

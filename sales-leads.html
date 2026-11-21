@@ -2360,7 +2360,12 @@ function decorAddonsHtml(r){
 function decorCustomItemsHtml(r){
   const items = (r.addons||[]).map((a,i)=>({a,i})).filter(x=>x.a && x.a.custom);
   return '<div class="req-note" style="margin:10px 0 4px">Custom decor items — name &amp; price (counted in the total)</div>'
-    + items.map(x=>'<div class="act-item sel"><div class="act-main" style="cursor:default"><div class="an">'+esc(x.a.name)+'</div>'
+    + items.map(x=>'<div class="act-item sel"><div class="act-main" style="cursor:default">'
+      // optional photo (2026-11-21, per Shruti)
+      + (x.a.photo_url ? '<img src="'+esc(x.a.photo_url)+'" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:8px;cursor:pointer;flex:none" onclick="window.open(this.src,\'_blank\')">' : '')
+      + '<div class="an">'+esc(x.a.name)+'</div>'
+      + (x.a.photo_url ? '<button type="button" class="act-photo-btn" onclick="decorCustomPhoto('+x.i+', null)">Remove photo</button>'
+          : '<label class="act-photo-btn">📷 Photo<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="decorCustomPhoto('+x.i+', this)"></label>')
       + '<div class="ap">'+money(Number(x.a.price)||0)+'</div>'
       + '<button type="button" class="icon-btn" onclick="removeDecorCustom('+x.i+')" title="Remove">✕</button></div></div>').join('')
     + '<div class="pick-row" style="margin-top:4px"><input type="text" id="dcName" placeholder="e.g. Extra sunboard, buntings" style="flex:1;padding:9px 11px;border:1px solid var(--li2);border-radius:8px;font-size:13.5px">'
@@ -2377,6 +2382,26 @@ async function addDecorCustom(){
   await saveRequirement('decor', r);
   if(typeof recalcDerivedCosts==='function') await recalcDerivedCosts();
   renderDetail();
+}
+async function decorCustomPhoto(i, input){
+  const r = Object.assign({selected:null,cost:null,addons:[]}, req('decor'));
+  const a = (r.addons||[])[i]; if(!a) return;
+  if(input){
+    const f = input.files && input.files[0]; if(!f) return;
+    if(f.size > 7*1024*1024){ showToast('That picture is over 7 MB — please pick a smaller one.'); return; }
+    const fd = new FormData(); fd.append('image', f); fd.append('uploaded_by', getName());
+    showToast('Uploading photo…');
+    try{
+      const res = await fetch(API+'/api/admin/sales-leads/'+CURRENT_ID+'/activity-photo', {method:'POST', headers:{'X-Admin-Password':getPw()}, body:fd});
+      const b = await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(b.detail || ('Upload failed ('+res.status+')'));
+      a.photo_token = b.token; a.photo_url = b.url;
+    }catch(e){ showToast(e.message || "Couldn't upload the photo."); return; }
+  }else{ delete a.photo_token; delete a.photo_url; }
+  r.addons = r.addons.slice();
+  await saveRequirement('decor', r);
+  renderDetail();
+  showToast(input ? 'Photo added — it goes on the quotation PDF.' : 'Photo removed.');
 }
 async function removeDecorCustom(i){
   const r = Object.assign({selected:null,cost:null,addons:[]}, req('decor'));

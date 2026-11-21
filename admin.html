@@ -6468,7 +6468,13 @@ function customAddonRowsHtml(rid, val, locked, btnLabel){
   let list = []; try{ list = JSON.parse(val||'[]'); }catch(e){}
   if(!Array.isArray(list)) list = [];
   if(locked) return list.length ? list.map(c=>esc(c.name)+' — '+_inr(Number(c.price)||0)).join('<br>') : '—';
-  const row = c => '<div class="ca-row" style="display:flex;gap:6px;margin-bottom:6px"><input type="text" class="ca-n" placeholder="Add-on name" value="'+esc(c.name||'')+'" style="flex:1" oninput="caSync(\''+rid+'\')"><input type="number" class="ca-p" min="0" step="1" placeholder="₹ Price" value="'+(c.price==null?'':c.price)+'" style="width:110px" oninput="caSync(\''+rid+'\')"><button type="button" class="mini-btn remove" onclick="this.parentNode.remove();caSync(\''+rid+'\')">✕</button></div>';
+  // Optional photo per custom decor item (2026-11-21, per Shruti — decor in
+  // several places / types: upload a picture and price each).
+  const photo = rid==='fld_decor_custom';
+  const ph = c => !photo ? '' : (c.photo
+      ? '<img src="'+API+'/api/activity-photos/public/'+esc(c.photo)+'" style="width:42px;height:42px;object-fit:cover;border-radius:8px;cursor:pointer;flex:none" onclick="window.open(this.src,\'_blank\')" title="Open"><button type="button" class="mini-btn" title="Remove photo" onclick="caPhotoClear(this,\''+rid+'\')">✕📷</button>'
+      : '<label class="mini-btn" style="cursor:pointer;white-space:nowrap" title="Optional picture">📷 Photo<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="caPhotoUpload(this,\''+rid+'\')"></label>');
+  const row = c => '<div class="ca-row" data-photo="'+esc(c.photo||'')+'" style="display:flex;gap:6px;margin-bottom:6px;align-items:center"><input type="text" class="ca-n" placeholder="Add-on name" value="'+esc(c.name||'')+'" style="flex:1" oninput="caSync(\''+rid+'\')"><input type="number" class="ca-p" min="0" step="1" placeholder="₹ Price" value="'+(c.price==null?'':c.price)+'" style="width:110px" oninput="caSync(\''+rid+'\')">'+ph(c)+'<button type="button" class="mini-btn remove" onclick="this.parentNode.remove();caSync(\''+rid+'\')">✕</button></div>';
   return '<div id="'+rid+'_carows">'+list.map(row).join('')+'</div>'
     + '<button type="button" class="mini-btn" onclick="caAdd(\''+rid+'\')">'+(btnLabel||'+ Add custom add-on')+'</button>'
     + '<input type="hidden" id="'+rid+'_cc" value="'+esc(val||'')+'">';
@@ -6476,8 +6482,27 @@ function customAddonRowsHtml(rid, val, locked, btnLabel){
 function caAdd(rid){
   document.getElementById(rid+'_carows').insertAdjacentHTML('beforeend', customAddonRowsHtml(rid, '[{"name":"","price":null}]', false).match(/<div class="ca-row"[\s\S]*?<\/div>/)[0]);
 }
+async function caPhotoUpload(input, rid){
+  const f = input.files && input.files[0]; if(!f) return;
+  if(f.size > 7*1024*1024){ showToast('That picture is over 7 MB — please pick a smaller one.'); return; }
+  const fd = new FormData(); fd.append('image', f); fd.append('uploaded_by', getName()||'');
+  showToast('Uploading photo…');
+  try{
+    const res = await fetch(API+'/api/admin/sales-leads/'+CURRENT_LEAD_ID+'/activity-photo', {method:'POST', headers:{'X-Admin-Password':getPw()}, body:fd});
+    const b = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(b.detail || ('Upload failed ('+res.status+')'));
+    const row = input.closest('.ca-row'); row.dataset.photo = b.token;
+    caSync(rid);
+    if(rid==='fld_decor_custom'){ await saveDecorCustom(); } else showToast('Photo added — click Save.');
+  }catch(e){ showToast(e.message || "Couldn't upload the photo."); }
+}
+function caPhotoClear(btn, rid){
+  const row = btn.closest('.ca-row'); row.dataset.photo = '';
+  caSync(rid);
+  if(rid==='fld_decor_custom') saveDecorCustom();
+}
 function caSync(rid){
-  const list = [...document.querySelectorAll('#'+rid+'_carows .ca-row')].map(r=>({name:r.querySelector('.ca-n').value.trim(), price:r.querySelector('.ca-p').value===''?null:Number(r.querySelector('.ca-p').value)})).filter(c=>c.name);
+  const list = [...document.querySelectorAll('#'+rid+'_carows .ca-row')].map(r=>Object.assign({name:r.querySelector('.ca-n').value.trim(), price:r.querySelector('.ca-p').value===''?null:Number(r.querySelector('.ca-p').value)}, r.dataset.photo?{photo:r.dataset.photo}:{})).filter(c=>c.name);
   const h = document.getElementById(rid+'_cc'); h.value = list.length ? JSON.stringify(list) : '';
   const tr = document.getElementById(rid); if(tr) tr.classList.add('dirty');
   if(typeof updateDirtyCount==='function') updateDirtyCount();

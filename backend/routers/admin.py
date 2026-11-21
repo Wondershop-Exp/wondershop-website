@@ -2195,7 +2195,8 @@ async def _copy_sales_data_to_admin_overrides(lead_id: int, who: str) -> None:
         if _key not in already and _name in picked_da:
             to_write.append((_key, "Yes", None))
     # Custom decor items (2026-11-13) — name + price typed on the sales panel.
-    _cust_da = [{"name": str(a["name"]).strip(), "price": a.get("price")} for a in (d.get("addons") or [])
+    _cust_da = [dict({"name": str(a["name"]).strip(), "price": a.get("price")}, **({"photo": a["photo_token"]} if a.get("photo_token") else {}))
+                for a in (d.get("addons") or [])
                 if isinstance(a, dict) and a.get("custom") and str(a.get("name") or "").strip()]
     if "addon_decor_custom" not in already and _cust_da:
         to_write.append(("addon_decor_custom", json.dumps(_cust_da), None))

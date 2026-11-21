@@ -1920,8 +1920,11 @@ def _quotation_data(d: dict, issued_at_utc: datetime) -> tuple:
         if img and decor_image_is_reference(theme or None, tier):
             det.append(DECOR_REFERENCE_NOTE)
         lines.append(priced(it, name, det, img))
+    _dc_photo = {str(a.get("name") or "").strip(): "aref:" + str(a["photo_token"])
+                 for a in (r("decor").get("addons") or []) if isinstance(a, dict) and a.get("photo_token")}
     for it in by_key.get("decor_addon") or []:   # Cake Table / Age Light / Cutouts (2026-10-24)
-        lines.append(priced(it, f"Add-on: {it['label']}"))
+        # custom decor item photo (2026-11-21, per Shruti)
+        lines.append(priced(it, f"Add-on: {it['label']}", None, _dc_photo.get(str(it.get("label") or "").strip())))
     # Decor options to choose from (2026-10-08, per Shruti) — each with its
     # photo, price and inclusions; NOT in the Estimated Total (only the decor
     # picked above is). Link to decor-options.html for bigger photos.
