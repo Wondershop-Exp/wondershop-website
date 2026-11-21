@@ -129,9 +129,37 @@
 
   function svg(v){ var d = parse(v); return (d.items.length || d.lines.length) ? drawSvg(d, -1, -1) : ''; }
 
+  // Download as a PNG (2026-11-21, per Shruti). Draws the SVG on a canvas.
+  function download(v, name){
+    var d = typeof v === 'object' && v && v.items ? v : parse(v);
+    var W = SHAPES[d.shape][0] + 8, H = SHAPES[d.shape][1] + 8, scale = 12;
+    var src = drawSvg(d, -1, -1).replace('<svg ', '<svg width="' + W * scale + '" height="' + H * scale + '" ');
+    var img = new Image();
+    img.onload = function(){
+      var c = document.createElement('canvas'); c.width = W * scale; c.height = H * scale;
+      var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(function(b){
+        var a = document.createElement('a'); a.href = URL.createObjectURL(b);
+        a.download = (String(name || 'floor-plan').replace(/[^\w\- ]+/g, '').trim() || 'floor-plan') + '.png';
+        document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+      }, 'image/png');
+    };
+    img.onerror = function(){ alert('Could not make the image — please try again.'); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(src);
+  }
+  // Read-only map with a Download button (booking page, sales lead).
+  function view(v, name){
+    var s = svg(v); if(!s) return '';
+    var id = 'fmv' + Math.random().toString(36).slice(2, 8);
+    VIEWS[id] = {v: v, name: name};
+    return s + '<div style="padding:6px 8px;text-align:right;border-top:1px solid #EDE6FA;background:#fff"><button type="button" onclick="FloorMap._dl(\'' + id + '\')" style="border:none;background:#F3EDFD;color:#6C4AB6;border-radius:99px;padding:5px 11px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">⬇ Download image</button></div>';
+  }
+  var VIEWS = {};
+
   var BTN = 'border:none;border-radius:99px;padding:6px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;';
 
-  function editor(el, v, onChange){
+  function editor(el, v, onChange, opts){
+    opts = opts || {};
     var d = parse(v), sel = -1, selL = -1, tool = null;
     function save(){ onChange(JSON.stringify(d)); }
     function slider(name, label, min, max, step, val, unit){
@@ -165,11 +193,22 @@
       return '<span style="font-size:12.5px;color:#6B6280">Drag labels to move them. Tap one to rotate, resize, rename or remove it. The top of the box = the side you entered from, or the decor wall — just say which in the video.</span>';
     }
     function render(){
-      var h = '<div class="fm-shapes" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;font-size:12.5px;align-items:center"><span style="color:#6B6280">Room shape:</span>'
+      var plans = opts.plans || [];
+      var h = (plans.length ? '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:12.5px;background:#F7F3FF;border-radius:10px;padding:8px 10px">'
+          + '<span style="color:#6C4AB6;font-weight:700">Saved plans for ' + esc(opts.venueName || 'this venue') + ':</span>'
+          + '<select class="fm-plan" style="font:inherit;font-size:12.5px;padding:5px 8px;border:1px solid #EDE6FA;border-radius:8px;max-width:220px">'
+          + plans.map(function(p, i){ return '<option value="' + i + '">' + esc(p.name) + (p.saved_at ? ' · ' + esc(p.saved_at) : '') + '</option>'; }).join('') + '</select>'
+          + '<button type="button" class="fm-use" style="' + BTN + 'background:#6C4AB6;color:#fff">Use this plan</button>'
+          + '<span style="color:#6B6280">— copies it here so you can edit it for this party; the saved one stays as is.</span></div>' : '')
+        + '<div class="fm-shapes" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;font-size:12.5px;align-items:center"><span style="color:#6B6280">Room shape:</span>'
         + [['wide','Wide ▭'],['square','Square ▢'],['long','Long ▯']].map(function(s){
             return '<button type="button" data-shape="' + s[0] + '" style="border:1.5px solid ' + (d.shape === s[0] ? '#E65A96;background:#E65A96;color:#fff' : '#EDE6FA;background:#fff;color:#2D2140') + ';border-radius:99px;padding:5px 11px;font:inherit;font-weight:700;cursor:pointer">' + s[1] + '</button>';
           }).join('') + '</div>'
         + '<div class="fm-board" style="border-radius:12px;overflow:hidden;border:1px solid #EDE6FA">' + drawSvg(d, sel, selL) + '</div>'
+        + '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px">'
+        + '<button type="button" class="fm-dl" style="' + BTN + 'background:#F3EDFD;color:#6C4AB6">⬇ Download image</button>'
+        + (opts.onSaveToVenue ? '<button type="button" class="fm-save-v" style="' + BTN + 'background:#2F7D6D;color:#fff">Save to venue for future parties</button>' : '')
+        + '</div>'
         + '<div class="fm-ctl" style="margin:8px 0 10px;min-height:30px">' + controls() + '</div>'
         + '<div style="font-size:12px;color:#6B6280;margin-bottom:4px">Add an area</div>'
         + '<div style="display:flex;flex-wrap:wrap;gap:6px">' + ITEMS.map(function(m){
@@ -186,6 +225,18 @@
     function redrawBoard(){ el.querySelector('.fm-board').innerHTML = drawSvg(d, sel, selL); wireBoard(); }
     function wire(){
       el.querySelectorAll('[data-shape]').forEach(function(b){ b.onclick = function(){ d.shape = b.dataset.shape; render(); save(); }; });
+      var dl = el.querySelector('.fm-dl'); if(dl) dl.onclick = function(){ download(d, opts.fileName || 'floor-plan'); };
+      var sv = el.querySelector('.fm-save-v'); if(sv) sv.onclick = function(){
+        if(!d.items.length && !d.lines.length){ alert('Draw the floor map first.'); return; }
+        var n = window.prompt('Name this plan (e.g. "Birthday — hall, 40 kids")', opts.defaultPlanName || '');
+        if(n === null) return;
+        Promise.resolve(opts.onSaveToVenue(n.trim())).then(function(list){ if(list){ opts.plans = list; render(); } });
+      };
+      var use = el.querySelector('.fm-use'); if(use) use.onclick = function(){
+        var p = (opts.plans || [])[+el.querySelector('.fm-plan').value]; if(!p) return;
+        if((d.items.length || d.lines.length) && !window.confirm('Replace the current map with “' + p.name + '”?')) return;
+        d = parse(p.map); sel = -1; selL = -1; tool = null; render(); save();
+      };
       el.querySelectorAll('[data-add]').forEach(function(b){ b.onclick = function(){
         var m = BY[b.dataset.add], lab = m.l;
         if(m.numbered){ lab = m.l + ' ' + (d.items.filter(function(i){ return i.k === m.k; }).length + 1); }
@@ -269,5 +320,6 @@
     render();
   }
 
-  window.FloorMap = {editor: editor, svg: svg, items: ITEMS};
+  window.FloorMap = {editor: editor, svg: svg, view: view, download: download, items: ITEMS,
+    _dl: function(id){ var x = VIEWS[id]; if(x) download(x.v, x.name); }};
 })();

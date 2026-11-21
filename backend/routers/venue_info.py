@@ -555,6 +555,8 @@ def clean_floor_map(v) -> str:
             it["h"] = max(3.0, min(50.0, float(i["h"])))
         if i.get("r") not in (None, ""):
             it["r"] = float(i["r"]) % 360
+        if re.fullmatch(r"#[0-9a-fA-F]{6}", str(i.get("c") or "")):
+            it["c"] = i["c"]   # own colour (2026-11-21)
         items.append(it)
     lines = [{"t": str(ln.get("t")), "x1": f01(ln.get("x1")), "y1": f01(ln.get("y1")), "x2": f01(ln.get("x2")), "y2": f01(ln.get("y2")),
               **({"l": str(ln.get("l"))[:40]} if ln.get("l") else {})}
