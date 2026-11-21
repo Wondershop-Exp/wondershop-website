@@ -100,7 +100,7 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
 <div class="saved" id="saved">Saved ✓</div>
 <footer>Wondershop Experiences · +91 90044 35362</footer>
 
-<script src="js/floor-map.js?v=20261121"></script>
+<script src="js/floor-map.js?v=20261121b"></script>
 <script>
 (function(){
   var API = 'https://wondershop-website-production.up.railway.app';
@@ -169,7 +169,20 @@ footer{text-align:center;font-size:12px;color:#A99FBA;padding:10px 0 30px}
     wire(); drawMedia(); progress(); drawMissing();
     app.querySelectorAll('[data-fm]').forEach(function(el){
       var k = el.dataset.fm;
-      if(window.FloorMap) FloorMap.editor(el, A[k] || '', function(v){ queueSave(k, v); });
+      // per-party map; saved venue plans to start from; save to the venue; download (2026-11-21)
+      if(window.FloorMap) FloorMap.editor(el, A[k] || '', function(v){ A[k] = v; queueSave(k, v); }, {
+        plans: D.venue_plans || [],
+        venueName: D.venue_master && D.venue_master.name,
+        fileName: 'Floor plan - ' + ((D.venue_master && D.venue_master.name) || 'venue') + ' - #' + (D.booking.lead_id || ''),
+        defaultPlanName: (D.booking.child_name ? D.booking.child_name + '’s party' : 'Party') + (D.booking.event_date ? ' · ' + D.booking.event_date : ''),
+        onSaveToVenue: D.venue_master ? function(name){
+          var body = {answers: {}, recce: RECCE}; body.answers[k] = A[k] || '';
+          return api('/api/venue-info/' + encodeURIComponent(TOKEN), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)})
+            .then(function(){ return api('/api/venue-info/' + encodeURIComponent(TOKEN) + '/floor-plans', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: name, by: A.recce_by || ''})}); })
+            .then(function(r){ D.venue_plans = r.venue_plans; toast('Saved to ' + D.venue_master.name + ' ✓'); return r.venue_plans; })
+            .catch(function(e){ alert(e.message); });
+        } : null
+      });
     });
   }
 

@@ -515,6 +515,7 @@ async def public_get(token: str, recce: bool = False):
     return {
         "booking": _booking_header(lead),
         "venue_master": {"id": venue["id"], "name": venue["name"]} if venue else None,
+        "venue_plans": venue_plans(venue),
         "sections": _questions_out(recce),
         "answers": answers,
         "missing": _missing(answers),
@@ -539,6 +540,37 @@ class VenueAnswers(BaseModel):
     recce_submit: bool = False   # "Save recce" button
 
 
+def clean_floor_map(v) -> str:
+    """Floor map JSON, trimmed to what the editor uses (js/floor-map.js):
+    items with position, size (w/h) and angle (r); lines / zones (2026-11-21)."""
+    fm = json.loads(v) if isinstance(v, str) else v
+    def f01(x):
+        return max(0.0, min(1.0, float(x or 0)))
+    items = []
+    for i in (fm.get("items") or [])[:80]:
+        it = {"k": str(i.get("k", ""))[:20], "l": str(i.get("l", ""))[:40], "x": f01(i.get("x")), "y": f01(i.get("y"))}
+        if i.get("w") not in (None, ""):
+            it["w"] = max(4.0, min(80.0, float(i["w"])))
+        if i.get("h") not in (None, ""):
+            it["h"] = max(3.0, min(50.0, float(i["h"])))
+        if i.get("r") not in (None, ""):
+            it["r"] = float(i["r"]) % 360
+        items.append(it)
+    lines = [{"t": str(ln.get("t")), "x1": f01(ln.get("x1")), "y1": f01(ln.get("y1")), "x2": f01(ln.get("x2")), "y2": f01(ln.get("y2")),
+              **({"l": str(ln.get("l"))[:40]} if ln.get("l") else {})}
+             for ln in (fm.get("lines") or [])[:80] if str(ln.get("t")) in ("wall", "door", "dotted", "zone")]
+    return json.dumps({"shape": fm.get("shape") if fm.get("shape") in ("square", "wide", "long") else "wide",
+                       "items": items, "lines": lines}, separators=(",", ":"))
+
+
+def venue_plans(venue) -> list:
+    """Floor plans saved on the venue master for future parties (2026-11-21)."""
+    if not venue:
+        return []
+    a = _j(venue["answers"]) or {}
+    return [p for p in (a.get("_floor_plans") or []) if isinstance(p, dict) and p.get("map")]
+
+
 def _clean_answers(raw: Dict[str, Optional[str]]) -> dict:
     out = {}
     for k, v in (raw or {}).items():
@@ -552,12 +584,7 @@ def _clean_answers(raw: Dict[str, Optional[str]]) -> dict:
             if q[2] == "floormap":
                 if v:
                     try:
-                        fm = json.loads(v)
-                        items = [{"k": str(i.get("k", ""))[:20], "l": str(i.get("l", ""))[:40],
-                                  "x": max(0.0, min(1.0, float(i.get("x", 0)))), "y": max(0.0, min(1.0, float(i.get("y", 0))))}
-                                 for i in (fm.get("items") or [])[:60]]
-                        v = json.dumps({"shape": fm.get("shape") if fm.get("shape") in ("square", "wide", "long") else "wide",
-                                        "items": items}, separators=(",", ":"))
+                        v = clean_floor_map(v)
                     except Exception:
                         raise HTTPException(status_code=400, detail="Couldn't read the floor map — please try again.")
                 out[k] = v
@@ -610,6 +637,32 @@ async def public_save(token: str, body: VenueAnswers):
         logger.info(f"Lead #{row['lead_id']}: venue recce saved by {answers.get('_recce_by')}")
     return {"success": True, "answers": answers, "missing": _missing(answers), "tnc_accepted": tnc,
             "recce_missing": _missing(answers, RECCE_REQUIRED), "recce_at": answers.get("_recce_at")}
+
+
+class PlanSave(BaseModel):
+    name: str = ""
+    by: Optional[str] = None
+
+
+@router.post("/venue-info/{token}/floor-plans")
+async def public_save_plan(token: str, body: PlanSave):
+    """Save this party's floor map on the venue as a reference for future
+    parties (2026-11-21, per Shruti). Needs a venue linked to the party."""
+    row = await _by_token(token)
+    venue = await linked_venue(row["lead_id"])
+    if not venue:
+        raise HTTPException(status_code=400, detail="Link this party to a venue first (on the booking / sales page), then save the plan to it.")
+    fm = (_j(row["answers"]) or {}).get("floor_map")
+    if not fm:
+        raise HTTPException(status_code=400, detail="Draw the floor map first.")
+    name = (body.name or "").strip()[:60] or f"Party #{row['lead_id']}"
+    plans = venue_plans(venue)
+    plans = [p for p in plans if p.get("name") != name][:19]
+    plans.insert(0, {"name": name, "map": clean_floor_map(fm), "lead_id": row["lead_id"],
+                     "by": (body.by or "")[:80] or None, "saved_at": _to_ist_str(datetime.now(timezone.utc))})
+    await database.execute("UPDATE venues SET answers = answers || CAST(:a AS JSONB), updated_at = NOW() WHERE id = :id",
+                           values={"a": json.dumps({"_floor_plans": plans}), "id": venue["id"]})
+    return {"success": True, "venue_plans": plans}
 
 
 def _clean_tags(tags: str) -> list:

@@ -205,6 +205,7 @@ async def get_venue(vid: int, x_admin_password: Optional[str] = Header(None)):
             "summary": _summary(a), "rows": rows, "media": await _media_for_venue(vid), "links": await _links(vid),
             "tags": [{"key": k, "label": l} for k, l in VENUE_TAGS],
             "recce_at": a.get("_recce_at"), "recce_by": a.get("_recce_by"),
+            "floor_plans": vi.venue_plans(v),
             "created_by": v["created_by"], "created_at": _to_ist_str(v["created_at"]),
             "updated_by": v["updated_by"], "updated_at": _to_ist_str(v["updated_at"])}
 
@@ -350,6 +351,18 @@ class LinkIn(BaseModel):
     lead_id: int
     status: str = "shortlisted"
     changed_by: str = ""
+
+
+@router.delete("/venues/{vid}/floor-plans/{idx}")
+async def delete_plan(vid: int, idx: int, x_admin_password: Optional[str] = Header(None)):
+    _require_admin(x_admin_password)
+    v = await _get(vid)
+    plans = vi.venue_plans(v)
+    if 0 <= idx < len(plans):
+        plans.pop(idx)
+        await database.execute("UPDATE venues SET answers = answers || CAST(:a AS JSONB) WHERE id = :id",
+                               values={"a": json.dumps({"_floor_plans": plans}), "id": vid})
+    return {"success": True, "floor_plans": plans}
 
 
 @router.post("/venues/{vid}/link")

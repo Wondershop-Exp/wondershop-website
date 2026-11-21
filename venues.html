@@ -92,6 +92,7 @@ textarea{min-height:70px;resize:vertical}
 </div>
 <div class="saved" id="saved">Saved ✓</div>
 
+<script src="js/floor-map.js?v=20261121b"></script>
 <script>
 const API = 'https://wondershop-website-production.up.railway.app';
 const $ = id => document.getElementById(id);
@@ -194,6 +195,16 @@ function renderVenue(){
   // media
   h += '<div class="card"><h2>Photos &amp; videos</h2><label class="btn gh sm" style="cursor:pointer"><input type="file" id="upIn" accept="image/*,video/*" multiple hidden>＋ Add photos or videos</label>'
     + '<span class="mut" id="upl" style="margin-left:8px"></span><div class="media" id="media"></div></div>';
+  // Saved floor plans (2026-11-21, per Shruti) — saved from a party's recce
+  // form; each party keeps its own copy, these are references to start from.
+  const fps = V.floor_plans || [];
+  h += '<div class="card"><h2>Saved floor plans</h2>'
+    + (fps.length ? fps.map((p,i)=>'<div style="margin-top:10px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>'+esc(p.name)+'</b><span class="mut">'
+        + [p.lead_id?'from #'+p.lead_id:null, p.by, p.saved_at].filter(Boolean).map(esc).join(' · ')+'</span>'
+        + '<button class="btn gh sm" onclick="delPlan('+i+')" style="margin-left:auto">Delete</button></div>'
+        + '<div style="max-width:420px;margin-top:6px;border:1px solid #EDE6FA;border-radius:10px;overflow:hidden">'+(window.FloorMap?FloorMap.view(p.map, 'Floor plan - '+V.name+' - '+p.name):'')+'</div></div>').join('')
+      : '<div class="mut">None yet — on a party’s recce form, draw the map and tap “Save to venue for future parties”. Later parties at this venue can start from it.</div>')
+    + '</div>';
   h += '</div></div>';
   $('main').innerHTML = h;
   wire(); drawMedia();
@@ -240,6 +251,10 @@ async function linkLead(){
   const id = +$('linkLead').value; if(!id) return;
   try{ await api('/api/admin/venues/'+V.id+'/link', {method:'POST', body: JSON.stringify({lead_id: id, status: $('linkSt').value, changed_by: who()})}); openVenue(V.id); }
   catch(e){ alert(e.message); }
+}
+async function delPlan(i){
+  if(!confirm('Delete this saved floor plan? Parties that used it keep their own copy.')) return;
+  try{ const r = await api('/api/admin/venues/'+V.id+'/floor-plans/'+i, {method:'DELETE'}); V.floor_plans = r.floor_plans; renderVenue(); }catch(e){ alert(e.message); }
 }
 async function delVenue(){
   if(!confirm('Delete “'+V.name+'” and its photos? Parties linked to it keep their own venue forms.')) return;
