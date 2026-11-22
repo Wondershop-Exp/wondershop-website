@@ -127,7 +127,7 @@ function table(ms,rowsDef,opts={}){const tot=opts.total!==false;const anySub=row
   const tg=anySub?(subs&&subs.length?`<button class="tg" data-tg="${esc(r.k||r.l)}" title="${open?'Hide':'Show'} what makes up this total">${open?'−':'+'}</button>`:'<button class="tg x" tabindex="-1">+</button>'):'';
   h+=`<tr class="${r.b?'b':''} ${r.pct?'pct':''}"><td>${tg}${r.l}</td>${vals.map((v,i)=>{const e=r.e&&r.e(ms[i]);return `<td class="${cls(v)} ${e?'est':''}" ${e?'title="Estimated / includes costs entered on the Other costs tab"':''}>${r.pct?pct(v):inr(v)}${e?'*':''}${r.share?shr(v,ms[i].net):''}</td>`}).join('')}${tot?`<td class="${cls(T)}">${T==null?'':r.pct?pct(T):inr(T)}${r.share&&T!=null?shr(T,sum(ms,'net')):''}</td>`:''}</tr>`;
   if(open)for(const s of subs){const sv=ms.map(s.f),st=sv.reduce((a,b)=>a+b,0);
-   h+=`<tr class="subr"><td>${esc(s.l)}</td>${sv.map(v=>`<td class="${cls(v)}">${Math.abs(v)<0.5?'–':inr(v)}</td>`).join('')}${tot?`<td class="${cls(st)}">${inr(st)}${r.share?shr(st,sum(ms,'net')):''}</td>`:''}</tr>`}}
+   h+=`<tr class="subr"><td>${esc(s.l)}</td>${sv.map((v,i)=>`<td class="${cls(v)}">${Math.abs(v)<0.5?'–':inr(v)+(r.share?shr(v,ms[i].net):'')}</td>`).join('')}${tot?`<td class="${cls(st)}">${inr(st)}${r.share?shr(st,sum(ms,'net')):''}</td>`:''}</tr>`}}
  return h+'</tbody></table>'}
 // Build-ups for the P&L rows. Costs from the Other costs tab: one line per
 // partner (paid to). Event costs: one line per Partners & Expenses category.
