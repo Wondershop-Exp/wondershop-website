@@ -704,14 +704,19 @@ async def dashboard_monthly(month: Optional[str] = None, x_admin_password: Optio
     revenue_target_pct = round(this_summary["total_revenue"] / revenue_target * 100) if revenue_target else None
     bookings_target_pct = round(this_summary["total_bookings"] / bookings_target * 100) if bookings_target else None
 
-    confirmed_events_row = await database.fetch_one(
+    # Same rule as the "next 14 days" list (2026-11-22): India time, and
+    # today's events stop counting once they're Complete (paid).
+    _t = _ist_today()
+    _nx = await database.fetch_all(
         """
-        SELECT COUNT(*) AS cnt FROM leads
+        SELECT lead_id, event_date FROM leads
         WHERE is_booking = TRUE AND status != 'Cancelled'
           AND event_date >= :today AND event_date < :in14
         """,
-        values={"today": now.date(), "in14": (now + timedelta(days=14)).date()},
+        values={"today": _t, "in14": _t + timedelta(days=14)},
     )
+    _done = await _realized_ids(_nx, _t)
+    confirmed_events_row = {"cnt": sum(1 for r in _nx if r["lead_id"] not in _done)}
 
     requested_month_end = _add_months(requested_month, 1)
     leads_by_source = await _leads_by_source_in_month(requested_month, requested_month_end)
@@ -772,12 +777,17 @@ async def dashboard_monthly_events(month: Optional[str] = None, x_admin_password
             AND l.event_date >= :start AND l.event_date < :end ORDER BY l.event_date""",
         values={"statuses": list(POTENTIAL_STATUSES), "start": ms.date(), "end": me.date()})
     potential = [row(r, "Potential") for r in pot_rows]
+    # Next 14 days in India time (2026-11-22, per Shruti — "nishant, manpreet
+    # and priyal are done. please follow ist"): from today (IST) for 14 days;
+    # today's events drop off once they're Complete (paid), like the booking page.
+    ist_today = _ist_today()
     nx = await database.fetch_all(
         f"""SELECT {cols} FROM leads l WHERE l.is_booking = TRUE AND l.status != 'Cancelled'
             AND l.event_date >= :today AND l.event_date < :in14 ORDER BY l.event_date""",
-        values={"today": today, "in14": (now + timedelta(days=14)).date()})
+        values={"today": ist_today, "in14": ist_today + timedelta(days=14)})
+    nx_done = await _realized_ids(nx, ist_today)
     return {"month": _month_key(ms), "realized": realized, "booked": booked, "potential": potential,
-            "next14": [row(r, "Booked") for r in nx]}
+            "next14": [row(r, "Booked") for r in nx if r["lead_id"] not in nx_done]}
 
 
 class MonthlyOverrideRequest(BaseModel):
