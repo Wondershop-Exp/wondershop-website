@@ -115,7 +115,10 @@ async def build_report(today: Optional[date] = None) -> str:
     m_start = today.replace(day=1)
     m_end = (m_start + timedelta(days=32)).replace(day=1)
     mb = await _bookings(m_start, m_end)
-    realized = sum(float(b["revenue"] or 0) for b in mb if b["event_date"] < today and b["pay_amt"] and b["pay_mode"])
+    # Same rule as the dashboard / booking page "Complete" (2026-11-22).
+    from routers.dashboard import _realized_ids
+    done = await _realized_ids(mb, today)
+    realized = sum(float(b["revenue"] or 0) for b in mb if b["lead_id"] in done)
     total = sum(float(b["revenue"] or 0) for b in mb)
     m_warm_n, m_warm_rev = await _warm(m_start, m_end)
 

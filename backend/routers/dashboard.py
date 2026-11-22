@@ -452,8 +452,25 @@ async def _confirmed_bookings_in_month(month_start: datetime, month_end: datetim
     )
 
 
-def _classify_month(rows, today) -> dict:
-    """Realized = event already happened AND the event admin has confirmed
+def _ist_today():
+    return (datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).date()
+
+
+async def _realized_ids(rows, today) -> set:
+    """Bookings that count as Realized — the same rule as the booking page's
+    "Complete" status (routers/admin._booking_display_status), 2026-11-22 per
+    Shruti ("all events are paid and completed. they show up in booked but not
+    realized"): the payment is recorded (Event Payment Confirmed amount, or
+    Payment Status = Complete) and the event date is today or earlier, India
+    time. Before, this also needed the Payment Mode filled and the event to
+    be before today in UTC, so paid parties sat in Booked."""
+    from routers.admin import _paid_lead_ids
+    paid = await _paid_lead_ids()
+    return {r["lead_id"] for r in rows if r["lead_id"] in paid and r["event_date"] is not None and r["event_date"] <= today}
+
+
+def _classify_month(rows, today, realized_ids=frozenset()) -> dict:
+    """Realized = see _realized_ids() (2026-11-22). Older note: event already happened AND the event admin has confirmed
     both the payment amount and mode (per Shruti, 2026-09-11 — not just the
     date having passed). Everything else confirmed stays Booked, including
     an event that's already happened but hasn't been confirmed yet — that
@@ -463,9 +480,9 @@ def _classify_month(rows, today) -> dict:
     realized_rev = booked_rev = 0.0
     for r in rows:
         rev = float(r["revenue"] or 0)
-        confirmed = bool(r["payment_amount"]) and bool(r["payment_mode"])
+        confirmed = r["lead_id"] in realized_ids
         happened = r["event_date"] is not None and r["event_date"] < today
-        if happened and confirmed:
+        if confirmed:
             realized_n += 1
             realized_rev += rev
         else:
@@ -613,10 +630,10 @@ async def _latest_booking_month(now: datetime) -> datetime:
 
 async def _month_summary(month_start: datetime, now: datetime) -> dict:
     month_end = _add_months(month_start, 1)
-    today = now.date()
+    today = _ist_today()
 
     rows = await _confirmed_bookings_in_month(month_start, month_end)
-    classified = _classify_month(rows, today)
+    classified = _classify_month(rows, today, await _realized_ids(rows, today))
     potential = await _potential_in_month(month_start, month_end)
 
     total_bookings = classified["realized_bookings"] + classified["booked_bookings"] + potential["potential_bookings"]
@@ -747,10 +764,9 @@ async def dashboard_monthly_events(month: Optional[str] = None, x_admin_password
             WHERE l.is_booking = TRUE AND l.status != 'Cancelled' AND l.event_date >= :start AND l.event_date < :end
             ORDER BY l.event_date""", values={"start": ms.date(), "end": me.date()})
     realized, booked = [], []
+    done = await _realized_ids(booked_rows, _ist_today())   # same rule as the boxes (2026-11-22)
     for r in booked_rows:
-        happened = r["event_date"] is not None and r["event_date"] < today
-        (realized if (happened and r["payment_amount"] and r["payment_mode"]) else booked).append(
-            row(r, "Realized" if (happened and r["payment_amount"] and r["payment_mode"]) else "Booked"))
+        (realized if r["lead_id"] in done else booked).append(row(r, "Realized" if r["lead_id"] in done else "Booked"))
     pot_rows = await database.fetch_all(
         f"""SELECT {cols} FROM leads l WHERE l.is_booking = FALSE AND l.status = ANY(:statuses)
             AND l.event_date >= :start AND l.event_date < :end ORDER BY l.event_date""",
