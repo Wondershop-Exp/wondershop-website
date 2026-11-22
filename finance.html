@@ -32,6 +32,11 @@ thead th{color:var(--mute);font-weight:500;font-size:12px}tr.b td{font-weight:65
 details summary{cursor:pointer}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:800px){.grid2{grid-template-columns:1fr}header,main,nav{padding-left:16px;padding-right:16px}}
 #drop{display:none}
+/* 2026-11-22: + on P&L headings opens the build-up */
+.tg{border:1px solid var(--line);background:var(--card);color:var(--acc);width:20px;height:20px;line-height:16px;padding:0;border-radius:6px;font-weight:700;margin-right:6px;font-size:13px;vertical-align:middle}
+.tg.x{visibility:hidden}
+tr.subr td{font-size:12px;color:var(--mute);border-bottom:1px dashed var(--line)}tr.subr td:first-child{padding-left:38px}
+.fbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:4px 0 12px}.fbar label{font-size:13px;color:var(--mute)}
 /* 2026-10-28: dropdown arrow set in from the edge */
 select{-webkit-appearance:none;appearance:none;padding-right:34px !important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2377716a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer}
 </style></head><body>
@@ -88,14 +93,14 @@ const LS_RULES=[[/facebook|instagram|meta|aisensy/i,'Instagram'],[/google/i,'Goo
 const defLS=p=>{for(const [rx,s] of LS_RULES)if(rx.test(p||''))return s;return ''};
 const todayIST=()=>new Date(Date.now()+5.5*3600e3).toISOString().slice(0,10);
 const dlbl=c=>c.spent_on?new Date(c.spent_on+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'}):lbl(c.ym);
-const CATS={man:'Manpower',rent:'Rent',elec:'Electricity',wifi:'Wifi & mobile',mkt:'Marketing & ads',shopx:'Shop expenses',sample:'Sample',other:'Other (transport, cleaning, misc.)',owner:'Owner investment (money in, not a cost)'};
+const CATS={man:'Manpower',rent:'Rent',elec:'Electricity',wifi:'Wifi & mobile',tech:'Tech cost (software, website, apps)',mkt:'Marketing & ads',shopx:'Shop expenses',sample:'Sample',other:'Other (transport, cleaning, misc.)',owner:'Owner investment (money in, not a cost)'};
 let COSTS=[];
-const ZERO=ym=>({ym,sales:0,net:0,cogs:0,mat:0,evCost:0,stall:0,mkt:0,man:0,rent:0,elec:0,wifi:0,shopx:0,sample:0,other:0,capex:0,inv:0,ch:{},bd:{sales:0,net:0,cogs:0,cashIn:0,recv:0,vendor:0,vendorPaid:0},cashIn:0,cashOut:0,recv:0,pay:0,ownerIn:0,estimated:{}});
+const ZERO=ym=>({ym,sales:0,net:0,cogs:0,mat:0,evCost:0,stall:0,mkt:0,man:0,rent:0,elec:0,wifi:0,tech:0,shopx:0,sample:0,other:0,capex:0,inv:0,ch:{},bd:{sales:0,net:0,cogs:0,cashIn:0,recv:0,vendor:0,vendorPaid:0},cashIn:0,cashOut:0,recv:0,pay:0,ownerIn:0,estimated:{}});
 function withManual(m){const x={...m,ch:{...m.ch},estimated:m.estimated||{},manual:{}};
  if(useBook()){const b=m.bd||ZERO().bd;x.sales-=b.sales;x.net-=b.net;x.cogs-=b.cogs;x.cashIn-=b.cashIn;x.recv-=b.recv;x.evCost-=b.vendor;x.cashOut-=b.vendorPaid;x.pay-=(b.vendor-b.vendorPaid);delete x.ch.Birthday;
   for(const k of BOOK){if(k.ym!==m.ym)continue;x.sales+=k.revenue;x.net+=k.revenue;x.ch['Birthday (bookings)']=(x.ch['Birthday (bookings)']||0)+k.revenue;x.evCost+=k.cost;x.cashOut+=k.cost-k.cost_unpaid;x.pay+=k.cost_unpaid;x.cashIn+=k.paid_amount||0;x.recv+=Math.max(0,k.revenue-(k.paid_amount||0))}}
  for(const c of COSTS){if(c.ym!==m.ym)continue;if(c.category==='owner'){x.ownerIn+=c.amount;continue}x[c.category]=(x[c.category]||0)+c.amount;x.manual[c.category]=1;if(c.paid)x.cashOut+=c.amount;else x.pay+=c.amount}
- x.direct=x.cogs+x.mat+x.evCost+x.stall;x.gm=x.net-x.direct;x.fixed=x.man+x.rent+x.elec+x.wifi+x.shopx+(x.sample||0)+x.other;x.ebitda=x.gm-x.mkt-x.fixed;x.netCash=x.cashIn-x.cashOut;return x}
+ x.direct=x.cogs+x.mat+x.evCost+x.stall;x.gm=x.net-x.direct;x.fixed=x.man+x.rent+x.elec+x.wifi+(x.tech||0)+x.shopx+(x.sample||0)+x.other;x.ebitda=x.gm-x.mkt-x.fixed;x.netCash=x.cashIn-x.cashOut;return x}
 function allMonths(){const base=(DATA?DATA.months:[]).slice();const extra=COSTS.filter(c=>c.ym>='202610').map(c=>c.ym)/* 2026-10-17: pre-Oct-2026 marketing history (for the Sales Dashboard) stays out of the P&L, which starts Oct 2026 */.concat(useBook()?BOOK.map(b=>b.ym).filter(Boolean):[]);
  for(const k of extra)if(!base.some(m=>m.ym===k))base.push(ZERO(k));return base.sort((a,b)=>a.ym<b.ym?-1:1).map(withManual)}
 function months(){const v=$('#fy').value;let ms=allMonths().filter(m=>m.net||m.cashOut||m.fixed||m.mkt);
@@ -110,12 +115,34 @@ function bars(ms,f,fmt){const vals=ms.map(f);const mx=Math.max(1,...vals.map(Mat
  return `<div class="c" title="${lbl(m.ym)}: ${inr(v)}">${top}${bot}<div class="lab">${lbl(m.ym)}</div></div>`}).join('')}</div></div>`}
 // cost as % of that period's revenue, in brackets (2026-10-28)
 const shr=(v,rev)=>rev?` <span style="color:var(--mute);font-weight:400;font-size:11.5px">(${(v/rev*100).toFixed(0)}%)</span>`:'';
-function table(ms,rowsDef,opts={}){const tot=opts.total!==false;
+// 2026-11-22, per Shruti: "have a + sign in front of the main header and once
+// we click on it, we should be able to see the sub components building up the
+// total". A row with sub:ms=>[{l,f}] gets a + / − toggle (remembered).
+let OPEN=new Set(store.get('plOpen',[]));
+function table(ms,rowsDef,opts={}){const tot=opts.total!==false;const anySub=rowsDef.some(r=>r.sub);
  let h=`<table><thead><tr><th></th>${ms.map(m=>`<th>${lbl(m.ym)}</th>`).join('')}${tot?'<th>Total</th>':''}</tr></thead><tbody>`;
  for(const r of rowsDef){if(r.sec){h+=`<tr class="sec"><td colspan="${ms.length+2}" style="color:var(--mute);font-size:12px">${r.sec}</td></tr>`;continue}
   const vals=ms.map(r.f);const T=r.tot?r.tot(ms):(r.pct?null:vals.reduce((a,b)=>a+b,0));
-  h+=`<tr class="${r.b?'b':''} ${r.pct?'pct':''}"><td>${r.l}</td>${vals.map((v,i)=>{const e=r.e&&r.e(ms[i]);return `<td class="${cls(v)} ${e?'est':''}" ${e?'title="Estimated / includes costs entered on the Other costs tab"':''}>${r.pct?pct(v):inr(v)}${e?'*':''}${r.share?shr(v,ms[i].net):''}</td>`}).join('')}${tot?`<td class="${cls(T)}">${T==null?'':r.pct?pct(T):inr(T)}${r.share&&T!=null?shr(T,sum(ms,'net')):''}</td>`:''}</tr>`}
+  const subs=r.sub?r.sub(ms).filter(s=>ms.some(m=>Math.abs(s.f(m))>=0.5)):null;const open=subs&&subs.length&&OPEN.has(r.k||r.l);
+  const tg=anySub?(subs&&subs.length?`<button class="tg" data-tg="${esc(r.k||r.l)}" title="${open?'Hide':'Show'} what makes up this total">${open?'−':'+'}</button>`:'<button class="tg x" tabindex="-1">+</button>'):'';
+  h+=`<tr class="${r.b?'b':''} ${r.pct?'pct':''}"><td>${tg}${r.l}</td>${vals.map((v,i)=>{const e=r.e&&r.e(ms[i]);return `<td class="${cls(v)} ${e?'est':''}" ${e?'title="Estimated / includes costs entered on the Other costs tab"':''}>${r.pct?pct(v):inr(v)}${e?'*':''}${r.share?shr(v,ms[i].net):''}</td>`}).join('')}${tot?`<td class="${cls(T)}">${T==null?'':r.pct?pct(T):inr(T)}${r.share&&T!=null?shr(T,sum(ms,'net')):''}</td>`:''}</tr>`;
+  if(open)for(const s of subs){const sv=ms.map(s.f),st=sv.reduce((a,b)=>a+b,0);
+   h+=`<tr class="subr"><td>${esc(s.l)}</td>${sv.map(v=>`<td class="${cls(v)}">${Math.abs(v)<0.5?'–':inr(v)}</td>`).join('')}${tot?`<td class="${cls(st)}">${inr(st)}${r.share?shr(st,sum(ms,'net')):''}</td>`:''}</tr>`}}
  return h+'</tbody></table>'}
+// Build-ups for the P&L rows. Costs from the Other costs tab: one line per
+// partner (paid to). Event costs: one line per Partners & Expenses category.
+// Revenue: one line per lead source. Anything the lines don't cover (an
+// estimate from the MIS upload) shows as "Estimated / not itemised".
+function withRest(lines,total){const rest={l:'Estimated / not itemised',f:m=>total(m)-lines.reduce((a,s)=>a+s.f(m),0)};return lines.concat([rest])}
+function groupLines(items,keyOf,amtOf){const by={};for(const it of items){const k=keyOf(it);(by[k]=by[k]||{}),by[k][it.ym]=(by[k][it.ym]||0)+amtOf(it)}
+ return Object.entries(by).map(([l,v])=>({l,f:m=>v[m.ym]||0,t:Object.values(v).reduce((a,b)=>a+b,0)})).sort((a,b)=>b.t-a.t)}
+const costSub=(cat)=>ms=>{const yms=new Set(ms.map(m=>m.ym));
+ return withRest(groupLines(COSTS.filter(c=>c.category===cat&&yms.has(c.ym)),c=>(c.partner||c.description||'(no partner)').trim(),c=>c.amount),m=>m[cat]||0)};
+const evSub=ms=>{const yms=new Set(ms.map(m=>m.ym));const items=[];
+ for(const b of BOOK)if(yms.has(b.ym))for(const c of (b.costs||[]))items.push({ym:b.ym,cat:(c.category||'').trim()||'Uncategorised',amt:+c.amount||0});
+ return withRest(groupLines(items,i=>i.cat,i=>i.amt),m=>m.evCost)};
+const revSub=ms=>{const yms=new Set(ms.map(m=>m.ym));
+ return withRest(groupLines(BOOK.filter(b=>yms.has(b.ym)),b=>b.lead_source||'(lead source not set)',b=>b.revenue),m=>m.net)};
 
 const V={
 overview(ms){const net=sum(ms,'net'),gm=sum(ms,'gm'),eb=sum(ms,'ebitda'),cash=sum(ms,'netCash'),fte=+$('#fte').value||1;
@@ -125,10 +152,10 @@ overview(ms){const net=sum(ms,'net'),gm=sum(ms,'gm'),eb=sum(ms,'ebitda'),cash=su
  +`<div class="card"><h2>Sales by channel</h2>${channelTable(ms)}</div>`},
 pl(ms){return `<div class="card"><h2>Profit & Loss</h2><p class="note">Revenue = birthday bookings (event month). Event costs = Partners &amp; Expenses on each booking. Everything else = costs entered on the Other costs tab. <span class="est">*</span> = includes an estimate or a cost you added on the Other costs tab.</p>`+table(ms,[
  
- {l:'Revenue',f:m=>m.net,b:1},
- {sec:'Direct costs'},{l:'Event costs (vendors, partners & expenses)',share:1,f:m=>m.evCost},
+ {l:'Revenue',f:m=>m.net,b:1,k:'rev',sub:revSub},
+ {sec:'Direct costs'},{l:'Event costs (vendors, partners & expenses)',share:1,f:m=>m.evCost,k:'ev',sub:evSub},
  {l:'Total direct costs',share:1,f:m=>m.direct,b:1},{l:'Gross margin',f:m=>m.gm,b:1},{l:'GM %',f:m=>m.gm/m.net,pct:1,tot:x=>sum(x,'gm')/sum(x,'net')},
- {sec:'Operating expenses'},{l:'Marketing & ads',share:1,f:m=>m.mkt,e:m=>m.manual.mkt},{l:'Manpower',share:1,f:m=>m.man,e:m=>m.manual.man},{l:'Rent',share:1,f:m=>m.rent,e:m=>m.estimated.rent||m.manual.rent},{l:'Electricity',share:1,f:m=>m.elec,e:m=>m.estimated.elec||m.manual.elec},{l:'Wifi & mobile',share:1,f:m=>m.wifi,e:m=>m.estimated.wifi||m.manual.wifi},{l:'Shop expenses',share:1,f:m=>m.shopx,e:m=>m.manual.shopx},{l:'Sample',share:1,f:m=>m.sample||0,e:m=>m.manual.sample},{l:'Other (transport, cleaning, misc.)',share:1,f:m=>m.other},
+ {sec:'Operating expenses'},{l:'Marketing & ads',share:1,f:m=>m.mkt,e:m=>m.manual.mkt,k:'mkt',sub:costSub('mkt')},{sec:'Fixed costs'},{l:'Manpower',share:1,f:m=>m.man,e:m=>m.manual.man,k:'man',sub:costSub('man')},{l:'Rent',share:1,f:m=>m.rent,e:m=>m.estimated.rent||m.manual.rent,k:'rent',sub:costSub('rent')},{l:'Electricity',share:1,f:m=>m.elec,e:m=>m.estimated.elec||m.manual.elec,k:'elec',sub:costSub('elec')},{l:'Wifi & mobile',share:1,f:m=>m.wifi,e:m=>m.estimated.wifi||m.manual.wifi,k:'wifi',sub:costSub('wifi')},{l:'Tech cost',share:1,f:m=>m.tech||0,e:m=>m.manual.tech,k:'tech',sub:costSub('tech')},{l:'Shop expenses',share:1,f:m=>m.shopx,e:m=>m.manual.shopx,k:'shopx',sub:costSub('shopx')},{l:'Sample',share:1,f:m=>m.sample||0,e:m=>m.manual.sample,k:'sample',sub:costSub('sample')},{l:'Other (transport, cleaning, misc.)',share:1,f:m=>m.other,k:'other',sub:costSub('other')},{l:'Total fixed costs',share:1,f:m=>m.fixed,b:1},
  {l:'EBITDA',f:m=>m.ebitda,b:1},{l:'EBITDA %',f:m=>m.ebitda/m.net,pct:1,tot:x=>sum(x,'ebitda')/sum(x,'net')}])+'</div>'},
 ebitda(ms){return `<div class="card"><h2>Monthly EBITDA</h2>${bars(ms,m=>m.ebitda,v=>Math.round(v/1000)+'k')}</div><div class="card"><h2>EBITDA bridge</h2>`+table(ms,[
  {l:'Gross margin',f:m=>m.gm},{l:'– Marketing',f:m=>-m.mkt},{l:'– Fixed costs',f:m=>-m.fixed},{l:'EBITDA',f:m=>m.ebitda,b:1},{l:'EBITDA %',f:m=>m.ebitda/m.net,pct:1,tot:x=>sum(x,'ebitda')/sum(x,'net')},
@@ -169,7 +196,16 @@ V.roi=function(ms){const rm=store.get('roiM','all'),rs=store.get('roiS','all');
  <p class="note">Bookings by event month and the lead's source; revenue = Grand Total, GM = revenue − Partners &amp; Expenses. Spend = Marketing &amp; ads costs tagged to that lead source (+ Other costs). ROI = GM ÷ spend · ROAS = revenue ÷ spend · ACOS = spend ÷ revenue.</p>
  <table><thead><tr><th>Lead source</th><th>% contribution</th><th># bookings</th><th>Bookings rev</th><th>GM%</th><th>GM</th><th>Spend</th><th>ROI</th><th>ROAS</th><th>ACOS</th></tr></thead><tbody>${rows.map(r=>tr(r)).join('')||'<tr><td colspan="10" class="note">Nothing in this period.</td></tr>'}</tbody>${rows.length>1?`<tfoot>${tr({src:'Total',...T},1)}</tfoot>`:''}</table></div>`};
 V.costs=function(){const now=new Date();const dm=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
- const rowsH=COSTS.map(c=>`<tr><td>${dlbl(c)}</td><td style="text-align:left">${CATS[c.category]||c.category}${c.category==='mkt'?`<br><select data-ls="${c.id}" style="font-size:12px;padding:2px 6px;margin-top:3px">${['',...LEAD_SOURCES.filter(x=>x!=='Brand / general')].map(x=>`<option value="${esc(x)}"${(c.lead_source||'')===x?' selected':''}>${x?esc(x):'Brand / general'}</option>`).join('')}${c.lead_source&&!LEAD_SOURCES.includes(c.lead_source)?`<option selected>${esc(c.lead_source)}</option>`:''}</select>`:''}</td><td style="text-align:left">${esc(c.partner||'')}${c.partner&&PARTNERS.length&&!PARTNERS.includes(c.partner)?' <span class="est">not in Partners</span>':''}${!c.partner?'<span class="est">no partner</span>':''}</td><td style="text-align:left">${esc(c.description||'')}</td><td>${inr(c.amount)}</td><td><select data-pv="${c.id}" style="font-size:12px;padding:2px 6px">${PAY_MODES.map(m=>`<option${(c.paid_via||(c.paid?'':'Pending'))===m?' selected':''}>${m}</option>`).join('')}${c.paid_via&&!PAY_MODES.includes(c.paid_via)?`<option selected>${esc(c.paid_via)}</option>`:''}</select></td><td style="color:var(--mute)">${c.created_by||''}</td><td><button data-del="${c.id}">Remove</button></td></tr>`).join('');
+ // 2026-11-22, per Shruti: "have a filter of category and month on the Other Costs tab"
+ const fc=store.get('cfCatF','all'),fm=store.get('cfMonF','all');
+ const cMonths=[...new Set(COSTS.map(c=>c.ym))].sort().reverse();
+ const SHOWN=COSTS.filter(c=>(fc==='all'||c.category===fc)&&(fm==='all'||c.ym===fm));
+ const shownTot=SHOWN.reduce((a,c)=>a+c.amount,0);
+ const fbar=`<div class="fbar"><label>Category<br><select onchange="store.set('cfCatF',this.value);render()"><option value="all">All categories</option>${Object.entries(CATS).map(([k,v])=>`<option value="${k}"${k===fc?' selected':''}>${v}</option>`).join('')}</select></label>
+ <label>Month<br><select onchange="store.set('cfMonF',this.value);render()"><option value="all">All months</option>${cMonths.map(k=>`<option value="${k}"${k===fm?' selected':''}>${lbl(k)}</option>`).join('')}</select></label>
+ ${fc!=='all'||fm!=='all'?`<button onclick="store.set('cfCatF','all');store.set('cfMonF','all');render()">Clear filters</button>`:''}
+ <span style="margin-left:auto;font-size:13px">${SHOWN.length} cost${SHOWN.length===1?'':'s'} · <b>${inr(shownTot)}</b></span></div>`;
+ const rowsH=SHOWN.map(c=>`<tr><td>${dlbl(c)}</td><td style="text-align:left">${CATS[c.category]||c.category}${c.category==='mkt'?`<br><select data-ls="${c.id}" style="font-size:12px;padding:2px 6px;margin-top:3px">${['',...LEAD_SOURCES.filter(x=>x!=='Brand / general')].map(x=>`<option value="${esc(x)}"${(c.lead_source||'')===x?' selected':''}>${x?esc(x):'Brand / general'}</option>`).join('')}${c.lead_source&&!LEAD_SOURCES.includes(c.lead_source)?`<option selected>${esc(c.lead_source)}</option>`:''}</select>`:''}</td><td style="text-align:left">${esc(c.partner||'')}${c.partner&&PARTNERS.length&&!PARTNERS.includes(c.partner)?' <span class="est">not in Partners</span>':''}${!c.partner?'<span class="est">no partner</span>':''}</td><td style="text-align:left">${esc(c.description||'')}</td><td>${inr(c.amount)}</td><td><select data-pv="${c.id}" style="font-size:12px;padding:2px 6px">${PAY_MODES.map(m=>`<option${(c.paid_via||(c.paid?'':'Pending'))===m?' selected':''}>${m}</option>`).join('')}${c.paid_via&&!PAY_MODES.includes(c.paid_via)?`<option selected>${esc(c.paid_via)}</option>`:''}</select></td><td style="color:var(--mute)">${c.created_by||''}</td><td><button data-del="${c.id}">Remove</button></td></tr>`).join('');
  return `<div class="card"><h2>Add a cost</h2><p class="note">Rent, salaries, wifi, electricity, cleaning, transport, ads, materials — Everything except event partner costs (those go on the booking's Partners & Expenses). They flow straight into P&L, EBITDA and cash flow, and are saved to the Wondershop database.</p>
  <form id="cf" style="display:flex;flex-wrap:wrap;gap:10px;align-items:end">
  <label>Date<br><input type="date" name="d" value="${todayIST()}" min="2026-10-01" required></label>
@@ -182,7 +218,7 @@ V.costs=function(){const now=new Date();const dm=now.getFullYear()+'-'+String(no
  <button class="pri">Add</button></form>
  <p class="note" style="margin-top:10px">Every cost is paid to a partner from the Partners list on the admin page — add the office owner and each staff member there once (any category). A name not on the list still saves, but shows <span class="est">not in Partners</span>.</p>
  <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="tmpl">Copy last month's recurring costs into the selected month</button></div></div>
- <div class="card"><h2>Costs you've added (${COSTS.length})</h2>${COSTS.length?`<table><thead><tr><th>Date</th><th style="text-align:left">Category / lead source</th><th style="text-align:left">Partner</th><th style="text-align:left">Description</th><th>Amount</th><th>Payment mode</th><th>Added by</th><th></th></tr></thead><tbody>${rowsH}</tbody></table>`:'<p class="note">Nothing added yet.</p>'}</div>`};
+ <div class="card"><h2>Costs you've added (${COSTS.length})</h2>${COSTS.length?fbar:''}${SHOWN.length?`<table><thead><tr><th>Date</th><th style="text-align:left">Category / lead source</th><th style="text-align:left">Partner</th><th style="text-align:left">Description</th><th>Amount</th><th>Payment mode</th><th>Added by</th><th></th></tr></thead><tbody>${rowsH}</tbody></table>`:(COSTS.length?'<p class="note">No costs match these filters.</p>':'<p class="note">Nothing added yet.</p>')}</div>`};
 async function reloadCosts(){COSTS=await api('/costs');setupFY();render()}
 async function addCosts(list){try{for(const c of list)await api('/costs',{method:'POST',body:JSON.stringify({...c,by:getName()})});await reloadCosts()}catch(e){if(e.message!=='auth')alert(e.message)}}
 document.addEventListener('submit',e=>{if(e.target.id==='gateF'){e.preventDefault();try{localStorage.setItem('ws_admin_pw',$('#gatePw').value.trim());localStorage.setItem('ws_admin_name',$('#gateName').value.trim())}catch(err){}boot();return}
@@ -197,6 +233,7 @@ document.addEventListener('change',async e=>{const t=e.target;
  if(t.dataset&&t.dataset.pv!=null){try{await api('/costs/'+t.dataset.pv+'/paid',{method:'POST',body:JSON.stringify({paid_via:t.value})});await reloadCosts()}catch(err){if(err.message!=='auth')alert(err.message)}return}
  if(t.dataset&&t.dataset.ls!=null){try{await api('/costs/'+t.dataset.ls+'/lead-source',{method:'POST',body:JSON.stringify({lead_source:t.value||null})});await reloadCosts()}catch(err){if(err.message!=='auth')alert(err.message)}}});
 document.addEventListener('click',async e=>{const t=e.target;
+  if(t.dataset&&t.dataset.tg!=null){const k=t.dataset.tg;OPEN.has(k)?OPEN.delete(k):OPEN.add(k);store.set('plOpen',[...OPEN]);render();return}
   if(t.dataset.del!=null){if(!confirm('Remove this cost?'))return;try{await api('/costs/'+t.dataset.del,{method:'DELETE'});await reloadCosts()}catch(err){if(err.message!=='auth')alert(err.message)}}
  if(t.id==='tmpl'){const m=document.querySelector('#cf [name=d]').value.slice(0,7).replace('-','');const y=+m.slice(0,4),mo=+m.slice(4);const prev=mo===1?(y-1)+'12':y+String(mo-1).padStart(2,'0');
   const src=COSTS.filter(c=>c.ym===prev);if(!src.length){alert('Nothing was added for '+lbl(prev)+' to copy.');return}
