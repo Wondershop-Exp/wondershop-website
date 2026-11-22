@@ -71,6 +71,11 @@
   }
 
   var DATA = null, MAP = null, F = {bm:'', lm:'', sl:''}, VIEW = 'Mumbai';
+  // "Hide numbers" (2026-11-22, per Shruti — "I want to share it on our IG
+  // profile or statuses"): the map and the area list show only the area names
+  // — no counts, no client names in pop-ups, no "Not on map" list, no zoom
+  // buttons — so a screenshot can be posted as it is.
+  var HIDE = false;
   var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   function ml(ym){ return ym ? MON[+ym.slice(5,7)-1]+' '+ym.slice(0,4) : ''; }
   function e(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -111,11 +116,12 @@
       + '<div class="bm-grid"><div><div class="bm-h">By gender <small>each child counted</small></div>'+bars(gRows, '#D6457F')+'</div>'
       + '<div><div class="bm-h">By age <small>each child counted'+(noAge?' · '+noAge+' booking'+(noAge===1?'':'s')+' without an age':'')+'</small></div>'+bars(aRows, '#6C4AB6')+'</div></div>'
       + '<div class="bm-h bm-maphead">By locality'
+      + '<label class="bm-hide"><input type="checkbox"'+(HIDE?' checked':'')+' onchange="wsBM.hide(this.checked)"> Hide numbers</label>'
       + '<span class="bm-view"><button class="'+(VIEW==='Mumbai'?'on':'')+'" onclick="wsBM.view(\'Mumbai\')">Mumbai</button><button class="'+(VIEW==='Pune'?'on':'')+'" onclick="wsBM.view(\'Pune\')">Pune</button></span></div>'
       + '<div class="bm-mapwrap"><div id="bmMap"></div><div class="bm-loclist">'
-      + (shown.length ? shown.map(function(x){ return '<div class="bm-loc" onclick="wsBM.fly('+x.l.lat+','+x.l.lng+')"><span>'+e(x.l.name)+'</span><b>'+x.n+'</b></div>'; }).join('')
+      + (shown.length ? shown.map(function(x){ return '<div class="bm-loc" onclick="wsBM.fly('+x.l.lat+','+x.l.lng+')"><span>'+e(x.l.name)+'</span>'+(HIDE?'':'<b>'+x.n+'</b>')+'</div>'; }).join('')
                       : '<div class="empty">No bookings mapped in '+VIEW+'.</div>')
-      + (off.length ? '<div class="bm-off"><b>Not on map ('+off.length+')</b><small>No known area in the venue or pincode</small>'
+      + (off.length && !HIDE ? '<div class="bm-off"><b>Not on map ('+off.length+')</b><small>No known area in the venue or pincode</small>'
           + off.map(function(r){ return '<div>#'+r.id+' '+e(r.name||'')+' · <span>'+e(r.venue||r.pincode||'no venue')+'</span></div>'; }).join('')+'</div>' : '')
       + '</div></div>';
     drawMap(shown);
@@ -129,16 +135,16 @@
     loadLeaflet(function(){
       var el = document.getElementById('bmMap'); if(!el) return;
       if(MAP){ MAP.remove(); MAP = null; }
-      MAP = L.map(el, {scrollWheelZoom:false});
+      MAP = L.map(el, {scrollWheelZoom:false, zoomControl:!HIDE});
       // OpenStreetMap's own free tiles (CARTO now asks for a key on live sites, 2026-10-29).
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'&copy; OpenStreetMap contributors'}).addTo(MAP);
       if(VIEW==='Pune') MAP.setView([18.5204,73.8567], 11); else MAP.setView([19.10,72.93], 10);
       var max = Math.max.apply(null, rows.map(function(x){ return x.n; }).concat([1]));
       rows.forEach(function(x){
-        L.circleMarker([x.l.lat, x.l.lng], {radius: 7 + 16*Math.sqrt(x.n/max), color:'#B4236B', weight:1.5, fillColor:'#D6457F', fillOpacity:.55})
-          .bindTooltip(e(x.l.name)+' · '+x.n, {permanent:true, direction:'right', offset:[8,0], className:'bm-tip'})   // always-visible labels (2026-10-29)
-          .bindPopup('<b>'+e(x.l.name)+'</b> · '+x.n+'<br>'+x.who.map(function(r){ return '#'+r.id+' '+e(r.name||''); }).join('<br>'))
-          .addTo(MAP);
+        var mk = L.circleMarker([x.l.lat, x.l.lng], {radius: 7 + 16*Math.sqrt(x.n/max), color:'#B4236B', weight:1.5, fillColor:'#D6457F', fillOpacity:.55})
+          .bindTooltip(e(x.l.name)+(HIDE?'':' · '+x.n), {permanent:true, direction:'right', offset:[8,0], className:'bm-tip'});   // always-visible labels (2026-10-29)
+        if(!HIDE) mk.bindPopup('<b>'+e(x.l.name)+'</b> · '+x.n+'<br>'+x.who.map(function(r){ return '#'+r.id+' '+e(r.name||''); }).join('<br>'));
+        mk.addTo(MAP);
       });
     });
   }
@@ -150,6 +156,7 @@
     },
     set: function(k, v){ F[k] = v; render(); },
     view: function(v){ VIEW = v; render(); },
+    hide: function(on){ HIDE = !!on; render(); },
     fly: function(lat, lng){ if(MAP) MAP.setView([lat, lng], 13); },
     locate: locate
   };
