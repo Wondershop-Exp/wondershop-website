@@ -43,6 +43,18 @@ Slack vendor contacts bot (2026-10-28, per Shruti).
      be added) in the Partners tab of the admin panel, and the Partners search
      looks through them.
 
+  7. FIELDS FROM TEXT (2026-11-23, per Shruti — "whatever information I am
+     providing - like name, number, deals in, remarks, locality, pincode,
+     address, city ... can we try updating other fields as well"): a typed
+     post is read line by line (vendor_details.py, no API key needed) into
+     name, contact person, mobile / alternate, deals in, services, address,
+     locality, city, pincode, email, website and Instagram; only what fits no
+     field goes into the notes. A pincode with no city fills the city (India
+     Post lookup). Replies like "pincode 400016", "locality Andheri", "deals
+     in decorator" or a new number update that partner's fields; anything
+     else in a reply is still a note. Posting a saved number again also
+     fixes a partner whose name was saved as a number.
+
 Needs SLACK_SIGNING_SECRET + SLACK_BOT_TOKEN (same app as the lead bot, with
 files:read), and ANTHROPIC_API_KEY to read card photos (text works without it).
 """
@@ -89,6 +101,13 @@ Pull out each separate business / person she is saving (usually one; a photo wit
 Only report what is actually written. Never guess a phone number or email. Use null for anything not given.
 
 Reply with ONLY a JSON object: {{"contacts": [ ... ]}}"""
+
+
+def _expand_links(raw: str) -> str:
+    """<https://...|label> -> the full URL (the label is often cut short), then
+    the usual clean-up of Slack's markup."""
+    raw = re.sub(r"<(https?://[^|>]+)\|[^>]*>", r"\1", raw or "")
+    return clean_slack_text(raw)
 
 
 def _digits10(v) -> Optional[str]:
@@ -154,7 +173,7 @@ def _clean(c: Dict[str, Any], deals_list: List[str]) -> Dict[str, Any]:
     if deals and deals not in deals_list:
         deals = next((d for d in deals_list if d.lower() == deals.lower()), "Others")
     other = _s(c.get("deals_in_other"), 60)
-    new_cat = tidy_name(c.get("new_category") or "") if deals == "Others" else ""
+    new_cat = tidy_name(c.get("new_category") or (other.title() if other and len(other.split()) <= 3 else "")) if deals == "Others" else ""
     if new_cat and new_cat.lower() in {d.lower() for d in deals_list}:
         deals, other, new_cat = next(d for d in deals_list if d.lower() == new_cat.lower()), None, ""
     phone, alt = _digits10(c.get("phone")), _digits10(c.get("alternate_phone"))
@@ -169,7 +188,7 @@ def _clean(c: Dict[str, Any], deals_list: List[str]) -> Dict[str, Any]:
         "primary_contact_name": _s(c.get("contact_person"), 100),
         "primary_mobile": phone, "alternate_mobile": alt,
         "email": (_s(c.get("email"), 254) or "").lower() or None,
-        "website": _s(c.get("website"), 255),
+        "website": _s(c.get("website"), 255) or (f"https://instagram.com/{ig.lstrip('@')}" if ig else None),
         "instagram": ig.lstrip("@") if ig else None,
         "address": _s(c.get("address"), 500), "locality": _s(c.get("locality"), 100),
         "city": _s(c.get("city"), 50), "pincode": (_s(c.get("pincode"), 6) or "") if re.fullmatch(r"[1-9]\d{5}", str(c.get("pincode") or "")) else None,
@@ -216,13 +235,34 @@ async def _save_card(vendor_id: int, data: bytes, mime: str, i: int) -> None:
         {"v": vendor_id, "n": f"card-{datetime.now(IST):%Y%m%d}-{i}.{ext}", "t": mime, "s": len(data), "d": data})
 
 
+async def _city_from_pincode(c: Dict[str, Any]) -> None:
+    if c.get("pincode") and not c.get("city"):
+        try:
+            from routers.vendor_onboarding import lookup_pincode
+            r = await lookup_pincode(c["pincode"])
+            if r.get("found") and r.get("city"):
+                c["city"] = r["city"][:50]
+        except Exception:
+            pass
+
+
+def _bad_name(n: Optional[str]) -> bool:
+    """A name an older bot version saved from the phone line / nothing."""
+    n = (n or "").strip()
+    return not n or n == "Unnamed contact" or len(re.sub(r"\D", "", n)) >= 7 or not re.search(r"[A-Za-z]", n)
+
+
 async def save_contact(c: Dict[str, Any], who: str, cards: List[Tuple[bytes, str]], slack_ts: Optional[str]) -> Dict[str, Any]:
+    await _city_from_pincode(c)
     existing = await _find_existing(c)
     extra = "; ".join(x for x in [
         f"Instagram @{c['instagram']}" if c.get("instagram") else "",
         f"Services: {c['services']}" if c.get("services") else ""] if x)
     if existing:
         vid = existing["vendor_id"]
+        if c.get("name") and not _bad_name(c["name"]) and _bad_name(existing["name"]):
+            await database.execute("UPDATE vendor_master SET name = :n WHERE vendor_id = :id", {"n": c["name"], "id": vid})
+            existing = {"vendor_id": vid, "name": c["name"]}
         # Fill only blank fields on the existing partner; never overwrite.
         for f in ("primary_contact_name", "alternate_mobile", "email", "website", "address", "locality", "city", "pincode", "deals_in"):
             if c.get(f):
@@ -286,10 +326,16 @@ async def handle_message(ev: Dict[str, Any]) -> None:
         if not text.strip() and not images:
             return
         deals_list = await all_categories()
-        if settings.ANTHROPIC_API_KEY:
+        import vendor_details
+        ruled = vendor_details.parse_contact(_expand_links(ev.get("text") or ""), deals_list) if text.strip() else []
+        if settings.ANTHROPIC_API_KEY and images:
             contacts = await _ask_claude(images, text, deals_list)
+            if len(contacts) == 1 and ruled:   # what the text says fills anything the card reading missed
+                for k, v in ruled[0].items():
+                    if v and not contacts[0].get(k):
+                        contacts[0][k] = v
         else:
-            contacts = _parse_plain(text, deals_list)
+            contacts = ruled
             if images:
                 reply.append("⚠️ ANTHROPIC_API_KEY isn't set on Railway, so I saved the card photo but couldn't read it.")
         contacts = [c for c in (_clean(x, deals_list) for x in contacts) if c.get("name") or c.get("primary_mobile")]
@@ -353,12 +399,73 @@ async def handle_reply(ev: Dict[str, Any], post: Dict[str, Any]) -> None:
     if len(ids) > 1:   # several contacts in one post: "#123 call in Dec" picks one
         m = re.search(r"#(\d{1,7})\b", text)
         target = [int(m.group(1))] if m and int(m.group(1)) in ids else ids
-    names = []
+    # Details in the reply update the partner (2026-11-23); the rest is a note.
+    import vendor_details
+    body = re.sub(r"#\d{1,7}\b", "", _expand_links(ev.get("text") or "")) if len(ids) > 1 else _expand_links(ev.get("text") or "")
+    changes, rest = vendor_details.parse_updates(body, await all_categories())
+    out = []
     for vid in target:
-        await add_note(vid, text, who, "slack", ev.get("ts"))
-        names.append(await database.fetch_val("SELECT name FROM vendor_master WHERE vendor_id = :v", {"v": vid}) or f"#{vid}")
-    await slack_api("chat.postMessage", channel=ev.get("channel"), thread_ts=ev.get("thread_ts"),
-                    text="📝 Note added to " + ", ".join(names), unfurl_links=False)
+        name = await database.fetch_val("SELECT name FROM vendor_master WHERE vendor_id = :v", {"v": vid}) or f"#{vid}"
+        done = await apply_updates(vid, changes, who) if changes and len(target) == 1 else []
+        if rest.strip():
+            await add_note(vid, rest, who, "slack", ev.get("ts"))
+        line = (f"✏️ Updated {name}: " + "; ".join(done)) if done else ""
+        if rest.strip():
+            line = (line + "\n" if line else "") + f"📝 Note added to {name}"
+        if line:
+            out.append(line)
+    if changes and len(target) > 1:
+        out.append("❓ Several contacts in this post — start the reply with their #number to update details, e.g. `#123 pincode 400016`.")
+    if out:
+        await slack_api("chat.postMessage", channel=ev.get("channel"), thread_ts=ev.get("thread_ts"),
+                        text="\n".join(out), unfurl_links=False)
+
+
+UPDATE_COLS = {"business_name": "name", "contact_person": "primary_contact_name", "email": "email", "website": "website",
+               "address": "address", "locality": "locality", "city": "city", "pincode": "pincode", "deals_in": "deals_in"}
+
+
+async def apply_updates(vid: int, ch: Dict[str, Any], who: str) -> List[str]:
+    """Fields given in a thread reply replace what the partner has (it's a
+    correction or an addition); a phone number becomes the mobile when it
+    was a placeholder, else the alternate number."""
+    import vendor_details
+    ch = dict(ch)
+    row = await database.fetch_one("SELECT * FROM vendor_master WHERE vendor_id = :v", {"v": vid})
+    if not row:
+        return []
+    row = dict(row)
+    if ch.get("deals_in") == "Others" and ch.get("deals_in_other"):
+        ch["deals_in"] = ch["deals_in_other"]
+    if ch.get("instagram") and not ch.get("website"):
+        ch["website"] = f"https://instagram.com/{ch['instagram']}"
+    if ch.get("pincode") and not ch.get("city") and not (row.get("city") or "").strip():
+        await _city_from_pincode(ch)
+    done, sets, vals = [], [], {"id": vid}
+    for k, col in UPDATE_COLS.items():
+        v = ch.get(k)
+        if not v:
+            continue
+        sets.append(f"{col} = :{col}"); vals[col] = str(v)[:500 if col in ("address", "website") else 150]
+        done.append(f"{vendor_details.FIELD_LABELS.get(k, k)} → {v}")
+    for num in [n for n in (ch.get("phone"), ch.get("alternate_phone")) if n]:
+        cur, alt = re.sub(r"\D", "", row.get("primary_mobile") or ""), re.sub(r"\D", "", row.get("alternate_mobile") or "")
+        if num in (cur, alt):
+            continue
+        if not cur or cur == PLACEHOLDER_MOBILE:
+            sets += ["primary_mobile = :pm", "whatsapp_number = COALESCE(NULLIF(whatsapp_number, ''), :pm)"]; vals["pm"] = num
+            row["primary_mobile"] = num; done.append(f"mobile → {num}")
+        elif not alt:
+            sets.append("alternate_mobile = :am"); vals["am"] = num; row["alternate_mobile"] = num
+            done.append(f"alternate number → {num}")
+    if ch.get("services"):
+        sets.append("remarks = CASE WHEN COALESCE(remarks, '') = '' THEN :sv ELSE remarks || '; ' || :sv END")
+        vals["sv"] = f"Services: {ch['services']}"[:500]
+        done.append(f"services → {ch['services']}")
+    if sets:
+        await database.execute(f"UPDATE vendor_master SET {', '.join(sets)} WHERE vendor_id = :id", vals)
+        await add_note(vid, "Updated from Slack: " + "; ".join(done), who, "slack")
+    return done
 
 
 async def find_text(q: str) -> str:
