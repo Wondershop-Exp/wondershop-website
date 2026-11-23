@@ -1105,7 +1105,8 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
                             else _derive_original_value(k, row, snap_r))
                 if ov and ov["removed"]:
                     removed_r.add(k)
-            row["_tbc_pending"] = sum(1 for t in to_be_confirmed(cur_r, removed_r, snap_r, row) if t["status"] != "confirmed")
+            row["_tbc_pending"] = 0 if row.get("status") == "Cancelled" else \
+                sum(1 for t in to_be_confirmed(cur_r, removed_r, snap_r, row) if t["status"] != "confirmed")
             row["_acts_now"] = None if "svc_activities" in removed_r else cur_r.get("svc_activities")
         except Exception:
             logger.exception(f"Lead #{row['lead_id']}: couldn't compute to-be-confirmed items")

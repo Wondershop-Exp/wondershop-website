@@ -1952,6 +1952,7 @@ async function goSave(send){
 let TBC_ITEMS = [];
 function tbcHtml(d){
   TBC_ITEMS = d.to_be_confirmed || [];
+  if(d.is_booking && String(d.status||'') === 'Cancelled') return '';   // cancelled: nothing to confirm (2026-11-23)
   // 2026-10-14, per Shruti: once an item is confirmed it leaves the card, and
   // the card disappears when nothing is pending (no green "all done" box) —
   // the confirmed price still counts and still shows in the Activities section.
