@@ -214,6 +214,7 @@ def _email_html(first_name: str, child: str, url: str) -> str:
 <tr><td style="padding:24px 26px;font-size:15px;line-height:1.6;color:#2D2140">
 {hi}<br><br>Thank you for celebrating with Wondershop Experiences! We'd love to hear how it went —
 it takes about a minute, and it helps us make every party better.
+<div style="margin-top:14px;background:#FFF8EC;border-radius:10px;padding:10px 12px;font-size:13.5px">⭐ After you submit, the page takes you to our Google reviews — please post your review on Google as well. It really helps other parents find us 🙏</div>
 <div style="text-align:center;margin:24px 0 8px">
 <a href="{url}" style="display:inline-block;background:#E65A96;color:#fff;text-decoration:none;font-weight:700;font-size:16px;padding:14px 28px;border-radius:999px">⭐ Rate your party</a></div>
 <div style="text-align:center;font-size:12px;color:#8B7FA0">Or open: <a href="{url}" style="color:{BRAND_PURPLE}">{url}</a></div>
@@ -240,7 +241,7 @@ async def admin_email_feedback(lead_id: int, body: ChangedBy, x_admin_password: 
     subject = f"How was {child}'s party? 💜" if child else "How was your party? 💜"
     text = (f"Hi {first},\n\n" if first else "Hi,\n\n") + \
         "Thank you for celebrating with Wondershop Experiences! We'd love to hear how it went — it takes about a minute:\n" \
-        f"{url}\n\nTeam Wondershop Experiences\n+91 90044 35362 · +91 97422 40477"
+        f"{url}\n\n⭐ After you submit, the page takes you to our Google reviews — please post your review on Google as well, it really helps other parents find us 🙏\n\nTeam Wondershop Experiences\n+91 90044 35362 · +91 97422 40477"
     try:
         await _gmail_send(lead["email"], subject, text, _email_html(first, child, url))
     except Exception as e:

@@ -2304,7 +2304,7 @@ function drawFeedbackBlock(locked){
     h += '<div class="fb-btns"><button class="fb-btn pk" onclick="saveFeedbackSetup()">Create feedback link</button></div>';
   }else{
     // 2026-10-12: no wa.me link — the team pastes this into the event's WhatsApp group.
-    const waMsg = 'Hi'+(FB.client_first_name?' '+FB.client_first_name:'')+'! Thank you for celebrating '+(FB.child_name?FB.child_name+'\u2019s birthday ':'')+'with Wondershop Experiences 💜\n\nWe\'d love to hear how it went — it takes a minute and helps us improve our services for more awesome events!\n'+FB.url;
+    const waMsg = 'Hi'+(FB.client_first_name?' '+FB.client_first_name:'')+'! Thank you for celebrating '+(FB.child_name?FB.child_name+'\u2019s birthday ':'')+'with Wondershop Experiences 💜\n\nWe\'d love to hear how it went — it takes a minute and helps us improve our services for more awesome events!\n'+FB.url+'\n\n⭐ After you submit, the page takes you to our Google reviews — please post your review on Google as well, it really helps other parents find us 🙏';
     h += '<div class="fb-btns">'
       + '<button class="fb-btn gh" onclick="saveFeedbackSetup()">Save questions</button>'
       + '<button class="fb-btn wa" onclick="navigator.clipboard.writeText('+attrJson(waMsg)+').then(()=>{showToast(\'WhatsApp message copied — paste it in the event group\');markFeedbackWhatsapp();})">Copy WhatsApp message</button>'
@@ -7272,5 +7272,12 @@ async function decorRefRemove(btn){
 <script src="js/floor-map.js?v=20261121c"></script>
 <script src="js/lead-venues.js"></script>
 <script src="js/decor-job-admin.js?v=20261121b"></script>
+<!-- Back to top (2026-11-23, per Shruti — long booking pages) -->
+<button type="button" id="toTop" title="Back to top" aria-label="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})"
+  style="position:fixed;right:18px;bottom:22px;z-index:900;width:46px;height:46px;border-radius:50%;border:none;background:#E65A96;color:#fff;font-size:22px;font-weight:700;box-shadow:0 6px 18px rgba(45,33,64,.25);cursor:pointer;display:none">↑</button>
+<script>
+(function(){ var b = document.getElementById('toTop'); function f(){ b.style.display = window.scrollY > 600 ? 'block' : 'none'; }
+  window.addEventListener('scroll', f, {passive:true}); f(); })();
+</script>
 </body>
 </html>
