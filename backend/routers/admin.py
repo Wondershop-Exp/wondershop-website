@@ -1207,6 +1207,11 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
                             if f_.get("field_key") == "bill_grand_total":
                                 v = str(f_.get("customer_choice") or "").replace(",", "").replace("₹", "").strip()
                                 r["grand_total"] = float(v) if v else None
+                    # Return gifts billed separately count too (2026-11-23, per Shruti).
+                    P = d.get("pricing") or {}
+                    if P.get("gifts_separate") and P.get("gift_total"):
+                        r["gift_total"] = float(P["gift_total"])
+                        r["grand_total"] = round((r.get("grand_total") or 0) + r["gift_total"], 2)
                 except Exception:
                     logger.exception(f"Lead #{r['lead_id']}: couldn't compute grand total for the list")
                     r["grand_total"] = None

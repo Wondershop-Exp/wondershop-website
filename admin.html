@@ -4494,7 +4494,7 @@ function bookingRowHtml(r){
     +'<td>'+esc(r.parent_name||'')+'</td>'
     +'<td>'+esc(r.phone||'')+'</td>'
     +'<td style="white-space:nowrap">'+fmtEventDate(r.event_date)+'</td>'
-    +'<td style="white-space:nowrap">'+_bkMoney(r.grand_total)+'</td>'
+    +'<td style="white-space:nowrap">'+_bkMoney(r.grand_total)+(r.gift_total?'<div style="font-size:11px;color:var(--gy)">incl. gifts '+_bkMoney(r.gift_total)+'</div>':'')+'</td>'
     +'<td>'+listStatusCellHtml(r, 'booking')+(r.tbc_pending?'<span class="tbc-badge" title="Items to be confirmed by ops">⚠ '+r.tbc_pending+' to confirm</span>':'')+'</td>'
     +'<td title="'+esc(r.venue||'')+'">'+esc(_bkLocality(r.venue)||'—')+'</td>'
     +'<td>'+esc(_bkAgeGender(r))+'</td>'
