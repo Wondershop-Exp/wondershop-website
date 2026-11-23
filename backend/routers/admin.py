@@ -497,7 +497,7 @@ LEAD_STATUSES = ["New", "Unanswered", "Initial Discussions Done", "Proposal Sent
 # dropdown's full option list.
 LEAD_STATUS_DROPDOWN_VALUES = ["New", "Unanswered", "Re-engage later", "Initial Discussions Done", "Proposal Sent", "Negotiations Ongoing", "Converted", "Not Interested", "DND", "Did not Enquire"]
 LEAD_STATUS_OPTIONS = [_opt(x) for x in LEAD_STATUS_DROPDOWN_VALUES]
-BOOKING_DISPLAY_STATUSES = ["New", "Upcoming", "Payment Pending", "Complete", "Cancelled"]
+BOOKING_DISPLAY_STATUSES = ["New", "Upcoming", "Payment Pending", "Feedback Pending", "Complete", "Cancelled"]
 
 # Shown only when a lead is marked Not Interested / DND — i.e. it left the
 # pipeline without converting.
@@ -509,7 +509,7 @@ NON_CONVERT_REASONS = [
 NON_CONVERT_REASON_OPTIONS = [_opt(x) for x in NON_CONVERT_REASONS]
 
 
-def _booking_display_status(lead: dict, paid: bool = False) -> str:
+def _booking_display_status(lead: dict, paid: bool = False, feedback: bool = True) -> str:
     if lead.get("status") == "Cancelled":
         return "Cancelled"
     event_date = lead.get("event_date")
@@ -522,10 +522,21 @@ def _booking_display_status(lead: dict, paid: bool = False) -> str:
     # 2026-11-16, per Shruti (#1299) — Complete only once the payment is
     # recorded; an event that has happened without it is "Payment Pending".
     if paid and ed <= today:
-        return "Complete"
+        # 2026-11-23, per Shruti — after payment, "Feedback Pending" until the
+        # client's feedback form comes in.
+        return "Complete" if feedback else "Feedback Pending"
     if ed < today:
         return "Payment Pending"
     return "Upcoming"
+
+
+async def _feedback_lead_ids() -> set:
+    """Bookings whose client feedback form has been submitted."""
+    try:
+        rows = await database.fetch_all("SELECT lead_id FROM party_feedback WHERE submitted_at IS NOT NULL")
+    except Exception:
+        return set()
+    return {r["lead_id"] for r in rows}
 
 
 async def _paid_lead_ids(ids=None) -> set:
@@ -1036,9 +1047,10 @@ async def list_bookings(kind: str = "lead", q: Optional[str] = None, sort: str =
     enriched = []
     new_count = 0
     _paid = await _paid_lead_ids() if is_booking else set()
+    _fb = await _feedback_lead_ids() if is_booking else set()
     for r in rows:
         row = dict(r)
-        row["_display_status"] = _booking_display_status(row, row["lead_id"] in _paid) if is_booking else row["status"]
+        row["_display_status"] = _booking_display_status(row, row["lead_id"] in _paid, row["lead_id"] in _fb) if is_booking else row["status"]
         if row["_display_status"] == "New":
             new_count += 1
         enriched.append(row)
@@ -1612,7 +1624,7 @@ async def get_booking_detail(lead_id: int, x_admin_password: Optional[str] = Hea
         "pending_custom_pinata": pending_custom_pinata,
         # Read-only computed status for a booking (New/Upcoming/Complete/
         # Cancelled); the raw editable pipeline status for a lead.
-        "status": _booking_display_status(lead, lead_id in (await _paid_lead_ids())) if is_booking else lead.get("status"),
+        "status": _booking_display_status(lead, lead_id in (await _paid_lead_ids()), lead_id in (await _feedback_lead_ids())) if is_booking else lead.get("status"),
         # 2026-08-19, per Shruti follow-up — see _is_locked(): true once a
         # booking is Cancelled or a lead is Not Interested/DND. The frontend
         # renders every field row read-only and hides Save/Remove/+Add Field
