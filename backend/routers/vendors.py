@@ -52,6 +52,7 @@ VENDOR_FIELDS = [
     "timings", "website", "remarks", "is_active",
     "bank_account_holder_name", "bank_name", "bank_account_number", "bank_ifsc_code",
     "bank_account_type", "preferred_payment_mode", "gst_number",
+    "bank_branch_name",   # 2026-11-27 (migration 092)
 ]
 
 # Explicit column list for reads — everything EXCEPT the bytea file itself,
@@ -83,6 +84,7 @@ PENDING_APPLY_FIELDS = [
     "name", "primary_contact_name", "alternate_mobile", "whatsapp_number", "email",
     "deals_in", "address", "locality", "city", "pincode", "preferred_payment_mode", "gst_number",
     "bank_account_holder_name", "bank_name", "bank_account_number", "bank_ifsc_code", "bank_account_type",
+    "bank_branch_name",
 ]
 
 # A vendor needs a look if it was never reviewed OR has a held-back update.
@@ -112,6 +114,7 @@ class VendorRequest(BaseModel):
     bank_account_number: Optional[str] = None
     bank_ifsc_code: Optional[str] = None
     bank_account_type: Optional[str] = None
+    bank_branch_name: Optional[str] = None
     preferred_payment_mode: Optional[str] = None
     gst_number: Optional[str] = None
     # Only sent by the Partners tab for Event Volunteers; None leaves it as is.

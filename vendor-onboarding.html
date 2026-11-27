@@ -322,6 +322,10 @@ body.is-host .req-host{display:inline}
           </div>
         </div>
         <div class="fld">
+          <label>Branch Name <span class="opt">(optional)</span></label>
+          <input type="text" id="f_bank_branch" maxlength="150" placeholder="e.g. Andheri West">
+        </div>
+        <div class="fld">
           <label>Account Type</label>
           <select id="f_bank_type">
             <option value="">Select...</option>
@@ -701,6 +705,7 @@ document.getElementById('vendorForm').addEventListener('submit', async (e) => {
   fd.append('bank_name', bankName);
   fd.append('bank_account_number', bankAcc);
   fd.append('bank_ifsc_code', bankIfsc);
+  fd.append('bank_branch_name', document.getElementById('f_bank_branch').value.trim());
   fd.append('bank_account_type', bankType);
   if(hasFile) fd.append('cancelled_cheque', fileInput.files[0]);
   if(isDecorator) await WSDecor.appendTo(fd);

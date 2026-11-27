@@ -87,6 +87,9 @@ _PLAIN_FIELDS = [
     "deals_in", "address", "locality", "city", "pincode", "preferred_payment_mode", "gst_number",
 ]
 _BANK_FIELDS = ["bank_account_holder_name", "bank_name", "bank_account_number", "bank_ifsc_code", "bank_account_type"]
+# Optional bank detail (2026-11-27): merged / held for approval like the others,
+# but not needed for the bank details to count as complete.
+_BANK_EXTRA = ["bank_branch_name"]
 _DIGITS = "right(regexp_replace(COALESCE({c}, ''), '[^0-9]', '', 'g'), 10)"
 
 
@@ -133,7 +136,7 @@ async def _update_existing_vendor(mobile: str, values: dict, file_bytes, file_na
     several and the submitted name doesn't clearly pick one — either way the
     caller then creates a new (inactive, pending-review) entry."""
     prim, alt = _DIGITS.format(c="primary_mobile"), _DIGITS.format(c="alternate_mobile")
-    cols = ", ".join(_PLAIN_FIELDS + _BANK_FIELDS)
+    cols = ", ".join(_PLAIN_FIELDS + _BANK_FIELDS + _BANK_EXTRA)
     async with database.transaction():
         if vendor_id is not None:
             # Came in through a private update link (see below): that link
@@ -168,7 +171,7 @@ async def _update_existing_vendor(mobile: str, values: dict, file_bytes, file_na
                 continue
             elif not _same(f, cur, new):
                 pending[f] = new
-        for f in _BANK_FIELDS:
+        for f in _BANK_FIELDS + _BANK_EXTRA:
             new = values.get(f)
             if new and not _same(f, existing[f], new):
                 pending[f] = new
@@ -1231,6 +1234,7 @@ async def submit_vendor_onboarding(
     bank_name: Optional[str] = Form(None),
     bank_account_number: Optional[str] = Form(None),
     bank_ifsc_code: Optional[str] = Form(None),
+    bank_branch_name: Optional[str] = Form(None),
     bank_account_type: Optional[str] = Form(None),
     preferred_payment_mode: Optional[str] = Form(None),
     gst_number: Optional[str] = Form(None),
@@ -1449,6 +1453,7 @@ async def submit_vendor_onboarding(
         "bank_name": bank_name,
         "bank_account_number": bank_account_number,
         "bank_ifsc_code": bank_ifsc_code,
+        "bank_branch_name": (_clean(bank_branch_name) or "")[:150] or None,
         "bank_account_type": bank_account_type,
         "preferred_payment_mode": preferred_payment_mode,
         "gst_number": gst_number,
